@@ -63,7 +63,8 @@ public class KafkaBolt<K, V> extends BaseRichBolt {
     private OutputCollector collector;
     private TupleToKafkaMapper<K,V> mapper;
     private KafkaTopicSelector topicSelector;
-    /** 
+    private Properties boltSpecfiedProperties = new Properties();
+    /**
      * With default setting for fireAndForget and async, the callback is called when the sending succeeds.
      * By setting fireAndForget true, the send will not wait at all for kafka to ack.
      * "acks" setting in 0.8.2 Producer API config doesn't matter if fireAndForget is set.
@@ -71,6 +72,13 @@ public class KafkaBolt<K, V> extends BaseRichBolt {
      */
     private boolean fireAndForget = false;
     private boolean async = true;
+
+    public KafkaBolt(Properties boltSpecfiedProperties) {
+        this.boltSpecfiedProperties = boltSpecfiedProperties;
+    }
+
+    public KafkaBolt() {
+    }
 
     public KafkaBolt<K,V> withTupleToKafkaMapper(TupleToKafkaMapper<K,V> mapper) {
         this.mapper = mapper;
@@ -96,7 +104,10 @@ public class KafkaBolt<K, V> extends BaseRichBolt {
 
         Map configMap = (Map) stormConf.get(KAFKA_BROKER_PROPERTIES);
         Properties properties = new Properties();
-        properties.putAll(configMap);
+        if(configMap!= null)
+            properties.putAll(configMap);
+
+        properties.putAll(boltSpecfiedProperties);
         producer = new KafkaProducer<K, V>(properties);
         this.collector = collector;
     }

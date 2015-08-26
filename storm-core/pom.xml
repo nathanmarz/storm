@@ -388,10 +388,20 @@
                             <include>org.clojure:tools.macro</include>
                             <include>joda-time:joda-time</include>
                             <include>org.eclipse.jetty:*</include>
+                            <include>com.fasterxml.jackson.core:*</include>
+                            <include>com.fasterxml.jackson.dataformat:*</include>
                         </includes>
                     </artifactSet>
 
                     <relocations>
+                        <relocation>
+                            <pattern>com.fasterxml.jackson.core</pattern>
+                            <shadedPattern>com.fasterxml.jackson.storm.core</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>com.fasterxml.jackson.dataformat</pattern>
+                            <shadedPattern>com.fasterxml.jackson.storm.dataformat</shadedPattern>
+                        </relocation>
                         <relocation>
                             <pattern>org.apache.thrift</pattern>
                             <shadedPattern>org.apache.thrift7</shadedPattern>

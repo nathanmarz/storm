@@ -73,10 +73,6 @@ public class KafkaBolt<K, V> extends BaseRichBolt {
     private boolean fireAndForget = false;
     private boolean async = true;
 
-    public KafkaBolt(Properties boltSpecfiedProperties) {
-        this.boltSpecfiedProperties = boltSpecfiedProperties;
-    }
-
     public KafkaBolt() {
     }
 
@@ -87,6 +83,11 @@ public class KafkaBolt<K, V> extends BaseRichBolt {
 
     public KafkaBolt<K,V> withTopicSelector(KafkaTopicSelector selector) {
         this.topicSelector = selector;
+        return this;
+    }
+
+    public KafkaBolt<K,V> withProducerProperties(Properties producerProperties) {
+        this.boltSpecfiedProperties = producerProperties;
         return this;
     }
 
@@ -106,8 +107,9 @@ public class KafkaBolt<K, V> extends BaseRichBolt {
         Properties properties = new Properties();
         if(configMap!= null)
             properties.putAll(configMap);
+        if(boltSpecfiedProperties != null)
+            properties.putAll(boltSpecfiedProperties);
 
-        properties.putAll(boltSpecfiedProperties);
         producer = new KafkaProducer<K, V>(properties);
         this.collector = collector;
     }

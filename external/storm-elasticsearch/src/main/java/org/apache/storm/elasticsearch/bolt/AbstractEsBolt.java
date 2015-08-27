@@ -17,27 +17,26 @@
  */
 package org.apache.storm.elasticsearch.bolt;
 
+import java.util.Map;
+
+import org.apache.storm.elasticsearch.common.EsConfig;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.common.annotations.VisibleForTesting;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseRichBolt;
 import backtype.storm.tuple.Tuple;
-import org.apache.storm.elasticsearch.common.EsConfig;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 public abstract class AbstractEsBolt extends BaseRichBolt {
+
     private static final Logger LOG = LoggerFactory.getLogger(AbstractEsBolt.class);
+
     protected static Client client;
+
     protected OutputCollector collector;
     private EsConfig esConfig;
 
@@ -51,19 +50,7 @@ public abstract class AbstractEsBolt extends BaseRichBolt {
             this.collector = outputCollector;
             synchronized (AbstractEsBolt.class) {
                 if (client == null) {
-                    Settings settings =
-                            ImmutableSettings.settingsBuilder().put("cluster.name", esConfig.getClusterName())
-                                    .put("client.transport.sniff", "true").build();
-                    List<InetSocketTransportAddress> transportAddressList = new ArrayList<InetSocketTransportAddress>();
-                    for (String node : esConfig.getNodes()) {
-                        String[] hostAndPort = node.split(":");
-                        if(hostAndPort.length != 2){
-                            throw new IllegalArgumentException("incorrect Elasticsearch node format, should follow {host}:{port} pattern");
-                        }
-                        transportAddressList.add(new InetSocketTransportAddress(hostAndPort[0], Integer.parseInt(hostAndPort[1])));
-                    }
-                    client = new TransportClient(settings)
-                            .addTransportAddresses(transportAddressList.toArray(new InetSocketTransportAddress[transportAddressList.size()]));
+                    client = new ElasticSearchClient(esConfig).construct();
                 }
             }
         } catch (Exception e) {
@@ -72,10 +59,19 @@ public abstract class AbstractEsBolt extends BaseRichBolt {
     }
 
     @Override
-    public void execute(Tuple tuple) {
-    }
+    public abstract void execute(Tuple tuple);
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer outputFieldsDeclarer) {
+    }
+
+    @VisibleForTesting
+    static Client getClient() {
+        return AbstractEsBolt.client;
+    }
+
+    @VisibleForTesting
+    static void replaceClient(Client client) {
+        AbstractEsBolt.client = client;
     }
 }

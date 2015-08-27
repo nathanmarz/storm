@@ -28,30 +28,19 @@ import org.junit.Test;
 
 import static org.mockito.Mockito.verify;
 
-public class EsIndexBoltTest extends AbstractEsBoltTest{
-    private EsIndexBolt bolt;
+public class EsIndexBoltTest extends AbstractEsBoltIntegrationTest<EsIndexBolt> {
 
     @Test
     public void testEsIndexBolt()
             throws Exception {
-        EsConfig esConfig = new EsConfig();
-        esConfig.setClusterName("test-cluster");
-        esConfig.setNodes(new String[]{"127.0.0.1:9300"});
-
-        EsTupleMapper tupleMapper = EsTestUtil.generateDefaultTupleMapper();
-
-        bolt = new EsIndexBolt(esConfig, tupleMapper);
-        bolt.prepare(config, null, collector);
-
-        String source = "{\"user\":\"user1\"}";
         String index = "index1";
         String type = "type1";
-        String id = "docId";
-        Tuple tuple = EsTestUtil.generateTestTuple(source, index, type, id);
+
+        Tuple tuple = createTestTuple(index, type);
 
         bolt.execute(tuple);
 
-        verify(collector).ack(tuple);
+        verify(outputCollector).ack(tuple);
 
         node.client().admin().indices().prepareRefresh(index).execute().actionGet();
         CountResponse resp = node.client().prepareCount(index)
@@ -59,7 +48,17 @@ public class EsIndexBoltTest extends AbstractEsBoltTest{
                 .execute().actionGet();
 
         Assert.assertEquals(1, resp.getCount());
+    }
 
-        bolt.cleanup();
+    private Tuple createTestTuple(String index, String type) {
+        String source = "{\"user\":\"user1\"}";
+        String id = "docId";
+        return EsTestUtil.generateTestTuple(source, index, type, id);
+    }
+
+    @Override
+    protected EsIndexBolt createBolt(EsConfig esConfig) {
+        EsTupleMapper tupleMapper = EsTestUtil.generateDefaultTupleMapper();
+        return new EsIndexBolt(esConfig, tupleMapper);
     }
 }

@@ -28,7 +28,10 @@ documentation: true
 
 ### Halp! I cannot see:
 
-* **my logs** Logs by default go to $STORM_HOME/logs. Check that you have write permissions to that directory. They are configured in the logback/cluster.xml (0.9) and log4j/*.properties in earlier versions.
+* **my logs** Logs by default go to $STORM_HOME/logs. Check that you have write permissions to that directory. They are configured in 
+    * log4j2/{cluster, worker}.xml (> 0.9);
+    * logback/cluster.xml (0.9);
+    * log4j/*.properties in earlier versions (< 0.9).
 * **final JVM settings** Add the `-XX+PrintFlagsFinal` commandline option in the childopts (see the conf file)
 * **final Java system properties** Add `Properties props = System.getProperties(); props.list(System.out);` near where you build your topology.
 

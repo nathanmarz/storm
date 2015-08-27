@@ -37,6 +37,7 @@
 
 (defmulti download-storm-code cluster-mode)
 (defmulti launch-worker (fn [supervisor & _] (cluster-mode (:conf supervisor))))
+(defmulti mk-code-distributor cluster-mode)
 
 (defprotocol SupervisorDaemon
   (get-id [this])
@@ -262,7 +263,7 @@
       (psim/kill-process thread-pid))
     (doseq [pid pids]
       (if as-user
-        (worker-launcher-and-wait conf user ["signal" pid "9"] :log-prefix (str "kill -15 " pid))
+        (worker-launcher-and-wait conf user ["signal" pid "15"] :log-prefix (str "kill -15 " pid))
         (kill-process-with-sig-term pid)))
     (when-not (empty? pids)  
       (log-message "Sleep " shutdown-sleep-secs " seconds for execution of cleanup threads on worker.")
@@ -310,6 +311,7 @@
                                          ))
    :assignment-versions (atom {})
    :sync-retry (atom 0)
+   :code-distributor (mk-code-distributor conf)
    :download-lock (Object.)
    })
 
@@ -352,7 +354,10 @@
          ". State: " state
          ", Heartbeat: " (pr-str heartbeat))
         (shutdown-worker supervisor id)
+        (if (:code-distributor supervisor)
+          (.cleanup (:code-distributor supervisor) id))
         ))
+
     (doseq [id (vals new-worker-ids)]
       (local-mkdirs (worker-pids-root conf id))
       (local-mkdirs (worker-heartbeats-root conf id)))
@@ -375,7 +380,7 @@
             master-code-dir (if (contains? storm-code-map :data) (storm-code-map :data))
             stormroot (supervisor-stormdist-root conf storm-id)]
         (if-not (or (contains? downloaded-storm-ids storm-id) (.exists (File. stormroot)) (nil? master-code-dir))
-          (download-storm-code conf storm-id master-code-dir download-lock))
+          (download-storm-code conf storm-id master-code-dir supervisor download-lock))
         ))
 
     (wait-for-workers-launch
@@ -462,7 +467,7 @@
       (doseq [[storm-id master-code-dir] storm-code-map]
         (when (and (not (downloaded-storm-ids storm-id))
                    (assigned-storm-ids storm-id))
-          (download-storm-code conf storm-id master-code-dir download-lock)))
+          (download-storm-code conf storm-id master-code-dir supervisor download-lock)))
 
       (log-debug "Writing new assignment "
                  (pr-str new-assignment))
@@ -567,30 +572,23 @@
 
 ;; distributed implementation
 (defmethod download-storm-code
-    :distributed [conf storm-id master-code-dir download-lock]
+    :distributed [conf storm-id master-code-dir supervisor download-lock]
     ;; Downloading to permanent location is atomic
     (let [tmproot (str (supervisor-tmp-dir conf) file-path-separator (uuid))
-          stormroot (supervisor-stormdist-root conf storm-id)]
+          stormroot (supervisor-stormdist-root conf storm-id)
+          master-meta-file-path (master-storm-metafile-path master-code-dir)
+          supervisor-meta-file-path (supervisor-storm-metafile-path tmproot)]
       (locking download-lock
-            (log-message "Downloading code for storm id "
-                         storm-id
-                         " from "
-                         master-code-dir)
-            (FileUtils/forceMkdir (File. tmproot))
-
-            (Utils/downloadFromMaster conf (master-stormjar-path master-code-dir) (supervisor-stormjar-path tmproot))
-            (Utils/downloadFromMaster conf (master-stormcode-path master-code-dir) (supervisor-stormcode-path tmproot))
-            (Utils/downloadFromMaster conf (master-stormconf-path master-code-dir) (supervisor-stormconf-path tmproot))
-            (extract-dir-from-jar (supervisor-stormjar-path tmproot) RESOURCES-SUBDIR tmproot)
-            (if-not (.exists (File. stormroot))
-              (FileUtils/moveDirectory (File. tmproot) (File. stormroot))
-              (FileUtils/deleteDirectory (File. tmproot)))
-            (setup-storm-code-dir conf (read-supervisor-storm-conf conf storm-id) stormroot)
-            (log-message "Finished downloading code for storm id "
-                         storm-id
-                         " from "
-                         master-code-dir))
-      ))
+        (log-message "Downloading code for storm id " storm-id " from " master-code-dir)
+        (FileUtils/forceMkdir (File. tmproot))
+        (Utils/downloadFromMaster conf master-meta-file-path supervisor-meta-file-path)
+        (if (:code-distributor supervisor)
+          (.download (:code-distributor supervisor) storm-id (File. supervisor-meta-file-path)))
+        (extract-dir-from-jar (supervisor-stormjar-path tmproot) RESOURCES-SUBDIR tmproot)
+        (if (.exists (File. stormroot)) (FileUtils/forceDelete (File. stormroot)))
+        (FileUtils/moveDirectory (File. tmproot) (File. stormroot))
+        (setup-storm-code-dir conf (read-supervisor-storm-conf conf storm-id) stormroot)
+        (log-message "Finished downloading code for storm id " storm-id " from " master-code-dir))))
 
 (defn write-log-metadata-to-yaml-file! [storm-id port data conf]
   (let [file (get-log-metadata-file storm-id port)]
@@ -620,6 +618,11 @@
                                              (storm-conf LOGS-USERS)
                                              (storm-conf TOPOLOGY-USERS)))))}]
     (write-log-metadata-to-yaml-file! storm-id port data conf)))
+
+(defmethod mk-code-distributor :distributed [conf]
+  (let [code-distributor (new-instance (conf STORM-CODE-DISTRIBUTOR-CLASS))]
+    (.prepare code-distributor conf)
+    code-distributor))
 
 (defn jlp [stormroot conf]
   (let [resource-root (str stormroot File/separator RESOURCES-SUBDIR)
@@ -660,9 +663,8 @@
           storm-options (System/getProperty "storm.options")
           storm-conf-file (System/getProperty "storm.conf.file")
           storm-log-dir (or (System/getProperty "storm.log.dir") (str storm-home file-path-separator "logs"))
-          storm-conf (read-storm-config)
-          storm-log-conf-dir (storm-conf "storm.logback.conf.dir")
-          storm-logback-conf-dir (or storm-log-conf-dir (str storm-home file-path-separator "log4j2"))
+          storm-log-conf-dir (conf STORM-LOG4J2-CONF-DIR)
+          storm-log4j2-conf-dir (or storm-log-conf-dir (str storm-home file-path-separator "log4j2"))
           stormroot (supervisor-stormdist-root conf storm-id)
           jlp (jlp stormroot conf)
           stormjar (supervisor-stormjar-path stormroot)
@@ -675,6 +677,7 @@
                         (add-to-classpath topo-classpath))
           top-gc-opts (storm-conf TOPOLOGY-WORKER-GC-CHILDOPTS)
           gc-opts (substitute-childopts (if top-gc-opts top-gc-opts (conf WORKER-GC-CHILDOPTS)) worker-id storm-id port)
+          topo-worker-logwriter-childopts (storm-conf TOPOLOGY-WORKER-LOGWRITER-CHILDOPTS)
           user (storm-conf TOPOLOGY-SUBMITTER-USER)
           logging-sensitivity (storm-conf TOPOLOGY-LOGGING-SENSITIVITY "S3")
           logfilename (logs-filename storm-id port)
@@ -687,12 +690,13 @@
                                         {"LD_LIBRARY_PATH" jlp})
           command (concat
                     [(java-cmd) "-cp" classpath 
+                     topo-worker-logwriter-childopts
                      (str "-Dlogfile.name=" logfilename)
                      (str "-Dstorm.home=" storm-home)
                      (str "-Dstorm.id=" storm-id)
                      (str "-Dworker.id=" worker-id)
                      (str "-Dworker.port=" port)
-                     (str "-Dlog4j.configurationFile=" storm-logback-conf-dir file-path-separator "worker.xml")
+                     (str "-Dlog4j.configurationFile=" storm-log4j2-conf-dir file-path-separator "worker.xml")
                      "backtype.storm.LogWriter"]
                     [(java-cmd) "-server"]
                     worker-childopts
@@ -705,7 +709,7 @@
                      (str "-Dstorm.options=" storm-options)
                      (str "-Dstorm.log.dir=" storm-log-dir)
                      (str "-Dlogging.sensitivity=" logging-sensitivity)
-                     (str "-Dlog4j.configurationFile=" storm-logback-conf-dir file-path-separator "worker.xml")
+                     (str "-Dlog4j.configurationFile=" storm-log4j2-conf-dir file-path-separator "worker.xml")
                      (str "-Dstorm.id=" storm-id)
                      (str "-Dworker.id=" worker-id)
                      (str "-Dworker.port=" port)
@@ -739,7 +743,7 @@
        first ))
 
 (defmethod download-storm-code
-    :local [conf storm-id master-code-dir download-lock]
+    :local [conf storm-id master-code-dir supervisor download-lock]
     (let [stormroot (supervisor-stormdist-root conf storm-id)]
       (locking download-lock
             (FileUtils/copyDirectory (File. master-code-dir) (File. stormroot))
@@ -762,6 +766,8 @@
                )
               )
             )))
+
+(defmethod mk-code-distributor :local [conf] nil)
 
 (defmethod launch-worker
     :local [supervisor storm-id port worker-id]

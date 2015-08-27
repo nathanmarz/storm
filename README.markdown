@@ -211,6 +211,14 @@ under the License.
 * Chuanlei Ni ([@chuanlei](https://github.com/chuanlei))
 * Xingyu Su ([@errordaiwa](https://github.com/errordaiwa))
 * Adrian Seungjin Lee ([@sweetest](https://github.com/sweetest))
+* Randy Gelhausen ([@randerzander](https://github.com/randerzander))
+* Gabor Liptak ([@gliptak](https://github.com/glibtak))
+* Arun Mahadevan ([@arunmahadevan](https://github.com/arunmahadevan))
+* Yvonne Ironberg ([@YvonneIronberg](https://github.com/YvonneIronberg))
+* Boyang Jerry Peng ([@jerrypeng](https://github.com/jerrypeng))
+* Li Wang ([@wangli1426](https://github.com/wangli1426))
+* Rohan Agarwal ([@rohanag12](https://github.com/rohanag12))
+* Alex Panov ([@alexpanov](https://github.com/alexpanov))
 
 ## Acknowledgements
 

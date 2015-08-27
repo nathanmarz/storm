@@ -31,7 +31,7 @@ cd ${STORM_SRC_ROOT_DIR}
 export STORM_TEST_TIMEOUT_MS=100000
 
 # We now lean on Travis CI's implicit behavior, ```mvn clean install -DskipTests``` before running script
-mvn test -fae -Pnative -pl '!external/storm-kafka'
+mvn test -fae -Pnative
 BUILD_RET_VAL=$?
 
 for dir in `find . -type d -and -wholename \*/target/\*-reports`;

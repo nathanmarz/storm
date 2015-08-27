@@ -33,6 +33,8 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -171,7 +173,7 @@ public class TridentTopology {
     }
     
     public Stream multiReduce(Stream s1, Stream s2, MultiReducer function, Fields outputFields) {
-        return multiReduce(Arrays.asList(s1, s2), function, outputFields);        
+        return multiReduce(Arrays.asList(s1, s2), function, outputFields);
     }
 
     public Stream multiReduce(Fields inputFields1, Stream s1, Fields inputFields2, Stream s2, MultiReducer function, Fields outputFields) {
@@ -526,15 +528,29 @@ public class TridentTopology {
 
     private static Map<Group, String> genBoltIds(Collection<Group> groups) {
         Map<Group, String> ret = new HashMap();
+        //sort by group name
+        final Map<Group, String> groupNames = new HashMap();
+        for (Group g : groups) {
+            String name = getGroupName(g);
+            groupNames.put(g, name == null ? "" : name);
+        }
+        List<Group> groupList = new ArrayList(groups);
+        Collections.sort(groupList, new Comparator<Group>() {
+            @Override
+            public int compare(Group o1, Group o2) {
+                return groupNames.get(o1).compareTo(groupNames.get(o2));
+            }
+        });
+
         int ctr = 0;
-        for(Group g: groups) {
-            if(!isSpoutGroup(g)) {
+        for (Group g : groupList) {
+            if (!isSpoutGroup(g)) {
                 List<String> name = new ArrayList();
                 name.add("b");
                 name.add("" + ctr);
-                String groupName = getGroupName(g);
-                if(groupName!=null && !groupName.isEmpty()) {
-                    name.add(getGroupName(g));                
+                String groupName = groupNames.get(g);
+                if (groupName != null && !groupName.isEmpty()) {
+                    name.add(groupName);
                 }
                 ret.put(g, Utils.join(name, "-"));
                 ctr++;

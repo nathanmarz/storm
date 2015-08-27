@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-978: [storm-elasticsearch] Introduces Lookup(or Query)Bolt which emits matched documents from ES
  * STORM-851: Storm Solr connector
  * STORM-854: [Storm-Kafka] KafkaSpout can set the topic name as the output streamid
  * STORM-990: Refactored TimeCacheMap to extend RotatingMap

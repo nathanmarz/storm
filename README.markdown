@@ -218,6 +218,7 @@ under the License.
 * Boyang Jerry Peng ([@jerrypeng](https://github.com/jerrypeng))
 * Li Wang ([@wangli1426](https://github.com/wangli1426))
 * Rohan Agarwal ([@rohanag12](https://github.com/rohanag12))
+* Alex Panov ([@alexpanov](https://github.com/alexpanov))
 
 ## Acknowledgements
 

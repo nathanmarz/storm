@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-851: Storm Solr connector
  * STORM-854: [Storm-Kafka] KafkaSpout can set the topic name as the output streamid
  * STORM-990: Refactored TimeCacheMap to extend RotatingMap
  * STORM-829: Hadoop dependency confusion

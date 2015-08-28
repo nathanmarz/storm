@@ -117,4 +117,9 @@ public class EsLookupBoltTest extends AbstractEsBoltTest<EsLookupBolt> {
 
         assertThat(declaredFields.getValue(), is(fields));
     }
+
+    @Override
+    protected Class<EsLookupBolt> getBoltClass() {
+        return EsLookupBolt.class;
+    }
 }

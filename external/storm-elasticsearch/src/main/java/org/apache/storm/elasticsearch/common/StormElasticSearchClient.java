@@ -15,41 +15,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.storm.elasticsearch.bolt;
+package org.apache.storm.elasticsearch.common;
 
 import java.io.Serializable;
 
-import org.apache.storm.elasticsearch.common.EsConfig;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 
-final class ElasticSearchClient implements Serializable {
+public final class StormElasticSearchClient implements Serializable {
 
     private final EsConfig esConfig;
 
-    ElasticSearchClient(EsConfig esConfig) {
+    public StormElasticSearchClient(EsConfig esConfig) {
         this.esConfig = esConfig;
     }
 
-    Client construct() {
-        Settings settings = createBasicSettings();
+    public Client construct() {
+        Settings settings = esConfig.toBasicSettings();
         TransportClient transportClient = new TransportClient(settings);
         addTransportAddresses(transportClient);
         return transportClient;
     }
 
-    private Settings createBasicSettings() {
-        return ImmutableSettings.settingsBuilder()
-                                .put("cluster.name", esConfig.getClusterName())
-                                .put("client.transport.sniff", "true")
-                                .build();
-    }
-
     private void addTransportAddresses(TransportClient transportClient) {
-        Iterable<InetSocketTransportAddress> transportAddresses = new TransportAddresses(esConfig.getNodes());
+        Iterable<InetSocketTransportAddress> transportAddresses = esConfig.getTransportAddresses();
         for (InetSocketTransportAddress transportAddress : transportAddresses) {
             transportClient.addTransportAddress(transportAddress);
         }

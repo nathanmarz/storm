@@ -19,32 +19,30 @@ package org.apache.storm.elasticsearch.trident;
 
 import backtype.storm.task.IMetricsContext;
 import org.apache.storm.elasticsearch.common.EsConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
 import storm.trident.state.State;
 import storm.trident.state.StateFactory;
 
 import java.util.Map;
 
-public class EsStateFactory implements StateFactory {
-    private EsConfig esConfig;
-
-    public EsStateFactory(){
-
-    }
+/**
+ * @since 0.11
+ */
+class EsStateFactory implements StateFactory {
+    private final EsConfig esConfig;
 
     /**
      * EsStateFactory constructor
      * @param esConfig Elasticsearch configuration containing node addresses and cluster name {@link EsConfig}
      */
-    public EsStateFactory(EsConfig esConfig){
+    EsStateFactory(EsConfig esConfig){
         this.esConfig = esConfig;
     }
 
     @Override
     public State makeState(Map conf, IMetricsContext metrics, int partitionIndex, int numPartitions) {
         EsState esState = new EsState(esConfig);
-        esState.prepare(conf, metrics, partitionIndex, numPartitions);
+        esState.prepare();
         return esState;
     }
 }

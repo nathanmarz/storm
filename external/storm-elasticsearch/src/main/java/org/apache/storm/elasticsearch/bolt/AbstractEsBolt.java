@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,6 +20,7 @@ package org.apache.storm.elasticsearch.bolt;
 import java.util.Map;
 
 import org.apache.storm.elasticsearch.common.EsConfig;
+import org.apache.storm.elasticsearch.common.StormElasticSearchClient;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.annotations.VisibleForTesting;
 import org.slf4j.Logger;
@@ -31,6 +32,8 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseRichBolt;
 import backtype.storm.tuple.Tuple;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 public abstract class AbstractEsBolt extends BaseRichBolt {
 
     private static final Logger LOG = LoggerFactory.getLogger(AbstractEsBolt.class);
@@ -41,6 +44,7 @@ public abstract class AbstractEsBolt extends BaseRichBolt {
     private EsConfig esConfig;
 
     public AbstractEsBolt(EsConfig esConfig) {
+        checkNotNull(esConfig);
         this.esConfig = esConfig;
     }
 
@@ -50,7 +54,7 @@ public abstract class AbstractEsBolt extends BaseRichBolt {
             this.collector = outputCollector;
             synchronized (AbstractEsBolt.class) {
                 if (client == null) {
-                    client = new ElasticSearchClient(esConfig).construct();
+                    client = new StormElasticSearchClient(esConfig).construct();
                 }
             }
         } catch (Exception e) {

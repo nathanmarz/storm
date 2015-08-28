@@ -45,9 +45,7 @@ public class TridentEsTopology {
 
         TridentTopology topology = new TridentTopology();
         Stream stream = topology.newStream("spout", spout);
-        EsConfig esConfig = new EsConfig();
-        esConfig.setClusterName(EsConstants.clusterName);
-        esConfig.setNodes(new String[]{"localhost:9300"});
+        EsConfig esConfig = new EsConfig(EsConstants.clusterName, new String[]{"localhost:9300"});
         Fields esFields = new Fields("index", "type", "source");
         StateFactory factory = new EsStateFactory(esConfig);
         TridentState state = stream.partitionPersist(factory, esFields, new EsUpdater(), new Fields());

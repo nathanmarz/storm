@@ -62,4 +62,9 @@ public class EsIndexBoltTest extends AbstractEsBoltIntegrationTest<EsIndexBolt> 
     protected EsIndexBolt createBolt(EsConfig esConfig) {
         return new EsIndexBolt(esConfig);
     }
+
+    @Override
+    protected Class<EsIndexBolt> getBoltClass() {
+        return EsIndexBolt.class;
+    }
 }

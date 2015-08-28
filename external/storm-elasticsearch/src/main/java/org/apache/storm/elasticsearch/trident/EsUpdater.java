@@ -26,6 +26,6 @@ import java.util.List;
 public class EsUpdater extends BaseStateUpdater<EsState> {
     @Override
     public void updateState(EsState state, List<TridentTuple> tuples, TridentCollector collector) {
-        state.updateState(tuples, collector);
+        state.updateState(tuples);
     }
 }

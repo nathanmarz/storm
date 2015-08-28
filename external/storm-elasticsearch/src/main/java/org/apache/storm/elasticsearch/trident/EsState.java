@@ -17,27 +17,24 @@
  */
 package org.apache.storm.elasticsearch.trident;
 
-import backtype.storm.task.IMetricsContext;
 import backtype.storm.topology.FailedException;
+
+import org.apache.storm.elasticsearch.common.StormElasticSearchClient;
 import org.apache.storm.elasticsearch.common.EsConfig;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import storm.trident.operation.TridentCollector;
 import storm.trident.state.State;
 import storm.trident.tuple.TridentTuple;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
-public class EsState implements State {
+/**
+ * @since 0.11
+ */
+class EsState implements State {
     private static final Logger LOG = LoggerFactory.getLogger(EsState.class);
     private static Client client;
     private EsConfig esConfig;
@@ -74,23 +71,11 @@ public class EsState implements State {
 
     }
 
-    public void prepare(Map conf, IMetricsContext metrics, int partitionIndex, int numPartitions) {
+    public void prepare() {
         try {
             synchronized (EsState.class) {
                 if (client == null) {
-                    Settings settings =
-                            ImmutableSettings.settingsBuilder().put("cluster.name", esConfig.getClusterName())
-                                    .put("client.transport.sniff", "true").build();
-                    List<InetSocketTransportAddress> transportAddressList = new ArrayList<InetSocketTransportAddress>();
-                    for (String node : esConfig.getNodes()) {
-                        String[] hostAndPort = node.split(":");
-                        if (hostAndPort.length != 2) {
-                            throw new IllegalArgumentException("incorrect Elasticsearch node format, should follow {host}:{port} pattern");
-                        }
-                        transportAddressList.add(new InetSocketTransportAddress(hostAndPort[0], Integer.parseInt(hostAndPort[1])));
-                    }
-                    client = new TransportClient(settings)
-                            .addTransportAddresses(transportAddressList.toArray(new InetSocketTransportAddress[transportAddressList.size()]));
+                    client = new StormElasticSearchClient(esConfig).construct();
                 }
             }
         } catch (Exception e) {
@@ -98,7 +83,7 @@ public class EsState implements State {
         }
     }
 
-    public void updateState(List<TridentTuple> tuples, TridentCollector collector) {
+    public void updateState(List<TridentTuple> tuples) {
         BulkRequestBuilder bulkRequest = client.prepareBulk();
         for (TridentTuple tuple : tuples) {
             String source = tuple.getStringByField("source");

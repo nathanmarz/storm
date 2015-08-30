@@ -50,9 +50,10 @@ storm.auth.simple-acl.users: []
 storm.auth.simple-acl.users.commands: []
 storm.auth.simple-acl.admins: []
 storm.meta.serialization.delegate: "backtype.storm.serialization.GzipThriftSerializationDelegate"
+storm.codedistributor.class: "backtype.storm.codedistributor.LocalFileSystemCodeDistributor"
 
 ### nimbus.* configs are for the master
-nimbus.host: "localhost"
+nimbus.seeds : ["localhost"]
 nimbus.thrift.port: 6627
 nimbus.thrift.threads: 64
 nimbus.thrift.max_buffer_size: 1048576
@@ -62,10 +63,13 @@ nimbus.supervisor.timeout.secs: 60
 nimbus.monitor.freq.secs: 10
 nimbus.cleanup.inbox.freq.secs: 600
 nimbus.inbox.jar.expiration.secs: 3600
+nimbus.code.sync.freq.secs: 300
 nimbus.task.launch.secs: 120
 nimbus.reassign: true
 nimbus.file.copy.expiration.secs: 600
 nimbus.topology.validator: "backtype.storm.nimbus.DefaultTopologyValidator"
+topology.min.replication.count: 1
+topology.max.replication.wait.time.sec: 60
 nimbus.credential.renewers.freq.secs: 600
 
 ### ui.* configs are for the master
@@ -128,7 +132,6 @@ supervisor.heartbeat.frequency.secs: 5
 supervisor.enable: true
 supervisor.supervisors: []
 supervisor.supervisors.commands: []
-
 
 ### worker.* configs are for task workers
 worker.childopts: "-Xmx768m"

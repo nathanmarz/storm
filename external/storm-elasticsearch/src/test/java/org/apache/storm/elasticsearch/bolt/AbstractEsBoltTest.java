@@ -19,6 +19,8 @@ package org.apache.storm.elasticsearch.bolt;
 
 import com.google.common.testing.NullPointerTester;
 
+import backtype.storm.Config;
+import backtype.storm.task.OutputCollector;
 import org.apache.storm.elasticsearch.common.EsConfig;
 import org.junit.After;
 import org.junit.Before;
@@ -26,9 +28,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
-
-import backtype.storm.Config;
-import backtype.storm.task.OutputCollector;
 
 @RunWith(MockitoJUnitRunner.class)
 public abstract class AbstractEsBoltTest<Bolt extends AbstractEsBolt> {

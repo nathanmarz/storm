@@ -21,6 +21,7 @@ import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 import org.apache.storm.elasticsearch.common.EsConfig;
 import org.apache.storm.elasticsearch.common.EsTestUtil;
+import org.apache.storm.elasticsearch.common.EsTupleMapper;
 import org.elasticsearch.action.percolate.PercolateResponse;
 import org.junit.Test;
 
@@ -31,7 +32,8 @@ public class EsPercolateBoltTest extends AbstractEsBoltIntegrationTest<EsPercola
 
     @Override
     protected EsPercolateBolt createBolt(EsConfig esConfig) {
-        return  new EsPercolateBolt(esConfig);
+        EsTupleMapper tupleMapper = EsTestUtil.generateDefaultTupleMapper();
+        return new EsPercolateBolt(esConfig, tupleMapper);
     }
 
     @Test

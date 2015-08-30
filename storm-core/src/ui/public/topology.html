@@ -181,6 +181,39 @@ $(document).ready(function() {
                 errorCells[i].style.borderBottomColor = "#9d261d";
               }
             }
+            
+            var errorTime = document.getElementsByClassName("errorTime");
+            for (i=0; i < errorTime.length; i++)
+            {
+              if((errorTime[i].id))
+              {
+                var a = new Date(parseInt(errorTime[i].id));
+                var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                var days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat'];
+                var year = a.getFullYear();
+                var month = months[a.getMonth()];
+                var date = a.getDate();
+                var hour = a.getHours();
+                var min = a.getMinutes();
+                var sec = a.getSeconds();
+                var day = days[a.getDay()];
+                if (hour < 10) {hour = "0"+hour;}
+                if (min  < 10) {min  = "0"+min;}
+                if (sec  < 10) {sec  = "0"+sec;}
+                var time = day + ', '+date + ' ' + month + ' ' + year + ' ' + hour + ':' + min + ':' + sec;
+                
+                errorTime[i].innerHTML = time;
+                var sec_num = parseInt(errorTime[i].title, 10);
+                var hours   = Math.floor(sec_num / 3600);
+                var minutes = Math.floor((sec_num - (hours * 3600)) / 60);
+                var seconds = sec_num - (hours * 3600) - (minutes * 60);
+                if (hours   < 10) {hours   = "0"+hours;}
+                if (minutes < 10) {minutes = "0"+minutes;}
+                if (seconds < 10) {seconds = "0"+seconds;}
+                var time    = hours+':'+minutes+':'+seconds;
+                errorTime[i].title = "Elapsed Time Since Error: " + time;
+              }
+            }
             $('#topology-summary [data-toggle="tooltip"]').tooltip();
             $('#topology-stats [data-toggle="tooltip"]').tooltip();
             $('#spout-stats [data-toggle="tooltip"]').tooltip();

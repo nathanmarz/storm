@@ -20,17 +20,15 @@ package org.apache.storm.elasticsearch.bolt;
 import backtype.storm.tuple.Tuple;
 import org.apache.storm.elasticsearch.common.EsConfig;
 import org.apache.storm.elasticsearch.common.EsTestUtil;
+import org.apache.storm.elasticsearch.common.EsTupleMapper;
 import org.elasticsearch.action.count.CountResponse;
 import org.elasticsearch.index.query.TermQueryBuilder;
 import org.junit.Assert;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static org.mockito.Mockito.verify;
 
 public class EsIndexBoltTest extends AbstractEsBoltIntegrationTest<EsIndexBolt> {
-    private static final Logger LOG = LoggerFactory.getLogger(EsIndexBoltTest.class);
 
     @Test
     public void testEsIndexBolt()
@@ -60,7 +58,8 @@ public class EsIndexBoltTest extends AbstractEsBoltIntegrationTest<EsIndexBolt> 
 
     @Override
     protected EsIndexBolt createBolt(EsConfig esConfig) {
-        return new EsIndexBolt(esConfig);
+        EsTupleMapper tupleMapper = EsTestUtil.generateDefaultTupleMapper();
+        return new EsIndexBolt(esConfig, tupleMapper);
     }
 
     @Override

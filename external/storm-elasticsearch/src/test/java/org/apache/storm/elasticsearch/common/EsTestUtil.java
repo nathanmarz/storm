@@ -21,6 +21,7 @@ import backtype.storm.Config;
 import backtype.storm.task.GeneralTopologyContext;
 import backtype.storm.topology.TopologyBuilder;
 import backtype.storm.tuple.Fields;
+import backtype.storm.tuple.ITuple;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.TupleImpl;
 import backtype.storm.tuple.Values;
@@ -44,6 +45,10 @@ public class EsTestUtil {
             }
         };
         return new TupleImpl(topologyContext, new Values(source, index, type, id), 1, "");
+    }
+
+    public static EsTupleMapper generateDefaultTupleMapper() {
+        return new DefaultEsTupleMapper();
     }
 
     public static Node startEsNode(){

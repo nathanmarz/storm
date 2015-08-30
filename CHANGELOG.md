@@ -1,9 +1,15 @@
 ## 0.11.0
+ * STORM-974: [storm-elasticsearch] Introduces Tuple -> ES document mapper to get rid of constant field mapping (source, index, type)
+ * STORM-978: [storm-elasticsearch] Introduces Lookup(or Query)Bolt which emits matched documents from ES
+ * STORM-851: Storm Solr connector
+ * STORM-854: [Storm-Kafka] KafkaSpout can set the topic name as the output streamid
+ * STORM-990: Refactored TimeCacheMap to extend RotatingMap
+ * STORM-829: Hadoop dependency confusion
+ * STORM-166: Nimbus HA
  * STORM-976: Config storm.logback.conf.dir is specific to previous logging framework
  * STORM-995: Fix excessive logging
  * STORM-837: HdfsState ignores commits
  * STORM-938: storm-hive add a time interval to flush tuples to hive.
- * STORM-977: Incorrect signal (-9) when as-user is true
  * STORM-964: Add config (with small default value) for logwriter to restrict its memory usage
  * STORM-980: Re-include storm-kafka tests from Travis CI build
  * STORM-960: HiveBolt should ack tuples only after flushing.
@@ -34,8 +40,10 @@
  * STORM-988: supervisor.slots.ports should not allow duplicate element values
  * STORM-975: Storm-Kafka trident topology example
  * STORM-958: Add config for init params of group mapping service
+ * STORM-949: On the topology summary UI page, last shown error should have the time and date
 
 ## 0.10.0-beta2
+ * STORM-977: Incorrect signal (-9) when as-user is true
  * STORM-843: [storm-redis] Add Javadoc to storm-redis
  * STORM-866: Use storm.log.dir instead of storm.home in log4j2 config
  * STORM-810: PartitionManager in storm-kafka should commit latest offset before close
@@ -47,6 +55,7 @@
  * STORM-860: UI: while topology is transitioned to killed, "Activate" button is enabled but not functioning
  * STORM-966: ConfigValidation.DoubleValidator doesn't really validate whether the type of the object is a double
  * STORM-742: Let ShellBolt treat all messages to update heartbeat
+ * STORM-992: A bug in the timer.clj might cause unexpected delay to schedule new event
 
 ## 0.10.0-beta1
  * STORM-873: Flux does not handle diamond topologies

@@ -56,7 +56,7 @@
       (testing/kill-local-storm-cluster cluster-map#)
       (.stop nimbus-server#)))
 
-(deftest Simple-authentication-test 
+(deftest Simple-authentication-test
   (let [port (available-port)]
     (with-test-cluster [port nil nil "backtype.storm.security.auth.SimpleTransportPlugin"]
       (let [storm-conf (merge (read-storm-config)
@@ -68,7 +68,7 @@
                  (is (thrown-cause? NotAliveException
                               (.activate nimbus_client "topo-name"))))
         (.close client)))))
-  
+
 (deftest test-noop-authorization-w-simple-transport
   (let [port (available-port)]
     (with-test-cluster [port nil
@@ -91,16 +91,16 @@
                   "backtype.storm.security.auth.SimpleTransportPlugin"]
       (let [storm-conf (merge (read-storm-config)
                                {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.SimpleTransportPlugin"
-                               Config/NIMBUS_HOST "localhost"
                                Config/NIMBUS_THRIFT_PORT port
                                STORM-NIMBUS-RETRY-TIMES 0})
-            client (NimbusClient/getConfiguredClient storm-conf)
+            client (NimbusClient. storm-conf "localhost" port nimbus-timeout)
             nimbus_client (.getClient client)
             topologyInitialStatus (TopologyInitialStatus/findByValue 2)
             submitOptions (SubmitOptions. topologyInitialStatus)]
         (is (thrown-cause? AuthorizationException (.submitTopology nimbus_client  "topo-name" nil nil nil)))
         (is (thrown-cause? AuthorizationException (.submitTopologyWithOpts nimbus_client  "topo-name" nil nil nil submitOptions)))
         (is (thrown-cause? AuthorizationException (.beginFileUpload nimbus_client)))
+
         (is (thrown-cause? AuthorizationException (.uploadChunk nimbus_client nil nil)))
         (is (thrown-cause? AuthorizationException (.finishFileUpload nimbus_client nil)))
         (is (thrown-cause? AuthorizationException (.beginFileDownload nimbus_client nil)))
@@ -131,10 +131,9 @@
       (let [storm-conf (merge (read-storm-config)
                               {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
                                "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest.conf"
-                               Config/NIMBUS_HOST "localhost"
                                Config/NIMBUS_THRIFT_PORT port
                                STORM-NIMBUS-RETRY-TIMES 0})
-            client (NimbusClient/getConfiguredClient storm-conf)
+            client (NimbusClient. storm-conf "localhost" port nimbus-timeout)
             nimbus_client (.getClient client)]
         (testing "(Positive authorization) Authorization plugin should accept client request"
                  (is (thrown-cause? NotAliveException
@@ -150,10 +149,9 @@
       (let [storm-conf (merge (read-storm-config)
                               {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
                                "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest.conf"
-                               Config/NIMBUS_HOST "localhost"
                                Config/NIMBUS_THRIFT_PORT port
                                STORM-NIMBUS-RETRY-TIMES 0})
-            client (NimbusClient/getConfiguredClient storm-conf)
+            client (NimbusClient. storm-conf "localhost" port nimbus-timeout)
             nimbus_client (.getClient client)
             topologyInitialStatus (TopologyInitialStatus/findByValue 2)
             submitOptions (SubmitOptions. topologyInitialStatus)]

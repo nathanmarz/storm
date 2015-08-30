@@ -15,16 +15,21 @@
 ;; limitations under the License.
 
 (ns backtype.storm.zookeeper
-  (:import [org.apache.curator.retry RetryNTimes])
+  (:import [org.apache.curator.retry RetryNTimes]
+           [backtype.storm Config])
   (:import [org.apache.curator.framework.api CuratorEvent CuratorEventType CuratorListener UnhandledErrorListener])
+  (:import [org.apache.curator.framework.state ConnectionStateListener])
   (:import [org.apache.curator.framework CuratorFramework CuratorFrameworkFactory])
+  (:import [org.apache.curator.framework.recipes.leader LeaderLatch LeaderLatch$State Participant LeaderLatchListener])
   (:import [org.apache.zookeeper ZooKeeper Watcher KeeperException$NoNodeException
             ZooDefs ZooDefs$Ids CreateMode WatchedEvent Watcher$Event Watcher$Event$KeeperState
             Watcher$Event$EventType KeeperException$NodeExistsException])
   (:import [org.apache.zookeeper.data Stat])
   (:import [org.apache.zookeeper.server ZooKeeperServer NIOServerCnxnFactory])
-  (:import [java.net InetSocketAddress BindException])
+  (:import [java.net InetSocketAddress BindException InetAddress])
+  (:import [backtype.storm.nimbus ILeaderElector NimbusInfo])
   (:import [java.io File])
+  (:import [java.util List Map])
   (:import [backtype.storm.utils Utils ZookeeperAuthInfo])
   (:use [backtype.storm util log config]))
 
@@ -124,6 +129,17 @@
           ))
       )))
 
+
+(defn sync-path
+  [^CuratorFramework zk ^String path]
+  (try
+    (.. zk (sync) (forPath (normalize-path path)))
+    (catch Exception e (throw (wrap-in-runtime e)))))
+
+
+(defn add-listener [^CuratorFramework zk ^ConnectionStateListener listener]
+  (.. zk (getConnectionStateListenable) (addListener listener)))
+
 (defn get-data
   [^CuratorFramework zk ^String path watch?]
   (let [path (normalize-path path)]
@@ -142,7 +158,7 @@
   (let [stats (org.apache.zookeeper.data.Stat. )
         path (normalize-path path)]
     (try-cause
-     (if-let [data 
+     (if-let [data
               (if (exists-node? zk path watch?)
                 (if watch?
                   (.. zk (getData) (watched) (storingStatIn stats) (forPath path))
@@ -203,3 +219,89 @@
 (defn shutdown-inprocess-zookeeper
   [handle]
   (.shutdown handle))
+
+(defn- to-NimbusInfo [^Participant participant]
+  (let
+    [id (if (clojure.string/blank? (.getId participant))
+          (throw (RuntimeException. "No nimbus leader participant host found, have you started your nimbus hosts?"))
+          (.getId participant))
+     nimbus-info (NimbusInfo/parse id)]
+    (.setLeader nimbus-info (.isLeader participant))
+    nimbus-info))
+
+(defn leader-latch-listener-impl
+  "Leader latch listener that will be invoked when we either gain or lose leadership"
+  [conf zk leader-latch]
+  (let [hostname (.getCanonicalHostName (InetAddress/getLocalHost))
+        STORMS-ROOT (str (conf STORM-ZOOKEEPER-ROOT) "/storms")]
+    (reify LeaderLatchListener
+      (^void isLeader[this]
+        (log-message (str hostname " gained leadership, checking if it has all the topology code locally."))
+        (let [active-topology-ids (set (get-children zk STORMS-ROOT false))
+              local-topology-ids (set (.list (File. (master-stormdist-root conf))))
+              diff-topology (first (set-delta active-topology-ids local-topology-ids))]
+        (log-message "active-topology-ids [" (clojure.string/join "," active-topology-ids)
+                          "] local-topology-ids [" (clojure.string/join "," local-topology-ids)
+                          "] diff-topology [" (clojure.string/join "," diff-topology) "]")
+        (if (empty? diff-topology)
+          (log-message "Accepting leadership, all active topology found localy.")
+          (do
+            (log-message "code for all active topologies not available locally, giving up leadership.")
+            (.close leader-latch)))))
+      (^void notLeader[this]
+        (log-message (str hostname " lost leadership."))))))
+
+(defn zk-leader-elector
+  "Zookeeper Implementation of ILeaderElector."
+  [conf]
+  (let [servers (conf STORM-ZOOKEEPER-SERVERS)
+        zk (mk-client conf (conf STORM-ZOOKEEPER-SERVERS) (conf STORM-ZOOKEEPER-PORT) :auth-conf conf)
+        leader-lock-path (str (conf STORM-ZOOKEEPER-ROOT) "/leader-lock")
+        id (.toHostPortString (NimbusInfo/fromConf conf))
+        leader-latch (atom (LeaderLatch. zk leader-lock-path id))
+        leader-latch-listener (atom (leader-latch-listener-impl conf zk @leader-latch))
+        ]
+    (reify ILeaderElector
+      (prepare [this conf]
+        (log-message "no-op for zookeeper implementation"))
+
+      (^void addToLeaderLockQueue [this]
+        ;if this latch is already closed, we need to create new instance.
+        (if (.equals LeaderLatch$State/CLOSED (.getState @leader-latch))
+          (do
+            (reset! leader-latch (LeaderLatch. zk leader-lock-path id))
+            (reset! leader-latch-listener (leader-latch-listener-impl conf zk @leader-latch))
+            (log-message "LeaderLatch was in closed state. Resetted the leaderLatch and listeners.")
+            ))
+
+        ;Only if the latch is not already started we invoke start.
+        (if (.equals LeaderLatch$State/LATENT (.getState @leader-latch))
+          (do
+            (.addListener @leader-latch @leader-latch-listener)
+            (.start @leader-latch)
+            (log-message "Queued up for leader lock."))
+          (log-message "Node already in queue for leader lock.")))
+
+      (^void removeFromLeaderLockQueue [this]
+        ;Only started latches can be closed.
+        (if (.equals LeaderLatch$State/STARTED (.getState @leader-latch))
+          (do
+            (.close @leader-latch)
+            (log-message "Removed from leader lock queue."))
+          (log-message "leader latch is not started so no removeFromLeaderLockQueue needed.")))
+
+      (^boolean isLeader [this]
+        (.hasLeadership @leader-latch))
+
+      (^NimbusInfo getLeader [this]
+        (to-NimbusInfo (.getLeader @leader-latch)))
+
+      (^List getAllNimbuses [this]
+        (let [participants (.getParticipants @leader-latch)]
+          (map (fn [^Participant participant]
+                 (to-NimbusInfo participant))
+            participants)))
+
+      (^void close[this]
+        (log-message "closing zookeeper connection of leader elector.")
+        (.close zk)))))

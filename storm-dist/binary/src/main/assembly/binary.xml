@@ -59,6 +59,8 @@
                 <exclude>org.clojure:tools.macro</exclude>
                 <exclude>joda-time:joda-time</exclude>
                 <exclude>org.eclipse.jetty:*</exclude>
+                <exclude>com.fasterxml.jackson.core:*</exclude>
+                <exclude>com.fasterxml.jackson.dataformat:*</exclude>
             </excludes>
         </dependencySet>
     </dependencySets>

@@ -26,11 +26,13 @@ import storm.trident.state.StateFactory;
 
 import java.util.Map;
 
+import static org.elasticsearch.common.base.Preconditions.checkNotNull;
+
 /**
  * StateFactory for providing EsState.
  * @since 0.11
  */
-class EsStateFactory implements StateFactory {
+public class EsStateFactory implements StateFactory {
     private final EsConfig esConfig;
     private final EsTupleMapper tupleMapper;
 
@@ -39,9 +41,9 @@ class EsStateFactory implements StateFactory {
      * @param esConfig Elasticsearch configuration containing node addresses and cluster name {@link EsConfig}
      * @param tupleMapper Tuple to ES document mapper {@link EsTupleMapper}
      */
-    EsStateFactory(EsConfig esConfig, EsTupleMapper tupleMapper){
-        this.esConfig = esConfig;
-        this.tupleMapper = tupleMapper;
+    public EsStateFactory(EsConfig esConfig, EsTupleMapper tupleMapper) {
+        this.esConfig = checkNotNull(esConfig);
+        this.tupleMapper = checkNotNull(tupleMapper);
     }
 
     @Override

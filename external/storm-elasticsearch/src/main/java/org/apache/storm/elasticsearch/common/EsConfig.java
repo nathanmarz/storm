@@ -26,8 +26,8 @@ import com.google.common.collect.ImmutableMap;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.elasticsearch.common.base.Preconditions.checkArgument;
+import static org.elasticsearch.common.base.Preconditions.checkNotNull;
 
 /**
  * @since 0.11

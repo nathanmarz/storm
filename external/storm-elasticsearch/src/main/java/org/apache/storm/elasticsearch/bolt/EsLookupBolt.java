@@ -29,7 +29,7 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.elasticsearch.common.base.Preconditions.checkNotNull;
 
 /**
  * @since 0.11

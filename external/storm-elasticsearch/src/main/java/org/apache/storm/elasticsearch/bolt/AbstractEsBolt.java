@@ -32,7 +32,7 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseRichBolt;
 import backtype.storm.tuple.Tuple;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.elasticsearch.common.base.Preconditions.checkNotNull;
 
 public abstract class AbstractEsBolt extends BaseRichBolt {
 

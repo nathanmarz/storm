@@ -26,6 +26,8 @@ import org.apache.storm.elasticsearch.common.EsTupleMapper;
 
 import java.util.Map;
 
+import static org.elasticsearch.common.base.Preconditions.checkNotNull;
+
 /**
  * Basic bolt for storing tuple to ES document.
  */
@@ -39,7 +41,7 @@ public class EsIndexBolt extends AbstractEsBolt {
      */
     public EsIndexBolt(EsConfig esConfig, EsTupleMapper tupleMapper) {
         super(esConfig);
-        this.tupleMapper = tupleMapper;
+        this.tupleMapper = checkNotNull(tupleMapper);
     }
 
     @Override

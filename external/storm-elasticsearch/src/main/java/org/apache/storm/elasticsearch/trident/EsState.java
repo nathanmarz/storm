@@ -93,7 +93,6 @@ class EsState implements State {
      *
      * @param tuples list of tuples for storing to ES.
      *               Each tuple should have relevant fields (source, index, type, id) for EsState's tupleMapper to extract ES document.
-     * @param collector
      */
     public void updateState(List<TridentTuple> tuples) {
         BulkRequestBuilder bulkRequest = client.prepareBulk();

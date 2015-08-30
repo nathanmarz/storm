@@ -32,8 +32,7 @@ import java.util.Map;
  */
 class EsStateFactory implements StateFactory {
     private final EsConfig esConfig;
-    private EsConfig esConfig;
-    private EsTupleMapper tupleMapper;
+    private final EsTupleMapper tupleMapper;
 
     /**
      * EsStateFactory constructor

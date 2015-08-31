@@ -19,9 +19,8 @@ package org.apache.storm.elasticsearch.common;
 
 import java.io.Serializable;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
-
-import com.google.common.collect.ImmutableMap;
 
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -44,7 +43,7 @@ public class EsConfig implements Serializable {
      * @param clusterName Elasticsearch cluster name
      * @param nodes       Elasticsearch addresses in host:port pattern string array
      * @throws IllegalArgumentException if nodes are empty
-     * @throws NullPointerException on any of the fields being null
+     * @throws NullPointerException     on any of the fields being null
      */
     public EsConfig(String clusterName, String[] nodes) {
         this(clusterName, nodes, Collections.<String, String>emptyMap());
@@ -57,7 +56,7 @@ public class EsConfig implements Serializable {
      * @param nodes                   Elasticsearch addresses in host:port pattern string array
      * @param additionalConfiguration Additional Elasticsearch configuration
      * @throws IllegalArgumentException if nodes are empty
-     * @throws NullPointerException on any of the fields being null
+     * @throws NullPointerException     on any of the fields being null
      */
     public EsConfig(String clusterName, String[] nodes, Map<String, String> additionalConfiguration) {
         checkNotNull(clusterName);
@@ -67,7 +66,7 @@ public class EsConfig implements Serializable {
         checkArgument(nodes.length != 0, "Nodes cannot be empty");
         this.clusterName = clusterName;
         this.nodes = nodes;
-        this.additionalConfiguration = ImmutableMap.copyOf(additionalConfiguration);
+        this.additionalConfiguration = new HashMap<>(additionalConfiguration);
     }
 
     TransportAddresses getTransportAddresses() {

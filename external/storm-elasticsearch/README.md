@@ -84,7 +84,7 @@ EsConfig esConfig = new EsConfig(clusterName, new String[]{"localhost:9300"}, ad
 |---	|--- |---
 |clusterName | Elasticsearch cluster name | String (required) |
 |nodes | Elasticsearch nodes in a String array, each element should follow {host}:{port} pattern | String array (required) |
-|additionalParameters | Additional Elasticsearch configuration parameters | Map<String, String> (optional) |
+|additionalParameters | Additional Elasticsearch Transport Client configuration parameters | Map<String, String> (optional) |
 
 ## EsTupleMapper (org.apache.storm.elasticsearch.common.EsTupleMapper)
 

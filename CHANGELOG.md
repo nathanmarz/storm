@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1003: In cluster.clj replace task-id with component-id in the declaration
  * STORM-1013: [storm-elasticsearch] Expose TransportClient configuration Map to EsConfig
  * STORM-1012: Shading jackson.
  * STORM-974: [storm-elasticsearch] Introduces Tuple -> ES document mapper to get rid of constant field mapping (source, index, type)

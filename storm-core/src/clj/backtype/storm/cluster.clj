@@ -188,9 +188,9 @@
   ;adds nimbusinfo under /stormroot/code-distributor/storm-id
   (setup-code-distributor! [this storm-id info])
   (remove-storm! [this storm-id])
-  (report-error [this storm-id task-id node port error])
-  (errors [this storm-id task-id])
-  (last-error [this storm-id task-id])
+  (report-error [this storm-id component-id node port error])
+  (errors [this storm-id component-id])
+  (last-error [this storm-id component-id])
   (set-credentials! [this storm-id creds topo-conf])
   (credentials [this storm-id callback])
   (disconnect [this]))

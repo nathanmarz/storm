@@ -61,4 +61,9 @@ public class EsIndexBoltTest extends AbstractEsBoltIntegrationTest<EsIndexBolt> 
         EsTupleMapper tupleMapper = EsTestUtil.generateDefaultTupleMapper();
         return new EsIndexBolt(esConfig, tupleMapper);
     }
+
+    @Override
+    protected Class<EsIndexBolt> getBoltClass() {
+        return EsIndexBolt.class;
+    }
 }

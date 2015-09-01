@@ -17,19 +17,16 @@
  */
 package org.apache.storm.elasticsearch.trident;
 
-import storm.trident.operation.TridentCollector;
-import storm.trident.state.BaseStateUpdater;
-import storm.trident.tuple.TridentTuple;
+import com.google.common.testing.NullPointerTester;
 
-import java.util.List;
+import org.apache.storm.elasticsearch.common.EsConfig;
+import org.junit.Test;
 
-public class EsUpdater extends BaseStateUpdater<EsState> {
-    /**
-     * {@inheritDoc}
-     * Each tuple should have relevant fields (source, index, type, id) for EsState's tupleMapper to extract ES document.
-     */
-    @Override
-    public void updateState(EsState state, List<TridentTuple> tuples, TridentCollector collector) {
-        state.updateState(tuples);
+public class EsStateFactoryTest {
+
+    @Test
+    public void constructorThrowsOnNull() throws Exception {
+        new NullPointerTester().setDefault(EsConfig.class, new EsConfig("cluster", new String[] {"localhost:9300"}))
+                               .testAllPublicConstructors(EsStateFactory.class);
     }
 }

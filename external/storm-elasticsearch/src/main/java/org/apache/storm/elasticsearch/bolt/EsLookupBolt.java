@@ -29,13 +29,23 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 
+import static org.elasticsearch.common.base.Preconditions.checkNotNull;
+
+/**
+ * @since 0.11
+ */
 public class EsLookupBolt extends AbstractEsBolt {
 
     private final ElasticsearchGetRequest getRequest;
     private final EsLookupResultOutput output;
 
+    /**
+     * @throws NullPointerException if any of the parameters is null
+     */
     public EsLookupBolt(EsConfig esConfig, ElasticsearchGetRequest getRequest, EsLookupResultOutput output) {
         super(esConfig);
+        checkNotNull(getRequest);
+        checkNotNull(output);
         this.getRequest = getRequest;
         this.output = output;
     }

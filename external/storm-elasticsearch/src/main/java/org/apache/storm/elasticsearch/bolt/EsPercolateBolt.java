@@ -30,6 +30,8 @@ import org.elasticsearch.action.percolate.PercolateSourceBuilder;
 
 import java.util.Map;
 
+import static org.elasticsearch.common.base.Preconditions.checkNotNull;
+
 /**
  * Basic bolt for retrieve matched percolate queries.
  */
@@ -44,7 +46,7 @@ public class EsPercolateBolt extends AbstractEsBolt {
      */
     public EsPercolateBolt(EsConfig esConfig, EsTupleMapper tupleMapper) {
         super(esConfig);
-        this.tupleMapper = tupleMapper;
+        this.tupleMapper = checkNotNull(tupleMapper);
     }
 
     @Override

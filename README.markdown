@@ -221,6 +221,7 @@ under the License.
 * Alex Panov ([@alexpanov](https://github.com/alexpanov))
 * Sanket Reddy ([@redsanket](https://github.com/redsanket))
 * Drew Robb ([@drewrobb](https://github.com/drewrobb))
+* Frantz Mazoyer ([@fmazoyer](https://github.com/fmazoyer))
 
 ## Acknowledgements
 

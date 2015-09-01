@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1010: Each KafkaBolt could have a specified properties.
  * STORM-1008: Isolate the code for metric collection and retrieval from DisruptorQueue
  * STORM-991: General cleanup of the generics (storm.trident.spout package)
  * STORM-1000: Use static member classes when permitted 

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
+ * <p/>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -34,11 +34,11 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.HashMap;
 import java.util.Map;
+
 import backtype.storm.metric.api.IStatefulObject;
 
 
 /**
- *
  * A single consumer queue that uses the LMAX Disruptor. They key to the performance is
  * the ability to catch up to the producer by processing tuples in batches.
  */
@@ -189,6 +189,7 @@ public class DisruptorQueue implements IStatefulObject {
         final MutableObject m = _buffer.get(id);
         m.setObject(obj);
         _buffer.publish(id);
+        _metrics.notifyArrivals(1);
     }
 
     public void consumerStarted() {
@@ -223,6 +224,8 @@ public class DisruptorQueue implements IStatefulObject {
      */
     public class QueueMetrics {
 
+        private final RateTracker _rateTracker = new RateTracker(10000, 10);
+
         public long writePos() {
             return _buffer.getCursor();
         }
@@ -249,13 +252,22 @@ public class DisruptorQueue implements IStatefulObject {
             // get readPos then writePos so it's never an under-estimate
             long rp = readPos();
             long wp = writePos();
+
+            final float arrivalRateInMils = _rateTracker.reportRate();
+
             state.put("capacity", capacity());
             state.put("population", wp - rp);
             state.put("write_pos", wp);
             state.put("read_pos", rp);
+            state.put("arrival_rate", arrivalRateInMils); //arrivals per millisecond
 
             return state;
         }
+
+        public void notifyArrivals(long counts) {
+            _rateTracker.notify(counts);
+        }
+
     }
 
 }

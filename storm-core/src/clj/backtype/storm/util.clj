@@ -605,7 +605,7 @@
     (if (nil? storm-dir) 
       (current-classpath)
       (str/join class-path-separator
-                (concat (get-full-jars storm-lib-dir) (get-full-jars storm-extlib-dir) [extcp] [storm-conf-dir])))))
+                (remove nil? (concat (get-full-jars storm-lib-dir) (get-full-jars storm-extlib-dir) [extcp] [storm-conf-dir]))))))
 
 (defn add-to-classpath
   [classpath paths]

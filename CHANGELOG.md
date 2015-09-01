@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1000: Use static member classes when permitted 
  * STORM-1003: In cluster.clj replace task-id with component-id in the declaration
  * STORM-1013: [storm-elasticsearch] Expose TransportClient configuration Map to EsConfig
  * STORM-1012: Shading jackson.

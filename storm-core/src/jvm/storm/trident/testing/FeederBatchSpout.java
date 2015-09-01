@@ -128,7 +128,7 @@ public class FeederBatchSpout implements ITridentSpout, IFeeder {
         }
     }
     
-    public class FeederEmitter implements ITridentSpout.Emitter<Map<Integer, List<List<Object>>>> {
+    private static class FeederEmitter implements ITridentSpout.Emitter<Map<Integer, List<List<Object>>>> {
 
         int _index;
         

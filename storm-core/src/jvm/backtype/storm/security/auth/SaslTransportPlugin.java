@@ -108,7 +108,7 @@ public abstract class SaslTransportPlugin implements ITransportPlugin {
      *                                                                                                                                                                              
      * This is used on the server side to set the UGI for each specific call.                                                                                                       
      */
-    private class TUGIWrapProcessor implements TProcessor {
+    private static class TUGIWrapProcessor implements TProcessor {
         final TProcessor wrapped;
 
         TUGIWrapProcessor(TProcessor wrapped) {

@@ -146,7 +146,7 @@ public class RichSpoutBatchExecutor implements ITridentSpout {
         
     }
     
-    class RichSpoutCoordinator implements ITridentSpout.BatchCoordinator {
+    private static class RichSpoutCoordinator implements ITridentSpout.BatchCoordinator {
         @Override
         public Object initializeTransaction(long txid, Object prevMetadata, Object currMetadata) {
             return null;

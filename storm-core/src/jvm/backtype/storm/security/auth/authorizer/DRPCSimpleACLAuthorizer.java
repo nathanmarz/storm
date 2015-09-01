@@ -48,7 +48,7 @@ public class DRPCSimpleACLAuthorizer extends DRPCAuthorizerBase {
     protected IPrincipalToLocal _ptol;
     protected boolean _permitWhenMissingFunctionEntry = false;
 
-    protected class AclFunctionEntry {
+    protected static class AclFunctionEntry {
         final public Set<String> clientUsers;
         final public String invocationUser;
         public AclFunctionEntry(Collection<String> clientUsers,

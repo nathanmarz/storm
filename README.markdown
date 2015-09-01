@@ -222,6 +222,7 @@ under the License.
 * Sanket Reddy ([@redsanket](https://github.com/redsanket))
 * Drew Robb ([@drewrobb](https://github.com/drewrobb))
 * Frantz Mazoyer ([@fmazoyer](https://github.com/fmazoyer))
+* Dean de Bree ([@ddebree](https://github.com/ddebree))
 
 ## Acknowledgements
 

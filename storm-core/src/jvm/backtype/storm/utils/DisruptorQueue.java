@@ -72,7 +72,7 @@ public class DisruptorQueue implements IStatefulObject {
         _consumer = new Sequence();
         _barrier = _buffer.newBarrier();
         _buffer.setGatingSequences(_consumer);
-        _metrics = new QueueMetrics((float)0.05);
+        _metrics = new QueueMetrics((float) 0.05);
 
         if (claim instanceof SingleThreadedClaimStrategy) {
             consumerStartedFlag = true;
@@ -277,11 +277,19 @@ public class DisruptorQueue implements IStatefulObject {
 
             final float arrivalRateInMils = _rateTracker.reportRate() / _sampleRate;
 
+            /*
+            Assume the queue is stable, in which the arrival rate is equal to the consumption rate.
+            If this assumption does not hold, the calculation of sojourn time should also consider
+            departure rate according to Queuing Theory.
+             */
+            final float sojournTime = (wp - rp) / (float) Math.max(arrivalRateInMils, 0.00001);
+
             state.put("capacity", capacity());
             state.put("population", wp - rp);
             state.put("write_pos", wp);
             state.put("read_pos", rp);
             state.put("arrival_rate", arrivalRateInMils); //arrivals per millisecond
+            state.put("sojourn_time", sojournTime); //element sojourn time in milliseconds
 
             return state;
         }

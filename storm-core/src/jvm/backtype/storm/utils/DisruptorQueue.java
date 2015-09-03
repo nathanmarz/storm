@@ -28,6 +28,7 @@ import com.lmax.disruptor.SequenceBarrier;
 import com.lmax.disruptor.SingleThreadedClaimStrategy;
 import com.lmax.disruptor.WaitStrategy;
 
+import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
@@ -71,7 +72,7 @@ public class DisruptorQueue implements IStatefulObject {
         _consumer = new Sequence();
         _barrier = _buffer.newBarrier();
         _buffer.setGatingSequences(_consumer);
-        _metrics = new QueueMetrics();
+        _metrics = new QueueMetrics((float)0.05);
 
         if (claim instanceof SingleThreadedClaimStrategy) {
             consumerStartedFlag = true;
@@ -225,6 +226,27 @@ public class DisruptorQueue implements IStatefulObject {
     public class QueueMetrics {
 
         private final RateTracker _rateTracker = new RateTracker(10000, 10);
+        private final float _sampleRate;
+        private Random _random;
+
+        public QueueMetrics() throws IllegalArgumentException {
+            this(1);
+        }
+
+        /**
+         * @param sampleRate a number between 0 and 1. The higher it is, the accurate the metrics
+         *                   will be. Using a reasonable sampleRate, e.g., 0.1, could effectively reduce the
+         *                   metric maintenance cost while providing good accuracy.
+         */
+        public QueueMetrics(float sampleRate) throws IllegalArgumentException {
+
+            if (sampleRate <= 0 || sampleRate > 1)
+                throw new IllegalArgumentException("sampleRate should be a value between (0,1].");
+
+            _sampleRate = sampleRate;
+
+            _random = new Random();
+        }
 
         public long writePos() {
             return _buffer.getCursor();
@@ -253,7 +275,7 @@ public class DisruptorQueue implements IStatefulObject {
             long rp = readPos();
             long wp = writePos();
 
-            final float arrivalRateInMils = _rateTracker.reportRate();
+            final float arrivalRateInMils = _rateTracker.reportRate() / _sampleRate;
 
             state.put("capacity", capacity());
             state.put("population", wp - rp);
@@ -265,9 +287,15 @@ public class DisruptorQueue implements IStatefulObject {
         }
 
         public void notifyArrivals(long counts) {
-            _rateTracker.notify(counts);
+            if (sample())
+                _rateTracker.notify(counts);
         }
 
+        final private boolean sample() {
+            if (_sampleRate == 1 || _random.nextFloat() < _sampleRate)
+                return true;
+            return false;
+        }
     }
 
 }

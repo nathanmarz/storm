@@ -758,7 +758,7 @@
        "executorsTotal" (count executors)
        "schedulerInfo" (.get_sched_status summ)
        "debug" (if (not-nil? debug-options) (.is_enable debug-options) false)
-       "samplingPct" (if (not-nil? debug-options) (.get_samplingpct debug-options) 100)}))
+       "samplingPct" (if (not-nil? debug-options) (.get_samplingpct debug-options) 100)
        "replicationCount" (.get_replication_count summ)}))
 
 (defn spout-summary-json [topology-id id stats window]
@@ -1083,7 +1083,7 @@
     (json-response (topology-op-response id "deactivate") (m "callback")))
   (POST "/api/v1/topology/:id/debug/:action/:spct" [:as {:keys [cookies servlet-request]} id action spct & m]
     (assert-authorized-user servlet-request "debug" (topology-config id))
-    (with-nimbus nimbus
+    (thrift/with-configured-nimbus-connection nimbus
       (let [tplg (->> (doto
                         (GetInfoOptions.)
                         (.set_num_err_choice NumErrorsChoice/NONE))
@@ -1095,7 +1095,7 @@
     (json-response (topology-op-response id (str "debug/" action)) (m "callback")))
   (POST "/api/v1/topology/:id/component/:component/debug/:action/:spct" [:as {:keys [cookies servlet-request]} id component action spct & m]
     (assert-authorized-user servlet-request "debug" (topology-config id))
-    (with-nimbus nimbus
+    (thrift/with-configured-nimbus-connection nimbus
       (let [tplg (->> (doto
                         (GetInfoOptions.)
                         (.set_num_err_choice NumErrorsChoice/NONE))

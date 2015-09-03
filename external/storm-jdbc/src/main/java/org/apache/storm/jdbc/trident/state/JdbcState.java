@@ -60,7 +60,7 @@ public class JdbcState implements State {
         private String selectQuery;
         private Integer queryTimeoutSecs;
 
-        public Options withConnectionPrvoider(ConnectionProvider connectionProvider) {
+        public Options withConnectionProvider(ConnectionProvider connectionProvider) {
             this.connectionProvider = connectionProvider;
             return this;
         }

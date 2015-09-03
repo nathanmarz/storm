@@ -20,7 +20,7 @@
   (:use [backtype.storm.daemon.worker :only [is-connection-ready]])
   (:import [java.util ArrayList]))
 
-(def port 6700)
+(def port (available-port))
 (def task 1)
 
 ;; In a "real" cluster (or an integration test), Storm itself would ensure that a topology's workers would only be

@@ -59,6 +59,11 @@
           </span>
         </th>
         <th>
+          <span cdata-toggle="tooltip" data-placement="above" title="Number of nimbus hosts on which this topology's code is replicated. ">
+            Replication count
+          </span>
+        </th>
+        <th>
           <span data-toggle="tooltip" data-placement="left" title="This shows information from the scheduler about the latest attempt to schedule the Topology on the cluster.">
             Scheduler Info
           </span>
@@ -75,6 +80,7 @@
         <td>{{workersTotal}}</td>
         <td>{{executorsTotal}}</td>
         <td>{{tasksTotal}}</td>
+        <td>{{replicationCount}}</td>
         <td>{{schedulerInfo}}</td>
       </tr>
     </tbody>
@@ -226,6 +232,8 @@
         </th>
         <th class="header">Last error
         </th>
+        <th class="header">Error Time
+        </th>
       </tr>
     </thead>
     <tbody>
@@ -243,6 +251,9 @@
         <td><a href="{{errorWorkerLogLink}}">{{errorPort}}</a></td>
         <td>
           <span id="{{errorLapsedSecs}}" class="errorSpan">{{lastError}}</span>
+        </td>
+        <td>
+          <span id="{{time}}" class="errorTime" data-toggle="tooltip" title="{{errorLapsedSecs}}">{{time}}</span>
         </td>
         {{/spouts}}
     </tbody>
@@ -313,6 +324,8 @@
         </th>
         <th class="header">Last error
         </th>
+        <th class="header">Error Time
+        </th>
     </tr></thead>
     <tbody>
       {{#bolts}}
@@ -332,6 +345,9 @@
         <td><a href="{{errorWorkerLogLink}}">{{errorPort}}</a></td>
         <td>
           <span id="{{errorLapsedSecs}}" class="errorSpan">{{lastError}}</span>
+        </td>
+        <td>
+          <span id="{{time}}" class="errorTime" data-toggle="tooltip" title="{{errorLapsedSecs}}">{{time}}</span>
         </td>
         {{/bolts}}
     </tbody>

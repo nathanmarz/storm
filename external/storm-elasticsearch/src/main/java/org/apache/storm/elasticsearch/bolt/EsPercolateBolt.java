@@ -24,21 +24,29 @@ import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 import org.apache.storm.elasticsearch.common.EsConfig;
+import org.apache.storm.elasticsearch.common.EsTupleMapper;
 import org.elasticsearch.action.percolate.PercolateResponse;
 import org.elasticsearch.action.percolate.PercolateSourceBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
+import static org.elasticsearch.common.base.Preconditions.checkNotNull;
+
+/**
+ * Basic bolt for retrieve matched percolate queries.
+ */
 public class EsPercolateBolt extends AbstractEsBolt {
+
+    private final EsTupleMapper tupleMapper;
 
     /**
      * EsPercolateBolt constructor
      * @param esConfig Elasticsearch configuration containing node addresses and cluster name {@link EsConfig}
+     * @param tupleMapper Tuple to ES document mapper {@link EsTupleMapper}
      */
-    public EsPercolateBolt(EsConfig esConfig) {
+    public EsPercolateBolt(EsConfig esConfig, EsTupleMapper tupleMapper) {
         super(esConfig);
+        this.tupleMapper = checkNotNull(tupleMapper);
     }
 
     @Override
@@ -47,15 +55,17 @@ public class EsPercolateBolt extends AbstractEsBolt {
     }
 
     /**
-     * Executes percolate request for given tuple.
-     * @param tuple should contain string values of 3 declared fields: "source", "index", "type"
+     * {@inheritDoc}
+     * Tuple should have relevant fields (source, index, type) for storeMapper to extract ES document.<br/>
+     * If there exists non-empty percolate response, EsPercolateBolt will emit tuple with original source
+     * and Percolate.Match for each Percolate.Match in PercolateResponse.
      */
     @Override
     public void execute(Tuple tuple) {
         try {
-            String source = tuple.getStringByField("source");
-            String index = tuple.getStringByField("index");
-            String type = tuple.getStringByField("type");
+            String source = tupleMapper.getSource(tuple);
+            String index = tupleMapper.getIndex(tuple);
+            String type = tupleMapper.getType(tuple);
 
             PercolateResponse response = client.preparePercolate().setIndices(index).setDocumentType(type)
                     .setPercolateDoc(PercolateSourceBuilder.docBuilder().setDoc(source)).execute().actionGet();

@@ -958,7 +958,7 @@
      (into {} (for [[id m] (:spout-id->stats acc-data)
                     :let [acked (:acked m)]]
                     [id (-> m
-                            (assoc :completeLatency
+                            (assoc :complete-latency
                                    (if (and acked (pos? acked))
                                      (div (:completeLatencyTotal m)
                                           (:acked m))

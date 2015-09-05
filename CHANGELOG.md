@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1025: Invalid links at https://storm.apache.org/about/multi-language.html
  * STORM-1010: Each KafkaBolt could have a specified properties.
  * STORM-1008: Isolate the code for metric collection and retrieval from DisruptorQueue
  * STORM-991: General cleanup of the generics (storm.trident.spout package)

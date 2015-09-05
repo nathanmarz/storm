@@ -1,4 +1,6 @@
-## 0.11.0 
+## 0.11.0
+ * STORM-1020: Document exceptions in ITuple & Fields
+ * STORM-1025: Invalid links at https://storm.apache.org/about/multi-language.html
  * STORM-1010: Each KafkaBolt could have a specified properties.
  * STORM-1008: Isolate the code for metric collection and retrieval from DisruptorQueue
  * STORM-991: General cleanup of the generics (storm.trident.spout package)
@@ -43,13 +45,15 @@
  * STORM-913: Use Curator's delete().deletingChildrenIfNeeded() instead of zk/delete-recursive
  * STORM-968: Adding support to generate the id based on names in Trident
  * STORM-845: Storm ElasticSearch connector
- * STORM-944: storm-hive pom.xml has a dependency conflict with calcite
  * STORM-988: supervisor.slots.ports should not allow duplicate element values
  * STORM-975: Storm-Kafka trident topology example
  * STORM-958: Add config for init params of group mapping service
  * STORM-949: On the topology summary UI page, last shown error should have the time and date
 
 ## 0.10.0-beta2
+ * STORM-1024: log4j changes leaving ${sys:storm.log.dir} under STORM_HOME dir
+ * STORM-996: netty-unit-tests/test-batch demonstrates out-of-order delivery
+ * STORM-944: storm-hive pom.xml has a dependency conflict with calcite
  * STORM-994: Connection leak between nimbus and supervisors
  * STORM-1001: Undefined STORM_EXT_CLASSPATH adds '::' to classpath of workers
  * STORM-977: Incorrect signal (-9) when as-user is true

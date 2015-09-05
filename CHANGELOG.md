@@ -50,6 +50,7 @@
  * STORM-949: On the topology summary UI page, last shown error should have the time and date
 
 ## 0.10.0-beta2
+ * STORM-1024: log4j changes leaving ${sys:storm.log.dir} under STORM_HOME dir
  * STORM-996: netty-unit-tests/test-batch demonstrates out-of-order delivery
  * STORM-944: storm-hive pom.xml has a dependency conflict with calcite
  * STORM-994: Connection leak between nimbus and supervisors

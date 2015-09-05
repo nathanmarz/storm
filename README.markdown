@@ -225,6 +225,7 @@ under the License.
 * Dean de Bree ([@ddebree](https://github.com/ddebree))
 * Renkai Ge ([@Renkai](https://github.com/Renkai))
 * Aaron Coburn ([@acoburn](https://github.com/acoburn))
+* Rick Kellogg ([@rmkellogg](https://github.com/rmkellogg))
 
 ## Acknowledgements
 

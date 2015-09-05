@@ -43,13 +43,13 @@
  * STORM-913: Use Curator's delete().deletingChildrenIfNeeded() instead of zk/delete-recursive
  * STORM-968: Adding support to generate the id based on names in Trident
  * STORM-845: Storm ElasticSearch connector
- * STORM-944: storm-hive pom.xml has a dependency conflict with calcite
  * STORM-988: supervisor.slots.ports should not allow duplicate element values
  * STORM-975: Storm-Kafka trident topology example
  * STORM-958: Add config for init params of group mapping service
  * STORM-949: On the topology summary UI page, last shown error should have the time and date
 
 ## 0.10.0-beta2
+ * STORM-944: storm-hive pom.xml has a dependency conflict with calcite
  * STORM-994: Connection leak between nimbus and supervisors
  * STORM-1001: Undefined STORM_EXT_CLASSPATH adds '::' to classpath of workers
  * STORM-977: Incorrect signal (-9) when as-user is true

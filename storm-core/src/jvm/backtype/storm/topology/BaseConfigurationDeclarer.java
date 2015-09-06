@@ -24,7 +24,7 @@ import java.util.Map;
 public abstract class BaseConfigurationDeclarer<T extends ComponentConfigurationDeclarer> implements ComponentConfigurationDeclarer<T> {
     @Override
     public T addConfiguration(String config, Object value) {
-        Map configMap = new HashMap();
+        Map<String, Object> configMap = new HashMap<>();
         configMap.put(config, value);
         return addConfigurations(configMap);
     }

@@ -89,6 +89,6 @@ public interface ITridentSpout<T> extends Serializable {
      */    
     Emitter<T> getEmitter(String txStateId, Map conf, TopologyContext context); 
     
-    Map getComponentConfiguration();
+    Map<String, Object> getComponentConfiguration();
     Fields getOutputFields();
 }

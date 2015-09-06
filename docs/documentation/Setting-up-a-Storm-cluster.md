@@ -60,7 +60,7 @@ storm.local.dir: "/mnt/storm"
 ```
 If you run storm on windows,it could be:
 ```yaml
-storm.local.dir: "C:\\\\storm-local\\"
+storm.local.dir: "C:\\storm-local"
 ```
 If you use a relative path,it will be relative to where you installed storm(STORM_HOME).
 You can leave it empty with default value `$STORM_HOME/storm-local`

@@ -168,3 +168,24 @@
                       (catch Exception e e)))))
         (is (thrown-cause? java.lang.IllegalArgumentException
           (.validateField validator "test" 42)))))))
+
+(deftest test-absolute-storm-local-dir
+  (let [storm-home-key "storm.home"
+        old-storm-home (System/getProperty storm-home-key)
+        conf-relative {STORM-LOCAL-DIR "storm-local"}
+        conf-absolute {STORM-LOCAL-DIR
+                       (if on-windows?
+                         "C:\\storm-local"
+                         "/var/storm-local")}]
+    (try
+      (System/setProperty storm-home-key (if on-windows? "C:\\storm-home" "/usr/local/storm-home"))
+      (testing
+        "for relative path"
+        (is (= (str (System/getProperty storm-home-key) file-path-separator (conf-relative STORM-LOCAL-DIR))
+               (absolute-storm-local-dir conf-relative))))
+      (testing
+        "for absolute path"
+        (is (= (if on-windows? "C:\\storm-local" "/var/storm-local")
+               (absolute-storm-local-dir conf-absolute))))
+      (finally (if (not-nil? old-storm-home)
+                 (System/setProperty storm-home-key old-storm-home))))))

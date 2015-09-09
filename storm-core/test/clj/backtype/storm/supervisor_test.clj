@@ -261,6 +261,7 @@
                                 (str "-Dstorm.id=" mock-storm-id)
                                 (str "-Dworker.id=" mock-worker-id)
                                 (str "-Dworker.port=" mock-port)
+                               "-Dstorm.log.dir=/logs"
                                "-Dlog4j.configurationFile=/log4j2/worker.xml"
                                "backtype.storm.LogWriter"]
                                [(supervisor/java-cmd) "-server"]
@@ -392,6 +393,7 @@
                                 " '-Dstorm.id=" mock-storm-id "'"
                                 " '-Dworker.id=" mock-worker-id "'"
                                 " '-Dworker.port=" mock-port "'"
+                                " '-Dstorm.log.dir=/logs'"
                                 " '-Dlog4j.configurationFile=/log4j2/worker.xml'"
                                 " 'backtype.storm.LogWriter'"
                                 " 'java' '-server'"
@@ -501,6 +503,7 @@
                  cluster/mk-storm-cluster-state nil
                  supervisor-state nil
                  local-hostname nil
+                 supervisor/mk-code-distributor nil
                  mk-timer nil]
         (supervisor/supervisor-data auth-conf nil fake-isupervisor)
         (verify-call-times-for cluster/mk-storm-cluster-state 1)

@@ -166,6 +166,22 @@ public class KafkaBoltTest {
         verifyMessage(keyString, messageString);
     }
 
+    /* test bolt specified properties */
+    @Test
+    public void executeWithBoltSpecifiedProperties() {
+        boolean async = false;
+        boolean fireAndForget = false;
+        bolt = defaultSerializerBoltWithSpecifiedProperties(async, fireAndForget);
+        String keyString = "test-key";
+        String messageString = "test-message";
+        byte[] key = keyString.getBytes();
+        byte[] message = messageString.getBytes();
+        Tuple tuple = generateTestTuple(key, message);
+        bolt.execute(tuple);
+        verify(collector).ack(tuple);
+        verifyMessage(keyString, messageString);
+    }
+
     private KafkaBolt generateStringSerializerBolt() {
         KafkaBolt bolt = new KafkaBolt();
         Properties props = new Properties();
@@ -192,6 +208,22 @@ public class KafkaBoltTest {
         props.put("metadata.fetch.timeout.ms", 1000);
         props.put("linger.ms", 0);
         config.put(KafkaBolt.KAFKA_BROKER_PROPERTIES, props);
+        bolt.prepare(config, null, new OutputCollector(collector));
+        bolt.setAsync(async);
+        bolt.setFireAndForget(fireAndForget);
+        return bolt;
+    }
+
+    private KafkaBolt defaultSerializerBoltWithSpecifiedProperties(boolean async, boolean fireAndForget) {
+        Properties props = new Properties();
+        props.put("request.required.acks", "1");
+        props.put("serializer.class", "kafka.serializer.StringEncoder");
+        props.put("bootstrap.servers", broker.getBrokerConnectionString());
+        props.put("key.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
+        props.put("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
+        props.put("metadata.fetch.timeout.ms", 1000);
+        props.put("linger.ms", 0);
+        KafkaBolt bolt = new KafkaBolt().withProducerProperties(props);
         bolt.prepare(config, null, new OutputCollector(collector));
         bolt.setAsync(async);
         bolt.setFireAndForget(fireAndForget);

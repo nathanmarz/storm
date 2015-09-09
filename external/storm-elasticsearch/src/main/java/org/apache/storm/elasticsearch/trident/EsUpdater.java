@@ -24,8 +24,12 @@ import storm.trident.tuple.TridentTuple;
 import java.util.List;
 
 public class EsUpdater extends BaseStateUpdater<EsState> {
+    /**
+     * {@inheritDoc}
+     * Each tuple should have relevant fields (source, index, type, id) for EsState's tupleMapper to extract ES document.
+     */
     @Override
     public void updateState(EsState state, List<TridentTuple> tuples, TridentCollector collector) {
-        state.updateState(tuples, collector);
+        state.updateState(tuples);
     }
 }

@@ -332,7 +332,7 @@ public class TridentTopologyBuilder {
         String getStream();
     }
     
-    private class SpoutDeclarerImpl extends BaseConfigurationDeclarer<SpoutDeclarer> implements SpoutDeclarer {
+    private static class SpoutDeclarerImpl extends BaseConfigurationDeclarer<SpoutDeclarer> implements SpoutDeclarer {
         SpoutComponent _component;
         
         public SpoutDeclarerImpl(SpoutComponent component) {
@@ -346,7 +346,7 @@ public class TridentTopologyBuilder {
         }        
     }
     
-    private class BoltDeclarerImpl extends BaseConfigurationDeclarer<BoltDeclarer> implements BoltDeclarer {
+    private static class BoltDeclarerImpl extends BaseConfigurationDeclarer<BoltDeclarer> implements BoltDeclarer {
         Component _component;
         
         public BoltDeclarerImpl(Component component) {

@@ -29,6 +29,7 @@ import backtype.storm.tuple.Values;
 import org.apache.storm.elasticsearch.common.EsConfig;
 import org.apache.storm.elasticsearch.common.EsConstants;
 import org.apache.storm.elasticsearch.common.EsTestUtil;
+import org.apache.storm.elasticsearch.common.EsTupleMapper;
 
 import java.util.Map;
 import java.util.UUID;
@@ -46,10 +47,9 @@ public class EsIndexTopology {
         TopologyBuilder builder = new TopologyBuilder();
         UserDataSpout spout = new UserDataSpout();
         builder.setSpout(SPOUT_ID, spout, 1);
-        EsConfig esConfig = new EsConfig();
-        esConfig.setClusterName(EsConstants.clusterName);
-        esConfig.setNodes(new String[]{"localhost:9300"});
-        builder.setBolt(BOLT_ID, new EsIndexBolt(esConfig), 1).shuffleGrouping(SPOUT_ID);
+        EsTupleMapper tupleMapper = EsTestUtil.generateDefaultTupleMapper();
+        EsConfig esConfig = new EsConfig(EsConstants.clusterName, new String[]{"localhost:9300"});
+        builder.setBolt(BOLT_ID, new EsIndexBolt(esConfig, tupleMapper), 1).shuffleGrouping(SPOUT_ID);
 
         EsTestUtil.startEsNode();
         EsTestUtil.waitForSeconds(5);

@@ -38,14 +38,14 @@ public class TridentSpoutCoordinator implements IBasicBolt {
     public static final Logger LOG = LoggerFactory.getLogger(TridentSpoutCoordinator.class);
     private static final String META_DIR = "meta";
 
-    ITridentSpout _spout;
-    ITridentSpout.BatchCoordinator _coord;
+    ITridentSpout<Object> _spout;
+    ITridentSpout.BatchCoordinator<Object> _coord;
     RotatingTransactionalState _state;
     TransactionalState _underlyingState;
     String _id;
 
     
-    public TridentSpoutCoordinator(String id, ITridentSpout spout) {
+    public TridentSpoutCoordinator(String id, ITridentSpout<Object> spout) {
         _spout = spout;
         _id = id;
     }

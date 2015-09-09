@@ -17,65 +17,49 @@
  */
 package org.apache.storm.elasticsearch.bolt;
 
+import com.google.common.testing.NullPointerTester;
+
 import backtype.storm.Config;
 import backtype.storm.task.OutputCollector;
-import org.apache.commons.io.FileUtils;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
-import org.elasticsearch.client.Requests;
-import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.common.Priority;
-import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.common.util.concurrent.EsExecutors;
-import org.elasticsearch.node.Node;
-import org.elasticsearch.node.NodeBuilder;
+import org.apache.storm.elasticsearch.common.EsConfig;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.runners.MockitoJUnitRunner;
 
-import java.io.File;
+@RunWith(MockitoJUnitRunner.class)
+public abstract class AbstractEsBoltTest<Bolt extends AbstractEsBolt> {
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.mockito.Mockito.mock;
-
-public class AbstractEsBoltTest {
     protected static Config config = new Config();
-    protected static OutputCollector collector = mock(OutputCollector.class);
-    protected static Node node;
 
-    @BeforeClass
-    public static void setup() throws Exception {
-        node = NodeBuilder.nodeBuilder().data(true).settings(
-                ImmutableSettings.builder()
-                        .put(ClusterName.SETTING, "test-cluster")
-                        .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 1)
-                        .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)
-                        .put(EsExecutors.PROCESSORS, 1)
-                        .put("http.enabled", false)
-                        .put("index.percolator.map_unmapped_fields_as_string", true)
-                        .put("index.store.type", "memory")
-        ).build();
-        node.start();
-        ensureEsGreen(node);
-        ClusterHealthResponse chr = node.client().admin().cluster()
-                .health(Requests.clusterHealthRequest().timeout(TimeValue.timeValueSeconds(30)).waitForGreenStatus().waitForRelocatingShards(0)).actionGet();
-        Thread.sleep(1000);
+    @Mock
+    protected OutputCollector outputCollector;
+
+    protected Bolt bolt;
+
+    @Before
+    public void createBolt() throws Exception {
+        bolt = createBolt(esConfig());
+        bolt.prepare(config, null, outputCollector);
     }
 
-    @AfterClass
-    public static void cleanup() throws Exception {
-        node.stop();
-        node.close();
-        FileUtils.deleteDirectory(new File("./data"));
+    protected abstract Bolt createBolt(EsConfig esConfig);
+
+    protected EsConfig esConfig() {
+        return new EsConfig("test-cluster", new String[] {"127.0.0.1:9300"});
     }
 
-    private static void ensureEsGreen(Node node) {
-        ClusterHealthResponse chr = node.client().admin().cluster()
-                .health(Requests.clusterHealthRequest().timeout(TimeValue.timeValueSeconds(30)).waitForGreenStatus().waitForEvents(Priority.LANGUID).waitForRelocatingShards(0)).actionGet();
-        assertThat("cluster status is green", chr.getStatus(), equalTo(ClusterHealthStatus.GREEN));
+    @After
+    public void cleanupBolt() throws Exception {
+        bolt.cleanup();
     }
+
+    @Test
+    public void constructorsThrowOnNull() throws Exception {
+        new NullPointerTester().setDefault(EsConfig.class, esConfig()).testAllPublicConstructors(getBoltClass());
+    }
+
+    protected abstract Class<Bolt> getBoltClass();
 }

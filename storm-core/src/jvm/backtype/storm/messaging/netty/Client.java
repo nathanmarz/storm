@@ -122,6 +122,8 @@ public class Client extends ConnectionWithStatus implements IStatefulObject {
 
     private final MessageBuffer batcher;
 
+    private final Object writeLock = new Object();
+
     @SuppressWarnings("rawtypes")
     Client(Map stormConf, ChannelFactory factory, HashedWheelTimer scheduler, String host, int port, Context context) {
         this.stormConf = stormConf;
@@ -245,21 +247,24 @@ public class Client extends ConnectionWithStatus implements IStatefulObject {
             return;
         }
 
-
-        while (msgs.hasNext()) {
-            TaskMessage message = msgs.next();
-            MessageBatch full = batcher.add(message);
-            if(full != null){
-                flushMessages(channel, full);
+        synchronized (writeLock) {
+            while (msgs.hasNext()) {
+                TaskMessage message = msgs.next();
+                MessageBatch full = batcher.add(message);
+                if(full != null){
+                    flushMessages(channel, full);
+                }
             }
         }
 
         if(channel.isWritable()){
-            // Netty's internal buffer is not full and we still have message left in the buffer.
-            // We should write the unfilled MessageBatch immediately to reduce latency
-            MessageBatch batch = batcher.drain();
-            if(batch != null) {
-                flushMessages(channel, batch);
+            synchronized (writeLock) {
+                // Netty's internal buffer is not full and we still have message left in the buffer.
+                // We should write the unfilled MessageBatch immediately to reduce latency
+                MessageBatch batch = batcher.drain();
+                if(batch != null) {
+                    flushMessages(channel, batch);
+                }
             }
         } else {
             // Channel's buffer is full, meaning that we have time to wait other messages to arrive, and create a bigger
@@ -315,7 +320,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject {
         if(batch.isEmpty()){
             return;
         }
-        
+
         final int numMessages = batch.size();
         LOG.debug("writing {} messages to channel {}", batch.size(), channel.toString());
         pendingMessages.addAndGet(numMessages);
@@ -444,9 +449,11 @@ public class Client extends ConnectionWithStatus implements IStatefulObject {
      */
     public void notifyInterestChanged(Channel channel) {
         if(channel.isWritable()){
-            // Channel is writable again, write if there are any messages pending
-            MessageBatch pending = batcher.drain();
-            flushMessages(channel, pending);
+            synchronized (writeLock) {
+                // Channel is writable again, write if there are any messages pending
+                MessageBatch pending = batcher.drain();
+                flushMessages(channel, pending);
+            }
         }
     }
 

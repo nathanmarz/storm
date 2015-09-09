@@ -219,7 +219,7 @@ public class TransactionalTopologyBuilder {
         }        
     }
     
-    private class BoltDeclarerImpl extends BaseConfigurationDeclarer<BoltDeclarer> implements BoltDeclarer {
+    private static class BoltDeclarerImpl extends BaseConfigurationDeclarer<BoltDeclarer> implements BoltDeclarer {
         Component _component;
         
         public BoltDeclarerImpl(Component component) {

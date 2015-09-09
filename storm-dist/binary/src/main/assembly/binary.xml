@@ -59,6 +59,8 @@
                 <exclude>org.clojure:tools.macro</exclude>
                 <exclude>joda-time:joda-time</exclude>
                 <exclude>org.eclipse.jetty:*</exclude>
+                <exclude>com.fasterxml.jackson.core:*</exclude>
+                <exclude>com.fasterxml.jackson.dataformat:*</exclude>
             </excludes>
         </dependencySet>
     </dependencySets>
@@ -257,6 +259,20 @@
         <fileSet>
             <directory>${project.basedir}/../../external/storm-redis</directory>
             <outputDirectory>external/storm-redis</outputDirectory>
+            <includes>
+                <include>README.*</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/storm-solr/target</directory>
+            <outputDirectory>external/storm-solr</outputDirectory>
+            <includes>
+                <include>storm*jar</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/storm-solr</directory>
+            <outputDirectory>external/storm-solr</outputDirectory>
             <includes>
                 <include>README.*</include>
             </includes>

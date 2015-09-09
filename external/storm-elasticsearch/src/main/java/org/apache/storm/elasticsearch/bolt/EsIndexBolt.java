@@ -22,19 +22,26 @@ import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 import org.apache.storm.elasticsearch.common.EsConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.storm.elasticsearch.common.EsTupleMapper;
 
 import java.util.Map;
 
+import static org.elasticsearch.common.base.Preconditions.checkNotNull;
+
+/**
+ * Basic bolt for storing tuple to ES document.
+ */
 public class EsIndexBolt extends AbstractEsBolt {
+    private final EsTupleMapper tupleMapper;
 
     /**
      * EsIndexBolt constructor
      * @param esConfig Elasticsearch configuration containing node addresses and cluster name {@link EsConfig}
+     * @param tupleMapper Tuple to ES document mapper {@link EsTupleMapper}
      */
-    public EsIndexBolt(EsConfig esConfig) {
+    public EsIndexBolt(EsConfig esConfig, EsTupleMapper tupleMapper) {
         super(esConfig);
+        this.tupleMapper = checkNotNull(tupleMapper);
     }
 
     @Override
@@ -43,16 +50,16 @@ public class EsIndexBolt extends AbstractEsBolt {
     }
 
     /**
-     * Executes index request for given tuple.
-     * @param tuple should contain string values of 4 declared fields: "source", "index", "type", "id"
+     * {@inheritDoc}
+     * Tuple should have relevant fields (source, index, type, id) for tupleMapper to extract ES document.
      */
     @Override
     public void execute(Tuple tuple) {
         try {
-            String source = tuple.getStringByField("source");
-            String index = tuple.getStringByField("index");
-            String type = tuple.getStringByField("type");
-            String id = tuple.getStringByField("id");
+            String source = tupleMapper.getSource(tuple);
+            String index = tupleMapper.getIndex(tuple);
+            String type = tupleMapper.getType(tuple);
+            String id = tupleMapper.getId(tuple);
 
             client.prepareIndex(index, type, id).setSource(source).execute().actionGet();
             collector.ack(tuple);

@@ -28,7 +28,7 @@ target
 *.ipr
 *.iws
 .idea
-.*
+#.*
 !/.travis.yml
 !/.gitignore
 _site

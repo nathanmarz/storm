@@ -21,35 +21,29 @@ import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 import org.apache.storm.elasticsearch.common.EsConfig;
 import org.apache.storm.elasticsearch.common.EsTestUtil;
-import org.elasticsearch.action.count.CountResponse;
+import org.apache.storm.elasticsearch.common.EsTupleMapper;
 import org.elasticsearch.action.percolate.PercolateResponse;
-import org.elasticsearch.index.query.TermQueryBuilder;
-import org.junit.Assert;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Matchers.any;
 
-public class EsPercolateBoltTest extends AbstractEsBoltTest {
-    private static final Logger LOG = LoggerFactory.getLogger(EsIndexBoltTest.class);
-    private EsPercolateBolt bolt;
+public class EsPercolateBoltTest extends AbstractEsBoltIntegrationTest<EsPercolateBolt> {
+
+    @Override
+    protected EsPercolateBolt createBolt(EsConfig esConfig) {
+        EsTupleMapper tupleMapper = EsTestUtil.generateDefaultTupleMapper();
+        return new EsPercolateBolt(esConfig, tupleMapper);
+    }
 
     @Test
     public void testEsPercolateBolt()
             throws Exception {
-        EsConfig esConfig = new EsConfig();
-        esConfig.setClusterName("test-cluster");
-        esConfig.setNodes(new String[]{"localhost:9300"});
-        bolt = new EsPercolateBolt(esConfig);
-        bolt.prepare(config, null, collector);
-
         String source = "{\"user\":\"user1\"}";
         String index = "index1";
         String type = ".percolator";
 
-        node.client().prepareIndex("index1",".percolator")
+        node.client().prepareIndex("index1", ".percolator")
                 .setId("1")
                 .setSource("{\"query\":{\"match\":{\"user\":\"user1\"}}}").
                 execute().actionGet();
@@ -57,9 +51,12 @@ public class EsPercolateBoltTest extends AbstractEsBoltTest {
 
         bolt.execute(tuple);
 
-        verify(collector).ack(tuple);
-        verify(collector).emit(new Values(source, any(PercolateResponse.Match.class)));
+        verify(outputCollector).ack(tuple);
+        verify(outputCollector).emit(new Values(source, any(PercolateResponse.Match.class)));
+    }
 
-        bolt.cleanup();
+    @Override
+    protected Class<EsPercolateBolt> getBoltClass() {
+        return EsPercolateBolt.class;
     }
 }

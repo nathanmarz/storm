@@ -448,7 +448,7 @@
 
 ;; Send sampled data to the eventlogger if the global or component level
 ;; debug flag is set (via nimbus api).
-(defn send-to-eventlogger [executor-data task-data values overflow-buffer component-id random]
+(defn send-to-eventlogger [executor-data task-data values overflow-buffer component-id message-id random]
     (let [c->d @(:storm-component->debug-atom executor-data)
           options (get c->d component-id (get c->d (:storm-id executor-data)))
           spct    (if (and (not-nil? options) (:enable options)) (:samplingpct options) 0)]
@@ -458,7 +458,7 @@
         (task/send-unanchored
           task-data
           EVENTLOGGER-STREAM-ID
-          [component-id (System/currentTimeMillis) values] ;TODO: add more metadata to the vector
+          [component-id message-id (System/currentTimeMillis) values]
           overflow-buffer))))
 
 (defmethod mk-threads :spout [executor-data task-datas initial-credentials]
@@ -549,7 +549,7 @@
                                                                         overflow-buffer)
                                                            ))
                                          (if has-eventloggers?
-                                           (send-to-eventlogger executor-data task-data values overflow-buffer component-id rand))
+                                           (send-to-eventlogger executor-data task-data values overflow-buffer component-id message-id rand))
                                          (if (and rooted?
                                                   (not (.isEmpty out-ids)))
                                            (do
@@ -757,7 +757,7 @@
                                                                                (MessageId/makeId anchors-to-ids))
                                                                    overflow-buffer)))
                                     (if has-eventloggers?
-                                      (send-to-eventlogger executor-data task-data values overflow-buffer component-id rand))
+                                      (send-to-eventlogger executor-data task-data values overflow-buffer component-id nil rand))
                                     (or out-tasks [])))]]
           (builtin-metrics/register-all (:builtin-metrics task-data) storm-conf user-context)
           (when (instance? ICredentialsListener bolt-obj) (.setCredentials bolt-obj initial-credentials)) 

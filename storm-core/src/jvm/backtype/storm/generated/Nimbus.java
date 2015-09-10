@@ -74,7 +74,7 @@ public class Nimbus {
      * Enable/disable logging the tuples generated in topology via an internal EventLogger bolt. The component name is optional
      * and if null or empty, the debug flag will apply to the entire topology.
      * 
-     * If 'samplingPercentage' is specified, it will limit loggging to a percentage of generated tuples. The default is to log all (100 pct).
+     * The 'samplingPercentage' will limit loggging to a percentage of generated tuples.
      * 
      * 
      * @param name

@@ -758,7 +758,7 @@
        "executorsTotal" (count executors)
        "schedulerInfo" (.get_sched_status summ)
        "debug" (if (not-nil? debug-options) (.is_enable debug-options) false)
-       "samplingPct" (if (not-nil? debug-options) (.get_samplingpct debug-options) 100)
+       "samplingPct" (if (not-nil? debug-options) (.get_samplingpct debug-options) 10)
        "replicationCount" (.get_replication_count summ)}))
 
 (defn spout-summary-json [topology-id id stats window]
@@ -987,7 +987,7 @@
          "componentType" (name type)
          "windowHint" (window-hint window)
          "debug" (if (not-nil? debug-options) (.is_enable debug-options) false)
-         "samplingPct" (if (not-nil? debug-options) (.get_samplingpct debug-options) 100)
+         "samplingPct" (if (not-nil? debug-options) (.get_samplingpct debug-options) 10)
          "eventLogLink" (event-log-link topology-id summ topology component secure?)}
        spec errors))))
 

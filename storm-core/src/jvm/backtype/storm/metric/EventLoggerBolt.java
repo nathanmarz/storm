@@ -28,6 +28,7 @@ public class EventLoggerBolt implements IBolt {
     public static final String FIELD_TS = "ts";
     public static final String FIELD_VALUES = "values";
     public static final String FIELD_COMPONENT_ID = "component-id";
+    public static final String FIELD_MESSAGE_ID = "message-id";
 
     private IEventLogger eventLogger;
 
@@ -42,8 +43,9 @@ public class EventLoggerBolt implements IBolt {
     public void execute(Tuple input) {
         LOG.debug("** EventLoggerBolt got tuple from sourceComponent {}, with values {}", input.getSourceComponent(), input.getValues());
 
+        Object msgId = input.getValueByField(FIELD_MESSAGE_ID);
         EventInfo eventInfo = new EventInfo(input.getValueByField(FIELD_TS).toString(), input.getSourceComponent(),
-                                            String.valueOf(input.getSourceTask()), input.getMessageId().toString(),
+                                            String.valueOf(input.getSourceTask()), msgId == null ? "" : msgId.toString(),
                                             input.getValueByField(FIELD_VALUES).toString());
 
         eventLogger.log(eventInfo);

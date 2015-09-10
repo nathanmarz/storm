@@ -295,7 +295,7 @@
 
 ;; return the fields that event logger bolt expects
 (defn eventlogger-bolt-fields []
-  [(EventLoggerBolt/FIELD_COMPONENT_ID)  (EventLoggerBolt/FIELD_TS) (EventLoggerBolt/FIELD_VALUES)]
+  [(EventLoggerBolt/FIELD_COMPONENT_ID) (EventLoggerBolt/FIELD_MESSAGE_ID)  (EventLoggerBolt/FIELD_TS) (EventLoggerBolt/FIELD_VALUES)]
   )
 
 (defn add-eventlogger! [storm-conf ^StormTopology ret]

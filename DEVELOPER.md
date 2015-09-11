@@ -241,17 +241,16 @@ in order to get started as fast as possible. Users can still install a specific 
 
 The following commands must be run from the top-level directory.
 
-    # Build the code and run the tests (requires nodejs, python and ruby installed) 
-    # `mvn clean package` will fail because storm-core requires storm-maven-plugin.
-    # This plugin should be installed before compiling storm-core.
-    $ mvn clean install
+The first step is to build/install the plugins and storm-core
 
-    # Build the code and run the tests, with specifying default test timeout (in millisecond)
-    $ export STORM_TEST_TIMEOUT_MS=10000
-    $ mvn clean install
+`mvn clean install -Pstorm-core`
 
-    # Build the code but skip the tests
-    $ mvn clean install -DskipTests=true
+If you wish to skip the unit tests you can do this by adding `-DskipTests` to the command line. Once this
+completes successfully you may run
+
+`mvn clean install -Pstorm-more`
+
+to build and test all of the external libraries and examples.  Again if you want to include `-DskipTests` you can.
 
 In case you modified `storm.thrift`, you have to regenerate thrift code as java and python code before compiling whole project.
 
@@ -266,19 +265,7 @@ You can also run tests selectively via the Clojure REPL.  The following example 
 [auth_test.clj](storm-core/test/clj/backtype/storm/security/auth/auth_test.clj), which has the namespace
 `backtype.storm.security.auth.auth-test`.
 
-First, start the REPL from within the relevant sub-project (here: `storm-core`):
-
-    $ cd storm-core/
-    $ mvn clojure:repl
-
-Now we run the tests in `auth_test.clj` in the REPL:
-
-```clojure
-;; You can use both absolute as well as relative paths to the .clj file.
-(load-file "test/clj/backtype/storm/security/auth/auth_test.clj")
-(ns backtype.storm.security.auth.auth-test)
-(run-tests)
-```
+You can also run tests selectively with `-Dtest=<test_name>`.  This works for both clojure and junit tests.
 
 > Tip: IDEs such as IntelliJ IDEA support a built-in Clojure REPL, which you can also use to run tests selectively.
 > Sometimes you may find that tests pass/fail depending on which REPL you use, which -- although frustrating --
@@ -295,7 +282,8 @@ You can create a _distribution_ (like what you can download from Apache) as foll
 do not use the Maven release plugin because creating an official release is the task of our release manager.
 
     # First, build the code.
-    $ mvn clean install  # you may skip tests with `-DskipTests=true` to save time
+    $ mvn clean install -Pstorm-core # you may skip tests with `-DskipTests=true` to save time
+    $ mvn clean install -Pstorm-more # you may skip tests with `-DskipTests=true` to save time
 
     # Create the binary distribution.
     $ cd storm-dist/binary && mvn package

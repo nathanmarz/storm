@@ -154,26 +154,6 @@
         <maven>3.0.0</maven>
     </prerequisites>
 
-    <modules>
-        <module>storm-buildtools/maven-shade-clojure-transformer</module>
-        <module>storm-buildtools/storm-maven-plugins</module>
-        <module>storm-multilang/javascript</module>
-        <module>storm-multilang/python</module>
-        <module>storm-multilang/ruby</module>
-        <module>storm-core</module>
-        <module>external/storm-kafka</module>
-        <module>external/storm-hdfs</module>
-        <module>external/storm-hbase</module>
-        <module>external/storm-hive</module>
-        <module>external/storm-jdbc</module>
-        <module>external/storm-redis</module>
-        <module>external/storm-eventhubs</module>
-        <module>external/flux</module>
-        <module>external/storm-elasticsearch</module>
-        <module>external/storm-solr</module>
-        <module>examples/storm-starter</module>
-    </modules>
-
     <scm>
         <connection>scm:git:https://git-wip-us.apache.org/repos/asf/storm.git</connection>
         <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/storm.git</developerConnection>
@@ -197,10 +177,13 @@
         <commons-io.version>2.4</commons-io.version>
         <commons-lang.version>2.5</commons-lang.version>
         <commons-exec.version>1.1</commons-exec.version>
+        <commons-fileupload.version>1.2.1</commons-fileupload.version>
+        <commons-codec.version>1.6</commons-codec.version>
         <clj-time.version>0.8.0</clj-time.version>
         <curator.version>2.5.0</curator.version>
         <json-simple.version>1.1</json-simple.version>
         <ring.version>1.3.0</ring.version>
+        <ring-json.version>0.3.1</ring-json.version>
         <jetty.version>7.6.13.v20130916</jetty.version>
         <clojure.tools.logging.version>0.2.3</clojure.tools.logging.version>
         <clojure.math.numeric-tower.version>0.0.1</clojure.math.numeric-tower.version>
@@ -214,6 +197,7 @@
         <netty.version>3.9.0.Final</netty.version>
         <log4j-over-slf4j.version>1.6.6</log4j-over-slf4j.version>
         <log4j.version>2.1</log4j.version>
+        <slf4j.version>1.7.7</slf4j.version>
         <clojure.tools.nrepl.version>0.2.3</clojure.tools.nrepl.version>
         <clojure-complete.version>0.2.3</clojure-complete.version>
         <mockito.version>1.9.5</mockito.version>
@@ -224,9 +208,47 @@
         <hive.version>0.14.0</hive.version>
         <hadoop.version>2.6.0</hadoop.version>
         <kryo.version>2.21</kryo.version>
+        <servlet.version>2.5</servlet.version>
+        <joda-time.version>2.3</joda-time.version>
+        <jackson.version>2.3.1</jackson.version>
+        <thrift.version>0.9.2</thrift.version>
+        <junit.version>4.11</junit.version>
     </properties>
 
     <profiles>
+        <profile>
+            <id>storm-core</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <modules>
+                <module>storm-multilang/javascript</module>
+                <module>storm-multilang/python</module>
+                <module>storm-multilang/ruby</module>
+                <module>storm-buildtools/maven-shade-clojure-transformer</module>
+                <module>storm-buildtools/storm-maven-plugins</module>
+                <module>storm-core</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>storm-more</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <modules>
+                <module>external/storm-kafka</module>
+                <module>external/storm-hdfs</module>
+                <module>external/storm-hbase</module>
+                <module>external/storm-hive</module>
+                <module>external/storm-jdbc</module>
+                <module>external/storm-redis</module>
+                <module>external/storm-eventhubs</module>
+                <module>external/flux</module>
+                <module>external/storm-elasticsearch</module>
+                <module>external/storm-solr</module>
+                <module>examples/storm-starter</module>
+            </modules>
+        </profile>
         <profile>
             <id>sign</id>
             <build>
@@ -380,6 +402,41 @@
                 </exclusions>
             </dependency>
             <dependency>
+                <groupId>javax.servlet</groupId>
+                <artifactId>servlet-api</artifactId>
+                <version>${servlet.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>${slf4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>joda-time</groupId>
+                <artifactId>joda-time</artifactId>
+                <version>${joda-time.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.dataformat</groupId>
+                <artifactId>jackson-dataformat-smile</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>commons-fileupload</groupId>
+                <artifactId>commons-fileupload</artifactId>
+                <version>${commons-fileupload.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>commons-codec</groupId>
+                <artifactId>commons-codec</artifactId>
+                <version>${commons-codec.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.apache.curator</groupId>
                 <artifactId>curator-framework</artifactId>
                 <version>${curator.version}</version>
@@ -409,6 +466,11 @@
                     </exclusion>
                 </exclusions>
             </dependency>
+            <dependency>
+                <groupId>org.apache.curator</groupId>
+                <artifactId>curator-client</artifactId>
+                <version>${curator.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>com.googlecode.json-simple</groupId>
@@ -436,6 +498,11 @@
                 <version>${ring.version}</version>
             </dependency>
             <dependency>
+                <groupId>ring</groupId>
+                <artifactId>ring-json</artifactId>
+                <version>${ring-json.version}</version>
+            </dependency>
+            <dependency>
 	      <groupId>org.eclipse.jetty</groupId>
 	      <artifactId>jetty-servlet</artifactId>
 	      <version>${jetty.version}</version>
@@ -445,6 +512,17 @@
 	      <artifactId>jetty-servlets</artifactId>
 	      <version>${jetty.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-server</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-util</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+
             <dependency>
                 <groupId>org.clojure</groupId>
                 <artifactId>tools.logging</artifactId>
@@ -570,16 +648,15 @@
             <dependency>
                 <groupId>org.apache.thrift</groupId>
                 <artifactId>libthrift</artifactId>
-                <version>0.9.2</version>
+                <version>${thrift.version}</version>
                 <scope>compile</scope>
             </dependency>
-			<!-- used by examples/storm-starter -->
-		    <dependency>
-		      <groupId>junit</groupId>
-		      <artifactId>junit</artifactId>
-		      <version>4.11</version>
-		      <scope>test</scope>
-		    </dependency>
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>${junit.version}</version>
+                <scope>test</scope>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -673,7 +750,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-shade-plugin</artifactId>
-                    <version>2.2</version>
+                    <version>2.4.1</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>

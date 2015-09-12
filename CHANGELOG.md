@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1011: HBaseBolt default mapper should handle null values
  * STORM-1019: Added missing dependency version to use of org.codehaus.mojo:make-maven-plugin
  * STORM-1020: Document exceptions in ITuple & Fields
  * STORM-1025: Invalid links at https://storm.apache.org/about/multi-language.html

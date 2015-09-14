@@ -56,6 +56,8 @@ public class ObjectDef {
                 if(map.containsKey("ref") && map.size() == 1){
                     newVal.add(new BeanReference((String)map.get("ref")));
                     this.hasReferences = true;
+                } else {
+                    newVal.add(obj);
                 }
             } else {
                 newVal.add(obj);

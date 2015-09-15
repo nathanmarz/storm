@@ -227,6 +227,7 @@
         <junit.version>4.11</junit.version>
         <metrics-clojure.version>2.5.1</metrics-clojure.version>
         <hdrhistogram.version>2.1.7</hdrhistogram.version>
+        <calcite.version>1.4.0-incubating</calcite.version>
     </properties>
 
     <modules>
@@ -244,6 +245,7 @@
         <module>external/storm-redis</module>
         <module>external/storm-eventhubs</module>
         <module>external/flux</module>
+        <module>external/sql</module>
         <module>external/storm-elasticsearch</module>
         <module>external/storm-solr</module>
         <module>external/storm-metrics</module>
@@ -686,6 +688,11 @@
                 <artifactId>junit</artifactId>
                 <version>${junit.version}</version>
                 <scope>test</scope>
+            </dependency>
+            <dependency>
+              <groupId>org.apache.calcite</groupId>
+              <artifactId>calcite-core</artifactId>
+              <version>${calcite.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

@@ -284,6 +284,8 @@ Now we run the tests in `auth_test.clj` in the REPL:
 > Sometimes you may find that tests pass/fail depending on which REPL you use, which -- although frustrating --
 > can be helpful to narrow down errors.
 
+Unfortunately you might experience failures in clojure tests which are wrapped in the `maven-clojure-plugin` and thus doesn't provide too much useful output at first sight - you might end up with a maven test failure with an error message as unhelpful as `Clojure failed.`. In this case it's recommended to look into `target/test-reports` of the failed project to see what actual tests have failed or scroll through the maven output looking for obvious issues like missing binaries.
+
 
 <a name="packaging"></a>
 

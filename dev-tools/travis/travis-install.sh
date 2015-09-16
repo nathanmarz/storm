@@ -35,8 +35,6 @@ then
   exit ${BUILD_RET_VAL}
 fi
 
-exit ${BUILD_RET_VAL}
-
 python ${TRAVIS_SCRIPT_DIR}/save-logs.py "install-storm-more.txt" mvn clean install -DskipTests -Pstorm-more
 BUILD_RET_VAL=$?
 

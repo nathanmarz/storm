@@ -608,10 +608,10 @@
                     </transformers>
                     <filters>
                         <!-- Several of these filters remove the .clj files from the shaded dependencies, even though only .clj files are in these jars.
-                             The reason for this is a bit complex, but intentional.  Durring the build process all of the dependency .clj files are
-                             compiled down into .class files, and included in storm-core.jar.  The regular shade thransformer handles these in 
-                             the majority of cases correctly.  However, the ClojureTransformer does not shade everything correctly all the
-                             time.  Instead of spending a lot of time to get the ClojureTransformer to parse clojrue correctly we opted to remove
+                             The reason for this is a bit complex, but intentional.  During the build process all of the dependency .clj files are
+                             compiled down into .class files, and included in storm-core.jar.  The regular shade transformer handles these in 
+                             the majority of cases correctly.  However, the Clojure-Transformer does not shade everything correctly all the
+                             time.  Instead of spending a lot of time to get the Clojure-Transformer to parse Clojure correctly we opted to remove
                              the .clj files from the uber jar. -->
                         <filter><artifact>org.clojure:core.incubator</artifact><excludes><exclude>**/*.clj</exclude></excludes></filter>
                         <filter><artifact>cheshire:cheshire</artifact><excludes><exclude>**/*.clj</exclude></excludes></filter>

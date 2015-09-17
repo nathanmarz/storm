@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
+ * <p/>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -28,17 +28,18 @@ import com.lmax.disruptor.SequenceBarrier;
 import com.lmax.disruptor.SingleThreadedClaimStrategy;
 import com.lmax.disruptor.WaitStrategy;
 
+import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.HashMap;
 import java.util.Map;
+
 import backtype.storm.metric.api.IStatefulObject;
 
 
 /**
- *
  * A single consumer queue that uses the LMAX Disruptor. They key to the performance is
  * the ability to catch up to the producer by processing tuples in batches.
  */
@@ -71,7 +72,7 @@ public class DisruptorQueue implements IStatefulObject {
         _consumer = new Sequence();
         _barrier = _buffer.newBarrier();
         _buffer.setGatingSequences(_consumer);
-        _metrics = new QueueMetrics();
+        _metrics = new QueueMetrics((float) 0.05);
 
         if (claim instanceof SingleThreadedClaimStrategy) {
             consumerStartedFlag = true;
@@ -189,6 +190,7 @@ public class DisruptorQueue implements IStatefulObject {
         final MutableObject m = _buffer.get(id);
         m.setObject(obj);
         _buffer.publish(id);
+        _metrics.notifyArrivals(1);
     }
 
     public void consumerStarted() {
@@ -223,6 +225,29 @@ public class DisruptorQueue implements IStatefulObject {
      */
     public class QueueMetrics {
 
+        private final RateTracker _rateTracker = new RateTracker(10000, 10);
+        private final float _sampleRate;
+        private Random _random;
+
+        public QueueMetrics() throws IllegalArgumentException {
+            this(1);
+        }
+
+        /**
+         * @param sampleRate a number between 0 and 1. The higher it is, the accurate the metrics
+         *                   will be. Using a reasonable sampleRate, e.g., 0.1, could effectively reduce the
+         *                   metric maintenance cost while providing good accuracy.
+         */
+        public QueueMetrics(float sampleRate) throws IllegalArgumentException {
+
+            if (sampleRate <= 0 || sampleRate > 1)
+                throw new IllegalArgumentException("sampleRate should be a value between (0,1].");
+
+            _sampleRate = sampleRate;
+
+            _random = new Random();
+        }
+
         public long writePos() {
             return _buffer.getCursor();
         }
@@ -249,12 +274,35 @@ public class DisruptorQueue implements IStatefulObject {
             // get readPos then writePos so it's never an under-estimate
             long rp = readPos();
             long wp = writePos();
+
+            final float arrivalRateInMils = _rateTracker.reportRate() / _sampleRate;
+
+            /*
+            Assume the queue is stable, in which the arrival rate is equal to the consumption rate.
+            If this assumption does not hold, the calculation of sojourn time should also consider
+            departure rate according to Queuing Theory.
+             */
+            final float sojournTime = (wp - rp) / (float) Math.max(arrivalRateInMils, 0.00001);
+
             state.put("capacity", capacity());
             state.put("population", wp - rp);
             state.put("write_pos", wp);
             state.put("read_pos", rp);
+            state.put("arrival_rate", arrivalRateInMils); //arrivals per millisecond
+            state.put("sojourn_time", sojournTime); //element sojourn time in milliseconds
 
             return state;
+        }
+
+        public void notifyArrivals(long counts) {
+            if (sample())
+                _rateTracker.notify(counts);
+        }
+
+        final private boolean sample() {
+            if (_sampleRate == 1 || _random.nextFloat() < _sampleRate)
+                return true;
+            return false;
         }
     }
 

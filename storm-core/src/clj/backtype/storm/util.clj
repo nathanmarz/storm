@@ -18,6 +18,7 @@
   (:import [java.net InetAddress])
   (:import [java.util Map Map$Entry List ArrayList Collection Iterator HashMap])
   (:import [java.io FileReader FileNotFoundException])
+  (:import [java.nio.file Paths])
   (:import [backtype.storm Config])
   (:import [backtype.storm.utils Time Container ClojureTimerTask Utils
             MutableObject MutableInt])
@@ -57,6 +58,9 @@
 
 (def class-path-separator
   (System/getProperty "path.separator"))
+
+(defn is-absolute-path? [path]
+  (.isAbsolute (Paths/get path (into-array String []))))
 
 (defmacro defalias
   "Defines an alias for a var: a new var with the same root binding (if

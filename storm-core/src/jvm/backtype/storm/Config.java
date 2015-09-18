@@ -1479,10 +1479,12 @@ public class Config extends HashMap<String, Object> {
     @isInteger
     public static final String TOPOLOGY_TICK_TUPLE_FREQ_SECS="topology.tick.tuple.freq.secs";
 
-    /**
-     * Configure the wait strategy used for internal queuing. Can be used to tradeoff latency
-     * vs. throughput
-     */
+   /**
+    * @deprecated this is no longer supported
+    * Configure the wait strategy used for internal queuing. Can be used to tradeoff latency
+    * vs. throughput
+    */
+    @Deprecated
     @isString
     public static final String TOPOLOGY_DISRUPTOR_WAIT_STRATEGY="topology.disruptor.wait.strategy";
 
@@ -1658,7 +1660,6 @@ public class Config extends HashMap<String, Object> {
      * vs. CPU usage
      */
     @isInteger
-    @isPositiveNumber
     @NotNull
     public static final String TOPOLOGY_DISRUPTOR_WAIT_TIMEOUT_MILLIS="topology.disruptor.wait.timeout.millis";
 

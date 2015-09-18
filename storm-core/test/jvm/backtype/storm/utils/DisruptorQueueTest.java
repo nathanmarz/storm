@@ -20,10 +20,9 @@ package backtype.storm.utils;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.lmax.disruptor.BlockingWaitStrategy;
 import com.lmax.disruptor.EventHandler;
+import com.lmax.disruptor.dsl.ProducerType;
 import com.lmax.disruptor.InsufficientCapacityException;
-import com.lmax.disruptor.MultiThreadedClaimStrategy;
 import org.junit.Assert;
 import org.junit.Test;
 import junit.framework.TestCase;
@@ -83,31 +82,80 @@ public class DisruptorQueueTest extends TestCase {
                 messageConsumed.get());
     }
 
+    @Test 
+    public void testInOrder() throws InterruptedException {
+        final AtomicBoolean allInOrder = new AtomicBoolean(true);
+
+        DisruptorQueue queue = createQueue("consumerHang", 1024);
+        Runnable producer = new IncProducer(queue, 1024*1024);
+        Runnable consumer = new Consumer(queue, new EventHandler<Object>() {
+            long _expected = 0;
+            @Override
+            public void onEvent(Object obj, long sequence, boolean endOfBatch)
+                    throws Exception {
+                if (_expected != ((Number)obj).longValue()) {
+                    allInOrder.set(false);
+                    System.out.println("Expected "+_expected+" but got "+obj);
+                }
+                _expected++;
+            }
+        });
+
+        run(producer, consumer, 1000, 1);
+        Assert.assertTrue("Messages delivered out of order",
+                allInOrder.get());
+    }
 
     private void run(Runnable producer, Runnable consumer)
             throws InterruptedException {
+        run(producer, consumer, 10, PRODUCER_NUM);
+    }
 
-        Thread[] producerThreads = new Thread[PRODUCER_NUM];
-        for (int i = 0; i < PRODUCER_NUM; i++) {
+    private void run(Runnable producer, Runnable consumer, int sleepMs, int producerNum)
+            throws InterruptedException {
+
+        Thread[] producerThreads = new Thread[producerNum];
+        for (int i = 0; i < producerNum; i++) {
             producerThreads[i] = new Thread(producer);
             producerThreads[i].start();
         }
         
         Thread consumerThread = new Thread(consumer);
         consumerThread.start();
-        Thread.sleep(10);
-        for (int i = 0; i < PRODUCER_NUM; i++) {
+        Thread.sleep(sleepMs);
+        for (int i = 0; i < producerNum; i++) {
             producerThreads[i].interrupt();
         }
         consumerThread.interrupt();
         
-        for (int i = 0; i < PRODUCER_NUM; i++) {
+        for (int i = 0; i < producerNum; i++) {
             producerThreads[i].join(TIMEOUT);
             assertFalse("producer "+i+" is still alive", producerThreads[i].isAlive());
         }
         consumerThread.join(TIMEOUT);
         assertFalse("consumer is still alive", consumerThread.isAlive());
     }
+
+    private static class IncProducer implements Runnable {
+        private DisruptorQueue queue;
+        private long _max;
+
+        IncProducer(DisruptorQueue queue, long max) {
+            this.queue = queue;
+            this._max = max;
+        }
+
+        @Override
+        public void run() {
+            try {
+                for (long i = 0; i < _max; i++) {
+                    queue.publish(i, false);
+                }
+            } catch (InsufficientCapacityException e) {
+                return;
+            }
+        }
+    };
 
     private static class Producer implements Runnable {
         private String msg;
@@ -153,7 +201,6 @@ public class DisruptorQueueTest extends TestCase {
     };
 
     private static DisruptorQueue createQueue(String name, int queueSize) {
-        return new DisruptorQueue(name, new MultiThreadedClaimStrategy(
-                queueSize), new BlockingWaitStrategy(), 10L);
+        return new DisruptorQueue(name, ProducerType.MULTI, queueSize, 0L);
     }
 }

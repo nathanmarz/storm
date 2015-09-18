@@ -18,52 +18,51 @@
 package backtype.storm.utils;
 
 import com.lmax.disruptor.AlertException;
-import com.lmax.disruptor.ClaimStrategy;
 import com.lmax.disruptor.EventFactory;
 import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.InsufficientCapacityException;
+import com.lmax.disruptor.LiteBlockingWaitStrategy;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.Sequence;
 import com.lmax.disruptor.SequenceBarrier;
-import com.lmax.disruptor.SingleThreadedClaimStrategy;
+import com.lmax.disruptor.TimeoutBlockingWaitStrategy;
+import com.lmax.disruptor.TimeoutException;
 import com.lmax.disruptor.WaitStrategy;
+import com.lmax.disruptor.dsl.ProducerType;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.HashMap;
-import java.util.Map;
 
 import backtype.storm.metric.api.IStatefulObject;
 import backtype.storm.metric.internal.RateTracker;
-
 
 /**
  * A single consumer queue that uses the LMAX Disruptor. They key to the performance is
  * the ability to catch up to the producer by processing tuples in batches.
  */
 public class DisruptorQueue implements IStatefulObject {
-    static final Object FLUSH_CACHE = new Object();
-    static final Object INTERRUPT = new Object();
+    private static final Object FLUSH_CACHE = new Object();
+    private static final Object INTERRUPT = new Object();
+    private static final String PREFIX = "disruptor-";
 
-    RingBuffer<MutableObject> _buffer;
-    Sequence _consumer;
-    SequenceBarrier _barrier;
+    private final RingBuffer<MutableObject> _buffer;
+    private final Sequence _consumer;
+    private final SequenceBarrier _barrier;
 
-    // TODO: consider having a threadlocal cache of this variable to speed up reads?
-    volatile boolean consumerStartedFlag = false;
-    ConcurrentLinkedQueue<Object> _cache = new ConcurrentLinkedQueue();
+    private volatile boolean consumerStartedFlag = false;
+    private final ConcurrentLinkedQueue<Object> _cache = new ConcurrentLinkedQueue();
 
     private final ReentrantReadWriteLock cacheLock = new ReentrantReadWriteLock();
     private final Lock readLock = cacheLock.readLock();
     private final Lock writeLock = cacheLock.writeLock();
 
-    private static String PREFIX = "disruptor-";
     private String _queueName = "";
-
-    private long _waitTimeout;
 
     private final QueueMetrics _metrics;
     private DisruptorBackpressureCallback _cb = null;
@@ -72,15 +71,22 @@ public class DisruptorQueue implements IStatefulObject {
     private boolean _enableBackpressure = false;
     private volatile boolean _throttleOn = false;
 
-    public DisruptorQueue(String queueName, ClaimStrategy claim, WaitStrategy wait, long timeout) {
+    public DisruptorQueue(String queueName, ProducerType type, int size, long timeout) {
         this._queueName = PREFIX + queueName;
-        _buffer = new RingBuffer<MutableObject>(new ObjectEventFactory(), claim, wait);
+        WaitStrategy wait = null;
+        if (timeout <= 0) {
+            wait = new LiteBlockingWaitStrategy();
+        } else {
+            wait = new TimeoutBlockingWaitStrategy(timeout, TimeUnit.MILLISECONDS);
+        }
+
+        _buffer = RingBuffer.create(type, new ObjectEventFactory(), size, wait);
         _consumer = new Sequence();
         _barrier = _buffer.newBarrier();
-        _buffer.setGatingSequences(_consumer);
+        _buffer.addGatingSequences(_consumer);
         _metrics = new QueueMetrics();
 
-        if (claim instanceof SingleThreadedClaimStrategy) {
+        if (type == ProducerType.SINGLE) {
             consumerStartedFlag = true;
         } else {
             // make sure we flush the pending messages in cache first
@@ -90,8 +96,6 @@ public class DisruptorQueue implements IStatefulObject {
                 throw new RuntimeException("This code should be unreachable!", e);
             }
         }
-
-        _waitTimeout = timeout;
     }
 
     public String getName() {
@@ -109,9 +113,12 @@ public class DisruptorQueue implements IStatefulObject {
     public void consumeBatchWhenAvailable(EventHandler<Object> handler) {
         try {
             final long nextSequence = _consumer.get() + 1;
-            final long availableSequence =
-                    _waitTimeout == 0L ? _barrier.waitFor(nextSequence) : _barrier.waitFor(nextSequence, _waitTimeout,
-                            TimeUnit.MILLISECONDS);
+            long availableSequence = 0;
+            try {
+                availableSequence = _barrier.waitFor(nextSequence);
+            } catch (TimeoutException te) {
+                availableSequence = _barrier.getCursor();
+            }
 
             if (availableSequence >= nextSequence) {
                 consumeBatchToCursor(availableSequence, handler);
@@ -122,7 +129,6 @@ public class DisruptorQueue implements IStatefulObject {
             throw new RuntimeException(e);
         }
     }
-
 
     private void consumeBatchToCursor(long cursor, EventHandler<Object> handler) {
         for (long curr = _consumer.get() + 1; curr <= cursor; curr++) {
@@ -180,7 +186,6 @@ public class DisruptorQueue implements IStatefulObject {
     }
 
     public void publish(Object obj, boolean block) throws InsufficientCapacityException {
-
         boolean publishNow = consumerStartedFlag;
 
         if (!publishNow) {
@@ -218,13 +223,12 @@ public class DisruptorQueue implements IStatefulObject {
                    _throttleOn = true;
                }
            } catch (Exception e) {
-               throw new RuntimeException("Exception during calling highWaterMark callback!");
+               throw new RuntimeException("Exception during calling highWaterMark callback!", e);
            }
         }
     }
 
     public void consumerStarted() {
-
         consumerStartedFlag = true;
 
         // Use writeLock to make sure all pending cache add opearation completed

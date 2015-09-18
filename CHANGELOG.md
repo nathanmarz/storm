@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-886: Automatic Back Pressure
  * STORM-1037: do not remove storm-code in supervisor until kill job
  * STORM-1007: Add more metrics to DisruptorQueue
  * STORM-1011: HBaseBolt default mapper should handle null values

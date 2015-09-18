@@ -14,7 +14,7 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns backtype.storm.daemon.builtin-metrics
-  (:import [backtype.storm.metric.api MultiCountMetric MultiReducedMetric MeanReducer StateMetric IMetric IStatefulObject])
+  (:import [backtype.storm.metric.api MultiCountMetric MultiReducedMetric CountMetric MeanReducer StateMetric IMetric IStatefulObject])
   (:import [backtype.storm Config])
   (:use [backtype.storm.stats :only [stats-rate]]))
 
@@ -30,6 +30,10 @@
                                ^MultiReducedMetric execute-latency
                                ^MultiCountMetric emit-count
                                ^MultiCountMetric transfer-count])
+(defrecord SpoutThrottlingMetrics [^CountMetric skipped-max-spout
+                                   ^CountMetric skipped-throttle
+                                   ^CountMetric skipped-inactive])
+
 
 (defn make-data [executor-type]
   (condp = executor-type
@@ -45,6 +49,16 @@
                                (MultiReducedMetric. (MeanReducer.))
                                (MultiCountMetric.)
                                (MultiCountMetric.))))
+
+(defn make-spout-throttling-data []
+  (SpoutThrottlingMetrics. (CountMetric.)
+                           (CountMetric.)
+                           (CountMetric.)))
+
+(defn register-spout-throttling-metrics [throttling-metrics  storm-conf topology-context]
+  (doseq [[kw imetric] throttling-metrics]
+    (.registerMetric topology-context (str "__" (name kw)) imetric
+                     (int (get storm-conf Config/TOPOLOGY_BUILTIN_METRICS_BUCKET_SIZE_SECS)))))
 
 (defn register-all [builtin-metrics  storm-conf topology-context]
   (doseq [[kw imetric] builtin-metrics]
@@ -99,3 +113,12 @@
 
 (defn transferred-tuple! [m stats stream num-out-tasks]
   (-> m :transfer-count (.scope stream) (.incrBy (* num-out-tasks (stats-rate stats)))))
+
+(defn skipped-max-spout! [^SpoutThrottlingMetrics m stats]
+  (-> m .skipped-max-spout (.incrBy (stats-rate stats))))
+
+(defn skipped-throttle! [^SpoutThrottlingMetrics m stats]
+  (-> m .skipped-throttle (.incrBy (stats-rate stats))))
+
+(defn skipped-inactive! [^SpoutThrottlingMetrics m stats]
+  (-> m .skipped-inactive (.incrBy (stats-rate stats))))

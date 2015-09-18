@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1037: do not remove storm-code in supervisor until kill job
  * STORM-1007: Add more metrics to DisruptorQueue
  * STORM-1011: HBaseBolt default mapper should handle null values
  * STORM-1019: Added missing dependency version to use of org.codehaus.mojo:make-maven-plugin

@@ -88,10 +88,6 @@
   [^DisruptorQueue q o]
   (.tryPublish q o))
 
-(defn notify-backpressure-checker
-  [trigger]
-  (DisruptorQueue/notifyBackpressureChecker trigger))
-
 (defn consume-batch
   [^DisruptorQueue queue handler]
   (.consumeBatch queue handler))

@@ -94,7 +94,7 @@ public class DisruptorQueueBackpressureTest extends TestCase {
         @Override
         public void highWaterMark() throws Exception {
             if (!throttleOn.get()) {
-                highWaterMarkCalledPopulation = queue.population();
+                highWaterMarkCalledPopulation = queue.getMetrics().population();
                 throttleOn.set(true);
             }
         }
@@ -102,7 +102,7 @@ public class DisruptorQueueBackpressureTest extends TestCase {
         @Override
         public void lowWaterMark() throws Exception {
              if (throttleOn.get()) {
-                 lowWaterMarkCalledPopulation = queue.writePos() - consumerCursor.get();
+                 lowWaterMarkCalledPopulation = queue.getMetrics().writePos() - consumerCursor.get();
                  throttleOn.set(false);
              }
         }

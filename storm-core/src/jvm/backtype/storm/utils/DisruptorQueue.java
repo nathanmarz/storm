@@ -37,7 +37,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import backtype.storm.metric.api.IStatefulObject;
-import org.jgrapht.graph.DirectedSubgraph;
 
 
 /**
@@ -158,16 +157,6 @@ public class DisruptorQueue implements IStatefulObject {
 
     public void registerBackpressureCallback(DisruptorBackpressureCallback cb) {
         this._cb = cb;
-    }
-
-    static public void notifyBackpressureChecker(Object trigger) {
-        try {
-            synchronized (trigger) {
-                trigger.notifyAll();
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
     }
 
     /*

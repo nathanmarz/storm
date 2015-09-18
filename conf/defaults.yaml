@@ -147,10 +147,8 @@ task.credentials.poll.secs: 30
 
 # now should be null by default
 topology.backpressure.enable: true
-backpressure.worker.high.watermark: 0.9
-backpressure.worker.low.watermark: 0.4
-backpressure.executor.high.watermark: 0.9
-backpressure.executor.low.watermark: 0.4
+backpressure.disruptor.high.watermark: 0.9
+backpressure.disruptor.low.watermark: 0.4
 
 zmq.threads: 1
 zmq.linger.millis: 5000

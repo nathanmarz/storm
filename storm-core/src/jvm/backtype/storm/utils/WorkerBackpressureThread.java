@@ -33,6 +33,16 @@ public class WorkerBackpressureThread extends Thread {
         this.callback = callback;
     }
 
+    static public void notifyBackpressureChecker(Object trigger) {
+        try {
+            synchronized (trigger) {
+                trigger.notifyAll();
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public void run() {
         try {
             while (true) {

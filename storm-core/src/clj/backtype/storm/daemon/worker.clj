@@ -140,7 +140,7 @@
       "When worker's queue is above highWaterMark, we set its backpressure flag"
       (if (not @(:backpressure worker))
         (do (reset! (:backpressure worker) true)
-            (DisruptorQueue/notifyBackpressureChecker (:backpressure-trigger worker)))))  ;; set backpressure no matter how the executors are
+            (WorkerBackpressureThread/notifyBackpressureChecker (:backpressure-trigger worker)))))  ;; set backpressure no matter how the executors are
     (fn []
       "If worker's queue is below low watermark, we do nothing since we want the
       WorkerBackPressureThread to also check for all the executors' status"
@@ -493,8 +493,8 @@
 
         disruptor-handler (mk-disruptor-backpressure-handler worker)
         _ (.registerBackpressureCallback (:transfer-queue worker) disruptor-handler)
-        _ (-> (.setHighWaterMark (:transfer-queue worker) ((:storm-conf worker) BACKPRESSURE-WORKER-HIGH-WATERMARK))
-              (.setLowWaterMark ((:storm-conf worker) BACKPRESSURE-WORKER-LOW-WATERMARK))
+        _ (-> (.setHighWaterMark (:transfer-queue worker) ((:storm-conf worker) BACKPRESSURE-DISRUPTOR-HIGH-WATERMARK))
+              (.setLowWaterMark ((:storm-conf worker) BACKPRESSURE-DISRUPTOR-LOW-WATERMARK))
               (.setEnableBackpressure ((:storm-conf worker) TOPOLOGY-BACKPRESSURE-ENABLE)))
         backpressure-handler (mk-backpressure-handler @executors)        
         backpressure-thread (WorkerBackpressureThread. (:backpressure-trigger worker) worker backpressure-handler)

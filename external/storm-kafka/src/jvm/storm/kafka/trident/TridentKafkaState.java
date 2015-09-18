@@ -19,10 +19,11 @@ package storm.kafka.trident;
 
 import backtype.storm.task.OutputCollector;
 import backtype.storm.topology.FailedException;
-import kafka.javaapi.producer.Producer;
-import kafka.producer.KeyedMessage;
-import kafka.producer.ProducerConfig;
 import org.apache.commons.lang.Validate;
+import org.apache.kafka.clients.producer.Callback;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import storm.kafka.trident.mapper.TridentTupleToKafkaMapper;
@@ -40,7 +41,7 @@ public class TridentKafkaState implements State {
 
     public static final String KAFKA_BROKER_PROPERTIES = "kafka.broker.properties";
 
-    private Producer producer;
+    private KafkaProducer producer;
     private OutputCollector collector;
 
     private TridentTupleToKafkaMapper mapper;
@@ -72,27 +73,27 @@ public class TridentKafkaState implements State {
         Map configMap = (Map) stormConf.get(KAFKA_BROKER_PROPERTIES);
         Properties properties = new Properties();
         properties.putAll(configMap);
-        ProducerConfig config = new ProducerConfig(properties);
-        producer = new Producer(config);
+        producer = new KafkaProducer(properties);
     }
 
     public void updateState(List<TridentTuple> tuples, TridentCollector collector) {
-        String topic = null;
-        for (TridentTuple tuple : tuples) {
-            try {
-                topic = topicSelector.getTopic(tuple);
-
-                if(topic != null) {
-                    producer.send(new KeyedMessage(topic, mapper.getKeyFromTuple(tuple),
-                            mapper.getMessageFromTuple(tuple)));
-                } else {
-                    LOG.warn("skipping key = " + mapper.getKeyFromTuple(tuple) + ", topic selector returned null.");
-                }
-            } catch (Exception ex) {
-                String errorMsg = "Could not send message with key = " + mapper.getKeyFromTuple(tuple)
-                        + " to topic = " + topic;
-                LOG.warn(errorMsg, ex);
-                throw new FailedException(errorMsg, ex);
+        for (final TridentTuple tuple : tuples) {
+            final String topic = topicSelector.getTopic(tuple);
+            if(topic != null) {
+                producer.send(new ProducerRecord(topic, mapper.getKeyFromTuple(tuple),
+                        mapper.getMessageFromTuple(tuple)),new Callback() {
+                            @Override
+                            public void onCompletion(RecordMetadata metadata, Exception ex) {
+                                if(ex != null){
+                                    String errorMsg = "Could not send message with key = "
+                                    + mapper.getKeyFromTuple(tuple) + " to topic = " + topic;
+                                    LOG.warn(errorMsg, ex);
+                                    throw new FailedException(errorMsg, ex);
+                                }
+                            }
+                        });
+            } else {
+                LOG.warn("skipping key = " + mapper.getKeyFromTuple(tuple) + ", topic selector returned null.");
             }
         }
     }

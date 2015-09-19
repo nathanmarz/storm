@@ -1181,6 +1181,7 @@
             ;; lock protects against multiple topologies being submitted at once and
             ;; cleanup thread killing topology in b/w assignment and starting the topology
             (locking (:submit-lock nimbus)
+              (check-storm-active! nimbus storm-name false)
               ;;cred-update-lock is not needed here because creds are being added for the first time.
               (.set-credentials! storm-cluster-state storm-id credentials storm-conf)
               (setup-storm-code nimbus conf storm-id uploadedJarLocation storm-conf topology)

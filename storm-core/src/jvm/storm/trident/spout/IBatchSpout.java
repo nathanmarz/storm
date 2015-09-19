@@ -28,6 +28,6 @@ public interface IBatchSpout extends Serializable {
     void emitBatch(long batchId, TridentCollector collector);
     void ack(long batchId);
     void close();
-    Map getComponentConfiguration();
+    Map<String, Object> getComponentConfiguration();
     Fields getOutputFields();
 }

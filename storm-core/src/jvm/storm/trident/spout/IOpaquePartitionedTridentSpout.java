@@ -57,6 +57,6 @@ public interface IOpaquePartitionedTridentSpout<Partitions, Partition extends IS
     
     Emitter<Partitions, Partition, M> getEmitter(Map conf, TopologyContext context);     
     Coordinator getCoordinator(Map conf, TopologyContext context);     
-    Map getComponentConfiguration();
+    Map<String, Object> getComponentConfiguration();
     Fields getOutputFields();
 }

@@ -40,7 +40,7 @@ public class OpaqueTridentEventHubSpout implements IOpaquePartitionedTridentSpou
   }
 
   @Override
-  public Map getComponentConfiguration() {
+  public Map<String, Object> getComponentConfiguration() {
     return null;
   }
 

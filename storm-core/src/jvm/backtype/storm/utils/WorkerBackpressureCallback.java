@@ -15,15 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package backtype.storm.topology;
 
-import java.util.Map;
 
-public interface ComponentConfigurationDeclarer<T extends ComponentConfigurationDeclarer> {
-    T addConfigurations(Map<String, Object> conf);
-    T addConfiguration(String config, Object value);
-    T setDebug(boolean debug);
-    T setMaxTaskParallelism(Number val);
-    T setMaxSpoutPending(Number val);
-    T setNumTasks(Number val);
+package backtype.storm.utils;
+
+public interface WorkerBackpressureCallback {
+
+    void onEvent(Object obj) throws Exception;
+
 }

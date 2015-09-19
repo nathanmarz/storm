@@ -246,7 +246,7 @@ public class TopologyBuilder {
         }
         
         @Override
-        public T addConfigurations(Map conf) {
+        public T addConfigurations(Map<String, Object> conf) {
             if(conf!=null && conf.containsKey(Config.TOPOLOGY_KRYO_REGISTER)) {
                 throw new IllegalArgumentException("Cannot set serializations for a component using fluent API");
             }

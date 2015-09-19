@@ -157,7 +157,7 @@ public class FeederBatchSpout implements ITridentSpout, IFeeder {
     
     
     @Override
-    public Map getComponentConfiguration() {
+    public Map<String, Object> getComponentConfiguration() {
         return null;
     }
 

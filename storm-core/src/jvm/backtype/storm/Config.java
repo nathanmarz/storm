@@ -1047,6 +1047,29 @@ public class Config extends HashMap<String, Object> {
 
 
     /**
+     * Whether to enable backpressure in for a certain topology
+     */
+    public static final String TOPOLOGY_BACKPRESSURE_ENABLE = "topology.backpressure.enable";
+    public static final Object TOPOLOGY_BACKPRESSURE_ENABLE_SCHEMA = Boolean.class;
+
+    /**
+     * This signifies the tuple congestion in a disruptor queue.
+     * When the used ratio of a disruptor queue is higher than the high watermark,
+     * the backpressure scheme, if enabled, should slow down the tuple sending speed of
+     * the spouts until reaching the low watermark.
+     */
+    public static final String BACKPRESSURE_DISRUPTOR_HIGH_WATERMARK="backpressure.disruptor.high.watermark";
+    public static final Object BACKPRESSURE_DISRUPTOR_HIGH_WATERMARK_SCHEMA =ConfigValidation.PositiveNumberValidator;
+
+    /**
+     * This signifies a state that a disruptor queue has left the congestion.
+     * If the used ratio of a disruptor queue is lower than the low watermark,
+     * it will unset the backpressure flag.
+     */
+    public static final String BACKPRESSURE_DISRUPTOR_LOW_WATERMARK="backpressure.disruptor.low.watermark";
+    public static final Object BACKPRESSURE_DISRUPTOR_LOW_WATERMARK_SCHEMA =ConfigValidation.PositiveNumberValidator;
+
+    /**
      * A list of users that are allowed to interact with the topology.  To use this set
      * nimbus.authorizer to backtype.storm.security.auth.authorizer.SimpleACLAuthorizer
      */

@@ -72,6 +72,6 @@ public interface IPartitionedTridentSpout<Partitions, Partition extends ISpoutPa
     Coordinator<Partitions> getCoordinator(Map conf, TopologyContext context);
     Emitter<Partitions, Partition, T> getEmitter(Map conf, TopologyContext context);
     
-    Map getComponentConfiguration();
+    Map<String, Object> getComponentConfiguration();
     Fields getOutputFields();
 }

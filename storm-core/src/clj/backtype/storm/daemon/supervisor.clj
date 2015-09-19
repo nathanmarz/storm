@@ -485,7 +485,7 @@
       ;; resources don't exist
       (if on-windows? (shutdown-disallowed-workers supervisor))
       (doseq [storm-id downloaded-storm-ids]
-        (when-not (assigned-storm-ids storm-id)
+        (when-not (storm-code-map storm-id)
           (log-message "Removing code for storm id "
                        storm-id)
           (try
@@ -696,6 +696,7 @@
                      (str "-Dstorm.id=" storm-id)
                      (str "-Dworker.id=" worker-id)
                      (str "-Dworker.port=" port)
+                     (str "-Dstorm.log.dir=" storm-log-dir)
                      (str "-Dlog4j.configurationFile=" storm-log4j2-conf-dir file-path-separator "worker.xml")
                      "backtype.storm.LogWriter"]
                     [(java-cmd) "-server"]

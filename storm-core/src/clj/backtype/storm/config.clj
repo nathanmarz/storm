@@ -131,9 +131,14 @@
   ([name]
      (read-yaml-config true)))
 
+(defn absolute-storm-local-dir [conf]
+  (let [storm-home (System/getProperty "storm.home")
+        path (conf STORM-LOCAL-DIR)]
+    (if (is-absolute-path? path) path (str storm-home file-path-separator path))))
+
 (defn master-local-dir
   [conf]
-  (let [ret (str (conf STORM-LOCAL-DIR) file-path-separator "nimbus")]
+  (let [ret (str (absolute-storm-local-dir conf) file-path-separator "nimbus")]
     (FileUtils/forceMkdir (File. ret))
     ret))
 
@@ -176,7 +181,7 @@
 
 (defn supervisor-local-dir
   [conf]
-  (let [ret (str (conf STORM-LOCAL-DIR) file-path-separator "supervisor")]
+  (let [ret (str (absolute-storm-local-dir conf) file-path-separator "supervisor")]
     (FileUtils/forceMkdir (File. ret))
     ret))
 
@@ -233,7 +238,7 @@
     ))
 
 (defn worker-user-root [conf]
-  (str (conf STORM-LOCAL-DIR) "/workers-users"))
+  (str (absolute-storm-local-dir conf) "/workers-users"))
 
 (defn worker-user-file [conf worker-id]
   (str (worker-user-root conf) "/" worker-id))
@@ -260,7 +265,7 @@
 
 (defn worker-root
   ([conf]
-   (str (conf STORM-LOCAL-DIR) file-path-separator "workers"))
+   (str (absolute-storm-local-dir conf) file-path-separator "workers"))
   ([conf id]
    (str (worker-root conf) file-path-separator id)))
 

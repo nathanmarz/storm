@@ -55,6 +55,7 @@
  * STORM-949: On the topology summary UI page, last shown error should have the time and date
 
 ## 0.10.0-beta2
+ * STORM-1005: Supervisor do not get running workers after restart.
  * STORM-803: Better CI logs
  * STORM-1027: Use overflow buffer for emitting metrics
  * STORM-1024: log4j changes leaving ${sys:storm.log.dir} under STORM_HOME dir

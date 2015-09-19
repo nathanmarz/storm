@@ -1329,7 +1329,7 @@
                      {"spout" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
                      {})]
         (submit-local-topology nimbus "t1" {TOPOLOGY-WORKERS 1} topology)
-        (.debug nimbus "t1" "spout" true))))
+        (.debug nimbus "t1" "spout" true 100))))
 
 (deftest test-debug-on-global
   (with-local-cluster [cluster]
@@ -1338,4 +1338,4 @@
                      {"spout" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
                      {})]
       (submit-local-topology nimbus "t1" {TOPOLOGY-WORKERS 1} topology)
-      (.debug nimbus "t1" "" true))))
+      (.debug nimbus "t1" "" true 100))))

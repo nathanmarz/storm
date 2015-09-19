@@ -317,7 +317,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject {
      * If the write operation fails, then we will close the channel and trigger a reconnect.
      */
     private void flushMessages(Channel channel, final MessageBatch batch) {
-        if(null == batch || batch.isEmpty()){
+        if (null == batch || batch.isEmpty()) {
             return;
         }
 

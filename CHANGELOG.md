@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1055: storm-jdbc README needs fixes and context
  * STORM-1032: Add generics to component configuration methods
  * STORM-886: Automatic Back Pressure
  * STORM-1037: do not remove storm-code in supervisor until kill job

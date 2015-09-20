@@ -846,16 +846,6 @@
                   NIMBUS-SLOTS-PER-TOPOLOGY 8}]
     (letlocals
       (bind topology (thrift/mk-topology
-                        {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 0 :conf {TOPOLOGY-TASKS 1})}
-                        {}))
-     
-      (is (thrown? InvalidTopologyException
-        (submit-local-topology (:nimbus cluster)
-                               "test"
-                               {}
-                               topology)))
-                               
-      (bind topology (thrift/mk-topology
                         {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 1 :conf {TOPOLOGY-TASKS 1})}
                         {}))
       (is (thrown? InvalidTopologyException

@@ -57,6 +57,7 @@
  * STORM-949: On the topology summary UI page, last shown error should have the time and date
 
 ## 0.10.0-beta2
+ * STORM-1044: Setting dop to zero does not raise an error
  * STORM-1050: Topologies with same name run on one cluster
  * STORM-1005: Supervisor do not get running workers after restart.
  * STORM-803: Better CI logs

@@ -228,6 +228,7 @@ under the License.
 * Rick Kellogg ([@rmkellogg](https://github.com/rmkellogg))
 * Abhishek Agarwal ([@abhishekagarwal87](https://github.com/abhishekagarwal87))
 * chenyuzhao ([@danny0405](https://github.com/danny0405))
+* Michael Schonfeld ([@schonfeld](https://github.com/schonfeld))
 
 ## Acknowledgements
 

@@ -231,6 +231,7 @@ under the License.
 * Michael Schonfeld ([@schonfeld](https://github.com/schonfeld))
 * Matthias J. Sax ([@mjsax](https://github.com/mjsax))
 * Erik Weathers ([@erikdw](https://github.com/erikdw))
+* Bryan Shell ([@shellbj](https://github.com/shellbj))
 
 ## Acknowledgements
 

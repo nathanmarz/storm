@@ -1021,11 +1021,15 @@
   (.getCanonicalPath 
                 (clojure.java.io/file (System/getProperty "storm.home") "logs")))
 
-(defn- logs-rootname [storm-id port]
-  (str storm-id "-worker-" port))
+(defn- logs-rootname
+  ([storm-id port] (logs-rootname storm-id port "-worker-"))
+  ([storm-id port type] (str storm-id type port)))
 
-(defn logs-filename [storm-id port]
-  (str (logs-rootname storm-id port) ".log"))
+(defn logs-filename
+  ([storm-id port] (str (logs-rootname storm-id port) ".log"))
+  ([storm-id port type] (str (logs-rootname storm-id port type) ".log")))
+
+(defn event-logs-filename [storm-id port] (logs-filename storm-id port "-events-"))
 
 (defn logs-metadata-filename [storm-id port]
   (str (logs-rootname storm-id port) ".yaml"))

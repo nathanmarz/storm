@@ -176,8 +176,8 @@
           nimbusInfo2 (NimbusInfo. "nimbus2" 6667 false)
           nimbusSummary1 (NimbusSummary. "nimbus1" 6667 (current-time-secs) false "v1")
           nimbusSummary2 (NimbusSummary. "nimbus2" 6667 (current-time-secs) false "v2")
-          base1 (StormBase. "/tmp/storm1" 1 {:type :active} 2 {} "" nil nil)
-          base2 (StormBase. "/tmp/storm2" 2 {:type :active} 2 {} "" nil nil)]
+          base1 (StormBase. "/tmp/storm1" 1 {:type :active} 2 {} "" nil nil {})
+          base2 (StormBase. "/tmp/storm2" 2 {:type :active} 2 {} "" nil nil {})]
       (is (= [] (.assignments state nil)))
       (.set-assignment! state "storm1" assignment1)
       (is (= assignment1 (.assignment-info state "storm1" nil)))

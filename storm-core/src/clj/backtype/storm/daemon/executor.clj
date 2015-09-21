@@ -241,6 +241,7 @@
      :conf (:conf worker)
      :shared-executor-data (HashMap.)
      :storm-active-atom (:storm-active-atom worker)
+     :storm-component->debug-atom (:storm-component->debug-atom worker)
      :batch-transfer-queue batch-transfer->worker
      :transfer-fn (mk-executor-transfer-fn batch-transfer->worker storm-conf)
      :suicide-fn (:suicide-fn worker)
@@ -480,6 +481,21 @@
     ret
     ))
 
+;; Send sampled data to the eventlogger if the global or component level
+;; debug flag is set (via nimbus api).
+(defn send-to-eventlogger [executor-data task-data values overflow-buffer component-id message-id random]
+    (let [c->d @(:storm-component->debug-atom executor-data)
+          options (get c->d component-id (get c->d (:storm-id executor-data)))
+          spct    (if (and (not-nil? options) (:enable options)) (:samplingpct options) 0)]
+      ;; the thread's initialized random number generator is used to generate
+      ;; uniformily distributed random numbers.
+      (if (and (> spct 0) (< (* 100 (.nextDouble random)) spct))
+        (task/send-unanchored
+          task-data
+          EVENTLOGGER-STREAM-ID
+          [component-id message-id (System/currentTimeMillis) values]
+          overflow-buffer))))
+
 (defmethod mk-threads :spout [executor-data task-datas initial-credentials]
   (let [{:keys [storm-conf component-id worker-context transfer-fn report-error sampler open-or-prepare-was-called?]} executor-data
         ^ISpoutWaitStrategy spout-wait-strategy (init-spout-wait-strategy storm-conf)
@@ -532,6 +548,7 @@
         receive-queue (:receive-queue executor-data)
         event-handler (mk-task-receiver executor-data tuple-action-fn)
         has-ackers? (has-ackers? storm-conf)
+        has-eventloggers? (has-eventloggers? storm-conf)
         emitted-count (MutableLong. 0)
         empty-emit-streak (MutableLong. 0)]
    
@@ -567,6 +584,8 @@
                                                                         out-tuple
                                                                         overflow-buffer)
                                                            ))
+                                         (if has-eventloggers?
+                                           (send-to-eventlogger executor-data task-data values overflow-buffer component-id message-id rand))
                                          (if (and rooted?
                                                   (not (.isEmpty out-ids)))
                                            (do
@@ -750,7 +769,8 @@
                                     (stats/bolt-execute-tuple! executor-stats
                                                                (.getSourceComponent tuple)
                                                                (.getSourceStreamId tuple)
-                                                               delta)))))))]
+                                                               delta)))))))
+        has-eventloggers? (has-eventloggers? storm-conf)]
     
     ;; TODO: can get any SubscribedState objects out of the context now
 
@@ -779,13 +799,15 @@
                                                                             (fast-list-iter [root-id root-ids]
                                                                                             (put-xor! anchors-to-ids root-id edge-id))
                                                                             ))))
-                                                      (transfer-fn t
+                                                        (transfer-fn t
                                                                    (TupleImpl. worker-context
                                                                                values
                                                                                task-id
                                                                                stream
                                                                                (MessageId/makeId anchors-to-ids))
                                                                    overflow-buffer)))
+                                    (if has-eventloggers?
+                                      (send-to-eventlogger executor-data task-data values overflow-buffer component-id nil rand))
                                     (or out-tasks [])))]]
           (builtin-metrics/register-all (:builtin-metrics task-data) storm-conf user-context)
           (when (instance? ICredentialsListener bolt-obj) (.setCredentials bolt-obj initial-credentials)) 

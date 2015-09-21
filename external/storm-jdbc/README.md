@@ -98,7 +98,7 @@ hikariConfigMap.put("dataSourceClassName","com.mysql.jdbc.jdbc2.optional.MysqlDa
 hikariConfigMap.put("dataSource.url", "jdbc:mysql://localhost/test");
 hikariConfigMap.put("dataSource.user","root");
 hikariConfigMap.put("dataSource.password","password");
-ConnectionProvider connectionProvider = new HikariCPConnectionProvider(map);
+ConnectionProvider connectionProvider = new HikariCPConnectionProvider(hikariConfigMap);
 String tableName = "user_details";
 JdbcMapper simpleJdbcMapper = new SimpleJdbcMapper(tableName, connectionProvider);
 ```

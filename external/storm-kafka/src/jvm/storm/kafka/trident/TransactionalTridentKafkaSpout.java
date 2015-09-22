@@ -29,7 +29,6 @@ import java.util.UUID;
 public class TransactionalTridentKafkaSpout implements IPartitionedTridentSpout<GlobalPartitionInformation, Partition, Map> {
 
     TridentKafkaConfig _config;
-    String _topologyInstanceId = UUID.randomUUID().toString();
 
     public TransactionalTridentKafkaSpout(TridentKafkaConfig config) {
         _config = config;
@@ -43,7 +42,8 @@ public class TransactionalTridentKafkaSpout implements IPartitionedTridentSpout<
 
     @Override
     public IPartitionedTridentSpout.Emitter getEmitter(Map conf, TopologyContext context) {
-        return new TridentKafkaEmitter(conf, context, _config, _topologyInstanceId).asTransactionalEmitter();
+        return new TridentKafkaEmitter(conf, context, _config, context
+                .getStormId()).asTransactionalEmitter();
     }
 
     @Override

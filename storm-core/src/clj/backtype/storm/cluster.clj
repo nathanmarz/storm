@@ -525,10 +525,10 @@
         (let [path (backpressure-path storm-id node port)
               existed (exists-node? cluster-state path false)]
           (if existed
-            (if (not on?)
-              (delete-node cluster-state path))   ;; delete the znode since the worker is not congested
-            (if on?
-              (set-ephemeral-node cluster-state path nil acls))))) ;; create the znode since worker is congested
+            (when (not on?)
+              (delete-node cluster-state path))
+            (when on?
+              (set-ephemeral-node cluster-state path nil acls)))))
     
       (topology-backpressure
         [this storm-id callback]

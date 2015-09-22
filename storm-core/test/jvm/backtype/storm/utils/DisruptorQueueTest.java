@@ -39,7 +39,7 @@ public class DisruptorQueueTest extends TestCase {
 
         queue.publish("FIRST");
 
-        Runnable producer = new Producer(queue, String.valueOf(i));
+        Runnable producer = new IncProducer(queue, i+100);
 
         final AtomicReference<Object> result = new AtomicReference<Object>();
         Runnable consumer = new Consumer(queue, new EventHandler<Object>() {
@@ -61,27 +61,6 @@ public class DisruptorQueueTest extends TestCase {
       }
     }
    
-    @Test 
-    public void testConsumerHang() throws InterruptedException {
-        final AtomicBoolean messageConsumed = new AtomicBoolean(false);
-
-        // Set queue length to 1, so that the RingBuffer can be easily full
-        // to trigger consumer blocking
-        DisruptorQueue queue = createQueue("consumerHang", 1);
-        Runnable producer = new Producer(queue, "msg");
-        Runnable consumer = new Consumer(queue, new EventHandler<Object>() {
-            @Override
-            public void onEvent(Object obj, long sequence, boolean endOfBatch)
-                    throws Exception {
-                messageConsumed.set(true);
-            }
-        });
-
-        run(producer, consumer);
-        Assert.assertTrue("disruptor message is never consumed due to consumer thread hangs",
-                messageConsumed.get());
-    }
-
     @Test 
     public void testInOrder() throws InterruptedException {
         final AtomicBoolean allInOrder = new AtomicBoolean(true);
@@ -147,33 +126,8 @@ public class DisruptorQueueTest extends TestCase {
 
         @Override
         public void run() {
-            try {
-                for (long i = 0; i < _max; i++) {
-                    queue.publish(i, false);
-                }
-            } catch (InsufficientCapacityException e) {
-                return;
-            }
-        }
-    };
-
-    private static class Producer implements Runnable {
-        private String msg;
-        private DisruptorQueue queue;
-
-        Producer(DisruptorQueue queue, String msg) {
-            this.msg = msg;
-            this.queue = queue;
-        }
-
-        @Override
-        public void run() {
-            try {
-                while (true) {
-                    queue.publish(msg, false);
-                }
-            } catch (InsufficientCapacityException e) {
-                return;
+            for (long i = 0; i < _max; i++) {
+                queue.publish(i);
             }
         }
     };
@@ -189,18 +143,17 @@ public class DisruptorQueueTest extends TestCase {
 
         @Override
         public void run() {
-            queue.consumerStarted();
             try {
                 while(true) {
                     queue.consumeBatchWhenAvailable(handler);
                 }
-            }catch(RuntimeException e) {
+            } catch(RuntimeException e) {
                 //break
             }
         }
     };
 
     private static DisruptorQueue createQueue(String name, int queueSize) {
-        return new DisruptorQueue(name, ProducerType.MULTI, queueSize, 0L);
+        return new DisruptorQueue(name, ProducerType.MULTI, queueSize, 0L, 1, 1L);
     }
 }

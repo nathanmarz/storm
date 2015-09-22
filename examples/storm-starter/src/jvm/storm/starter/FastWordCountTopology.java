@@ -47,6 +47,13 @@ public class FastWordCountTopology {
   public static class FastRandomSentenceSpout extends BaseRichSpout {
     SpoutOutputCollector _collector;
     Random _rand;
+    private static final String[] CHOICES = {
+        "marry had a little lamb whos fleese was white as snow",
+        "and every where that marry went the lamb was sure to go",
+        "one two three four five six seven eight nine ten",
+        "this is a test of the emergency broadcast system this is only a test",
+        "peter piper picked a peck of pickeled peppers"
+    };
 
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
@@ -56,9 +63,7 @@ public class FastWordCountTopology {
 
     @Override
     public void nextTuple() {
-      String[] sentences = new String[]{ "the cow jumped over the moon", "an apple a day keeps the doctor away",
-          "four score and seven years ago", "snow white and the seven dwarfs", "i am at two with nature" };
-      String sentence = sentences[_rand.nextInt(sentences.length)];
+      String sentence = CHOICES[_rand.nextInt(CHOICES.length)];
       _collector.emit(new Values(sentence), sentence);
     }
 

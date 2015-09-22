@@ -27,10 +27,10 @@
    :single-threaded ProducerType/SINGLE})
 
 (defnk disruptor-queue
-  [^String queue-name buffer-size timeout :producer-type :multi-threaded]
+  [^String queue-name buffer-size timeout :producer-type :multi-threaded :batch-size 100 :batch-timeout 1]
   (DisruptorQueue. queue-name
                    (PRODUCER-TYPE producer-type) buffer-size
-                   timeout))
+                   timeout batch-size batch-timeout))
 
 (defn clojure-handler
   [afn]
@@ -61,14 +61,8 @@
   `(clojure-handler (fn ~@args)))
 
 (defn publish
-  ([^DisruptorQueue q o block?]
-   (.publish q o block?))
-  ([q o]
-   (publish q o true)))
-
-(defn try-publish
   [^DisruptorQueue q o]
-  (.tryPublish q o))
+  (.publish q o))
 
 (defn consume-batch
   [^DisruptorQueue queue handler]
@@ -78,10 +72,6 @@
   [^DisruptorQueue queue handler]
   (.consumeBatchWhenAvailable queue handler))
 
-(defn consumer-started!
-  [^DisruptorQueue queue]
-  (.consumerStarted queue))
-
 (defn halt-with-interrupt!
   [^DisruptorQueue queue]
   (.haltWithInterrupt queue))
@@ -89,11 +79,10 @@
 (defnk consume-loop*
   [^DisruptorQueue queue handler
    :kill-fn (fn [error] (exit-process! 1 "Async loop died!"))]
-  (let [ret (async-loop
-              (fn [] (consume-batch-when-available queue handler) 0)
-              :kill-fn kill-fn
-              :thread-name (.getName queue))]
-     (consumer-started! queue) ret))
+  (async-loop
+          (fn [] (consume-batch-when-available queue handler) 0)
+          :kill-fn kill-fn
+          :thread-name (.getName queue)))
 
 (defmacro consume-loop [queue & handler-args]
   `(let [handler# (handler ~@handler-args)]

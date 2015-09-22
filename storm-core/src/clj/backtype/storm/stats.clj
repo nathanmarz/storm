@@ -1208,6 +1208,8 @@
                   :window->failed {}}]
     (apply aggregate-comp-stats* (concat args (list init-val)))))
 
+(defmethod aggregate-comp-stats :default [& _] {})
+
 (defmulti post-aggregate-comp-stats
   (fn [_ _ data] (:type data)))
 
@@ -1282,6 +1284,8 @@
    :window->acked (map-key str (:window->acked acc-data))
    :window->failed (map-key str (:window->failed acc-data))})
 
+(defmethod post-aggregate-comp-stats :default [& _] {})
+
 (defn thriftify-exec-agg-stats
   [comp-id comp-type {:keys [executor-id host port uptime] :as stats}]
   (doto (ExecutorAggregateStats.)
@@ -1310,7 +1314,7 @@
   (map-val thriftify-spout-agg-stats sid->output-stats))
 
 (defn thriftify-comp-page-data
-  [topo-id comp-id data]
+  [topo-id topology comp-id data]
   (let [w->stats (swap-map-order
                    (merge
                      {:emitted (:window->emitted data)
@@ -1322,9 +1326,10 @@
                               :process-latency (:window->process-latency data)
                               :executed (:window->executed data)}
                        :spout {:complete-latency
-                               (:window->complete-latency data)})))
+                               (:window->complete-latency data)}
+                       {}))) ; default
         [compType exec-stats w->stats gsid->input-stats sid->output-stats]
-          (condp = (:type data)
+          (condp = (component-type topology comp-id)
             :bolt [ComponentType/BOLT
                    (->
                      (partial thriftify-exec-agg-stats comp-id :bolt)
@@ -1339,14 +1344,16 @@
                     (map-val thriftify-spout-agg-stats w->stats)
                     nil ;; spouts do not have input stats
                     (thriftify-spout-output-stats (:sid->output-stats data))]),
+        num-executors (:num-executors data)
+        num-tasks (:num-tasks data)
         ret (doto (ComponentPageInfo. comp-id compType)
               (.set_topology_id topo-id)
               (.set_topology_name nil)
-              (.set_num_executors (:num-executors data))
-              (.set_num_tasks (:num-tasks data))
               (.set_window_to_stats w->stats)
               (.set_sid_to_output_stats sid->output-stats)
               (.set_exec_stats exec-stats))]
+    (and num-executors (.set_num_executors ret num-executors))
+    (and num-tasks (.set_num_tasks ret num-tasks))
     (and gsid->input-stats
          (.set_gsid_to_input_stats ret gsid->input-stats))
     ret))
@@ -1371,7 +1378,7 @@
                           component-id)
     (aggregate-comp-stats window include-sys?)
     (post-aggregate-comp-stats task->component exec->host+port)
-    (thriftify-comp-page-data topology-id component-id)))
+    (thriftify-comp-page-data topology-id topology component-id)))
 
 (defn expand-averages
   [avg counts]

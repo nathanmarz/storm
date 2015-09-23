@@ -665,7 +665,7 @@
           storm-log-dir (or (System/getProperty "storm.log.dir") (str storm-home file-path-separator "logs"))
           storm-log-conf-dir (conf STORM-LOG4J2-CONF-DIR)
           storm-log4j2-conf-dir (if storm-log-conf-dir
-                                  (if (is-absolute-path storm-log-conf-dir)
+                                  (if (is-absolute-path? storm-log-conf-dir)
                                     storm-log-conf-dir
                                     (str storm-home file-path-separator storm-log-conf-dir))
                                   (str storm-home file-path-separator "log4j"))

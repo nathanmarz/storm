@@ -103,7 +103,9 @@ public class DisruptorQueue implements IStatefulObject {
     }
 
     public void consumeBatch(EventHandler<Object> handler) {
-        consumeBatchToCursor(_barrier.getCursor(), handler);
+        if (_metrics.population() > 0) {
+            consumeBatchWhenAvailable(handler);
+        }
     }
 
     public void haltWithInterrupt() {
@@ -134,7 +136,7 @@ public class DisruptorQueue implements IStatefulObject {
         for (long curr = _consumer.get() + 1; curr <= cursor; curr++) {
             try {
                 MutableObject mo = _buffer.get(curr);
-                Object o = mo.o;
+                Object o = mo.getObject();
                 mo.setObject(null);
                 if (o == FLUSH_CACHE) {
                     Object c = null;

@@ -668,7 +668,7 @@
                                   (if (is-absolute-path? storm-log-conf-dir)
                                     storm-log-conf-dir
                                     (str storm-home file-path-separator storm-log-conf-dir))
-                                  (str storm-home file-path-separator "log4j"))
+                                  (str storm-home file-path-separator "log4j2"))
           stormroot (supervisor-stormdist-root conf storm-id)
           jlp (jlp stormroot conf)
           stormjar (supervisor-stormjar-path stormroot)

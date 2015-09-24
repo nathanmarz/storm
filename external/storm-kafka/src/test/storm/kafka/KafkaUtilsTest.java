@@ -195,6 +195,7 @@ public class KafkaUtilsTest {
 
     private void createTopicAndSendMessage(String key, String value) {
         Properties p = new Properties();
+        p.put("request.required.acks", "1");
         p.put("serializer.class", "kafka.serializer.StringEncoder");
         p.put("bootstrap.servers", broker.getBrokerConnectionString());
         p.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");

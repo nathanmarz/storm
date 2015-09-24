@@ -23,6 +23,7 @@ import backtype.storm.generated.*;
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.BasicOutputCollector;
+import backtype.storm.topology.FailedException;
 import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.TopologyBuilder;
@@ -37,79 +38,62 @@ import backtype.storm.utils.Utils;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
-import java.util.concurrent.ThreadLocalRandom;
 
-/**
- * WordCount but teh spout does not stop, and the bolts are implemented in
- * java.  This can show how fast the word count can run.
- */
-public class FastWordCountTopology {
-  public static class FastRandomSentenceSpout extends BaseRichSpout {
+public class InOrderDeliveryTest {
+  public static class InOrderSpout extends BaseRichSpout {
     SpoutOutputCollector _collector;
-    Random _rand;
+    int _base = 0;
+    int _i = 0;
 
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
       _collector = collector;
-      _rand = ThreadLocalRandom.current();
+      _base = context.getThisTaskIndex();
     }
 
     @Override
     public void nextTuple() {
-      String[] sentences = new String[]{ "the cow jumped over the moon", "an apple a day keeps the doctor away",
-          "four score and seven years ago", "snow white and the seven dwarfs", "i am at two with nature" };
-      String sentence = sentences[_rand.nextInt(sentences.length)];
-      _collector.emit(new Values(sentence), sentence);
+      Values v = new Values(_base, _i);
+      _collector.emit(v, "ACK");
+      _i++;
     }
 
     @Override
     public void ack(Object id) {
-        //Ignored
+      //Ignored
     }
 
     @Override
     public void fail(Object id) {
-      _collector.emit(new Values(id), id);
+      //Ignored
     }
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-      declarer.declare(new Fields("sentence"));
+      declarer.declare(new Fields("c1", "c2"));
     }
   }
 
-  public static class SplitSentence extends BaseBasicBolt {
+  public static class Check extends BaseBasicBolt {
+    Map<Integer, Integer> expected = new HashMap<Integer, Integer>();
+
     @Override
     public void execute(Tuple tuple, BasicOutputCollector collector) {
-      String sentence = tuple.getString(0);
-      for (String word: sentence.split("\\s+")) {
-          collector.emit(new Values(word, 1));
+      Integer c1 = tuple.getInteger(0);
+      Integer c2 = tuple.getInteger(1);
+      Integer exp = expected.get(c1);
+      if (exp == null) exp = 0;
+      if (c2.intValue() != exp.intValue()) {
+          System.out.println(c1+" "+c2+" != "+exp);
+          throw new FailedException(c1+" "+c2+" != "+exp);
       }
+      exp = c2 + 1;
+      expected.put(c1, exp);
     }
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-      declarer.declare(new Fields("word", "count"));
-    }
-  }
-
-  public static class WordCount extends BaseBasicBolt {
-    Map<String, Integer> counts = new HashMap<String, Integer>();
-
-    @Override
-    public void execute(Tuple tuple, BasicOutputCollector collector) {
-      String word = tuple.getString(0);
-      Integer count = counts.get(word);
-      if (count == null)
-        count = 0;
-      count++;
-      counts.put(word, count);
-      collector.emit(new Values(word, count));
-    }
-
-    @Override
-    public void declareOutputFields(OutputFieldsDeclarer declarer) {
-      declarer.declare(new Fields("word", "count"));
+      //Empty
     }
   }
 
@@ -163,15 +147,13 @@ public class FastWordCountTopology {
 
     TopologyBuilder builder = new TopologyBuilder();
 
-    builder.setSpout("spout", new FastRandomSentenceSpout(), 4);
-
-    builder.setBolt("split", new SplitSentence(), 4).shuffleGrouping("spout");
-    builder.setBolt("count", new WordCount(), 4).fieldsGrouping("split", new Fields("word"));
+    builder.setSpout("spout", new InOrderSpout(), 8);
+    builder.setBolt("count", new Check(), 8).fieldsGrouping("spout", new Fields("c1"));
 
     Config conf = new Config();
     conf.registerMetricsConsumer(backtype.storm.metric.LoggingMetricsConsumer.class);
 
-    String name = "wc-test";
+    String name = "in-order-test";
     if (args != null && args.length > 0) {
         name = args[0];
     }
@@ -183,8 +165,8 @@ public class FastWordCountTopology {
     clusterConf.putAll(Utils.readCommandLineOpts());
     Nimbus.Client client = NimbusClient.getConfiguredClient(clusterConf).getClient();
 
-    //Sleep for 5 mins
-    for (int i = 0; i < 10; i++) {
+    //Sleep for 50 mins
+    for (int i = 0; i < 50; i++) {
         Thread.sleep(30 * 1000);
         printMetrics(client, name);
     }

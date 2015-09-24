@@ -60,7 +60,6 @@
 
 ## 0.10.0-beta2
  * STORM-1026: Adding external classpath elements does not work
- * STORM-1056: allow supervisor log filename to be configurable via ENV variable
  * STORM-1055: storm-jdbc README needs fixes and context
  * STORM-1044: Setting dop to zero does not raise an error
  * STORM-1050: Topologies with same name run on one cluster
@@ -252,6 +251,7 @@
  * STORM-130: Supervisor getting killed due to java.io.FileNotFoundException: File '../stormconf.ser' does not exist.
 
 ## 0.9.6
+ * STORM-1056: allow supervisor log filename to be configurable via ENV variable
  * STORM-1051: Netty Client.java's flushMessages produces a NullPointerException
  * STORM-763: nimbus reassigned worker A to another machine, but other worker's netty client can't connect to the new worker A
  * STORM-935: Update Disruptor queue version to 2.10.4

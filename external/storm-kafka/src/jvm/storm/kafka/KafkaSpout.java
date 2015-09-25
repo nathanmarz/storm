@@ -155,6 +155,11 @@ public class KafkaSpout extends BaseRichSpout {
         }
 
         long diffWithNow = System.currentTimeMillis() - _lastUpdateMs;
+
+        /*
+             As far as the System.currentTimeMillis() is dependent on System clock,
+             additional check on negative value of diffWithNow in case of external changes.
+         */
         if (diffWithNow > _spoutConfig.stateUpdateIntervalMs || diffWithNow < 0) {
             commit();
         }

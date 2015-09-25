@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1068: Configure request.required.acks to be 1 in KafkaUtilsTest for sync
  * STORM-1017: If ignoreZkOffsets set true,KafkaSpout will reset zk offset when recover from failure.
  * STORM-1054: Excessive logging ShellBasedGroupsMapping if the user doesn't have any groups.
  * STORM-954: Toplogy Event Inspector

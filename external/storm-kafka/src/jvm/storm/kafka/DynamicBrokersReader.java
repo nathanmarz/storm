@@ -42,7 +42,7 @@ public class DynamicBrokersReader {
     private CuratorFramework _curator;
     private String _zkPath;
     private String _topic;
-    private Boolean _wildcardTopic;
+    private Boolean _isWildcardTopic;
 
     public DynamicBrokersReader(Map conf, String zkStr, String zkPath, String topic) {
         // Check required parameters
@@ -56,7 +56,7 @@ public class DynamicBrokersReader {
 
         _zkPath = zkPath;
         _topic = topic;
-        _wildcardTopic = Utils.getBoolean(conf.get("kafka.topic.wildcard.match"), false);
+        _isWildcardTopic = Utils.getBoolean(conf.get("kafka.topic.wildcard.match"), false);
         try {
             _curator = CuratorFrameworkFactory.newClient(
                     zkStr,
@@ -79,7 +79,7 @@ public class DynamicBrokersReader {
       List<GlobalPartitionInformation> partitions =  new ArrayList<GlobalPartitionInformation>();
 
       for (String topic : topics) {
-          GlobalPartitionInformation globalPartitionInformation = new GlobalPartitionInformation(topic, this._wildcardTopic);
+          GlobalPartitionInformation globalPartitionInformation = new GlobalPartitionInformation(topic, this._isWildcardTopic);
           try {
               int numPartitionsForTopic = getNumPartitions(topic);
               String brokerInfoPath = brokerPath();
@@ -117,7 +117,7 @@ public class DynamicBrokersReader {
 
     private List<String> getTopics() {
         List<String> topics = new ArrayList<String>();
-        if (!_wildcardTopic) {
+        if (!_isWildcardTopic) {
             topics.add(_topic);
             return topics;
         } else {

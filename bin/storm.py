@@ -77,6 +77,7 @@ if (not os.path.isfile(os.path.join(USER_CONF_DIR, "storm.yaml"))):
 STORM_LIB_DIR = os.path.join(STORM_DIR, "lib")
 STORM_BIN_DIR = os.path.join(STORM_DIR, "bin")
 STORM_LOG4J2_CONF_DIR = os.path.join(STORM_DIR, "log4j2")
+STORM_SUPERVISOR_LOG_FILE = os.getenv('STORM_SUPERVISOR_LOG_FILE', "supervisor.log")
 
 init_storm_env()
 
@@ -103,7 +104,12 @@ if not os.path.exists(STORM_LIB_DIR):
     sys.exit(1)
 
 def get_jars_full(adir):
-    files = os.listdir(adir)
+    files = []
+    if os.path.isdir(adir):
+        files = os.listdir(adir)
+    elif os.path.exists(adir):
+        files = [aidr]
+
     ret = []
     for f in files:
         if f.endswith(".jar"):
@@ -117,9 +123,11 @@ def get_classpath(extrajars, daemon=True):
     if daemon:
         ret.extend(get_jars_full(STORM_DIR + "/extlib-daemon"))
     if STORM_EXT_CLASSPATH != None:
-        ret.extend(STORM_EXT_CLASSPATH)
+        for path in STORM_EXT_CLASSPATH.split(os.pathsep):
+            ret.extend(get_jars_full(path))
     if daemon and STORM_EXT_CLASSPATH_DAEMON != None:
-        ret.extend(STORM_EXT_CLASSPATH_DAEMON)
+        for path in STORM_EXT_CLASSPATH_DAEMON.split(os.pathsep):
+            ret.extend(get_jars_full(path))
     ret.extend(extrajars)
     return normclasspath(os.pathsep.join(ret))
 
@@ -401,7 +409,7 @@ def supervisor(klass="backtype.storm.daemon.supervisor"):
     """
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("supervisor.childopts", cppaths)) + [
-        "-Dlogfile.name=supervisor.log",
+        "-Dlogfile.name=" + STORM_SUPERVISOR_LOG_FILE,
         "-Dlog4j.configurationFile=" + os.path.join(get_log4j2_conf_dir(), "cluster.xml"),
     ]
     exec_storm_class(

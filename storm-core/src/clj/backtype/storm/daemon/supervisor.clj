@@ -485,7 +485,7 @@
       ;; resources don't exist
       (if on-windows? (shutdown-disallowed-workers supervisor))
       (doseq [storm-id downloaded-storm-ids]
-        (when-not (assigned-storm-ids storm-id)
+        (when-not (storm-code-map storm-id)
           (log-message "Removing code for storm id "
                        storm-id)
           (try

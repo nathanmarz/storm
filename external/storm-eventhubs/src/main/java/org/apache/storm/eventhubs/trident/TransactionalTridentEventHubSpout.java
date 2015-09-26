@@ -42,7 +42,7 @@ public class TransactionalTridentEventHubSpout implements
   }
   
   @Override
-  public Map getComponentConfiguration() {
+  public Map<String, Object> getComponentConfiguration() {
     return null;
   }
 

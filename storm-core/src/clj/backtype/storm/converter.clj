@@ -15,7 +15,8 @@
 ;; limitations under the License.
 (ns backtype.storm.converter
   (:import [backtype.storm.generated SupervisorInfo NodeInfo Assignment
-            StormBase TopologyStatus ClusterWorkerHeartbeat ExecutorInfo ErrorInfo Credentials RebalanceOptions KillOptions TopologyActionOptions])
+            StormBase TopologyStatus ClusterWorkerHeartbeat ExecutorInfo ErrorInfo Credentials RebalanceOptions KillOptions
+            TopologyActionOptions DebugOptions])
   (:use [backtype.storm util stats log])
   (:require [backtype.storm.daemon [common :as common]]))
 
@@ -142,6 +143,19 @@
              (clojurify-rebalance-options
                (.get_rebalance_options topology-action-options))))))
 
+(defn clojurify-debugoptions [^DebugOptions options]
+  (if options
+    {
+      :enable (.is_enable options)
+      :samplingpct (.get_samplingpct options)
+      }
+    ))
+
+(defn thriftify-debugoptions [options]
+  (doto (DebugOptions.)
+    (.set_enable (get options :enable false))
+    (.set_samplingpct (get options :samplingpct 10))))
+
 (defn thriftify-storm-base [storm-base]
   (doto (StormBase.)
     (.set_name (:storm-name storm-base))
@@ -151,7 +165,8 @@
     (.set_component_executors (map-val int (:component->executors storm-base)))
     (.set_owner (:owner storm-base))
     (.set_topology_action_options (thriftify-topology-action-options storm-base))
-    (.set_prev_status (convert-to-status-from-symbol (:prev-status storm-base)))))
+    (.set_prev_status (convert-to-status-from-symbol (:prev-status storm-base)))
+    (.set_component_debug (map-val thriftify-debugoptions (:component->debug storm-base)))))
 
 (defn clojurify-storm-base [^StormBase storm-base]
   (if storm-base
@@ -163,7 +178,8 @@
       (into {} (.get_component_executors storm-base))
       (.get_owner storm-base)
       (clojurify-topology-action-options (.get_topology_action_options storm-base))
-      (convert-to-symbol-from-status (.get_prev_status storm-base)))))
+      (convert-to-symbol-from-status (.get_prev_status storm-base))
+      (map-val clojurify-debugoptions (.get_component_debug storm-base)))))
 
 (defn thriftify-stats [stats]
   (if stats
@@ -220,4 +236,3 @@
     (into {} (.get_creds credentials))
     nil
     ))
-

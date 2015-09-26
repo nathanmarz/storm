@@ -1,4 +1,14 @@
 ## 0.11.0
+ * STORM-1068: Configure request.required.acks to be 1 in KafkaUtilsTest for sync
+ * STORM-1017: If ignoreZkOffsets set true,KafkaSpout will reset zk offset when recover from failure.
+ * STORM-1054: Excessive logging ShellBasedGroupsMapping if the user doesn't have any groups.
+ * STORM-954: Toplogy Event Inspector
+ * STORM-862: Pluggable System Metrics
+ * STORM-1032: Add generics to component configuration methods
+ * STORM-886: Automatic Back Pressure
+ * STORM-1037: do not remove storm-code in supervisor until kill job
+ * STORM-1007: Add more metrics to DisruptorQueue
+ * STORM-1011: HBaseBolt default mapper should handle null values
  * STORM-1019: Added missing dependency version to use of org.codehaus.mojo:make-maven-plugin
  * STORM-1020: Document exceptions in ITuple & Fields
  * STORM-1025: Invalid links at https://storm.apache.org/about/multi-language.html
@@ -24,7 +34,6 @@
  * STORM-980: Re-include storm-kafka tests from Travis CI build
  * STORM-960: HiveBolt should ack tuples only after flushing.
  * STORM-951: Storm Hive connector leaking connections.
- * STORM_803: Better CI logs
  * STORM-806: use storm.zookeeper.connection.timeout in storm-kafka ZkState when newCurator
  * STORM-809: topology.message.timeout.secs should not allow for null or <= 0 values
  * STORM-847: Add cli to get the last storm error from the topology
@@ -52,6 +61,13 @@
  * STORM-949: On the topology summary UI page, last shown error should have the time and date
 
 ## 0.10.0-beta2
+ * STORM-1026: Adding external classpath elements does not work
+ * STORM-1055: storm-jdbc README needs fixes and context
+ * STORM-1044: Setting dop to zero does not raise an error
+ * STORM-1050: Topologies with same name run on one cluster
+ * STORM-1005: Supervisor do not get running workers after restart.
+ * STORM-803: Better CI logs
+ * STORM-1027: Use overflow buffer for emitting metrics
  * STORM-1024: log4j changes leaving ${sys:storm.log.dir} under STORM_HOME dir
  * STORM-996: netty-unit-tests/test-batch demonstrates out-of-order delivery
  * STORM-944: storm-hive pom.xml has a dependency conflict with calcite
@@ -237,6 +253,8 @@
  * STORM-130: Supervisor getting killed due to java.io.FileNotFoundException: File '../stormconf.ser' does not exist.
 
 ## 0.9.6
+ * STORM-1056: allow supervisor log filename to be configurable via ENV variable
+ * STORM-1051: Netty Client.java's flushMessages produces a NullPointerException
  * STORM-763: nimbus reassigned worker A to another machine, but other worker's netty client can't connect to the new worker A
  * STORM-935: Update Disruptor queue version to 2.10.4
  * STORM-503: Short disruptor queue wait time leads to high CPU usage when idle

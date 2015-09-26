@@ -181,6 +181,10 @@
   (worker-heartbeat! [this storm-id node port info])
   (remove-worker-heartbeat! [this storm-id node port])
   (supervisor-heartbeat! [this supervisor-id info])
+  (worker-backpressure! [this storm-id node port info])
+  (topology-backpressure [this storm-id callback])
+  (setup-backpressure! [this storm-id])
+  (remove-worker-backpressure! [this storm-id node port])
   (activate-storm! [this storm-id storm-base])
   (update-storm! [this storm-id new-elems])
   (remove-storm-base! [this storm-id])
@@ -200,6 +204,7 @@
 (def STORMS-ROOT "storms")
 (def SUPERVISORS-ROOT "supervisors")
 (def WORKERBEATS-ROOT "workerbeats")
+(def BACKPRESSURE-ROOT "backpressure")
 (def ERRORS-ROOT "errors")
 (def CODE-DISTRIBUTOR-ROOT "code-distributor")
 (def NIMBUSES-ROOT "nimbuses")
@@ -210,6 +215,7 @@
 (def STORMS-SUBTREE (str "/" STORMS-ROOT))
 (def SUPERVISORS-SUBTREE (str "/" SUPERVISORS-ROOT))
 (def WORKERBEATS-SUBTREE (str "/" WORKERBEATS-ROOT))
+(def BACKPRESSURE-SUBTREE (str "/" BACKPRESSURE-ROOT))
 (def ERRORS-SUBTREE (str "/" ERRORS-ROOT))
 (def CODE-DISTRIBUTOR-SUBTREE (str "/" CODE-DISTRIBUTOR-ROOT))
 (def NIMBUSES-SUBTREE (str "/" NIMBUSES-ROOT))
@@ -242,6 +248,14 @@
 (defn workerbeat-path
   [storm-id node port]
   (str (workerbeat-storm-root storm-id) "/" node "-" port))
+
+(defn backpressure-storm-root
+  [storm-id]
+  (str BACKPRESSURE-SUBTREE "/" storm-id))
+
+(defn backpressure-path
+  [storm-id node port]
+  (str (backpressure-storm-root storm-id) "/" node "-" port))
 
 (defn error-storm-root
   [storm-id]
@@ -313,6 +327,7 @@
         assignment-info-with-version-callback (atom {})
         assignment-version-callback (atom {})
         supervisors-callback (atom nil)
+        backpressure-callback (atom {})   ;; we want to reigister a topo directory getChildren callback for all workers of this dir
         assignments-callback (atom nil)
         storm-base-callback (atom {})
         code-distributor-callback (atom nil)
@@ -332,6 +347,7 @@
                          CODE-DISTRIBUTOR-ROOT (issue-callback! code-distributor-callback)
                          STORMS-ROOT (issue-map-callback! storm-base-callback (first args))
                          CREDENTIALS-ROOT (issue-map-callback! credentials-callback (first args))
+                         BACKPRESSURE-ROOT (issue-map-callback! backpressure-callback (first args))
                          ;; this should never happen
                          (exit-process! 30 "Unknown callback for subtree " subtree args)))))]
     (doseq [p [ASSIGNMENTS-SUBTREE STORMS-SUBTREE SUPERVISORS-SUBTREE WORKERBEATS-SUBTREE ERRORS-SUBTREE CODE-DISTRIBUTOR-SUBTREE NIMBUSES-SUBTREE]]
@@ -422,7 +438,6 @@
               (maybe-deserialize ClusterWorkerHeartbeat)
               clojurify-zk-worker-hb))))
 
-
       (executor-beats
         [this storm-id executor->node+port]
         ;; need to take executor->node+port in explicitly so that we don't run into a situation where a
@@ -467,6 +482,35 @@
           (catch KeeperException e
             (log-warn-error e "Could not teardown heartbeats for " storm-id))))
 
+      (worker-backpressure!
+        [this storm-id node port on?]
+        "if znode exists and to be not on?, delete; if exists and on?, do nothing;
+        if not exists and to be on?, create; if not exists and not on?, do nothing"
+        (let [path (backpressure-path storm-id node port)
+              existed (exists-node? cluster-state path false)]
+          (if existed
+            (if (not on?)
+              (delete-node cluster-state path))   ;; delete the znode since the worker is not congested
+            (if on?
+              (set-ephemeral-node cluster-state path nil acls))))) ;; create the znode since worker is congested
+    
+      (topology-backpressure
+        [this storm-id callback]
+        "if the backpresure/storm-id dir is empty, this topology has throttle-on, otherwise not."
+        (when callback
+          (swap! backpressure-callback assoc storm-id callback))
+        (let [path (backpressure-storm-root storm-id)
+              children (get-children cluster-state path (not-nil? callback))]
+              (> (count children) 0)))
+      
+      (setup-backpressure!
+        [this storm-id]
+        (mkdirs cluster-state (backpressure-storm-root storm-id) acls))
+
+      (remove-worker-backpressure!
+        [this storm-id node port]
+        (delete-node cluster-state (backpressure-path storm-id node port)))
+
       (teardown-topology-errors!
         [this storm-id]
         (try-cause
@@ -488,7 +532,9 @@
         [this storm-id new-elems]
         (let [base (storm-base this storm-id nil)
               executors (:component->executors base)
-              new-elems (update new-elems :component->executors (partial merge executors))]
+              component->debug (:component->debug base)
+              new-elems (update new-elems :component->executors (partial merge executors))
+              new-elems (update new-elems :component->debug (partial merge-with merge component->debug))]
           (set-data cluster-state (storm-path storm-id)
                     (-> base
                         (merge new-elems)

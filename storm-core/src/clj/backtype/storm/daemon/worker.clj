@@ -22,7 +22,7 @@
   (:require [backtype.storm.messaging.loader :as msg-loader])
   (:import [java.util.concurrent Executors])
   (:import [java.util ArrayList HashMap])
-  (:import [backtype.storm.utils Utils TransferDrainer ThriftTopologyUtils])
+  (:import [backtype.storm.utils Utils TransferDrainer ThriftTopologyUtils WorkerBackpressureThread DisruptorQueue])
   (:import [backtype.storm.messaging TransportFactory])
   (:import [backtype.storm.messaging TaskMessage IContext IConnection ConnectionWithStatus ConnectionWithStatus$Status])
   (:import [backtype.storm.daemon Shutdownable])
@@ -42,7 +42,7 @@
   (log-message "Reading Assignments.")
   (let [assignment (:executor->node+port (.assignment-info storm-cluster-state storm-id nil))]
     (doall
-     (concat     
+     (concat
       [Constants/SYSTEM_EXECUTOR_ID]
       (mapcat (fn [[executor loc]]
                 (if (= loc [assignment-id port])
@@ -63,7 +63,7 @@
                :time-secs (current-time-secs)
                }]
     ;; do the zookeeper heartbeat
-    (.worker-heartbeat! (:storm-cluster-state worker) (:storm-id worker) (:assignment-id worker) (:port worker) zk-hb)    
+    (.worker-heartbeat! (:storm-cluster-state worker) (:storm-id worker) (:assignment-id worker) (:port worker) zk-hb)
     ))
 
 (defn do-heartbeat [worker]
@@ -114,19 +114,52 @@
   (fast-list-iter [[task tuple :as pair] tuple-batch]
     (.serialize serializer tuple)))
 
+(defn- mk-backpressure-handler [executors]
+  "make a handler that checks and updates worker's backpressure flag"
+  (disruptor/worker-backpressure-handler
+    (fn [worker]
+      (let [storm-id (:storm-id worker)
+            assignment-id (:assignment-id worker)
+            port (:port worker)
+            storm-cluster-state (:storm-cluster-state worker)
+            prev-backpressure-flag @(:backpressure worker)]
+        (if executors 
+          (if (reduce #(or %1 %2) (map #(.get-backpressure-flag %1) executors))
+            (reset! (:backpressure worker) true)   ;; at least one executor has set backpressure
+            (reset! (:backpressure worker) false))) ;; no executor has backpressure set
+        ;; update the worker's backpressure flag to zookeeper only when it has changed
+        (if (not= prev-backpressure-flag @(:backpressure worker))
+          (.worker-backpressure! storm-cluster-state storm-id assignment-id port @(:backpressure worker)))
+        ))))
+
+(defn- mk-disruptor-backpressure-handler [worker]
+  "make a handler for the worker's send disruptor queue to
+  check highWaterMark and lowWaterMark for backpressure"
+  (disruptor/disruptor-backpressure-handler
+    (fn []
+      "When worker's queue is above highWaterMark, we set its backpressure flag"
+      (if (not @(:backpressure worker))
+        (do (reset! (:backpressure worker) true)
+            (WorkerBackpressureThread/notifyBackpressureChecker (:backpressure-trigger worker)))))  ;; set backpressure no matter how the executors are
+    (fn []
+      "If worker's queue is below low watermark, we do nothing since we want the
+      WorkerBackPressureThread to also check for all the executors' status"
+      )))
+
 (defn mk-transfer-fn [worker]
   (let [local-tasks (-> worker :task-ids set)
         local-transfer (:transfer-local-fn worker)
         ^DisruptorQueue transfer-queue (:transfer-queue worker)
         task->node+port (:cached-task->node+port worker)
         try-serialize-local ((:storm-conf worker) TOPOLOGY-TESTING-ALWAYS-TRY-SERIALIZE)
+
         transfer-fn
           (fn [^KryoTupleSerializer serializer tuple-batch]
             (let [local (ArrayList.)
                   remoteMap (HashMap.)]
               (fast-list-iter [[task tuple :as pair] tuple-batch]
                 (if (local-tasks task)
-                  (.add local pair) 
+                  (.add local pair)
 
                   ;;Using java objects directly to avoid performance issues in java code
                   (do
@@ -137,11 +170,11 @@
                         (.add remote (TaskMessage. task (.serialize serializer tuple)))
                         (log-warn "Can't transfer tuple - task value is nil. tuple type: " (pr-str (type tuple)) " and information: " (pr-str tuple)))
                      ))))
-                (local-transfer local)
-                (disruptor/publish transfer-queue remoteMap)
-              ))]
+
+              (local-transfer local)
+              (disruptor/publish transfer-queue remoteMap)))]
     (if try-serialize-local
-      (do 
+      (do
         (log-warn "WILL TRY TO SERIALIZE ALL TUPLES (Turn off " TOPOLOGY-TESTING-ALWAYS-TRY-SERIALIZE " for production)")
         (fn [^KryoTupleSerializer serializer tuple-batch]
           (assert-can-serialize serializer tuple-batch)
@@ -198,7 +231,7 @@
                                                   (storm-conf TOPOLOGY-DISRUPTOR-WAIT-TIMEOUT-MILLIS)
                                                   :wait-strategy (storm-conf TOPOLOGY-DISRUPTOR-WAIT-STRATEGY))
         executor-receive-queue-map (mk-receive-queue-map storm-conf executors)
-        
+
         receive-queue-map (->> executor-receive-queue-map
                                (mapcat (fn [[e queue]] (for [t (executor-id->tasks e)] [t queue])))
                                (into {}))
@@ -223,6 +256,7 @@
       ;; and spout and bolt will be activated.
       :worker-active-flag (atom false)
       :storm-active-atom (atom false)
+      :storm-component->debug-atom (atom {})
       :executors executors
       :task-ids (->> receive-queue-map keys (map int) sort)
       :storm-conf storm-conf
@@ -255,6 +289,9 @@
       :receiver-thread-count (get storm-conf WORKER-RECEIVER-THREAD-COUNT)
       :transfer-fn (mk-transfer-fn <>)
       :assignment-versions assignment-versions
+      :backpressure (atom false) ;; whether this worker is going slow
+      :backpressure-trigger (atom false) ;; a trigger for synchronization with executors
+      :throttle-on (atom false) ;; whether throttle is activated for spouts
       )))
 
 (defn- endpoint->string [[node port]]
@@ -290,7 +327,7 @@
                                       (filter-key (complement (-> worker :task-ids set))))
               needed-connections (-> needed-assignment vals set)
               needed-tasks (-> needed-assignment keys)
-              
+
               current-connections (set (keys @(:cached-node+port->socket worker)))
               new-connections (set/difference needed-connections current-connections)
               remove-connections (set/difference current-connections needed-connections)]
@@ -316,7 +353,7 @@
                      (:cached-node+port->socket worker)
                      #(HashMap. (apply dissoc (into {} %1) %&))
                      remove-connections)
-              
+
            )))))
 
 (defn refresh-storm-active
@@ -324,11 +361,11 @@
     (refresh-storm-active worker (fn [& ignored] (schedule (:refresh-active-timer worker) 0 (partial refresh-storm-active worker)))))
   ([worker callback]
     (let [base (.storm-base (:storm-cluster-state worker) (:storm-id worker) callback)]
-     (reset!
-      (:storm-active-atom worker)
-       (and (= :active (-> base :status :type)) @(:worker-active-flag worker))
-      ))
-     ))
+      (reset!
+        (:storm-active-atom worker)
+        (and (= :active (-> base :status :type)) @(:worker-active-flag worker)))
+      (reset! (:storm-component->debug-atom worker) (-> base :component->debug))
+      (log-debug "Event debug options " @(:storm-component->debug-atom worker)))))
 
 ;; TODO: consider having a max batch size besides what disruptor does automagically to prevent latency issues
 (defn mk-transfer-tuples-handler [worker]
@@ -341,7 +378,7 @@
     (disruptor/clojure-handler
       (fn [packets _ batch-end?]
         (.add drainer packets)
-        
+
         (when batch-end?
           (read-locked endpoint-socket-lock
              (let [node+port->socket @node+port->socket
@@ -423,7 +460,7 @@
         initial-credentials (.credentials storm-cluster-state storm-id nil)
         auto-creds (AuthUtils/GetAutoCredentials storm-conf)
         subject (AuthUtils/populateSubject nil auto-creds initial-credentials)]
-      (Subject/doAs subject (reify PrivilegedExceptionAction 
+      (Subject/doAs subject (reify PrivilegedExceptionAction
         (run [this]
           (let [worker (worker-data conf shared-mq-context storm-id assignment-id port worker-id storm-conf cluster-state storm-cluster-state)
         heartbeat-fn #(do-heartbeat worker)
@@ -453,7 +490,23 @@
 
         transfer-tuples (mk-transfer-tuples-handler worker)
         
-        transfer-thread (disruptor/consume-loop* (:transfer-queue worker) transfer-tuples)                                       
+        transfer-thread (disruptor/consume-loop* (:transfer-queue worker) transfer-tuples)               
+
+        disruptor-handler (mk-disruptor-backpressure-handler worker)
+        _ (.registerBackpressureCallback (:transfer-queue worker) disruptor-handler)
+        _ (-> (.setHighWaterMark (:transfer-queue worker) ((:storm-conf worker) BACKPRESSURE-DISRUPTOR-HIGH-WATERMARK))
+              (.setLowWaterMark ((:storm-conf worker) BACKPRESSURE-DISRUPTOR-LOW-WATERMARK))
+              (.setEnableBackpressure ((:storm-conf worker) TOPOLOGY-BACKPRESSURE-ENABLE)))
+        backpressure-handler (mk-backpressure-handler @executors)        
+        backpressure-thread (WorkerBackpressureThread. (:backpressure-trigger worker) worker backpressure-handler)
+        _ (if ((:storm-conf worker) TOPOLOGY-BACKPRESSURE-ENABLE) 
+            (.start backpressure-thread))
+        callback (fn cb [& ignored]
+                   (let [throttle-on (.topology-backpressure storm-cluster-state storm-id cb)]
+                     (reset! (:throttle-on worker) throttle-on)))
+        _ (if ((:storm-conf worker) TOPOLOGY-BACKPRESSURE-ENABLE)
+            (.topology-backpressure storm-cluster-state storm-id callback))
+
         shutdown* (fn []
                     (log-message "Shutting down worker " storm-id " " assignment-id " " port)
                     (doseq [[_ socket] @(:cached-node+port->socket worker)]
@@ -467,7 +520,7 @@
                     (log-message "Shutting down executors")
                     (doseq [executor @executors] (.shutdown executor))
                     (log-message "Shut down executors")
-                                        
+
                     ;;this is fine because the only time this is shared is when it's a local context,
                     ;;in which case it's a noop
                     (.term ^IContext (:mq-context worker))
@@ -477,17 +530,20 @@
                     (.interrupt transfer-thread)
                     (.join transfer-thread)
                     (log-message "Shut down transfer thread")
+                    (.interrupt backpressure-thread)
+                    (.join backpressure-thread)
+                    (log-message "Shut down backpressure thread")
                     (cancel-timer (:heartbeat-timer worker))
                     (cancel-timer (:refresh-connections-timer worker))
                     (cancel-timer (:refresh-credentials-timer worker))
                     (cancel-timer (:refresh-active-timer worker))
                     (cancel-timer (:executor-heartbeat-timer worker))
                     (cancel-timer (:user-timer worker))
-                    
+
                     (close-resources worker)
-                    
+
                     ;; TODO: here need to invoke the "shutdown" method of WorkerHook
-                    
+
                     (.remove-worker-heartbeat! (:storm-cluster-state worker) storm-id assignment-id port)
                     (log-message "Disconnecting from storm cluster state context")
                     (.disconnect (:storm-cluster-state worker))
@@ -516,9 +572,18 @@
                                         (AuthUtils/updateSubject subject auto-creds new-creds)
                                         (dofor [e @executors] (.credentials-changed e new-creds))
                                         (reset! credentials new-creds))))
-      ]
+       check-throttle-changed (fn []
+                                (let [callback (fn cb [& ignored]
+                                                 (let [throttle-on (.topology-backpressure (:storm-cluster-state worker) storm-id cb)]
+                                                   (reset! (:throttle-on worker) throttle-on)))
+                                      new-throttle-on (.topology-backpressure (:storm-cluster-state worker) storm-id callback)]
+                                    (reset! (:throttle-on worker) new-throttle-on)))]
     (.credentials (:storm-cluster-state worker) storm-id (fn [args] (check-credentials-changed)))
-    (schedule-recurring (:refresh-credentials-timer worker) 0 (conf TASK-CREDENTIALS-POLL-SECS) check-credentials-changed)
+    (schedule-recurring (:refresh-credentials-timer worker) 0 (conf TASK-CREDENTIALS-POLL-SECS)
+                        (fn [& args]
+                          (check-credentials-changed)
+                          (if ((:storm-conf worker) TOPOLOGY-BACKPRESSURE-ENABLE)
+                            (check-throttle-changed))))
     (schedule-recurring (:refresh-connections-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) refresh-connections)
     (schedule-recurring (:refresh-active-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) (partial refresh-storm-active worker))
 
@@ -535,7 +600,7 @@
   :distributed [conf]
   (fn [] (exit-process! 1 "Worker died")))
 
-(defn -main [storm-id assignment-id port-str worker-id]  
+(defn -main [storm-id assignment-id port-str worker-id]
   (let [conf (read-storm-config)]
     (setup-default-uncaught-exception-handler)
     (validate-distributed-mode! conf)

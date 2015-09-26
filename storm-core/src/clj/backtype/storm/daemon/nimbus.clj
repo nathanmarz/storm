@@ -38,7 +38,7 @@
             ExecutorSummary AuthorizationException GetInfoOptions NumErrorsChoice])
   (:import [backtype.storm.daemon Shutdownable])
   (:use [backtype.storm util config log timer zookeeper])
-  (:require [backtype.storm [cluster :as cluster] [stats :as stats]])
+  (:require [backtype.storm [cluster :as cluster] [stats :as stats] [converter :as converter]])
   (:require [clojure.set :as set])
   (:import [backtype.storm.daemon.common StormBase Assignment])
   (:use [backtype.storm.daemon common])
@@ -796,7 +796,8 @@
                                   num-executors
                                   (storm-conf TOPOLOGY-SUBMITTER-USER)
                                   nil
-                                  nil))))
+                                  nil
+                                  {}))))
 
 ;; Master:
 ;; job submit:
@@ -910,6 +911,7 @@
            {TOPOLOGY-KRYO-DECORATORS (get-merged-conf-val TOPOLOGY-KRYO-DECORATORS distinct)
             TOPOLOGY-KRYO-REGISTER (get-merged-conf-val TOPOLOGY-KRYO-REGISTER mapify-serializations)
             TOPOLOGY-ACKER-EXECUTORS (total-conf TOPOLOGY-ACKER-EXECUTORS)
+            TOPOLOGY-EVENTLOGGER-EXECUTORS (total-conf TOPOLOGY-EVENTLOGGER-EXECUTORS)
             TOPOLOGY-MAX-TASK-PARALLELISM (total-conf TOPOLOGY-MAX-TASK-PARALLELISM)})))
 
 (defn do-cleanup [nimbus]
@@ -1181,12 +1183,14 @@
             ;; lock protects against multiple topologies being submitted at once and
             ;; cleanup thread killing topology in b/w assignment and starting the topology
             (locking (:submit-lock nimbus)
+              (check-storm-active! nimbus storm-name false)
               ;;cred-update-lock is not needed here because creds are being added for the first time.
               (.set-credentials! storm-cluster-state storm-id credentials storm-conf)
               (setup-storm-code nimbus conf storm-id uploadedJarLocation storm-conf topology)
               (.setup-code-distributor! storm-cluster-state storm-id (:nimbus-host-port-info nimbus))
               (wait-for-desired-code-replication nimbus total-storm-conf storm-id)
               (.setup-heartbeats! storm-cluster-state storm-id)
+              (.setup-backpressure! storm-cluster-state storm-id)
               (let [thrift-status->kw-status {TopologyInitialStatus/INACTIVE :inactive
                                               TopologyInitialStatus/ACTIVE :active}]
                 (start-storm nimbus storm-name storm-id (thrift-status->kw-status (.get_initial_status submitOptions))))
@@ -1241,6 +1245,25 @@
         (let [topology-conf (try-read-storm-conf-from-name conf storm-name nimbus)]
           (check-authorization! nimbus storm-name topology-conf "deactivate"))
         (transition-name! nimbus storm-name :inactivate true))
+
+      (debug [this storm-name component-id enable? samplingPct]
+        (let [storm-cluster-state (:storm-cluster-state nimbus)
+              storm-id (get-storm-id storm-cluster-state storm-name)
+              topology-conf (try-read-storm-conf conf storm-id)
+              ;; make sure samplingPct is within bounds.
+              spct (Math/max (Math/min samplingPct 100.0) 0.0)
+              ;; while disabling we retain the sampling pct.
+              debug-options (if enable? {:enable enable? :samplingpct spct} {:enable enable?})
+              storm-base-updates (assoc {} :component->debug (if (empty? component-id)
+                                                               {storm-id debug-options}
+                                                               {component-id debug-options}))]
+          (check-authorization! nimbus storm-name topology-conf "debug")
+          (when-not storm-id
+            (throw (NotAliveException. storm-name)))
+          (log-message "Nimbus setting debug to " enable? " for storm-name '" storm-name "' storm-id '" storm-id "' sampling pct '" spct "'"
+            (if (not (clojure.string/blank? component-id)) (str " component-id '" component-id "'")))
+          (locking (:submit-lock nimbus)
+            (.update-storm! storm-cluster-state storm-id storm-base-updates))))
 
       (uploadNewCredentials [this storm-name credentials]
         (let [storm-cluster-state (:storm-cluster-state nimbus)
@@ -1436,6 +1459,8 @@
                            )]
             (when-let [owner (:owner base)] (.set_owner topo-info owner))
             (when-let [sched-status (.get @(:id->sched-status nimbus) storm-id)] (.set_sched_status topo-info sched-status))
+            (when-let [component->debug (:component->debug base)]
+              (.set_component_debug topo-info (map-val converter/thriftify-debugoptions component->debug)))
             (.set_replication_count topo-info (.getReplicationCount (:code-distributor nimbus) storm-id))
             topo-info
           ))

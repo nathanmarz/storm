@@ -31,15 +31,15 @@ public class OpaqueTridentKafkaSpout implements IOpaquePartitionedTridentSpout<L
 
 
     TridentKafkaConfig _config;
-    String _topologyInstanceId = UUID.randomUUID().toString();
 
     public OpaqueTridentKafkaSpout(TridentKafkaConfig config) {
         _config = config;
     }
 
     @Override
-    public IOpaquePartitionedTridentSpout.Emitter<List<GlobalPartitionInformation>, Partition, Map> getEmitter(Map conf, TopologyContext context) {
-        return new TridentKafkaEmitter(conf, context, _config, _topologyInstanceId).asOpaqueEmitter();
+    public IOpaquePartitionedTridentSpout.Emitter<GlobalPartitionInformation, Partition, Map> getEmitter(Map conf, TopologyContext context) {
+        return new TridentKafkaEmitter(conf, context, _config, context
+                .getStormId()).asOpaqueEmitter();
     }
 
     @Override

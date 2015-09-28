@@ -32,6 +32,7 @@ import javax.security.auth.login.Configuration;
 import javax.security.sasl.SaslServer;
 
 import backtype.storm.utils.ExtendedThreadPoolExecutor;
+import backtype.storm.security.auth.kerberos.NoOpTTrasport;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TBinaryProtocol;
@@ -107,7 +108,7 @@ public abstract class SaslTransportPlugin implements ITransportPlugin {
      *                                                                                                                                                                              
      * This is used on the server side to set the UGI for each specific call.                                                                                                       
      */
-    private class TUGIWrapProcessor implements TProcessor {
+    private static class TUGIWrapProcessor implements TProcessor {
         final TProcessor wrapped;
 
         TUGIWrapProcessor(TProcessor wrapped) {
@@ -121,6 +122,11 @@ public abstract class SaslTransportPlugin implements ITransportPlugin {
             TTransport trans = inProt.getTransport();
             //Sasl transport
             TSaslServerTransport saslTrans = (TSaslServerTransport)trans;
+
+            if(trans instanceof NoOpTTrasport) {
+                return false;
+            }
+
             //remote address
             TSocket tsocket = (TSocket)saslTrans.getUnderlyingTransport();
             Socket socket = tsocket.getSocket();

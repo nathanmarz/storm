@@ -49,6 +49,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print('  void activate(string name)')
   print('  void deactivate(string name)')
   print('  void rebalance(string name, RebalanceOptions options)')
+  print('  void debug(string name, string component, bool enable, double samplingPercentage)')
   print('  void uploadNewCredentials(string name, Credentials creds)')
   print('  string beginFileUpload()')
   print('  void uploadChunk(string location, string chunk)')
@@ -159,6 +160,12 @@ elif cmd == 'rebalance':
     print('rebalance requires 2 args')
     sys.exit(1)
   pp.pprint(client.rebalance(args[0],eval(args[1]),))
+
+elif cmd == 'debug':
+  if len(args) != 4:
+    print('debug requires 4 args')
+    sys.exit(1)
+  pp.pprint(client.debug(args[0],args[1],eval(args[2]),eval(args[3]),))
 
 elif cmd == 'uploadNewCredentials':
   if len(args) != 2:

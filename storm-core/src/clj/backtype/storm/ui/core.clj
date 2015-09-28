@@ -21,17 +21,18 @@
         ring.middleware.multipart-params)
   (:use [ring.middleware.json :only [wrap-json-params]])
   (:use [hiccup core page-helpers])
-  (:use [backtype.storm config util log])
+  (:use [backtype.storm config util log tuple zookeeper])
   (:use [backtype.storm.ui helpers])
   (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID ACKER-INIT-STREAM-ID ACKER-ACK-STREAM-ID
                                               ACKER-FAIL-STREAM-ID system-id? mk-authorization-handler]]])
   (:use [clojure.string :only [blank? lower-case trim]])
-  (:import [backtype.storm.utils Utils])
+  (:import [backtype.storm.utils Utils]
+           [backtype.storm.generated NimbusSummary])
   (:import [backtype.storm.generated ExecutorSpecificStats
-            ExecutorStats ExecutorSummary TopologyInfo SpoutStats BoltStats
+            ExecutorStats ExecutorSummary ExecutorInfo TopologyInfo SpoutStats BoltStats
             ErrorInfo ClusterSummary SupervisorSummary TopologySummary
             Nimbus$Client StormTopology GlobalStreamId RebalanceOptions
-            KillOptions GetInfoOptions NumErrorsChoice])
+            KillOptions GetInfoOptions NumErrorsChoice DebugOptions])
   (:import [backtype.storm.security.auth AuthUtils ReqContext])
   (:import [backtype.storm.generated AuthorizationException])
   (:import [backtype.storm.security.auth AuthUtils])
@@ -49,14 +50,6 @@
 (def ^:dynamic *UI-IMPERSONATION-HANDLER* (mk-authorization-handler (*STORM-CONF* NIMBUS-IMPERSONATION-AUTHORIZER) *STORM-CONF*))
 
 (def http-creds-handler (AuthUtils/GetUiHttpCredentialsPlugin *STORM-CONF*))
-
-(defmacro with-nimbus
-  [nimbus-sym & body]
-  `(let [context# (ReqContext/context)
-         user# (if (.principal context#) (.getName (.principal context#)))]
-    (thrift/with-nimbus-connection-as-user
-       [~nimbus-sym (*STORM-CONF* NIMBUS-HOST) (*STORM-CONF* NIMBUS-THRIFT-PORT) user#]
-       ~@body)))
 
 (defn assert-authorized-user
   ([servlet-request op]
@@ -293,17 +286,55 @@
               (bolt-comp-summs id))]
     (sort-by #(-> ^ExecutorSummary % .get_executor_info .get_task_start) ret)))
 
+(defn logviewer-link [host fname secure?]
+  (if (and secure? (*STORM-CONF* LOGVIEWER-HTTPS-PORT))
+    (url-format "https://%s:%s/log?file=%s"
+      host
+      (*STORM-CONF* LOGVIEWER-HTTPS-PORT)
+      fname)
+    (url-format "http://%s:%s/log?file=%s"
+      host
+      (*STORM-CONF* LOGVIEWER-PORT)
+      fname))
+  )
+
+(defn executor-has-task-id? [task-id executor-info]
+  (between? task-id (.get_task_start executor-info) (.get_task_end executor-info)))
+
+(defn get-host-port [task-id executor-summs]
+  (let [ex-sum (some #(if (executor-has-task-id? task-id (.get_executor_info %)) %) executor-summs)]
+    {:host (.get_host ex-sum) :port (.get_port ex-sum)}))
+
+(defn get-sorted-eventlogger-task-ids [executor-summs]
+  (let [executor-infos (map #(.get_executor_info %) executor-summs)]
+  (sort (flatten (map #(range (.get_task_start %) (inc (.get_task_end %))) executor-infos)))))
+
+(defn get-eventlogger-executor-summs [^TopologyInfo topology-info topology]
+  (let [bolt-summs (filter (partial bolt-summary? topology) (.get_executors topology-info))]
+        ((group-by-comp bolt-summs) "__eventlogger")))
+
+;
+; The eventlogger uses fields grouping on the component-id so that events from same component
+; always goes to the same event logger task. Here we use the same fields grouping
+; to find the correct eventlogger task.
+(defn get-mapped-task-id [sorted-task-ids ^String component-id]
+  (nth sorted-task-ids (mod (list-hash-code [component-id]) (count sorted-task-ids))))
+
+(defn event-log-link
+  [topology-id ^TopologyInfo topology-info topology component-id secure?]
+  (let [executor-summs (get-eventlogger-executor-summs topology-info topology)
+        sorted-task-ids (get-sorted-eventlogger-task-ids executor-summs)
+        mapped-task-id (get-mapped-task-id sorted-task-ids component-id)
+        host-port (get-host-port mapped-task-id executor-summs)
+        fname (event-logs-filename topology-id (host-port :port))]
+    (logviewer-link (host-port :host) fname secure?)))
+
 (defn worker-log-link [host port topology-id secure?]
   (let [fname (logs-filename topology-id port)]
-    (if (and secure? (*STORM-CONF* LOGVIEWER-HTTPS-PORT))
-      (url-format "https://%s:%s/log?file=%s"
-                  host
-                  (*STORM-CONF* LOGVIEWER-HTTPS-PORT)
-                  fname)
-      (url-format "http://%s:%s/log?file=%s"
-                  host
-                  (*STORM-CONF* LOGVIEWER-PORT)
-                  fname))))
+    (logviewer-link host fname secure?)))
+
+(defn nimbus-log-link [host port]
+  (url-format "http://%s:%s/log?file=nimbus.log" host (*STORM-CONF* LOGVIEWER-PORT) port))
 
 (defn compute-executor-capacity
   [^ExecutorSummary e]
@@ -487,7 +518,7 @@
 
 (defn mk-visualization-data
   [id window include-sys?]
-  (with-nimbus
+  (thrift/with-configured-nimbus-connection
     nimbus
     (let [window (if window window ":all-time")
           topology (.getTopology ^Nimbus$Client nimbus id)
@@ -545,12 +576,12 @@
           )))
 
 (defn cluster-configuration []
-  (with-nimbus nimbus
+  (thrift/with-configured-nimbus-connection nimbus
     (.getNimbusConf ^Nimbus$Client nimbus)))
 
 (defn cluster-summary
   ([user]
-     (with-nimbus nimbus
+     (thrift/with-configured-nimbus-connection nimbus
         (cluster-summary (.getClusterInfo ^Nimbus$Client nimbus) user)))
   ([^ClusterSummary summ user]
      (let [sups (.get_supervisors summ)
@@ -566,8 +597,6 @@
                                 (reduce +))]
        {"user" user
         "stormVersion" (str (VersionInfo/getVersion))
-        "nimbusUptime" (pretty-uptime-sec (.get_nimbus_uptime_secs summ))
-        "nimbusUptimeSeconds" (.get_nimbus_uptime_secs summ)
         "supervisors" (count sups)
         "topologies" topologies
         "slotsTotal" total-slots
@@ -576,9 +605,44 @@
         "executorsTotal" total-executors
         "tasksTotal" total-tasks })))
 
+(defn convert-to-nimbus-summary[nimbus-seed]
+  (let [[host port] (.split nimbus-seed ":")]
+    {
+      "host" host
+      "port" port
+      "nimbusLogLink" (nimbus-log-link host port)
+      "status" "Offline"
+      "version" "Not applicable"
+      "nimbusUpTime" "Not applicable"
+      "nimbusUptimeSeconds" "Not applicable"}
+    ))
+
+(defn nimbus-summary
+  ([]
+    (thrift/with-configured-nimbus-connection nimbus
+      (nimbus-summary
+        (.get_nimbuses (.getClusterInfo ^Nimbus$Client nimbus)))))
+  ([nimbuses]
+    (let [nimbus-seeds (set (map #(str %1 ":" (*STORM-CONF* NIMBUS-THRIFT-PORT)) (set (*STORM-CONF* NIMBUS-SEEDS))))
+          alive-nimbuses (set (map #(str (.get_host %1) ":" (.get_port %1)) nimbuses))
+          offline-nimbuses (clojure.set/difference nimbus-seeds alive-nimbuses)
+          offline-nimbuses-summary (map #(convert-to-nimbus-summary %1) offline-nimbuses)]
+      {"nimbuses"
+       (concat offline-nimbuses-summary
+       (for [^NimbusSummary n nimbuses
+             :let [uptime (.get_uptime_secs n)]]
+         {
+          "host" (.get_host n)
+          "port" (.get_port n)
+          "nimbusLogLink" (nimbus-log-link (.get_host n) (.get_port n))
+          "status" (if (.is_isLeader n) "Leader" "Not a Leader")
+          "version" (.get_version n)
+          "nimbusUpTime" (pretty-uptime-sec uptime)
+          "nimbusUpTimeSeconds" uptime}))})))
+
 (defn supervisor-summary
   ([]
-   (with-nimbus nimbus
+   (thrift/with-configured-nimbus-connection nimbus
                 (supervisor-summary
                   (.get_supervisors (.getClusterInfo ^Nimbus$Client nimbus)))))
   ([summs]
@@ -594,7 +658,7 @@
 
 (defn all-topologies-summary
   ([]
-   (with-nimbus
+   (thrift/with-configured-nimbus-connection
      nimbus
      (all-topologies-summary
        (.get_topologies (.getClusterInfo ^Nimbus$Client nimbus)))))
@@ -612,6 +676,7 @@
        "tasksTotal" (.get_num_tasks t)
        "workersTotal" (.get_num_workers t)
        "executorsTotal" (.get_num_executors t)
+       "replicationCount" (.get_replication_count t)
        "schedulerInfo" (.get_sched_status t)})}))
 
 (defn topology-stats [id window stats]
@@ -650,7 +715,8 @@
      "errorPort" error-port
      "errorWorkerLogLink" (worker-log-link error-host error-port top-id secure?)
      "errorLapsedSecs" (get-error-time last-error)
-     "lastError" (get-error-data last-error)}))
+     "lastError" (get-error-data last-error)
+     "time" (if last-error (* 1000 (long (.get_error_time_secs ^ErrorInfo last-error))))}))
 
 (defn bolt-comp [top-id summ-map errors window include-sys? secure?]
   (for [[id summs] summ-map
@@ -677,13 +743,16 @@
      "errorPort" error-port
      "errorWorkerLogLink" (worker-log-link error-host error-port top-id secure?)
      "errorLapsedSecs" (get-error-time last-error)
-     "lastError" (get-error-data last-error)}))
+     "lastError" (get-error-data last-error)
+     "time" (if last-error (* 1000 (long (.get_error_time_secs ^ErrorInfo last-error))))}))
 
 (defn topology-summary [^TopologyInfo summ]
   (let [executors (.get_executors summ)
         workers (set (for [^ExecutorSummary e executors]
-                       [(.get_host e) (.get_port e)]))]
-      {"id" (.get_id summ)
+                       [(.get_host e) (.get_port e)]))
+        topology-id (.get_id summ)
+        debug-options (get (.get_component_debug summ) topology-id)]
+      {"id" topology-id
        "encodedId" (url-encode (.get_id summ))
        "owner" (.get_owner summ)
        "name" (.get_name summ)
@@ -693,7 +762,10 @@
        "tasksTotal" (sum-tasks executors)
        "workersTotal" (count workers)
        "executorsTotal" (count executors)
-       "schedulerInfo" (.get_sched_status summ)}))
+       "schedulerInfo" (.get_sched_status summ)
+       "debug" (if (not-nil? debug-options) (.is_enable debug-options) false)
+       "samplingPct" (if (not-nil? debug-options) (.get_samplingpct debug-options) 10)
+       "replicationCount" (.get_replication_count summ)}))
 
 (defn spout-summary-json [topology-id id stats window]
   (let [times (stats-times (:emitted stats))
@@ -710,7 +782,7 @@
         "failed" (get-in stats [:failed k])})))
 
 (defn topology-page [id window include-sys? user secure?]
-  (with-nimbus nimbus
+  (thrift/with-configured-nimbus-connection nimbus
     (let [window (if window window ":all-time")
           window-hint (window-hint window)
           summ (->> (doto
@@ -729,6 +801,7 @@
           msg-timeout (topology-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS)
           spouts (.get_spouts topology)
           bolts (.get_bolts topology)
+          replication-count (.get_replication_count summ)
           visualizer-data (visualization-data (merge (hashmap-to-persistent spouts)
                                                      (hashmap-to-persistent bolts))
                                               spout-comp-summs
@@ -745,7 +818,8 @@
         "spouts" (spout-comp id spout-comp-summs (.get_errors summ) window include-sys? secure?)
         "bolts" (bolt-comp id bolt-comp-summs (.get_errors summ) window include-sys? secure?)
         "configuration" topology-conf
-        "visualizationTable" (stream-boxes visualizer-data)}))))
+        "visualizationTable" (stream-boxes visualizer-data)
+        "replicationCount" replication-count}))))
 
 (defn spout-output-stats
   [stream-summary window]
@@ -895,7 +969,7 @@
 
 (defn component-page
   [topology-id component window include-sys? user secure?]
-  (with-nimbus nimbus
+  (thrift/with-configured-nimbus-connection nimbus
     (let [window (if window window ":all-time")
           summ (.getTopologyInfo ^Nimbus$Client nimbus topology-id)
           topology (.getTopology ^Nimbus$Client nimbus topology-id)
@@ -904,7 +978,9 @@
           summs (component-task-summs summ topology component)
           spec (cond (= type :spout) (spout-stats window summ component summs include-sys? secure?)
                      (= type :bolt) (bolt-stats window summ component summs include-sys? secure?))
-          errors (component-errors (get (.get_errors summ) component) topology-id secure?)]
+          errors (component-errors (get (.get_errors summ) component) topology-id secure?)
+          component->debug (.get_component_debug summ)
+          debug-options (get component->debug component (get component->debug topology-id))]
       (merge
         {"user" user
          "id" component
@@ -913,19 +989,30 @@
          "executors" (count summs)
          "tasks" (sum-tasks summs)
          "topologyId" topology-id
+         "topologyStatus" (.get_status summ)
          "encodedTopologyId" (url-encode topology-id)
          "window" window
          "componentType" (name type)
-         "windowHint" (window-hint window)}
+         "windowHint" (window-hint window)
+         "debug" (if (not-nil? debug-options) (.is_enable debug-options) false)
+         "samplingPct" (if (not-nil? debug-options) (.get_samplingpct debug-options) 10)
+         "eventLogLink" (event-log-link topology-id summ topology component secure?)}
        spec errors))))
 
 (defn topology-config [topology-id]
-  (with-nimbus nimbus
-    (from-json (.getTopologyConf ^Nimbus$Client nimbus topology-id))))
+  (thrift/with-configured-nimbus-connection nimbus
+     (from-json (.getTopologyConf ^Nimbus$Client nimbus topology-id))))
 
 (defn topology-op-response [topology-id op]
   {"topologyOperation" op,
    "topologyId" topology-id,
+   "status" "success"
+   })
+
+(defn component-op-response [topology-id component-id op]
+  {"topologyOperation" op,
+   "topologyId" topology-id,
+   "componentId" component-id,
    "status" "success"
    })
 
@@ -941,7 +1028,7 @@
      {:status status
       :headers (merge {"Cache-Control" "no-cache, no-store"
                        "Access-Control-Allow-Origin" "*"
-                       "Access-Control-Allow-Headers" "Content-Type, Access-Control-Allow-Headers, Access-Controler-Allow-Origin, X-Requested-By, X-Csrf-Token, Authorization, X-Requested-With"}
+                       "Access-Control-Allow-Headers" "Content-Type, Access-Control-Allow-Headers, Access-Controler-Allow-Origin, X-Requested-By, Authorization, X-Requested-With"}
                       (if (not-nil? callback) {"Content-Type" "application/javascript;charset=utf-8"}
                           {"Content-Type" "application/json;charset=utf-8"}))
       :body (if (not-nil? callback)
@@ -958,6 +1045,9 @@
        (let [user (.getUserName http-creds-handler servlet-request)]
          (assert-authorized-user servlet-request "getClusterInfo")
          (json-response (cluster-summary user) (:callback m))))
+  (GET "/api/v1/nimbus/summary" [:as {:keys [cookies servlet-request]} & m]
+    (assert-authorized-user servlet-request "getClusterInfo")
+    (json-response (nimbus-summary) (:callback m)))
   (GET "/api/v1/supervisor/summary" [:as {:keys [cookies servlet-request]} & m]
        (assert-authorized-user servlet-request "getClusterInfo")
        (json-response (supervisor-summary) (:callback m)))
@@ -978,8 +1068,8 @@
           (component-page id component (:window m) (check-include-sys? (:sys m)) user (= scheme :https))
           (:callback m))))
   (POST "/api/v1/topology/:id/activate" [:as {:keys [cookies servlet-request]} id & m]
+    (thrift/with-configured-nimbus-connection nimbus
     (assert-authorized-user servlet-request "activate" (topology-config id))
-    (with-nimbus nimbus
       (let [tplg (->> (doto
                         (GetInfoOptions.)
                         (.set_num_err_choice NumErrorsChoice/NONE))
@@ -989,8 +1079,8 @@
         (log-message "Activating topology '" name "'")))
     (json-response (topology-op-response id "activate") (m "callback")))
   (POST "/api/v1/topology/:id/deactivate" [:as {:keys [cookies servlet-request]} id & m]
+    (thrift/with-configured-nimbus-connection nimbus
     (assert-authorized-user servlet-request "deactivate" (topology-config id))
-    (with-nimbus nimbus
       (let [tplg (->> (doto
                         (GetInfoOptions.)
                         (.set_num_err_choice NumErrorsChoice/NONE))
@@ -999,9 +1089,33 @@
         (.deactivate nimbus name)
         (log-message "Deactivating topology '" name "'")))
     (json-response (topology-op-response id "deactivate") (m "callback")))
+  (POST "/api/v1/topology/:id/debug/:action/:spct" [:as {:keys [cookies servlet-request]} id action spct & m]
+    (assert-authorized-user servlet-request "debug" (topology-config id))
+    (thrift/with-configured-nimbus-connection nimbus
+      (let [tplg (->> (doto
+                        (GetInfoOptions.)
+                        (.set_num_err_choice NumErrorsChoice/NONE))
+                   (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
+            name (.get_name tplg)
+            enable? (= "enable" action)]
+        (.debug nimbus name "" enable? (Integer/parseInt spct))
+        (log-message "Debug topology [" name "] action [" action "] sampling pct [" spct "]")))
+    (json-response (topology-op-response id (str "debug/" action)) (m "callback")))
+  (POST "/api/v1/topology/:id/component/:component/debug/:action/:spct" [:as {:keys [cookies servlet-request]} id component action spct & m]
+    (assert-authorized-user servlet-request "debug" (topology-config id))
+    (thrift/with-configured-nimbus-connection nimbus
+      (let [tplg (->> (doto
+                        (GetInfoOptions.)
+                        (.set_num_err_choice NumErrorsChoice/NONE))
+                   (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
+            name (.get_name tplg)
+            enable? (= "enable" action)]
+        (.debug nimbus name component enable? (Integer/parseInt spct))
+        (log-message "Debug topology [" name "] component [" component "] action [" action "] sampling pct [" spct "]")))
+    (json-response (component-op-response id component (str "/debug/" action)) (m "callback")))
   (POST "/api/v1/topology/:id/rebalance/:wait-time" [:as {:keys [cookies servlet-request]} id wait-time & m]
+    (thrift/with-configured-nimbus-connection nimbus
     (assert-authorized-user servlet-request "rebalance" (topology-config id))
-    (with-nimbus nimbus
       (let [tplg (->> (doto
                         (GetInfoOptions.)
                         (.set_num_err_choice NumErrorsChoice/NONE))
@@ -1020,7 +1134,7 @@
     (json-response (topology-op-response id "rebalance") (m "callback")))
   (POST "/api/v1/topology/:id/kill/:wait-time" [:as {:keys [cookies servlet-request]} id wait-time & m]
     (assert-authorized-user servlet-request "killTopology" (topology-config id))
-    (with-nimbus nimbus
+    (thrift/with-configured-nimbus-connection nimbus
       (let [tplg (->> (doto
                         (GetInfoOptions.)
                         (.set_num_err_choice NumErrorsChoice/NONE))
@@ -1051,7 +1165,6 @@
       (handler request)
       (catch Exception ex
         (json-response (exception->json ex) ((:query-params request) "callback") :status 500)))))
-
 
 (def app
   (handler/site (-> main-routes

@@ -33,7 +33,7 @@
         (.validateField validator "test" x))))
 
     (doseq [x [64 4294967296 1 nil]]
-      (is (nil? (try 
+      (is (nil? (try
                   (.validateField validator "test" x)
                   (catch Exception e e)))))))
 
@@ -61,7 +61,7 @@
                ["42" "64"]
                nil
               ]]
-    (is (nil? (try 
+    (is (nil? (try
                 (.validateField validator "test" x)
                 (catch Exception e e)))))))
 
@@ -129,11 +129,11 @@
 
 (deftest test-isolation-scheduler-machines-is-map
   (let [validator (CONFIG-SCHEMA-MAP ISOLATION-SCHEDULER-MACHINES)]
-    (is (nil? (try 
-                (.validateField validator "test" {}) 
+    (is (nil? (try
+                (.validateField validator "test" {})
                 (catch Exception e e))))
-    (is (nil? (try 
-                (.validateField validator "test" {"host0" 1 "host1" 2}) 
+    (is (nil? (try
+                (.validateField validator "test" {"host0" 1 "host1" 2})
                 (catch Exception e e))))
     (is (thrown-cause? java.lang.IllegalArgumentException
       (.validateField validator "test" 42)))))
@@ -168,3 +168,19 @@
                       (catch Exception e e)))))
         (is (thrown-cause? java.lang.IllegalArgumentException
           (.validateField validator "test" 42)))))))
+
+(deftest test-absolute-storm-local-dir
+  (let [storm-home-key "storm.home"
+        conf-relative {STORM-LOCAL-DIR "storm-local"}
+        conf-absolute {STORM-LOCAL-DIR
+                       (if on-windows?
+                         "C:\\storm-local"
+                         "/var/storm-local")}]
+    (testing
+      "for relative path"
+      (is (= (str (System/getProperty storm-home-key) file-path-separator (conf-relative STORM-LOCAL-DIR))
+             (absolute-storm-local-dir conf-relative))))
+    (testing
+      "for absolute path"
+      (is (= (if on-windows? "C:\\storm-local" "/var/storm-local")
+             (absolute-storm-local-dir conf-absolute))))))

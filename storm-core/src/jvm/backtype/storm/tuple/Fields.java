@@ -25,6 +25,9 @@ import java.util.List;
 import java.util.Map;
 import java.io.Serializable;
 
+/**
+ * Collection of unique named fields using in an ITuple
+ */
 public class Fields implements Iterable<String>, Serializable {
     private List<String> _fields;
     private Map<String, Integer> _index = new HashMap<String, Integer>();
@@ -57,10 +60,20 @@ public class Fields implements Iterable<String>, Serializable {
         return new ArrayList<String>(_fields);
     }
     
+    /**
+     * Returns the number of fields in this collection.
+     */
     public int size() {
         return _fields.size();
     }
 
+    /**
+     * Gets the field at position index in the collection. 
+     *  
+     * @param index index of the field to return 
+     *  
+     * @throws IndexOutOfBoundsException - if the index is out of range (index < 0 || index >= size()) 
+     */
     public String get(int index) {
         return _fields.get(index);
     }
@@ -70,7 +83,11 @@ public class Fields implements Iterable<String>, Serializable {
     }
     
     /**
-     * Returns the position of the specified field.
+     * Returns the position of the specified named field.
+     *  
+     * @param field Named field to evaluate
+     *  
+     * @throws IllegalArgumentException - if field does not exist
      */
     public int fieldIndex(String field) {
         Integer ret = _index.get(field);
@@ -81,7 +98,7 @@ public class Fields implements Iterable<String>, Serializable {
     }
     
     /**
-     * Returns true if this contains the specified name of the field.
+     * @returns true if this contains the specified name of the field.
      */
     public boolean contains(String field) {
         return _index.containsKey(field);

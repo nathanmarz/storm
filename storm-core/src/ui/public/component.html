@@ -46,6 +46,9 @@
     <div id="component-summary" class="col-md-12"></div>
   </div>
   <div class="row">
+    <div id="component-actions" class="col-md-12"></div>
+  </div>
+  <div class="row">
     <div id="component-stats-detail" class="col-md-12"></div>
   </div>
   <div class="row">
@@ -112,6 +115,9 @@ $(document).ready(function() {
         });
 
         var componentSummary = $("#component-summary");
+        var componentActions = $("#component-actions");
+        var buttonJsonData = componentActionJson(response["encodedTopologyId"], response["encodedId"], response["id"],
+                                                 response["topologyStatus"], response["debug"], response["samplingPct"]);
         var componentStatsDetail = $("#component-stats-detail")
         var inputStats = $("#component-input-stats");
         var outputStats = $("#component-output-stats");
@@ -119,6 +125,7 @@ $(document).ready(function() {
         var componentErrors = $("#component-errors");
         $.get("/templates/component-page-template.html", function(template) {
             componentSummary.append(Mustache.render($(template).filter("#component-summary-template").html(),response));
+            componentActions.append(Mustache.render($(template).filter("#component-actions-template").html(),buttonJsonData));
             if(response["componentType"] == "spout") {
                 componentStatsDetail.append(Mustache.render($(template).filter("#spout-stats-detail-template").html(),response));
                 //window, emitted, transferred, complete latency, acked, failed
@@ -197,6 +204,7 @@ $(document).ready(function() {
               }
             }
             $('#component-summary [data-toggle="tooltip"]').tooltip();
+            $('#component-actions [data-toggle="tooltip"]').tooltip();
             $('#component-stats-detail [data-toggle="tooltip"]').tooltip();
             $('#component-input-stats [data-toggle="tooltip"]').tooltip();
             $('#component-output-stats [data-toggle="tooltip"]').tooltip();

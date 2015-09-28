@@ -24,6 +24,7 @@ import backtype.storm.task.IBolt;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Tuple;
+import backtype.storm.utils.Utils;
 import clojure.lang.AFn;
 import clojure.lang.IFn;
 import clojure.lang.RT;
@@ -141,6 +142,20 @@ public class SystemBolt implements IBolt {
 
         for(GarbageCollectorMXBean b : ManagementFactory.getGarbageCollectorMXBeans()) {
             context.registerMetric("GC/" + b.getName().replaceAll("\\W", ""), new GarbageCollectorMetric(b), bucketSize);
+        }
+
+        registerMetrics(context, (Map<String,String>)stormConf.get(Config.WORKER_METRICS), bucketSize);
+        registerMetrics(context, (Map<String,String>)stormConf.get(Config.TOPOLOGY_WORKER_METRICS), bucketSize);
+    }
+
+    private void registerMetrics(TopologyContext context, Map<String, String> metrics, int bucketSize) {
+        if (metrics == null) return;
+        for (Map.Entry<String, String> metric: metrics.entrySet()) {
+            try {
+                context.registerMetric(metric.getKey(), (IMetric)Utils.newInstance(metric.getValue()), bucketSize);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 

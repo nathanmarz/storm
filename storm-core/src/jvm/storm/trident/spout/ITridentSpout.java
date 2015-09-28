@@ -26,7 +26,7 @@ import storm.trident.operation.TridentCollector;
 
 
 public interface ITridentSpout<T> extends Serializable {
-    public interface BatchCoordinator<X> {
+    interface BatchCoordinator<X> {
         /**
          * Create metadata for this particular transaction id which has never
          * been emitted before. The metadata should contain whatever is necessary
@@ -55,7 +55,7 @@ public interface ITridentSpout<T> extends Serializable {
         void close();
     }
     
-    public interface Emitter<X> {
+    interface Emitter<X> {
         /**
          * Emit a batch for the specified transaction attempt and metadata for the transaction. The metadata
          * was created by the Coordinator in the initializeTranaction method. This method must always emit
@@ -89,6 +89,6 @@ public interface ITridentSpout<T> extends Serializable {
      */    
     Emitter<T> getEmitter(String txStateId, Map conf, TopologyContext context); 
     
-    Map getComponentConfiguration();
+    Map<String, Object> getComponentConfiguration();
     Fields getOutputFields();
 }

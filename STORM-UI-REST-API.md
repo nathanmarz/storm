@@ -84,8 +84,6 @@ Response fields:
 |Field  |Value|Description
 |---	|---	|---
 |stormVersion|String| Storm version|
-|nimbusUptime|String| Shows how long the cluster is running|
-|nimbusUptimeSeconds|Integer| Shows how long the cluster is running in seconds|
 |supervisors|Integer| Number of supervisors running|
 |topologies| Integer| Number of topologies running| 
 |slotsTotal| Integer|Total number of available worker slots|
@@ -99,8 +97,6 @@ Sample response:
 ```json
    {
     "stormVersion": "0.9.2-incubating-SNAPSHOT",
-    "nimbusUptime": "3m 53s",
-    "nimbusUptimeSeconds": 233,
     "supervisors": 1,
     "slotsTotal": 4,
     "slotsUsed": 3,
@@ -142,6 +138,40 @@ Sample response:
 }
 ```
 
+### /api/v1/nimbus/summary (GET)
+
+Returns summary information for all nimbus hosts.
+
+Response fields:
+
+|Field  |Value|Description|
+|---	|---	|---
+|host| String | Nimbus' host name|
+|port| int| Nimbus' port number|
+|status| String| Possible values are Leader, Not a Leader, Dead|
+|nimbusUpTime| String| Shows since how long the nimbus has been running|
+|nimbusUpTimeSeconds| String| Shows since how long the nimbus has been running in seconds|
+|nimbusLogLink| String| Logviewer url to view the nimbus.log|
+|version| String| Version of storm this nimbus host is running|
+
+Sample response:
+
+```json
+{
+    "nimbuses":[
+        {
+            "host":"192.168.202.1",
+            "port":6627,
+            "nimbusLogLink":"http:\/\/192.168.202.1:8000\/log?file=nimbus.log",
+            "status":Leader,
+            "version":"0.10.0-SNAPSHOT",
+            "nimbusUpTime":"3m 33s",
+            "nimbusUpTimeSeconds":"213"
+        }
+    ]
+}
+```
+
 ### /api/v1/topology/summary (GET)
 
 Returns summary information for all topologies.
@@ -158,7 +188,7 @@ Response fields:
 |tasksTotal| Integer |Total number of tasks for this topology|
 |workersTotal| Integer |Number of workers used for this topology|
 |executorsTotal| Integer |Number of executors used for this topology|
-
+|replicationCount| Integer |Number of nimbus hosts on which this topology code is replicated|
 Sample response:
 
 ```json
@@ -172,7 +202,8 @@ Sample response:
             "uptimeSeconds": 365,
             "tasksTotal": 28,
             "workersTotal": 3,
-            "executorsTotal": 28
+            "executorsTotal": 28,
+            "replicationCount": 1
         }
     ]
 }
@@ -238,6 +269,7 @@ Response fields:
 |bolts.errorLapsedSecs| Integer |Number of seconds elapsed since that last error happened in a bolt|
 |bolts.errorWorkerLogLink| String | Link to the worker log that reported the exception |
 |bolts.emitted| Long |Number of tuples emitted|
+|replicationCount| Integer |Number of nimbus hosts on which this topology code is replicated|
 
 Examples:
 
@@ -383,7 +415,8 @@ Sample response:
         "storm.zookeeper.retry.intervalceiling.millis": 30000,
         "supervisor.enable": true,
         "storm.messaging.netty.server_worker_threads": 1
-    }
+    },
+    "replicationCount": 1
 }
 ```
 

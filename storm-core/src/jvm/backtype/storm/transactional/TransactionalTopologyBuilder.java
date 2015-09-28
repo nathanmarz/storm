@@ -61,7 +61,7 @@ public class TransactionalTopologyBuilder {
     ITransactionalSpout _spout;
     Map<String, Component> _bolts = new HashMap<String, Component>();
     Integer _spoutParallelism;
-    List<Map> _spoutConfs = new ArrayList();
+    List<Map<String, Object>> _spoutConfs = new ArrayList<>();
     
     // id is used to store the state of this transactionalspout in zookeeper
     // it would be very dangerous to have 2 topologies active with the same id in the same cluster    
@@ -132,7 +132,7 @@ public class TransactionalTopologyBuilder {
         String coordinator = _spoutId + "/coordinator";
         TopologyBuilder builder = new TopologyBuilder();
         SpoutDeclarer declarer = builder.setSpout(coordinator, new TransactionalSpoutCoordinator(_spout));
-        for(Map conf: _spoutConfs) {
+        for(Map<String, Object> conf: _spoutConfs) {
             declarer.addConfigurations(conf);
         }
         declarer.addConfiguration(Config.TOPOLOGY_TRANSACTIONAL_ID, _id);
@@ -196,7 +196,7 @@ public class TransactionalTopologyBuilder {
         public IRichBolt bolt;
         public Integer parallelism;
         public List<InputDeclaration> declarations = new ArrayList<InputDeclaration>();
-        public List<Map> componentConfs = new ArrayList<Map>();
+        public List<Map<String, Object>> componentConfs = new ArrayList<>();
         public boolean committer;
         
         public Component(IRichBolt bolt, Integer parallelism, boolean committer) {
@@ -213,13 +213,13 @@ public class TransactionalTopologyBuilder {
     
     private class SpoutDeclarerImpl extends BaseConfigurationDeclarer<SpoutDeclarer> implements SpoutDeclarer {
         @Override
-        public SpoutDeclarer addConfigurations(Map conf) {
+        public SpoutDeclarer addConfigurations(Map<String, Object> conf) {
             _spoutConfs.add(conf);
             return this;
         }        
     }
     
-    private class BoltDeclarerImpl extends BaseConfigurationDeclarer<BoltDeclarer> implements BoltDeclarer {
+    private static class BoltDeclarerImpl extends BaseConfigurationDeclarer<BoltDeclarer> implements BoltDeclarer {
         Component _component;
         
         public BoltDeclarerImpl(Component component) {
@@ -513,7 +513,7 @@ public class TransactionalTopologyBuilder {
         }
 
         @Override
-        public BoltDeclarer addConfigurations(Map conf) {
+        public BoltDeclarer addConfigurations(Map<String, Object> conf) {
             _component.componentConfs.add(conf);
             return this;
         }

@@ -80,7 +80,7 @@ public class BatchSpoutExecutor implements ITridentSpout {
     }
 
     @Override
-    public Map getComponentConfiguration() {
+    public Map<String, Object> getComponentConfiguration() {
         return _spout.getComponentConfiguration();
     }
 

@@ -146,7 +146,7 @@ public class ImpersonationAuthorizer implements IAuthorizer {
         return false;
     }
 
-    protected class ImpersonationACL {
+    protected static class ImpersonationACL {
         public String impersonatingUser;
         //Groups this user is authorized to impersonate.
         public Set<String> authorizedGroups;

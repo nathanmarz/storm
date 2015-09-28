@@ -59,6 +59,11 @@
           </span>
         </th>
         <th>
+          <span cdata-toggle="tooltip" data-placement="above" title="Number of nimbus hosts on which this topology's code is replicated. ">
+            Replication count
+          </span>
+        </th>
+        <th>
           <span data-toggle="tooltip" data-placement="left" title="This shows information from the scheduler about the latest attempt to schedule the Topology on the cluster.">
             Scheduler Info
           </span>
@@ -75,6 +80,7 @@
         <td>{{workersTotal}}</td>
         <td>{{executorsTotal}}</td>
         <td>{{tasksTotal}}</td>
+        <td>{{replicationCount}}</td>
         <td>{{schedulerInfo}}</td>
       </tr>
     </tbody>
@@ -226,6 +232,8 @@
         </th>
         <th class="header">Last error
         </th>
+        <th class="header">Error Time
+        </th>
       </tr>
     </thead>
     <tbody>
@@ -243,6 +251,9 @@
         <td><a href="{{errorWorkerLogLink}}">{{errorPort}}</a></td>
         <td>
           <span id="{{errorLapsedSecs}}" class="errorSpan">{{lastError}}</span>
+        </td>
+        <td>
+          <span id="{{time}}" class="errorTime" data-toggle="tooltip" title="{{errorLapsedSecs}}">{{time}}</span>
         </td>
         {{/spouts}}
     </tbody>
@@ -313,6 +324,8 @@
         </th>
         <th class="header">Last error
         </th>
+        <th class="header">Error Time
+        </th>
     </tr></thead>
     <tbody>
       {{#bolts}}
@@ -333,6 +346,9 @@
         <td>
           <span id="{{errorLapsedSecs}}" class="errorSpan">{{lastError}}</span>
         </td>
+        <td>
+          <span id="{{time}}" class="errorTime" data-toggle="tooltip" title="{{errorLapsedSecs}}">{{time}}</span>
+        </td>
         {{/bolts}}
     </tbody>
 </script>
@@ -340,9 +356,11 @@
 <script id="topology-actions-template" type="text/html">
   <h2>Topology actions</h2>
   <p id="topology-actions">
-    <input {{activateStatus}} onclick="confirmAction('{{encodedId}}', '{{name}}', 'activate', false, 0)" type="button" value="Activate" class="btn btn-default">
-    <input {{deactivateStatus}} onclick="confirmAction('{{encodedId}}', '{{name}}', 'deactivate', false, 0)" type="button" value="Deactivate" class="btn btn-default">
-    <input {{rebalanceStatus}} onclick="confirmAction('{{encodedId}}', '{{name}}', 'rebalance', true, {{msgTimeout}})" type="button" value="Rebalance" class="btn btn-default">
-    <input {{killStatus}} onclick="confirmAction('{{encodedId}}', '{{name}}', 'kill', true, 30)" type="button" value="Kill" class="btn btn-default">
+    <input {{activateStatus}} onclick="confirmAction('{{encodedId}}', '{{name}}', 'activate', false)" type="button" value="Activate" class="btn btn-default">
+    <input {{deactivateStatus}} onclick="confirmAction('{{encodedId}}', '{{name}}', 'deactivate', false)" type="button" value="Deactivate" class="btn btn-default">
+    <input {{rebalanceStatus}} onclick="confirmAction('{{encodedId}}', '{{name}}', 'rebalance', true, {{msgTimeout}}, 'wait time in seconds')" type="button" value="Rebalance" class="btn btn-default">
+    <input {{killStatus}} onclick="confirmAction('{{encodedId}}', '{{name}}', 'kill', true, 30, 'wait time in seconds')" type="button" value="Kill" class="btn btn-default">
+    <input {{startDebugStatus}} onclick="confirmAction('{{encodedId}}', '{{name}}', 'debug/enable', true, {{currentSamplingPct}}, 'sampling percentage', 'debug')" type="button" value="Debug" class="btn btn-default">
+    <input {{stopDebugStatus}} onclick="confirmAction('{{encodedId}}', '{{name}}', 'debug/disable', false, 0, 'sampling percentage', 'stop debugging')" type="button" value="Stop Debug" class="btn btn-default">
   </p>
 </script>

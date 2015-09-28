@@ -15,7 +15,7 @@
 ;; limitations under the License.
 
 (ns backtype.storm.disruptor
-  (:import [backtype.storm.utils DisruptorQueue])
+  (:import [backtype.storm.utils DisruptorQueue WorkerBackpressureCallback DisruptorBackpressureCallback])
   (:import [com.lmax.disruptor MultiThreadedClaimStrategy SingleThreadedClaimStrategy
             BlockingWaitStrategy SleepingWaitStrategy YieldingWaitStrategy
             BusySpinWaitStrategy])
@@ -56,6 +56,23 @@
     (onEvent
       [this o seq-id batchEnd?]
       (afn o seq-id batchEnd?))))
+
+(defn disruptor-backpressure-handler
+  [afn-high-wm afn-low-wm]
+  (reify DisruptorBackpressureCallback
+    (highWaterMark
+      [this]
+      (afn-high-wm))
+    (lowWaterMark
+      [this]
+      (afn-low-wm))))
+
+(defn worker-backpressure-handler
+  [afn]
+  (reify WorkerBackpressureCallback
+    (onEvent
+      [this o]
+      (afn o))))
 
 (defmacro handler
   [& args]

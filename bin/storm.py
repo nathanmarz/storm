@@ -352,7 +352,7 @@ def kill_workers(*args):
     """Syntax: [storm kill_workers]
 
     Kill the workers running on this supervisor. This command should be run
-    on a supervisor node. If the cluster is running in secure node, then user needs 
+    on a supervisor node. If the cluster is running in secure mode, then user needs
     to have admin rights on the node to be able to successfully kill all workers.
     """
     exec_storm_class(

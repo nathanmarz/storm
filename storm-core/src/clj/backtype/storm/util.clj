@@ -755,10 +755,6 @@
           rest-elems (apply interleave-all (map rest colls))]
       (concat my-elems rest-elems))))
 
-(defn update
-  [m k afn]
-  (assoc m k (afn (get m k))))
-
 (defn any-intersection
   [& sets]
   (let [elem->count (multi-set (apply concat sets))]

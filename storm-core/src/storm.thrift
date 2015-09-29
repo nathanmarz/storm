@@ -145,6 +145,7 @@ struct TopologySummary {
   7: required string status;
 513: optional string sched_status;
 514: optional string owner;
+515: optional i32 replication_count;
 }
 
 struct SupervisorSummary {
@@ -156,10 +157,18 @@ struct SupervisorSummary {
   6: optional string version = "VERSION_NOT_PROVIDED";
 }
 
+struct NimbusSummary {
+  1: required string host;
+  2: required i32 port;
+  3: required i32 uptime_secs;
+  4: required bool isLeader;
+  5: required string version;
+}
+
 struct ClusterSummary {
   1: required list<SupervisorSummary> supervisors;
-  2: required i32 nimbus_uptime_secs;
   3: required list<TopologySummary> topologies;
+  4: required list<NimbusSummary> nimbuses;
 }
 
 struct ErrorInfo {
@@ -218,8 +227,15 @@ struct TopologyInfo {
   4: required list<ExecutorSummary> executors;
   5: required string status;
   6: required map<string, list<ErrorInfo>> errors;
+  7: optional map<string, DebugOptions> component_debug;
 513: optional string sched_status;
 514: optional string owner;
+515: optional i32 replication_count;
+}
+
+struct DebugOptions {
+  1: optional bool enable
+  2: optional double samplingpct
 }
 
 struct CommonAggregateStats {
@@ -281,6 +297,8 @@ struct TopologyPageInfo {
 11: optional string sched_status;
 12: optional TopologyStats topology_stats;
 13: optional string owner;
+14: optional DebugOptions debug_options;
+15: optional i32 replication_count;
 }
 
 struct ExecutorAggregateStats {
@@ -300,6 +318,10 @@ struct ComponentPageInfo {
  9: optional map<string,ComponentAggregateStats> sid_to_output_stats;
 10: optional list<ExecutorAggregateStats> exec_stats;
 11: optional list<ErrorInfo> errors;
+12: optional string eventlog_host;
+13: optional i32 eventlog_port;
+14: optional DebugOptions debug_options;
+15: optional string topology_status;
 }
 
 struct KillOptions {
@@ -369,6 +391,7 @@ struct StormBase {
     6: optional string owner;
     7: optional TopologyActionOptions topology_action_options;
     8: optional TopologyStatus prev_status;//currently only used during rebalance action.
+    9: optional map<string, DebugOptions> component_debug; // topology/component level debug option.
 }
 
 struct ClusterWorkerHeartbeat {
@@ -429,6 +452,13 @@ service Nimbus {
   void activate(1: string name) throws (1: NotAliveException e, 2: AuthorizationException aze);
   void deactivate(1: string name) throws (1: NotAliveException e, 2: AuthorizationException aze);
   void rebalance(1: string name, 2: RebalanceOptions options) throws (1: NotAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
+  /**
+  * Enable/disable logging the tuples generated in topology via an internal EventLogger bolt. The component name is optional
+  * and if null or empty, the debug flag will apply to the entire topology.
+  *
+  * The 'samplingPercentage' will limit loggging to a percentage of generated tuples.
+  **/
+  void debug(1: string name, 2: string component, 3: bool enable, 4: double samplingPercentage) throws (1: NotAliveException e, 2: AuthorizationException aze);
   void uploadNewCredentials(1: string name, 2: Credentials creds) throws (1: NotAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
 
   // need to add functions for asking about status of storms, what nodes they're running on, looking at task logs

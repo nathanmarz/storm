@@ -1,6 +1,22 @@
+;; Licensed to the Apache Software Foundation (ASF) under one
+;; or more contributor license agreements.  See the NOTICE file
+;; distributed with this work for additional information
+;; regarding copyright ownership.  The ASF licenses this file
+;; to you under the Apache License, Version 2.0 (the
+;; "License"); you may not use this file except in compliance
+;; with the License.  You may obtain a copy of the License at
+;;
+;; http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS,
+;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;; See the License for the specific language governing permissions and
+;; limitations under the License.
 (ns backtype.storm.converter
   (:import [backtype.storm.generated SupervisorInfo NodeInfo Assignment
-            StormBase TopologyStatus ClusterWorkerHeartbeat ExecutorInfo ErrorInfo Credentials RebalanceOptions KillOptions TopologyActionOptions])
+            StormBase TopologyStatus ClusterWorkerHeartbeat ExecutorInfo ErrorInfo Credentials RebalanceOptions KillOptions
+            TopologyActionOptions DebugOptions])
   (:use [backtype.storm util stats log])
   (:require [backtype.storm.daemon [common :as common]]))
 
@@ -119,10 +135,26 @@
       thrift-topology-action-options)))
 
 (defn clojurify-topology-action-options [^TopologyActionOptions topology-action-options]
-  (if (and topology-action-options (.is_set_kill_options topology-action-options))
-      (clojurify-kill-options (.get_kill_options topology-action-options)))
-  (if (and topology-action-options (.is_set_rebalance_options topology-action-options))
-      (clojurify-rebalance-options (.get_rebalance_options topology-action-options))))
+  (if topology-action-options
+    (or (and (.is_set_kill_options topology-action-options)
+             (clojurify-kill-options
+               (.get_kill_options topology-action-options)))
+        (and (.is_set_rebalance_options topology-action-options)
+             (clojurify-rebalance-options
+               (.get_rebalance_options topology-action-options))))))
+
+(defn clojurify-debugoptions [^DebugOptions options]
+  (if options
+    {
+      :enable (.is_enable options)
+      :samplingpct (.get_samplingpct options)
+      }
+    ))
+
+(defn thriftify-debugoptions [options]
+  (doto (DebugOptions.)
+    (.set_enable (get options :enable false))
+    (.set_samplingpct (get options :samplingpct 10))))
 
 (defn thriftify-storm-base [storm-base]
   (doto (StormBase.)
@@ -133,7 +165,8 @@
     (.set_component_executors (map-val int (:component->executors storm-base)))
     (.set_owner (:owner storm-base))
     (.set_topology_action_options (thriftify-topology-action-options storm-base))
-    (.set_prev_status (convert-to-status-from-symbol (:prev-status storm-base)))))
+    (.set_prev_status (convert-to-status-from-symbol (:prev-status storm-base)))
+    (.set_component_debug (map-val thriftify-debugoptions (:component->debug storm-base)))))
 
 (defn clojurify-storm-base [^StormBase storm-base]
   (if storm-base
@@ -145,7 +178,8 @@
       (into {} (.get_component_executors storm-base))
       (.get_owner storm-base)
       (clojurify-topology-action-options (.get_topology_action_options storm-base))
-      (convert-to-symbol-from-status (.get_prev_status storm-base)))))
+      (convert-to-symbol-from-status (.get_prev_status storm-base))
+      (map-val clojurify-debugoptions (.get_component_debug storm-base)))))
 
 (defn thriftify-stats [stats]
   (if stats
@@ -202,4 +236,3 @@
     (into {} (.get_creds credentials))
     nil
     ))
-

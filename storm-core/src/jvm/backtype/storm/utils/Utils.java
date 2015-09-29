@@ -34,6 +34,7 @@ import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Id;
 import org.json.simple.JSONValue;
+import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
@@ -131,6 +132,32 @@ public class Utils {
             bos.close();
             return bos.toByteArray();
         } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static byte[] toCompressedJsonConf(Map<String, Object> stormConf) {
+        try {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            OutputStreamWriter out = new OutputStreamWriter(new GZIPOutputStream(bos));
+            JSONValue.writeJSONString(stormConf, out);
+            out.close();
+            return bos.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static Map<String, Object> fromCompressedJsonConf(byte[] serialized) {
+        try {
+            ByteArrayInputStream bis = new ByteArrayInputStream(serialized);
+            InputStreamReader in = new InputStreamReader(new GZIPInputStream(bis));
+            Object ret = JSONValue.parseWithException(in);
+            in.close();
+            return (Map<String,Object>)ret;
+        } catch(IOException ioe) {
+            throw new RuntimeException(ioe);
+        } catch(ParseException e) {
             throw new RuntimeException(e);
         }
     }
@@ -248,9 +275,11 @@ public class Utils {
                 config = URLDecoder.decode(config);
                 String[] options = config.split("=", 2);
                 if (options.length == 2) {
-                    Object val = JSONValue.parse(options[1]);
-                    if (val == null) {
-                        val = options[1];
+                    Object val = options[1];
+                    try {
+                        val = JSONValue.parseWithException(options[1]);
+                    } catch (ParseException ignored) {
+                        //fall back to string, which is already set
                     }
                     ret.put(options[0], val);
                 }
@@ -330,14 +359,34 @@ public class Utils {
 
     public static void downloadFromMaster(Map conf, String file, String localFile) throws AuthorizationException, IOException, TException {
         NimbusClient client = NimbusClient.getConfiguredClient(conf);
-        String id = client.getClient().beginFileDownload(file);
-        WritableByteChannel out = Channels.newChannel(new FileOutputStream(localFile));
-        while(true) {
-            ByteBuffer chunk = client.getClient().downloadChunk(id);
-            int written = out.write(chunk);
-            if(written==0) break;
+        try {
+        	download(client, file, localFile);
+        } finally {
+        	client.close();
         }
-        out.close();
+    }
+
+    public static void downloadFromHost(Map conf, String file, String localFile, String host, int port) throws IOException, TException, AuthorizationException {
+        NimbusClient client = new NimbusClient (conf, host, port, null);
+        try {
+        	download(client, file, localFile);
+        } finally {
+        	client.close();
+        }
+    }
+
+    private static void download(NimbusClient client, String file, String localFile) throws IOException, TException, AuthorizationException {
+        WritableByteChannel out = Channels.newChannel(new FileOutputStream(localFile));
+        try {
+            String id = client.getClient().beginFileDownload(file);
+	        while(true) {
+	            ByteBuffer chunk = client.getClient().downloadChunk(id);
+	            int written = out.write(chunk);
+	            if(written==0) break;
+	        }
+        } finally {
+        	out.close();
+        }
     }
 
     public static IFn loadClojureFn(String namespace, String name) {

@@ -30,7 +30,6 @@ public class OpaqueTridentKafkaSpout implements IOpaquePartitionedTridentSpout<G
 
 
     TridentKafkaConfig _config;
-    String _topologyInstanceId = UUID.randomUUID().toString();
 
     public OpaqueTridentKafkaSpout(TridentKafkaConfig config) {
         _config = config;
@@ -38,7 +37,8 @@ public class OpaqueTridentKafkaSpout implements IOpaquePartitionedTridentSpout<G
 
     @Override
     public IOpaquePartitionedTridentSpout.Emitter<GlobalPartitionInformation, Partition, Map> getEmitter(Map conf, TopologyContext context) {
-        return new TridentKafkaEmitter(conf, context, _config, _topologyInstanceId).asOpaqueEmitter();
+        return new TridentKafkaEmitter(conf, context, _config, context
+                .getStormId()).asOpaqueEmitter();
     }
 
     @Override

@@ -25,11 +25,21 @@ import org.apache.storm.redis.common.mapper.RedisDataTypeDescription;
 import org.apache.storm.redis.common.mapper.RedisStoreMapper;
 import redis.clients.jedis.JedisCommands;
 
+/**
+ * Basic bolt for writing to Redis
+ * <p/>
+ * Various data types are supported: STRING, LIST, HASH, SET, SORTED_SET, HYPER_LOG_LOG
+ */
 public class RedisStoreBolt extends AbstractRedisBolt {
     private final RedisStoreMapper storeMapper;
     private final RedisDataTypeDescription.RedisDataType dataType;
     private final String additionalKey;
 
+    /**
+     * Constructor for single Redis environment (JedisPool)
+     * @param config configuration for initializing JedisPool
+     * @param storeMapper mapper containing which datatype, storing value's key that Bolt uses
+     */
     public RedisStoreBolt(JedisPoolConfig config, RedisStoreMapper storeMapper) {
         super(config);
         this.storeMapper = storeMapper;
@@ -39,6 +49,11 @@ public class RedisStoreBolt extends AbstractRedisBolt {
         this.additionalKey = dataTypeDescription.getAdditionalKey();
     }
 
+    /**
+     * Constructor for Redis Cluster environment (JedisCluster)
+     * @param config configuration for initializing JedisCluster
+     * @param storeMapper mapper containing which datatype, storing value's key that Bolt uses
+     */
     public RedisStoreBolt(JedisClusterConfig config, RedisStoreMapper storeMapper) {
         super(config);
         this.storeMapper = storeMapper;
@@ -48,6 +63,9 @@ public class RedisStoreBolt extends AbstractRedisBolt {
         this.additionalKey = dataTypeDescription.getAdditionalKey();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void execute(Tuple input) {
         String key = storeMapper.getKeyFromTuple(input);
@@ -94,6 +112,9 @@ public class RedisStoreBolt extends AbstractRedisBolt {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
     }

@@ -21,6 +21,7 @@
   (:import [backtype.storm.task WorkerTopologyContext])
   (:import [backtype.storm Constants])
   (:import [backtype.storm.metric SystemBolt])
+  (:import [backtype.storm.metric EventLoggerBolt])
   (:import [backtype.storm.security.auth IAuthorizer]) 
   (:import [java.io InterruptedIOException])
   (:require [clojure.set :as set])  
@@ -38,6 +39,9 @@
 
 (def SYSTEM-STREAM-ID "__system")
 
+(def EVENTLOGGER-COMPONENT-ID "__eventlogger")
+(def EVENTLOGGER-STREAM-ID "__eventlog")
+
 (def SYSTEM-COMPONENT-ID Constants/SYSTEM_COMPONENT_ID)
 (def SYSTEM-TICK-STREAM-ID Constants/SYSTEM_TICK_STREAM_ID)
 (def METRICS-STREAM-ID Constants/METRICS_STREAM_ID)
@@ -51,7 +55,7 @@
 
 
 ;; component->executors is a map from spout/bolt id to number of executors for that component
-(defrecord StormBase [storm-name launch-time-secs status num-workers component->executors owner topology-action-options prev-status])
+(defrecord StormBase [storm-name launch-time-secs status num-workers component->executors owner topology-action-options prev-status component->debug])
 
 (defrecord SupervisorInfo [time-secs hostname assignment-id used-ports meta scheduler-meta uptime-secs version])
 
@@ -182,6 +186,22 @@
                              ))]
     (merge spout-inputs bolt-inputs)))
 
+;; the event logger receives inputs from all the spouts and bolts
+;; with a field grouping on component id so that all tuples from a component
+;; goes to same executor and can be viewed via logviewer.
+(defn eventlogger-inputs [^StormTopology topology]
+  (let [bolt-ids (.. topology get_bolts keySet)
+        spout-ids (.. topology get_spouts keySet)
+        spout-inputs (apply merge
+                       (for [id spout-ids]
+                         {[id EVENTLOGGER-STREAM-ID] ["component-id"]}
+                         ))
+        bolt-inputs (apply merge
+                      (for [id bolt-ids]
+                        {[id EVENTLOGGER-STREAM-ID] ["component-id"]}
+                        ))]
+    (merge spout-inputs bolt-inputs)))
+
 (defn add-acker! [storm-conf ^StormTopology ret]
   (let [num-executors (if (nil? (storm-conf TOPOLOGY-ACKER-EXECUTORS)) (storm-conf TOPOLOGY-WORKERS) (storm-conf TOPOLOGY-ACKER-EXECUTORS))
         acker-bolt (thrift/mk-bolt-spec* (acker-inputs ret)
@@ -273,6 +293,26 @@
      (metrics-consumer-register-ids storm-conf)
      (get storm-conf TOPOLOGY-METRICS-CONSUMER-REGISTER))))
 
+;; return the fields that event logger bolt expects
+(defn eventlogger-bolt-fields []
+  [(EventLoggerBolt/FIELD_COMPONENT_ID) (EventLoggerBolt/FIELD_MESSAGE_ID)  (EventLoggerBolt/FIELD_TS) (EventLoggerBolt/FIELD_VALUES)]
+  )
+
+(defn add-eventlogger! [storm-conf ^StormTopology ret]
+  (let [num-executors (if (nil? (storm-conf TOPOLOGY-EVENTLOGGER-EXECUTORS)) (storm-conf TOPOLOGY-WORKERS) (storm-conf TOPOLOGY-EVENTLOGGER-EXECUTORS))
+        eventlogger-bolt (thrift/mk-bolt-spec* (eventlogger-inputs ret)
+                     (EventLoggerBolt.)
+                     {}
+                     :p num-executors
+                     :conf {TOPOLOGY-TASKS num-executors
+                            TOPOLOGY-TICK-TUPLE-FREQ-SECS (storm-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS)})]
+
+    (doseq [[_ component] (all-components ret)
+            :let [common (.get_common component)]]
+      (.put_to_streams common EVENTLOGGER-STREAM-ID (thrift/output-fields (eventlogger-bolt-fields))))
+    (.put_to_bolts ret EVENTLOGGER-COMPONENT-ID eventlogger-bolt)
+    ))
+
 (defn add-metric-components! [storm-conf ^StormTopology topology]  
   (doseq [[comp-id bolt-spec] (metrics-consumer-bolt-specs storm-conf topology)]
     (.put_to_bolts topology comp-id bolt-spec)))
@@ -292,7 +332,8 @@
   (validate-basic! topology)
   (let [ret (.deepCopy topology)]
     (add-acker! storm-conf ret)
-    (add-metric-components! storm-conf ret)    
+    (add-eventlogger! storm-conf ret)
+    (add-metric-components! storm-conf ret)
     (add-system-components! storm-conf ret)
     (add-metric-streams! ret)
     (add-system-streams! ret)
@@ -303,6 +344,8 @@
 (defn has-ackers? [storm-conf]
   (or (nil? (storm-conf TOPOLOGY-ACKER-EXECUTORS)) (> (storm-conf TOPOLOGY-ACKER-EXECUTORS) 0)))
 
+(defn has-eventloggers? [storm-conf]
+  (or (nil? (storm-conf TOPOLOGY-EVENTLOGGER-EXECUTORS)) (> (storm-conf TOPOLOGY-EVENTLOGGER-EXECUTORS) 0)))
 
 (defn num-start-executors [component]
   (thrift/parallelism-hint (.get_common component)))

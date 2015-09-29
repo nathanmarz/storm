@@ -21,9 +21,10 @@
   (:use [backtype.storm config util log timer])
   (:use [backtype.storm.ui helpers])
   (:import [org.slf4j LoggerFactory])
-  (:import [ch.qos.logback.classic Logger])
-  (:import [ch.qos.logback.core FileAppender])
   (:import [java.io File FileFilter FileInputStream])
+  (:import [org.apache.logging.log4j LogManager])
+  (:import [org.apache.logging.log4j.core Appender LoggerContext])
+  (:import [org.apache.logging.log4j.core.appender RollingFileAppender])
   (:import [org.yaml.snakeyaml Yaml]
            [org.yaml.snakeyaml.constructor SafeConstructor])
   (:import [backtype.storm.ui InvalidRequestException]
@@ -45,6 +46,7 @@
 (defn cleanup-cutoff-age-millis [conf now-millis]
   (- now-millis (* (conf LOGVIEWER-CLEANUP-AGE-MINS) 60 1000)))
 
+;TODO: handle cleanup of old event log files
 (defn mk-FileFilter-for-log-cleanup [conf now-millis]
   (let [cutoff-age-millis (cleanup-cutoff-age-millis conf now-millis)]
     (reify FileFilter (^boolean accept [this ^File file]
@@ -180,12 +182,15 @@
 
 (defn get-log-user-group-whitelist [fname]
   (let [wl-file (get-log-metadata-file fname)
-        m (clojure-from-yaml-file wl-file)
-        user-wl (.get m LOGS-USERS)
-        user-wl (if user-wl user-wl [])
-        group-wl (.get m LOGS-GROUPS)
-        group-wl (if group-wl group-wl [])]
-    [user-wl group-wl]))
+        m (clojure-from-yaml-file wl-file)]
+    (if (not-nil? m)
+      (do
+        (let [user-wl (.get m LOGS-USERS)
+              user-wl (if user-wl user-wl [])
+              group-wl (.get m LOGS-GROUPS)
+              group-wl (if group-wl group-wl [])]
+          [user-wl group-wl]))
+        nil)))
 
 (def igroup-mapper (AuthUtils/GetGroupMappingServiceProviderPlugin *STORM-CONF*))
 (defn user-groups
@@ -193,7 +198,7 @@
   (if (blank? user) [] (.getGroups igroup-mapper user)))
 
 (defn authorized-log-user? [user fname conf]
-  (if (or (blank? user) (blank? fname))
+  (if (or (blank? user) (blank? fname) (nil? (get-log-user-group-whitelist fname)))
     nil
     (let [groups (user-groups user)
           [user-wl group-wl] (get-log-user-group-whitelist fname)
@@ -210,16 +215,16 @@
 
 Note that if anything goes wrong, this will throw an Error and exit."
   [appender-name]
-  (let [appender (.getAppender (LoggerFactory/getLogger Logger/ROOT_LOGGER_NAME) appender-name)]
-    (if (and appender-name appender (instance? FileAppender appender))
-      (.getParent (File. (.getFile appender)))
+  (let [appender (.getAppender (.getConfiguration (LogManager/getContext)) appender-name)]
+    (if (and appender-name appender (instance? RollingFileAppender appender))
+      (.getParent (File. (.getFileName appender)))
       (throw
-       (RuntimeException. "Log viewer could not find configured appender, or the appender is not a FileAppender. Please check that the appender name configured in storm and logback agree.")))))
+       (RuntimeException. "Log viewer could not find configured appender, or the appender is not a FileAppender. Please check that the appender name configured in storm and log4j2 agree.")))))
 
 (defnk to-btn-link
   "Create a link that is formatted like a button"
   [url text :enabled true]
-  [:a {:href (java.net.URI. url) 
+  [:a {:href (java.net.URI. url)
        :class (str "btn btn-default " (if enabled "enabled" "disabled"))} text])
 
 (defn pager-links [fname start length file-size]
@@ -247,7 +252,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                            :start (min (max 0 (- file-size length))
                                        (+ start length))
                            :length length})
-                        "Next" :enabled (> next-start start))])]])) 
+                        "Next" :enabled (> next-start start))])]]))
 
 (defn- download-link [fname]
   [[:p (link-to (url-format "/download/%s" fname) "Download Full Log")]])
@@ -284,7 +289,10 @@ Note that if anything goes wrong, this will throw an Error and exit."
                             pager-data)))))
         (-> (resp/response "Page not found")
             (resp/status 404))))
-    (unauthorized-user-html user)))
+    (if (nil? (get-log-user-group-whitelist fname))
+      (-> (resp/response "Page not found")
+        (resp/status 404))
+      (unauthorized-user-html user))))
 
 (defn download-log-file [fname req resp user ^String root-dir]
   (let [file (.getCanonicalFile (File. root-dir fname))]
@@ -368,9 +376,30 @@ Note that if anything goes wrong, this will throw an Error and exit."
           filters-confs (concat filters-confs
                           [{:filter-class "org.eclipse.jetty.servlets.GzipFilter"
                             :filter-name "Gzipper"
-                            :filter-params {}}])]
+                            :filter-params {}}])
+          https-port (int (or (conf LOGVIEWER-HTTPS-PORT) 0))
+          keystore-path (conf LOGVIEWER-HTTPS-KEYSTORE-PATH)
+          keystore-pass (conf LOGVIEWER-HTTPS-KEYSTORE-PASSWORD)
+          keystore-type (conf LOGVIEWER-HTTPS-KEYSTORE-TYPE)
+          key-password (conf LOGVIEWER-HTTPS-KEY-PASSWORD)
+          truststore-path (conf LOGVIEWER-HTTPS-TRUSTSTORE-PATH)
+          truststore-password (conf LOGVIEWER-HTTPS-TRUSTSTORE-PASSWORD)
+          truststore-type (conf LOGVIEWER-HTTPS-TRUSTSTORE-TYPE)
+          want-client-auth (conf LOGVIEWER-HTTPS-WANT-CLIENT-AUTH)
+          need-client-auth (conf LOGVIEWER-HTTPS-NEED-CLIENT-AUTH)]
       (storm-run-jetty {:port (int (conf LOGVIEWER-PORT))
                         :configurator (fn [server]
+                                        (config-ssl server
+                                                    https-port
+                                                    keystore-path
+                                                    keystore-pass
+                                                    keystore-type
+                                                    key-password
+                                                    truststore-path
+                                                    truststore-password
+                                                    truststore-type
+                                                    want-client-auth
+                                                    need-client-auth)
                                         (config-filter server middle filters-confs))}))
   (catch Exception ex
     (log-error ex))))

@@ -15,7 +15,7 @@
 ;; limitations under the License.
 
 (ns backtype.storm.disruptor
-  (:import [backtype.storm.utils DisruptorQueue])
+  (:import [backtype.storm.utils DisruptorQueue WorkerBackpressureCallback DisruptorBackpressureCallback])
   (:import [com.lmax.disruptor MultiThreadedClaimStrategy SingleThreadedClaimStrategy
             BlockingWaitStrategy SleepingWaitStrategy YieldingWaitStrategy
             BusySpinWaitStrategy])
@@ -45,10 +45,10 @@
 ;; wouldn't make it to the acker until the batch timed out and another tuple was played into the queue,
 ;; unblocking the consumer
 (defnk disruptor-queue
-  [^String queue-name buffer-size :claim-strategy :multi-threaded :wait-strategy :block]
+  [^String queue-name buffer-size timeout :claim-strategy :multi-threaded :wait-strategy :block]
   (DisruptorQueue. queue-name
                    ((CLAIM-STRATEGY claim-strategy) buffer-size)
-                   (mk-wait-strategy wait-strategy)))
+                   (mk-wait-strategy wait-strategy) timeout))
 
 (defn clojure-handler
   [afn]
@@ -56,6 +56,23 @@
     (onEvent
       [this o seq-id batchEnd?]
       (afn o seq-id batchEnd?))))
+
+(defn disruptor-backpressure-handler
+  [afn-high-wm afn-low-wm]
+  (reify DisruptorBackpressureCallback
+    (highWaterMark
+      [this]
+      (afn-high-wm))
+    (lowWaterMark
+      [this]
+      (afn-low-wm))))
+
+(defn worker-backpressure-handler
+  [afn]
+  (reify WorkerBackpressureCallback
+    (onEvent
+      [this o]
+      (afn o))))
 
 (defmacro handler
   [& args]

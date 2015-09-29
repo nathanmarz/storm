@@ -28,26 +28,47 @@ import storm.trident.state.StateFactory;
 
 import java.util.Map;
 
+/**
+ * Implementation of State for single Redis environment.
+ */
 public class RedisState implements State {
-    private static final Logger logger = LoggerFactory.getLogger(RedisState.class);
-
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void beginCommit(Long aLong) {
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void commit(Long aLong) {
     }
 
+    /**
+     * RedisState.Factory implements StateFactory for single Redis environment.
+     *
+     * @see StateFactory
+     */
     public static class Factory implements StateFactory {
         public static final redis.clients.jedis.JedisPoolConfig DEFAULT_POOL_CONFIG = new redis.clients.jedis.JedisPoolConfig();
 
         private JedisPoolConfig jedisPoolConfig;
 
+        /**
+         * Constructor
+         *
+         * @param config configuration of JedisPool
+         */
         public Factory(JedisPoolConfig config) {
             this.jedisPoolConfig = config;
         }
 
+        /**
+         * {@inheritDoc}
+         */
+        @Override
         public State makeState(@SuppressWarnings("rawtypes") Map conf, IMetricsContext metrics, int partitionIndex, int numPartitions) {
             JedisPool jedisPool = new JedisPool(DEFAULT_POOL_CONFIG,
                                                 jedisPoolConfig.getHost(),
@@ -62,20 +83,31 @@ public class RedisState implements State {
 
     private JedisPool jedisPool;
 
+    /**
+     * Constructor
+     *
+     * @param jedisPool JedisPool
+     */
     public RedisState(JedisPool jedisPool) {
         this.jedisPool = jedisPool;
     }
 
     /**
-     * The state updater and querier can get a Jedis instance
-     * */
+     * Borrows Jedis instance from pool.
+     * <p/>
+     * Note that you should return borrowed instance to pool when you finish using instance.
+     *
+     * @return Jedis instance
+     */
     public Jedis getJedis() {
         return this.jedisPool.getResource();
     }
 
     /**
-     * The state updater and querier return the Jedis instance
-     * */
+     * Returns Jedis instance to pool.
+     *
+     * @param jedis Jedis instance to return to pool
+     */
     public void returnJedis(Jedis jedis) {
         jedis.close();
     }

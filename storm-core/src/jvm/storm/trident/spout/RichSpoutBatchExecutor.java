@@ -41,7 +41,7 @@ public class RichSpoutBatchExecutor implements ITridentSpout {
     }
 
     @Override
-    public Map getComponentConfiguration() {
+    public Map<String, Object> getComponentConfiguration() {
         return _spout.getComponentConfiguration();
     }
 
@@ -78,7 +78,7 @@ public class RichSpoutBatchExecutor implements ITridentSpout {
             if(batchSize==null) batchSize = 1000;
             _maxBatchSize = batchSize.intValue();
             _collector = new CaptureCollector();
-            idsMap = new RotatingMap(3);
+            idsMap = new RotatingMap<>(3);
             rotateTime = 1000L * ((Number)conf.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS)).intValue();
         }
         
@@ -112,6 +112,7 @@ public class RichSpoutBatchExecutor implements ITridentSpout {
                 }
             }
             idsMap.put(txid, _collector.ids);
+            _collector.pendingCount = idsMap.size();
 
         }
 
@@ -145,7 +146,7 @@ public class RichSpoutBatchExecutor implements ITridentSpout {
         
     }
     
-    class RichSpoutCoordinator implements ITridentSpout.BatchCoordinator {
+    private static class RichSpoutCoordinator implements ITridentSpout.BatchCoordinator {
         @Override
         public Object initializeTransaction(long txid, Object prevMetadata, Object currMetadata) {
             return null;
@@ -170,10 +171,10 @@ public class RichSpoutBatchExecutor implements ITridentSpout {
         TridentCollector _collector;
         public List<Object> ids;
         public int numEmitted;
-        
+        public long pendingCount;
         public void reset(TridentCollector c) {
             _collector = c;
-            ids = new ArrayList<Object>();
+            ids = new ArrayList<>();
         }
         
         @Override
@@ -194,6 +195,10 @@ public class RichSpoutBatchExecutor implements ITridentSpout {
             throw new UnsupportedOperationException("Trident does not support direct streams");
         }
         
+        @Override
+        public long getPendingCount() {
+            return pendingCount;
+        }
     }
     
 }

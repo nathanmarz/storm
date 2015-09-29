@@ -33,7 +33,7 @@
         (.validateField validator "test" x))))
 
     (doseq [x [64 4294967296 1 nil]]
-      (is (nil? (try 
+      (is (nil? (try
                   (.validateField validator "test" x)
                   (catch Exception e e)))))))
 
@@ -61,7 +61,7 @@
                ["42" "64"]
                nil
               ]]
-    (is (nil? (try 
+    (is (nil? (try
                 (.validateField validator "test" x)
                 (catch Exception e e)))))))
 
@@ -74,10 +74,26 @@
     (is (thrown-cause? java.lang.IllegalArgumentException
           (.validateField validator "test" (inc Integer/MAX_VALUE))))))
 
+(deftest test-pos-integer-validator
+  (let [validator ConfigValidation/NotNullPosIntegerValidator]
+    (is (thrown-cause? java.lang.IllegalArgumentException
+        (.validateField validator "test" nil)))
+    (.validateField validator "test" 1000)
+    (is (thrown-cause? java.lang.IllegalArgumentException
+          (.validateField validator "test" 1.34)))
+    (is (thrown-cause? java.lang.IllegalArgumentException
+          (.validateField validator "test" 0)))
+    (is (thrown-cause? java.lang.IllegalArgumentException
+          (.validateField validator "test" -100)))
+    (is (thrown-cause? java.lang.IllegalArgumentException
+          (.validateField validator "test" (inc Integer/MAX_VALUE))))))
+
 (deftest test-integers-validator
-  (let [validator ConfigValidation/IntegersValidator]
+  (let [validator ConfigValidation/NoDuplicateIntegersValidator]
     (.validateField validator "test" nil)
     (.validateField validator "test" [1000 0 -1000])
+    (is (thrown-cause? java.lang.IllegalArgumentException
+          (.validateField validator "test" [0 10 10])))
     (is (thrown-cause? java.lang.IllegalArgumentException
           (.validateField validator "test" [0 10 1.34])))
     (is (thrown-cause? java.lang.IllegalArgumentException
@@ -85,14 +101,19 @@
     (is (thrown-cause? java.lang.IllegalArgumentException
           (.validateField validator "test" [-100 (inc Integer/MAX_VALUE)])))))
 
-(deftest test-double-validator
-  (let [validator ConfigValidation/DoubleValidator]
+(deftest test-positive-number-validator
+  (let [validator ConfigValidation/PositiveNumberValidator]
     (.validateField validator "test" nil)
-    (.validateField validator "test" 10)
-    ;; we can provide lenient way to convert int/long to double with losing precision
-    (.validateField validator "test" Integer/MAX_VALUE)
-    (.validateField validator "test" (inc Integer/MAX_VALUE))
-    (.validateField validator "test" Double/MAX_VALUE)))
+    (.validateField validator "test" 1.0)
+    (.validateField validator "test" 1)
+    (is (thrown-cause? java.lang.IllegalArgumentException
+          (.validateField validator "test" -1.0)))
+    (is (thrown-cause? java.lang.IllegalArgumentException
+          (.validateField validator "test" -1)))
+    (is (thrown-cause? java.lang.IllegalArgumentException
+          (.validateField validator "test" 0)))
+    (is (thrown-cause? java.lang.IllegalArgumentException
+          (.validateField validator "test" 0.0)))))
 
 (deftest test-topology-workers-is-integer
   (let [validator (CONFIG-SCHEMA-MAP TOPOLOGY-WORKERS)]
@@ -108,11 +129,11 @@
 
 (deftest test-isolation-scheduler-machines-is-map
   (let [validator (CONFIG-SCHEMA-MAP ISOLATION-SCHEDULER-MACHINES)]
-    (is (nil? (try 
-                (.validateField validator "test" {}) 
+    (is (nil? (try
+                (.validateField validator "test" {})
                 (catch Exception e e))))
-    (is (nil? (try 
-                (.validateField validator "test" {"host0" 1 "host1" 2}) 
+    (is (nil? (try
+                (.validateField validator "test" {"host0" 1 "host1" 2})
                 (catch Exception e e))))
     (is (thrown-cause? java.lang.IllegalArgumentException
       (.validateField validator "test" 42)))))
@@ -147,3 +168,19 @@
                       (catch Exception e e)))))
         (is (thrown-cause? java.lang.IllegalArgumentException
           (.validateField validator "test" 42)))))))
+
+(deftest test-absolute-storm-local-dir
+  (let [storm-home-key "storm.home"
+        conf-relative {STORM-LOCAL-DIR "storm-local"}
+        conf-absolute {STORM-LOCAL-DIR
+                       (if on-windows?
+                         "C:\\storm-local"
+                         "/var/storm-local")}]
+    (testing
+      "for relative path"
+      (is (= (str (System/getProperty storm-home-key) file-path-separator (conf-relative STORM-LOCAL-DIR))
+             (absolute-storm-local-dir conf-relative))))
+    (testing
+      "for absolute path"
+      (is (= (if on-windows? "C:\\storm-local" "/var/storm-local")
+             (absolute-storm-local-dir conf-absolute))))))

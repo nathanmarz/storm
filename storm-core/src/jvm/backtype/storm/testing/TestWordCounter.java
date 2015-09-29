@@ -38,9 +38,13 @@ public class TestWordCounter extends BaseBasicBolt {
     public void prepare(Map stormConf, TopologyContext context) {
         _counts = new HashMap<String, Integer>();
     }
+
+    protected String getTupleValue(Tuple t, int idx) {
+      return (String) t.getValues().get(idx);
+    }
     
     public void execute(Tuple input, BasicOutputCollector collector) {
-        String word = (String) input.getValues().get(0);
+        String word = getTupleValue(input, 0);
         int count = 0;
         if(_counts.containsKey(word)) {
             count = _counts.get(word);

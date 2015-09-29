@@ -23,7 +23,8 @@ import backtype.storm.StormSubmitter;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
-import org.apache.storm.redis.common.mapper.TupleMapper;
+import org.apache.storm.redis.common.mapper.RedisLookupMapper;
+import org.apache.storm.redis.common.mapper.RedisStoreMapper;
 import org.apache.storm.redis.trident.state.RedisState;
 import org.apache.storm.redis.trident.state.RedisStateQuerier;
 import org.apache.storm.redis.trident.state.RedisStateUpdater;
@@ -47,7 +48,9 @@ public class WordCountTridentRedis {
         JedisPoolConfig poolConfig = new JedisPoolConfig.Builder()
                                         .setHost(redisHost).setPort(redisPort)
                                         .build();
-        TupleMapper tupleMapper = new WordCountTupleMapper();
+
+        RedisStoreMapper storeMapper = new WordCountStoreMapper();
+        RedisLookupMapper lookupMapper = new WordCountLookupMapper();
         RedisState.Factory factory = new RedisState.Factory(poolConfig);
 
         TridentTopology topology = new TridentTopology();
@@ -55,12 +58,12 @@ public class WordCountTridentRedis {
 
         stream.partitionPersist(factory,
                                 fields,
-                                new RedisStateUpdater("test_", tupleMapper, 86400000),
+                                new RedisStateUpdater(storeMapper).withExpire(86400000),
                                 new Fields());
 
         TridentState state = topology.newStaticState(factory);
         stream = stream.stateQuery(state, new Fields("word"),
-                                new RedisStateQuerier("test_", tupleMapper),
+                                new RedisStateQuerier(lookupMapper),
                                 new Fields("columnName","columnValue"));
         stream.each(new Fields("word","columnValue"), new PrintFunction(), new Fields());
         return topology.build();
@@ -92,5 +95,4 @@ public class WordCountTridentRedis {
             System.out.println("Usage: WordCountTrident 0(storm-local)|1(storm-cluster) redis-host redis-port");
         }
     }
-
 }

@@ -65,6 +65,12 @@ public class SpoutTracker extends BaseRichSpout {
         public void reportError(Throwable error) {
         	_collector.reportError(error);
         }
+
+        @Override
+        public long getPendingCount() {
+            return _collector.getPendingCount();
+        }
+
     }
 
 

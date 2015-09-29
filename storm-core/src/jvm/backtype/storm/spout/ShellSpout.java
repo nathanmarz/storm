@@ -26,6 +26,7 @@ import backtype.storm.multilang.SpoutMsg;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.utils.ShellProcess;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.List;
 import java.util.TimerTask;
 import java.util.concurrent.ScheduledExecutorService;
@@ -44,6 +45,7 @@ public class ShellSpout implements ISpout {
 
     private SpoutOutputCollector _collector;
     private String[] _command;
+    private Map<String, String> env = new HashMap<String, String>();
     private ShellProcess _process;
     
     private TopologyContext _context;
@@ -62,6 +64,11 @@ public class ShellSpout implements ISpout {
         _command = command;
     }
 
+    public ShellSpout setEnv(Map<String, String> env) {
+        this.env = env;
+        return this;
+    }
+
     public void open(Map stormConf, TopologyContext context,
                      SpoutOutputCollector collector) {
         _collector = collector;
@@ -70,6 +77,9 @@ public class ShellSpout implements ISpout {
         workerTimeoutMills = 1000 * RT.intCast(stormConf.get(Config.SUPERVISOR_WORKER_TIMEOUT_SECS));
 
         _process = new ShellProcess(_command);
+        if (!env.isEmpty()) {
+            _process.setEnv(env);
+        }
 
         Number subpid = _process.launch(stormConf, context);
         LOG.info("Launched subprocess with pid " + subpid);

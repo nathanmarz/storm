@@ -506,13 +506,20 @@ public class TridentTopology {
         }
         return ret.values();
     }
-    
+
     private static Map<Node, String> genSpoutIds(Collection<SpoutNode> spoutNodes) {
         Map<Node, String> ret = new HashMap();
         int ctr = 0;
         for(SpoutNode n: spoutNodes) {
-            ret.put(n, "spout" + ctr);
-            ctr++;
+            if (n.type == SpoutNode.SpoutType.BATCH) { // if Batch spout then id contains txId
+                ret.put(n, "spout-" + n.txId);
+            } else if (n.type == SpoutNode.SpoutType.DRPC){ //if DRPC spout then id contains function
+                ret.put(n, "spout-" + ((DRPCSpout) n.spout).get_function() + ctr);
+                ctr++;
+            } else {
+                ret.put(n, "spout" + ctr);
+                ctr++;
+            }
         }
         return ret;
     }

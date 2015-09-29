@@ -50,6 +50,11 @@ public class EventHubSpout extends BaseRichSpout {
   private long lastCheckpointTime;
   private int currentPartitionIndex = -1;
 
+  public EventHubSpout(String username, String password, String namespace,
+      String entityPath, int partitionCount) {
+    this(new EventHubSpoutConfig(username, password, namespace, entityPath, partitionCount));
+  }
+
   public EventHubSpout(EventHubSpoutConfig spoutConfig) {
     this(spoutConfig, null, null, null);
   }

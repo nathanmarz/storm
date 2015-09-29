@@ -232,6 +232,7 @@ under the License.
 * Matthias J. Sax ([@mjsax](https://github.com/mjsax))
 * Erik Weathers ([@erikdw](https://github.com/erikdw))
 * Bryan Shell ([@shellbj](https://github.com/shellbj))
+* Dmytro Dragan ([@3Dragan](https://github.com/3Dragan))
 
 ## Acknowledgements
 

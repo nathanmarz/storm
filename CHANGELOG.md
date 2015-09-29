@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1069: add check case for external change of 'now' value.
  * STORM-969: HDFS Bolt can end up in an unrecoverable state.
  * STORM-1068: Configure request.required.acks to be 1 in KafkaUtilsTest for sync
  * STORM-1017: If ignoreZkOffsets set true,KafkaSpout will reset zk offset when recover from failure.

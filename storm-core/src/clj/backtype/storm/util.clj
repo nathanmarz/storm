@@ -523,9 +523,10 @@
   ))
 
 (defnk launch-process
-  [command :environment {} :log-prefix nil :exit-code-callback nil]
+  [command :environment {} :log-prefix nil :exit-code-callback nil :directory nil]
   (let [builder (ProcessBuilder. command)
         process-env (.environment builder)]
+    (when directory (.directory builder directory))
     (.redirectErrorStream builder true)
     (doseq [[k v] environment]
       (.put process-env k v))

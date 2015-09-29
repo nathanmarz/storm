@@ -196,7 +196,7 @@
 (defn generate-supervisor-id []
   (uuid))
 
-(defnk worker-launcher [conf user args :environment {} :log-prefix nil :exit-code-callback nil]
+(defnk worker-launcher [conf user args :environment {} :log-prefix nil :exit-code-callback nil :directory nil]
   (let [_ (when (clojure.string/blank? user)
             (throw (java.lang.IllegalArgumentException.
                      "User cannot be blank when calling worker-launcher.")))
@@ -205,7 +205,7 @@
         wl (if wl-initial wl-initial (str storm-home "/bin/worker-launcher"))
         command (concat [wl user] args)]
     (log-message "Running as user:" user " command:" (pr-str command))
-    (launch-process command :environment environment :log-prefix log-prefix :exit-code-callback exit-code-callback)
+    (launch-process command :environment environment :log-prefix log-prefix :exit-code-callback exit-code-callback :directory directory)
   ))
 
 (defnk worker-launcher-and-wait [conf user args :environment {} :log-prefix nil]
@@ -725,15 +725,15 @@
       (write-log-metadata! storm-conf user worker-id storm-id port conf)
       (set-worker-user! conf worker-id user)
       (let [log-prefix (str "Worker Process " worker-id)
-           callback (fn [exit-code]
-                          (log-message log-prefix " exited with code: " exit-code)
-                          (add-dead-worker worker-id))]
+            callback (fn [exit-code]
+                       (log-message log-prefix " exited with code: " exit-code)
+                       (add-dead-worker worker-id))
+            worker-dir (worker-root conf worker-id)]
         (remove-dead-worker worker-id)
         (if run-worker-as-user
-          (let [worker-dir (worker-root conf worker-id)]
-            (worker-launcher conf user ["worker" worker-dir (write-script worker-dir command :environment topology-worker-environment)] :log-prefix log-prefix :exit-code-callback callback))
-          (launch-process command :environment topology-worker-environment :log-prefix log-prefix :exit-code-callback callback)
-      ))))
+          (worker-launcher conf user ["worker" worker-dir (write-script worker-dir command :environment topology-worker-environment)] :log-prefix log-prefix :exit-code-callback callback :directory (File. worker-dir))
+          (launch-process command :environment topology-worker-environment :log-prefix log-prefix :exit-code-callback callback :directory (File. worker-dir)))
+        )))
 
 ;; local implementation
 

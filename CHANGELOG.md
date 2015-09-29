@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1059: Upgrade Storm to use Clojure 1.7.0
  * STORM-1069: add check case for external change of 'now' value.
  * STORM-969: HDFS Bolt can end up in an unrecoverable state.
  * STORM-1068: Configure request.required.acks to be 1 in KafkaUtilsTest for sync

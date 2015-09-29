@@ -59,17 +59,17 @@
          (merge oldval val)
          val)))
 
-(defn -main [& args] 
+(defn -main [& args]
   (let [[{log-setting :log-setting remove-log-setting :remove-log-setting} [name] _]
-          (cli args ["-l" "--log-setting"
-                        :parse-fn (parse-named-log-levels LogLevelAction/UPDATE)
-                        :assoc-fn merge-together]
-                    ["-r" "--remove-log-setting"
-                        :parse-fn (parse-named-log-levels LogLevelAction/REMOVE)
-                        :assoc-fn merge-together])]
+        (cli args ["-l" "--log-setting"
+                   :parse-fn (parse-named-log-levels LogLevelAction/UPDATE)
+                   :assoc-fn merge-together]
+                  ["-r" "--remove-log-setting"
+                   :parse-fn (parse-named-log-levels LogLevelAction/REMOVE)
+                   :assoc-fn merge-together])
+        log-config (LogConfig.)]
+    (doseq [[log-name log-val] (merge log-setting remove-log-setting)]
+      (.put_to_named_logger_level log-config log-name log-val))
+    (log-message "Sent log config " log-config " for topology " name)
     (with-configured-nimbus-connection nimbus
-      (let [log-config (LogConfig.)]
-        (doseq [[log-name log-val] (merge log-setting remove-log-setting)]
-          (.put_to_named_logger_level log-config log-name log-val))
-        (log-message "Sent log config " log-config " for topology " name)
-        (.setLogConfig nimbus (get-storm-id nimbus name) log-config)))))
+      (.setLogConfig nimbus (get-storm-id nimbus name) log-config))))

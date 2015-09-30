@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1058: create CLI kill_workers to kill workers on a supervisor node
  * STORM-1063: support relative log4j conf dir for both daemons and workers
  * STORM-1059: Upgrade Storm to use Clojure 1.7.0
  * STORM-1069: add check case for external change of 'now' value.

@@ -42,6 +42,8 @@ public abstract class AbstractHBaseBolt extends BaseRichBolt {
     protected String tableName;
     protected HBaseMapper mapper;
     protected String configKey;
+    protected int batchSize = 15000;
+    protected int flushIntervalSecs = 0;
 
     public AbstractHBaseBolt(String tableName, HBaseMapper mapper) {
         Validate.notEmpty(tableName, "Table name can not be blank or null");
@@ -72,5 +74,13 @@ public abstract class AbstractHBaseBolt extends BaseRichBolt {
         Map<String, Object> hbaseConfMap = new HashMap<String, Object>(conf);
         hbaseConfMap.put(Config.TOPOLOGY_AUTO_CREDENTIALS, map.get(Config.TOPOLOGY_AUTO_CREDENTIALS));
         this.hBaseClient = new HBaseClient(hbaseConfMap, hbConfig, tableName);
+
+         // If interval is non-zero then it has already been explicitly set and we should not default it
+        if (conf.containsKey("topology.message.timeout.secs") && flushIntervalSecs == 0)
+        {
+            Integer topologyTimeout = Integer.parseInt(conf.get("topology.message.timeout.secs").toString());
+            flushIntervalSecs = (int)(Math.floor(topologyTimeout / 2));
+            LOG.info("Setting tick tuple interval to [" + flushIntervalSecs + "] based on topology timeout");
+        }
     }
 }

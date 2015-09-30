@@ -222,6 +222,35 @@ To pull in a merge request you should generally follow the command line instruct
 
 # Build the code and run the tests
 
+Maven has some issues with maven pugins, shading and multi-module projects which force Storm's build process to be somewhat non-standard.
+
+Essentially what happens is that if you build a multi-module project where one module depends on another module that is a part of the same build, maven tries to be smart and will use the pom.xml and .jar or .class directory from the module that is a dependency.
+
+So if we have a project set up like the following where we have flux depend on storm-core, and storm-core is shaded.  flux will see different versions of the code and pom.xml from storm-core depending on what maven command is run.
+
+- storm.git/
+  - pom.xml
+  - storm-core/
+    - pom.xml
+    - dependency-reduce-pom.xml
+    - target/
+      - classes/
+      - storm-core.jar (shaded)
+      - original.storm-core.jar (no-shaded)
+  - flux/
+    - pom.xml (depends on storm-core)
+    - target/
+      - classes/
+      - flux.uber.jar
+
+If I run `mvn clean compile` the classpath for compiling flux will include `storm.git/storm-core/target/classes` which are not shaded, and if flux is written to use storm-core shaded class it will fail to compile.  flux will also see the full set of non-shaded dependencies from storm-core, so if flux is creating an uber jar, it will assume that all of those dependencies will be provided by storm-core, when in reality they will not be.
+
+If I run `mvn clean package` or `mvn clean install` flux will see the shaded storm-core.jar on its classpath, but it will still see the full non-shaded set of storm-core's dependencies.
+
+The only way I found to make flux use the dependency-reduced-pom.xml from storm-core, is to first build and install storm-core by itself, and then build and install flux without storm-core.  That way storm-core will install the shaded jar and dependency-reduced-pom.xml into the local repository.  Then flux will get its dependencies from the local repo instead of trying to rebuild storm-core.
+
+Because of this we have split the build into two profiles storm-core and storm-more.  By default both build together which works OK for simple testing, but when doing a release it is important to build them in two phases or flux, storm-starter, and possibly others will not be packaged correctly.
+
 ## Prerequisites
 In order to build `storm` you need `python`, `ruby` and `nodejs`. In order to avoid an overful page we don't provide platform/OS specific installation instructions for those here. Please refer to you platform's/OS' documentation for support.
 

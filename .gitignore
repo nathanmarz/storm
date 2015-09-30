@@ -37,3 +37,4 @@ derby.log
 metastore_db
 .settings/
 **/.project
+**/.classpath

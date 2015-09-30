@@ -177,7 +177,6 @@
   (setup-heartbeats! [this storm-id])
   (teardown-heartbeats! [this storm-id])
   (teardown-topology-errors! [this storm-id])
-  (teardown-topology-log-config! [this storm-id])
   (heartbeat-storms [this])
   (error-topologies [this])
   (set-topology-log-config! [this storm-id log-config])
@@ -540,13 +539,6 @@
           (catch KeeperException e
             (log-warn-error e "Could not teardown errors for " storm-id))))
 
-      (teardown-topology-log-config!
-        [this storm-id]
-        (try-cause
-          (.delete_node cluster-state (log-config-path storm-id))
-          (catch KeeperException e
-            (log-warn-error e "Could not teardown log configs for " storm-id))))
-
       (supervisor-heartbeat!
         [this supervisor-id info]
         (let [thrift-supervisor-info (thriftify-supervisor-info info)]
@@ -599,6 +591,7 @@
         (delete-node cluster-state (assignment-path storm-id))
         (delete-node cluster-state (code-distributor-path storm-id))
         (delete-node cluster-state (credentials-path storm-id))
+        (delete-node cluster-state (log-config-path storm-id))
         (remove-storm-base! this storm-id))
 
       (set-credentials!

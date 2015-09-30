@@ -931,7 +931,6 @@
             (if (:code-distributor nimbus) (.cleanup (:code-distributor nimbus) id))
             (.teardown-heartbeats! storm-cluster-state id)
             (.teardown-topology-errors! storm-cluster-state id)
-            (.teardown-topology-log-config! storm-cluster-state id)
             (rmr (master-stormdist-root conf id))
             (swap! (:heartbeats-cache nimbus) dissoc id))
           )))

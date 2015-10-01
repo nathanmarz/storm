@@ -185,8 +185,7 @@ public class KafkaBoltTest {
     private KafkaBolt generateStringSerializerBolt() {
         KafkaBolt bolt = new KafkaBolt();
         Properties props = new Properties();
-        props.put("request.required.acks", "1");
-        props.put("serializer.class", "kafka.serializer.StringEncoder");
+        props.put("acks", "1");
         props.put("bootstrap.servers", broker.getBrokerConnectionString());
         props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
@@ -200,8 +199,7 @@ public class KafkaBoltTest {
     private KafkaBolt generateDefaultSerializerBolt(boolean async, boolean fireAndForget) {
         KafkaBolt bolt = new KafkaBolt();
         Properties props = new Properties();
-        props.put("request.required.acks", "1");
-        props.put("serializer.class", "kafka.serializer.StringEncoder");
+        props.put("acks", "1");
         props.put("bootstrap.servers", broker.getBrokerConnectionString());
         props.put("key.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
         props.put("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
@@ -216,8 +214,7 @@ public class KafkaBoltTest {
 
     private KafkaBolt defaultSerializerBoltWithSpecifiedProperties(boolean async, boolean fireAndForget) {
         Properties props = new Properties();
-        props.put("request.required.acks", "1");
-        props.put("serializer.class", "kafka.serializer.StringEncoder");
+        props.put("acks", "1");
         props.put("bootstrap.servers", broker.getBrokerConnectionString());
         props.put("key.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
         props.put("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");

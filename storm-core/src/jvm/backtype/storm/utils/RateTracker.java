@@ -17,53 +17,61 @@
  */
 package backtype.storm.utils;
 
-import java.util.*;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * This class is a utility to track the rate.
+ * This class is a utility to track the rate of something.
  */
 public class RateTracker{
-    /* number of slides to keep in the history. */
-    public final int _numOfSlides; // number of slides to keep in the history
-
-    public final int _slideSizeInMils;
-    private final long[] _histograms;// an array storing the number of element for each time slide.
-
-    private int _currentValidSlideNum;
-
-    private static Timer _timer = new Timer();
+    private final int _bucketSizeMillis;
+    //Old Buckets and their length are only touched when rotating or gathering the metrics, which should not be that frequent
+    // As such all access to them should be protected by synchronizing with the RateTracker instance
+    private final long[] _bucketTime;
+    private final long[] _oldBuckets;
+    
+    private final AtomicLong _bucketStart;
+    private final AtomicLong _currentBucket;
+    
+    private final TimerTask _task;
+    private static Timer _timer = new Timer("rate tracker timer", true);
 
     /**
      * @param validTimeWindowInMils events that happened before validTimeWindowInMils are not considered
      *                        when reporting the rate.
-     * @param numOfSlides the number of time sildes to divide validTimeWindows. The more slides,
+     * @param numBuckets the number of time sildes to divide validTimeWindows. The more buckets,
      *                    the smother the reported results will be.
      */
-    public RateTracker(int validTimeWindowInMils, int numOfSlides) {
-        this(validTimeWindowInMils, numOfSlides, false);
+    public RateTracker(int validTimeWindowInMils, int numBuckets) {
+        this(validTimeWindowInMils, numBuckets, -1);
     }
 
     /**
      * Constructor
      * @param validTimeWindowInMils events that happened before validTimeWindow are not considered
      *                        when reporting the rate.
-     * @param numOfSlides the number of time sildes to divide validTimeWindows. The more slides,
+     * @param numBuckets the number of time sildes to divide validTimeWindows. The more buckets,
      *                    the smother the reported results will be.
-     * @param simulate set true if it use simulated time rather than system time for testing purpose.
+     * @param startTime if positive the simulated time to start the first bucket at.
      */
-    public RateTracker(int validTimeWindowInMils, int numOfSlides, boolean simulate ){
-        _numOfSlides = Math.max(numOfSlides, 1);
-        _slideSizeInMils = validTimeWindowInMils / _numOfSlides;
-        if (_slideSizeInMils < 1 ) {
-            throw new IllegalArgumentException("Illeggal argument for RateTracker");
+    RateTracker(int validTimeWindowInMils, int numBuckets, long startTime){
+        numBuckets = Math.max(numBuckets, 1);
+        _bucketSizeMillis = validTimeWindowInMils / numBuckets;
+        if (_bucketSizeMillis < 1 ) {
+            throw new IllegalArgumentException("validTimeWindowInMilis and numOfSildes cause each slide to have a window that is too small");
         }
-        assert(_slideSizeInMils > 1);
-        _histograms = new long[_numOfSlides];
-        Arrays.fill(_histograms,0L);
-        if(!simulate) {
-            _timer.scheduleAtFixedRate(new Fresher(), _slideSizeInMils, _slideSizeInMils);
+        _bucketTime = new long[numBuckets - 1];
+        _oldBuckets = new long[numBuckets - 1];
+
+        _bucketStart = new AtomicLong(startTime >= 0 ? startTime : System.currentTimeMillis());
+        _currentBucket = new AtomicLong(0);
+        if (startTime < 0) {
+            _task = new Fresher();
+            _timer.scheduleAtFixedRate(_task, _bucketSizeMillis, _bucketSizeMillis);
+        } else {
+            _task = null;
         }
-        _currentValidSlideNum = 1;
     }
 
     /**
@@ -72,48 +80,86 @@ public class RateTracker{
      * @param count number of arrivals
      */
     public void notify(long count) {
-        _histograms[_histograms.length-1]+=count;
+        _currentBucket.addAndGet(count);
     }
 
     /**
-     * Return the average rate in slides.
-     *
-     * @return the average rate
+     * @return the approximate average rate per second.
      */
-    public final float reportRate() {
-        long sum = 0;
-        long duration = _currentValidSlideNum * _slideSizeInMils;
-        for(int i=_numOfSlides - _currentValidSlideNum; i < _numOfSlides; i++ ){
-            sum += _histograms[i];
-        }
-
-        return sum / (float) duration * 1000;
+    public synchronized double reportRate() {
+        return reportRate(System.currentTimeMillis());
     }
 
-    public final void forceUpdateSlides(int numToEclipse) {
-
-        for(int i=0; i< numToEclipse; i++) {
-            updateSlides();
+    synchronized double reportRate(long currentTime) {
+        long duration = Math.max(1l, currentTime - _bucketStart.get());
+        long events = _currentBucket.get();
+        for (int i = 0; i < _oldBuckets.length; i++) {
+            events += _oldBuckets[i];
+            duration += _bucketTime[i];
         }
 
+        return events * 1000.0 / duration;
     }
 
-    private void updateSlides(){
-
-        for (int i = 0; i < _numOfSlides - 1; i++) {
-            _histograms[i] = _histograms[i + 1];
+    public void close() {
+        if (_task != null) {
+            _task.cancel();
         }
+    }
 
-        _histograms[_histograms.length - 1] = 0;
+    /**
+     * Rotate the buckets a set number of times for testing purposes.
+     * @param numToEclipse the number of rotations to perform.
+     */
+    final void forceRotate(int numToEclipse, long interval) {
+        long time = _bucketStart.get();
+        for (int i = 0; i < numToEclipse; i++) {
+            time += interval;
+            rotateBuckets(time);
+        }
+    }
 
-        _currentValidSlideNum = Math.min(_currentValidSlideNum + 1, _numOfSlides);
+    private synchronized void rotateBuckets(long time) {
+        long timeSpent = time - _bucketStart.getAndSet(time); 
+        long currentVal = _currentBucket.getAndSet(0);
+        for (int i = 0; i < _oldBuckets.length; i++) {
+            long tmpTime = _bucketTime[i];
+            _bucketTime[i] = timeSpent;
+            timeSpent = tmpTime;
+
+            long cnt = _oldBuckets[i];
+            _oldBuckets[i] = currentVal;
+            currentVal = cnt;
+        }
     }
 
     private class Fresher extends TimerTask {
         public void run () {
-            updateSlides();
+            rotateBuckets(System.currentTimeMillis());
         }
     }
 
+    public static void main (String args[]) throws Exception {
+        final int number = (args.length >= 1) ? Integer.parseInt(args[0]) : 100000000;
+        for (int i = 0; i < 10; i++) {
+            testRate(number);
+        }
+    }
 
+    private static void testRate(int number) {
+        RateTracker rt = new RateTracker(10000, 10);
+        long start = System.currentTimeMillis();
+        for (int i = 0; i < number; i++) {
+            rt.notify(1);
+            if ((i % 1000000) == 0) {
+                //There seems to be an issue with java that when we are under a very heavy load
+                // the timer thread does not get called.  This is a work around for that.
+                Thread.yield();
+            }
+        }
+        long end = System.currentTimeMillis();
+        double rate = rt.reportRate();
+        rt.close();
+        System.out.printf("time %,8d count %,8d rate %,15.2f reported rate %,15.2f\n", end-start,number, ((number * 1000.0)/(end-start)), rate);
+    }
 }

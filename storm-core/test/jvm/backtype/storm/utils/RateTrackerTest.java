@@ -28,6 +28,8 @@ public class RateTrackerTest extends TestCase {
 
     @Test
     public void testExactRate() {
+        //This test is in two phases.  The first phase fills up the 10 buckets with 10 tuples each
+        // We purposely simulate a 1 second bucket size so the rate will always be 10 per second.
         final long interval = 1000l;
         long time = 0l;
         RateTracker rt = new RateTracker(10000, 10, time);
@@ -40,6 +42,9 @@ public class RateTrackerTest extends TestCase {
             rt.forceRotate(1, interval);
             assertEquals("Expected rate on iteration "+i+" is wrong.", exp, actual, 0.00001);
         }
+        //In the second part of the test the rate doubles to 20 per second but the rate tracker
+        // increases its result slowly as we push the 10 tuples per second buckets out and relpace them
+        // with 20 tuples per second. 
         expected = new double[] {11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0};
         for (int i = 0; i < expected.length; i++) {
             double exp = expected[i];

@@ -152,8 +152,9 @@ public class RateTracker{
         for (int i = 0; i < number; i++) {
             rt.notify(1);
             if ((i % 1000000) == 0) {
-                //There seems to be an issue with java that when we are under a very heavy load
-                // the timer thread does not get called.  This is a work around for that.
+                //There is an issue with some JVM versions where an integer for loop that takes a long time
+                // can starve other threads resulting in  the timer thread not getting called.
+                // This is a work around for that, and we still get the same results.
                 Thread.yield();
             }
         }

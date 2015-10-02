@@ -26,21 +26,12 @@ TRAVIS_SCRIPT_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
 cd ${STORM_SRC_ROOT_DIR}
 
-python ${TRAVIS_SCRIPT_DIR}/save-logs.py "install-storm-core.txt" mvn clean install -DskipTests -Pnative -Pstorm-core --batch-mode
+python ${TRAVIS_SCRIPT_DIR}/save-logs.py "install.txt" mvn clean install -DskipTests -Pnative --batch-mode
 BUILD_RET_VAL=$?
 
 if [[ "$BUILD_RET_VAL" != "0" ]];
 then
-  cat "install-storm-core.txt"
-  exit ${BUILD_RET_VAL}
-fi
-
-python ${TRAVIS_SCRIPT_DIR}/save-logs.py "install-storm-more.txt" mvn clean install -DskipTests -Pstorm-more
-BUILD_RET_VAL=$?
-
-if [[ "$BUILD_RET_VAL" != "0" ]];
-then
-  cat "install-storm-more.txt"
+  cat "install.txt"
 fi
 
 exit ${BUILD_RET_VAL}

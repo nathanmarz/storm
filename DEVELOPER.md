@@ -192,6 +192,7 @@ To pull in a merge request you should generally follow the command line instruct
 3. Merge the pull request into your local test branch.
 
         $ git pull <remote_repo_url> <remote_branch>
+    You can use `./dev-tools/storm-merge.py <pull-number>` to produce the above command most of the time.
 
 4.  Assuming that the pull request merges without any conflicts:
     Update the top-level `CHANGELOG.md`, and add in the JIRA ticket number (example: `STORM-1234`) and ticket
@@ -222,36 +223,10 @@ To pull in a merge request you should generally follow the command line instruct
 
 # Build the code and run the tests
 
-Maven has some issues with maven pugins, shading and multi-module projects which force Storm's build process to be somewhat non-standard.
-
-Essentially what happens is that if you build a multi-module project where one module depends on another module that is a part of the same build, maven tries to be smart and will use the pom.xml and .jar or .class directory from the module that is a dependency.
-
-So if we have a project set up like the following where we have flux depend on storm-core, and storm-core is shaded.  flux will see different versions of the code and pom.xml from storm-core depending on what maven command is run.
-
-- storm.git/
-  - pom.xml
-  - storm-core/
-    - pom.xml
-    - dependency-reduce-pom.xml
-    - target/
-      - classes/
-      - storm-core.jar (shaded)
-      - original.storm-core.jar (no-shaded)
-  - flux/
-    - pom.xml (depends on storm-core)
-    - target/
-      - classes/
-      - flux.uber.jar
-
-If I run `mvn clean compile` the classpath for compiling flux will include `storm.git/storm-core/target/classes` which are not shaded, and if flux is written to use storm-core shaded class it will fail to compile.  flux will also see the full set of non-shaded dependencies from storm-core, so if flux is creating an uber jar, it will assume that all of those dependencies will be provided by storm-core, when in reality they will not be.
-
-If I run `mvn clean package` or `mvn clean install` flux will see the shaded storm-core.jar on its classpath, but it will still see the full non-shaded set of storm-core's dependencies.
-
-The only way I found to make flux use the dependency-reduced-pom.xml from storm-core, is to first build and install storm-core by itself, and then build and install flux without storm-core.  That way storm-core will install the shaded jar and dependency-reduced-pom.xml into the local repository.  Then flux will get its dependencies from the local repo instead of trying to rebuild storm-core.
-
-Because of this we have split the build into two profiles storm-core and storm-more.  By default both build together which works OK for simple testing, but when doing a release it is important to build them in two phases or flux, storm-starter, and possibly others will not be packaged correctly.
-
 ## Prerequisites
+Firt of all you need to make sure you are using maven 3.2.5 or below.  There is a bug in later versions of maven as linked to from https://issues.apache.org/jira/browse/MSHADE-206 that
+cause shaded dependencies to not be packaged correctly.  Also please be aware that because we are shading dependencies mvn dependency:tree will not always show the dependencies correctly. 
+
 In order to build `storm` you need `python`, `ruby` and `nodejs`. In order to avoid an overful page we don't provide platform/OS specific installation instructions for those here. Please refer to you platform's/OS' documentation for support.
 
 The `ruby` package manager `rvm` and `nodejs` package manager `nvm` are for convenience and are used in the tests which run on [travis](https://travis-ci.org/apache/storm). They can be installed using `curl -L https://get.rvm.io | bash -s stable --autolibs=enabled && source ~/.profile` (see the [rvm installation instructions](https://github.com/rvm/rvm) for details) and `wget -qO- https://raw.githubusercontent.com/creationix/nvm/v0.26.1/install.sh | bash && source ~/.bashrc` (see the [nvm installation instructions](https://github.com/creationix/nvm) for details).
@@ -270,16 +245,9 @@ in order to get started as fast as possible. Users can still install a specific 
 
 The following commands must be run from the top-level directory.
 
-The first step is to build/install the plugins and storm-core
+`mvn clean install`
 
-`mvn clean install -Pstorm-core`
-
-If you wish to skip the unit tests you can do this by adding `-DskipTests` to the command line. Once this
-completes successfully you may run
-
-`mvn clean install -Pstorm-more`
-
-to build and test all of the external libraries and examples.  Again if you want to include `-DskipTests` you can.
+If you wish to skip the unit tests you can do this by adding `-DskipTests` to the command line. 
 
 In case you modified `storm.thrift`, you have to regenerate thrift code as java and python code before compiling whole project.
 
@@ -302,7 +270,6 @@ You can also run tests selectively with `-Dtest=<test_name>`.  This works for bo
 
 Unfortunately you might experience failures in clojure tests which are wrapped in the `maven-clojure-plugin` and thus doesn't provide too much useful output at first sight - you might end up with a maven test failure with an error message as unhelpful as `Clojure failed.`. In this case it's recommended to look into `target/test-reports` of the failed project to see what actual tests have failed or scroll through the maven output looking for obvious issues like missing binaries.
 
-
 <a name="packaging"></a>
 
 ## Create a Storm distribution (packaging)
@@ -311,8 +278,7 @@ You can create a _distribution_ (like what you can download from Apache) as foll
 do not use the Maven release plugin because creating an official release is the task of our release manager.
 
     # First, build the code.
-    $ mvn clean install -Pstorm-core # you may skip tests with `-DskipTests=true` to save time
-    $ mvn clean install -Pstorm-more # you may skip tests with `-DskipTests=true` to save time
+    $ mvn clean install # you may skip tests with `-DskipTests=true` to save time
 
     # Create the binary distribution.
     $ cd storm-dist/binary && mvn package

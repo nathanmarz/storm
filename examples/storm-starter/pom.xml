@@ -142,7 +142,6 @@
             <artifactId>maven-shade-plugin</artifactId>
             <configuration>
                 <createDependencyReducedPom>true</createDependencyReducedPom>
-                <minimizeJar>true</minimizeJar>
             </configuration>
             <executions>
                 <execution>

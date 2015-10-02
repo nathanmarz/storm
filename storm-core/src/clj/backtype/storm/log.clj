@@ -15,7 +15,7 @@
 ;; limitations under the License.
 
 (ns backtype.storm.log
-  (:require [clojure.tools [logging :as log]]))
+  (:require [clojure.tools.logging :as log]))
 
 (defmacro log-message
   [& args]

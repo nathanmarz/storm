@@ -134,7 +134,9 @@
 (defn absolute-storm-local-dir [conf]
   (let [storm-home (System/getProperty "storm.home")
         path (conf STORM-LOCAL-DIR)]
-    (if (is-absolute-path? path) path (str storm-home file-path-separator path))))
+    (if path
+      (if (is-absolute-path? path) path (str storm-home file-path-separator path))
+      (str storm-home file-path-separator "storm-local"))))
 
 (defn master-local-dir
   [conf]

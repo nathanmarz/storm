@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1082: fix nits for properties in kafka tests
  * STORM-993: include uptimeSeconds as JSON integer field
  * STORM-1053: Update storm-kafka README for new producer API confs.
  * STORM-1058: create CLI kill_workers to kill workers on a supervisor node

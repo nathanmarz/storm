@@ -233,6 +233,7 @@ under the License.
 * Erik Weathers ([@erikdw](https://github.com/erikdw))
 * Bryan Shell ([@shellbj](https://github.com/shellbj))
 * Dmytro Dragan ([@3Dragan](https://github.com/3Dragan))
+* Ningyu An ([@jetan9](https://github.com/jetan9))
 
 ## Acknowledgements
 

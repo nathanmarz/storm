@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-993: include uptimeSeconds as JSON integer field
  * STORM-1053: Update storm-kafka README for new producer API confs.
  * STORM-1058: create CLI kill_workers to kill workers on a supervisor node
  * STORM-1063: support relative log4j conf dir for both daemons and workers

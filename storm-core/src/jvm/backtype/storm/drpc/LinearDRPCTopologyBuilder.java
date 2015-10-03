@@ -28,6 +28,7 @@ import backtype.storm.coordination.IBatchBolt;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.generated.StreamInfo;
 import backtype.storm.grouping.CustomStreamGrouping;
+import backtype.storm.grouping.PartialKeyGrouping;
 import backtype.storm.topology.BaseConfigurationDeclarer;
 import backtype.storm.topology.BasicBoltExecutor;
 import backtype.storm.topology.BoltDeclarer;
@@ -119,7 +120,7 @@ public class LinearDRPCTopologyBuilder {
                     new CoordinatedBolt(component.bolt, source, idSpec),
                     component.parallelism);
             
-            for(Map conf: component.componentConfs) {
+            for(Map<String, Object> conf: component.componentConfs) {
                 declarer.addConfigurations(conf);
             }
             
@@ -173,13 +174,12 @@ public class LinearDRPCTopologyBuilder {
     private static class Component {
         public IRichBolt bolt;
         public int parallelism;
-        public List<Map> componentConfs;
+        public List<Map<String, Object>> componentConfs = new ArrayList<>();
         public List<InputDeclaration> declarations = new ArrayList<InputDeclaration>();
         
         public Component(IRichBolt bolt, int parallelism) {
             this.bolt = bolt;
             this.parallelism = parallelism;
-            this.componentConfs = new ArrayList();
         }
     }
     
@@ -187,7 +187,7 @@ public class LinearDRPCTopologyBuilder {
         public void declare(String prevComponent, InputDeclarer declarer);
     }
     
-    private class InputDeclarerImpl extends BaseConfigurationDeclarer<LinearDRPCInputDeclarer> implements LinearDRPCInputDeclarer {
+    private static class InputDeclarerImpl extends BaseConfigurationDeclarer<LinearDRPCInputDeclarer> implements LinearDRPCInputDeclarer {
         Component _component;
         
         public InputDeclarerImpl(Component component) {
@@ -347,7 +347,17 @@ public class LinearDRPCTopologyBuilder {
             });
             return this;
         }
-        
+
+        @Override
+        public LinearDRPCInputDeclarer partialKeyGrouping(Fields fields) {
+            return customGrouping(new PartialKeyGrouping(fields));
+        }
+
+        @Override
+        public LinearDRPCInputDeclarer partialKeyGrouping(String streamId, Fields fields) {
+            return customGrouping(streamId, new PartialKeyGrouping(fields));
+        }
+
         @Override
         public LinearDRPCInputDeclarer customGrouping(final CustomStreamGrouping grouping) {
             addDeclaration(new InputDeclaration() {
@@ -375,7 +385,7 @@ public class LinearDRPCTopologyBuilder {
         }
 
         @Override
-        public LinearDRPCInputDeclarer addConfigurations(Map conf) {
+        public LinearDRPCInputDeclarer addConfigurations(Map<String, Object> conf) {
             _component.componentConfs.add(conf);
             return this;
         }

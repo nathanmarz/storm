@@ -18,19 +18,17 @@
   (:require [conjure.core])
   (:use [conjure core])
   (:require [clojure.contrib [string :as contrib-str]])
-  (:require [clojure [string :as string]])
-  (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter])
+  (:require [clojure [string :as string] [set :as set]])
+  (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter TestPlannerSpout])
   (:import [backtype.storm.scheduler ISupervisor])
+  (:import [backtype.storm.generated RebalanceOptions])
   (:import [java.util UUID])
-  (:use [backtype.storm bootstrap config testing])
+  (:use [backtype.storm config testing util timer])
   (:use [backtype.storm.daemon common])
-  (:require [backtype.storm.daemon [worker :as worker] [supervisor :as supervisor]])
+  (:require [backtype.storm.daemon [worker :as worker] [supervisor :as supervisor]]
+            [backtype.storm [thrift :as thrift] [cluster :as cluster]])
   (:use [conjure core])
-  (:require [clojure.java.io :as io])
-  )
-
-(bootstrap)
-
+  (:require [clojure.java.io :as io]))
 
 (defn worker-assignment
   "Return [storm-id executors]"
@@ -254,8 +252,19 @@
           mock-storm-id "fake-storm-id"
           mock-worker-id "fake-worker-id"
           mock-cp (str file-path-separator "base" class-path-separator file-path-separator "stormjar.jar")
+          mock-sensitivity "S3"
+          mock-cp "/base:/stormjar.jar"
           exp-args-fn (fn [opts topo-opts classpath]
-                       (concat [(supervisor/java-cmd) "-server"]
+                       (concat [(supervisor/java-cmd) "-cp" classpath 
+                               (str "-Dlogfile.name=" mock-storm-id "-worker-" mock-port ".log")
+                               "-Dstorm.home="
+                                (str "-Dstorm.id=" mock-storm-id)
+                                (str "-Dworker.id=" mock-worker-id)
+                                (str "-Dworker.port=" mock-port)
+                               "-Dstorm.log.dir=/logs"
+                               "-Dlog4j.configurationFile=/log4j2/worker.xml"
+                               "backtype.storm.LogWriter"]
+                               [(supervisor/java-cmd) "-server"]
                                opts
                                topo-opts
                                ["-Djava.library.path="
@@ -264,7 +273,8 @@
                                 "-Dstorm.conf.file="
                                 "-Dstorm.options="
                                 (str "-Dstorm.log.dir=" file-path-separator "logs")
-                                (str "-Dlogback.configurationFile=" file-path-separator "logback" file-path-separator "worker.xml")
+                                (str "-Dlogging.sensitivity=" mock-sensitivity)
+                                (str "-Dlog4j.configurationFile=" file-path-separator "log4j2" file-path-separator "worker.xml")
                                 (str "-Dstorm.id=" mock-storm-id)
                                 (str "-Dworker.id=" mock-worker-id)
                                 (str "-Dworker.port=" mock-port)
@@ -358,7 +368,7 @@
 (defn rm-r [f]
   (if (.isDirectory f)
     (for [sub (.listFiles f)] (rm-r sub))
-    (.delete f) 
+    (.delete f)
   ))
 
 (deftest test-worker-launch-command-run-as-user
@@ -366,6 +376,7 @@
     (let [mock-port "42"
           mock-storm-id "fake-storm-id"
           mock-worker-id "fake-worker-id"
+          mock-sensitivity "S3"
           mock-cp "mock-classpath'quote-on-purpose"
           storm-local (str "/tmp/" (UUID/randomUUID))
           worker-script (str storm-local "/workers/" mock-worker-id "/storm-worker-script.sh")
@@ -375,7 +386,17 @@
                       (str storm-local "/workers/" mock-worker-id)
                       worker-script]
           exp-script-fn (fn [opts topo-opts]
-                       (str "#!/bin/bash\n'export' 'LD_LIBRARY_PATH=';\n\nexec 'java' '-server'"
+                       (str "#!/bin/bash\n'export' 'LD_LIBRARY_PATH=';\n\nexec 'java'"
+                                " '-cp' 'mock-classpath'\"'\"'quote-on-purpose'"
+                                " '-Dlogfile.name=" mock-storm-id "-worker-" mock-port ".log'"
+                                " '-Dstorm.home='"
+                                " '-Dstorm.id=" mock-storm-id "'"
+                                " '-Dworker.id=" mock-worker-id "'"
+                                " '-Dworker.port=" mock-port "'"
+                                " '-Dstorm.log.dir=/logs'"
+                                " '-Dlog4j.configurationFile=/log4j2/worker.xml'"
+                                " 'backtype.storm.LogWriter'"
+                                " 'java' '-server'"
                                 " " (shell-cmd opts)
                                 " " (shell-cmd topo-opts)
                                 " '-Djava.library.path='"
@@ -384,7 +405,8 @@
                                 " '-Dstorm.conf.file='"
                                 " '-Dstorm.options='"
                                 " '-Dstorm.log.dir=/logs'"
-                                " '-Dlogback.configurationFile=/logback/worker.xml'"
+                                " '-Dlogging.sensitivity=" mock-sensitivity "'"
+                                " '-Dlog4j.configurationFile=/log4j2/worker.xml'"
                                 " '-Dstorm.id=" mock-storm-id "'"
                                 " '-Dworker.id=" mock-worker-id "'"
                                 " '-Dworker.port=" mock-port "'"
@@ -481,6 +503,7 @@
                  cluster/mk-storm-cluster-state nil
                  supervisor-state nil
                  local-hostname nil
+                 supervisor/mk-code-distributor nil
                  mk-timer nil]
         (supervisor/supervisor-data auth-conf nil fake-isupervisor)
         (verify-call-times-for cluster/mk-storm-cluster-state 1)
@@ -521,7 +544,7 @@
 (defn found? [sub-str input-str]
   (if (string? input-str)
     (contrib-str/substring? sub-str (str input-str))
-    (some? #(contrib-str/substring? sub-str %) input-str)))
+    (boolean (some #(contrib-str/substring? sub-str %) input-str))))
 
 (defn not-found? [sub-str input-str]
     (complement (found? sub-str input-str)))

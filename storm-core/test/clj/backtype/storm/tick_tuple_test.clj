@@ -15,10 +15,9 @@
 ;; limitations under the License.
 (ns backtype.storm.tick-tuple-test
   (:use [clojure test])
-  (:use [backtype.storm bootstrap testing])
-  (:use [backtype.storm.daemon common]))
-
-(bootstrap)
+  (:use [backtype.storm testing clojure config])
+  (:use [backtype.storm.daemon common])
+  (:require [backtype.storm [thrift :as thrift]]))
 
 (defbolt noop-bolt ["tuple"] {:prepare true}
   [conf context collector]

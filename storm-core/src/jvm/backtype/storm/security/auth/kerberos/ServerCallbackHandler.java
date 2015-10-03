@@ -18,22 +18,19 @@
 
 package backtype.storm.security.auth.kerberos;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import backtype.storm.security.auth.AuthUtils;
+import backtype.storm.security.auth.ReqContext;
+import backtype.storm.security.auth.SaslTransportPlugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import javax.security.auth.callback.Callback;
-import javax.security.auth.callback.CallbackHandler;
-import javax.security.auth.callback.NameCallback;
-import javax.security.auth.callback.PasswordCallback;
-import javax.security.auth.callback.UnsupportedCallbackException;
+
+import javax.security.auth.Subject;
+import javax.security.auth.callback.*;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 import javax.security.sasl.AuthorizeCallback;
-import javax.security.sasl.RealmCallback;
-
-import backtype.storm.security.auth.AuthUtils;
+import java.io.IOException;
+import java.util.Map;
 
 /**
  * SASL server side callback handler
@@ -43,7 +40,7 @@ public class ServerCallbackHandler implements CallbackHandler {
 
     private String userName;
 
-    public ServerCallbackHandler(Configuration configuration) throws IOException {
+    public ServerCallbackHandler(Configuration configuration, Map stormConf) throws IOException {
         if (configuration==null) return;
 
         AppConfigurationEntry configurationEntries[] = configuration.getAppConfigurationEntry(AuthUtils.LOGIN_CONTEXT_SERVER);
@@ -52,6 +49,7 @@ public class ServerCallbackHandler implements CallbackHandler {
             LOG.error(errorMessage);
             throw new IOException(errorMessage);
         }
+
     }
 
     public void handle(Callback[] callbacks) throws UnsupportedCallbackException {
@@ -78,9 +76,19 @@ public class ServerCallbackHandler implements CallbackHandler {
 
     private void handleAuthorizeCallback(AuthorizeCallback ac) {
         String authenticationID = ac.getAuthenticationID();
-        LOG.debug("Successfully authenticated client: authenticationID=" + authenticationID);
-        ac.setAuthorized(true);
+        LOG.info("Successfully authenticated client: authenticationID=" + authenticationID + " authorizationID= " + ac.getAuthorizationID());
 
-        ac.setAuthorizedID(authenticationID);
+        //if authorizationId is not set, set it to authenticationId.
+        if(ac.getAuthorizationID() == null) {
+            ac.setAuthorizedID(authenticationID);
+        }
+
+        //When authNid and authZid are not equal , authNId is attempting to impersonate authZid, We
+        //add the authNid as the real user in reqContext's subject which will be used during authorization.
+        if(!ac.getAuthenticationID().equals(ac.getAuthorizationID())) {
+            ReqContext.context().setRealPrincipal(new SaslTransportPlugin.User(ac.getAuthenticationID()));
+        }
+
+        ac.setAuthorized(true);
     }
 }

@@ -32,9 +32,8 @@ import backtype.storm.tuple.Values;
 /**
  * This topology is a basic example of doing distributed RPC on top of Storm. It implements a function that appends a
  * "!" to any string you send the DRPC function.
- * <p/>
- * See https://github.com/nathanmarz/storm/wiki/Distributed-RPC for more information on doing distributed RPC on top of
- * Storm.
+ *
+ * @see <a href="http://storm.apache.org/documentation/Distributed-RPC.html">Distributed RPC</a>
  */
 public class BasicDRPCTopology {
   public static class ExclaimBolt extends BaseBasicBolt {
@@ -67,8 +66,9 @@ public class BasicDRPCTopology {
         System.out.println("Result for \"" + word + "\": " + drpc.execute("exclamation", word));
       }
 
-      cluster.shutdown();
+      Thread.sleep(10000);
       drpc.shutdown();
+      cluster.shutdown();
     }
     else {
       conf.setNumWorkers(3);

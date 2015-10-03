@@ -41,7 +41,7 @@ public class DRPCClient extends ThriftClient implements DistributedRPC.Iface {
     }
 
     public DRPCClient(Map conf, String host, int port, Integer timeout) throws TTransportException {
-        super(conf, ThriftConnectionType.DRPC, host, port, timeout);
+        super(conf, ThriftConnectionType.DRPC, host, port, timeout, null);
         this.host = host;
         this.port = port;
         this.client = new DistributedRPC.Client(_protocol);

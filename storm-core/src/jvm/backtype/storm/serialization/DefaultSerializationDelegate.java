@@ -17,13 +17,10 @@
  */
 package backtype.storm.serialization;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.util.Map;
 
+@Deprecated
 public class DefaultSerializationDelegate implements SerializationDelegate {
 
     @Override
@@ -45,13 +42,13 @@ public class DefaultSerializationDelegate implements SerializationDelegate {
     }
 
     @Override
-    public Object deserialize(byte[] bytes) {
+    public <T> T deserialize(byte[] bytes, Class<T> clazz) {
         try {
             ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
             ObjectInputStream ois = new ObjectInputStream(bis);
             Object ret = ois.readObject();
             ois.close();
-            return ret;
+            return (T)ret;
         } catch(IOException ioe) {
             throw new RuntimeException(ioe);
         } catch(ClassNotFoundException e) {

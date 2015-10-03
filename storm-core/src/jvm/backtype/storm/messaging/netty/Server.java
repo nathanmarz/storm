@@ -40,12 +40,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import backtype.storm.Config;
+import backtype.storm.messaging.ConnectionWithStatus;
 import backtype.storm.messaging.IConnection;
 import backtype.storm.messaging.TaskMessage;
 import backtype.storm.metric.api.IStatefulObject;
 import backtype.storm.utils.Utils;
 
-class Server implements IConnection, IStatefulObject {
+class Server extends ConnectionWithStatus implements IStatefulObject {
+
     private static final Logger LOG = LoggerFactory.getLogger(Server.class);
     @SuppressWarnings("rawtypes")
     Map storm_conf;
@@ -67,7 +69,7 @@ class Server implements IConnection, IStatefulObject {
     private volatile HashMap<Integer, Integer> taskToQueueId = null;
     int roundRobinQueueId;
 	
-    boolean closing = false;
+    private volatile boolean closing = false;
     List<TaskMessage> closeMessage = Arrays.asList(new TaskMessage(-1, null));
     
     
@@ -120,45 +122,45 @@ class Server implements IConnection, IStatefulObject {
     }
     
     private ArrayList<TaskMessage>[] groupMessages(List<TaskMessage> msgs) {
-      ArrayList<TaskMessage> messageGroups[] = new ArrayList[queueCount];
-      
-      for (int i = 0; i < msgs.size(); i++) {
-        TaskMessage message = msgs.get(i);
-        int task = message.task();
-        
-        if (task == -1) {
-          closing = true;
-          return null;
+        ArrayList<TaskMessage> messageGroups[] = new ArrayList[queueCount];
+
+        for (int i = 0; i < msgs.size(); i++) {
+            TaskMessage message = msgs.get(i);
+            int task = message.task();
+
+            if (task == -1) {
+                closing = true;
+                return null;
+            }
+
+            Integer queueId = getMessageQueueId(task);
+
+            if (null == messageGroups[queueId]) {
+                messageGroups[queueId] = new ArrayList<TaskMessage>();
+            }
+            messageGroups[queueId].add(message);
         }
-        
-        Integer queueId = getMessageQueueId(task);
-        
-        if (null == messageGroups[queueId]) {
-          messageGroups[queueId] = new ArrayList<TaskMessage>();
-        }
-        messageGroups[queueId].add(message);
-      }
-      return messageGroups;
+        return messageGroups;
     }
     
     private Integer getMessageQueueId(int task) {
-      // try to construct the map from taskId -> queueId in round robin manner.
-      Integer queueId = taskToQueueId.get(task);
-      if (null == queueId) {
-        synchronized (this) {
-          queueId = taskToQueueId.get(task);
-          if (queueId == null) {
-            queueId = roundRobinQueueId++;
-            if (roundRobinQueueId == queueCount) {
-              roundRobinQueueId = 0;
+        // try to construct the map from taskId -> queueId in round robin manner.
+        Integer queueId = taskToQueueId.get(task);
+        if (null == queueId) {
+            synchronized (this) {
+                queueId = taskToQueueId.get(task);
+                if (queueId == null) {
+                    queueId = roundRobinQueueId++;
+                    if (roundRobinQueueId == queueCount) {
+                        roundRobinQueueId = 0;
+                    }
+                    HashMap<Integer, Integer> newRef = new HashMap<Integer, Integer>(taskToQueueId);
+                    newRef.put(task, queueId);
+                    taskToQueueId = newRef;
+                }
             }
-            HashMap<Integer, Integer> newRef = new HashMap<Integer, Integer>(taskToQueueId);
-            newRef.put(task, queueId);
-            taskToQueueId = newRef;
-          }
         }
-      }
-      return queueId;
+        return queueId;
     }
 
     private void addReceiveCount(String from, int amount) {
@@ -182,57 +184,57 @@ class Server implements IConnection, IStatefulObject {
 
     /**
      * enqueue a received message 
-     * @param message
      * @throws InterruptedException
      */
     protected void enqueue(List<TaskMessage> msgs, String from) throws InterruptedException {
-      
-      if (null == msgs || msgs.size() == 0 || closing) {
-        return;
-      }
-      addReceiveCount(from, msgs.size());
-      ArrayList<TaskMessage> messageGroups[] = groupMessages(msgs);
-      
-      if (null == messageGroups || closing) {
-        return;
-      }
-      
-      for (int receiverId = 0; receiverId < messageGroups.length; receiverId++) {
-        ArrayList<TaskMessage> msgGroup = messageGroups[receiverId];
-        if (null != msgGroup) {
-          message_queue[receiverId].put(msgGroup);
-          pendingMessages[receiverId].addAndGet(msgGroup.size());
+        if (null == msgs || msgs.size() == 0 || closing) {
+            return;
         }
-      }
+        addReceiveCount(from, msgs.size());
+        ArrayList<TaskMessage> messageGroups[] = groupMessages(msgs);
+
+        if (null == messageGroups || closing) {
+            return;
+        }
+
+        for (int receiverId = 0; receiverId < messageGroups.length; receiverId++) {
+            ArrayList<TaskMessage> msgGroup = messageGroups[receiverId];
+            if (null != msgGroup) {
+                message_queue[receiverId].put(msgGroup);
+                pendingMessages[receiverId].addAndGet(msgGroup.size());
+            }
+        }
     }
-    
-    public Iterator<TaskMessage> recv(int flags, int receiverId)  {
-      if (closing) {
-        return closeMessage.iterator();
-      }
-      
-      ArrayList<TaskMessage> ret = null; 
-      int queueId = receiverId % queueCount;
-      if ((flags & 0x01) == 0x01) { 
+
+    public Iterator<TaskMessage> recv(int flags, int receiverId) {
+        if (closing) {
+            return closeMessage.iterator();
+        }
+
+        ArrayList<TaskMessage> ret = null;
+        int queueId = receiverId % queueCount;
+        if ((flags & 0x01) == 0x01) {
             //non-blocking
             ret = message_queue[queueId].poll();
-        } else {
+        }
+        else {
             try {
                 ArrayList<TaskMessage> request = message_queue[queueId].take();
                 LOG.debug("request to be processed: {}", request);
                 ret = request;
-            } catch (InterruptedException e) {
+            }
+            catch (InterruptedException e) {
                 LOG.info("exception within msg receiving", e);
                 ret = null;
             }
         }
-      
-      if (null != ret) {
-        messagesDequeued.addAndGet(ret.size());
-        pendingMessages[queueId].addAndGet(0 - ret.size());
-        return ret.iterator();
-      }
-      return null;
+
+        if (null != ret) {
+            messagesDequeued.addAndGet(ret.size());
+            pendingMessages[queueId].addAndGet(0 - ret.size());
+            return ret.iterator();
+        }
+        return null;
     }
    
     /**
@@ -264,11 +266,11 @@ class Server implements IConnection, IStatefulObject {
     }
 
     public void send(int task, byte[] message) {
-        throw new RuntimeException("Server connection should not send any messages");
+        throw new UnsupportedOperationException("Server connection should not send any messages");
     }
     
     public void send(Iterator<TaskMessage> msgs) {
-      throw new RuntimeException("Server connection should not send any messages");
+      throw new UnsupportedOperationException("Server connection should not send any messages");
     }
 	
     public String name() {
@@ -276,8 +278,35 @@ class Server implements IConnection, IStatefulObject {
     }
 
     @Override
+    public Status status() {
+        if (closing) {
+          return Status.Closed;
+        }
+        else if (!connectionEstablished(allChannels)) {
+            return Status.Connecting;
+        }
+        else {
+            return Status.Ready;
+        }
+    }
+
+    private boolean connectionEstablished(Channel channel) {
+      return channel != null && channel.isBound();
+    }
+
+    private boolean connectionEstablished(ChannelGroup allChannels) {
+        boolean allEstablished = true;
+        for (Channel channel : allChannels) {
+            if (!(connectionEstablished(channel))) {
+                allEstablished = false;
+                break;
+            }
+        }
+        return allEstablished;
+    }
+
     public Object getState() {
-        LOG.info("Getting metrics for server on " + port);
+        LOG.info("Getting metrics for server on port {}", port);
         HashMap<String, Object> ret = new HashMap<String, Object>();
         ret.put("dequeuedMessages", messagesDequeued.getAndSet(0));
         ArrayList<Integer> pending = new ArrayList<Integer>(pendingMessages.length);
@@ -300,4 +329,9 @@ class Server implements IConnection, IStatefulObject {
         ret.put("enqueued", enqueued);
         return ret;
     }
+
+    @Override public String toString() {
+       return String.format("Netty server listening on port %s", port);
+    }
+
 }

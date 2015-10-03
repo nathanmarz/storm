@@ -24,7 +24,7 @@ A client sends the DRPC server the name of the function to execute and the argum
 
 ### LinearDRPCTopologyBuilder
 
-Storm comes with a topology builder called [LinearDRPCTopologyBuilder](/apidocs/backtype/storm/drpc/LinearDRPCTopologyBuilder.html) that automates almost all the steps involved for doing DRPC. These include:
+Storm comes with a topology builder called [LinearDRPCTopologyBuilder](/javadoc/apidocs/backtype/storm/drpc/LinearDRPCTopologyBuilder.html) that automates almost all the steps involved for doing DRPC. These include:
 
 1. Setting up the spout
 2. Returning the results to the DRPC server

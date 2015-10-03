@@ -28,6 +28,7 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseRichSpout;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
+import backtype.storm.utils.ExtendedThreadPoolExecutor;
 import backtype.storm.utils.ServiceRegistry;
 import backtype.storm.utils.Utils;
 import java.util.ArrayList;
@@ -40,6 +41,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.Callable;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.TimeUnit;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.thrift.TException;
@@ -78,7 +82,11 @@ public class DRPCSpout extends BaseRichSpout {
         _function = function;
         _local_drpc_id = drpc.getServiceId();
     }
-   
+
+    public String get_function() {
+        return _function;
+    }
+
     private class Adder implements Callable<Void> {
         private String server;
         private int port;
@@ -129,7 +137,9 @@ public class DRPCSpout extends BaseRichSpout {
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
         _collector = collector;
         if(_local_drpc_id==null) {
-            _backround = Executors.newCachedThreadPool();
+            _backround = new ExtendedThreadPoolExecutor(0, Integer.MAX_VALUE,
+                60L, TimeUnit.SECONDS,
+                new SynchronousQueue<Runnable>());
             _futures = new LinkedList<Future<Void>>();
 
             int numTasks = context.getComponentTasks(context.getThisComponentId()).size();
@@ -187,12 +197,12 @@ public class DRPCSpout extends BaseRichSpout {
                         _collector.emit(new Values(req.get_func_args(), JSONValue.toJSONString(returnInfo)), new DRPCMessageId(req.get_request_id(), i));
                         break;
                     }
-                } catch (TException e) {
-                    reconnect(client);
-                    LOG.error("Failed to fetch DRPC result from DRPC server", e);
                 } catch (AuthorizationException aze) {
                     reconnect(client);
                     LOG.error("Not authorized to fetch DRPC result from DRPC server", aze);
+                } catch (TException e) {
+                    reconnect(client);
+                    LOG.error("Failed to fetch DRPC result from DRPC server", e);
                 } catch (Exception e) {
                     LOG.error("Failed to fetch DRPC result from DRPC server", e);
                 }
@@ -211,10 +221,10 @@ public class DRPCSpout extends BaseRichSpout {
                         gotRequest = true;
                         _collector.emit(new Values(req.get_func_args(), JSONValue.toJSONString(returnInfo)), new DRPCMessageId(req.get_request_id(), 0));
                     }
-                } catch (TException e) {
-                    throw new RuntimeException(e);
                 } catch (AuthorizationException aze) {
                     throw new RuntimeException(aze);
+                } catch (TException e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
@@ -239,10 +249,10 @@ public class DRPCSpout extends BaseRichSpout {
         }
         try {
             client.failRequest(did.id);
-        } catch (TException e) {
-            LOG.error("Failed to fail request", e);
         } catch (AuthorizationException aze) {
             LOG.error("Not authorized to failREquest from DRPC server", aze);
+        } catch (TException e) {
+            LOG.error("Failed to fail request", e);
         }
     }
 

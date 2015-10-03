@@ -23,13 +23,9 @@
   (:import [backtype.storm.tuple Fields])
   (:import [backtype.storm.generated DRPCExecutionException])
   (:import [java.util.concurrent ConcurrentLinkedQueue])
-  (:use [backtype.storm bootstrap config testing])
+  (:use [backtype.storm config testing clojure])
   (:use [backtype.storm.daemon common drpc])
-  (:use [backtype.storm clojure])
-  (:use [conjure core])
-  )
-
-(bootstrap)
+  (:use [conjure core]))
 
 (defbolt exclamation-bolt ["result" "return-info"] [tuple collector]
   (emit-bolt! collector

@@ -67,11 +67,11 @@ public class HBaseLookupBolt extends AbstractHBaseBolt {
         try {
             Result result = hBaseClient.batchGet(Lists.newArrayList(get))[0];
             for(Values values : rowToTupleMapper.toValues(tuple, result)) {
-                this.collector.emit(values);
+                this.collector.emit(tuple, values);
             }
             this.collector.ack(tuple);
         } catch (Exception e) {
-            LOG.warn("Could not perform Lookup for rowKey =" + rowKey + " from Hbase.", e);
+            this.collector.reportError(e);
             this.collector.fail(tuple);
         }
     }

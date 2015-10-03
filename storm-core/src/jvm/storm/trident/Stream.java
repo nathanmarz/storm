@@ -94,7 +94,7 @@ public class Stream implements IAggregatableStream {
     }
     
     public Stream partition(CustomStreamGrouping partitioner) {
-        return partition(Grouping.custom_serialized(Utils.serialize(partitioner)));
+        return partition(Grouping.custom_serialized(Utils.javaSerialize(partitioner)));
     }
     
     public Stream shuffle() {

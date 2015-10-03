@@ -18,10 +18,12 @@
 package storm.kafka;
 
 import java.util.Comparator;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Queue;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ExponentialBackoffMsgRetryManager implements FailedMsgRetryManager {
 
@@ -30,7 +32,7 @@ public class ExponentialBackoffMsgRetryManager implements FailedMsgRetryManager 
     private final long retryDelayMaxMs;
 
     private Queue<MessageRetryRecord> waiting = new PriorityQueue<MessageRetryRecord>(11, new RetryTimeComparator());
-    private Map<Long,MessageRetryRecord> records = new HashMap<Long,MessageRetryRecord>();
+    private Map<Long,MessageRetryRecord> records = new ConcurrentHashMap<Long,MessageRetryRecord>();
 
     public ExponentialBackoffMsgRetryManager(long retryInitialDelayMs, double retryDelayMultiplier, long retryDelayMaxMs) {
         this.retryInitialDelayMs = retryInitialDelayMs;
@@ -91,6 +93,21 @@ public class ExponentialBackoffMsgRetryManager implements FailedMsgRetryManager 
                 System.currentTimeMillis() >= record.retryTimeUTC;
     }
 
+    @Override
+    public Set<Long> clearInvalidMessages(Long kafkaOffset) {
+        Set<Long> invalidOffsets = new HashSet<Long>(); 
+        for(Long offset : records.keySet()){
+            if(offset < kafkaOffset){
+                MessageRetryRecord record = this.records.remove(offset);
+                if (record != null) {
+                    this.waiting.remove(record);
+                    invalidOffsets.add(offset);
+                }
+            }
+        }
+        return invalidOffsets;
+    }
+
     /**
      * A MessageRetryRecord holds the data of how many times a message has
      * failed and been retried, and when the last failure occurred.  It can
@@ -104,7 +121,7 @@ public class ExponentialBackoffMsgRetryManager implements FailedMsgRetryManager 
      *  </li>
      * </ul>
      */
-    class MessageRetryRecord {
+    private class MessageRetryRecord {
         private final long offset;
         private final int retryNum;
         private final long retryTimeUTC;
@@ -152,11 +169,11 @@ public class ExponentialBackoffMsgRetryManager implements FailedMsgRetryManager 
         }
     }
 
-    class RetryTimeComparator implements Comparator<MessageRetryRecord> {
+    private static class RetryTimeComparator implements Comparator<MessageRetryRecord> {
 
         @Override
         public int compare(MessageRetryRecord record1, MessageRetryRecord record2) {
-            return Long.compare(record1.retryTimeUTC, record2.retryTimeUTC);
+            return Long.valueOf(record1.retryTimeUTC).compareTo(Long.valueOf(record2.retryTimeUTC));
         }
 
         @Override

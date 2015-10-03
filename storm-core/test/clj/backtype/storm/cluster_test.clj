@@ -14,8 +14,10 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns backtype.storm.cluster-test
-  (:import [java.util Arrays])
+  (:import [java.util Arrays]
+           [backtype.storm.nimbus NimbusInfo])
   (:import [backtype.storm.daemon.common Assignment StormBase SupervisorInfo])
+  (:import [backtype.storm.generated NimbusSummary])
   (:import [org.apache.zookeeper ZooDefs ZooDefs$Ids])
   (:import [org.mockito Mockito])
   (:import [org.mockito.exceptions.base MockitoAssertionError])
@@ -25,7 +27,7 @@
   (:require [conjure.core])
   (:use [conjure core])
   (:use [clojure test])
-  (:use [backtype.storm cluster config util testing]))
+  (:use [backtype.storm cluster config util testing thrift log]))
 
 (defn mk-config [zk-port]
   (merge (read-storm-config)
@@ -168,10 +170,14 @@
 (deftest test-storm-cluster-state-basics
   (with-inprocess-zookeeper zk-port
     (let [state (mk-storm-state zk-port)
-          assignment1 (Assignment. "/aaa" {} {1 [2 2002 1]} {})
-          assignment2 (Assignment. "/aaa" {} {1 [2 2002]} {})
-          base1 (StormBase. "/tmp/storm1" 1 {:type :active} 2 {} "")
-          base2 (StormBase. "/tmp/storm2" 2 {:type :active} 2 {} "")]
+          assignment1 (Assignment. "/aaa" {} {[1] ["1" 1001 1]} {})
+          assignment2 (Assignment. "/aaa" {} {[2] ["2" 2002]} {})
+          nimbusInfo1 (NimbusInfo. "nimbus1" 6667 false)
+          nimbusInfo2 (NimbusInfo. "nimbus2" 6667 false)
+          nimbusSummary1 (NimbusSummary. "nimbus1" 6667 (current-time-secs) false "v1")
+          nimbusSummary2 (NimbusSummary. "nimbus2" 6667 (current-time-secs) false "v2")
+          base1 (StormBase. "/tmp/storm1" 1 {:type :active} 2 {} "" nil nil {})
+          base2 (StormBase. "/tmp/storm2" 2 {:type :active} 2 {} "" nil nil {})]
       (is (= [] (.assignments state nil)))
       (.set-assignment! state "storm1" assignment1)
       (is (= assignment1 (.assignment-info state "storm1" nil)))
@@ -200,6 +206,21 @@
       (is (= {"a" "a"} (.credentials state "storm1" nil)))
       (.set-credentials! state "storm1" {"b" "b"} {})
       (is (= {"b" "b"} (.credentials state "storm1" nil)))
+
+      (is (= [] (.code-distributor state nil)))
+      (.setup-code-distributor! state "storm1" nimbusInfo1)
+      (is (= ["storm1"] (.code-distributor state nil)))
+      (is (= [nimbusInfo1] (.code-distributor-info state "storm1")))
+      (.setup-code-distributor! state "storm1" nimbusInfo2)
+      (is (= #{nimbusInfo1 nimbusInfo2} (set (.code-distributor-info state "storm1"))))
+      (.remove-storm! state "storm1")
+      (is (= [] (.code-distributor state nil)))
+
+      (is (= [] (.nimbuses state)))
+      (.add-nimbus-host! state "nimbus1:port" nimbusSummary1)
+      (is (= [nimbusSummary1] (.nimbuses state)))
+      (.add-nimbus-host! state "nimbus2:port" nimbusSummary2)
+      (is (= #{nimbusSummary1 nimbusSummary2} (set (.nimbuses state))))
 
       ;; TODO add tests for task info and task heartbeat setting and getting
       (.disconnect state)
@@ -242,20 +263,21 @@
 (deftest test-supervisor-state
   (with-inprocess-zookeeper zk-port
     (let [state1 (mk-storm-state zk-port)
-          state2 (mk-storm-state zk-port)]
+          state2 (mk-storm-state zk-port)
+          supervisor-info1 (SupervisorInfo. 10 "hostname-1" "id1" [1 2] [] {} 1000 "0.9.2")
+          supervisor-info2 (SupervisorInfo. 10 "hostname-2" "id2" [1 2] [] {} 1000 "0.9.2")
+          ]
       (is (= [] (.supervisors state1 nil)))
-      (.supervisor-heartbeat! state2 "2" {:a 1})
-      (.supervisor-heartbeat! state1 "1" {})
-      (is (= {:a 1} (.supervisor-info state1 "2")))
-      (is (= {} (.supervisor-info state1 "1")))
+      (.supervisor-heartbeat! state2 "2" supervisor-info2)
+      (.supervisor-heartbeat! state1 "1" supervisor-info1)
+      (is (= supervisor-info2 (.supervisor-info state1 "2")))
+      (is (= supervisor-info1 (.supervisor-info state1 "1")))
       (is (= #{"1" "2"} (set (.supervisors state1 nil))))
       (is (= #{"1" "2"} (set (.supervisors state2 nil))))
       (.disconnect state2)
       (is (= #{"1"} (set (.supervisors state1 nil))))
       (.disconnect state1)
       )))
-
-
 
 (deftest test-cluster-authentication
   (with-inprocess-zookeeper zk-port

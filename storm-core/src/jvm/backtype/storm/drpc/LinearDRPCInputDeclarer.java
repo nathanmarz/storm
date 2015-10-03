@@ -42,7 +42,10 @@ public interface LinearDRPCInputDeclarer extends ComponentConfigurationDeclarer<
 
     public LinearDRPCInputDeclarer directGrouping();
     public LinearDRPCInputDeclarer directGrouping(String streamId);
-    
+
+    public LinearDRPCInputDeclarer partialKeyGrouping(Fields fields);
+    public LinearDRPCInputDeclarer partialKeyGrouping(String streamId, Fields fields);
+
     public LinearDRPCInputDeclarer customGrouping(CustomStreamGrouping grouping);
     public LinearDRPCInputDeclarer customGrouping(String streamId, CustomStreamGrouping grouping);
     

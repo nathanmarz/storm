@@ -21,9 +21,10 @@
   (:use [backtype.storm config util log timer])
   (:use [backtype.storm.ui helpers])
   (:import [org.slf4j LoggerFactory])
-  (:import [ch.qos.logback.classic Logger])
-  (:import [ch.qos.logback.core FileAppender])
   (:import [java.io File FileFilter FileInputStream])
+  (:import [org.apache.logging.log4j LogManager])
+  (:import [org.apache.logging.log4j.core Appender LoggerContext])
+  (:import [org.apache.logging.log4j.core.appender RollingFileAppender])
   (:import [org.yaml.snakeyaml Yaml]
            [org.yaml.snakeyaml.constructor SafeConstructor])
   (:import [backtype.storm.ui InvalidRequestException]
@@ -45,6 +46,7 @@
 (defn cleanup-cutoff-age-millis [conf now-millis]
   (- now-millis (* (conf LOGVIEWER-CLEANUP-AGE-MINS) 60 1000)))
 
+;TODO: handle cleanup of old event log files
 (defn mk-FileFilter-for-log-cleanup [conf now-millis]
   (let [cutoff-age-millis (cleanup-cutoff-age-millis conf now-millis)]
     (reify FileFilter (^boolean accept [this ^File file]
@@ -180,12 +182,15 @@
 
 (defn get-log-user-group-whitelist [fname]
   (let [wl-file (get-log-metadata-file fname)
-        m (clojure-from-yaml-file wl-file)
-        user-wl (.get m LOGS-USERS)
-        user-wl (if user-wl user-wl [])
-        group-wl (.get m LOGS-GROUPS)
-        group-wl (if group-wl group-wl [])]
-    [user-wl group-wl]))
+        m (clojure-from-yaml-file wl-file)]
+    (if (not-nil? m)
+      (do
+        (let [user-wl (.get m LOGS-USERS)
+              user-wl (if user-wl user-wl [])
+              group-wl (.get m LOGS-GROUPS)
+              group-wl (if group-wl group-wl [])]
+          [user-wl group-wl]))
+        nil)))
 
 (def igroup-mapper (AuthUtils/GetGroupMappingServiceProviderPlugin *STORM-CONF*))
 (defn user-groups
@@ -193,7 +198,7 @@
   (if (blank? user) [] (.getGroups igroup-mapper user)))
 
 (defn authorized-log-user? [user fname conf]
-  (if (or (blank? user) (blank? fname))
+  (if (or (blank? user) (blank? fname) (nil? (get-log-user-group-whitelist fname)))
     nil
     (let [groups (user-groups user)
           [user-wl group-wl] (get-log-user-group-whitelist fname)
@@ -210,44 +215,44 @@
 
 Note that if anything goes wrong, this will throw an Error and exit."
   [appender-name]
-  (let [appender (.getAppender (LoggerFactory/getLogger Logger/ROOT_LOGGER_NAME) appender-name)]
-    (if (and appender-name appender (instance? FileAppender appender))
-      (.getParent (File. (.getFile appender)))
+  (let [appender (.getAppender (.getConfiguration (LogManager/getContext)) appender-name)]
+    (if (and appender-name appender (instance? RollingFileAppender appender))
+      (.getParent (File. (.getFileName appender)))
       (throw
-       (RuntimeException. "Log viewer could not find configured appender, or the appender is not a FileAppender. Please check that the appender name configured in storm and logback agree.")))))
+       (RuntimeException. "Log viewer could not find configured appender, or the appender is not a FileAppender. Please check that the appender name configured in storm and log4j2 agree.")))))
+
+(defnk to-btn-link
+  "Create a link that is formatted like a button"
+  [url text :enabled true]
+  [:a {:href (java.net.URI. url)
+       :class (str "btn btn-default " (if enabled "enabled" "disabled"))} text])
 
 (defn pager-links [fname start length file-size]
   (let [prev-start (max 0 (- start length))
         next-start (if (> file-size 0)
                      (min (max 0 (- file-size length)) (+ start length))
                      (+ start length))]
-    [[:div.pagination
-      [:ul
-        (concat
-          [[(if (< prev-start start) (keyword "li") (keyword "li.disabled"))
-            (link-to (url "/log"
+    [[:div
+      (concat
+          [(to-btn-link (url "/log"
                           {:file fname
-                             :start (max 0 (- start length))
-                             :length length})
-                     "Prev")]]
-          [[:li (link-to
-                  (url "/log"
-                       {:file fname
-                        :start 0
-                        :length length})
-                  "First")]]
-          [[:li (link-to
-                  (url "/log"
-                       {:file fname
-                        :length length})
-                  "Last")]]
-          [[(if (> next-start start) (keyword "li.next") (keyword "li.next.disabled"))
-            (link-to (url "/log"
+                           :start (max 0 (- start length))
+                           :length length})
+                          "Prev" :enabled (< prev-start start))]
+          [(to-btn-link (url "/log"
+                           {:file fname
+                            :start 0
+                            :length length}) "First")]
+          [(to-btn-link (url "/log"
+                           {:file fname
+                            :length length})
+                        "Last")]
+          [(to-btn-link (url "/log"
                           {:file fname
                            :start (min (max 0 (- file-size length))
                                        (+ start length))
                            :length length})
-                     "Next")]])]]]))
+                        "Next" :enabled (> next-start start))])]]))
 
 (defn- download-link [fname]
   [[:p (link-to (url-format "/download/%s" fname) "Download Full Log")]])
@@ -258,8 +263,9 @@ Note that if anything goes wrong, this will throw an Error and exit."
     (let [file (.getCanonicalFile (File. root-dir fname))
           file-length (.length file)
           path (.getCanonicalPath file)]
-      (if (= (File. root-dir)
-             (.getParentFile file))
+      (if (and (= (.getCanonicalFile (File. root-dir))
+                  (.getParentFile file))
+               (.exists file))
         (let [default-length 51200
               length (if length
                        (min 10485760 length)
@@ -272,8 +278,9 @@ Note that if anything goes wrong, this will throw an Error and exit."
           (if grep
             (html [:pre#logContent
                    (if grep
-                     (filter #(.contains % grep)
-                             (.split log-string "\n"))
+                     (->> (.split log-string "\n")
+                          (filter #(.contains % grep))
+                          (string/join "\n"))
                      log-string)])
             (let [pager-data (pager-links fname start length file-length)]
               (html (concat pager-data
@@ -282,7 +289,10 @@ Note that if anything goes wrong, this will throw an Error and exit."
                             pager-data)))))
         (-> (resp/response "Page not found")
             (resp/status 404))))
-    (unauthorized-user-html user)))
+    (if (nil? (get-log-user-group-whitelist fname))
+      (-> (resp/response "Page not found")
+        (resp/status 404))
+      (unauthorized-user-html user))))
 
 (defn download-log-file [fname req resp user ^String root-dir]
   (let [file (.getCanonicalFile (File. root-dir fname))]
@@ -301,7 +311,8 @@ Note that if anything goes wrong, this will throw an Error and exit."
     (html4
      [:head
       [:title (str (escape-html fname) " - Storm Log Viewer")]
-      (include-css "/css/bootstrap-1.4.0.css")
+      (include-css "/css/bootstrap-3.3.1.min.css")
+      (include-css "/css/jquery.dataTables.1.10.4.min.css")
       (include-css "/css/style.css")
       ]
      [:body
@@ -365,9 +376,30 @@ Note that if anything goes wrong, this will throw an Error and exit."
           filters-confs (concat filters-confs
                           [{:filter-class "org.eclipse.jetty.servlets.GzipFilter"
                             :filter-name "Gzipper"
-                            :filter-params {}}])]
+                            :filter-params {}}])
+          https-port (int (or (conf LOGVIEWER-HTTPS-PORT) 0))
+          keystore-path (conf LOGVIEWER-HTTPS-KEYSTORE-PATH)
+          keystore-pass (conf LOGVIEWER-HTTPS-KEYSTORE-PASSWORD)
+          keystore-type (conf LOGVIEWER-HTTPS-KEYSTORE-TYPE)
+          key-password (conf LOGVIEWER-HTTPS-KEY-PASSWORD)
+          truststore-path (conf LOGVIEWER-HTTPS-TRUSTSTORE-PATH)
+          truststore-password (conf LOGVIEWER-HTTPS-TRUSTSTORE-PASSWORD)
+          truststore-type (conf LOGVIEWER-HTTPS-TRUSTSTORE-TYPE)
+          want-client-auth (conf LOGVIEWER-HTTPS-WANT-CLIENT-AUTH)
+          need-client-auth (conf LOGVIEWER-HTTPS-NEED-CLIENT-AUTH)]
       (storm-run-jetty {:port (int (conf LOGVIEWER-PORT))
                         :configurator (fn [server]
+                                        (config-ssl server
+                                                    https-port
+                                                    keystore-path
+                                                    keystore-pass
+                                                    keystore-type
+                                                    key-password
+                                                    truststore-path
+                                                    truststore-password
+                                                    truststore-type
+                                                    want-client-auth
+                                                    need-client-auth)
                                         (config-filter server middle filters-confs))}))
   (catch Exception ex
     (log-error ex))))
@@ -375,5 +407,6 @@ Note that if anything goes wrong, this will throw an Error and exit."
 (defn -main []
   (let [conf (read-storm-config)
         log-root (log-root-dir (conf LOGVIEWER-APPENDER-NAME))]
+    (setup-default-uncaught-exception-handler)
     (start-log-cleaner! conf log-root)
     (start-logviewer! conf log-root)))

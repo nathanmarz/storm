@@ -184,7 +184,7 @@ public class SubtopologyBolt implements ITridentBatchBolt {
     }
     
     
-    protected class InitialReceiver {
+    protected static class InitialReceiver {
         List<TridentProcessor> _receivers = new ArrayList();
         RootFactory _factory;
         ProjectionFactory _project;

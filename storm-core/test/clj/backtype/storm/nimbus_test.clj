@@ -15,18 +15,27 @@
 ;; limitations under the License.
 (ns backtype.storm.nimbus-test
   (:use [clojure test])
-  (:require [backtype.storm [util :as util]])
+  (:require [backtype.storm [util :as util] [stats :as stats]])
   (:require [backtype.storm.daemon [nimbus :as nimbus]])
-  (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter])
+  (:require [backtype.storm [converter :as converter]])
+  (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount
+            TestAggregatesCounter TestPlannerSpout TestPlannerBolt])
   (:import [backtype.storm.scheduler INimbus])
-  (:import [backtype.storm.generated Credentials])
-  (:use [backtype.storm bootstrap testing MockAutoCred])
+  (:import [backtype.storm.nimbus ILeaderElector NimbusInfo])
+  (:import [backtype.storm.generated Credentials NotAliveException SubmitOptions
+            TopologyInitialStatus TopologyStatus AlreadyAliveException KillOptions RebalanceOptions
+            InvalidTopologyException AuthorizationException])
+  (:import [java.util HashMap])
+  (:import [java.io File])
+  (:import [backtype.storm.utils Time])
+  (:import [org.apache.commons.io FileUtils])
+  (:use [backtype.storm testing MockAutoCred util config log timer zookeeper])
   (:use [backtype.storm.daemon common])
   (:require [conjure.core])
-  (:use [conjure core])
-  )
-
-(bootstrap)
+  (:require [backtype.storm
+             [thrift :as thrift]
+             [cluster :as cluster]])
+  (:use [conjure core]))
 
 (defn storm-component->task-info [cluster storm-name]
   (let [storm-id (get-storm-id (:storm-cluster-state cluster) storm-name)
@@ -113,7 +122,7 @@
         curr-beat (.get-worker-heartbeat state storm-id node port)
         stats (:executor-stats curr-beat)]
     (.worker-heartbeat! state storm-id node port
-      {:storm-id storm-id :time-secs (current-time-secs) :uptime 10 :executor-stats (merge stats {executor nil})}
+      {:storm-id storm-id :time-secs (current-time-secs) :uptime 10 :executor-stats (merge stats {executor (stats/render-stats! (stats/mk-bolt-stats 20))})}
       )))
 
 (defn slot-assignments [cluster storm-id]
@@ -169,7 +178,8 @@
  	
 
 (deftest test-bogusId
-  (with-local-cluster [cluster :supervisors 4 :ports-per-supervisor 3 :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0}]
+  (with-local-cluster [cluster :supervisors 4 :ports-per-supervisor 3
+                       :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0 TOPOLOGY-EVENTLOGGER-EXECUTORS 0}]
     (let [state (:storm-cluster-state cluster)
           nimbus (:nimbus cluster)]
        (is (thrown? NotAliveException (.getTopologyConf nimbus "bogus-id")))
@@ -180,7 +190,8 @@
       )))
 
 (deftest test-assignment
-  (with-local-cluster [cluster :supervisors 4 :ports-per-supervisor 3 :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0}]
+  (with-local-cluster [cluster :supervisors 4 :ports-per-supervisor 3
+                       :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0 TOPOLOGY-EVENTLOGGER-EXECUTORS 0}]
     (let [state (:storm-cluster-state cluster)
           nimbus (:nimbus cluster)
           topology (thrift/mk-topology
@@ -238,6 +249,7 @@
                                       :ports-per-supervisor 3
                                       :daemon-conf {SUPERVISOR-ENABLE false
                                                     TOPOLOGY-ACKER-EXECUTORS 0
+                                                    TOPOLOGY-EVENTLOGGER-EXECUTORS 0
                                                     NIMBUS-CREDENTIAL-RENEW-FREQ-SECS 10
                                                     NIMBUS-CREDENTIAL-RENEWERS (list "backtype.storm.MockAutoCred")
                                                     NIMBUS-AUTO-CRED-PLUGINS (list "backtype.storm.MockAutoCred")
@@ -269,6 +281,7 @@
                                :inimbus (isolation-nimbus)
                                :daemon-conf {SUPERVISOR-ENABLE false
                                              TOPOLOGY-ACKER-EXECUTORS 0
+                                             TOPOLOGY-EVENTLOGGER-EXECUTORS 0
                                              STORM-SCHEDULER "backtype.storm.scheduler.IsolationScheduler"
                                              ISOLATION-SCHEDULER-MACHINES {"tester1" 3 "tester2" 2}
                                              NIMBUS-MONITOR-FREQ-SECS 10
@@ -318,7 +331,7 @@
       )))
 
 (deftest test-zero-executor-or-tasks
-  (with-local-cluster [cluster :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0}]
+  (with-local-cluster [cluster :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0 TOPOLOGY-EVENTLOGGER-EXECUTORS 0}]
     (let [state (:storm-cluster-state cluster)
           nimbus (:nimbus cluster)
           topology (thrift/mk-topology
@@ -335,7 +348,7 @@
       )))
 
 (deftest test-executor-assignments
-  (with-local-cluster [cluster :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0}]
+  (with-local-cluster [cluster :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0 TOPOLOGY-EVENTLOGGER-EXECUTORS 0}]
     (let [nimbus (:nimbus cluster)
           topology (thrift/mk-topology
                     {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3 :conf {TOPOLOGY-TASKS 5})}
@@ -357,7 +370,8 @@
       )))
 
 (deftest test-over-parallelism-assignment
-  (with-local-cluster [cluster :supervisors 2 :ports-per-supervisor 5 :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0}]
+  (with-local-cluster [cluster :supervisors 2 :ports-per-supervisor 5
+                       :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0 TOPOLOGY-EVENTLOGGER-EXECUTORS 0}]
     (let [state (:storm-cluster-state cluster)
           nimbus (:nimbus cluster)
           topology (thrift/mk-topology
@@ -383,7 +397,8 @@
     :daemon-conf {SUPERVISOR-ENABLE false
                   NIMBUS-TASK-TIMEOUT-SECS 30
                   NIMBUS-MONITOR-FREQ-SECS 10
-                  TOPOLOGY-ACKER-EXECUTORS 0}]
+                  TOPOLOGY-ACKER-EXECUTORS 0
+                  TOPOLOGY-EVENTLOGGER-EXECUTORS 0}]
     (letlocals
       (bind conf (:daemon-conf cluster))
       (bind topology (thrift/mk-topology
@@ -472,7 +487,8 @@
                   NIMBUS-TASK-TIMEOUT-SECS 20
                   NIMBUS-MONITOR-FREQ-SECS 10
                   NIMBUS-SUPERVISOR-TIMEOUT-SECS 100
-                  TOPOLOGY-ACKER-EXECUTORS 0}]
+                  TOPOLOGY-ACKER-EXECUTORS 0
+                  TOPOLOGY-EVENTLOGGER-EXECUTORS 0}]
     (letlocals
       (bind conf (:daemon-conf cluster))
       (bind topology (thrift/mk-topology
@@ -486,7 +502,7 @@
       (bind [executor-id1 executor-id2]  (topology-executors cluster storm-id))
       (bind ass1 (executor-assignment cluster storm-id executor-id1))
       (bind ass2 (executor-assignment cluster storm-id executor-id2))
-      
+
       (advance-cluster-time cluster 59)
       (do-executor-heartbeat cluster storm-id executor-id1)
       (do-executor-heartbeat cluster storm-id executor-id2)
@@ -567,7 +583,8 @@
                   NIMBUS-TASK-TIMEOUT-SECS 20
                   NIMBUS-MONITOR-FREQ-SECS 10
                   NIMBUS-SUPERVISOR-TIMEOUT-SECS 100
-                  TOPOLOGY-ACKER-EXECUTORS 0}]
+                  TOPOLOGY-ACKER-EXECUTORS 0
+                  TOPOLOGY-EVENTLOGGER-EXECUTORS 0}]
     (letlocals
       (add-supervisor cluster :ports 1 :id "a")
       (add-supervisor cluster :ports 1 :id "b")
@@ -624,7 +641,8 @@
                   NIMBUS-TASK-LAUNCH-SECS 60
                   NIMBUS-TASK-TIMEOUT-SECS 20
                   NIMBUS-MONITOR-FREQ-SECS 10
-                  TOPOLOGY-ACKER-EXECUTORS 0}]
+                  TOPOLOGY-ACKER-EXECUTORS 0
+                  TOPOLOGY-EVENTLOGGER-EXECUTORS 0}]
     (letlocals
       (bind topology (thrift/mk-topology
                         {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 9)}
@@ -670,7 +688,8 @@
     :daemon-conf {SUPERVISOR-ENABLE false
                   NIMBUS-MONITOR-FREQ-SECS 10
                   TOPOLOGY-MESSAGE-TIMEOUT-SECS 30
-                  TOPOLOGY-ACKER-EXECUTORS 0}]
+                  TOPOLOGY-ACKER-EXECUTORS 0
+                  TOPOLOGY-EVENTLOGGER-EXECUTORS 0}]
     (letlocals
       (bind topology (thrift/mk-topology
                         {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
@@ -701,7 +720,7 @@
       (bind slot-executors (slot-assignments cluster storm-id))
       (check-executor-distribution slot-executors [1 1 1])
       (check-num-nodes slot-executors 3)
-      
+
       (is (thrown? InvalidTopologyException
                    (.rebalance (:nimbus cluster) "test"
                      (doto (RebalanceOptions.)
@@ -713,7 +732,8 @@
   (with-simulated-time-local-cluster [cluster :supervisors 4 :ports-per-supervisor 3
     :daemon-conf {SUPERVISOR-ENABLE false
                   NIMBUS-MONITOR-FREQ-SECS 10
-                  TOPOLOGY-ACKER-EXECUTORS 0}]
+                  TOPOLOGY-ACKER-EXECUTORS 0
+                  TOPOLOGY-EVENTLOGGER-EXECUTORS 0}]
     (letlocals
       (bind topology (thrift/mk-topology
                         {"1" (thrift/mk-spout-spec (TestPlannerSpout. true)
@@ -731,7 +751,7 @@
                         (slot-assignments cluster storm-id)
                         distribution)))
       (checker [2 2 2])
-      
+
       (.rebalance (:nimbus cluster) "test"
                   (doto (RebalanceOptions.)
                     (.set_num_workers 6)
@@ -740,7 +760,7 @@
       (checker [2 2 2])
       (advance-cluster-time cluster 3)
       (checker [1 1 1 1 1 1])
-      
+
       (.rebalance (:nimbus cluster) "test"
                   (doto (RebalanceOptions.)
                     (.set_num_executors {"1" 1})
@@ -758,11 +778,11 @@
       (advance-cluster-time cluster 32)
       (checker [2 2 2 2])
       (check-consistency cluster "test")
-      
+
       (bind executor-info (->> (storm-component->executor-info cluster "test")
                                (map-val #(map executor-id->tasks %))))
       (check-distribution (executor-info "1") [2 2 2 2 1 1 1 1])
-      
+
       )))
 
 
@@ -789,7 +809,8 @@
     :daemon-conf {SUPERVISOR-ENABLE false
                   NIMBUS-MONITOR-FREQ-SECS 10
                   TOPOLOGY-MESSAGE-TIMEOUT-SECS 30
-                  TOPOLOGY-ACKER-EXECUTORS 0}]
+                  TOPOLOGY-ACKER-EXECUTORS 0
+                  TOPOLOGY-EVENTLOGGER-EXECUTORS 0}]
     (letlocals
       (bind topology (thrift/mk-topology
                         {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
@@ -834,19 +855,10 @@
   (with-simulated-time-local-cluster [cluster
     :daemon-conf {SUPERVISOR-ENABLE false
                   TOPOLOGY-ACKER-EXECUTORS 0
+                  TOPOLOGY-EVENTLOGGER-EXECUTORS 0
                   NIMBUS-EXECUTORS-PER-TOPOLOGY 8
                   NIMBUS-SLOTS-PER-TOPOLOGY 8}]
     (letlocals
-      (bind topology (thrift/mk-topology
-                        {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 0 :conf {TOPOLOGY-TASKS 1})}
-                        {}))
-     
-      (is (thrown? InvalidTopologyException
-        (submit-local-topology (:nimbus cluster)
-                               "test"
-                               {}
-                               topology)))
-                               
       (bind topology (thrift/mk-topology
                         {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 1 :conf {TOPOLOGY-TASKS 1})}
                         {}))
@@ -881,31 +893,70 @@
                                        {TOPOLOGY-WORKERS 8}
                                        topology))))))
 
+(defnk mock-leader-elector [:is-leader true :leader-name "test-host" :leader-port 9999]
+  (let [leader-address (NimbusInfo. leader-name leader-port true)]
+    (reify ILeaderElector
+      (prepare [this conf] true)
+      (isLeader [this] is-leader)
+      (addToLeaderLockQueue [this] true)
+      (getLeader [this] leader-address)
+      (getAllNimbuses [this] `(leader-address))
+      (close [this] true))))
+
 (deftest test-cleans-corrupt
   (with-inprocess-zookeeper zk-port
     (with-local-tmp [nimbus-dir]
-      (letlocals
-       (bind conf (merge (read-storm-config)
-                         {STORM-ZOOKEEPER-SERVERS ["localhost"]
-                          STORM-CLUSTER-MODE "local"
-                          STORM-ZOOKEEPER-PORT zk-port
-                          STORM-LOCAL-DIR nimbus-dir}))
-       (bind cluster-state (cluster/mk-storm-cluster-state conf))
-       (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
-       (bind topology (thrift/mk-topology
-                       {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
-                       {}))
-       (submit-local-topology nimbus "t1" {} topology)
-       (submit-local-topology nimbus "t2" {} topology)
-       (bind storm-id1 (get-storm-id cluster-state "t1"))
-       (bind storm-id2 (get-storm-id cluster-state "t2"))
-       (.shutdown nimbus)
-       (rmr (master-stormdist-root conf storm-id1))
-       (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
-       (is ( = #{storm-id2} (set (.active-storms cluster-state))))
-       (.shutdown nimbus)
-       (.disconnect cluster-state)
-       ))))
+      (stubbing [zk-leader-elector (mock-leader-elector)]
+        (letlocals
+         (bind conf (merge (read-storm-config)
+                           {STORM-ZOOKEEPER-SERVERS ["localhost"]
+                            STORM-CLUSTER-MODE "local"
+                            STORM-ZOOKEEPER-PORT zk-port
+                            STORM-LOCAL-DIR nimbus-dir}))
+         (bind cluster-state (cluster/mk-storm-cluster-state conf))
+         (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
+         (bind topology (thrift/mk-topology
+                         {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
+                         {}))
+         (submit-local-topology nimbus "t1" {} topology)
+         (submit-local-topology nimbus "t2" {} topology)
+         (bind storm-id1 (get-storm-id cluster-state "t1"))
+         (bind storm-id2 (get-storm-id cluster-state "t2"))
+         (.shutdown nimbus)
+         (rmr (master-stormdist-root conf storm-id1))
+         (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
+         (is ( = #{storm-id2} (set (.active-storms cluster-state))))
+         (.shutdown nimbus)
+         (.disconnect cluster-state)
+         )))))
+
+
+(deftest test-cleans-corrupt
+  (with-inprocess-zookeeper zk-port
+    (with-local-tmp [nimbus-dir]
+      (stubbing [zk-leader-elector (mock-leader-elector)]
+        (letlocals
+          (bind conf (merge (read-storm-config)
+                       {STORM-ZOOKEEPER-SERVERS ["localhost"]
+                        STORM-CLUSTER-MODE "local"
+                        STORM-ZOOKEEPER-PORT zk-port
+                        STORM-LOCAL-DIR nimbus-dir}))
+          (bind cluster-state (cluster/mk-storm-cluster-state conf))
+          (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
+          (bind topology (thrift/mk-topology
+                           {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
+                           {}))
+          (submit-local-topology nimbus "t1" {} topology)
+          (submit-local-topology nimbus "t2" {} topology)
+          (bind storm-id1 (get-storm-id cluster-state "t1"))
+          (bind storm-id2 (get-storm-id cluster-state "t2"))
+          (.shutdown nimbus)
+          (rmr (master-stormdist-root conf storm-id1))
+          (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
+          (is ( = #{storm-id2} (set (.active-storms cluster-state))))
+          (.shutdown nimbus)
+          (.disconnect cluster-state)
+          )))))
 
 ;(deftest test-no-overlapping-slots
 ;  ;; test that same node+port never appears across 2 assignments
@@ -918,35 +969,89 @@
 (deftest test-clean-inbox
   "Tests that the inbox correctly cleans jar files."
   (with-simulated-time
-   (with-local-tmp [dir-location]
-     (let [dir (File. dir-location)
-           mk-file (fn [name seconds-ago]
-                     (let [f (File. (str dir-location "/" name))
-                           t (- (Time/currentTimeMillis) (* seconds-ago 1000))]
-                       (FileUtils/touch f)
-                       (.setLastModified f t)))
-           assert-files-in-dir (fn [compare-file-names]
-                                 (let [file-names (map #(.getName %) (file-seq dir))]
-                                   (is (= (sort compare-file-names)
+    (with-local-tmp [dir-location]
+      (let [dir (File. dir-location)
+            mk-file (fn [name seconds-ago]
+                      (let [f (File. (str dir-location "/" name))
+                            t (- (Time/currentTimeMillis) (* seconds-ago 1000))]
+                        (FileUtils/touch f)
+                        (.setLastModified f t)))
+            assert-files-in-dir (fn [compare-file-names]
+                                  (let [file-names (map #(.getName %) (file-seq dir))]
+                                    (is (= (sort compare-file-names)
                                           (sort (filter #(.endsWith % ".jar") file-names))
                                           ))))]
-       ;; Make three files a.jar, b.jar, c.jar.
-       ;; a and b are older than c and should be deleted first.
-       (advance-time-secs! 100)
-       (doseq [fs [["a.jar" 20] ["b.jar" 20] ["c.jar" 0]]]
-         (apply mk-file fs))
-       (assert-files-in-dir ["a.jar" "b.jar" "c.jar"])
-       (nimbus/clean-inbox dir-location 10)
-       (assert-files-in-dir ["c.jar"])
-       ;; Cleanit again, c.jar should stay
-       (advance-time-secs! 5)
-       (nimbus/clean-inbox dir-location 10)
-       (assert-files-in-dir ["c.jar"])
-       ;; Advance time, clean again, c.jar should be deleted.
-       (advance-time-secs! 5)
-       (nimbus/clean-inbox dir-location 10)
-       (assert-files-in-dir [])
-       ))))
+        ;; Make three files a.jar, b.jar, c.jar.
+        ;; a and b are older than c and should be deleted first.
+        (advance-time-secs! 100)
+        (doseq [fs [["a.jar" 20] ["b.jar" 20] ["c.jar" 0]]]
+          (apply mk-file fs))
+        (assert-files-in-dir ["a.jar" "b.jar" "c.jar"])
+        (nimbus/clean-inbox dir-location 10)
+        (assert-files-in-dir ["c.jar"])
+        ;; Cleanit again, c.jar should stay
+        (advance-time-secs! 5)
+        (nimbus/clean-inbox dir-location 10)
+        (assert-files-in-dir ["c.jar"])
+        ;; Advance time, clean again, c.jar should be deleted.
+        (advance-time-secs! 5)
+        (nimbus/clean-inbox dir-location 10)
+        (assert-files-in-dir [])
+        ))))
+
+(deftest test-leadership
+  "Tests that leader actions can only be performed by master and non leader fails to perform the same actions."
+  (with-inprocess-zookeeper zk-port
+    (with-local-tmp [nimbus-dir]
+      (stubbing [zk-leader-elector (mock-leader-elector)]
+        (letlocals
+          (bind conf (merge (read-storm-config)
+                       {STORM-ZOOKEEPER-SERVERS ["localhost"]
+                        STORM-CLUSTER-MODE "local"
+                        STORM-ZOOKEEPER-PORT zk-port
+                        STORM-LOCAL-DIR nimbus-dir}))
+          (bind cluster-state (cluster/mk-storm-cluster-state conf))
+          (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
+          (bind topology (thrift/mk-topology
+                           {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
+                           {}))
+
+          (stubbing [zk-leader-elector (mock-leader-elector :is-leader false)]
+            (letlocals
+              (bind non-leader-cluster-state (cluster/mk-storm-cluster-state conf))
+              (bind non-leader-nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
+
+              ;first we verify that the master nimbus can perform all actions, even with another nimbus present.
+              (submit-local-topology nimbus "t1" {} topology)
+              (.deactivate nimbus "t1")
+              (.activate nimbus "t1")
+              (.rebalance nimbus "t1" (RebalanceOptions.))
+              (.killTopology nimbus "t1")
+
+              ;now we verify that non master nimbus can not perform any of the actions.
+              (is (thrown? RuntimeException
+                    (submit-local-topology non-leader-nimbus
+                      "failing"
+                      {}
+                      topology)))
+
+              (is (thrown? RuntimeException
+                    (.killTopology non-leader-nimbus
+                      "t1")))
+
+              (is (thrown? RuntimeException
+                    (.activate non-leader-nimbus "t1")))
+
+              (is (thrown? RuntimeException
+                    (.deactivate non-leader-nimbus "t1")))
+
+              (is (thrown? RuntimeException
+                    (.rebalance non-leader-nimbus "t1" (RebalanceOptions.))))
+              (.shutdown non-leader-nimbus)
+              (.disconnect non-leader-cluster-state)
+              ))
+          (.shutdown nimbus)
+          (.disconnect cluster-state))))))
 
 (deftest test-nimbus-iface-submitTopologyWithOpts-checks-authorization
   (with-local-cluster [cluster 
@@ -1140,7 +1245,8 @@
     (let [scheme "digest"
           digest "storm:thisisapoorpassword"
           auth-conf {STORM-ZOOKEEPER-AUTH-SCHEME scheme
-                     STORM-ZOOKEEPER-AUTH-PAYLOAD digest}
+                     STORM-ZOOKEEPER-AUTH-PAYLOAD digest
+                     NIMBUS-THRIFT-PORT 6666}
           expected-acls nimbus/NIMBUS-ZK-ACLS
           fake-inimbus (reify INimbus (getForcedScheduler [this] nil))]
       (stubbing [mk-authorization-handler nil
@@ -1149,6 +1255,8 @@
                  uptime-computer nil
                  new-instance nil
                  mk-timer nil
+                 nimbus/mk-code-distributor nil
+                 zk-leader-elector nil
                  nimbus/mk-scheduler nil]
         (nimbus/nimbus-data auth-conf fake-inimbus)
         (verify-call-times-for cluster/mk-storm-cluster-state 1)
@@ -1156,7 +1264,7 @@
                                             expected-acls)))))
 
 (deftest test-file-bogus-download
-  (with-local-cluster [cluster :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0}]
+  (with-local-cluster [cluster :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0 TOPOLOGY-EVENTLOGGER-EXECUTORS 0}]
     (let [nimbus (:nimbus cluster)]
       (is (thrown-cause? AuthorizationException (.beginFileDownload nimbus nil)))
       (is (thrown-cause? AuthorizationException (.beginFileDownload nimbus "")))
@@ -1173,3 +1281,51 @@
         (is (thrown-cause? InvalidTopologyException
           (submit-local-topology-with-opts nimbus "test" bad-config topology
                                            (SubmitOptions.))))))))
+
+(deftest test-stateless-with-scheduled-topology-to-be-killed
+  ; tests regression of STORM-856
+  (with-inprocess-zookeeper zk-port
+    (with-local-tmp [nimbus-dir]
+      (letlocals
+        (bind conf (merge (read-storm-config)
+                     {STORM-ZOOKEEPER-SERVERS ["localhost"]
+                      STORM-CLUSTER-MODE "local"
+                      STORM-ZOOKEEPER-PORT zk-port
+                      STORM-LOCAL-DIR nimbus-dir}))
+        (bind cluster-state (cluster/mk-storm-cluster-state conf))
+        (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
+        (sleep-secs 1)
+        (bind topology (thrift/mk-topology
+                         {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
+                         {}))
+        (submit-local-topology nimbus "t1" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 30} topology)
+        ; make transition for topology t1 to be killed -> nimbus applies this event to cluster state
+        (.killTopology nimbus "t1")
+        ; shutdown nimbus immediately to achieve nimbus doesn't handle event right now
+        (.shutdown nimbus)
+
+        ; in startup of nimbus it reads cluster state and take proper actions
+        ; in this case nimbus registers topology transition event to scheduler again
+        ; before applying STORM-856 nimbus was killed with NPE
+        (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
+        (.shutdown nimbus)
+        (.disconnect cluster-state)
+        ))))
+
+(deftest test-debug-on-component
+  (with-local-cluster [cluster]
+    (let [nimbus (:nimbus cluster)
+          topology (thrift/mk-topology
+                     {"spout" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
+                     {})]
+        (submit-local-topology nimbus "t1" {TOPOLOGY-WORKERS 1} topology)
+        (.debug nimbus "t1" "spout" true 100))))
+
+(deftest test-debug-on-global
+  (with-local-cluster [cluster]
+    (let [nimbus (:nimbus cluster)
+          topology (thrift/mk-topology
+                     {"spout" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
+                     {})]
+      (submit-local-topology nimbus "t1" {TOPOLOGY-WORKERS 1} topology)
+      (.debug nimbus "t1" "" true 100))))

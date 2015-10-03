@@ -15,12 +15,17 @@
 ;; limitations under the License.
 
 (ns backtype.storm.cluster
-  (:import [org.apache.zookeeper.data Stat ACL Id])
+  (:import [org.apache.zookeeper.data Stat ACL Id]
+           [backtype.storm.generated SupervisorInfo Assignment StormBase ClusterWorkerHeartbeat ErrorInfo Credentials NimbusSummary]
+           [java.io Serializable])
   (:import [org.apache.zookeeper KeeperException KeeperException$NoNodeException ZooDefs ZooDefs$Ids ZooDefs$Perms])
+  (:import [org.apache.curator.framework.state ConnectionStateListener ConnectionState])
+  (:import [org.apache.curator.framework CuratorFramework])
   (:import [backtype.storm.utils Utils])
   (:import [java.security MessageDigest])
   (:import [org.apache.zookeeper.server.auth DigestAuthenticationProvider])
-  (:use [backtype.storm util log config])
+  (:import [backtype.storm.nimbus NimbusInfo])
+  (:use [backtype.storm util log config converter])
   (:require [backtype.storm [zookeeper :as zk]])
   (:require [backtype.storm.daemon [common :as common]]))
 
@@ -38,7 +43,9 @@
   (exists-node? [this path watch?])
   (close [this])
   (register [this callback])
-  (unregister [this id]))
+  (unregister [this id])
+  (add-listener [this listener])
+  (sync-path [this path]))
 
 (defn mk-topo-only-acls
   [topo-conf]
@@ -105,7 +112,7 @@
 
      (delete-node
        [this path]
-       (zk/delete-recursive zk path))
+       (zk/delete-node zk path))
 
      (get-data
        [this path watch?]
@@ -134,13 +141,32 @@
      (close
        [this]
        (reset! active false)
-       (.close zk)))))
+       (.close zk))
+
+      (add-listener
+        [this listener]
+        (zk/add-listener zk listener))
+
+      (sync-path
+        [this path]
+        (zk/sync-path zk path))
+      )))
 
 (defprotocol StormClusterState
   (assignments [this callback])
   (assignment-info [this storm-id callback])
   (assignment-info-with-version [this storm-id callback])
   (assignment-version [this storm-id callback])
+  ;returns topologyIds under /stormroot/code-distributor
+  (code-distributor [this callback])
+  ;returns lits of nimbusinfos under /stormroot/code-distributor/storm-id
+  (code-distributor-info [this storm-id])
+
+  ;returns list of nimbus summaries stored under /stormroot/nimbuses/<nimbus-ids> -> <data>
+  (nimbuses [this])
+  ;adds the NimbusSummary to /stormroot/nimbuses/nimbus-id
+  (add-nimbus-host! [this nimbus-id nimbus-summary])
+
   (active-storms [this])
   (storm-base [this storm-id callback])
   (get-worker-heartbeat [this storm-id node port])
@@ -155,13 +181,20 @@
   (worker-heartbeat! [this storm-id node port info])
   (remove-worker-heartbeat! [this storm-id node port])
   (supervisor-heartbeat! [this supervisor-id info])
+  (worker-backpressure! [this storm-id node port info])
+  (topology-backpressure [this storm-id callback])
+  (setup-backpressure! [this storm-id])
+  (remove-worker-backpressure! [this storm-id node port])
   (activate-storm! [this storm-id storm-base])
   (update-storm! [this storm-id new-elems])
   (remove-storm-base! [this storm-id])
   (set-assignment! [this storm-id info])
+  ;adds nimbusinfo under /stormroot/code-distributor/storm-id
+  (setup-code-distributor! [this storm-id info])
   (remove-storm! [this storm-id])
-  (report-error [this storm-id task-id node port error])
-  (errors [this storm-id task-id])
+  (report-error [this storm-id component-id node port error])
+  (errors [this storm-id component-id])
+  (last-error [this storm-id component-id])
   (set-credentials! [this storm-id creds topo-conf])
   (credentials [this storm-id callback])
   (disconnect [this]))
@@ -171,14 +204,21 @@
 (def STORMS-ROOT "storms")
 (def SUPERVISORS-ROOT "supervisors")
 (def WORKERBEATS-ROOT "workerbeats")
+(def BACKPRESSURE-ROOT "backpressure")
 (def ERRORS-ROOT "errors")
+(def CODE-DISTRIBUTOR-ROOT "code-distributor")
+(def NIMBUSES-ROOT "nimbuses")
 (def CREDENTIALS-ROOT "credentials")
+
 
 (def ASSIGNMENTS-SUBTREE (str "/" ASSIGNMENTS-ROOT))
 (def STORMS-SUBTREE (str "/" STORMS-ROOT))
 (def SUPERVISORS-SUBTREE (str "/" SUPERVISORS-ROOT))
 (def WORKERBEATS-SUBTREE (str "/" WORKERBEATS-ROOT))
+(def BACKPRESSURE-SUBTREE (str "/" BACKPRESSURE-ROOT))
 (def ERRORS-SUBTREE (str "/" ERRORS-ROOT))
+(def CODE-DISTRIBUTOR-SUBTREE (str "/" CODE-DISTRIBUTOR-ROOT))
+(def NIMBUSES-SUBTREE (str "/" NIMBUSES-ROOT))
 (def CREDENTIALS-SUBTREE (str "/" CREDENTIALS-ROOT))
 
 (defn supervisor-path
@@ -188,6 +228,14 @@
 (defn assignment-path
   [id]
   (str ASSIGNMENTS-SUBTREE "/" id))
+
+(defn code-distributor-path
+  [id]
+  (str CODE-DISTRIBUTOR-SUBTREE "/" id))
+
+(defn nimbus-path
+  [id]
+  (str NIMBUSES-SUBTREE "/" id))
 
 (defn storm-path
   [id]
@@ -201,6 +249,14 @@
   [storm-id node port]
   (str (workerbeat-storm-root storm-id) "/" node "-" port))
 
+(defn backpressure-storm-root
+  [storm-id]
+  (str BACKPRESSURE-SUBTREE "/" storm-id))
+
+(defn backpressure-path
+  [storm-id node port]
+  (str (backpressure-storm-root storm-id) "/" node "-" port))
+
 (defn error-storm-root
   [storm-id]
   (str ERRORS-SUBTREE "/" storm-id))
@@ -208,6 +264,16 @@
 (defn error-path
   [storm-id component-id]
   (str (error-storm-root storm-id) "/" (url-encode component-id)))
+
+(def last-error-path-seg "last-error")
+
+(defn last-error-path
+  [storm-id component-id]
+  (str (error-storm-root storm-id)
+       "/"
+       (url-encode component-id)
+       "-"
+       last-error-path-seg))
 
 (defn credentials-path
   [storm-id]
@@ -228,11 +294,11 @@
       (cb id))))
 
 (defn- maybe-deserialize
-  [ser]
+  [ser clazz]
   (when ser
-    (Utils/deserialize ser)))
+    (Utils/deserialize ser clazz)))
 
-(defstruct TaskError :error :time-secs :host :port)
+(defrecord TaskError [error time-secs host port])
 
 (defn- parse-error-path
   [^String p]
@@ -261,8 +327,10 @@
         assignment-info-with-version-callback (atom {})
         assignment-version-callback (atom {})
         supervisors-callback (atom nil)
+        backpressure-callback (atom {})   ;; we want to reigister a topo directory getChildren callback for all workers of this dir
         assignments-callback (atom nil)
         storm-base-callback (atom {})
+        code-distributor-callback (atom nil)
         credentials-callback (atom {})
         state-id (register
                   cluster-state
@@ -271,13 +339,18 @@
                       (condp = subtree
                          ASSIGNMENTS-ROOT (if (empty? args)
                                              (issue-callback! assignments-callback)
-                                             (issue-map-callback! assignment-info-callback (first args)))
+                                             (do
+                                               (issue-map-callback! assignment-info-callback (first args))
+                                               (issue-map-callback! assignment-version-callback (first args))
+                                               (issue-map-callback! assignment-info-with-version-callback (first args))))
                          SUPERVISORS-ROOT (issue-callback! supervisors-callback)
+                         CODE-DISTRIBUTOR-ROOT (issue-callback! code-distributor-callback)
                          STORMS-ROOT (issue-map-callback! storm-base-callback (first args))
                          CREDENTIALS-ROOT (issue-map-callback! credentials-callback (first args))
+                         BACKPRESSURE-ROOT (issue-map-callback! backpressure-callback (first args))
                          ;; this should never happen
                          (exit-process! 30 "Unknown callback for subtree " subtree args)))))]
-    (doseq [p [ASSIGNMENTS-SUBTREE STORMS-SUBTREE SUPERVISORS-SUBTREE WORKERBEATS-SUBTREE ERRORS-SUBTREE]]
+    (doseq [p [ASSIGNMENTS-SUBTREE STORMS-SUBTREE SUPERVISORS-SUBTREE WORKERBEATS-SUBTREE ERRORS-SUBTREE CODE-DISTRIBUTOR-SUBTREE NIMBUSES-SUBTREE]]
       (mkdirs cluster-state p acls))
     (reify
       StormClusterState
@@ -292,7 +365,7 @@
         [this storm-id callback]
         (when callback
           (swap! assignment-info-callback assoc storm-id callback))
-        (maybe-deserialize (get-data cluster-state (assignment-path storm-id) (not-nil? callback))))
+        (clojurify-assignment (maybe-deserialize (get-data cluster-state (assignment-path storm-id) (not-nil? callback)) Assignment)))
 
       (assignment-info-with-version 
         [this storm-id callback]
@@ -300,7 +373,7 @@
           (swap! assignment-info-with-version-callback assoc storm-id callback))
         (let [{data :data version :version} 
               (get-data-with-version cluster-state (assignment-path storm-id) (not-nil? callback))]
-        {:data (maybe-deserialize data)
+        {:data (clojurify-assignment (maybe-deserialize data Assignment))
          :version version}))
 
       (assignment-version 
@@ -308,6 +381,42 @@
         (when callback
           (swap! assignment-version-callback assoc storm-id callback))
         (get-version cluster-state (assignment-path storm-id) (not-nil? callback)))
+
+      (code-distributor
+        [this callback]
+        (when callback
+          (reset! code-distributor-callback callback))
+        (do
+          (sync-path cluster-state CODE-DISTRIBUTOR-SUBTREE)
+          (get-children cluster-state CODE-DISTRIBUTOR-SUBTREE (not-nil? callback))))
+
+      (nimbuses
+        [this]
+        (map #(maybe-deserialize (get-data cluster-state (nimbus-path %1) false) NimbusSummary)
+          (get-children cluster-state NIMBUSES-SUBTREE false)))
+
+      (add-nimbus-host!
+        [this nimbus-id nimbus-summary]
+        ;explicit delete for ephmeral node to ensure this session creates the entry.
+        (delete-node cluster-state (nimbus-path nimbus-id))
+
+        (add-listener cluster-state (reify ConnectionStateListener
+                        (^void stateChanged[this ^CuratorFramework client ^ConnectionState newState]
+                          (log-message "Connection state listener invoked, zookeeper connection state has changed to " newState)
+                          (if (.equals newState ConnectionState/RECONNECTED)
+                            (do
+                              (log-message "Connection state has changed to reconnected so setting nimbuses entry one more time")
+                              (set-ephemeral-node cluster-state (nimbus-path nimbus-id) (Utils/serialize nimbus-summary) acls))))))
+
+        (set-ephemeral-node cluster-state (nimbus-path nimbus-id) (Utils/serialize nimbus-summary) acls))
+
+      (code-distributor-info
+        [this storm-id]
+        (map (fn [nimbus-info] (NimbusInfo/parse nimbus-info))
+          (let [path (code-distributor-path storm-id)]
+            (do
+              (sync-path cluster-state path)
+              (get-children cluster-state path false)))))
 
       (active-storms
         [this]
@@ -323,9 +432,11 @@
 
       (get-worker-heartbeat
         [this storm-id node port]
-        (-> cluster-state
-            (get-data (workerbeat-path storm-id node port) false)
-            maybe-deserialize))
+        (let [worker-hb (get-data cluster-state (workerbeat-path storm-id node port) false)]
+          (if worker-hb
+            (-> worker-hb
+              (maybe-deserialize ClusterWorkerHeartbeat)
+              clojurify-zk-worker-hb))))
 
       (executor-beats
         [this storm-id executor->node+port]
@@ -348,11 +459,13 @@
 
       (supervisor-info
         [this supervisor-id]
-        (maybe-deserialize (get-data cluster-state (supervisor-path supervisor-id) false)))
+        (clojurify-supervisor-info (maybe-deserialize (get-data cluster-state (supervisor-path supervisor-id) false) SupervisorInfo)))
 
       (worker-heartbeat!
         [this storm-id node port info]
-        (set-data cluster-state (workerbeat-path storm-id node port) (Utils/serialize info) acls))
+        (let [thrift-worker-hb (thriftify-zk-worker-hb info)]
+          (if thrift-worker-hb
+            (set-data cluster-state (workerbeat-path storm-id node port) (Utils/serialize thrift-worker-hb) acls))))
 
       (remove-worker-heartbeat!
         [this storm-id node port]
@@ -369,6 +482,35 @@
           (catch KeeperException e
             (log-warn-error e "Could not teardown heartbeats for " storm-id))))
 
+      (worker-backpressure!
+        [this storm-id node port on?]
+        "if znode exists and to be not on?, delete; if exists and on?, do nothing;
+        if not exists and to be on?, create; if not exists and not on?, do nothing"
+        (let [path (backpressure-path storm-id node port)
+              existed (exists-node? cluster-state path false)]
+          (if existed
+            (if (not on?)
+              (delete-node cluster-state path))   ;; delete the znode since the worker is not congested
+            (if on?
+              (set-ephemeral-node cluster-state path nil acls))))) ;; create the znode since worker is congested
+    
+      (topology-backpressure
+        [this storm-id callback]
+        "if the backpresure/storm-id dir is empty, this topology has throttle-on, otherwise not."
+        (when callback
+          (swap! backpressure-callback assoc storm-id callback))
+        (let [path (backpressure-storm-root storm-id)
+              children (get-children cluster-state path (not-nil? callback))]
+              (> (count children) 0)))
+      
+      (setup-backpressure!
+        [this storm-id]
+        (mkdirs cluster-state (backpressure-storm-root storm-id) acls))
+
+      (remove-worker-backpressure!
+        [this storm-id node port]
+        (delete-node cluster-state (backpressure-path storm-id node port)))
+
       (teardown-topology-errors!
         [this storm-id]
         (try-cause
@@ -378,20 +520,25 @@
 
       (supervisor-heartbeat!
         [this supervisor-id info]
-        (set-ephemeral-node cluster-state (supervisor-path supervisor-id) (Utils/serialize info) acls))
+        (let [thrift-supervisor-info (thriftify-supervisor-info info)]
+          (set-ephemeral-node cluster-state (supervisor-path supervisor-id) (Utils/serialize thrift-supervisor-info) acls)))
 
       (activate-storm!
         [this storm-id storm-base]
-        (set-data cluster-state (storm-path storm-id) (Utils/serialize storm-base) acls))
+        (let [thrift-storm-base (thriftify-storm-base storm-base)]
+          (set-data cluster-state (storm-path storm-id) (Utils/serialize thrift-storm-base) acls)))
 
       (update-storm!
         [this storm-id new-elems]
         (let [base (storm-base this storm-id nil)
               executors (:component->executors base)
-              new-elems (update new-elems :component->executors (partial merge executors))]
+              component->debug (:component->debug base)
+              new-elems (update new-elems :component->executors (partial merge executors))
+              new-elems (update new-elems :component->debug (partial merge-with merge component->debug))]
           (set-data cluster-state (storm-path storm-id)
                     (-> base
                         (merge new-elems)
+                        thriftify-storm-base
                         Utils/serialize)
                     acls)))
 
@@ -399,7 +546,7 @@
         [this storm-id callback]
         (when callback
           (swap! storm-base-callback assoc storm-id callback))
-        (maybe-deserialize (get-data cluster-state (storm-path storm-id) (not-nil? callback))))
+        (clojurify-storm-base (maybe-deserialize (get-data cluster-state (storm-path storm-id) (not-nil? callback)) StormBase)))
 
       (remove-storm-base!
         [this storm-id]
@@ -407,32 +554,47 @@
 
       (set-assignment!
         [this storm-id info]
-        (set-data cluster-state (assignment-path storm-id) (Utils/serialize info) acls))
+        (let [thrift-assignment (thriftify-assignment info)]
+          (set-data cluster-state (assignment-path storm-id) (Utils/serialize thrift-assignment) acls)))
+
+      (setup-code-distributor!
+        [this storm-id nimbusInfo]
+        (let [path (str (code-distributor-path storm-id) "/" (.toHostPortString nimbusInfo))]
+        (mkdirs cluster-state (code-distributor-path storm-id) acls)
+        ;we delete the node first to ensure the node gets created as part of this session only.
+        (delete-node cluster-state path)
+        (set-ephemeral-node cluster-state path nil acls)))
 
       (remove-storm!
         [this storm-id]
         (delete-node cluster-state (assignment-path storm-id))
+        (delete-node cluster-state (code-distributor-path storm-id))
         (delete-node cluster-state (credentials-path storm-id))
         (remove-storm-base! this storm-id))
 
       (set-credentials!
          [this storm-id creds topo-conf]
          (let [topo-acls (mk-topo-only-acls topo-conf)
-               path (credentials-path storm-id)]
-           (set-data cluster-state path (Utils/serialize creds) topo-acls)))
+               path (credentials-path storm-id)
+               thriftified-creds (thriftify-credentials creds)]
+           (set-data cluster-state path (Utils/serialize thriftified-creds) topo-acls)))
 
       (credentials
         [this storm-id callback]
         (when callback
           (swap! credentials-callback assoc storm-id callback))
-        (maybe-deserialize (get-data cluster-state (credentials-path storm-id) (not-nil? callback))))
+        (clojurify-crdentials (maybe-deserialize (get-data cluster-state (credentials-path storm-id) (not-nil? callback)) Credentials)))
 
       (report-error
          [this storm-id component-id node port error]
          (let [path (error-path storm-id component-id)
-               data {:time-secs (current-time-secs) :error (stringify-error error) :host node :port port}
+               last-error-path (last-error-path storm-id component-id)
+               data (thriftify-error {:time-secs (current-time-secs) :error (stringify-error error) :host node :port port})
                _ (mkdirs cluster-state path acls)
-               _ (create-sequential cluster-state (str path "/e") (Utils/serialize data) acls)
+               ser-data (Utils/serialize data)
+               _ (mkdirs cluster-state path acls)
+               _ (create-sequential cluster-state (str path "/e") ser-data acls)
+               _ (set-data cluster-state last-error-path ser-data acls)
                to-kill (->> (get-children cluster-state path false)
                             (sort-by parse-error-path)
                             reverse
@@ -445,15 +607,24 @@
          (let [path (error-path storm-id component-id)
                errors (if (exists-node? cluster-state path false)
                         (dofor [c (get-children cluster-state path false)]
-                          (let [data (-> (get-data cluster-state (str path "/" c) false)
-                                         maybe-deserialize)]
-                            (when data
-                              (struct TaskError (:error data) (:time-secs data) (:host data) (:port data))
-                              )))
-                        ())
-               ]
+                          (if-let [data (-> (get-data cluster-state
+                                                      (str path "/" c)
+                                                      false)
+                                          (maybe-deserialize ErrorInfo)
+                                          clojurify-error)]
+                            (map->TaskError data)))
+                        ())]
            (->> (filter not-nil? errors)
                 (sort-by (comp - :time-secs)))))
+
+      (last-error
+        [this storm-id component-id]
+        (let [path (last-error-path storm-id component-id)]
+          (if (exists-node? cluster-state path false)
+            (if-let [data (-> (get-data cluster-state path false)
+                              (maybe-deserialize ErrorInfo)
+                              clojurify-error)]
+              (map->TaskError data)))))
       
       (disconnect
          [this]

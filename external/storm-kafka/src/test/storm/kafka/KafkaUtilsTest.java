@@ -28,24 +28,26 @@ import java.util.Properties;
 import kafka.api.OffsetRequest;
 import kafka.javaapi.consumer.SimpleConsumer;
 import kafka.javaapi.message.ByteBufferMessageSet;
-import kafka.javaapi.producer.Producer;
 import kafka.message.MessageAndOffset;
-import kafka.producer.KeyedMessage;
-import kafka.producer.ProducerConfig;
 
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import storm.kafka.trident.GlobalPartitionInformation;
 import backtype.storm.spout.SchemeAsMultiScheme;
 import backtype.storm.utils.Utils;
 
 import com.google.common.collect.ImmutableMap;
-
 public class KafkaUtilsTest {
 
+    private static final Logger LOG = LoggerFactory.getLogger(KafkaUtilsTest.class);
     private KafkaTestBroker broker;
     private SimpleConsumer simpleConsumer;
     private KafkaConfig config;
@@ -114,17 +116,17 @@ public class KafkaUtilsTest {
 
     @Test
     public void getOffsetFromConfigAndDontForceFromStart() {
-        config.forceFromStart = false;
+        config.ignoreZkOffsets = false;
         config.startOffsetTime = OffsetRequest.EarliestTime();
         createTopicAndSendMessage();
-        long latestOffset = KafkaUtils.getOffset(simpleConsumer, config.topic, 0, OffsetRequest.LatestTime());
+        long latestOffset = KafkaUtils.getOffset(simpleConsumer, config.topic, 0, OffsetRequest.EarliestTime());
         long offsetFromConfig = KafkaUtils.getOffset(simpleConsumer, config.topic, 0, config);
         assertThat(latestOffset, is(equalTo(offsetFromConfig)));
     }
 
     @Test
     public void getOffsetFromConfigAndFroceFromStart() {
-        config.forceFromStart = true;
+        config.ignoreZkOffsets = true;
         config.startOffsetTime = OffsetRequest.EarliestTime();
         createTopicAndSendMessage();
         long earliestOffset = KafkaUtils.getOffset(simpleConsumer, config.topic, 0, OffsetRequest.EarliestTime());
@@ -228,7 +230,6 @@ public class KafkaUtilsTest {
         }
     }
 
-
     private void createTopicAndSendMessage() {
         createTopicAndSendMessage(null, "someValue");
     }
@@ -239,13 +240,21 @@ public class KafkaUtilsTest {
 
     private void createTopicAndSendMessage(String key, String value) {
         Properties p = new Properties();
-        p.setProperty("metadata.broker.list", broker.getBrokerConnectionString());
-        p.setProperty("serializer.class", "kafka.serializer.StringEncoder");
-        ProducerConfig producerConfig = new ProducerConfig(p);
-        Producer<String, String> producer = new Producer<String, String>(producerConfig);
-        producer.send(new KeyedMessage<String, String>(config.topic, key, value));
+        p.put("acks", "1");
+        p.put("bootstrap.servers", broker.getBrokerConnectionString());
+        p.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        p.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        p.put("metadata.fetch.timeout.ms", 1000);
+        KafkaProducer<String, String> producer = new KafkaProducer<String, String>(p);
+        try {
+            producer.send(new ProducerRecord<String, String>(config.topic, key, value)).get();
+        } catch (Exception e) {
+            Assert.fail(e.getMessage());
+            LOG.error("Failed to do synchronous sending due to " + e, e);
+        } finally {
+            producer.close();
+        }
     }
-
 
     @Test
     public void assignOnePartitionPerTask() {

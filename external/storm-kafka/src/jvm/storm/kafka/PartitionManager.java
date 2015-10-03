@@ -91,9 +91,9 @@ public class PartitionManager {
         if (jsonTopologyId == null || jsonOffset == null) { // failed to parse JSON?
             _committedTo = currentOffset;
             LOG.info("No partition information found, using configuration to determine offset");
-        } else if (!topologyInstanceId.equals(jsonTopologyId) && spoutConfig.forceFromStart) {
+        } else if (!topologyInstanceId.equals(jsonTopologyId) && spoutConfig.ignoreZkOffsets) {
             _committedTo = KafkaUtils.getOffset(_consumer, spoutConfig.topic, id.partition, spoutConfig.startOffsetTime);
-            LOG.info("Topology change detected and reset from start forced, using configuration to determine offset");
+            LOG.info("Topology change detected and ignore zookeeper offsets set to true, using configuration to determine offset");
         } else {
             _committedTo = jsonOffset;
             LOG.info("Read last commit offset from zookeeper: " + _committedTo + "; old topology_id: " + jsonTopologyId + " - new topology_id: " + topologyInstanceId );
@@ -101,9 +101,10 @@ public class PartitionManager {
 
         if (currentOffset - _committedTo > spoutConfig.maxOffsetBehind || _committedTo <= 0) {
             LOG.info("Last commit offset from zookeeper: " + _committedTo);
+            Long lastCommittedOffset = _committedTo;
             _committedTo = currentOffset;
-            LOG.info("Commit offset " + _committedTo + " is more than " +
-                    spoutConfig.maxOffsetBehind + " behind, resetting to startOffsetTime=" + spoutConfig.startOffsetTime);
+            LOG.info("Commit offset " + lastCommittedOffset + " is more than " +
+                    spoutConfig.maxOffsetBehind + " behind latest offset " + currentOffset + ", resetting to startOffsetTime=" + spoutConfig.startOffsetTime);
         }
 
         LOG.info("Starting Kafka " + _consumer.host() + ":" + id.partition + " from offset " + _committedTo);
@@ -143,8 +144,14 @@ public class PartitionManager {
             }
             
             if (tups != null) {
-                for (List<Object> tup : tups) {
-                    collector.emit(tup, new KafkaMessageId(_partition, toEmit.offset));
+		if(_spoutConfig.topicAsStreamId) {
+	            for (List<Object> tup : tups) {
+			collector.emit(_spoutConfig.topic, tup, new KafkaMessageId(_partition, toEmit.offset));
+		    }
+		} else {
+		    for (List<Object> tup : tups) {
+			collector.emit(tup, new KafkaMessageId(_partition, toEmit.offset));
+		    }
                 }
                 break;
             } else {
@@ -177,6 +184,18 @@ public class PartitionManager {
             _emittedToOffset = KafkaUtils.getOffset(_consumer, _spoutConfig.topic, _partition.partition, kafka.api.OffsetRequest.EarliestTime());
             LOG.warn("Using new offset: {}", _emittedToOffset);
             // fetch failed, so don't update the metrics
+            
+            //fix bug [STORM-643] : remove outdated failed offsets
+            if (!processingNewTuples) {
+                // For the case of EarliestTime it would be better to discard
+                // all the failed offsets, that are earlier than actual EarliestTime
+                // offset, since they are anyway not there.
+                // These calls to broker API will be then saved.
+                Set<Long> omitted = this._failedMsgRetryManager.clearInvalidMessages(_emittedToOffset);
+                
+                LOG.warn("Removing the failed offsets that are out of range: {}", omitted);
+            }
+            
             return;
         }
         long end = System.nanoTime();
@@ -275,6 +294,7 @@ public class PartitionManager {
     }
 
     public void close() {
+        commit();
         _connections.unregister(_partition.host, _partition.partition);
     }
 

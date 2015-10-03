@@ -42,6 +42,10 @@ import java.util.Map;
  * Spouts.</p>
  */
 public class Config extends HashMap<String, Object> {
+
+    //DO NOT CHANGE UNLESS WE ADD IN STATE NOT STORED IN THE PARENT CLASS
+    private static final long serialVersionUID = -1550278723792864455L;
+
     /**
      * This is part of a temporary workaround to a ZK bug, it is the 'scheme:acl' for
      * the user Nimbus and Supervisors use to authenticate with ZK.
@@ -60,11 +64,11 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String STORM_MESSAGING_NETTY_BUFFER_SIZE = "storm.messaging.netty.buffer_size";
     public static final Object STORM_MESSAGING_NETTY_BUFFER_SIZE_SCHEMA = ConfigValidation.IntegerValidator;
-    
+
     /**
      * Netty based messaging: Sets the backlog value to specify when the channel binds to a local address
      */
-    public static final String STORM_MESSAGING_NETTY_SOCKET_BACKLOG = "storm.messaging.netty.socket.backlog"; 
+    public static final String STORM_MESSAGING_NETTY_SOCKET_BACKLOG = "storm.messaging.netty.socket.backlog";
     public static final Object STORM_MESSAGING_NETTY_SOCKET_BACKLOG_SCHEMA = ConfigValidation.IntegerValidator;
 
     /**
@@ -143,6 +147,14 @@ public class Config extends HashMap<String, Object> {
     public static final Object STORM_LOCAL_DIR_SCHEMA = String.class;
 
     /**
+     * A directory that holds configuration files for log4j2.
+     * It can be either a relative or an absolute directory.
+     * If relative, it is relative to the storm's home directory.
+     */
+    public static final String STORM_LOG4J2_CONF_DIR = "storm.log4j2.conf.dir";
+    public static final Object STORM_LOG4J2_CONF_DIR_SCHEMA = String.class;
+
+    /**
      * A global task scheduler used to assign topologies's tasks to supervisors' wokers.
      *
      * If this is not set, a default system scheduler will be used.
@@ -184,6 +196,14 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String STORM_GROUP_MAPPING_SERVICE_CACHE_DURATION_SECS = "storm.group.mapping.service.cache.duration.secs";
     public static final Object STORM_GROUP_MAPPING_SERVICE_CACHE_DURATION_SECS_SCHEMA = Number.class;
+
+    /**
+     * Initialization parameters for the group mapping service plugin.
+     * Provides a way for a @link{STORM_GROUP_MAPPING_SERVICE_PROVIDER_PLUGIN}
+     * implementation to access optional settings.
+     */
+    public static final String STORM_GROUP_MAPPING_SERVICE_PARAMS = "storm.group.mapping.service.params";
+    public static final Object STORM_GROUP_MAPPING_SERVICE_PARAMS_SCHEMA = Map.class;
 
     /**
      * The default transport plug-in for Thrift client/server communication
@@ -307,16 +327,24 @@ public class Config extends HashMap<String, Object> {
     public static final Object STORM_NIMBUS_RETRY_INTERVAL_CEILING_SCHEMA = Number.class;
 
     /**
-     * The host that the master server is running on.
-     */
-    public static final String NIMBUS_HOST = "nimbus.host";
-    public static final Object NIMBUS_HOST_SCHEMA = String.class;
-
-    /**
      * The Nimbus transport plug-in for Thrift client/server communication
      */
     public static final String NIMBUS_THRIFT_TRANSPORT_PLUGIN = "nimbus.thrift.transport";
     public static final Object NIMBUS_THRIFT_TRANSPORT_PLUGIN_SCHEMA = String.class;
+
+    /**
+     * The host that the master server is running on, added only for backward compatibility,
+     * the usage deprecated in favor of nimbus.seeds config.
+     */
+    @Deprecated
+    public static final String NIMBUS_HOST = "nimbus.host";
+    public static final Object NIMBUS_HOST_SCHEMA = String.class;
+
+    /**
+     * List of seed nimbus hosts to use for leader nimbus discovery.
+     */
+    public static final String NIMBUS_SEEDS = "nimbus.seeds";
+    public static final Object NIMBUS_SEEDS_SCHEMA = ConfigValidation.StringsValidator;
 
     /**
      * Which port the Thrift interface of Nimbus should run on. Clients should
@@ -337,6 +365,20 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String NIMBUS_ADMINS = "nimbus.admins";
     public static final Object NIMBUS_ADMINS_SCHEMA = ConfigValidation.StringsValidator;
+
+    /**
+     * A list of users that are the only ones allowed to run user operation on storm cluster.
+     * To use this set nimbus.authorizer to backtype.storm.security.auth.authorizer.SimpleACLAuthorizer
+     */
+    public static final String NIMBUS_USERS = "nimbus.users";
+    public static final Object NIMBUS_USERS_SCHEMA = ConfigValidation.StringsValidator;
+
+    /**
+     * A list of groups , users belong to these groups are the only ones allowed to run user operation on storm cluster.
+     * To use this set nimbus.authorizer to backtype.storm.security.auth.authorizer.SimpleACLAuthorizer
+     */
+    public static final String NIMBUS_GROUPS = "nimbus.groups";
+    public static final Object NIMBUS_GROUPS_SCHEMA = ConfigValidation.StringsValidator;
 
     /**
      * A list of users that run the supervisors and should be authorized to interact with
@@ -441,6 +483,20 @@ public class Config extends HashMap<String, Object> {
     public static final String NIMBUS_AUTHORIZER = "nimbus.authorizer";
     public static final Object NIMBUS_AUTHORIZER_SCHEMA = String.class;
 
+
+    /**
+     * Impersonation user ACL config entries.
+     */
+    public static final String NIMBUS_IMPERSONATION_AUTHORIZER = "nimbus.impersonation.authorizer";
+    public static final Object NIMBUS_IMPERSONATION_AUTHORIZER_SCHEMA = String.class;
+
+
+    /**
+     * Impersonation user ACL config entries.
+     */
+    public static final String NIMBUS_IMPERSONATION_ACL = "nimbus.impersonation.acl";
+    public static final Object NIMBUS_IMPERSONATION_ACL_SCHEMA = ConfigValidation.MapOfStringToMapValidator;
+
     /**
      * How often nimbus should wake up to renew credentials if needed.
      */
@@ -465,7 +521,7 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String UI_HOST = "ui.host";
     public static final Object UI_HOST_SCHEMA = String.class;
-    
+
     /**
      * Storm UI binds to this port.
      */
@@ -495,6 +551,65 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String LOGVIEWER_CLEANUP_AGE_MINS = "logviewer.cleanup.age.mins";
     public static final Object LOGVIEWER_CLEANUP_AGE_MINS_SCHEMA = ConfigValidation.PositiveIntegerValidator;
+
+    /**
+     * Storm Logviewer HTTPS port
+     */
+    public static final String LOGVIEWER_HTTPS_PORT = "logviewer.https.port";
+    public static final Object LOGVIEWER_HTTPS_PORT_SCHEMA = Number.class;
+
+    /**
+     * Path to the keystore containing the certs used by Storm Logviewer for HTTPS communications
+     */
+    public static final String LOGVIEWER_HTTPS_KEYSTORE_PATH = "logviewer.https.keystore.path";
+    public static final Object LOGVIEWER_HTTPS_KEYSTORE_PATH_SCHEMA = String.class;
+
+    /**
+     * Password for the keystore for HTTPS for Storm Logviewer
+     */
+    public static final String LOGVIEWER_HTTPS_KEYSTORE_PASSWORD = "logviewer.https.keystore.password";
+    public static final Object LOGVIEWER_HTTPS_KEYSTORE_PASSWORD_SCHEMA = String.class;
+
+    /**
+     * Type of the keystore for HTTPS for Storm Logviewer.
+     * see http://docs.oracle.com/javase/8/docs/api/java/security/KeyStore.html for more details.
+     */
+    public static final String LOGVIEWER_HTTPS_KEYSTORE_TYPE = "logviewer.https.keystore.type";
+    public static final Object LOGVIEWER_HTTPS_KEYSTORE_TYPE_SCHEMA = String.class;
+
+    /**
+     * Password to the private key in the keystore for settting up HTTPS (SSL).
+     */
+    public static final String LOGVIEWER_HTTPS_KEY_PASSWORD = "logviewer.https.key.password";
+    public static final Object LOGVIEWER_HTTPS_KEY_PASSWORD_SCHEMA = String.class;
+
+    /**
+     * Path to the truststore containing the certs used by Storm Logviewer for HTTPS communications
+     */
+    public static final String LOGVIEWER_HTTPS_TRUSTSTORE_PATH = "logviewer.https.truststore.path";
+    public static final Object LOGVIEWER_HTTPS_TRUSTSTORE_PATH_SCHEMA = String.class;
+
+    /**
+     * Password for the truststore for HTTPS for Storm Logviewer
+     */
+    public static final String LOGVIEWER_HTTPS_TRUSTSTORE_PASSWORD = "logviewer.https.truststore.password";
+    public static final Object LOGVIEWER_HTTPS_TRUSTSTORE_PASSWORD_SCHEMA = String.class;
+
+    /**
+     * Type of the truststore for HTTPS for Storm Logviewer.
+     * see http://docs.oracle.com/javase/8/docs/api/java/security/Truststore.html for more details.
+     */
+    public static final String LOGVIEWER_HTTPS_TRUSTSTORE_TYPE = "logviewer.https.truststore.type";
+    public static final Object LOGVIEWER_HTTPS_TRUSTSTORE_TYPE_SCHEMA = String.class;
+
+    /**
+     * Password to the truststore used by Storm Logviewer settting up HTTPS (SSL).
+     */
+    public static final String LOGVIEWER_HTTPS_WANT_CLIENT_AUTH = "logviewer.https.want.client.auth";
+    public static final Object LOGVIEWER_HTTPS_WANT_CLIENT_AUTH_SCHEMA = Boolean.class;
+
+    public static final String LOGVIEWER_HTTPS_NEED_CLIENT_AUTH = "logviewer.https.need.client.auth";
+    public static final Object LOGVIEWER_HTTPS_NEED_CLIENT_AUTH_SCHEMA = Boolean.class;
 
     /**
      * A list of users allowed to view logs via the Log Viewer
@@ -539,6 +654,66 @@ public class Config extends HashMap<String, Object> {
     public static final Object UI_HEADER_BUFFER_BYTES_SCHEMA = Number.class;
 
     /**
+     * This port is used by Storm DRPC for receiving HTTPS (SSL) DPRC requests from clients.
+     */
+    public static final String UI_HTTPS_PORT = "ui.https.port";
+    public static final Object UI_HTTPS_PORT_SCHEMA = Number.class;
+
+    /**
+     * Path to the keystore used by Storm UI for setting up HTTPS (SSL).
+     */
+    public static final String UI_HTTPS_KEYSTORE_PATH = "ui.https.keystore.path";
+    public static final Object UI_HTTPS_KEYSTORE_PATH_SCHEMA = String.class;
+
+    /**
+     * Password to the keystore used by Storm UI for setting up HTTPS (SSL).
+     */
+    public static final String UI_HTTPS_KEYSTORE_PASSWORD = "ui.https.keystore.password";
+    public static final Object UI_HTTPS_KEYSTORE_PASSWORD_SCHEMA = String.class;
+
+    /**
+     * Type of keystore used by Storm UI for setting up HTTPS (SSL).
+     * see http://docs.oracle.com/javase/7/docs/api/java/security/KeyStore.html for more details.
+     */
+    public static final String UI_HTTPS_KEYSTORE_TYPE = "ui.https.keystore.type";
+    public static final Object UI_HTTPS_KEYSTORE_TYPE_SCHEMA = String.class;
+
+    /**
+     * Password to the private key in the keystore for settting up HTTPS (SSL).
+     */
+    public static final String UI_HTTPS_KEY_PASSWORD = "ui.https.key.password";
+    public static final Object UI_HTTPS_KEY_PASSWORD_SCHEMA = String.class;
+
+    /**
+     * Path to the truststore used by Storm UI settting up HTTPS (SSL).
+     */
+    public static final String UI_HTTPS_TRUSTSTORE_PATH = "ui.https.truststore.path";
+    public static final Object UI_HTTPS_TRUSTSTORE_PATH_SCHEMA = String.class;
+
+    /**
+     * Password to the truststore used by Storm UI settting up HTTPS (SSL).
+     */
+    public static final String UI_HTTPS_TRUSTSTORE_PASSWORD = "ui.https.truststore.password";
+    public static final Object UI_HTTPS_TRUSTSTORE_PASSWORD_SCHEMA = String.class;
+
+    /**
+     * Type of truststore used by Storm UI for setting up HTTPS (SSL).
+     * see http://docs.oracle.com/javase/7/docs/api/java/security/KeyStore.html for more details.
+     */
+    public static final String UI_HTTPS_TRUSTSTORE_TYPE = "ui.https.truststore.type";
+    public static final Object UI_HTTPS_TRUSTSTORE_TYPE_SCHEMA = String.class;
+
+    /**
+     * Password to the truststore used by Storm DRPC settting up HTTPS (SSL).
+     */
+    public static final String UI_HTTPS_WANT_CLIENT_AUTH = "ui.https.want.client.auth";
+    public static final Object UI_HTTPS_WANT_CLIENT_AUTH_SCHEMA = Boolean.class;
+
+    public static final String UI_HTTPS_NEED_CLIENT_AUTH = "ui.https.need.client.auth";
+    public static final Object UI_HTTPS_NEED_CLIENT_AUTH_SCHEMA = Boolean.class;
+
+
+    /**
      * List of DRPC servers so that the DRPCSpout knows who to talk to.
      */
     public static final String DRPC_SERVERS = "drpc.servers";
@@ -574,6 +749,40 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String DRPC_HTTPS_KEYSTORE_TYPE = "drpc.https.keystore.type";
     public static final Object DRPC_HTTPS_KEYSTORE_TYPE_SCHEMA = String.class;
+
+    /**
+     * Password to the private key in the keystore for settting up HTTPS (SSL).
+     */
+    public static final String DRPC_HTTPS_KEY_PASSWORD = "drpc.https.key.password";
+    public static final Object DRPC_HTTPS_KEY_PASSWORD_SCHEMA = String.class;
+
+    /**
+     * Path to the truststore used by Storm DRPC settting up HTTPS (SSL).
+     */
+    public static final String DRPC_HTTPS_TRUSTSTORE_PATH = "drpc.https.truststore.path";
+    public static final Object DRPC_HTTPS_TRUSTSTORE_PATH_SCHEMA = String.class;
+
+    /**
+     * Password to the truststore used by Storm DRPC settting up HTTPS (SSL).
+     */
+    public static final String DRPC_HTTPS_TRUSTSTORE_PASSWORD = "drpc.https.truststore.password";
+    public static final Object DRPC_HTTPS_TRUSTSTORE_PASSWORD_SCHEMA = String.class;
+
+    /**
+     * Type of truststore used by Storm DRPC for setting up HTTPS (SSL).
+     * see http://docs.oracle.com/javase/7/docs/api/java/security/KeyStore.html for more details.
+     */
+    public static final String DRPC_HTTPS_TRUSTSTORE_TYPE = "drpc.https.truststore.type";
+    public static final Object DRPC_HTTPS_TRUSTSTORE_TYPE_SCHEMA = String.class;
+
+    /**
+     * Password to the truststore used by Storm DRPC settting up HTTPS (SSL).
+     */
+    public static final String DRPC_HTTPS_WANT_CLIENT_AUTH = "drpc.https.want.client.auth";
+    public static final Object DRPC_HTTPS_WANT_CLIENT_AUTH_SCHEMA = Boolean.class;
+
+    public static final String DRPC_HTTPS_NEED_CLIENT_AUTH = "drpc.https.need.client.auth";
+    public static final Object DRPC_HTTPS_NEED_CLIENT_AUTH_SCHEMA = Boolean.class;
 
     /**
      * The DRPC transport plug-in for Thrift client/server communication
@@ -661,7 +870,7 @@ public class Config extends HashMap<String, Object> {
      * timeout for the topology implementing the DRPC function.
      */
     public static final String DRPC_REQUEST_TIMEOUT_SECS  = "drpc.request.timeout.secs";
-    public static final Object DRPC_REQUEST_TIMEOUT_SECS_SCHEMA = ConfigValidation.IntegerValidator;
+    public static final Object DRPC_REQUEST_TIMEOUT_SECS_SCHEMA = ConfigValidation.NotNullPosIntegerValidator;
 
     /**
      * Childopts for Storm DRPC Java process.
@@ -692,7 +901,7 @@ public class Config extends HashMap<String, Object> {
      * how many workers run on each machine.
      */
     public static final String SUPERVISOR_SLOTS_PORTS = "supervisor.slots.ports";
-    public static final Object SUPERVISOR_SLOTS_PORTS_SCHEMA = ConfigValidation.IntegersValidator;
+    public static final Object SUPERVISOR_SLOTS_PORTS_SCHEMA = ConfigValidation.NoDuplicateIntegersValidator;
 
     /**
      * A number representing the maximum number of workers any single topology can acquire.
@@ -731,7 +940,13 @@ public class Config extends HashMap<String, Object> {
      * restart the worker process.
      */
     public static final String SUPERVISOR_WORKER_TIMEOUT_SECS = "supervisor.worker.timeout.secs";
-    public static final Object SUPERVISOR_WORKER_TIMEOUT_SECS_SCHEMA = ConfigValidation.IntegerValidator;
+    public static final Object SUPERVISOR_WORKER_TIMEOUT_SECS_SCHEMA = ConfigValidation.NotNullPosIntegerValidator;
+
+    /**
+     * How many seconds to sleep for before shutting down threads on worker
+     */
+    public static final String SUPERVISOR_WORKER_SHUTDOWN_SLEEP_SECS = "supervisor.worker.shutdown.sleep.secs";
+    public static final Object SUPERVISOR_WORKER_SHUTDOWN_SLEEP_SECS_SCHEMA = ConfigValidation.IntegerValidator;
 
     /**
      * How long a worker can go without heartbeating during the initial launch before
@@ -740,7 +955,7 @@ public class Config extends HashMap<String, Object> {
      * overhead to starting and configuring the JVM on launch.
      */
     public static final String SUPERVISOR_WORKER_START_TIMEOUT_SECS = "supervisor.worker.start.timeout.secs";
-    public static final Object SUPERVISOR_WORKER_START_TIMEOUT_SECS_SCHEMA = ConfigValidation.IntegerValidator;
+    public static final Object SUPERVISOR_WORKER_START_TIMEOUT_SECS_SCHEMA = ConfigValidation.NotNullPosIntegerValidator;
 
     /**
      * Whether or not the supervisor should launch workers assigned to it. Defaults
@@ -834,6 +1049,29 @@ public class Config extends HashMap<String, Object> {
 
 
     /**
+     * Whether to enable backpressure in for a certain topology
+     */
+    public static final String TOPOLOGY_BACKPRESSURE_ENABLE = "topology.backpressure.enable";
+    public static final Object TOPOLOGY_BACKPRESSURE_ENABLE_SCHEMA = Boolean.class;
+
+    /**
+     * This signifies the tuple congestion in a disruptor queue.
+     * When the used ratio of a disruptor queue is higher than the high watermark,
+     * the backpressure scheme, if enabled, should slow down the tuple sending speed of
+     * the spouts until reaching the low watermark.
+     */
+    public static final String BACKPRESSURE_DISRUPTOR_HIGH_WATERMARK="backpressure.disruptor.high.watermark";
+    public static final Object BACKPRESSURE_DISRUPTOR_HIGH_WATERMARK_SCHEMA =ConfigValidation.PositiveNumberValidator;
+
+    /**
+     * This signifies a state that a disruptor queue has left the congestion.
+     * If the used ratio of a disruptor queue is lower than the low watermark,
+     * it will unset the backpressure flag.
+     */
+    public static final String BACKPRESSURE_DISRUPTOR_LOW_WATERMARK="backpressure.disruptor.low.watermark";
+    public static final Object BACKPRESSURE_DISRUPTOR_LOW_WATERMARK_SCHEMA =ConfigValidation.PositiveNumberValidator;
+
+    /**
      * A list of users that are allowed to interact with the topology.  To use this set
      * nimbus.authorizer to backtype.storm.security.auth.authorizer.SimpleACLAuthorizer
      */
@@ -890,12 +1128,22 @@ public class Config extends HashMap<String, Object> {
     /**
      * How many executors to spawn for ackers.
      *
-     * <p>If this is set to 0, then Storm will immediately ack tuples as soon
-     * as they come off the spout, effectively disabling reliability.</p>
+     * <p>By not setting this variable or setting it as null, Storm will set the number of acker executors
+     * to be equal to the number of workers configured for this topology. If this variable is set to 0,
+     * then Storm will immediately ack tuples as soon as they come off the spout, effectively disabling reliability.</p>
      */
     public static final String TOPOLOGY_ACKER_EXECUTORS = "topology.acker.executors";
     public static final Object TOPOLOGY_ACKER_EXECUTORS_SCHEMA = ConfigValidation.IntegerValidator;
 
+    /**
+     * How many executors to spawn for event logger.
+     *
+     * <p>By not setting this variable or setting it as null, Storm will set the number of eventlogger executors
+     * to be equal to the number of workers configured for this topology. If this variable is set to 0,
+     * event logging will be disabled.</p>
+     */
+    public static final String TOPOLOGY_EVENTLOGGER_EXECUTORS = "topology.eventlogger.executors";
+    public static final Object TOPOLOGY_EVENTLOGGER_EXECUTORS_SCHEMA = ConfigValidation.IntegerValidator;
 
     /**
      * The maximum amount of time given to the topology to fully process a message
@@ -904,7 +1152,7 @@ public class Config extends HashMap<String, Object> {
      * the message at a later time.
      */
     public static final String TOPOLOGY_MESSAGE_TIMEOUT_SECS = "topology.message.timeout.secs";
-    public static final Object TOPOLOGY_MESSAGE_TIMEOUT_SECS_SCHEMA = ConfigValidation.IntegerValidator;
+    public static final Object TOPOLOGY_MESSAGE_TIMEOUT_SECS_SCHEMA = ConfigValidation.NotNullPosIntegerValidator;
 
     /**
      * A list of serialization registrations for Kryo ( http://code.google.com/p/kryo/ ),
@@ -948,7 +1196,7 @@ public class Config extends HashMap<String, Object> {
     public static final String TOPOLOGY_SKIP_MISSING_KRYO_REGISTRATIONS= "topology.skip.missing.kryo.registrations";
     public static final Object TOPOLOGY_SKIP_MISSING_KRYO_REGISTRATIONS_SCHEMA = Boolean.class;
 
-    /*
+    /**
      * A list of classes implementing IMetricsConsumer (See storm.yaml.example for exact config format).
      * Each listed class will be routed all the metrics data generated by the storm metrics API.
      * Each listed class maps 1:1 to a system bolt named __metrics_ClassName#N, and it's parallelism is configurable.
@@ -956,6 +1204,17 @@ public class Config extends HashMap<String, Object> {
     public static final String TOPOLOGY_METRICS_CONSUMER_REGISTER = "topology.metrics.consumer.register";
     public static final Object TOPOLOGY_METRICS_CONSUMER_REGISTER_SCHEMA = ConfigValidation.MapsValidator;
 
+    /**
+     * A map of metric name to class name implementing IMetric that will be created once per worker JVM
+     */
+    public static final String TOPOLOGY_WORKER_METRICS = "topology.worker.metrics";
+    public static final Object TOPOLOGY_WORKER_METRICS_SCHEMA = Map.class;
+
+    /**
+     * A map of metric name to class name implementing IMetric that will be created once per worker JVM
+     */
+    public static final String WORKER_METRICS = "worker.metrics";
+    public static final Object WORKER_METRICS_SCHEMA = Map.class;
 
     /**
      * The maximum parallelism allowed for a component in this topology. This configuration is
@@ -997,13 +1256,13 @@ public class Config extends HashMap<String, Object> {
      * synchronization again.
      */
     public static final String TOPOLOGY_STATE_SYNCHRONIZATION_TIMEOUT_SECS="topology.state.synchronization.timeout.secs";
-    public static final Object TOPOLOGY_STATE_SYNCHRONIZATION_TIMEOUT_SECS_SCHEMA = ConfigValidation.IntegerValidator;
+    public static final Object TOPOLOGY_STATE_SYNCHRONIZATION_TIMEOUT_SECS_SCHEMA = ConfigValidation.NotNullPosIntegerValidator;
 
     /**
      * The percentage of tuples to sample to produce stats for a task.
      */
     public static final String TOPOLOGY_STATS_SAMPLE_RATE="topology.stats.sample.rate";
-    public static final Object TOPOLOGY_STATS_SAMPLE_RATE_SCHEMA = ConfigValidation.DoubleValidator;
+    public static final Object TOPOLOGY_STATS_SAMPLE_RATE_SCHEMA =ConfigValidation.PositiveNumberValidator;
 
     /**
      * The time period that builtin metrics data in bucketed into.
@@ -1028,6 +1287,12 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String TOPOLOGY_WORKER_GC_CHILDOPTS="topology.worker.gc.childopts";
     public static final Object TOPOLOGY_WORKER_GC_CHILDOPTS_SCHEMA = ConfigValidation.StringOrStringListValidator;
+
+    /**
+     * Topology-specific options for the logwriter process of a worker.
+     */
+    public static final String TOPOLOGY_WORKER_LOGWRITER_CHILDOPTS="topology.worker.logwriter.childopts";
+    public static final Object TOPOLOGY_WORKER_LOGWRITER_CHILDOPTS_SCHEMA = ConfigValidation.StringOrStringListValidator;
 
     /**
      * Topology-specific classpath for the worker child process. This is combined to the usual classpath.
@@ -1074,13 +1339,6 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String TOPOLOGY_EXECUTOR_RECEIVE_BUFFER_SIZE="topology.executor.receive.buffer.size";
     public static final Object TOPOLOGY_EXECUTOR_RECEIVE_BUFFER_SIZE_SCHEMA = ConfigValidation.PowerOf2Validator;
-
-    /**
-     * The maximum number of messages to batch from the thread receiving off the network to the
-     * executor queues. Must be a power of 2.
-     */
-    public static final String TOPOLOGY_RECEIVER_BUFFER_SIZE="topology.receiver.buffer.size";
-    public static final Object TOPOLOGY_RECEIVER_BUFFER_SIZE_SCHEMA = ConfigValidation.PowerOf2Validator;
 
     /**
      * The size of the Disruptor send queue for each executor. Must be a power of 2.
@@ -1174,6 +1432,17 @@ public class Config extends HashMap<String, Object> {
     public static final Object TOPOLOGY_SHELLBOLT_MAX_PENDING_SCHEMA = ConfigValidation.IntegerValidator;
 
     /**
+     * Topology central logging sensitivity to determine who has access to logs in central logging system.
+     * The possible values are:
+     *   S0 - Public (open to all users on grid)
+     *   S1 - Restricted
+     *   S2 - Confidential
+     *   S3 - Secret (default.)
+     */
+    public static final String TOPOLOGY_LOGGING_SENSITIVITY="topology.logging.sensitivity";
+    public static final Object TOPOLOGY_LOGGING_SENSITIVITY_SCHEMA = String.class;
+
+    /**
      * The root directory in ZooKeeper for metadata about TransactionalSpouts.
      */
     public static final String TRANSACTIONAL_ZOOKEEPER_ROOT="transactional.zookeeper.root";
@@ -1192,6 +1461,12 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String TRANSACTIONAL_ZOOKEEPER_PORT="transactional.zookeeper.port";
     public static final Object TRANSACTIONAL_ZOOKEEPER_PORT_SCHEMA = ConfigValidation.IntegerValidator;
+
+    /**
+     * The user as which the nimbus client should be acquired to perform the operation.
+     */
+    public static final String STORM_DO_AS_USER="storm.doAsUser";
+    public static final Object STORM_DO_AS_USER_SCHEMA = String.class;
 
     /**
      * The number of threads that should be used by the zeromq context in each worker process.
@@ -1252,6 +1527,43 @@ public class Config extends HashMap<String, Object> {
     public static final String TOPOLOGY_ISOLATED_MACHINES = "topology.isolate.machines";
     public static final Object TOPOLOGY_ISOLATED_MACHINES_SCHEMA = Number.class;
 
+    /**
+     * Configure timeout milliseconds used for disruptor queue wait strategy. Can be used to tradeoff latency
+     * vs. CPU usage
+     */
+    public static final String TOPOLOGY_DISRUPTOR_WAIT_TIMEOUT_MILLIS="topology.disruptor.wait.timeout.millis";
+    public static final Object TOPOLOGY_DISRUPTOR_WAIT_TIMEOUT_MILLIS_SCHEMA = ConfigValidation.NotNullPosIntegerValidator;
+
+    /**
+     * Which implementation of {@link backtype.storm.codedistributor.ICodeDistributor} should be used by storm for code
+     * distribution.
+     */
+    public static final String STORM_CODE_DISTRIBUTOR_CLASS = "storm.codedistributor.class";
+    public static final Object STORM_CODE_DISTRIBUTOR_CLASS_SCHEMA = String.class;
+
+    /**
+     * Minimum number of nimbus hosts where the code must be replicated before leader nimbus
+     * is allowed to perform topology activation tasks like setting up heartbeats/assignments
+     * and marking the topology as active. default is 0.
+     */
+    public static final String TOPOLOGY_MIN_REPLICATION_COUNT = "topology.min.replication.count";
+    public static final Object TOPOLOGY_MIN_REPLICATION_COUNT_SCHEMA = Number.class;
+
+    /**
+     * Maximum wait time for the nimbus host replication to achieve the nimbus.min.replication.count.
+     * Once this time is elapsed nimbus will go ahead and perform topology activation tasks even
+     * if required nimbus.min.replication.count is not achieved. The default is 0 seconds, a value of
+     * -1 indicates to wait for ever.
+     */
+    public static final String TOPOLOGY_MAX_REPLICATION_WAIT_TIME_SEC = "topology.max.replication.wait.time.sec";
+    public static final Object TOPOLOGY_MAX_REPLICATION_WAIT_TIME_SEC_SCHEMA = Number.class;
+
+    /**
+     * How often nimbus's background thread to sync code for missing topologies should run.
+     */
+    public static final String NIMBUS_CODE_SYNC_FREQ_SECS = "nimbus.code.sync.freq.secs";
+    public static final Object NIMBUS_CODE_SYNC_FREQ_SECS_SCHEMA = ConfigValidation.IntegerValidator;
+
     public static void setClasspath(Map conf, String cp) {
         conf.put(Config.TOPOLOGY_CLASSPATH, cp);
     }
@@ -1291,6 +1603,15 @@ public class Config extends HashMap<String, Object> {
     public void setNumAckers(int numExecutors) {
         setNumAckers(this, numExecutors);
     }
+
+    public static void setNumEventLoggers(Map conf, int numExecutors) {
+        conf.put(Config.TOPOLOGY_EVENTLOGGER_EXECUTORS, numExecutors);
+    }
+
+    public void setNumEventLoggers(int numExecutors) {
+        setNumEventLoggers(this, numExecutors);
+    }
+
 
     public static void setMessageTimeoutSecs(Map conf, int secs) {
         conf.put(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS, secs);

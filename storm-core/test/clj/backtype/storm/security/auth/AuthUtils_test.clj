@@ -18,11 +18,7 @@
   (:import [java.io IOException])
   (:import [javax.security.auth.login AppConfigurationEntry Configuration])
   (:import [org.mockito Mockito])
-  (:use [clojure test])
-  (:use [backtype.storm bootstrap])
-)
-
-(bootstrap)
+  (:use [clojure test]))
 
 (deftest test-throws-on-missing-section
   (is (thrown? IOException

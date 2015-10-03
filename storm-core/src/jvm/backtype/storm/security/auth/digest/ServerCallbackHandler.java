@@ -20,8 +20,13 @@ package backtype.storm.security.auth.digest;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+
+import backtype.storm.security.auth.ReqContext;
+import backtype.storm.security.auth.SaslTransportPlugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.security.auth.Subject;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.NameCallback;
@@ -107,8 +112,20 @@ public class ServerCallbackHandler implements CallbackHandler {
 
     private void handleAuthorizeCallback(AuthorizeCallback ac) {
         String authenticationID = ac.getAuthenticationID();
-        LOG.debug("Successfully authenticated client: authenticationID=" + authenticationID);
-        ac.setAuthorizedID(authenticationID);
+        LOG.info("Successfully authenticated client: authenticationID = " + authenticationID + " authorizationID = " + ac.getAuthorizationID());
+
+        //if authorizationId is not set, set it to authenticationId.
+        if(ac.getAuthorizationID() == null) {
+            ac.setAuthorizedID(authenticationID);
+        }
+
+        //When authNid and authZid are not equal , authNId is attempting to impersonate authZid, We
+        //add the authNid as the real user in reqContext's subject which will be used during authorization.
+        if(!authenticationID.equals(ac.getAuthorizationID())) {
+            LOG.info("Impersonation attempt  authenticationID = " + ac.getAuthenticationID() + " authorizationID = " + ac.getAuthorizationID());
+            ReqContext.context().setRealPrincipal(new SaslTransportPlugin.User(ac.getAuthenticationID()));
+        }
+
         ac.setAuthorized(true);
     }
 }

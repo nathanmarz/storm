@@ -33,7 +33,7 @@ storm jar all-my-code.jar backtype.storm.MyTopology arg1 arg2
 
 This runs the class `backtype.storm.MyTopology` with the arguments `arg1` and `arg2`. The main function of the class defines the topology and submits it to Nimbus. The `storm jar` part takes care of connecting to Nimbus and uploading the jar.
 
-Since topology definitions are just Thrift structs, and Nimbus is a Thrift service, you can create and submit topologies using any programming language. The above example is the easiest way to do it from a JVM-based language. See [Running topologies on a production cluster](Running-topologies-on-a-production-cluster.html)] for more information on starting and stopping topologies.
+Since topology definitions are just Thrift structs, and Nimbus is a Thrift service, you can create and submit topologies using any programming language. The above example is the easiest way to do it from a JVM-based language. See [Running topologies on a production cluster](Running-topologies-on-a-production-cluster.html) for more information on starting and stopping topologies.
 
 ## Streams
 
@@ -103,11 +103,11 @@ This topology contains a spout and two bolts. The spout emits words, and each bo
 
 This code defines the nodes using the `setSpout` and `setBolt` methods. These methods take as input a user-specified id, an object containing the processing logic, and the amount of parallelism you want for the node. In this example, the spout is given id "words" and the bolts are given ids "exclaim1" and "exclaim2". 
 
-The object containing the processing logic implements the [IRichSpout](/apidocs/backtype/storm/topology/IRichSpout.html) interface for spouts and the [IRichBolt](/apidocs/backtype/storm/topology/IRichBolt.html) interface for bolts. 
+The object containing the processing logic implements the [IRichSpout](/javadoc/apidocs/backtype/storm/topology/IRichSpout.html) interface for spouts and the [IRichBolt](/javadoc/apidocs/backtype/storm/topology/IRichBolt.html) interface for bolts.
 
 The last parameter, how much parallelism you want for the node, is optional. It indicates how many threads should execute that component across the cluster. If you omit it, Storm will only allocate one thread for that node.
 
-`setBolt` returns an [InputDeclarer](/apidocs/backtype/storm/topology/InputDeclarer.html) object that is used to define the inputs to the Bolt. Here, component "exclaim1" declares that it wants to read all the tuples emitted by component "words" using a shuffle grouping, and component "exclaim2" declares that it wants to read all the tuples emitted by component "exclaim1" using a shuffle grouping. "shuffle grouping" means that tuples should be randomly distributed from the input tasks to the bolt's tasks. There are many ways to group data between components. These will be explained in a few sections.
+`setBolt` returns an [InputDeclarer](/javadoc/apidocs/backtype/storm/topology/InputDeclarer.html) object that is used to define the inputs to the Bolt. Here, component "exclaim1" declares that it wants to read all the tuples emitted by component "words" using a shuffle grouping, and component "exclaim2" declares that it wants to read all the tuples emitted by component "exclaim1" using a shuffle grouping. "shuffle grouping" means that tuples should be randomly distributed from the input tasks to the bolt's tasks. There are many ways to group data between components. These will be explained in a few sections.
 
 If you wanted component "exclaim2" to read all the tuples emitted by both component "words" and component "exclaim1", you would write component "exclaim2"'s definition like this:
 
@@ -139,23 +139,28 @@ As you can see, the implementation is very straightforward.
 public static class ExclamationBolt implements IRichBolt {
     OutputCollector _collector;
 
+    @Override
     public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
         _collector = collector;
     }
 
+    @Override
     public void execute(Tuple tuple) {
         _collector.emit(tuple, new Values(tuple.getString(0) + "!!!"));
         _collector.ack(tuple);
     }
 
+    @Override
     public void cleanup() {
     }
 
+    @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declare(new Fields("word"));
     }
     
-    public Map getComponentConfiguration() {
+    @Override
+    public Map<String, Object> getComponentConfiguration() {
         return null;
     }
 }
@@ -163,9 +168,9 @@ public static class ExclamationBolt implements IRichBolt {
 
 The `prepare` method provides the bolt with an `OutputCollector` that is used for emitting tuples from this bolt. Tuples can be emitted at anytime from the bolt -- in the `prepare`, `execute`, or `cleanup` methods, or even asynchronously in another thread. This `prepare` implementation simply saves the `OutputCollector` as an instance variable to be used later on in the `execute` method.
 
-The `execute` method receives a tuple from one of the bolt's inputs. The `ExclamationBolt` grabs the first field from the tuple and emits a new tuple with the string "!!!" appended to it. If you implement a bolt that subscribes to multiple input sources, you can find out which component the [Tuple](/apidocs/backtype/storm/tuple/Tuple.html) came from by using the `Tuple#getSourceComponent` method.
+The `execute` method receives a tuple from one of the bolt's inputs. The `ExclamationBolt` grabs the first field from the tuple and emits a new tuple with the string "!!!" appended to it. If you implement a bolt that subscribes to multiple input sources, you can find out which component the [Tuple](/javadoc/apidocs/backtype/storm/tuple/Tuple.html) came from by using the `Tuple#getSourceComponent` method.
 
-There's a few other things going in in the `execute` method, namely that the input tuple is passed as the first argument to `emit` and the input tuple is acked on the final line. These are part of Storm's reliability API for guaranteeing no data loss and will be explained later in this tutorial. 
+There's a few other things going on in the `execute` method, namely that the input tuple is passed as the first argument to `emit` and the input tuple is acked on the final line. These are part of Storm's reliability API for guaranteeing no data loss and will be explained later in this tutorial. 
 
 The `cleanup` method is called when a Bolt is being shutdown and should cleanup any resources that were opened. There's no guarantee that this method will be called on the cluster: for example, if the machine the task is running on blows up, there's no way to invoke the method. The `cleanup` method is intended for when you run topologies in [local mode](Local-mode.html) (where a Storm cluster is simulated in process), and you want to be able to run and kill many topologies without suffering any resource leaks.
 
@@ -179,15 +184,18 @@ Methods like `cleanup` and `getComponentConfiguration` are often not needed in a
 public static class ExclamationBolt extends BaseRichBolt {
     OutputCollector _collector;
 
+    @Override
     public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
         _collector = collector;
     }
 
+    @Override
     public void execute(Tuple tuple) {
         _collector.emit(tuple, new Values(tuple.getString(0) + "!!!"));
         _collector.ack(tuple);
     }
 
+    @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declare(new Fields("word"));
     }    
@@ -225,7 +233,7 @@ The configuration is used to tune various aspects of the running topology. The t
 1. **TOPOLOGY_WORKERS** (set with `setNumWorkers`) specifies how many _processes_ you want allocated around the cluster to execute the topology. Each component in the topology will execute as many _threads_. The number of threads allocated to a given component is configured through the `setBolt` and `setSpout` methods. Those _threads_ exist within worker _processes_. Each worker _process_ contains within it some number of _threads_ for some number of components. For instance, you may have 300 threads specified across all your components and 50 worker processes specified in your config. Each worker process will execute 6 threads, each of which of could belong to a different component. You tune the performance of Storm topologies by tweaking the parallelism for each component and the number of worker processes those threads should run within.
 2. **TOPOLOGY_DEBUG** (set with `setDebug`), when set to true, tells Storm to log every message every emitted by a component. This is useful in local mode when testing topologies, but you probably want to keep this turned off when running topologies on the cluster.
 
-There's many other configurations you can set for the topology. The various configurations are detailed on [the Javadoc for Config](/apidocs/backtype/storm/Config.html).
+There's many other configurations you can set for the topology. The various configurations are detailed on [the Javadoc for Config](/javadoc/apidocs/backtype/storm/Config.html).
 
 To learn about how to set up your development environment so that you can run topologies in local mode (such as in Eclipse), see [Creating a new Storm project](Creating-a-new-Storm-project.html).
 

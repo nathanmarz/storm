@@ -21,7 +21,7 @@ Storm uses [this fork](https://github.com/nathanmarz/thrift/tree/storm) of Thrif
 
 Every spout or bolt in a topology is given a user-specified identifier called the "component id". The component id is used to specify subscriptions from a bolt to the output streams of other spouts or bolts. A [StormTopology](https://github.com/apache/storm/blob/master/storm-core/src/storm.thrift#L91) structure contains a map from component id to component for each type of component (spouts and bolts).
 
-Spouts and bolts have the same Thrift definition, so let's just take a look at the [Thrift definition for bolts](https://github.com/apache/storm/blob/master/storm-core/src/storm.thrift#L79). It contains a `ComponentObject` struct and a `ComponentCommon` struct.
+Spouts and bolts have the same Thrift definition, so let's just take a look at the [Thrift definition for bolts](https://github.com/apache/storm/blob/master/storm-core/src/storm.thrift#L102). It contains a `ComponentObject` struct and a `ComponentCommon` struct.
 
 The `ComponentObject` defines the implementation for the bolt. It can be one of three types:
 
@@ -42,16 +42,16 @@ Note that the structure spouts also have a `ComponentCommon` field, and so spout
 
 The interfaces for Storm are generally specified as Java interfaces. The main interfaces are:
 
-1. [IRichBolt](/apidocs/backtype/storm/topology/IRichBolt.html)
-2. [IRichSpout](/apidocs/backtype/storm/topology/IRichSpout.html)
-3. [TopologyBuilder](/apidocs/backtype/storm/topology/TopologyBuilder.html)
+1. [IRichBolt](/javadoc/apidocs/backtype/storm/topology/IRichBolt.html)
+2. [IRichSpout](/javadoc/apidocs/backtype/storm/topology/IRichSpout.html)
+3. [TopologyBuilder](/javadoc/apidocs/backtype/storm/topology/TopologyBuilder.html)
 
 The strategy for the majority of the interfaces is to:
 
 1. Specify the interface using a Java interface
 2. Provide a base class that provides default implementations when appropriate
 
-You can see this strategy at work with the [BaseRichSpout](/apidocs/backtype/storm/topology/base/BaseRichSpout.html) class. 
+You can see this strategy at work with the [BaseRichSpout](/javadoc/apidocs/backtype/storm/topology/base/BaseRichSpout.html) class.
 
 Spouts and bolts are serialized into the Thrift definition of the topology as described above. 
 

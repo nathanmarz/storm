@@ -25,14 +25,13 @@
   (:import [backtype.storm.drpc DRPCInvocationsClient])
   (:import [java.util.concurrent TimeUnit])
   (:import [javax.security.auth Subject])
-  (:use [backtype.storm bootstrap util])
+  (:use [backtype.storm util config log])
   (:use [backtype.storm.daemon common])
-  (:use [backtype.storm bootstrap testing])
-  )
-
-(bootstrap)
+  (:use [backtype.storm testing]))
 
 (def drpc-timeout (Integer. 30))
+
+(def DRPC-TIMEOUT-SEC (* (/ TEST-TIMEOUT-MS 1000) 2))
 
 (defn launch-server [conf drpcAznClass transportPluginClass login-cfg client-port invocations-port]
   (let [conf (if drpcAznClass (assoc conf DRPC-AUTHORIZER drpcAznClass) conf)
@@ -148,7 +147,7 @@
 
 (deftest drpc-per-function-auth-strict-test
   (with-simple-drpc-test-scenario [true alice-client bob-client charlie-client alice-invok charlie-invok]
-    (let [drpc-timeout-seconds 10]
+    (let [drpc-timeout-seconds DRPC-TIMEOUT-SEC]
       (testing "Permitted user can execute a function in the ACL"
         (let [func "jump"
               exec-ftr (future (.execute alice-client func "some args"))
@@ -224,7 +223,7 @@
 
 (deftest drpc-per-function-auth-non-strict-test
   (with-simple-drpc-test-scenario [false alice-client bob-client charlie-client alice-invok charlie-invok]
-    (let [drpc-timeout-seconds 10]
+    (let [drpc-timeout-seconds DRPC-TIMEOUT-SEC]
       (testing "Permitted user can execute a function in the ACL"
         (let [func "jump"
               exec-ftr (future (.execute alice-client func "some args"))

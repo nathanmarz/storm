@@ -20,13 +20,17 @@
          [string :only [blank? join]]
          [walk :only [keywordize-keys]]])
   (:use [backtype.storm config log])
-  (:use [backtype.storm.util :only [clojurify-structure uuid defnk url-encode]])
+  (:use [backtype.storm.util :only [clojurify-structure uuid defnk url-encode not-nil?]])
   (:use [clj-time coerce format])
   (:import [backtype.storm.generated ExecutorInfo ExecutorSummary])
+  (:import [java.util EnumSet])
   (:import [org.eclipse.jetty.server Server]
            [org.eclipse.jetty.server.nio SelectChannelConnector]
            [org.eclipse.jetty.server.ssl SslSocketConnector]
-           [org.eclipse.jetty.servlet ServletHolder FilterMapping])
+           [org.eclipse.jetty.servlet ServletHolder FilterMapping]
+	   [org.eclipse.jetty.util.ssl SslContextFactory]
+           [org.eclipse.jetty.server DispatcherType]
+           [org.eclipse.jetty.servlets CrossOriginFilter])
   (:require [ring.util servlet])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]))
@@ -92,17 +96,6 @@
       )]
    ])
 
-(defnk sort-table [id :sort-list "[[0,0]]" :time-cols []]
-  (let [strs (for [c time-cols] (format "%s: { sorter: 'stormtimestr'}" c))
-        sorters (join ", " strs)]
-    [:script
-     (format  "$(document).ready(function() {
-$(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: {%s}}); });
-});"
-              id
-              sort-list
-              sorters)]))
-
 (defn float-str [n]
   (if n
     (format "%.3f" (float n))
@@ -120,16 +113,6 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
               ))
        (apply merge-with merge)
        ))
-
-(defn sorted-table [headers data & args]
-  (let [id (uuid)]
-    (concat
-     [(table {:class "zebra-striped" :id id}
-             headers
-             data)]
-     (if-not (empty? data)
-       [(apply sort-table id args)])
-     )))
 
 (defn url-format [fmt & args]
   (String/format fmt
@@ -153,19 +136,42 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
 (defn unauthorized-user-html [user]
   [[:h2 "User '" (escape-html user) "' is not authorized."]])
 
-(defn- mk-ssl-connector [port ks-path ks-password ks-type]
-  (doto (SslSocketConnector.)
-    (.setExcludeCipherSuites (into-array String ["SSL_RSA_WITH_RC4_128_MD5" "SSL_RSA_WITH_RC4_128_SHA"]))
-    (.setAllowRenegotiate false)
-    (.setKeystore ks-path)
-    (.setKeystoreType ks-type)
-    (.setKeyPassword ks-password)
-    (.setPassword ks-password)
-    (.setPort port)))
+(defn- mk-ssl-connector [port ks-path ks-password ks-type key-password
+                         ts-path ts-password ts-type need-client-auth want-client-auth]
+  (let [sslContextFactory (doto (SslContextFactory.)
+                            (.setExcludeCipherSuites (into-array String ["SSL_RSA_WITH_RC4_128_MD5" "SSL_RSA_WITH_RC4_128_SHA"]))
+                            (.setExcludeProtocols (into-array String ["SSLv3"]))
+                            (.setAllowRenegotiate false)
+                            (.setKeyStorePath ks-path)
+                            (.setKeyStoreType ks-type)
+                            (.setKeyStorePassword ks-password)
+                            (.setKeyManagerPassword key-password))]
+    (if (and (not-nil? ts-path) (not-nil? ts-password) (not-nil? ts-type))
+      (do
+        (.setTrustStore sslContextFactory ts-path)
+        (.setTrustStoreType sslContextFactory ts-type)
+        (.setTrustStorePassword sslContextFactory ts-password)))
+    (cond
+      need-client-auth (.setNeedClientAuth sslContextFactory true)
+      want-client-auth (.setWantClientAuth sslContextFactory true))
+    (doto (SslSocketConnector. sslContextFactory)
+      (.setPort port))))
 
-(defn config-ssl [server port ks-path ks-password ks-type]
+
+(defn config-ssl [server port ks-path ks-password ks-type key-password
+                  ts-path ts-password ts-type need-client-auth want-client-auth]
   (when (> port 0)
-    (.addConnector server (mk-ssl-connector port ks-path ks-password ks-type))))
+    (.addConnector server (mk-ssl-connector port ks-path ks-password ks-type key-password
+                                            ts-path ts-password ts-type need-client-auth want-client-auth))))
+
+(defn cors-filter-handler
+  []
+  (doto (org.eclipse.jetty.servlet.FilterHolder. (CrossOriginFilter.))
+    (.setInitParameter CrossOriginFilter/ALLOWED_ORIGINS_PARAM "*")
+    (.setInitParameter CrossOriginFilter/ALLOWED_METHODS_PARAM "GET, POST, PUT")
+    (.setInitParameter CrossOriginFilter/ALLOWED_HEADERS_PARAM "X-Requested-With, X-Requested-By, Access-Control-Allow-Origin, Content-Type, Content-Length, Accept, Origin")
+    (.setInitParameter CrossOriginFilter/ACCESS_CONTROL_ALLOW_ORIGIN_HEADER "*")
+    ))
 
 (defn config-filter [server handler filters-confs]
   (if filters-confs
@@ -173,6 +179,7 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
                            (ring.util.servlet/servlet handler))
           context (doto (org.eclipse.jetty.servlet.ServletContextHandler. server "/")
                     (.addServlet servlet-holder "/"))]
+      (.addFilter context (cors-filter-handler) "/*" (EnumSet/allOf DispatcherType))
       (doseq [{:keys [filter-name filter-class filter-params]} filters-confs]
         (if filter-class
           (let [filter-holder (doto (org.eclipse.jetty.servlet.FilterHolder.)
@@ -187,6 +194,13 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
    :status 400
    :body (.getMessage ex)})
 
+(defn- remove-non-ssl-connectors [server]
+  (doseq [c (.getConnectors server)]
+    (when-not (or (nil? c) (instance? SslSocketConnector c))
+      (.removeConnector server c)
+      ))
+  server)
+
 ;; Modified from ring.adapter.jetty 1.3.0
 (defn- jetty-create-server
   "Construct a Jetty Server instance."
@@ -197,7 +211,9 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
                     (.setMaxIdleTime (options :max-idle-time 200000)))
         server    (doto (Server.)
                     (.addConnector connector)
-                    (.setSendDateHeader true))]
+                    (.setSendDateHeader true))
+        https-port (options :https-port)]
+    (if (and (not-nil? https-port) (> https-port 0)) (remove-non-ssl-connectors server))
     server))
 
 (defn storm-run-jetty

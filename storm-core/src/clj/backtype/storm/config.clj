@@ -15,7 +15,8 @@
 ;; limitations under the License.
 
 (ns backtype.storm.config
-  (:import [java.io FileReader File IOException])
+  (:import [java.io FileReader File IOException]
+           [backtype.storm.generated StormTopology])
   (:import [backtype.storm Config ConfigValidation$FieldValidator])
   (:import [backtype.storm.utils Utils LocalState])
   (:import [org.apache.commons.io FileUtils])
@@ -130,9 +131,16 @@
   ([name]
      (read-yaml-config true)))
 
+(defn absolute-storm-local-dir [conf]
+  (let [storm-home (System/getProperty "storm.home")
+        path (conf STORM-LOCAL-DIR)]
+    (if path
+      (if (is-absolute-path? path) path (str storm-home file-path-separator path))
+      (str storm-home file-path-separator "storm-local"))))
+
 (defn master-local-dir
   [conf]
-  (let [ret (str (conf STORM-LOCAL-DIR) file-path-separator "nimbus")]
+  (let [ret (str (absolute-storm-local-dir conf) file-path-separator "nimbus")]
     (FileUtils/forceMkdir (File. ret))
     ret))
 
@@ -141,6 +149,15 @@
    (str (master-local-dir conf) file-path-separator "stormdist"))
   ([conf storm-id]
    (str (master-stormdist-root conf) file-path-separator storm-id)))
+
+(defn master-tmp-dir
+  [conf]
+  (let [ret (str (master-local-dir conf) file-path-separator "tmp")]
+    (FileUtils/forceMkdir (File. ret))
+    ret ))
+
+(defn master-storm-metafile-path [stormroot ]
+  (str stormroot file-path-separator "storm-code-distributor.meta"))
 
 (defn master-stormjar-path
   [stormroot]
@@ -166,7 +183,7 @@
 
 (defn supervisor-local-dir
   [conf]
-  (let [ret (str (conf STORM-LOCAL-DIR) file-path-separator "supervisor")]
+  (let [ret (str (absolute-storm-local-dir conf) file-path-separator "supervisor")]
     (FileUtils/forceMkdir (File. ret))
     ret))
 
@@ -180,9 +197,11 @@
   ([conf storm-id]
    (str (supervisor-stormdist-root conf) file-path-separator (url-encode storm-id))))
 
-(defn supervisor-stormjar-path
-  [stormroot]
+(defn supervisor-stormjar-path [stormroot]
   (str stormroot file-path-separator "stormjar.jar"))
+
+(defn supervisor-storm-metafile-path [stormroot]
+  (str stormroot file-path-separator "storm-code-distributor.meta"))
 
 (defn supervisor-stormcode-path
   [stormroot]
@@ -211,18 +230,17 @@
   (let [stormroot (supervisor-stormdist-root conf storm-id)
         conf-path (supervisor-stormconf-path stormroot)
         topology-path (supervisor-stormcode-path stormroot)]
-    (merge conf (Utils/deserialize (FileUtils/readFileToByteArray (File. conf-path))))
-    ))
+    (merge conf (clojurify-structure (Utils/fromCompressedJsonConf (FileUtils/readFileToByteArray (File. conf-path)))))))
 
 (defn read-supervisor-topology
   [conf storm-id]
   (let [stormroot (supervisor-stormdist-root conf storm-id)
         topology-path (supervisor-stormcode-path stormroot)]
-    (Utils/deserialize (FileUtils/readFileToByteArray (File. topology-path)))
+    (Utils/deserialize (FileUtils/readFileToByteArray (File. topology-path)) StormTopology)
     ))
 
 (defn worker-user-root [conf]
-  (str (conf STORM-LOCAL-DIR) "/workers-users"))
+  (str (absolute-storm-local-dir conf) "/workers-users"))
 
 (defn worker-user-file [conf worker-id]
   (str (worker-user-root conf) "/" worker-id))
@@ -249,7 +267,7 @@
 
 (defn worker-root
   ([conf]
-   (str (conf STORM-LOCAL-DIR) file-path-separator "workers"))
+   (str (absolute-storm-local-dir conf) file-path-separator "workers"))
   ([conf id]
    (str (worker-root conf) file-path-separator id)))
 

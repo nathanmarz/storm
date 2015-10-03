@@ -36,9 +36,9 @@
     <category rdf:resource="http://projects.apache.org/category/big-data" />
     <release>
       <Version>
-        <name>Storm 0.9.2-incubating</name>
-        <created>2014-06-25</created>
-        <revision>0.9.2-incubating</revision>
+        <name>Apache Storm 0.9.5</name>
+        <created>2015-06-03</created>
+        <revision>0.9.5</revision>
       </Version>
     </release>
     <repository>

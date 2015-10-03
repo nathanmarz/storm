@@ -32,6 +32,18 @@ You can use a tool such as `curl` to talk to the REST API:
     # Note: We assume ui.port is configured to the default value of 8080.
     $ curl http://<ui-host>:8080/api/v1/cluster/configuration
 
+##Impersonating a user in secure environment
+In a secure environment an authenticated user can impersonate another user. To impersonate a user the caller must pass
+`doAsUser` param or header with value set to the user that the request needs to be performed as. Please see SECURITY.MD
+to learn more about how to setup impersonation ACLs and authorization. The rest API uses the same configs and acls that
+are used by nimbus.
+
+Examples:
+
+```no-highlight
+ 1. http://ui-daemon-host-name:8080/api/v1/topology/wordcount-1-1425844354\?doAsUser=testUSer1
+ 2. curl 'http://localhost:8080/api/v1/topology/wordcount-1-1425844354/activate' -X POST -H 'doAsUser:testUSer1'
+```
 
 ## GET Operations
 
@@ -72,8 +84,8 @@ Response fields:
 |Field  |Value|Description
 |---	|---	|---
 |stormVersion|String| Storm version|
-|nimbusUptime|String| Shows how long the cluster is running|
-|supervisors|Integer|  Number of supervisors running|
+|supervisors|Integer| Number of supervisors running|
+|topologies| Integer| Number of topologies running| 
 |slotsTotal| Integer|Total number of available worker slots|
 |slotsUsed| Integer| Number of worker slots used|
 |slotsFree| Integer |Number of worker slots available|
@@ -85,7 +97,6 @@ Sample response:
 ```json
    {
     "stormVersion": "0.9.2-incubating-SNAPSHOT",
-    "nimbusUptime": "3m 53s",
     "supervisors": 1,
     "slotsTotal": 4,
     "slotsUsed": 3,
@@ -106,6 +117,7 @@ Response fields:
 |id| String | Supervisor's id|
 |host| String| Supervisor's host name|
 |uptime| String| Shows how long the supervisor is running|
+|uptimeSeconds| Integer| Shows how long the supervisor is running in seconds|
 |slotsTotal| Integer| Total number of available worker slots for this supervisor|
 |slotsUsed| Integer| Number of worker slots used on this supervisor|
 
@@ -118,8 +130,43 @@ Sample response:
             "id": "0b879808-2a26-442b-8f7d-23101e0c3696",
             "host": "10.11.1.7",
             "uptime": "5m 58s",
+            "uptimeSeconds": 358,
             "slotsTotal": 4,
             "slotsUsed": 3
+        }
+    ]
+}
+```
+
+### /api/v1/nimbus/summary (GET)
+
+Returns summary information for all nimbus hosts.
+
+Response fields:
+
+|Field  |Value|Description|
+|---	|---	|---
+|host| String | Nimbus' host name|
+|port| int| Nimbus' port number|
+|status| String| Possible values are Leader, Not a Leader, Dead|
+|nimbusUpTime| String| Shows since how long the nimbus has been running|
+|nimbusUpTimeSeconds| String| Shows since how long the nimbus has been running in seconds|
+|nimbusLogLink| String| Logviewer url to view the nimbus.log|
+|version| String| Version of storm this nimbus host is running|
+
+Sample response:
+
+```json
+{
+    "nimbuses":[
+        {
+            "host":"192.168.202.1",
+            "port":6627,
+            "nimbusLogLink":"http:\/\/192.168.202.1:8000\/log?file=nimbus.log",
+            "status":Leader,
+            "version":"0.10.0-SNAPSHOT",
+            "nimbusUpTime":"3m 33s",
+            "nimbusUpTimeSeconds":"213"
         }
     ]
 }
@@ -137,10 +184,11 @@ Response fields:
 |name| String| Topology Name|
 |status| String| Topology Status|
 |uptime| String|  Shows how long the topology is running|
+|uptimeSeconds| Integer|  Shows how long the topology is running in seconds|
 |tasksTotal| Integer |Total number of tasks for this topology|
 |workersTotal| Integer |Number of workers used for this topology|
 |executorsTotal| Integer |Number of executors used for this topology|
-
+|replicationCount| Integer |Number of nimbus hosts on which this topology code is replicated|
 Sample response:
 
 ```json
@@ -151,9 +199,11 @@ Sample response:
             "name": "WordCount3",
             "status": "ACTIVE",
             "uptime": "6m 5s",
+            "uptimeSeconds": 365,
             "tasksTotal": 28,
             "workersTotal": 3,
-            "executorsTotal": 28
+            "executorsTotal": 28,
+            "replicationCount": 1
         }
     ]
 }
@@ -179,6 +229,7 @@ Response fields:
 |id| String| Topology Id|
 |name| String |Topology Name|
 |uptime| String |How long the topology has been running|
+|uptimeSeconds| Integer |How long the topology has been running in seconds|
 |status| String |Current status of the topology, e.g. "ACTIVE"|
 |tasksTotal| Integer |Total number of tasks for this topology|
 |workersTotal| Integer |Number of workers used for this topology|
@@ -218,8 +269,7 @@ Response fields:
 |bolts.errorLapsedSecs| Integer |Number of seconds elapsed since that last error happened in a bolt|
 |bolts.errorWorkerLogLink| String | Link to the worker log that reported the exception |
 |bolts.emitted| Long |Number of tuples emitted|
-|antiForgeryToken| String | CSRF token|
-
+|replicationCount| Integer |Number of nimbus hosts on which this topology code is replicated|
 
 Examples:
 
@@ -241,6 +291,7 @@ Sample response:
     "tasksTotal": 28,
     "executorsTotal": 28,
     "uptime": "29m 19s",
+    "uptimeSeconds": 1759,
     "msgTimeout": 30,
     "windowHint": "10m 0s",
     "topologyStats": [
@@ -365,7 +416,7 @@ Sample response:
         "supervisor.enable": true,
         "storm.messaging.netty.server_worker_threads": 1
     },
-    "antiForgeryToken": "lAFTN\/5iSedRLwJeUNqkJ8hgYubRl2OxjXGoDf9A4Bt1nZY3rvJW0\/P4zqu9yAk\/LvDhlmn7gigw\/z8C"
+    "replicationCount": 1
 }
 ```
 
@@ -508,6 +559,7 @@ Sample response:
             "host": "10.11.1.7",
             "acked": 0,
             "uptime": "43m 4s",
+            "uptimeSeconds": 2584,
             "id": "[24-24]",
             "failed": 0
         },
@@ -520,6 +572,7 @@ Sample response:
             "host": "10.11.1.7",
             "acked": 0,
             "uptime": "42m 57s",
+            "uptimeSeconds": 2577,
             "id": "[25-25]",
             "failed": 0
         },
@@ -532,6 +585,7 @@ Sample response:
             "host": "10.11.1.7",
             "acked": 0,
             "uptime": "42m 57s",
+            "uptimeSeconds": 2577,
             "id": "[26-26]",
             "failed": 0
         },
@@ -544,6 +598,7 @@ Sample response:
             "host": "10.11.1.7",
             "acked": 0,
             "uptime": "43m 4s",
+            "uptimeSeconds": 2584,
             "id": "[27-27]",
             "failed": 0
         },
@@ -556,6 +611,7 @@ Sample response:
             "host": "10.11.1.7",
             "acked": 0,
             "uptime": "42m 57s",
+            "uptimeSeconds": 2577,
             "id": "[28-28]",
             "failed": 0
         }
@@ -565,24 +621,6 @@ Sample response:
 
 ## POST Operations
 
-### Cross site request forgery (CSRF) prevention in POST requests
-
-In order to prevent CSRF vulnerability, the REST API uses a CSRF token. This is primarily done for the UI, however we
-do not have alternative APIs/paths for UI and non-UI clients.
-
-The token is generated during the `/api/v1/topology/:id` (GET) request. The JSON response for this GET request contains
-a field called "antiForgeryToken". All the post requests below must include a header "x-csrf-token" with the value of
-"antiForgeryToken" from the GET response. In absence of this header with the right token value you will get following
-error response:
-
-```
-{
-    "error" : "Forbidden action.",
-    "errorMessage" : "missing CSRF token."
-}
-```
-
-
 ### /api/v1/topology/:id/activate (POST)
 
 Activates a topology.
@@ -590,6 +628,12 @@ Activates a topology.
 |Parameter |Value   |Description  |
 |----------|--------|-------------|
 |id   	   |String (required)| Topology Id  |
+
+Sample Response:
+
+```json
+{"topologyOperation":"activate","topologyId":"wordcount-1-1420308665","status":"success"}
+```
 
 
 ### /api/v1/topology/:id/deactivate (POST)
@@ -600,6 +644,12 @@ Deactivates a topology.
 |----------|--------|-------------|
 |id   	   |String (required)| Topology Id  |
 
+Sample Response:
+
+```json
+{"topologyOperation":"deactivate","topologyId":"wordcount-1-1420308665","status":"success"}
+```
+
 
 ### /api/v1/topology/:id/rebalance/:wait-time (POST)
 
@@ -609,6 +659,30 @@ Rebalances a topology.
 |----------|--------|-------------|
 |id   	   |String (required)| Topology Id  |
 |wait-time |String (required)| Wait time before rebalance happens |
+|rebalanceOptions| Json (optional) | topology rebalance options |
+
+
+Sample rebalanceOptions json:
+
+```json
+{"rebalanceOptions" : {"numWorkers" : 2, "executors" : {"spout" :4, "count" : 10}}, "callback" : "foo"}
+```
+
+Examples:
+
+```no-highlight
+curl  -i -b ~/cookiejar.txt -c ~/cookiejar.txt -X POST  
+-H "Content-Type: application/json" 
+-d  '{"rebalanceOptions": {"numWorkers": 2, "executors": { "spout" : "5", "split": 7, "count": 5 }}, "callback":"foo"}' 
+http://localhost:8080/api/v1/topology/wordcount-1-1420308665/rebalance/0
+```
+
+Sample Response:
+
+```json
+{"topologyOperation":"rebalance","topologyId":"wordcount-1-1420308665","status":"success"}
+```
+
 
 
 ### /api/v1/topology/:id/kill/:wait-time (POST)
@@ -624,6 +698,11 @@ Caution: Small wait times (0-5 seconds) may increase the probability of triggeri
 [STORM-112](https://issues.apache.org/jira/browse/STORM-112), which may result in broker Supervisor
 daemons.
 
+Sample Response:
+
+```json
+{"topologyOperation":"kill","topologyId":"wordcount-1-1420308665","status":"success"}
+```
 
 ## API errors
 

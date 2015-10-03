@@ -81,7 +81,7 @@ public class OpaqueMemoryTransactionalSpout implements IOpaquePartitionedTransac
         return new Coordinator();
     }
     
-    class Coordinator implements IOpaquePartitionedTransactionalSpout.Coordinator {
+    private static class Coordinator implements IOpaquePartitionedTransactionalSpout.Coordinator {
         @Override
         public boolean isReady() {
             return true;

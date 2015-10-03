@@ -59,7 +59,7 @@ The resulting tuples would have fields ["a", "b", "c", "d"] and look like this:
 Filters take in a tuple as input and decide whether or not to keep that tuple or not. Suppose you had this filter:
 
 ```java
-public class MyFilter extends BaseFunction {
+public class MyFilter extends BaseFilter {
     public boolean isKeep(TridentTuple tuple) {
         return tuple.getInteger(0) == 1 && tuple.getInteger(1) == 2;
     }
@@ -154,7 +154,7 @@ public class Count implements CombinerAggregator<Long> {
 }
 ```
 
-The benefits of CombinerAggregators are seen when you use the with the aggregate method instead of partitionAggregate. In that case, Trident automatically optimizes the computation by doing partial aggregations before transferring tuples over the network.
+The benefits of CombinerAggregators are seen when you use them with the aggregate method instead of partitionAggregate. In that case, Trident automatically optimizes the computation by doing partial aggregations before transferring tuples over the network.
 
 A ReducerAggregator has the following interface:
 

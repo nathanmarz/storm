@@ -69,6 +69,7 @@ public class ZkCoordinatorTest {
         conf.put(Config.TRANSACTIONAL_ZOOKEEPER_PORT, server.getPort());
         conf.put(Config.TRANSACTIONAL_ZOOKEEPER_SERVERS, Arrays.asList("localhost"));
         conf.put(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT, 20000);
+        conf.put(Config.STORM_ZOOKEEPER_CONNECTION_TIMEOUT, 20000);
         conf.put(Config.STORM_ZOOKEEPER_RETRY_TIMES, 3);
         conf.put(Config.STORM_ZOOKEEPER_RETRY_INTERVAL, 30);
         return conf;

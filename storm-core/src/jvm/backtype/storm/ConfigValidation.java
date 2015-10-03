@@ -16,9 +16,9 @@
  * limitations under the License.
  */
 package backtype.storm;
+import java.util.HashSet;
 import java.util.Map;
-
-import java.util.Map;
+import java.util.Set;
 
 /**
  * Provides functionality for validating configuration fields.
@@ -168,16 +168,40 @@ public class ConfigValidation {
      * Validates a list of Strings.
      */
     public static Object StringsValidator = listFv(String.class, true);
-    
+
     /**
      * Validates a map of Strings to Numbers.
      */
     public static Object MapOfStringToNumberValidator = mapFv(String.class, Number.class, true);
 
     /**
+     * Validates a map of Strings to a map of Strings to a list.
+     * {str -> {str -> [str,str]}
+     */
+    public static Object MapOfStringToMapValidator = mapFv(fv(String.class, false), mapFv(fv(String.class, false), listFv(String.class, false), false), true);
+
+    /**
      * Validates is a list of Maps.
      */
     public static Object MapsValidator = listFv(Map.class, true);
+
+    /**
+     * Validates a non null Integer > 0
+     */
+    public static Object NotNullPosIntegerValidator = new FieldValidator() {
+        @Override
+        public void validateField(String name, Object o) throws IllegalArgumentException {
+            final long i;
+            if (o instanceof Number &&
+                    (i = ((Number)o).longValue()) == ((Number)o).doubleValue()) {
+                if (i <= Integer.MAX_VALUE && i > 0) {
+                    return;
+                }
+            }
+
+            throw new IllegalArgumentException("Field " + name + " must be an Integer > 0");
+        }
+    };
 
     /**
      * Validates a Integer.
@@ -204,7 +228,7 @@ public class ConfigValidation {
     /**
      * Validates is a list of Integers.
      */
-    public static Object IntegersValidator = new FieldValidator() {
+    public static Object NoDuplicateIntegersValidator = new FieldValidator() {
         @Override
         public void validateField(String name, Object field)
                 throws IllegalArgumentException {
@@ -212,17 +236,24 @@ public class ConfigValidation {
                 // A null value is acceptable.
                 return;
             }
+            int size = 0;
+            Set<Number> integerSet = new HashSet<Number>();
             if (field instanceof Iterable) {
                 for (Object o : (Iterable)field) {
+                    size++;
                     final long i;
                     if (o instanceof Number &&
                             ((i = ((Number)o).longValue()) == ((Number)o).doubleValue()) &&
                             (i <= Integer.MAX_VALUE && i >= Integer.MIN_VALUE)) {
                         // pass the test
+                        integerSet.add((Number) o);
                     } else {
                         throw new IllegalArgumentException(
                                 "Each element of the list " + name + " must be an Integer within type range.");
                     }
+                }
+                if (size != integerSet.size()) {
+                       throw new IllegalArgumentException(name + " should contain no duplicate elements");
                 }
                 return;
             }
@@ -230,22 +261,21 @@ public class ConfigValidation {
     };
 
     /**
-     * Validates a Double.
+     * Validates a Positive Number
      */
-    public static Object DoubleValidator = new FieldValidator() {
+    public static Object PositiveNumberValidator = new FieldValidator() {
         @Override
         public void validateField(String name, Object o) throws IllegalArgumentException {
             if (o == null) {
                 // A null value is acceptable.
                 return;
             }
-
-            // we can provide a lenient way to convert int/long to double with losing some precision
-            if (o instanceof Number) {
-                return;
+            if(o instanceof Number) {
+                if(((Number)o).doubleValue() > 0.0) {
+                    return;
+                }
             }
-
-            throw new IllegalArgumentException("Field " + name + " must be an Double.");
+            throw new IllegalArgumentException("Field " + name + " must be a Positive Number");
         }
     };
 

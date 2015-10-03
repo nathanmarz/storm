@@ -28,18 +28,20 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ShellProcess implements Serializable {
-    public static Logger LOG = Logger.getLogger(ShellProcess.class);
+    public static Logger LOG = LoggerFactory.getLogger(ShellProcess.class);
     public static Logger ShellLogger;
     private Process      _subprocess;
     private InputStream  processErrorStream;
     private String[]     command;
+    private Map<String, String> env = new HashMap<String, String>();
     public ISerializer   serializer;
     public Number pid;
     public String componentName;
@@ -48,11 +50,30 @@ public class ShellProcess implements Serializable {
         this.command = command;
     }
 
+    public void setEnv(Map<String, String> env) {
+        this.env = env;
+    }
+
+    private void modifyEnvironment(Map<String, String> buildEnv) {
+        for (Map.Entry<String, String> entry : env.entrySet()) {
+            if ("PATH".equals(entry.getKey())) {
+                buildEnv.put("PATH", buildEnv.get("PATH") + File.pathSeparatorChar + env.get("PATH"));
+            } else {
+                buildEnv.put(entry.getKey(), entry.getValue());
+            }
+        }
+    }
+
+
     public Number launch(Map conf, TopologyContext context) {
         ProcessBuilder builder = new ProcessBuilder(command);
+        if (!env.isEmpty()) {
+            Map<String, String> buildEnv = builder.environment();
+            modifyEnvironment(buildEnv);
+        }
         builder.directory(new File(context.getCodeDir()));
 
-        ShellLogger = Logger.getLogger(context.getThisComponentId());
+        ShellLogger = LoggerFactory.getLogger(context.getThisComponentId());
 
         this.componentName = context.getThisComponentId();
         this.serializer = getSerializer(conf);

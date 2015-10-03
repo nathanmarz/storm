@@ -1,8 +1,10 @@
+Master Branch: [![Travis CI](https://travis-ci.org/apache/storm.svg?branch=master)](https://travis-ci.org/apache/storm)
+
 Storm is a distributed realtime computation system. Similar to how Hadoop provides a set of general primitives for doing batch processing, Storm provides a set of general primitives for doing realtime computation. Storm is simple, can be used with any programming language, [is used by many companies](http://storm-project.net/documentation/Powered-By.html), and is a lot of fun to use!
 
 The [Rationale page](http://storm-project.net/documentation/Rationale.html) explains what Storm is and why it was built. [This presentation](http://vimeo.com/40972420) is also a good introduction to the project.
 
-Storm has a website at [storm-project.net](http://storm-project.net). Follow [@stormprocessor](https://twitter.com/stormprocessor) on Twitter for updates on the project.
+Storm has a website at [storm.apache.org](http://storm.apache.org). Follow [@stormprocessor](https://twitter.com/stormprocessor) on Twitter for updates on the project.
 
 ## Documentation
 
@@ -80,6 +82,9 @@ under the License.
 * Kishor Patil ([@kishorvpatil](https://github.com/kishorvpatil))
 * Sriharsha Chintalapani([@harshach](https://github.com/harshach))
 * Sean Zhong ([@clockfly] (http://github.com/clockfly))
+* Kyle Nusbaum ([@knusbaum](https://github.com/knusbaum))
+* Parth Brahmbhatt ([@Parth-Brahmbhatt](https://github.com/Parth-Brahmbhatt))
+* Jungtaek Lim ([@HeartSaVioR](https://github.com/HeartSaVioR))
 
 ## Contributors
 
@@ -133,7 +138,6 @@ under the License.
 * Gangrui Li ([@davidlgr](https://github.com/davidlgr))
 * John Gilmore ([@jsgilmore](https://github.com/jsgilmore))
 * Julien Nioche ([@jnioche](https://github.com/jnioche))
-* Kyle Nusbaum ([@knusbaum](https://github.com/knusbaum))
 * Muneyuki Noguchi ([@mnogu](https://github.com/mnogu))
 * Niels Basjes ([@nielsbasjes](https://github.com/nielsbasjes))
 * Padma Priya Chitturi ([PadmaCh](https://issues.apache.org/jira/secure/ViewProfile.jspa?name=PadmaCh))
@@ -144,14 +148,13 @@ under the License.
 * Steven Phung ([@stphung](https://github.com/stphung))
 * Suresh Srinivas ([@sureshms](https://github.com/sureshms))
 * thinker0 ([@thinker0](https://github.com/thinker0))
-* Troy Ding ([@troyding](https://github.com/troyding)) 
+* Troy Ding ([@troyding](https://github.com/troyding))
 * Aaron Zimmerman ([@aaronzimmerman](https://github.com/aaronzimmerman))
 * Albert Chu ([@chu11](https://github.com/chu11))
 * Krystian Nowak ([@krystiannowak](https://github.com/krystiannowak))
 * Parth-Brahmbhatt ([@Parth-Brahmbhatt](https://github.com/Parth-Brahmbhatt))
 * Adrian Petrescu ([@apetresc](https://github.com/apetresc))
 * DashengJu ([@dashengju](https://github.com/dashengju))
-* Jungtaek Lim ([@HeartSaVioR](https://github.com/HeartSaVioR))
 * Li Jiahong ([@Gvain](https://github.com/Gvain))
 * Aaron Levin ([@aaronlevin](https://github.com/aaronlevin))
 * Masatake Iwasaki ([@iwasakims](https://github.com/iwasakims))
@@ -161,7 +164,7 @@ under the License.
 * Jo Liss ([@joliss](https://github.com/joliss))
 * averykhoo ([@averykhoo](https://github.com/averykhoo))
 * Curtis Allen ([@curtisallen](https://github.com/curtisallen))
-* Raghavendra Nandagopal ([@RaghavendraNandagopal](https://github.com/RaghavendraNandagopal)) 
+* Raghavendra Nandagopal ([@RaghavendraNandagopal](https://github.com/RaghavendraNandagopal))
 * Boris Aksenov ([@miofthena](https://github.com/miofthena))
 * Itai Frenkel ([@itaifrenkel](https://github.com/itaifrenkel))
 * Naresh Kosgi ([@NareshKosgi](https://github.com/NareshKosgi))
@@ -184,7 +187,55 @@ under the License.
 * caofangkun ([@caofangkun](https://github.com/caofangkun))
 * Mansheng Yang ([@lightyang](https://github.com/lightyang))
 * Rick Kilgore ([@rick-kilgore](http://github.com/rick-kilgore))
+* 周向涛 ([@taojoe](https://github.com/taojoe))
+* Gianmarco De Francisci Morales ([@gdfm](https://github.com/gdfm))
+* zhangjinlong ([@BuDongDong](https://github.com/BuDongDong))
+* Paul DelRe ([@pdelre](https://github.com/pdelre))
+* Zhihui Jiao ([@onlychoice](https://github.com/onlychoice))
+* Hari Sekhon ([@harisekhon](https://github.com/harisekhon))
+* iBuddha ([@iBuddha](https://github.com/iBuddha))
+* Dave Katten ([@dkatten](https://github.com/dkatten))
+* Mark Davis ([@markdav](https://github.com/markdav))
+* Zhuo Liu ([@zhuoliu](https://github.com/zhuoliu))
+* jangie ([@jangie](https://github.com/jangie))
+* Hailei Zhang ([@Hailei](https://github.com/Hailei))
+* Nikhil Singh ([@snikhil5](https://github.com/snikhil5))
+* Paul Poulosky ([@ppoulosk](https://github.com/ppoulosk))
+* Brendan W. Lyon ([@lyonbrw](https://github.com/lyonbrw))
+* Shyam Rajendran ([@bourneagain](https://github.com/bourneagain))
+* Reza Farivar ([@rfarivar](https://github.com/rfarivar))
+* Hugo Louro ([@hmcl](https://github.com/hmcl))
+* Xin Wang ([@vesense](https://github.com/vesense))
+* Aaron Dossett ([@dossett](https://github.com/dossett))
+* Charles Chan ([@charleswhchan](https://github.com/charleswhchan))
+* Chuanlei Ni ([@chuanlei](https://github.com/chuanlei))
+* Xingyu Su ([@errordaiwa](https://github.com/errordaiwa))
+* Adrian Seungjin Lee ([@sweetest](https://github.com/sweetest))
+* Randy Gelhausen ([@randerzander](https://github.com/randerzander))
+* Gabor Liptak ([@gliptak](https://github.com/glibtak))
+* Arun Mahadevan ([@arunmahadevan](https://github.com/arunmahadevan))
+* Yvonne Ironberg ([@YvonneIronberg](https://github.com/YvonneIronberg))
+* Boyang Jerry Peng ([@jerrypeng](https://github.com/jerrypeng))
+* Li Wang ([@wangli1426](https://github.com/wangli1426))
+* Rohan Agarwal ([@rohanag12](https://github.com/rohanag12))
+* Alex Panov ([@alexpanov](https://github.com/alexpanov))
+* Sanket Reddy ([@redsanket](https://github.com/redsanket))
+* Drew Robb ([@drewrobb](https://github.com/drewrobb))
+* Frantz Mazoyer ([@fmazoyer](https://github.com/fmazoyer))
+* Dean de Bree ([@ddebree](https://github.com/ddebree))
+* Renkai Ge ([@Renkai](https://github.com/Renkai))
+* Aaron Coburn ([@acoburn](https://github.com/acoburn))
+* Rick Kellogg ([@rmkellogg](https://github.com/rmkellogg))
+* Abhishek Agarwal ([@abhishekagarwal87](https://github.com/abhishekagarwal87))
+* chenyuzhao ([@danny0405](https://github.com/danny0405))
+* Michael Schonfeld ([@schonfeld](https://github.com/schonfeld))
+* Matthias J. Sax ([@mjsax](https://github.com/mjsax))
+* Erik Weathers ([@erikdw](https://github.com/erikdw))
+* Bryan Shell ([@shellbj](https://github.com/shellbj))
+* Dmytro Dragan ([@3Dragan](https://github.com/3Dragan))
+* Ningyu An ([@jetan9](https://github.com/jetan9))
 
 ## Acknowledgements
 
 YourKit is kindly supporting open source projects with its full-featured Java Profiler. YourKit, LLC is the creator of innovative and intelligent tools for profiling Java and .NET applications. Take a look at YourKit's leading software products: [YourKit Java Profiler](http://www.yourkit.com/java/profiler/index.jsp) and [YourKit .NET Profiler](http://www.yourkit.com/.net/profiler/index.jsp).
+

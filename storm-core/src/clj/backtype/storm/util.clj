@@ -18,6 +18,7 @@
   (:import [java.net InetAddress])
   (:import [java.util Map Map$Entry List ArrayList Collection Iterator HashMap])
   (:import [java.io FileReader FileNotFoundException])
+  (:import [java.nio.file Paths])
   (:import [backtype.storm Config])
   (:import [backtype.storm.utils Time Container ClojureTimerTask Utils
             MutableObject MutableInt])
@@ -57,6 +58,9 @@
 
 (def class-path-separator
   (System/getProperty "path.separator"))
+
+(defn is-absolute-path? [path]
+  (.isAbsolute (Paths/get path (into-array String []))))
 
 (defmacro defalias
   "Defines an alias for a var: a new var with the same root binding (if
@@ -247,6 +251,9 @@
   (prewalk (fn [x]
              (cond (instance? Map x) (into {} x)
                    (instance? List x) (vec x)
+                   ;; (Boolean. false) does not evaluate to false in an if.
+                   ;; This fixes that.
+                   (instance? Boolean x) (boolean x)
                    true x))
            s))
 
@@ -516,9 +523,10 @@
   ))
 
 (defnk launch-process
-  [command :environment {} :log-prefix nil :exit-code-callback nil]
+  [command :environment {} :log-prefix nil :exit-code-callback nil :directory nil]
   (let [builder (ProcessBuilder. command)
         process-env (.environment builder)]
+    (when directory (.directory builder directory))
     (.redirectErrorStream builder true)
     (doseq [[k v] environment]
       (.put process-env k v))
@@ -586,6 +594,24 @@
   []
   (System/getProperty "java.class.path"))
 
+(defn get-full-jars
+  [dir]
+  (map #(str dir file-path-separator %) (filter #(.endsWith % ".jar") (read-dir-contents dir))))
+
+(defn worker-classpath
+  []
+  (let [storm-dir (System/getProperty "storm.home")
+        storm-lib-dir (str storm-dir file-path-separator "lib")
+        storm-conf-dir (if-let [confdir (System/getenv "STORM_CONF_DIR")]
+                         confdir 
+                         (str storm-dir file-path-separator "conf"))
+        storm-extlib-dir (str storm-dir file-path-separator "extlib")
+        extcp (System/getenv "STORM_EXT_CLASSPATH")]
+    (if (nil? storm-dir) 
+      (current-classpath)
+      (str/join class-path-separator
+                (remove nil? (concat (get-full-jars storm-lib-dir) (get-full-jars storm-extlib-dir) [extcp] [storm-conf-dir]))))))
+
 (defn add-to-classpath
   [classpath paths]
   (if (empty? paths)
@@ -611,15 +637,6 @@
        (try (.lock wlock#)
          ~@body
          (finally (.unlock wlock#))))))
-
-(defn wait-for-condition
-  [apredicate]
-  (while (not (apredicate))
-    (Time/sleep 100)))
-
-(defn some?
-  [pred aseq]
-  ((complement nil?) (some pred aseq)))
 
 (defn time-delta
   [time-secs]
@@ -739,10 +756,6 @@
           rest-elems (apply interleave-all (map rest colls))]
       (concat my-elems rest-elems))))
 
-(defn update
-  [m k afn]
-  (assoc m k (afn (get m k))))
-
 (defn any-intersection
   [& sets]
   (let [elem->count (multi-set (apply concat sets))]
@@ -854,7 +867,7 @@
 (defn zip-contains-dir?
   [zipfile target]
   (let [entries (->> zipfile (ZipFile.) .entries enumeration-seq (map (memfn getName)))]
-    (some? #(.startsWith % (str target "/")) entries)))
+    (boolean (some #(.startsWith % (str target "/")) entries))))
 
 (defn url-encode
   [s]
@@ -1005,16 +1018,20 @@
   (.getCanonicalPath 
                 (clojure.java.io/file (System/getProperty "storm.home") "logs")))
 
-(defn- logs-rootname [storm-id port]
-  (str storm-id "-worker-" port))
+(defn- logs-rootname
+  ([storm-id port] (logs-rootname storm-id port "-worker-"))
+  ([storm-id port type] (str storm-id type port)))
 
-(defn logs-filename [storm-id port]
-  (str (logs-rootname storm-id port) ".log"))
+(defn logs-filename
+  ([storm-id port] (str (logs-rootname storm-id port) ".log"))
+  ([storm-id port type] (str (logs-rootname storm-id port type) ".log")))
+
+(defn event-logs-filename [storm-id port] (logs-filename storm-id port "-events-"))
 
 (defn logs-metadata-filename [storm-id port]
   (str (logs-rootname storm-id port) ".yaml"))
 
-(def worker-log-filename-pattern #"((.*-\d+-\d+)-worker-(\d+)).log")
+(def worker-log-filename-pattern #"^((.*-\d+-\d+)-worker-(\d+))\.log")
 
 (defn get-log-metadata-file
   ([fname]
@@ -1032,3 +1049,24 @@
 
 (defn hashmap-to-persistent [^HashMap m]
   (zipmap (.keySet m) (.values m)))
+
+(defn setup-default-uncaught-exception-handler
+  "Set a default uncaught exception handler to handle exceptions not caught in other threads."
+  []
+  (Thread/setDefaultUncaughtExceptionHandler
+    (proxy [Thread$UncaughtExceptionHandler] []
+      (uncaughtException [thread thrown]
+        (try
+          (Utils/handleUncaughtException thrown)
+          (catch Error err
+            (do
+              (log-error err "Received error in main thread.. terminating server...")
+              (.exit (Runtime/getRuntime) -2))))))))
+
+(defn redact-value
+  "Hides value for k in coll for printing coll safely"
+  [coll k]
+  (if (contains? coll k)
+    (assoc coll k (apply str (repeat (count (coll k)) "#")))
+    coll))
+

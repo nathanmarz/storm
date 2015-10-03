@@ -170,4 +170,17 @@ public class DynamicBrokersReaderTest {
         assertEquals(newPort, brokerInfo.getBrokerFor(partition).port);
         assertEquals(newHost, brokerInfo.getBrokerFor(partition).host);
     }
+
+    @Test(expected = NullPointerException.class)
+    public void testErrorLogsWhenConfigIsMissing() throws Exception {
+        String connectionString = server.getConnectString();
+        Map conf = new HashMap();
+        conf.put(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT, 1000);
+//        conf.put(Config.STORM_ZOOKEEPER_CONNECTION_TIMEOUT, 1000);
+        conf.put(Config.STORM_ZOOKEEPER_RETRY_TIMES, 4);
+        conf.put(Config.STORM_ZOOKEEPER_RETRY_INTERVAL, 5);
+
+        DynamicBrokersReader dynamicBrokersReader1 = new DynamicBrokersReader(conf, connectionString, masterPath, topic);
+
+    }
 }

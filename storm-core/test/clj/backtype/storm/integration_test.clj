@@ -15,15 +15,15 @@
 ;; limitations under the License.
 (ns backtype.storm.integration-test
   (:use [clojure test])
+  (:import [backtype.storm Config])
   (:import [backtype.storm.topology TopologyBuilder])
   (:import [backtype.storm.generated InvalidTopologyException SubmitOptions TopologyInitialStatus])
   (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount
-              TestAggregatesCounter TestConfBolt AckFailMapTracker])
-  (:use [backtype.storm bootstrap testing])
+            TestAggregatesCounter TestConfBolt AckFailMapTracker AckTracker TestPlannerSpout])
+  (:import [backtype.storm.tuple Fields])
+  (:use [backtype.storm testing config clojure util])
   (:use [backtype.storm.daemon common])
-  )
-
-(bootstrap)
+  (:require [backtype.storm [thrift :as thrift]]))
 
 (deftest test-basic-topology
   (doseq [zmq-on? [true false]]
@@ -570,28 +570,34 @@
                                              (:topology tracked))
             storm-id (get-storm-id state "test-errors")
             errors-count (fn [] (count (.errors state storm-id "2")))]
+
+        (is (nil? (.last-error state storm-id "2")))
+
         ;; so it launches the topology
         (advance-cluster-time cluster 2)
         (.feed feeder [6])
         (tracked-wait tracked 1)
         (is (= 4 (errors-count)))
+        (is (.last-error state storm-id "2"))
         
         (advance-time-secs! 5)
         (.feed feeder [2])
         (tracked-wait tracked 1)
         (is (= 4 (errors-count)))
+        (is (.last-error state storm-id "2"))
         
         (advance-time-secs! 6)
         (.feed feeder [2])
         (tracked-wait tracked 1)
         (is (= 6 (errors-count)))
+        (is (.last-error state storm-id "2"))
         
         (advance-time-secs! 6)
         (.feed feeder [3])
         (tracked-wait tracked 1)
         (is (= 8 (errors-count)))
-        
-        ))))
+        (is (.last-error state storm-id "2"))))))
+
 
 (deftest test-acking-branching-complex
   ;; test acking with branching in the topology

@@ -22,16 +22,19 @@ import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseRichBolt;
 import backtype.storm.tuple.Tuple;
-import kafka.javaapi.producer.Producer;
-import kafka.producer.KeyedMessage;
-import kafka.producer.ProducerConfig;
+import backtype.storm.utils.TupleUtils;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.clients.producer.Callback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import storm.kafka.bolt.mapper.FieldNameBasedTupleToKafkaMapper;
 import storm.kafka.bolt.mapper.TupleToKafkaMapper;
 import storm.kafka.bolt.selector.DefaultTopicSelector;
 import storm.kafka.bolt.selector.KafkaTopicSelector;
-
+import java.util.concurrent.Future;
+import java.util.concurrent.ExecutionException;
 import java.util.Map;
 import java.util.Properties;
 
@@ -44,6 +47,10 @@ import java.util.Properties;
  * 'kafka.broker.properties' and 'topic'
  * <p/>
  * respectively.
+ * <p/>
+ * This bolt uses 0.8.2 Kafka Producer API.
+ * <p/>
+ * It works for sending tuples to older Kafka version (0.8.1).
  */
 public class KafkaBolt<K, V> extends BaseRichBolt {
 
@@ -52,10 +59,22 @@ public class KafkaBolt<K, V> extends BaseRichBolt {
     public static final String TOPIC = "topic";
     public static final String KAFKA_BROKER_PROPERTIES = "kafka.broker.properties";
 
-    private Producer<K, V> producer;
+    private KafkaProducer<K, V> producer;
     private OutputCollector collector;
     private TupleToKafkaMapper<K,V> mapper;
     private KafkaTopicSelector topicSelector;
+    private Properties boltSpecfiedProperties = new Properties();
+    /**
+     * With default setting for fireAndForget and async, the callback is called when the sending succeeds.
+     * By setting fireAndForget true, the send will not wait at all for kafka to ack.
+     * "acks" setting in 0.8.2 Producer API config doesn't matter if fireAndForget is set.
+     * By setting async false, synchronous sending is used. 
+     */
+    private boolean fireAndForget = false;
+    private boolean async = true;
+
+    public KafkaBolt() {
+    }
 
     public KafkaBolt<K,V> withTupleToKafkaMapper(TupleToKafkaMapper<K,V> mapper) {
         this.mapper = mapper;
@@ -64,6 +83,11 @@ public class KafkaBolt<K, V> extends BaseRichBolt {
 
     public KafkaBolt<K,V> withTopicSelector(KafkaTopicSelector selector) {
         this.topicSelector = selector;
+        return this;
+    }
+
+    public KafkaBolt<K,V> withProducerProperties(Properties producerProperties) {
+        this.boltSpecfiedProperties = producerProperties;
         return this;
     }
 
@@ -81,14 +105,21 @@ public class KafkaBolt<K, V> extends BaseRichBolt {
 
         Map configMap = (Map) stormConf.get(KAFKA_BROKER_PROPERTIES);
         Properties properties = new Properties();
-        properties.putAll(configMap);
-        ProducerConfig config = new ProducerConfig(properties);
-        producer = new Producer<K, V>(config);
+        if(configMap!= null)
+            properties.putAll(configMap);
+        if(boltSpecfiedProperties != null)
+            properties.putAll(boltSpecfiedProperties);
+
+        producer = new KafkaProducer<K, V>(properties);
         this.collector = collector;
     }
 
     @Override
-    public void execute(Tuple input) {
+    public void execute(final Tuple input) {
+        if (TupleUtils.isTick(input)) {
+          collector.ack(input);
+          return; // Do not try to send ticks to Kafka
+        }
         K key = null;
         V message = null;
         String topic = null;
@@ -96,21 +127,61 @@ public class KafkaBolt<K, V> extends BaseRichBolt {
             key = mapper.getKeyFromTuple(input);
             message = mapper.getMessageFromTuple(input);
             topic = topicSelector.getTopic(input);
-            if(topic != null ) {
-                producer.send(new KeyedMessage<K, V>(topic, key, message));
+            if (topic != null ) {
+                Callback callback = null;
+
+                if (!fireAndForget && async) {
+                    callback = new Callback() {
+                        @Override
+                        public void onCompletion(RecordMetadata ignored, Exception e) {
+                            synchronized (collector) {
+                                if (e != null) {
+                                    collector.reportError(e);
+                                    collector.fail(input);
+                                } else {
+                                    collector.ack(input);
+                                }
+                            }
+                        }
+                    };
+                }
+                Future<RecordMetadata> result = producer.send(new ProducerRecord<K, V>(topic, key, message), callback);
+                if (!async) {
+                    try {
+                        result.get();
+                        collector.ack(input);
+                    } catch (ExecutionException err) {
+                        collector.reportError(err);
+                        collector.fail(input);
+                    }
+                } else if (fireAndForget) {
+                    collector.ack(input);
+                }
             } else {
                 LOG.warn("skipping key = " + key + ", topic selector returned null.");
+                collector.ack(input);
             }
         } catch (Exception ex) {
-            LOG.error("Could not send message with key = " + key
-                    + " and value = " + message + " to topic = " + topic, ex);
-        } finally {
-            collector.ack(input);
+            collector.reportError(ex);
+            collector.fail(input);
         }
     }
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
 
+    }
+
+    @Override
+    public void cleanup() {
+        producer.close();
+    }
+
+    public void setFireAndForget(boolean fireAndForget) {
+        this.fireAndForget = fireAndForget;
+    }
+
+    public void setAsync(boolean async) {
+        this.async = async;
     }
 }

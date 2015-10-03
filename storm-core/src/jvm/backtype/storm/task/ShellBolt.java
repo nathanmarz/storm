@@ -74,6 +74,7 @@ public class ShellBolt implements IBolt {
     Map<String, Tuple> _inputs = new ConcurrentHashMap<String, Tuple>();
 
     private String[] _command;
+    private Map<String, String> env = new HashMap<String, String>();
     private ShellProcess _process;
     private volatile boolean _running = true;
     private volatile Throwable _exception;
@@ -98,6 +99,11 @@ public class ShellBolt implements IBolt {
         _command = command;
     }
 
+    public ShellBolt setEnv(Map<String, String> env) {
+        this.env = env;
+        return this;
+    }
+
     public void prepare(Map stormConf, TopologyContext context,
                         final OutputCollector collector) {
         Object maxPending = stormConf.get(Config.TOPOLOGY_SHELLBOLT_MAX_PENDING);
@@ -112,6 +118,9 @@ public class ShellBolt implements IBolt {
         workerTimeoutMills = 1000 * RT.intCast(stormConf.get(Config.SUPERVISOR_WORKER_TIMEOUT_SECS));
 
         _process = new ShellProcess(_command);
+        if (!env.isEmpty()) {
+            _process.setEnv(env);
+        }
 
         //subprocesses must send their pid first thing
         Number subpid = _process.launch(stormConf, context);
@@ -279,7 +288,10 @@ public class ShellBolt implements IBolt {
     private void die(Throwable exception) {
         String processInfo = _process.getProcessInfoString() + _process.getProcessTerminationInfoString();
         _exception = new RuntimeException(processInfo, exception);
-        LOG.error("Halting process: ShellBolt died.", exception);
+        String message = String.format("Halting process: ShellBolt died. Command: %s, ProcessInfo %s",
+                Arrays.toString(_command),
+                processInfo);
+        LOG.error(message, exception);
         _collector.reportError(exception);
         if (_running || (exception instanceof Error)) { //don't exit if not running, unless it is an Error
             System.exit(11);
@@ -321,9 +333,11 @@ public class ShellBolt implements IBolt {
                     if (command == null) {
                         throw new IllegalArgumentException("Command not found in bolt message: " + shellMsg);
                     }
-                    if (command.equals("sync")) {
-                        setHeartbeat();
-                    } else if(command.equals("ack")) {
+
+                    setHeartbeat();
+
+                    // We don't need to take care of sync, cause we're always updating heartbeat
+                    if(command.equals("ack")) {
                         handleAck(shellMsg.getId());
                     } else if (command.equals("fail")) {
                         handleFail(shellMsg.getId());

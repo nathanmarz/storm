@@ -74,8 +74,9 @@ public class HBaseBolt  extends AbstractHBaseBolt {
     @Override
     public Map<String, Object> getComponentConfiguration() {
         Map<String, Object> conf = super.getComponentConfiguration();
-        if (conf == null)
+        if (conf == null) {
             conf = new Config();
+        }
 
         if (flushIntervalSecs > 0) {
             LOG.info("Enabling tick tuple with interval [" + flushIntervalSecs + "]");
@@ -98,21 +99,24 @@ public class HBaseBolt  extends AbstractHBaseBolt {
             List<Mutation> mutations = hBaseClient.constructMutationReq(rowKey, cols, writeToWAL? Durability.SYNC_WAL : Durability.SKIP_WAL);
             batchMutations.addAll(mutations);
             tupleBatch.add(tuple);
-            if (tupleBatch.size() >= batchSize)
+            if (tupleBatch.size() >= batchSize) {
                 flush = true;
+            }
         }
 
         try {
             if (flush && !tupleBatch.isEmpty()) {
                 this.hBaseClient.batchMutate(batchMutations);
                 LOG.debug("acknowledging tuples after batchMutate");
-                for(Tuple t : tupleBatch)
+                for(Tuple t : tupleBatch) {
                     collector.ack(t);
+                }
             }
         } catch(Exception e){
             this.collector.reportError(e);
-            for (Tuple t : tupleBatch)
+            for (Tuple t : tupleBatch) {
                 collector.fail(t);
+            }
         } finally {
             tupleBatch.clear();
             batchMutations.clear();

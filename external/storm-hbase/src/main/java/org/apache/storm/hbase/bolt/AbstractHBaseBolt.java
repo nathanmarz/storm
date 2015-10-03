@@ -74,6 +74,5 @@ public abstract class AbstractHBaseBolt extends BaseRichBolt {
         Map<String, Object> hbaseConfMap = new HashMap<String, Object>(conf);
         hbaseConfMap.put(Config.TOPOLOGY_AUTO_CREDENTIALS, map.get(Config.TOPOLOGY_AUTO_CREDENTIALS));
         this.hBaseClient = new HBaseClient(hbaseConfMap, hbConfig, tableName);
-
     }
 }

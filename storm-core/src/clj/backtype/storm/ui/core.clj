@@ -343,7 +343,8 @@
       "nimbusLogLink" (nimbus-log-link host port)
       "status" "Offline"
       "version" "Not applicable"
-      "nimbusUpTime" "Not applicable"}
+      "nimbusUpTime" "Not applicable"
+      "nimbusUptimeSeconds" "Not applicable"}
     ))
 
 (defn nimbus-summary
@@ -358,14 +359,16 @@
           offline-nimbuses-summary (map #(convert-to-nimbus-summary %1) offline-nimbuses)]
       {"nimbuses"
        (concat offline-nimbuses-summary
-       (for [^NimbusSummary n nimbuses]
+       (for [^NimbusSummary n nimbuses
+             :let [uptime (.get_uptime_secs n)]]
          {
           "host" (.get_host n)
           "port" (.get_port n)
           "nimbusLogLink" (nimbus-log-link (.get_host n) (.get_port n))
           "status" (if (.is_isLeader n) "Leader" "Not a Leader")
           "version" (.get_version n)
-          "nimbusUpTime" (pretty-uptime-sec (.get_uptime_secs n))}))})))
+          "nimbusUpTime" (pretty-uptime-sec uptime)
+          "nimbusUpTimeSeconds" uptime}))})))
 
 (defn supervisor-summary
   ([]
@@ -378,6 +381,7 @@
       {"id" (.get_supervisor_id s)
        "host" (.get_host s)
        "uptime" (pretty-uptime-sec (.get_uptime_secs s))
+       "uptimeSeconds" (.get_uptime_secs s)
        "slotsTotal" (.get_num_workers s)
        "slotsUsed" (.get_num_used_workers s)
        "version" (.get_version s)})}))
@@ -398,6 +402,7 @@
        "name" (.get_name t)
        "status" (.get_status t)
        "uptime" (pretty-uptime-sec (.get_uptime_secs t))
+       "uptimeSeconds" (.get_uptime_secs t)
        "tasksTotal" (.get_num_tasks t)
        "workersTotal" (.get_num_workers t)
        "executorsTotal" (.get_num_executors t)
@@ -507,13 +512,15 @@
         [debugEnabled
          samplingPct] (if-let [debug-opts (.get_debug_options topo-info)]
                         [(.is_enable debug-opts)
-                         (.get_samplingpct debug-opts)])]
+                         (.get_samplingpct debug-opts)])
+        uptime (.get_uptime_secs topo-info)]
     {"id" id
      "encodedId" (url-encode id)
      "owner" (.get_owner topo-info)
      "name" (.get_name topo-info)
      "status" (.get_status topo-info)
-     "uptime" (pretty-uptime-sec (.get_uptime_secs topo-info))
+     "uptime" (pretty-uptime-sec uptime)
+     "uptimeSeconds" uptime
      "tasksTotal" (.get_num_tasks topo-info)
      "workersTotal" (.get_num_workers topo-info)
      "executorsTotal" (.get_num_executors topo-info)
@@ -646,10 +653,12 @@
         ^CommonAggregateStats cas (.get_common_stats stats)
         host (.get_host summ)
         port (.get_port summ)
-        exec-id (pretty-executor-info info)]
+        exec-id (pretty-executor-info info)
+        uptime (.get_uptime_secs summ)]
     {"id" exec-id
      "encodedId" (url-encode exec-id)
-     "uptime" (pretty-uptime-sec (.get_uptime_secs summ))
+     "uptime" (pretty-uptime-sec uptime)
+     "uptimeSeconds" uptime
      "host" host
      "port" port
      "emitted" (nil-to-zero (.get_emitted cas))
@@ -672,10 +681,12 @@
         ^CommonAggregateStats cas (.get_common_stats stats)
         host (.get_host summ)
         port (.get_port summ)
-        exec-id (pretty-executor-info info)]
+        exec-id (pretty-executor-info info)
+        uptime (.get_uptime_secs summ)]
     {"id" exec-id
      "encodedId" (url-encode exec-id)
-     "uptime" (pretty-uptime-sec (.get_uptime_secs summ))
+     "uptime" (pretty-uptime-sec uptime)
+     "uptimeSeconds" uptime
      "host" host
      "port" port
      "emitted" (nil-to-zero (.get_emitted cas))

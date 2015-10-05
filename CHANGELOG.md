@@ -1,4 +1,14 @@
 ## 0.11.0
+ * STORM-1078: Updated RateTracker to be thread safe
+ * STORM-1082: fix nits for properties in kafka tests
+ * STORM-993: include uptimeSeconds as JSON integer field
+ * STORM-1053: Update storm-kafka README for new producer API confs.
+ * STORM-1058: create CLI kill_workers to kill workers on a supervisor node
+ * STORM-1063: support relative log4j conf dir for both daemons and workers
+ * STORM-1059: Upgrade Storm to use Clojure 1.7.0
+ * STORM-1069: add check case for external change of 'now' value.
+ * STORM-969: HDFS Bolt can end up in an unrecoverable state.
+ * STORM-1068: Configure request.required.acks to be 1 in KafkaUtilsTest for sync
  * STORM-1017: If ignoreZkOffsets set true,KafkaSpout will reset zk offset when recover from failure.
  * STORM-1054: Excessive logging ShellBasedGroupsMapping if the user doesn't have any groups.
  * STORM-954: Toplogy Event Inspector
@@ -60,6 +70,11 @@
  * STORM-949: On the topology summary UI page, last shown error should have the time and date
 
 ## 0.10.0-beta2
+ * STORM-1066: Specify current directory when supervisor launches a worker
+ * STORM-1012: Shaded everything that was not already shaded
+ * STORM-967: Shaded everything that was not already shaded
+ * STORM-922: Shaded everything that was not already shaded
+ * STORM-1042: Shaded everything that was not already shaded
  * STORM-1026: Adding external classpath elements does not work
  * STORM-1055: storm-jdbc README needs fixes and context
  * STORM-1044: Setting dop to zero does not raise an error

@@ -76,7 +76,7 @@ public class DisruptorQueue implements IStatefulObject {
         _consumer = new Sequence();
         _barrier = _buffer.newBarrier();
         _buffer.setGatingSequences(_consumer);
-        _metrics = new QueueMetrics((float) 0.05);
+        _metrics = new QueueMetrics();
 
         if (claim instanceof SingleThreadedClaimStrategy) {
             consumerStartedFlag = true;
@@ -264,34 +264,11 @@ public class DisruptorQueue implements IStatefulObject {
         return _metrics;
     }
 
-
     /**
      * This inner class provides methods to access the metrics of the disruptor queue.
      */
     public class QueueMetrics {
-
         private final RateTracker _rateTracker = new RateTracker(10000, 10);
-        private final float _sampleRate;
-        private Random _random;
-
-        public QueueMetrics() throws IllegalArgumentException {
-            this(1);
-        }
-
-        /**
-         * @param sampleRate a number between 0 and 1. The higher it is, the accurate the metrics
-         *                   will be. Using a reasonable sampleRate, e.g., 0.1, could effectively reduce the
-         *                   metric maintenance cost while providing good accuracy.
-         */
-        public QueueMetrics(float sampleRate) throws IllegalArgumentException {
-
-            if (sampleRate <= 0 || sampleRate > 1)
-                throw new IllegalArgumentException("sampleRate should be a value between (0,1].");
-
-            _sampleRate = sampleRate;
-
-            _random = new Random();
-        }
 
         public long writePos() {
             return _buffer.getCursor();
@@ -320,35 +297,25 @@ public class DisruptorQueue implements IStatefulObject {
             long rp = readPos();
             long wp = writePos();
 
-            final float arrivalRateInMils = _rateTracker.reportRate() / _sampleRate;
+            final double arrivalRateInSecs = _rateTracker.reportRate();
 
-            /*
-            Assume the queue is stable, in which the arrival rate is equal to the consumption rate.
-            If this assumption does not hold, the calculation of sojourn time should also consider
-            departure rate according to Queuing Theory.
-             */
-            final float sojournTime = (wp - rp) / (float) Math.max(arrivalRateInMils, 0.00001);
+            //Assume the queue is stable, in which the arrival rate is equal to the consumption rate.
+            // If this assumption does not hold, the calculation of sojourn time should also consider
+            // departure rate according to Queuing Theory.
+            final double sojournTime = (wp - rp) / Math.max(arrivalRateInSecs, 0.00001) * 1000.0;
 
             state.put("capacity", capacity());
             state.put("population", wp - rp);
             state.put("write_pos", wp);
             state.put("read_pos", rp);
-            state.put("arrival_rate", arrivalRateInMils); //arrivals per millisecond
-            state.put("sojourn_time", sojournTime); //element sojourn time in milliseconds
+            state.put("arrival_rate_secs", arrivalRateInSecs);
+            state.put("sojourn_time_ms", sojournTime); //element sojourn time in milliseconds
 
             return state;
         }
 
         public void notifyArrivals(long counts) {
-            if (sample())
-                _rateTracker.notify(counts);
-        }
-
-        final private boolean sample() {
-            if (_sampleRate == 1 || _random.nextFloat() < _sampleRate)
-                return true;
-            return false;
+            _rateTracker.notify(counts);
         }
     }
-
 }

@@ -13,44 +13,21 @@
 ;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
+(ns backtype.storm.command.kill-workers
+  (:import [java.io File])
+  (:use [backtype.storm.daemon common])
+  (:use [backtype.storm util config])
+  (:require [backtype.storm.daemon
+             [supervisor :as supervisor]])
+  (:gen-class))
 
-(ns backtype.storm.log
-  (:require [clojure.tools.logging :as log])
-  (:use [clojure pprint])
-  (:import [java.io StringWriter]))
-
-(defmacro log-message
+(defn -main 
+  "Construct the supervisor-data from scratch and kill the workers on this supervisor"
   [& args]
-  `(log/info (str ~@args)))
-
-(defmacro log-error
-  [e & args]
-  `(log/log :error ~e (str ~@args)))
-
-(defmacro log-debug
-  [& args]
-  `(log/debug (str ~@args)))
-
-(defmacro log-warn-error
-  [e & args]
-  `(log/warn (str ~@args) ~e))
-
-(defmacro log-warn
-  [& args]
-  `(log/warn (str ~@args)))
-
-(defn log-capture!
-  [& args]
-  (apply log/log-capture! args))
-
-(defn log-stream
-  [& args]
-  (apply log/log-stream args))
-
-(defmacro log-pprint
-  [& args]
-  `(let [^StringWriter writer# (StringWriter.)]
-     (doall
-       (for [object# [~@args]]
-         (pprint object# writer#)))
-     (log-message "\n" writer#)))
+  (let [conf (read-storm-config)
+        conf (assoc conf STORM-LOCAL-DIR (. (File. (conf STORM-LOCAL-DIR)) getCanonicalPath))
+        isupervisor (supervisor/standalone-supervisor)
+        supervisor-data (supervisor/supervisor-data conf nil isupervisor)
+        ids (supervisor/my-worker-ids conf)]
+    (doseq [id ids]
+      (supervisor/shutdown-worker supervisor-data id))))

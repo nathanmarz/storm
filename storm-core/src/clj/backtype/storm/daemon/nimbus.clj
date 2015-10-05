@@ -36,7 +36,7 @@
             ExecutorInfo InvalidTopologyException Nimbus$Iface Nimbus$Processor SubmitOptions TopologyInitialStatus
             KillOptions RebalanceOptions ClusterSummary SupervisorSummary TopologySummary TopologyInfo
             ExecutorSummary AuthorizationException GetInfoOptions NumErrorsChoice
-            ComponentPageInfo TopologyPageInfo])
+            ComponentPageInfo TopologyPageInfo LogConfig LogLevel LogLevelAction])
   (:import [backtype.storm.daemon Shutdownable])
   (:use [backtype.storm util config log timer zookeeper])
   (:require [backtype.storm [cluster :as cluster]
@@ -48,6 +48,8 @@
   (:use [backtype.storm.daemon common])
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
   (:import [backtype.storm.utils VersionInfo])
+  (:require [clj-time.core :as time])
+  (:require [clj-time.coerce :as coerce])
   (:gen-class
     :methods [^{:static true} [launch [backtype.storm.scheduler.INimbus] void]]))
 
@@ -106,6 +108,7 @@
                                                                        NIMBUS-ZK-ACLS))
      :submit-lock (Object.)
      :cred-update-lock (Object.)
+     :log-update-lock (Object.)
      :heartbeats-cache (atom {})
      :downloaders (file-cache-map conf)
      :uploaders (file-cache-map conf)
@@ -1064,6 +1067,13 @@
        (InvalidTopologyException. 
         (str "Failed to submit topology. Topology requests more than " workers-allowed " workers."))))))
 
+(defn- set-logger-timeouts [log-config]
+  (let [timeout-secs (.get_reset_log_level_timeout_secs log-config)
+       timeout (time/plus (time/now) (time/secs timeout-secs))]
+   (if (time/after? timeout (time/now))
+     (.set_reset_log_level_timeout_epoch log-config (coerce/to-long timeout))
+     (.unset_reset_log_level_timeout_epoch log-config))))
+
 (defserverfn service-handler [conf inimbus]
   (.prepare inimbus conf (master-inimbus-dir conf))
   (log-message "Starting Nimbus with conf " conf)
@@ -1297,6 +1307,31 @@
           (locking (:submit-lock nimbus)
             (.update-storm! storm-cluster-state storm-id storm-base-updates))))
 
+      (^void setLogConfig [this ^String id ^LogConfig log-config-msg]
+        (let [topology-conf (try-read-storm-conf conf id)
+              storm-name (topology-conf TOPOLOGY-NAME)
+              _ (check-authorization! nimbus storm-name topology-conf "setLogConfig")
+              storm-cluster-state (:storm-cluster-state nimbus)
+              merged-log-config (or (.topology-log-config storm-cluster-state id nil) (LogConfig.))
+              named-loggers (.get_named_logger_level merged-log-config)]
+            (doseq [[_ level] named-loggers]
+              (.set_action level LogLevelAction/UNCHANGED))
+            (doseq [[logger-name log-config] (.get_named_logger_level log-config-msg)]
+              (let [action (.get_action log-config)]
+                (if (clojure.string/blank? logger-name)
+                  (throw (RuntimeException. "Named loggers need a valid name. Use ROOT for the root logger")))
+                (condp = action
+                  LogLevelAction/UPDATE
+                    (do (set-logger-timeouts log-config)
+                          (.put_to_named_logger_level merged-log-config logger-name log-config))
+                  LogLevelAction/REMOVE
+                    (let [named-loggers (.get_named_logger_level merged-log-config)]
+                      (if (and (not (nil? named-loggers))
+                               (.containsKey named-loggers logger-name))
+                        (.remove named-loggers logger-name))))))
+            (log-message "Setting log config for " storm-name ":" merged-log-config)
+            (.set-topology-log-config! storm-cluster-state id merged-log-config)))
+
       (uploadNewCredentials [this storm-name credentials]
         (let [storm-cluster-state (:storm-cluster-state nimbus)
               storm-id (get-storm-id storm-cluster-state storm-name)
@@ -1364,6 +1399,14 @@
       (^String getNimbusConf [this]
         (check-authorization! nimbus nil nil "getNimbusConf")
         (to-json (:conf nimbus)))
+
+      (^LogConfig getLogConfig [this ^String id]
+        (let [topology-conf (try-read-storm-conf conf id)
+              storm-name (topology-conf TOPOLOGY-NAME)
+              _ (check-authorization! nimbus storm-name topology-conf "getLogConfig")
+             storm-cluster-state (:storm-cluster-state nimbus)
+             log-config (.topology-log-config storm-cluster-state id nil)]
+           (if log-config log-config (LogConfig.))))
 
       (^String getTopologyConf [this ^String id]
         (let [topology-conf (try-read-storm-conf conf id)

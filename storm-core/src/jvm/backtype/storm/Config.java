@@ -1040,6 +1040,13 @@ public class Config extends HashMap<String, Object> {
     public static final String TASK_REFRESH_POLL_SECS = "task.refresh.poll.secs";
     public static final Object TASK_REFRESH_POLL_SECS_SCHEMA = ConfigValidation.IntegerValidator;
 
+    /**
+     * How often a worker should check dynamic log level timeouts for expiration.
+     * For expired logger settings, the clean up polling task will reset the log levels
+     * to the original levels (detected at startup), and will clean up the timeout map
+     */
+    public static final String WORKER_LOG_LEVEL_RESET_POLL_SECS = "worker.log.level.reset.poll.secs";
+    public static final Object WORKER_LOG_LEVEL_RESET_POLL_SECS_SCHEMA = ConfigValidation.PositiveIntegerValidator;
 
     /**
      * How often a task should sync credentials, worst case.

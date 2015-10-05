@@ -35,7 +35,8 @@
             KillOptions GetInfoOptions NumErrorsChoice DebugOptions TopologyPageInfo
             TopologyStats CommonAggregateStats ComponentAggregateStats
             ComponentType BoltAggregateStats SpoutAggregateStats
-            ExecutorAggregateStats SpecificAggregateStats ComponentPageInfo])
+            ExecutorAggregateStats SpecificAggregateStats ComponentPageInfo
+            LogConfig LogLevel LogLevelAction])
   (:import [backtype.storm.security.auth AuthUtils ReqContext])
   (:import [backtype.storm.generated AuthorizationException])
   (:import [backtype.storm.security.auth AuthUtils])
@@ -46,6 +47,7 @@
             [ring.util.response :as resp]
             [backtype.storm [thrift :as thrift]])
   (:import [org.apache.commons.lang StringEscapeUtils])
+  (:import [org.apache.logging.log4j Level])
   (:gen-class))
 
 (def ^:dynamic *STORM-CONF* (read-storm-config))
@@ -763,6 +765,26 @@
                                       (.get_eventlog_port comp-page-info)
                                       secure?)))))
 
+(defn- level-to-dict [level]
+  (if level
+    (let [timeout (.get_reset_log_level_timeout_secs level)
+          timeout-epoch (.get_reset_log_level_timeout_epoch level)
+          target-level (.get_target_log_level level)
+          reset-level (.get_reset_log_level level)]
+          {"target_level" (.toString (Level/toLevel target-level))
+           "reset_level" (.toString (Level/toLevel reset-level))
+           "timeout" timeout
+           "timeout_epoch" timeout-epoch})))
+
+(defn log-config [topology-id]
+  (thrift/with-configured-nimbus-connection
+    nimbus
+    (let [log-config (.getLogConfig ^Nimbus$Client nimbus topology-id)
+          named-logger-levels (into {}
+                                (for [[key val] (.get_named_logger_level log-config)]
+                                  [(str key) (level-to-dict val)]))]
+      {"namedLoggerLevels" named-logger-levels})))
+
 (defn topology-config [topology-id]
   (thrift/with-configured-nimbus-connection nimbus
     (from-json (.getTopologyConf ^Nimbus$Client nimbus topology-id))))
@@ -831,6 +853,9 @@
          (json-response
           (component-page id component (:window m) (check-include-sys? (:sys m)) user (= scheme :https))
           (:callback m))))
+  (GET "/api/v1/topology/:id/logconfig" [:as {:keys [cookies servlet-request]} id & m]
+       (assert-authorized-user servlet-request "getTopology" (topology-config id))
+       (json-response (log-config id) (:callback m)))
   (POST "/api/v1/topology/:id/activate" [:as {:keys [cookies servlet-request]} id & m]
     (thrift/with-configured-nimbus-connection nimbus
     (assert-authorized-user servlet-request "activate" (topology-config id))
@@ -909,6 +934,34 @@
         (.killTopologyWithOpts nimbus name options)
         (log-message "Killing topology '" name "' with wait time: " wait-time " secs")))
     (json-response (topology-op-response id "kill") (m "callback")))
+
+  (POST "/api/v1/topology/:id/logconfig" [:as {:keys [cookies servlet-request]} id namedLoggerLevels & m]
+    (assert-authorized-user servlet-request "setLogConfig" (topology-config id))
+    (thrift/with-configured-nimbus-connection
+      nimbus
+      (let [new-log-config (LogConfig.)]
+        (doseq [[key level] namedLoggerLevels]
+            (let [logger-name (str key)
+                  target-level (.get level "target_level")
+                  timeout (or (.get level "timeout") 0)
+                  named-logger-level (LogLevel.)]
+              ;; if target-level is nil, do not set it, user wants to clear
+              (log-message "The target level for " logger-name " is " target-level)
+              (if (nil? target-level)
+                (do
+                  (.set_action named-logger-level LogLevelAction/REMOVE)
+                  (.unset_target_log_level named-logger-level))
+                (do
+                  (.set_action named-logger-level LogLevelAction/UPDATE)
+                  ;; the toLevel here ensures the string we get is valid
+                  (.set_target_log_level named-logger-level (.name (Level/toLevel target-level)))
+                  (.set_reset_log_level_timeout_secs named-logger-level timeout)))
+              (log-message "Adding this " logger-name " " named-logger-level " to " new-log-config)
+              (.put_to_named_logger_level new-log-config logger-name named-logger-level)))
+        (log-message "Setting topology " id " log config " new-log-config)
+        (.setLogConfig nimbus id new-log-config)
+        (json-response (log-config id) (m "callback")))))
+
   (GET "/" [:as {cookies :cookies}]
        (resp/redirect "/index.html"))
   (route/resources "/")

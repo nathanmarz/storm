@@ -138,6 +138,9 @@ worker.childopts: "-Xmx768m"
 worker.gc.childopts: ""
 worker.heartbeat.frequency.secs: 1
 
+# check whether dynamic log levels can be reset from DEBUG to INFO in workers
+worker.log.level.reset.poll.secs: 30
+
 # control how many worker receiver threads we need per worker
 topology.worker.receiver.thread.count: 1
 

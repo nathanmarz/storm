@@ -277,6 +277,39 @@ def activate(*args):
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
 
+def set_log_level(*args):
+    """
+    Dynamically change topology log levels
+
+    Syntax: [storm set_log_level -l [logger name]=[log level][:optional timeout] -r [logger name]
+    where log level is one of:
+        ALL, TRACE, DEBUG, INFO, WARN, ERROR, FATAL, OFF
+    and timeout is integer seconds.
+
+    e.g.
+        ./bin/storm set_log_level -l ROOT=DEBUG:30
+
+        Set the root logger's level to DEBUG for 30 seconds
+
+        ./bin/storm set_log_level -l com.myapp=WARN
+
+        Set the com.myapp logger's level to WARN for 30 seconds
+
+        ./bin/storm set_log_level -l com.myapp=WARN -l com.myOtherLogger=ERROR:123
+
+        Set the com.myapp logger's level to WARN indifinitely, and com.myOtherLogger
+        to ERROR for 123 seconds
+
+        ./bin/storm set_log_level -r com.myOtherLogger
+
+        Clears settings, resetting back to the original level
+    """
+    exec_storm_class(
+        "backtype.storm.command.set_log_level",
+        args=args,
+        jvmtype="-client",
+        extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
+
 def listtopos(*args):
     """Syntax: [storm list]
 
@@ -576,7 +609,7 @@ COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui
             "remoteconfvalue": print_remoteconfvalue, "repl": repl, "classpath": print_classpath,
             "activate": activate, "deactivate": deactivate, "rebalance": rebalance, "help": print_usage,
             "list": listtopos, "dev-zookeeper": dev_zookeeper, "version": version, "monitor": monitor,
-            "upload-credentials": upload_credentials, "get-errors": get_errors,
+            "upload-credentials": upload_credentials, "get-errors": get_errors, "set_log_level": set_log_level,
             "kill_workers": kill_workers }
 
 def parse_config(config_list):

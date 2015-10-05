@@ -99,6 +99,23 @@ class NumErrorsChoice:
     "ONE": 2,
   }
 
+class LogLevelAction:
+  UNCHANGED = 1
+  UPDATE = 2
+  REMOVE = 3
+
+  _VALUES_TO_NAMES = {
+    1: "UNCHANGED",
+    2: "UPDATE",
+    3: "REMOVE",
+  }
+
+  _NAMES_TO_VALUES = {
+    "UNCHANGED": 1,
+    "UPDATE": 2,
+    "REMOVE": 3,
+  }
+
 
 class JavaObjectArg:
   """
@@ -7659,6 +7676,202 @@ class GetInfoOptions:
   def __hash__(self):
     value = 17
     value = (value * 31) ^ hash(self.num_err_choice)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class LogLevel:
+  """
+  Attributes:
+   - action
+   - target_log_level
+   - reset_log_level_timeout_secs
+   - reset_log_level_timeout_epoch
+   - reset_log_level
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.I32, 'action', None, None, ), # 1
+    (2, TType.STRING, 'target_log_level', None, None, ), # 2
+    (3, TType.I32, 'reset_log_level_timeout_secs', None, None, ), # 3
+    (4, TType.I64, 'reset_log_level_timeout_epoch', None, None, ), # 4
+    (5, TType.STRING, 'reset_log_level', None, None, ), # 5
+  )
+
+  def __init__(self, action=None, target_log_level=None, reset_log_level_timeout_secs=None, reset_log_level_timeout_epoch=None, reset_log_level=None,):
+    self.action = action
+    self.target_log_level = target_log_level
+    self.reset_log_level_timeout_secs = reset_log_level_timeout_secs
+    self.reset_log_level_timeout_epoch = reset_log_level_timeout_epoch
+    self.reset_log_level = reset_log_level
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.I32:
+          self.action = iprot.readI32();
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRING:
+          self.target_log_level = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.I32:
+          self.reset_log_level_timeout_secs = iprot.readI32();
+        else:
+          iprot.skip(ftype)
+      elif fid == 4:
+        if ftype == TType.I64:
+          self.reset_log_level_timeout_epoch = iprot.readI64();
+        else:
+          iprot.skip(ftype)
+      elif fid == 5:
+        if ftype == TType.STRING:
+          self.reset_log_level = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('LogLevel')
+    if self.action is not None:
+      oprot.writeFieldBegin('action', TType.I32, 1)
+      oprot.writeI32(self.action)
+      oprot.writeFieldEnd()
+    if self.target_log_level is not None:
+      oprot.writeFieldBegin('target_log_level', TType.STRING, 2)
+      oprot.writeString(self.target_log_level.encode('utf-8'))
+      oprot.writeFieldEnd()
+    if self.reset_log_level_timeout_secs is not None:
+      oprot.writeFieldBegin('reset_log_level_timeout_secs', TType.I32, 3)
+      oprot.writeI32(self.reset_log_level_timeout_secs)
+      oprot.writeFieldEnd()
+    if self.reset_log_level_timeout_epoch is not None:
+      oprot.writeFieldBegin('reset_log_level_timeout_epoch', TType.I64, 4)
+      oprot.writeI64(self.reset_log_level_timeout_epoch)
+      oprot.writeFieldEnd()
+    if self.reset_log_level is not None:
+      oprot.writeFieldBegin('reset_log_level', TType.STRING, 5)
+      oprot.writeString(self.reset_log_level.encode('utf-8'))
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    if self.action is None:
+      raise TProtocol.TProtocolException(message='Required field action is unset!')
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.action)
+    value = (value * 31) ^ hash(self.target_log_level)
+    value = (value * 31) ^ hash(self.reset_log_level_timeout_secs)
+    value = (value * 31) ^ hash(self.reset_log_level_timeout_epoch)
+    value = (value * 31) ^ hash(self.reset_log_level)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class LogConfig:
+  """
+  Attributes:
+   - named_logger_level
+  """
+
+  thrift_spec = (
+    None, # 0
+    None, # 1
+    (2, TType.MAP, 'named_logger_level', (TType.STRING,None,TType.STRUCT,(LogLevel, LogLevel.thrift_spec)), None, ), # 2
+  )
+
+  def __init__(self, named_logger_level=None,):
+    self.named_logger_level = named_logger_level
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 2:
+        if ftype == TType.MAP:
+          self.named_logger_level = {}
+          (_ktype561, _vtype562, _size560 ) = iprot.readMapBegin()
+          for _i564 in xrange(_size560):
+            _key565 = iprot.readString().decode('utf-8')
+            _val566 = LogLevel()
+            _val566.read(iprot)
+            self.named_logger_level[_key565] = _val566
+          iprot.readMapEnd()
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('LogConfig')
+    if self.named_logger_level is not None:
+      oprot.writeFieldBegin('named_logger_level', TType.MAP, 2)
+      oprot.writeMapBegin(TType.STRING, TType.STRUCT, len(self.named_logger_level))
+      for kiter567,viter568 in self.named_logger_level.items():
+        oprot.writeString(kiter567.encode('utf-8'))
+        viter568.write(oprot)
+      oprot.writeMapEnd()
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.named_logger_level)
     return value
 
   def __repr__(self):

@@ -16,7 +16,8 @@
 
 (ns backtype.storm.cluster
   (:import [org.apache.zookeeper.data Stat ACL Id]
-           [backtype.storm.generated SupervisorInfo Assignment StormBase ClusterWorkerHeartbeat ErrorInfo Credentials NimbusSummary]
+           [backtype.storm.generated SupervisorInfo Assignment StormBase ClusterWorkerHeartbeat ErrorInfo Credentials NimbusSummary
+            LogConfig]
            [java.io Serializable])
   (:import [org.apache.zookeeper KeeperException KeeperException$NoNodeException ZooDefs ZooDefs$Ids ZooDefs$Perms])
   (:import [org.apache.curator.framework.state ConnectionStateListener ConnectionState])
@@ -178,6 +179,8 @@
   (teardown-topology-errors! [this storm-id])
   (heartbeat-storms [this])
   (error-topologies [this])
+  (set-topology-log-config! [this storm-id log-config])
+  (topology-log-config [this storm-id cb])
   (worker-heartbeat! [this storm-id node port info])
   (remove-worker-heartbeat! [this storm-id node port])
   (supervisor-heartbeat! [this supervisor-id info])
@@ -209,7 +212,7 @@
 (def CODE-DISTRIBUTOR-ROOT "code-distributor")
 (def NIMBUSES-ROOT "nimbuses")
 (def CREDENTIALS-ROOT "credentials")
-
+(def LOGCONFIG-ROOT "logconfigs")
 
 (def ASSIGNMENTS-SUBTREE (str "/" ASSIGNMENTS-ROOT))
 (def STORMS-SUBTREE (str "/" STORMS-ROOT))
@@ -220,6 +223,7 @@
 (def CODE-DISTRIBUTOR-SUBTREE (str "/" CODE-DISTRIBUTOR-ROOT))
 (def NIMBUSES-SUBTREE (str "/" NIMBUSES-ROOT))
 (def CREDENTIALS-SUBTREE (str "/" CREDENTIALS-ROOT))
+(def LOGCONFIG-SUBTREE (str "/" LOGCONFIG-ROOT))
 
 (defn supervisor-path
   [id]
@@ -279,6 +283,10 @@
   [storm-id]
   (str CREDENTIALS-SUBTREE "/" storm-id))
 
+(defn log-config-path
+  [storm-id]
+  (str LOGCONFIG-SUBTREE "/" storm-id))
+
 (defn- issue-callback!
   [cb-atom]
   (let [cb @cb-atom]
@@ -332,6 +340,7 @@
         storm-base-callback (atom {})
         code-distributor-callback (atom nil)
         credentials-callback (atom {})
+        log-config-callback (atom {})
         state-id (register
                   cluster-state
                   (fn [type path]
@@ -347,10 +356,12 @@
                          CODE-DISTRIBUTOR-ROOT (issue-callback! code-distributor-callback)
                          STORMS-ROOT (issue-map-callback! storm-base-callback (first args))
                          CREDENTIALS-ROOT (issue-map-callback! credentials-callback (first args))
+                         LOGCONFIG-ROOT (issue-map-callback! log-config-callback (first args))
                          BACKPRESSURE-ROOT (issue-map-callback! backpressure-callback (first args))
                          ;; this should never happen
                          (exit-process! 30 "Unknown callback for subtree " subtree args)))))]
-    (doseq [p [ASSIGNMENTS-SUBTREE STORMS-SUBTREE SUPERVISORS-SUBTREE WORKERBEATS-SUBTREE ERRORS-SUBTREE CODE-DISTRIBUTOR-SUBTREE NIMBUSES-SUBTREE]]
+    (doseq [p [ASSIGNMENTS-SUBTREE STORMS-SUBTREE SUPERVISORS-SUBTREE WORKERBEATS-SUBTREE ERRORS-SUBTREE CODE-DISTRIBUTOR-SUBTREE NIMBUSES-SUBTREE
+               LOGCONFIG-SUBTREE]]
       (mkdirs cluster-state p acls))
     (reify
       StormClusterState
@@ -461,6 +472,16 @@
         [this supervisor-id]
         (clojurify-supervisor-info (maybe-deserialize (get-data cluster-state (supervisor-path supervisor-id) false) SupervisorInfo)))
 
+      (topology-log-config
+        [this storm-id cb]
+        (when cb
+          (swap! log-config-callback assoc storm-id cb))
+        (maybe-deserialize (.get_data cluster-state (log-config-path storm-id) (not-nil? cb)) LogConfig))
+
+      (set-topology-log-config!
+        [this storm-id log-config]
+        (.set_data cluster-state (log-config-path storm-id) (Utils/serialize log-config) acls))
+
       (worker-heartbeat!
         [this storm-id node port info]
         (let [thrift-worker-hb (thriftify-zk-worker-hb info)]
@@ -570,6 +591,7 @@
         (delete-node cluster-state (assignment-path storm-id))
         (delete-node cluster-state (code-distributor-path storm-id))
         (delete-node cluster-state (credentials-path storm-id))
+        (delete-node cluster-state (log-config-path storm-id))
         (remove-storm-base! this storm-id))
 
       (set-credentials!

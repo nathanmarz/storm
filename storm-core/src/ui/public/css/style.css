@@ -24,6 +24,14 @@
     padding: 0.5em;
 }
 
+#change-log-level select{
+    width:10em;
+}
+
+#change-log-level input.timeout_input{
+    width:5em;
+}
+
 body,
 .dataTables_wrapper label,
 div.dataTables_info[role="status"],

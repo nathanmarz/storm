@@ -148,6 +148,8 @@ public class Config extends HashMap<String, Object> {
 
     /**
      * A directory that holds configuration files for log4j2.
+     * It can be either a relative or an absolute directory.
+     * If relative, it is relative to the storm's home directory.
      */
     public static final String STORM_LOG4J2_CONF_DIR = "storm.log4j2.conf.dir";
     public static final Object STORM_LOG4J2_CONF_DIR_SCHEMA = String.class;

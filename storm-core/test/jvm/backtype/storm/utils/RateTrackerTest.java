@@ -17,9 +17,9 @@
  */
 package backtype.storm.utils;
 
-import org.junit.Assert;
 import org.junit.Test;
 import junit.framework.TestCase;
+import static org.junit.Assert.*;
 
 /**
  * Unit test for RateTracker
@@ -27,36 +27,68 @@ import junit.framework.TestCase;
 public class RateTrackerTest extends TestCase {
 
     @Test
+    public void testExactRate() {
+        //This test is in two phases.  The first phase fills up the 10 buckets with 10 tuples each
+        // We purposely simulate a 1 second bucket size so the rate will always be 10 per second.
+        final long interval = 1000l;
+        long time = 0l;
+        RateTracker rt = new RateTracker(10000, 10, time);
+        double [] expected = new double[] {10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0};
+        for (int i = 0; i < expected.length; i++) {
+            double exp = expected[i];
+            rt.notify(10);
+            time += interval;
+            double actual = rt.reportRate(time);
+            rt.forceRotate(1, interval);
+            assertEquals("Expected rate on iteration "+i+" is wrong.", exp, actual, 0.00001);
+        }
+        //In the second part of the test the rate doubles to 20 per second but the rate tracker
+        // increases its result slowly as we push the 10 tuples per second buckets out and relpace them
+        // with 20 tuples per second. 
+        expected = new double[] {11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0};
+        for (int i = 0; i < expected.length; i++) {
+            double exp = expected[i];
+            rt.notify(20);
+            time += interval;
+            double actual = rt.reportRate(time);
+            rt.forceRotate(1, interval);
+            assertEquals("Expected rate on iteration "+i+" is wrong.", exp, actual, 0.00001);
+        }
+    }
+
+
+    @Test
     public void testEclipsedAllWindows() {
-        RateTracker rt = new RateTracker(10000, 10, true);
+        long time = 0;
+        RateTracker rt = new RateTracker(10000, 10, time);
         rt.notify(10);
-        rt.forceUpdateSlides(10);
-        assert (rt.reportRate() == 0);
+        rt.forceRotate(10, 1000l);
+        assertEquals(0.0, rt.reportRate(10000l), 0.00001);
     }
 
     @Test
     public void testEclipsedOneWindow() {
-        RateTracker rt = new RateTracker(10000, 10, true);
+        long time = 0;
+        RateTracker rt = new RateTracker(10000, 10, time);
         rt.notify(1);
-        float r1 = rt.reportRate();
-        rt.forceUpdateSlides(1);
+        double r1 = rt.reportRate(1000l);
+        rt.forceRotate(1, 1000l);
         rt.notify(1);
-        float r2 = rt.reportRate();
+        double r2 = rt.reportRate(2000l);
 
-        System.out.format("r1:%f, r2:%f\n", r1, r2);
-
-        assert (r1 == r2);
+        assertEquals(r1, r2, 0.00001);
     }
 
     @Test
     public void testEclipsedNineWindows() {
-        RateTracker rt = new RateTracker(10000, 10, true);
+        long time = 0;
+        RateTracker rt = new RateTracker(10000, 10, time);
         rt.notify(1);
-        float r1 = rt.reportRate();
-        rt.forceUpdateSlides(9);
+        double r1 = rt.reportRate(1000);
+        rt.forceRotate(9, 1000);
         rt.notify(9);
-        float r2 = rt.reportRate();
+        double r2 = rt.reportRate(10000);
 
-        assert (r1 == r2);
+        assertEquals(r1, r2, 0.00001);
     }
 }

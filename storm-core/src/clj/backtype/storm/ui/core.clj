@@ -615,7 +615,8 @@
       "nimbusLogLink" (nimbus-log-link host port)
       "status" "Offline"
       "version" "Not applicable"
-      "nimbusUpTime" "Not applicable"}
+      "nimbusUpTime" "Not applicable"
+      "nimbusUptimeSeconds" "Not applicable"}
     ))
 
 (defn nimbus-summary
@@ -630,14 +631,16 @@
           offline-nimbuses-summary (map #(convert-to-nimbus-summary %1) offline-nimbuses)]
       {"nimbuses"
        (concat offline-nimbuses-summary
-       (for [^NimbusSummary n nimbuses]
+       (for [^NimbusSummary n nimbuses
+             :let [uptime (.get_uptime_secs n)]]
          {
           "host" (.get_host n)
           "port" (.get_port n)
           "nimbusLogLink" (nimbus-log-link (.get_host n) (.get_port n))
           "status" (if (.is_isLeader n) "Leader" "Not a Leader")
           "version" (.get_version n)
-          "nimbusUpTime" (pretty-uptime-sec (.get_uptime_secs n))}))})))
+          "nimbusUpTime" (pretty-uptime-sec uptime)
+          "nimbusUpTimeSeconds" uptime}))})))
 
 (defn supervisor-summary
   ([]
@@ -650,6 +653,7 @@
       {"id" (.get_supervisor_id s)
        "host" (.get_host s)
        "uptime" (pretty-uptime-sec (.get_uptime_secs s))
+       "uptimeSeconds" (.get_uptime_secs s)
        "slotsTotal" (.get_num_workers s)
        "slotsUsed" (.get_num_used_workers s)
        "version" (.get_version s)})}))
@@ -670,6 +674,7 @@
        "name" (.get_name t)
        "status" (.get_status t)
        "uptime" (pretty-uptime-sec (.get_uptime_secs t))
+       "uptimeSeconds" (.get_uptime_secs t)
        "tasksTotal" (.get_num_tasks t)
        "workersTotal" (.get_num_workers t)
        "executorsTotal" (.get_num_executors t)
@@ -755,6 +760,7 @@
        "name" (.get_name summ)
        "status" (.get_status summ)
        "uptime" (pretty-uptime-sec (.get_uptime_secs summ))
+       "uptimeSeconds" (.get_uptime_secs summ)
        "tasksTotal" (sum-tasks executors)
        "workersTotal" (count workers)
        "executorsTotal" (count executors)
@@ -841,6 +847,7 @@
     {"id" (pretty-executor-info (.get_executor_info e))
      "encodedId" (url-encode (pretty-executor-info (.get_executor_info e)))
      "uptime" (pretty-uptime-sec (.get_uptime_secs e))
+     "uptimeSeconds" (.get_uptime_secs e)
      "host" (.get_host e)
      "port" (.get_port e)
      "emitted" (nil-to-zero (:emitted stats))
@@ -937,6 +944,7 @@
     {"id" (pretty-executor-info (.get_executor_info e))
      "encodedId" (url-encode (pretty-executor-info (.get_executor_info e)))
      "uptime" (pretty-uptime-sec (.get_uptime_secs e))
+     "uptimeSeconds" (.get_uptime_secs e)
      "host" (.get_host e)
      "port" (.get_port e)
      "emitted" (nil-to-zero (:emitted stats))

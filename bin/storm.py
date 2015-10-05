@@ -381,6 +381,19 @@ def get_errors(*args):
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, os.path.join(STORM_DIR, "bin")])
 
+def kill_workers(*args):
+    """Syntax: [storm kill_workers]
+
+    Kill the workers running on this supervisor. This command should be run
+    on a supervisor node. If the cluster is running in secure mode, then user needs
+    to have admin rights on the node to be able to successfully kill all workers.
+    """
+    exec_storm_class(
+        "backtype.storm.command.kill_workers",
+        args=args,
+        jvmtype="-client",
+        extrajars=[USER_CONF_DIR, os.path.join(STORM_DIR, "bin")])
+
 def shell(resourcesdir, command, *args):
     tmpjarpath = "stormshell" + str(random.randint(0, 10000000)) + ".jar"
     os.system("jar cf %s %s" % (tmpjarpath, resourcesdir))
@@ -408,6 +421,8 @@ def get_log4j2_conf_dir():
     storm_log4j2_conf_dir = confvalue("storm.log4j2.conf.dir", cppaths)
     if(storm_log4j2_conf_dir == None or storm_log4j2_conf_dir == "nil"):
         storm_log4j2_conf_dir = STORM_LOG4J2_CONF_DIR
+    elif(not os.path.isabs(storm_log4j2_conf_dir)):
+        storm_log4j2_conf_dir = os.path.join(STORM_DIR, storm_log4j2_conf_dir)
     return storm_log4j2_conf_dir
 
 def nimbus(klass="backtype.storm.daemon.nimbus"):
@@ -594,7 +609,8 @@ COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui
             "remoteconfvalue": print_remoteconfvalue, "repl": repl, "classpath": print_classpath,
             "activate": activate, "deactivate": deactivate, "rebalance": rebalance, "help": print_usage,
             "list": listtopos, "dev-zookeeper": dev_zookeeper, "version": version, "monitor": monitor,
-            "upload-credentials": upload_credentials, "get-errors": get_errors, "set_log_level": set_log_level }
+            "upload-credentials": upload_credentials, "get-errors": get_errors, "set_log_level": set_log_level,
+            "kill_workers": kill_workers }
 
 def parse_config(config_list):
     global CONFIG_OPTS

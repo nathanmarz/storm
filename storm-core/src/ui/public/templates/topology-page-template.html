@@ -137,33 +137,37 @@
     </tbody>
   </table>
 </script>
+
+<script id="topology-visualization-container-template" type="text/html">
+  <p>
+    <table class="table table-striped compact">
+      <thead>
+        <tr>
+          <th class="header" colspan=4>
+            Streams
+          </th>
+        </tr>
+      </thead>
+      {{#visualizationTable}}
+      <tr>
+        {{#:row}}
+        <td>
+          <input type="checkbox" id={{:sani-stream}} class="stream-box" {{#:checked}}checked{{/:checked}}/>
+          {{:stream}}
+        </td>
+        {{/:row}}
+      </tr>
+      {{/visualizationTable}}
+    </table>
+  </p>
+  <canvas id="topoGraph" width=1024 height=768 style="border:1px solid #000000;">
+</script>
+
 <script id="topology-visualization-template" type="text/html">
   <h2>Topology Visualization</h2>
   <input type="button" id="show-hide-visualization" value="Show Visualization" class="btn btn-default"/>
   <p>
     <div id="visualization-container" style="display:none;">
-      <p>
-        <table class="table table-striped compact">
-          <thead>
-            <tr>
-              <th class="header" colspan=4>
-                Streams
-              </th>
-            </tr>
-          </thead>
-          {{#visualizationTable}}
-          <tr>
-            {{#:row}}
-            <td>
-              <input type="checkbox" id={{:sani-stream}} class="stream-box" {{#:checked}}checked{{/:checked}}/>
-              {{:stream}}
-            </td>
-            {{/:row}}
-          </tr>
-          {{/visualizationTable}}
-        </table>
-      </p>
-      <canvas id="topoGraph" width=1024 height=768 style="border:1px solid #000000;">
     </div>
   </p>
 </script>
@@ -253,7 +257,7 @@
           <span id="{{errorLapsedSecs}}" class="errorSpan">{{lastError}}</span>
         </td>
         <td>
-          <span id="{{time}}" class="errorTime" data-toggle="tooltip" title="{{errorLapsedSecs}}">{{time}}</span>
+          <span id="{{errorTime}}" class="errorTime" data-toggle="tooltip" title="{{errorLapsedSecs}}">{{errorTime}}</span>
         </td>
         {{/spouts}}
     </tbody>
@@ -347,7 +351,7 @@
           <span id="{{errorLapsedSecs}}" class="errorSpan">{{lastError}}</span>
         </td>
         <td>
-          <span id="{{time}}" class="errorTime" data-toggle="tooltip" title="{{errorLapsedSecs}}">{{time}}</span>
+          <span id="{{errorTime}}" class="errorTime" data-toggle="tooltip" title="{{errorLapsedSecs}}">{{errorTime}}</span>
         </td>
         {{/bolts}}
     </tbody>

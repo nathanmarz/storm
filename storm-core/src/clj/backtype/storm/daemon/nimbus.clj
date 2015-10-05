@@ -36,10 +36,13 @@
             ExecutorInfo InvalidTopologyException Nimbus$Iface Nimbus$Processor SubmitOptions TopologyInitialStatus
             KillOptions RebalanceOptions ClusterSummary SupervisorSummary TopologySummary TopologyInfo
             ExecutorSummary AuthorizationException GetInfoOptions NumErrorsChoice
-            LogConfig LogLevel LogLevelAction])
+            ComponentPageInfo TopologyPageInfo LogConfig LogLevel LogLevelAction])
   (:import [backtype.storm.daemon Shutdownable])
   (:use [backtype.storm util config log timer zookeeper])
-  (:require [backtype.storm [cluster :as cluster] [stats :as stats] [converter :as converter]])
+  (:require [backtype.storm [cluster :as cluster]
+                            [converter :as converter]
+                            [stats :as stats]
+                            [tuple :as tuple]])
   (:require [clojure.set :as set])
   (:import [backtype.storm.daemon.common StormBase Assignment])
   (:use [backtype.storm.daemon common])
@@ -978,13 +981,6 @@
                    (.set_host (:host %))
                    (.set_port (:port %))))))
 
-(defn- get-last-error
-  [storm-cluster-state storm-id component-id]
-  (if-let [e (.last-error storm-cluster-state storm-id component-id)]
-    (doto (ErrorInfo. (:error e) (:time-secs e))
-                      (.set_host (:host e))
-                      (.set_port (:port e)))))
-
 (defn- thriftify-executor-id [[first-task-id last-task-id]]
   (ExecutorInfo. (int first-task-id) (int last-task-id)))
 
@@ -1082,7 +1078,42 @@
   (.prepare inimbus conf (master-inimbus-dir conf))
   (log-message "Starting Nimbus with conf " conf)
   (let [nimbus (nimbus-data conf inimbus)
-       principal-to-local (AuthUtils/GetPrincipalToLocalPlugin conf)]
+        principal-to-local (AuthUtils/GetPrincipalToLocalPlugin conf)
+        get-common-topo-info
+          (fn [^String storm-id operation]
+            (let [storm-cluster-state (:storm-cluster-state nimbus)
+                  topology-conf (try-read-storm-conf conf storm-id)
+                  storm-name (topology-conf TOPOLOGY-NAME)
+                  _ (check-authorization! nimbus
+                                          storm-name
+                                          topology-conf
+                                          operation)
+                  topology (try-read-storm-topology conf storm-id)
+                  task->component (storm-task-info topology topology-conf)
+                  base (.storm-base storm-cluster-state storm-id nil)
+                  launch-time-secs (if base (:launch-time-secs base)
+                                     (throw
+                                       (NotAliveException. (str storm-id))))
+                  assignment (.assignment-info storm-cluster-state storm-id nil)
+                  beats (map-val :heartbeat (get @(:heartbeats-cache nimbus)
+                                                 storm-id))
+                  all-components (set (vals task->component))]
+              {:storm-name storm-name
+               :storm-cluster-state storm-cluster-state
+               :all-components all-components
+               :launch-time-secs launch-time-secs
+               :assignment assignment
+               :beats beats
+               :topology topology
+               :task->component task->component
+               :base base}))
+        get-last-error (fn [storm-cluster-state storm-id component-id]
+                         (if-let [e (.last-error storm-cluster-state
+                                                 storm-id
+                                                 component-id)]
+                           (doto (ErrorInfo. (:error e) (:time-secs e))
+                             (.set_host (:host e))
+                             (.set_port (:port e)))))]
     (.prepare ^backtype.storm.nimbus.ITopologyValidator (:validator nimbus) conf)
 
     ;add to nimbuses
@@ -1453,16 +1484,14 @@
           ))
       
       (^TopologyInfo getTopologyInfoWithOpts [this ^String storm-id ^GetInfoOptions options]
-        (let [storm-cluster-state (:storm-cluster-state nimbus)
-              topology-conf (try-read-storm-conf conf storm-id)
-              storm-name (topology-conf TOPOLOGY-NAME)
-              _ (check-authorization! nimbus storm-name topology-conf "getTopologyInfo")
-              task->component (storm-task-info (try-read-storm-topology conf storm-id) topology-conf)
-              base (.storm-base storm-cluster-state storm-id nil)
-              launch-time-secs (if base (:launch-time-secs base) (throw (NotAliveException. (str storm-id))))
-              assignment (.assignment-info storm-cluster-state storm-id nil)
-              beats (map-val :heartbeat (get @(:heartbeats-cache nimbus) storm-id))
-              all-components (-> task->component reverse-map keys)
+        (let [{:keys [storm-name
+                      storm-cluster-state
+                      all-components
+                      launch-time-secs
+                      assignment
+                      beats
+                      task->component
+                      base]} (get-common-topo-info storm-id "getTopologyInfo")
               num-err-choice (or (.get_num_err_choice options)
                                  NumErrorsChoice/ALL)
               errors-fn (condp = num-err-choice
@@ -1509,10 +1538,93 @@
             topo-info
           ))
 
-      (^TopologyInfo getTopologyInfo [this ^String storm-id]
+      (^TopologyInfo getTopologyInfo [this ^String topology-id]
         (.getTopologyInfoWithOpts this
-                                  storm-id
+                                  topology-id
                                   (doto (GetInfoOptions.) (.set_num_err_choice NumErrorsChoice/ALL))))
+
+      (^TopologyPageInfo getTopologyPageInfo
+        [this ^String topo-id ^String window ^boolean include-sys?]
+        (let [info (get-common-topo-info topo-id "getTopologyPageInfo")
+
+              exec->node+port (:executor->node+port (:assignment info))
+              last-err-fn (partial get-last-error
+                                   (:storm-cluster-state info)
+                                   topo-id)
+              topo-page-info (stats/agg-topo-execs-stats topo-id
+                                                         exec->node+port
+                                                         (:task->component info)
+                                                         (:beats info)
+                                                         (:topology info)
+                                                         window
+                                                         include-sys?
+                                                         last-err-fn)]
+          (when-let [owner (:owner (:base info))]
+            (.set_owner topo-page-info owner))
+          (when-let [sched-status (.get @(:id->sched-status nimbus) topo-id)]
+            (.set_sched_status topo-page-info sched-status))
+          (doto topo-page-info
+            (.set_name (:storm-name info))
+            (.set_status (extract-status-str (:base info)))
+            (.set_uptime_secs (time-delta (:launch-time-secs info)))
+            (.set_topology_conf (to-json (try-read-storm-conf conf
+                                                              topo-id)))
+            (.set_replication_count
+              (.getReplicationCount (:code-distributor nimbus) topo-id)))
+          (when-let [debug-options
+                     (get-in info [:base :component->debug topo-id])]
+            (.set_debug_options
+              topo-page-info
+              (converter/thriftify-debugoptions debug-options)))
+          topo-page-info))
+
+      (^ComponentPageInfo getComponentPageInfo
+        [this
+         ^String topo-id
+         ^String component-id
+         ^String window
+         ^boolean include-sys?]
+        (let [info (get-common-topo-info topo-id "getComponentPageInfo")
+              {:keys [executor->node+port node->host]} (:assignment info)
+              executor->host+port (map-val (fn [[node port]]
+                                             [(node->host node) port])
+                                           executor->node+port)
+              comp-page-info (stats/agg-comp-execs-stats executor->host+port
+                                                         (:task->component info)
+                                                         (:beats info)
+                                                         window
+                                                         include-sys?
+                                                         topo-id
+                                                         (:topology info)
+                                                         component-id)]
+          (doto comp-page-info
+            (.set_topology_name (:storm-name info))
+            (.set_errors (get-errors (:storm-cluster-state info)
+                                     topo-id
+                                     component-id))
+            (.set_topology_status (extract-status-str (:base info))))
+          (when-let [debug-options
+                     (get-in info [:base :component->debug component-id])]
+            (.set_debug_options
+              comp-page-info
+              (converter/thriftify-debugoptions debug-options)))
+          ;; Add the event logger details.
+          (let [component->tasks (reverse-map (:task->component info))
+                eventlogger-tasks (sort (get component->tasks
+                                             EVENTLOGGER-COMPONENT-ID))
+                ;; Find the task the events from this component route to.
+                task-index (mod (tuple/list-hash-code [component-id])
+                                (count eventlogger-tasks))
+                task-id (nth eventlogger-tasks task-index)
+                eventlogger-exec (first (filter (fn [[start stop]]
+                                                  (between? task-id start stop))
+                                                (keys executor->host+port)))
+                [host port] (get executor->host+port eventlogger-exec)]
+            (if (and host port)
+              (doto comp-page-info
+                (.set_eventlog_host host)
+                (.set_eventlog_port port))))
+          comp-page-info))
 
       Shutdownable
       (shutdown [this]

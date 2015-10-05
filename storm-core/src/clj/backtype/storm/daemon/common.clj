@@ -310,7 +310,7 @@
     (doseq [[_ component] (all-components ret)
             :let [common (.get_common component)]]
       (.put_to_streams common EVENTLOGGER-STREAM-ID (thrift/output-fields (eventlogger-bolt-fields))))
-    (.put_to_bolts ret "__eventlogger" eventlogger-bolt)
+    (.put_to_bolts ret EVENTLOGGER-COMPONENT-ID eventlogger-bolt)
     ))
 
 (defn add-metric-components! [storm-conf ^StormTopology topology]  

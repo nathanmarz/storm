@@ -62,6 +62,8 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print('  ClusterSummary getClusterInfo()')
   print('  TopologyInfo getTopologyInfo(string id)')
   print('  TopologyInfo getTopologyInfoWithOpts(string id, GetInfoOptions options)')
+  print('  TopologyPageInfo getTopologyPageInfo(string id, string window, bool is_include_sys)')
+  print('  ComponentPageInfo getComponentPageInfo(string topology_id, string component_id, string window, bool is_include_sys)')
   print('  string getTopologyConf(string id)')
   print('  StormTopology getTopology(string id)')
   print('  StormTopology getUserTopology(string id)')
@@ -240,6 +242,18 @@ elif cmd == 'getTopologyInfoWithOpts':
     print('getTopologyInfoWithOpts requires 2 args')
     sys.exit(1)
   pp.pprint(client.getTopologyInfoWithOpts(args[0],eval(args[1]),))
+
+elif cmd == 'getTopologyPageInfo':
+  if len(args) != 3:
+    print('getTopologyPageInfo requires 3 args')
+    sys.exit(1)
+  pp.pprint(client.getTopologyPageInfo(args[0],args[1],eval(args[2]),))
+
+elif cmd == 'getComponentPageInfo':
+  if len(args) != 4:
+    print('getComponentPageInfo requires 4 args')
+    sys.exit(1)
+  pp.pprint(client.getComponentPageInfo(args[0],args[1],args[2],eval(args[3]),))
 
 elif cmd == 'getTopologyConf':
   if len(args) != 1:

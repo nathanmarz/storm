@@ -15,12 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package storm.starter.tools;
+package backtype.storm.utils;
 
 import backtype.storm.Constants;
 import backtype.storm.tuple.Tuple;
 
-import static org.mockito.Mockito.*;
+import org.mockito.Mockito;
 
 public final class MockTupleHelpers {
 
@@ -32,9 +32,9 @@ public final class MockTupleHelpers {
   }
 
   public static Tuple mockTuple(String componentId, String streamId) {
-    Tuple tuple = mock(Tuple.class);
-    when(tuple.getSourceComponent()).thenReturn(componentId);
-    when(tuple.getSourceStreamId()).thenReturn(streamId);
+    Tuple tuple = Mockito.mock(Tuple.class);
+    Mockito.when(tuple.getSourceComponent()).thenReturn(componentId);
+    Mockito.when(tuple.getSourceStreamId()).thenReturn(streamId);
     return tuple;
   }
 }

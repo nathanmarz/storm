@@ -21,10 +21,13 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import backtype.storm.scheduler.resource.Component;
+
 public class Topologies {
     Map<String, TopologyDetails> topologies;
     Map<String, String> nameToId;
-    
+    Map<String, Map<String, Component>> _allComponents;
+
     public Topologies(Map<String, TopologyDetails> topologies) {
         if(topologies==null) topologies = new HashMap();
         this.topologies = new HashMap<String, TopologyDetails>(topologies.size());
@@ -53,5 +56,15 @@ public class Topologies {
     
     public Collection<TopologyDetails> getTopologies() {
         return this.topologies.values();
+    }
+
+    public Map<String, Map<String, Component>> getAllComponents() {
+        if (_allComponents == null) {
+            _allComponents = new HashMap<>();
+            for (Map.Entry<String, TopologyDetails> entry : this.topologies.entrySet()) {
+                _allComponents.put(entry.getKey(), entry.getValue().getComponents());
+            }
+        }
+        return _allComponents;
     }
 }

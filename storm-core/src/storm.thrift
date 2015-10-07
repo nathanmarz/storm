@@ -155,6 +155,7 @@ struct SupervisorSummary {
   4: required i32 num_used_workers;
   5: required string supervisor_id;
   6: optional string version = "VERSION_NOT_PROVIDED";
+  7: optional map<string, double> total_resources;
 }
 
 struct NimbusSummary {
@@ -356,6 +357,7 @@ struct SupervisorInfo {
     6: optional map<string, string> scheduler_meta;
     7: optional i64 uptime_secs;
     8: optional string version;
+    9: optional map<string, double> resources_map;
 }
 
 struct NodeInfo {

@@ -307,7 +307,7 @@ public class TridentBoltExecutor implements IRichBolt {
             }
             return;
         }
-        String batchGroup = _batchGroupIds.get(tuple.getSourceGlobalStreamid());
+        String batchGroup = _batchGroupIds.get(tuple.getSourceGlobalStreamId());
         if(batchGroup==null) {
             // this is so we can do things like have simple DRPC that doesn't need to use batch processing
             _coordCollector.setCurrBatch(null);
@@ -407,7 +407,7 @@ public class TridentBoltExecutor implements IRichBolt {
     private TupleType getTupleType(Tuple tuple, TrackedBatch batch) {
         CoordCondition cond = batch.condition;
         if(cond.commitStream!=null
-                && tuple.getSourceGlobalStreamid().equals(cond.commitStream)) {
+                && tuple.getSourceGlobalStreamId().equals(cond.commitStream)) {
             return TupleType.COMMIT;
         } else if(cond.expectedTaskReports > 0
                 && tuple.getSourceStreamId().startsWith(COORD_STREAM_PREFIX)) {

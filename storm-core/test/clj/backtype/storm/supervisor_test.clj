@@ -85,23 +85,27 @@
                        {}))
       (bind sup1 (add-supervisor cluster :id "sup1" :ports [1 2 3 4]))
       (bind changed (capture-changed-workers
-                        (submit-mocked-assignment
-                          (:nimbus cluster)
-                          "test"
-                          {TOPOLOGY-WORKERS 3}
-                          topology
-                          {1 "1"
-                           2 "1"
-                           3 "1"
-                           4 "1"}
-                          {[1 1] ["sup1" 1]
-                           [2 2] ["sup1" 2]
-                           [3 3] ["sup1" 3]
-                           [4 4] ["sup1" 3]
-                           })
-                        (advance-cluster-time cluster 2)
-                        (heartbeat-workers cluster "sup1" [1 2 3])
-                        (advance-cluster-time cluster 10)))
+                      (submit-mocked-assignment
+                        (:nimbus cluster)
+                        (:storm-cluster-state cluster)
+                        "test"
+                        {TOPOLOGY-WORKERS 3}
+                        topology
+                        {1 "1"
+                         2 "1"
+                         3 "1"
+                         4 "1"}
+                        {[1 1] ["sup1" 1]
+                         [2 2] ["sup1" 2]
+                         [3 3] ["sup1" 3]
+                         [4 4] ["sup1" 3]}
+                        {["sup1" 1] [0.0 0.0 0.0]
+                         ["sup1" 2] [0.0 0.0 0.0]
+                         ["sup1" 3] [0.0 0.0 0.0]
+                         })
+                      (advance-cluster-time cluster 2)
+                      (heartbeat-workers cluster "sup1" [1 2 3])
+                      (advance-cluster-time cluster 10)))
       (bind storm-id (get-storm-id (:storm-cluster-state cluster) "test"))
       (is (empty? (:shutdown changed)))
       (validate-launched-once (:launched changed) {"sup1" [1 2 3]} storm-id)
@@ -136,44 +140,51 @@
       (bind sup1 (add-supervisor cluster :id "sup1" :ports [1 2 3 4]))
       (bind sup2 (add-supervisor cluster :id "sup2" :ports [1 2]))
       (bind changed (capture-changed-workers
-                        (submit-mocked-assignment
-                          (:nimbus cluster)
-                          "test"
-                          {TOPOLOGY-WORKERS 3 TOPOLOGY-MESSAGE-TIMEOUT-SECS 40}
-                          topology
-                          {1 "1"
-                           2 "1"
-                           3 "1"
-                           4 "1"}
-                          {[1 1] ["sup1" 1]
-                           [2 2] ["sup1" 2]
-                           [3 3] ["sup2" 1]
-                           [4 4] ["sup2" 1]
-                           })
-                        (advance-cluster-time cluster 2)
-                        (heartbeat-workers cluster "sup1" [1 2])
-                        (heartbeat-workers cluster "sup2" [1])
-                        ))
+                      (submit-mocked-assignment
+                        (:nimbus cluster)
+                        (:storm-cluster-state cluster)
+                        "test"
+                        {TOPOLOGY-WORKERS 3 TOPOLOGY-MESSAGE-TIMEOUT-SECS 40}
+                        topology
+                        {1 "1"
+                         2 "1"
+                         3 "1"
+                         4 "1"}
+                        {[1 1] ["sup1" 1]
+                         [2 2] ["sup1" 2]
+                         [3 3] ["sup2" 1]
+                         [4 4] ["sup2" 1]}
+                        {["sup1" 1] [0.0 0.0 0.0]
+                         ["sup1" 2] [0.0 0.0 0.0]
+                         ["sup2" 1] [0.0 0.0 0.0]
+                         })
+                      (advance-cluster-time cluster 2)
+                      (heartbeat-workers cluster "sup1" [1 2])
+                      (heartbeat-workers cluster "sup2" [1])
+                      ))
       (bind storm-id (get-storm-id (:storm-cluster-state cluster) "test"))
       (is (empty? (:shutdown changed)))
       (validate-launched-once (:launched changed) {"sup1" [1 2] "sup2" [1]} storm-id)
       (bind changed (capture-changed-workers
-                        (submit-mocked-assignment
-                          (:nimbus cluster)
-                          "test2"
-                          {TOPOLOGY-WORKERS 2}
-                          topology2
-                          {1 "1"
-                           2 "1"
-                           3 "1"}
-                          {[1 1] ["sup1" 3]
-                           [2 2] ["sup1" 3]
-                           [3 3] ["sup2" 2]
-                           })
-                        (advance-cluster-time cluster 2)
-                        (heartbeat-workers cluster "sup1" [3])
-                        (heartbeat-workers cluster "sup2" [2])
-                        ))
+                      (submit-mocked-assignment
+                        (:nimbus cluster)
+                        (:storm-cluster-state cluster)
+                        "test2"
+                        {TOPOLOGY-WORKERS 2}
+                        topology2
+                        {1 "1"
+                         2 "1"
+                         3 "1"}
+                        {[1 1] ["sup1" 3]
+                         [2 2] ["sup1" 3]
+                         [3 3] ["sup2" 2]}
+                        {["sup1" 3] [0.0 0.0 0.0]
+                         ["sup2" 2] [0.0 0.0 0.0]
+                         })
+                      (advance-cluster-time cluster 2)
+                      (heartbeat-workers cluster "sup1" [3])
+                      (heartbeat-workers cluster "sup2" [2])
+                      ))
       (bind storm-id2 (get-storm-id (:storm-cluster-state cluster) "test2"))
       (is (empty? (:shutdown changed)))
       (validate-launched-once (:launched changed) {"sup1" [3] "sup2" [2]} storm-id2)

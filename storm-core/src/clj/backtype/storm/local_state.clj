@@ -19,7 +19,7 @@
             InvalidTopologyException GlobalStreamId
             LSSupervisorId LSApprovedWorkers
             LSSupervisorAssignments LocalAssignment
-            ExecutorInfo
+            ExecutorInfo LSWorkerHeartbeat
             WorkerResources])
   (:import [backtype.storm.utils LocalState]))
 

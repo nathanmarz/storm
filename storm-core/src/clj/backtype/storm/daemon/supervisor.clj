@@ -644,7 +644,7 @@
                         replacement-map)]
     (cond
       (nil? value) nil
-      (list? value) (map sub-fn value)
+      (sequential? value) (vec (map sub-fn value))
       :else (-> value sub-fn (clojure.string/split #"\s+")))))
 
 (defn java-cmd []

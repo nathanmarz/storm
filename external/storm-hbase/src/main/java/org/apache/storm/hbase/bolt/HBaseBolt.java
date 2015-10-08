@@ -78,11 +78,14 @@ public class HBaseBolt  extends AbstractHBaseBolt {
             conf = new Config();
         }
 
-        if (flushIntervalSecs > 0) {
-            LOG.info("Enabling tick tuple with interval [" + flushIntervalSecs + "]");
-            conf.put(Config.TOPOLOGY_TICK_TUPLE_FREQ_SECS, flushIntervalSecs);
+        if (conf.containsKey("topology.message.timeout.secs") && tickTupleInterval == 0) {
+            Integer topologyTimeout = Integer.parseInt(conf.get("topology.message.timeout.secs").toString());
+            flushIntervalSecs = (int)(Math.floor(topologyTimeout / 2));
+            LOG.debug("Setting flush interval to [" + flushIntervalSecs + "] based on topology.message.timeout.secs");
         }
 
+        LOG.info("Enabling tick tuple with interval [" + flushIntervalSecs + "]");
+        conf.put(Config.TOPOLOGY_TICK_TUPLE_FREQ_SECS, flushIntervalSecs);
         return conf;
     }
 

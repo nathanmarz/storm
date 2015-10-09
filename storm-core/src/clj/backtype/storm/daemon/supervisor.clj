@@ -66,7 +66,7 @@
 
 (defn- read-my-executors [assignments-snapshot storm-id assignment-id]
   (let [assignment (get assignments-snapshot storm-id)
-        my-slots-resources (into {} 
+        my-slots-resources (into {}
                                  (filter (fn [[[node _] _]] (= node assignment-id))
                                          (:worker->resources assignment)))
         my-executors (filter (fn [[_ [node _]]] (= node assignment-id))

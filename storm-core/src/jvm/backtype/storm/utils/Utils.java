@@ -452,6 +452,25 @@ public class Utils {
       throw new IllegalArgumentException("Don't know how to convert " + o + " to int");
     }
 
+    public static Double getDouble(Object o) {
+        Double result = getDouble(o, null);
+        if (null == result) {
+            throw new IllegalArgumentException("Don't know how to convert null to double");
+        }
+        return result;
+    }
+
+    public static Double getDouble(Object o, Double defaultValue) {
+        if (null == o) {
+            return defaultValue;
+        }
+        if (o instanceof Number) {
+            return ((Number) o).doubleValue();
+        } else {
+            throw new IllegalArgumentException("Don't know how to convert " + o + " + to double");
+        }
+    }
+
     public static boolean getBoolean(Object o, boolean defaultValue) {
       if (null == o) {
         return defaultValue;

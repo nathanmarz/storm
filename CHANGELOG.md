@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-893: Resource Aware Scheduling (Experimental)
  * STORM-1095: Tuple.getSourceGlobalStreamid() has wrong camel-case naming
  * STORM-1091: Add unit test for tick tuples to HiveBolt and HdfsBolt
  * STORM-1090: Nimbus HA should support `storm.local.hostname`

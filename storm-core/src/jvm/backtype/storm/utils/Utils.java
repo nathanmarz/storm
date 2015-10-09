@@ -250,7 +250,7 @@ public class Utils {
                             + " resources. You're probably bundling the Storm jars with your topology jar. "
                             + resources);
         } else {
-            LOG.info("Using "+configFilePath+" from resources");
+            LOG.debug("Using "+configFilePath+" from resources");
             URL resource = resources.iterator().next();
             return resource.openStream();
         }

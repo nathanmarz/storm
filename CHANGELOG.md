@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1087: Avoid issues with transfer-queue backpressure.
  * STORM-893: Resource Aware Scheduling (Experimental)
  * STORM-1095: Tuple.getSourceGlobalStreamid() has wrong camel-case naming
  * STORM-1091: Add unit test for tick tuples to HiveBolt and HdfsBolt

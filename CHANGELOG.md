@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1090: Nimbus HA should support `storm.local.hostname`
  * STORM-820: Aggregate topo stats on nimbus, not ui
  * STORM-412: Allow users to modify logging levels of running topologies
  * STORM-1078: Updated RateTracker to be thread safe

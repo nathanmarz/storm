@@ -107,6 +107,9 @@
  * STORM-742: Let ShellBolt treat all messages to update heartbeat
  * STORM-992: A bug in the timer.clj might cause unexpected delay to schedule new event
 
+## 0.10.0
+ * STORM-1096: Fix some issues with impersonation on the UI
+
 ## 0.10.0-beta1
  * STORM-873: Flux does not handle diamond topologies
 

@@ -26,7 +26,7 @@ import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.TupleImpl;
 import backtype.storm.tuple.Values;
-import org.apache.hadoop.hdfs.protocol.HdfsConstants;
+import backtype.storm.utils.MockTupleHelpers;
 import org.apache.storm.hdfs.bolt.format.DefaultFileNameFormat;
 import org.apache.storm.hdfs.bolt.format.DelimitedRecordFormat;
 import org.apache.storm.hdfs.bolt.format.FileNameFormat;
@@ -171,6 +171,22 @@ public class TestHdfsBolt {
         Assert.assertEquals(1, countZeroLengthFiles(testRoot));
     }
 
+    @Test
+    public void testTickTuples() throws IOException
+    {
+        HdfsBolt bolt = makeHdfsBolt(hdfsURI, 10, 10000f);
+        bolt.prepare(new Config(), topologyContext, collector);
+
+        bolt.execute(tuple1);
+
+        //Should not have flushed to file system yet
+        Assert.assertEquals(0, countNonZeroLengthFiles(testRoot));
+
+        bolt.execute(MockTupleHelpers.mockTickTuple());
+
+        //Tick should have flushed it
+        Assert.assertEquals(1, countNonZeroLengthFiles(testRoot));
+    }
 
     public void createBaseDirectory(FileSystem passedFs, String path) throws IOException {
         Path p = new Path(path);

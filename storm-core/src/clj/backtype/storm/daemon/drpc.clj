@@ -158,35 +158,31 @@
   (fn [request]
     (handler request)))
 
+(defn populate-context!
+  "Populate the Storm RequestContext from an servlet-request. This should be called in each handler"
+  [http-creds-handler servlet-request]
+    (when http-creds-handler
+      (.populateContext http-creds-handler (ReqContext/context) servlet-request)))
+
 (defn webapp [handler http-creds-handler]
   (->
     (routes
       (POST "/drpc/:func" [:as {:keys [body servlet-request]} func & m]
         (let [args (slurp body)]
-          (if http-creds-handler
-            (.populateContext http-creds-handler (ReqContext/context)
-                              servlet-request))
+          (populate-context! http-creds-handler servlet-request)
           (.execute handler func args)))
       (POST "/drpc/:func/" [:as {:keys [body servlet-request]} func & m]
         (let [args (slurp body)]
-          (if http-creds-handler
-            (.populateContext http-creds-handler (ReqContext/context)
-                              servlet-request))
+          (populate-context! http-creds-handler servlet-request)
           (.execute handler func args)))
       (GET "/drpc/:func/:args" [:as {:keys [servlet-request]} func args & m]
-          (if http-creds-handler
-            (.populateContext http-creds-handler (ReqContext/context)
-                              servlet-request))
+          (populate-context! http-creds-handler servlet-request)
           (.execute handler func args))
       (GET "/drpc/:func/" [:as {:keys [servlet-request]} func & m]
-          (if http-creds-handler
-            (.populateContext http-creds-handler (ReqContext/context)
-                              servlet-request))
+          (populate-context! http-creds-handler servlet-request)
           (.execute handler func ""))
       (GET "/drpc/:func" [:as {:keys [servlet-request]} func & m]
-          (if http-creds-handler
-            (.populateContext http-creds-handler (ReqContext/context)
-                              servlet-request))
+          (populate-context! http-creds-handler servlet-request)
           (.execute handler func "")))
     (wrap-reload '[backtype.storm.daemon.drpc])
     handle-request))

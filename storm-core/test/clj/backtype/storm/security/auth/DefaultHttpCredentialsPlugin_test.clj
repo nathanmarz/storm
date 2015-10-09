@@ -48,22 +48,28 @@
         (is (.equals exp-name (.getUserName handler req)))))
 
     (testing "returns doAsUser from requests principal when Header has doAsUser param set"
-      (let [exp-name "Alice"
-            do-as-user-name "Bob"
-            princ (SingleUserPrincipal. exp-name)
-            req (Mockito/mock HttpServletRequest)
-            _ (. (Mockito/when (. req getUserPrincipal))
-              thenReturn princ)
-            _ (. (Mockito/when (. req getHeader "doAsUser"))
-              thenReturn do-as-user-name)
-            context (.populateContext handler (ReqContext/context) req)]
-        (is (= true (.isImpersonating context)))
-        (is (.equals exp-name (.getName (.realPrincipal context))))
-        (is (.equals do-as-user-name (.getName (.principal context))))))))
+      (try
+        (let [exp-name "Alice"
+              do-as-user-name "Bob"
+              princ (SingleUserPrincipal. exp-name)
+              req (Mockito/mock HttpServletRequest)
+              _ (. (Mockito/when (. req getUserPrincipal))
+                thenReturn princ)
+              _ (. (Mockito/when (. req getHeader "doAsUser"))
+                thenReturn do-as-user-name)
+              context (.populateContext handler (ReqContext/context) req)]
+          (is (= true (.isImpersonating context)))
+          (is (.equals exp-name (.getName (.realPrincipal context))))
+          (is (.equals do-as-user-name (.getName (.principal context)))))
+        (finally
+          (ReqContext/reset))))))
 
 (deftest test-populate-req-context-on-null-user
-  (let [req (Mockito/mock HttpServletRequest)
-        handler (doto (DefaultHttpCredentialsPlugin.) (.prepare {}))
-        subj (Subject. false (set [(SingleUserPrincipal. "test")]) (set []) (set []))
-        context (ReqContext. subj)]
-    (is (= 0 (-> handler (.populateContext context req) (.subject) (.getPrincipals) (.size))))))
+  (try
+    (let [req (Mockito/mock HttpServletRequest)
+          handler (doto (DefaultHttpCredentialsPlugin.) (.prepare {}))
+          subj (Subject. false (set [(SingleUserPrincipal. "test")]) (set []) (set []))
+          context (ReqContext. subj)]
+      (is (= 0 (-> handler (.populateContext context req) (.subject) (.getPrincipals) (.size)))))
+    (finally
+      (ReqContext/reset))))

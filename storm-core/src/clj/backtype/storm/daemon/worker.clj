@@ -129,12 +129,13 @@
             port (:port worker)
             storm-cluster-state (:storm-cluster-state worker)
             prev-backpressure-flag @(:backpressure worker)]
-        (if executors 
-          (if (reduce #(or %1 %2) (map #(.get-backpressure-flag %1) executors))
-            (reset! (:backpressure worker) true)   ;; at least one executor has set backpressure
-            (reset! (:backpressure worker) false))) ;; no executor has backpressure set
+        (when executors
+          (reset! (:backpressure worker)
+                  (or @(:transfer-backpressure worker)
+                      (reduce #(or %1 %2) (map #(.get-backpressure-flag %1) executors)))))
         ;; update the worker's backpressure flag to zookeeper only when it has changed
-        (if (not= prev-backpressure-flag @(:backpressure worker))
+        (log-debug "BP " @(:backpressure worker) " WAS " prev-backpressure-flag)
+        (when (not= prev-backpressure-flag @(:backpressure worker))
           (.worker-backpressure! storm-cluster-state storm-id assignment-id port @(:backpressure worker)))
         ))))
 
@@ -143,14 +144,11 @@
   check highWaterMark and lowWaterMark for backpressure"
   (disruptor/disruptor-backpressure-handler
     (fn []
-      "When worker's queue is above highWaterMark, we set its backpressure flag"
-      (if (not @(:backpressure worker))
-        (do (reset! (:backpressure worker) true)
-            (WorkerBackpressureThread/notifyBackpressureChecker (:backpressure-trigger worker)))))  ;; set backpressure no matter how the executors are
+      (reset! (:transfer-backpressure worker) true)
+      (WorkerBackpressureThread/notifyBackpressureChecker (:backpressure-trigger worker)))
     (fn []
-      "If worker's queue is below low watermark, we do nothing since we want the
-      WorkerBackPressureThread to also check for all the executors' status"
-      )))
+      (reset! (:transfer-backpressure worker) false)
+      (WorkerBackpressureThread/notifyBackpressureChecker (:backpressure-trigger worker)))))
 
 (defn mk-transfer-fn [worker]
   (let [local-tasks (-> worker :task-ids set)
@@ -177,8 +175,8 @@
                         (log-warn "Can't transfer tuple - task value is nil. tuple type: " (pr-str (type tuple)) " and information: " (pr-str tuple)))
                      ))))
 
-              (local-transfer local)
-              (disruptor/publish transfer-queue remoteMap)))]
+              (when (not (.isEmpty local)) (local-transfer local))
+              (when (not (.isEmpty remoteMap)) (disruptor/publish transfer-queue remoteMap))))]
     (if try-serialize-local
       (do
         (log-warn "WILL TRY TO SERIALIZE ALL TUPLES (Turn off " TOPOLOGY-TESTING-ALWAYS-TRY-SERIALIZE " for production)")
@@ -297,6 +295,7 @@
       :transfer-fn (mk-transfer-fn <>)
       :assignment-versions assignment-versions
       :backpressure (atom false) ;; whether this worker is going slow
+      :transfer-backpressure (atom false) ;; if the transfer queue is backed-up
       :backpressure-trigger (atom false) ;; a trigger for synchronization with executors
       :throttle-on (atom false) ;; whether throttle is activated for spouts
       )))

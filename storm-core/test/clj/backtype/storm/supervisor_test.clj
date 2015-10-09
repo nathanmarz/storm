@@ -668,23 +668,29 @@
      (bind changed (capture-changed-workers
                     (submit-mocked-assignment
                      (:nimbus cluster)
+                     (:storm-cluster-state cluster)
                      "topology1"
                      {TOPOLOGY-WORKERS 2}
                      topology1
                      {1 "1"
                       2 "1"}
                      {[1 1] ["sup1" 1]
-                      [2 2] ["sup1" 2]
+                      [2 2] ["sup1" 2]}
+                     {["sup1" 1] [0.0 0.0 0.0]
+                      ["sup1" 2] [0.0 0.0 0.0]
                       })
                     (submit-mocked-assignment
                      (:nimbus cluster)
+                     (:storm-cluster-state cluster)
                      "topology2"
                      {TOPOLOGY-WORKERS 2}
                      topology2
                      {1 "1"
                       2 "1"}
                      {[1 1] ["sup1" 1]
-                      [2 2] ["sup1" 2]
+                      [2 2] ["sup1" 2]}
+                     {["sup1" 1] [0.0 0.0 0.0]
+                      ["sup1" 2] [0.0 0.0 0.0]
                       })
                     (advance-cluster-time cluster 10)
                     ))

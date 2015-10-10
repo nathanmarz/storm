@@ -573,6 +573,16 @@
           childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port)]
       (is (= expected-childopts childopts-with-ids)))))
 
+(deftest test-substitute-childopts-happy-path-list-arraylist
+  (testing "worker-launcher replaces ids in childopts"
+    (let [worker-id "w-01"
+          topology-id "s-01"
+          port 9999
+          childopts '["-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%ID%-%TOPOLOGY-ID%-%WORKER-ID%-%WORKER-PORT%.log" "-Xms256m"]
+          expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-9999-s-01-w-01-9999.log" "-Xms256m")
+          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port)]
+      (is (= expected-childopts childopts-with-ids)))))
+
 (deftest test-substitute-childopts-topology-id-alone
   (testing "worker-launcher replaces ids in childopts"
     (let [worker-id "w-01"

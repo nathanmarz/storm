@@ -1666,9 +1666,8 @@
 
 (defmethod sync-code :distributed [conf nimbus]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
-        code-ids (set (code-ids (:conf nimbus)))
         active-topologies (set (.code-distributor storm-cluster-state (fn [] (sync-code conf nimbus))))
-        missing-topologies (set/difference active-topologies code-ids)]
+        missing-topologies (set/difference active-topologies (set (code-ids (:conf nimbus))))]
     (if (not (empty? missing-topologies))
       (do
         (.removeFromLeaderLockQueue (:leader-elector nimbus))

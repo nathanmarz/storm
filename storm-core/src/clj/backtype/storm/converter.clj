@@ -83,7 +83,7 @@
 
 (defn clojurify-worker->resources [worker->resources]
   "convert worker info to be [node, port]
-   convert resources to be mem_on_heap mem_off_heap cpu]"
+   convert resources to be [mem_on_heap mem_off_heap cpu]"
   (into {} (map
              (fn [[nodeInfo resources]]
                [(concat [(.get_node nodeInfo)] (.get_port nodeInfo))

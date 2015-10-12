@@ -73,7 +73,9 @@ public class Config extends HashMap<String, Object> {
 
     /**
      * Netty based messaging: The max # of retries that a peer will perform when a remote is not accessible
+     *@deprecated "Since netty clients should never stop reconnecting - this does not make sense anymore.
      */
+    @Deprecated
     public static final String STORM_MESSAGING_NETTY_MAX_RETRIES = "storm.messaging.netty.max_retries";
     public static final Object STORM_MESSAGING_NETTY_MAX_RETRIES_SCHEMA = ConfigValidation.IntegerValidator;
 

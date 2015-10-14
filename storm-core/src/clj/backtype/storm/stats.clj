@@ -883,6 +883,7 @@
   (let [bolts (.get_bolts topology)
         spouts (.get_spouts topology)]
     (cond
+      (Utils/isSystemId id) :bolt
       (.containsKey bolts id) :bolt
       (.containsKey spouts id) :spout)))
 

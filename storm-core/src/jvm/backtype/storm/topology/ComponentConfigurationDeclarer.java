@@ -26,4 +26,7 @@ public interface ComponentConfigurationDeclarer<T extends ComponentConfiguration
     T setMaxTaskParallelism(Number val);
     T setMaxSpoutPending(Number val);
     T setNumTasks(Number val);
+    T setMemoryLoad(Number onHeap);
+    T setMemoryLoad(Number onHeap, Number offHeap);
+    T setCPULoad(Number amount);
 }

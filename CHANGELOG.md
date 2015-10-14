@@ -1,4 +1,13 @@
 ## 0.11.0
+ * STORM-1103: Changes log message to DEBUG from INFO
+ * STORM-1104: Nimbus HA fails to find newly downloaded code files
+ * STORM-1087: Avoid issues with transfer-queue backpressure.
+ * STORM-893: Resource Aware Scheduling (Experimental)
+ * STORM-1095: Tuple.getSourceGlobalStreamid() has wrong camel-case naming
+ * STORM-1091: Add unit test for tick tuples to HiveBolt and HdfsBolt
+ * STORM-1090: Nimbus HA should support `storm.local.hostname`
+ * STORM-820: Aggregate topo stats on nimbus, not ui
+ * STORM-412: Allow users to modify logging levels of running topologies
  * STORM-1078: Updated RateTracker to be thread safe
  * STORM-1082: fix nits for properties in kafka tests
  * STORM-993: include uptimeSeconds as JSON integer field
@@ -70,6 +79,8 @@
  * STORM-949: On the topology summary UI page, last shown error should have the time and date
 
 ## 0.10.0-beta2
+ * STORM-1099: Fix worker childopts as arraylist of strings
+ * STORM-1094: advance kafka offset when deserializer yields no object
  * STORM-1066: Specify current directory when supervisor launches a worker
  * STORM-1012: Shaded everything that was not already shaded
  * STORM-967: Shaded everything that was not already shaded
@@ -100,6 +111,9 @@
  * STORM-966: ConfigValidation.DoubleValidator doesn't really validate whether the type of the object is a double
  * STORM-742: Let ShellBolt treat all messages to update heartbeat
  * STORM-992: A bug in the timer.clj might cause unexpected delay to schedule new event
+
+## 0.10.0
+ * STORM-1096: Fix some issues with impersonation on the UI
 
 ## 0.10.0-beta1
  * STORM-873: Flux does not handle diamond topologies

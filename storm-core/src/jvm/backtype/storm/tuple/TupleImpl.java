@@ -196,8 +196,13 @@ public class TupleImpl extends IndifferentAccessMap implements Seqable, Indexed,
     public List<Object> select(Fields selector) {
         return getFields().select(selector, values);
     }
-      
+    
+    @Deprecated
     public GlobalStreamId getSourceGlobalStreamid() {
+        return getSourceGlobalStreamId();
+    }
+    
+    public GlobalStreamId getSourceGlobalStreamId() {
         return new GlobalStreamId(getSourceComponent(), streamId);
     }
     

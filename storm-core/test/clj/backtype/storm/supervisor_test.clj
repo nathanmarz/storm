@@ -263,6 +263,7 @@
                                 (str "-Dworker.port=" mock-port)
                                "-Dstorm.log.dir=/logs"
                                "-Dlog4j.configurationFile=/log4j2/worker.xml"
+                               "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector"
                                "backtype.storm.LogWriter"]
                                [(supervisor/java-cmd) "-server"]
                                opts
@@ -275,6 +276,7 @@
                                 (str "-Dstorm.log.dir=" file-path-separator "logs")
                                 (str "-Dlogging.sensitivity=" mock-sensitivity)
                                 (str "-Dlog4j.configurationFile=" file-path-separator "log4j2" file-path-separator "worker.xml")
+                                "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector"
                                 (str "-Dstorm.id=" mock-storm-id)
                                 (str "-Dworker.id=" mock-worker-id)
                                 (str "-Dworker.port=" mock-port)
@@ -395,6 +397,7 @@
                                 " '-Dworker.port=" mock-port "'"
                                 " '-Dstorm.log.dir=/logs'"
                                 " '-Dlog4j.configurationFile=/log4j2/worker.xml'"
+                                " '-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector'"
                                 " 'backtype.storm.LogWriter'"
                                 " 'java' '-server'"
                                 " " (shell-cmd opts)
@@ -407,6 +410,7 @@
                                 " '-Dstorm.log.dir=/logs'"
                                 " '-Dlogging.sensitivity=" mock-sensitivity "'"
                                 " '-Dlog4j.configurationFile=/log4j2/worker.xml'"
+                                " '-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector'"
                                 " '-Dstorm.id=" mock-storm-id "'"
                                 " '-Dworker.id=" mock-worker-id "'"
                                 " '-Dworker.port=" mock-port "'"
@@ -565,6 +569,16 @@
           topology-id "s-01"
           port 9999
           childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%ID%-%TOPOLOGY-ID%-%WORKER-ID%-%WORKER-PORT%.log" "-Xms256m")
+          expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-9999-s-01-w-01-9999.log" "-Xms256m")
+          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port)]
+      (is (= expected-childopts childopts-with-ids)))))
+
+(deftest test-substitute-childopts-happy-path-list-arraylist
+  (testing "worker-launcher replaces ids in childopts"
+    (let [worker-id "w-01"
+          topology-id "s-01"
+          port 9999
+          childopts '["-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%ID%-%TOPOLOGY-ID%-%WORKER-ID%-%WORKER-PORT%.log" "-Xms256m"]
           expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-9999-s-01-w-01-9999.log" "-Xms256m")
           childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port)]
       (is (= expected-childopts childopts-with-ids)))))

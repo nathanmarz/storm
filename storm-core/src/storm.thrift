@@ -155,6 +155,7 @@ struct SupervisorSummary {
   4: required i32 num_used_workers;
   5: required string supervisor_id;
   6: optional string version = "VERSION_NOT_PROVIDED";
+  7: optional map<string, double> total_resources;
 }
 
 struct NimbusSummary {
@@ -238,6 +239,92 @@ struct DebugOptions {
   2: optional double samplingpct
 }
 
+struct CommonAggregateStats {
+1: optional i32 num_executors;
+2: optional i32 num_tasks;
+3: optional i64 emitted;
+4: optional i64 transferred;
+5: optional i64 acked;
+6: optional i64 failed;
+}
+
+struct SpoutAggregateStats {
+1: optional double complete_latency_ms;
+}
+
+struct BoltAggregateStats {
+1: optional double execute_latency_ms;
+2: optional double process_latency_ms;
+3: optional i64    executed;
+4: optional double capacity;
+}
+
+union SpecificAggregateStats {
+1: BoltAggregateStats  bolt;
+2: SpoutAggregateStats spout;
+}
+
+enum ComponentType {
+  BOLT = 1,
+  SPOUT = 2
+}
+
+struct ComponentAggregateStats {
+1: optional ComponentType type;
+2: optional CommonAggregateStats common_stats;
+3: optional SpecificAggregateStats specific_stats;
+4: optional ErrorInfo last_error;
+}
+
+struct TopologyStats {
+1: optional map<string, i64> window_to_emitted;
+2: optional map<string, i64> window_to_transferred;
+3: optional map<string, double> window_to_complete_latencies_ms;
+4: optional map<string, i64> window_to_acked;
+5: optional map<string, i64> window_to_failed;
+}
+
+struct TopologyPageInfo {
+ 1: required string id;
+ 2: optional string name;
+ 3: optional i32 uptime_secs;
+ 4: optional string status;
+ 5: optional i32 num_tasks;
+ 6: optional i32 num_workers;
+ 7: optional i32 num_executors;
+ 8: optional string topology_conf;
+ 9: optional map<string,ComponentAggregateStats> id_to_spout_agg_stats;
+10: optional map<string,ComponentAggregateStats> id_to_bolt_agg_stats;
+11: optional string sched_status;
+12: optional TopologyStats topology_stats;
+13: optional string owner;
+14: optional DebugOptions debug_options;
+15: optional i32 replication_count;
+}
+
+struct ExecutorAggregateStats {
+1: optional ExecutorSummary exec_summary;
+2: optional ComponentAggregateStats stats;
+}
+
+struct ComponentPageInfo {
+ 1: required string component_id;
+ 2: required ComponentType component_type;
+ 3: optional string topology_id;
+ 4: optional string topology_name;
+ 5: optional i32 num_executors;
+ 6: optional i32 num_tasks;
+ 7: optional map<string,ComponentAggregateStats> window_to_stats;
+ 8: optional map<GlobalStreamId,ComponentAggregateStats> gsid_to_input_stats;
+ 9: optional map<string,ComponentAggregateStats> sid_to_output_stats;
+10: optional list<ExecutorAggregateStats> exec_stats;
+11: optional list<ErrorInfo> errors;
+12: optional string eventlog_host;
+13: optional i32 eventlog_port;
+14: optional DebugOptions debug_options;
+15: optional string topology_status;
+}
+
 struct KillOptions {
   1: optional i32 wait_secs;
 }
@@ -270,6 +357,7 @@ struct SupervisorInfo {
     6: optional map<string, string> scheduler_meta;
     7: optional i64 uptime_secs;
     8: optional string version;
+    9: optional map<string, double> resources_map;
 }
 
 struct NodeInfo {
@@ -358,6 +446,38 @@ struct GetInfoOptions {
   1: optional NumErrorsChoice num_err_choice;
 }
 
+enum LogLevelAction {
+  UNCHANGED = 1,
+  UPDATE    = 2,
+  REMOVE    = 3
+}
+
+struct LogLevel {
+  1: required LogLevelAction action;
+
+  // during this thrift call, we'll move logger to target_log_level
+  2: optional string target_log_level;
+
+  // number of seconds that target_log_level should be kept
+  // after this timeout, the loggers will be reset to reset_log_level
+  // if timeout is 0, we will not reset 
+  3: optional i32 reset_log_level_timeout_secs;
+
+  // number of seconds since unix epoch corresponding to 
+  // current time (when message gets to nimbus) + reset_log_level_timeout_se
+  // NOTE: this field gets set in Nimbus 
+  4: optional i64 reset_log_level_timeout_epoch;
+
+  // if reset timeout was set, then we would reset 
+  // to this level after timeout (or INFO by default)
+  5: optional string reset_log_level;
+}
+
+struct LogConfig { 
+  // logger name -> log level map
+  2: optional map<string, LogLevel> named_logger_level;
+}
+
 service Nimbus {
   void submitTopology(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology) throws (1: AlreadyAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
   void submitTopologyWithOpts(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology, 5: SubmitOptions options) throws (1: AlreadyAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
@@ -366,6 +486,11 @@ service Nimbus {
   void activate(1: string name) throws (1: NotAliveException e, 2: AuthorizationException aze);
   void deactivate(1: string name) throws (1: NotAliveException e, 2: AuthorizationException aze);
   void rebalance(1: string name, 2: RebalanceOptions options) throws (1: NotAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
+
+  // dynamic log levels
+  void setLogConfig(1: string name, 2: LogConfig config);
+  LogConfig getLogConfig(1: string name);
+
   /**
   * Enable/disable logging the tuples generated in topology via an internal EventLogger bolt. The component name is optional
   * and if null or empty, the debug flag will apply to the entire topology.
@@ -391,6 +516,8 @@ service Nimbus {
   ClusterSummary getClusterInfo() throws (1: AuthorizationException aze);
   TopologyInfo getTopologyInfo(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
   TopologyInfo getTopologyInfoWithOpts(1: string id, 2: GetInfoOptions options) throws (1: NotAliveException e, 2: AuthorizationException aze);
+  TopologyPageInfo getTopologyPageInfo(1: string id, 2: string window, 3: bool is_include_sys) throws (1: NotAliveException e, 2: AuthorizationException aze);
+  ComponentPageInfo getComponentPageInfo(1: string topology_id, 2: string component_id, 3: string window, 4: bool is_include_sys) throws (1: NotAliveException e, 2: AuthorizationException aze);
   //returns json
   string getTopologyConf(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
   /**

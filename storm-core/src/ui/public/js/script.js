@@ -81,6 +81,26 @@ function ensureInt(n) {
     return isInt;
 }
 
+function sendRequest(id, action, extra, body, cb){
+   var opts = {
+        type:'POST',
+        url:'/api/v1/topology/' + id + '/' + action
+    };
+
+    if (body) {
+        opts.data = JSON.stringify(body);
+        opts.contentType = 'application/json; charset=utf-8';
+    }
+
+    opts.url += extra ? "/" + extra : "";
+
+    $.ajax(opts).always(function(data){
+        cb (data);
+    }).fail (function(){
+        alert("Error while communicating with Nimbus.");
+    });
+}
+
 function confirmComponentAction(topologyId, componentId, componentName, action, param, defaultParamValue, paramText, actionText) {
     var opts = {
         type:'POST',

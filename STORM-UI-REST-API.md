@@ -442,7 +442,7 @@ Response fields:
 |windowHint| String | window param value in "hh mm ss" format. Default value is "All Time"|
 |executors| Integer |Number of executor tasks in the component|
 |componentErrors| Array of Errors | List of component errors|
-|componentErrors.time| Long | Timestamp when the exception occurred |
+|componentErrors.errorTime| Long | Timestamp when the exception occurred (Prior to 0.11.0, this field was named 'time'.)|
 |componentErrors.errorHost| String | host name for the error|
 |componentErrors.errorPort| String | port for the error|
 |componentErrors.error| String |Shows the error happened in a component|
@@ -483,7 +483,7 @@ Sample response:
     "componentType": "spout",
     "windowHint": "10m 0s",
     "executors": 5,
-    "componentErrors":[{"time": 1406006074000,
+    "componentErrors":[{"errorTime": 1406006074000,
                         "errorHost": "10.11.1.70",
                         "errorPort": 6701,
                         "errorWorkerLogLink": "http://10.11.1.7:8000/log?file=worker-6701.log",

@@ -261,6 +261,28 @@ public class ConfigValidation {
     };
 
     /**
+     * Validates a non negative double value.
+     */
+    public static Object NonNegativeNumberValidator = new FieldValidator() {
+        @Override
+        public void validateField(String name, Object o) throws IllegalArgumentException {
+            if (o == null) {
+                // A null value is acceptable.
+                return;
+            }
+            final double double_value;
+            if (o instanceof Number)
+            {
+                double_value = ((Number)o).doubleValue();
+                if (double_value >= 0.0) {
+                    return;
+                }
+            }
+            throw new IllegalArgumentException("Field " + name + " must be a non-negative double.");
+        }
+    };
+
+    /**
      * Validates a Positive Number
      */
     public static Object PositiveNumberValidator = new FieldValidator() {

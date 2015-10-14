@@ -250,7 +250,7 @@ public class Utils {
                             + " resources. You're probably bundling the Storm jars with your topology jar. "
                             + resources);
         } else {
-            LOG.info("Using "+configFilePath+" from resources");
+            LOG.debug("Using "+configFilePath+" from resources");
             URL resource = resources.iterator().next();
             return resource.openStream();
         }
@@ -450,6 +450,25 @@ public class Utils {
       }
 
       throw new IllegalArgumentException("Don't know how to convert " + o + " to int");
+    }
+
+    public static Double getDouble(Object o) {
+        Double result = getDouble(o, null);
+        if (null == result) {
+            throw new IllegalArgumentException("Don't know how to convert null to double");
+        }
+        return result;
+    }
+
+    public static Double getDouble(Object o, Double defaultValue) {
+        if (null == o) {
+            return defaultValue;
+        }
+        if (o instanceof Number) {
+            return ((Number) o).doubleValue();
+        } else {
+            throw new IllegalArgumentException("Don't know how to convert " + o + " + to double");
+        }
     }
 
     public static boolean getBoolean(Object o, boolean defaultValue) {

@@ -69,6 +69,7 @@ public class DisruptorQueue implements IStatefulObject {
     private int _highWaterMark = 0;
     private int _lowWaterMark = 0;
     private boolean _enableBackpressure = false;
+    private volatile boolean _throttleOn = false;
 
     public DisruptorQueue(String queueName, ClaimStrategy claim, WaitStrategy wait, long timeout) {
         this._queueName = PREFIX + queueName;
@@ -141,7 +142,10 @@ public class DisruptorQueue implements IStatefulObject {
                     handler.onEvent(o, curr, curr == cursor);
                     if (_enableBackpressure && _cb != null && _metrics.writePos() - curr <= _lowWaterMark) {
                         try {
-                            _cb.lowWaterMark();
+                            if (_throttleOn) {
+                                _throttleOn = false;
+                                _cb.lowWaterMark();
+                            }
                         } catch (Exception e) {
                             throw new RuntimeException("Exception during calling lowWaterMark callback!");
                         }
@@ -208,7 +212,10 @@ public class DisruptorQueue implements IStatefulObject {
         _metrics.notifyArrivals(1);
         if (_enableBackpressure && _cb != null && _metrics.population() >= _highWaterMark) {
            try {
-               _cb.highWaterMark();
+               if (!_throttleOn) {
+                   _cb.highWaterMark();
+                   _throttleOn = true;
+               }
            } catch (Exception e) {
                throw new RuntimeException("Exception during calling highWaterMark callback!");
            }

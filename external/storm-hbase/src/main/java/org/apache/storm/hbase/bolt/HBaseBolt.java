@@ -93,34 +93,35 @@ public class HBaseBolt  extends AbstractHBaseBolt {
     @Override
     public void execute(Tuple tuple) {
         boolean flush = false;
-        if (TupleUtils.isTick(tuple)) {
-            LOG.debug("TICK received! current batch status [" + tupleBatch.size() + "/" + batchSize + "]");
-            flush = true;
-        } else {
-            byte[] rowKey = this.mapper.rowKey(tuple);
-            ColumnList cols = this.mapper.columns(tuple);
-            List<Mutation> mutations = hBaseClient.constructMutationReq(rowKey, cols, writeToWAL? Durability.SYNC_WAL : Durability.SKIP_WAL);
-            batchMutations.addAll(mutations);
-            tupleBatch.add(tuple);
-            if (tupleBatch.size() >= batchSize) {
-                flush = true;
-            }
-        }
-
         try {
+            if (TupleUtils.isTick(tuple)) {
+                LOG.debug("TICK received! current batch status [" + tupleBatch.size() + "/" + batchSize + "]");
+                flush = true;
+            } else {
+                byte[] rowKey = this.mapper.rowKey(tuple);
+                ColumnList cols = this.mapper.columns(tuple);
+                List<Mutation> mutations = hBaseClient.constructMutationReq(rowKey, cols, writeToWAL? Durability.SYNC_WAL : Durability.SKIP_WAL);
+                batchMutations.addAll(mutations);
+                tupleBatch.add(tuple);
+                if (tupleBatch.size() >= batchSize) {
+                    flush = true;
+                }
+            }
+
             if (flush && !tupleBatch.isEmpty()) {
                 this.hBaseClient.batchMutate(batchMutations);
                 LOG.debug("acknowledging tuples after batchMutate");
                 for(Tuple t : tupleBatch) {
                     collector.ack(t);
                 }
+                tupleBatch.clear();
+                batchMutations.clear();
             }
         } catch(Exception e){
             this.collector.reportError(e);
             for (Tuple t : tupleBatch) {
                 collector.fail(t);
             }
-        } finally {
             tupleBatch.clear();
             batchMutations.clear();
         }

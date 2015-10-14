@@ -29,9 +29,6 @@
   (:require [backtype.storm.thrift :as thrift])
   )
 
-(defn system-id? [id]
-  (Utils/isSystemId id))
-
 (def ACKER-COMPONENT-ID acker/ACKER-COMPONENT-ID)
 (def ACKER-INIT-STREAM-ID acker/ACKER-INIT-STREAM-ID)
 (def ACKER-ACK-STREAM-ID acker/ACKER-ACK-STREAM-ID)
@@ -114,12 +111,12 @@
     (doseq [f thrift/STORM-TOPOLOGY-FIELDS
             :let [obj-map (.getFieldValue topology f)]]
       (doseq [id (keys obj-map)]
-        (if (system-id? id)
+        (if (Utils/isSystemId id)
           (throw (InvalidTopologyException.
                   (str id " is not a valid component id")))))
       (doseq [obj (vals obj-map)
               id (-> obj .get_common .get_streams keys)]
-        (if (system-id? id)
+        (if (Utils/isSystemId id)
           (throw (InvalidTopologyException.
                   (str id " is not a valid stream id"))))))
     ))

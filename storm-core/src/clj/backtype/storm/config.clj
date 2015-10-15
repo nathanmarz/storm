@@ -17,8 +17,9 @@
 (ns backtype.storm.config
   (:import [java.io FileReader File IOException]
            [backtype.storm.generated StormTopology])
-  (:import [backtype.storm Config ConfigValidation$FieldValidator])
+  (:import [backtype.storm Config])
   (:import [backtype.storm.utils Utils LocalState])
+  (:import [backtype.storm.validation ConfigValidation])
   (:import [org.apache.commons.io FileUtils])
   (:require [clojure [string :as str]])
   (:use [backtype.storm log util]))
@@ -28,7 +29,7 @@
 (defn- clojure-config-name [name]
   (.replace (.toUpperCase name) "_" "-"))
 
-;; define clojure constants for every configuration parameter
+; define clojure constants for every configuration parameter
 (doseq [f (seq (.getFields Config))]
   (let [name (.getName f)
         new-name (clojure-config-name name)]
@@ -39,35 +40,6 @@
   (dofor [f (seq (.getFields Config))]
          (.get f nil)))
 
-(defmulti get-FieldValidator class-selector)
-
-(defmethod get-FieldValidator nil [_]
-  (throw (IllegalArgumentException. "Cannot validate a nil field.")))
-
-(defmethod get-FieldValidator
-  ConfigValidation$FieldValidator [validator] validator)
-
-(defmethod get-FieldValidator Object
-  [klass]
-  {:pre [(not (nil? klass))]}
-  (reify ConfigValidation$FieldValidator
-    (validateField [this name v]
-                   (if (and (not (nil? v))
-                            (not (instance? klass v)))
-                     (throw (IllegalArgumentException.
-                              (str "field " name " '" v "' must be a '" (.getName klass) "'")))))))
-
-;; Create a mapping of config-string -> validator
-;; Config fields must have a _SCHEMA field defined
-(def CONFIG-SCHEMA-MAP
-  (->> (.getFields Config)
-       (filter #(not (re-matches #".*_SCHEMA$" (.getName %))))
-       (map (fn [f] [(.get f nil)
-                     (get-FieldValidator
-                       (-> Config
-                           (.getField (str (.getName f) "_SCHEMA"))
-                           (.get nil)))]))
-       (into {})))
 
 (defn cluster-mode
   [conf & args]
@@ -92,30 +64,13 @@
   [conf]
   (even-sampler (sampling-rate conf)))
 
-; storm.zookeeper.servers:
-;     - "server1"
-;     - "server2"
-;     - "server3"
-; nimbus.host: "master"
-;
-; ########### These all have default values as shown
-;
-; ### storm.* configs are general configurations
-; # the local dir is where jars are kept
-; storm.local.dir: "/mnt/storm"
-; storm.zookeeper.port: 2181
-; storm.zookeeper.root: "/storm"
-
 (defn read-default-config
   []
   (clojurify-structure (Utils/readDefaultConfig)))
 
 (defn validate-configs-with-schemas
   [conf]
-  (doseq [[k v] conf
-          :let [schema (CONFIG-SCHEMA-MAP k)]]
-    (if (not (nil? schema))
-      (.validateField schema k v))))
+  (ConfigValidation/validateFields conf))
 
 (defn read-storm-config
   []

@@ -24,6 +24,8 @@ import org.slf4j.LoggerFactory;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
@@ -37,11 +39,9 @@ public class ConfigValidation {
     private static final Logger LOG = LoggerFactory.getLogger(ConfigValidation.class);
 
     public static abstract class Validator {
-        public abstract void validateField(String name, Object o);
-    }
-
-    public abstract static class TypeValidator {
-        public abstract void validateField(String name, Class type, Object o);
+        public Validator(Map<String, Object> params) {}
+        public Validator() {}
+        public abstract void validateField(String name, Object o) throws InstantiationException, IllegalAccessException;
     }
 
     /**
@@ -65,9 +65,20 @@ public class ConfigValidation {
     /**
      * Validates basic types
      */
-    public static class SimpleTypeValidator extends TypeValidator {
+    public static class SimpleTypeValidator extends Validator {
 
-        public void validateField(String name, Class type, Object o) {
+        private Class type;
+
+        public SimpleTypeValidator(Map<String, Object> params) {
+            this.type = (Class) params.get(ConfigValidationAnnotations.ValidatorParams.TYPE);
+        }
+
+        @Override
+        public void validateField(String name, Object o) {
+            validateField(name, this.type, o);
+        }
+
+        public static void validateField(String name, Class type, Object o) {
             if (o == null) {
                 return;
             }
@@ -82,8 +93,7 @@ public class ConfigValidation {
 
         @Override
         public void validateField(String name, Object o) {
-            SimpleTypeValidator validator = new SimpleTypeValidator();
-            validator.validateField(name, String.class, o);
+            SimpleTypeValidator.validateField(name, String.class, o);
         }
     }
 
@@ -91,8 +101,7 @@ public class ConfigValidation {
 
         @Override
         public void validateField(String name, Object o) {
-            SimpleTypeValidator validator = new SimpleTypeValidator();
-            validator.validateField(name, Boolean.class, o);
+            SimpleTypeValidator.validateField(name, Boolean.class, o);
         }
     }
 
@@ -100,8 +109,7 @@ public class ConfigValidation {
 
         @Override
         public void validateField(String name, Object o) {
-            SimpleTypeValidator validator = new SimpleTypeValidator();
-            validator.validateField(name, Number.class, o);
+            SimpleTypeValidator.validateField(name, Number.class, o);
         }
     }
 
@@ -109,8 +117,7 @@ public class ConfigValidation {
 
         @Override
         public void validateField(String name, Object o) {
-            SimpleTypeValidator validator = new SimpleTypeValidator();
-            validator.validateField(name, Double.class, o);
+            SimpleTypeValidator.validateField(name, Double.class, o);
         }
     }
 
@@ -168,8 +175,7 @@ public class ConfigValidation {
                 return;
             }
             //check if iterable
-            SimpleTypeValidator isIterable = new SimpleTypeValidator();
-            isIterable.validateField(name, Iterable.class, field);
+            SimpleTypeValidator.validateField(name, Iterable.class, field);
             HashSet<Object> objectSet = new HashSet<Object>();
             for (Object o : (Iterable) field) {
                 if (objectSet.contains(o)) {
@@ -190,17 +196,9 @@ public class ConfigValidation {
         @Override
         public void validateField(String name, Object o) {
 
-            if (o == null) {
+            if (o == null || o instanceof String) {
+                // A null value or a String value is acceptable
                 return;
-            }
-            if (o instanceof String) {
-                return;
-            }
-            //check if iterable
-            SimpleTypeValidator isIterable = new SimpleTypeValidator();
-            try {
-                isIterable.validateField(name, Iterable.class, o);
-            } catch (Exception ex) {
             }
             this.fv.validateField(name, o);
         }
@@ -263,10 +261,20 @@ public class ConfigValidation {
     /**
      * Validates each entry in a list
      */
-    public static class ListEntryTypeValidator extends TypeValidator {
+    public static class ListEntryTypeValidator extends Validator {
+
+        private Class type;
+
+        public ListEntryTypeValidator(Map<String, Object> params) {
+            this.type = (Class) params.get(ConfigValidationAnnotations.ValidatorParams.TYPE);
+        }
 
         @Override
-        public void validateField(String name, Class type, Object o) {
+        public void validateField(String name, Object o) {
+            validateField(name, this.type, o);
+        }
+
+        public static void validateField(String name, Class type, Object o) {
             ConfigValidationUtils.NestableFieldValidator validator = ConfigValidationUtils.listFv(type, false);
             validator.validateField(name, o);
         }
@@ -276,15 +284,26 @@ public class ConfigValidation {
      * Validates each entry in a list against a list of custom Validators
      * Each validator in the list of validators must inherit or be an instance of Validator class
      */
-    public static class ListEntryCustomValidator {
+    public static class ListEntryCustomValidator extends Validator{
 
-        public void validateField(String name, Class[] validators, Object o) throws IllegalAccessException, InstantiationException {
+        private Class[] entryValidators;
+
+        public ListEntryCustomValidator(Map<String, Object> params) {
+            this.entryValidators = (Class[]) params.get(ConfigValidationAnnotations.ValidatorParams.ENTRY_VALIDATOR_CLASSES);
+        }
+
+        @Override
+        public void validateField(String name, Object o) throws InstantiationException, IllegalAccessException {
+
+            validateField(name, this.entryValidators, o);
+        }
+
+        public static void validateField(String name, Class[] validators, Object o) throws IllegalAccessException, InstantiationException {
             if (o == null) {
                 return;
             }
             //check if iterable
-            SimpleTypeValidator isIterable = new SimpleTypeValidator();
-            isIterable.validateField(name, Iterable.class, o);
+            SimpleTypeValidator.validateField(name, Iterable.class, o);
             for (Object entry : (Iterable) o) {
                 for (Class validator : validators) {
                     Object v = validator.newInstance();
@@ -301,9 +320,22 @@ public class ConfigValidation {
     /**
      * validates each key and value in a map of a certain type
      */
-    public static class MapEntryTypeValidator {
+    public static class MapEntryTypeValidator extends Validator{
 
-        public void validateField(String name, Class keyType, Class valueType, Object o) {
+        private Class keyType;
+        private Class valueType;
+
+        public MapEntryTypeValidator(Map<String, Object> params) {
+            this.keyType = (Class) params.get(ConfigValidationAnnotations.ValidatorParams.KEY_TYPE);
+            this.valueType = (Class) params.get(ConfigValidationAnnotations.ValidatorParams.VALUE_TYPE);
+        }
+
+        @Override
+        public void validateField(String name, Object o) {
+            validateField(name, this.keyType, this.valueType, o);
+        }
+
+        public static void validateField(String name, Class keyType, Class valueType, Object o) {
             ConfigValidationUtils.NestableFieldValidator validator = ConfigValidationUtils.mapFv(keyType, valueType, false);
             validator.validateField(name, o);
         }
@@ -312,15 +344,27 @@ public class ConfigValidation {
     /**
      * validates each key and each value against the respective arrays of validators
      */
-    public static class MapEntryCustomValidator {
+    public static class MapEntryCustomValidator extends Validator{
 
-        public void validateField(String name, Class[] keyValidators, Class[] valueValidators, Object o) throws IllegalAccessException, InstantiationException {
+        private Class[] keyValidators;
+        private Class[] valueValidators;
+
+        public MapEntryCustomValidator(Map<String, Object> params) {
+            this.keyValidators = (Class []) params.get(ConfigValidationAnnotations.ValidatorParams.KEY_VALIDATOR_CLASSES);
+            this.valueValidators = (Class []) params.get(ConfigValidationAnnotations.ValidatorParams.VALUE_VALIDATOR_CLASSES);
+        }
+
+        @Override
+        public void validateField(String name, Object o) throws InstantiationException, IllegalAccessException {
+            validateField(name, this.keyValidators, this.valueValidators, o);
+        }
+
+        public static void validateField(String name, Class[] keyValidators, Class[] valueValidators, Object o) throws IllegalAccessException, InstantiationException {
             if (o == null) {
                 return;
             }
             //check if Map
-            SimpleTypeValidator isMap = new SimpleTypeValidator();
-            isMap.validateField(name, Map.class, o);
+            SimpleTypeValidator.validateField(name, Map.class, o);
             for (Map.Entry<Object, Object> entry : ((Map<Object, Object>) o).entrySet()) {
                 for (Class kv : keyValidators) {
                     Object keyValidator = kv.newInstance();
@@ -347,12 +391,22 @@ public class ConfigValidation {
      */
     public static class PositiveNumberValidator extends Validator{
 
-        @Override
-        public void validateField(String name, Object o) {
-            validateField(name, false, o);
+        private boolean includeZero;
+
+        public PositiveNumberValidator() {
+            this.includeZero = false;
         }
 
-        public void validateField(String name, boolean includeZero, Object o) {
+        public PositiveNumberValidator(Map<String, Object> params) {
+            this.includeZero = (boolean) params.get(ConfigValidationAnnotations.ValidatorParams.INCLUDE_ZERO);
+        }
+
+        @Override
+        public void validateField(String name, Object o) {
+            validateField(name, this.includeZero, o);
+        }
+
+        public static void validateField(String name, boolean includeZero, Object o) {
             if (o == null) {
                 return;
             }
@@ -409,6 +463,7 @@ public class ConfigValidation {
         if (annotations.length == 0) {
             LOG.warn("Field {} does not have validator annotation", field);
         }
+
         for (Annotation annotation : annotations) {
             String type = annotation.annotationType().getName();
             Class validatorClass = null;
@@ -424,62 +479,20 @@ public class ConfigValidation {
                 Object v = validatorClass.cast(annotation);
                 String key = (String) field.get(null);
                 Class clazz = (Class) validatorClass
-                        .getMethod(ConfigValidationAnnotations.VALIDATOR_CLASS).invoke(v);
-                //Determining which method from which class should be invoked based on what fields/parameters the annotation has
-                if (hasMethod(validatorClass, ConfigValidationAnnotations.TYPE)) {
-
-                    TypeValidator o = ((Class<TypeValidator>) clazz).newInstance();
-
-                    Class objectType = (Class) validatorClass.getMethod(ConfigValidationAnnotations.TYPE).invoke(v);
-
-                    o.validateField(field.getName(), objectType, conf.get(key));
-
-                } else if (hasMethod(validatorClass, ConfigValidationAnnotations.ENTRY_VALIDATOR_CLASSES)) {
-
-                    ListEntryCustomValidator o = ((Class<ListEntryCustomValidator>) clazz).newInstance();
-
-                    Class[] entryValidators = (Class[]) validatorClass.getMethod(ConfigValidationAnnotations.ENTRY_VALIDATOR_CLASSES).invoke(v);
-
-                    o.validateField(field.getName(), entryValidators, conf.get(key));
-
-                } else if (hasMethod(validatorClass, ConfigValidationAnnotations.KEY_VALIDATOR_CLASSES)
-                        && hasMethod(validatorClass, ConfigValidationAnnotations.VALUE_VALIDATOR_CLASSES)) {
-
-                    MapEntryCustomValidator o = ((Class<MapEntryCustomValidator>) clazz).newInstance();
-
-                    Class[] keyValidators = (Class[]) validatorClass.getMethod(ConfigValidationAnnotations.KEY_VALIDATOR_CLASSES).invoke(v);
-
-                    Class[] valueValidators = (Class[]) validatorClass.getMethod(ConfigValidationAnnotations.VALUE_VALIDATOR_CLASSES).invoke(v);
-
-                    o.validateField(field.getName(), keyValidators, valueValidators, conf.get(key));
-
-                } else if (hasMethod(validatorClass, ConfigValidationAnnotations.KEY_TYPE)
-                        && hasMethod(validatorClass, ConfigValidationAnnotations.VALUE_TYPE)) {
-
-                    MapEntryTypeValidator o = ((Class<MapEntryTypeValidator>) clazz).newInstance();
-
-                    Class keyType = (Class) validatorClass.getMethod(ConfigValidationAnnotations.KEY_TYPE).invoke(v);
-
-                    Class valueType = (Class) validatorClass.getMethod(ConfigValidationAnnotations.VALUE_TYPE).invoke(v);
-
-                    o.validateField(field.getName(), keyType, valueType, conf.get(key));
-
-                } else if (hasMethod(validatorClass, ConfigValidationAnnotations.INCLUDE_ZERO)) {
-
-                    PositiveNumberValidator o = ((Class<PositiveNumberValidator>) clazz).newInstance();
-
-                    Boolean includeZero = (Boolean) validatorClass.getMethod(ConfigValidationAnnotations.INCLUDE_ZERO).invoke(v);
-
-                    o.validateField(field.getName(), includeZero, conf.get(key));
-
+                        .getMethod(ConfigValidationAnnotations.ValidatorParams.VALIDATOR_CLASS).invoke(v);
+                Validator o = null;
+                Map<String, Object> params = getParamsFromAnnotation(validatorClass, v);
+                //two constructor signatures used to initialize validators.
+                //One constructor takes input a Map of arguments, the other doesn't take any arguments (default constructor)
+                //If validator has a constructor that takes a Map as an argument call that constructor
+                if(hasConstructor(clazz, Map.class)) {
+                    o  = (Validator) clazz.getConstructor(Map.class).newInstance(params);
                 }
-                //For annotations that does not have any additional fields. Call corresponding validateField method
+                //If not call default constructor
                 else {
-
-                    ConfigValidation.Validator o = ((Class<ConfigValidation.Validator>) clazz).newInstance();
-
-                    o.validateField(field.getName(), conf.get(key));
+                    o  = (((Class<Validator>) clazz).newInstance());
                 }
+                o.validateField(field.getName(), conf.get(key));
             }
         }
     }
@@ -510,6 +523,33 @@ public class ConfigValidation {
                 }
             }
         }
+    }
+
+    private static Map<String,Object> getParamsFromAnnotation(Class validatorClass, Object v) throws InvocationTargetException, IllegalAccessException {
+        Map<String, Object> params = new HashMap<String, Object>();
+        for(Method method : validatorClass.getDeclaredMethods()) {
+
+            Object value = null;
+            try {
+                value = (Object) method.invoke(v);
+            } catch (IllegalArgumentException ex) {
+                value = null;
+            }
+            if(value != null) {
+                params.put(method.getName(), value);
+            }
+        }
+        return params;
+    }
+
+    private static boolean hasConstructor(Class clazz, Class paramClass) {
+        Class[] classes = {paramClass};
+        try {
+            clazz.getConstructor(classes);
+        } catch (NoSuchMethodException e) {
+            return false;
+        }
+        return true;
     }
 
     private static boolean hasMethod(Class clazz, String method) {

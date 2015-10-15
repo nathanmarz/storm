@@ -29,21 +29,23 @@ import java.lang.annotation.RetentionPolicy;
  * For every annotation there must validator class to do the validation
  * To add another annotation for config validation, add another annotation @interface class.  Implement the corresponding
  * validator logic in a class in ConfigValidation.  Make sure validateField method in ConfigValidation knows how to use the validator
- * and which method definition/parameters to pass in based on what fields are in the annotation.
+ * and which method definition/parameters to pass in based on what fields are in the annotation.  By default, params of annotations
+ * will be passed into a constructor that takes a Map as a parameter.
  */
 public class ConfigValidationAnnotations {
     /**
      * Field names for annotations
      */
-
-    static final String VALIDATOR_CLASS = "validatorClass";
-    static final String TYPE = "type";
-    static final String ENTRY_VALIDATOR_CLASSES = "entryValidatorClasses";
-    static final String KEY_VALIDATOR_CLASSES = "keyValidatorClasses";
-    static final String VALUE_VALIDATOR_CLASSES = "valueValidatorClasses";
-    static final String KEY_TYPE = "keyType";
-    static final String VALUE_TYPE = "valueType";
-    static final String INCLUDE_ZERO = "includeZero";
+    public static class ValidatorParams {
+        static final String VALIDATOR_CLASS = "validatorClass";
+        static final String TYPE = "type";
+        static final String ENTRY_VALIDATOR_CLASSES = "entryValidatorClasses";
+        static final String KEY_VALIDATOR_CLASSES = "keyValidatorClasses";
+        static final String VALUE_VALIDATOR_CLASSES = "valueValidatorClasses";
+        static final String KEY_TYPE = "keyType";
+        static final String VALUE_TYPE = "valueType";
+        static final String INCLUDE_ZERO = "includeZero";
+    }
 
     /**
      * Validators with fields: validatorClass and type

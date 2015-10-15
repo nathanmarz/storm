@@ -328,7 +328,6 @@ public class TestConfigValidate {
 
     @Test
     public void testListEntryTypeValidator() {
-        ListEntryTypeValidator validator = new ListEntryTypeValidator();
         Collection<Object> testCases1 = new LinkedList<Object>();
         Collection<Object> testCases2 = new LinkedList<Object>();
         Collection<Object> testCases3 = new LinkedList<Object>();
@@ -340,12 +339,12 @@ public class TestConfigValidate {
         testCases1.add(Arrays.asList(testCase2));
 
         for (Object value : testCases1) {
-            validator.validateField("test", String.class, value);
+            ListEntryTypeValidator.validateField("test", String.class, value);
         }
 
         for (Object value : testCases1) {
             try {
-                validator.validateField("test", Number.class, value);
+                ListEntryTypeValidator.validateField("test", Number.class, value);
                 Assert.fail("Expected Exception not Thrown for value: " + value);
             } catch (IllegalArgumentException Ex) {
             }
@@ -359,13 +358,13 @@ public class TestConfigValidate {
         testCases2.add(Arrays.asList(testCase5));
         for (Object value : testCases2) {
             try {
-                validator.validateField("test", String.class, value);
+                ListEntryTypeValidator.validateField("test", String.class, value);
                 Assert.fail("Expected Exception not Thrown for value: " + value);
             } catch (IllegalArgumentException Ex) {
             }
         }
         for (Object value : testCases2) {
-            validator.validateField("test", Number.class, value);
+            ListEntryTypeValidator.validateField("test", Number.class, value);
         }
 
         Object[] testCase6 = {1000, 0, 1000, "5"};
@@ -374,14 +373,14 @@ public class TestConfigValidate {
         testCases3.add(Arrays.asList(testCase7));
         for (Object value : testCases3) {
             try {
-                validator.validateField("test", String.class, value);
+                ListEntryTypeValidator.validateField("test", String.class, value);
                 Assert.fail("Expected Exception not Thrown for value: " + value);
             } catch (IllegalArgumentException Ex) {
             }
         }
         for (Object value : testCases1) {
             try {
-                validator.validateField("test", Number.class, value);
+                ListEntryTypeValidator.validateField("test", Number.class, value);
                 Assert.fail("Expected Exception not Thrown for value: " + value);
             } catch (IllegalArgumentException Ex) {
             }

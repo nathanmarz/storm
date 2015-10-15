@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1106: Netty should not limit attempts to reconnect
  * STORM-1103: Changes log message to DEBUG from INFO
  * STORM-1104: Nimbus HA fails to find newly downloaded code files
  * STORM-1087: Avoid issues with transfer-queue backpressure.

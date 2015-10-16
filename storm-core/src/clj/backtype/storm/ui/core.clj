@@ -423,7 +423,7 @@
        "acked" (get-in stats [:acked w])
        "failed" (get-in stats [:failed w])})))
 
-(defn build-visualization [id window include-sys? user]
+(defn build-visualization [id window include-sys?]
   (thrift/with-configured-nimbus-connection nimbus
     (let [window (if window window ":all-time")
           topology-info (->> (doto
@@ -857,6 +857,10 @@
     (assert-authorized-user "getTopology" (topology-config id))
     (let [user (get-user-name servlet-request)]
       (json-response (topology-page id (:window m) (check-include-sys? (:sys m)) user (= schema :https)) (:callback m))))
+  (GET "/api/v1/topology/:id/visualization-init" [:as {:keys [cookies servlet-request]} id & m]
+    (populate-context! servlet-request)
+    (assert-authorized-user "getTopology" (topology-config id))
+    (json-response (build-visualization id (:window m) (check-include-sys? (:sys m))) (:callback m)))
   (GET "/api/v1/topology/:id/visualization" [:as {:keys [cookies servlet-request]} id & m]
     (populate-context! servlet-request)
     (assert-authorized-user "getTopology" (topology-config id))

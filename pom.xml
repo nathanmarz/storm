@@ -213,6 +213,7 @@
         <jackson.version>2.3.1</jackson.version>
         <thrift.version>0.9.2</thrift.version>
         <junit.version>4.11</junit.version>
+        <hdrhistogram.version>2.1.7</hdrhistogram.version>
     </properties>
 
     <modules>
@@ -232,6 +233,7 @@
         <module>external/flux</module>
         <module>external/storm-elasticsearch</module>
         <module>external/storm-solr</module>
+        <module>external/storm-metrics</module>
         <module>examples/storm-starter</module>
     </modules>
 
@@ -328,6 +330,11 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>org.hdrhistogram</groupId>
+                <artifactId>HdrHistogram</artifactId>
+                <version>${hdrhistogram.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.clojure</groupId>
                 <artifactId>clojure</artifactId>

@@ -202,6 +202,15 @@
    limitations under the License.
 
 -----------------------------------------------------------------------
+For Hyperic Sigar (external/storm-metrics/src/main/resources/resources)
+
+https://github.com/hyperic/sigar
+
+                              Apache License
+                        Version 2.0, January 2004
+                     http://www.apache.org/licenses/
+
+-----------------------------------------------------------------------
 
 For jQuery 1.11.1 (storm-core/src/ui/public/js/jquery-1.11.1.min.js)
 

@@ -1,5 +1,4 @@
 ## 0.11.0
- * STORM-1108: Fix NPE in simulated time
  * STORM-1084: Improve Storm config validation process to use java annotations instead of *_SCHEMA format
  * STORM-1106: Netty should not limit attempts to reconnect
  * STORM-1103: Changes log message to DEBUG from INFO
@@ -82,6 +81,7 @@
  * STORM-949: On the topology summary UI page, last shown error should have the time and date
 
 ## 0.10.0-beta2
+ * STORM-1108: Fix NPE in simulated time
  * STORM-1099: Fix worker childopts as arraylist of strings
  * STORM-1094: advance kafka offset when deserializer yields no object
  * STORM-1066: Specify current directory when supervisor launches a worker

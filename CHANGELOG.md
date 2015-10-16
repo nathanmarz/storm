@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1079: Batch Puts to HBase
  * STORM-1084: Improve Storm config validation process to use java annotations instead of *_SCHEMA format
  * STORM-1106: Netty should not limit attempts to reconnect
  * STORM-1103: Changes log message to DEBUG from INFO

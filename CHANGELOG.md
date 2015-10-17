@@ -100,7 +100,6 @@
  * STORM-803: Better CI logs
  * STORM-1027: Use overflow buffer for emitting metrics
  * STORM-1024: log4j changes leaving ${sys:storm.log.dir} under STORM_HOME dir
- * STORM-996: netty-unit-tests/test-batch demonstrates out-of-order delivery
  * STORM-944: storm-hive pom.xml has a dependency conflict with calcite
  * STORM-994: Connection leak between nimbus and supervisors
  * STORM-1001: Undefined STORM_EXT_CLASSPATH adds '::' to classpath of workers
@@ -287,6 +286,7 @@
  * STORM-130: Supervisor getting killed due to java.io.FileNotFoundException: File '../stormconf.ser' does not exist.
 
 ## 0.9.6
+ * STORM-996: netty-unit-tests/test-batch demonstrates out-of-order delivery
  * STORM-1056: allow supervisor log filename to be configurable via ENV variable
  * STORM-1051: Netty Client.java's flushMessages produces a NullPointerException
  * STORM-763: nimbus reassigned worker A to another machine, but other worker's netty client can't connect to the new worker A

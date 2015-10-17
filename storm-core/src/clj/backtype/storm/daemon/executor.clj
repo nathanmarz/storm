@@ -685,7 +685,7 @@
           0))
       :kill-fn (:report-error-and-die executor-data)
       :factory? true
-      :thread-name component-id)]))
+      :thread-name (str component-id "-executor" (:executor-id executor-data)))]))
 
 (defn- tuple-time-delta! [^TupleImpl tuple]
   (let [ms (.getProcessSampleStartTime tuple)]
@@ -899,7 +899,7 @@
             0)))
       :kill-fn (:report-error-and-die executor-data)
       :factory? true
-      :thread-name component-id)]))
+      :thread-name (str component-id "-executor" (:executor-id executor-data)))]))
 
 (defmethod close-component :spout [executor-data spout]
   (.close spout))

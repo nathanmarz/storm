@@ -47,11 +47,6 @@ public class DenyAuthorizer implements IAuthorizer {
      * @return true if the request is authorized, false if reject
      */
     public boolean permit(ReqContext context, String operation, Map topology_conf) {
-        LOG.info("[req "+ context.requestID()+ "] Access "
-                + " from: " + (context.remoteAddress() == null? "null" : context.remoteAddress().toString())
-                + (context.principal() == null? "" : (" principal:"+ context.principal()))
-                +" op:"+operation
-                + (topology_conf == null? "" : (" topoology:"+topology_conf.get(Config.TOPOLOGY_NAME))));
         return false;
     }
 }

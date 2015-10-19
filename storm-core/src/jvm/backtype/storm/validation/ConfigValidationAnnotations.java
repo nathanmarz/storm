@@ -185,12 +185,6 @@ public class ConfigValidationAnnotations {
 
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.FIELD)
-    public @interface isImpersonationAcl {
-        Class validatorClass() default ConfigValidation.ImpersonationAclValidator.class;
-    }
-
-    @Retention(RetentionPolicy.RUNTIME)
-    @Target(ElementType.FIELD)
     public @interface isStringOrStringList {
         Class validatorClass() default ConfigValidation.StringOrStringListValidator.class;
     }

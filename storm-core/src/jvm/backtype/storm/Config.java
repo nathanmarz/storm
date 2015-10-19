@@ -253,7 +253,6 @@ public class Config extends HashMap<String, Object> {
      *
      * Defaults to false.
      */
-    @Deprecated
     @isBoolean
     public static final String STORM_LOCAL_MODE_ZMQ = "storm.local.mode.zmq";
 
@@ -1254,8 +1253,8 @@ public class Config extends HashMap<String, Object> {
      * to be equal to the number of workers configured for this topology. If this variable is set to 0,
      * event logging will be disabled.</p>
      */
-    @isPositiveNumber
     @isInteger
+    @isPositiveNumber
     public static final String TOPOLOGY_EVENTLOGGER_EXECUTORS = "topology.eventlogger.executors";
 
     /**
@@ -1579,8 +1578,8 @@ public class Config extends HashMap<String, Object> {
      * The port to use to connect to the transactional zookeeper servers. If null (which is default),
      * will use storm.zookeeper.port
      */
-    @isPositiveNumber
     @isInteger
+    @isPositiveNumber
     public static final String TRANSACTIONAL_ZOOKEEPER_PORT="transactional.zookeeper.port";
 
     /**
@@ -1648,8 +1647,8 @@ public class Config extends HashMap<String, Object> {
      * The number of machines that should be used by this topology to isolate it from all others. Set storm.scheduler
      * to backtype.storm.scheduler.multitenant.MultitenantScheduler
      */
-    @isPositiveNumber
     @isInteger
+    @isPositiveNumber
     public static final String TOPOLOGY_ISOLATED_MACHINES = "topology.isolate.machines";
 
     /**

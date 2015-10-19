@@ -365,11 +365,17 @@ struct NodeInfo {
     2: required set<i64> port;
 }
 
+struct WorkerResources {
+    1: optional double mem_on_heap;
+    2: optional double mem_off_heap;
+    3: optional double cpu;
+}
 struct Assignment {
     1: required string master_code_dir;
     2: optional map<string, string> node_host = {};
     3: optional map<list<i64>, NodeInfo> executor_node_port = {};
     4: optional map<list<i64>, i64> executor_start_time_secs = {};
+    5: optional map<NodeInfo, WorkerResources> worker_resources = {};
 }
 
 enum TopologyStatus {
@@ -415,6 +421,7 @@ struct LocalStateData {
 struct LocalAssignment {
   1: required string topology_id;
   2: required list<ExecutorInfo> executors;
+  3: optional WorkerResources resources;
 }
 
 struct LSSupervisorId {

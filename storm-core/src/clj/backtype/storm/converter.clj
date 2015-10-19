@@ -14,7 +14,7 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns backtype.storm.converter
-  (:import [backtype.storm.generated SupervisorInfo NodeInfo Assignment
+  (:import [backtype.storm.generated SupervisorInfo NodeInfo Assignment WorkerResources
             StormBase TopologyStatus ClusterWorkerHeartbeat ExecutorInfo ErrorInfo Credentials RebalanceOptions KillOptions
             TopologyActionOptions DebugOptions])
   (:use [backtype.storm util stats log])
@@ -47,19 +47,29 @@
       (if-let [res-map (.get_resources_map supervisor-info)] (into {} res-map)))))
 
 (defn thriftify-assignment [assignment]
-  (doto (Assignment.)
-    (.set_master_code_dir (:master-code-dir assignment))
-    (.set_node_host (:node->host assignment))
-    (.set_executor_node_port (map-val
-                               (fn [node+port]
-                                 (NodeInfo. (first node+port) (set (map long (rest node+port)))))
-                               (map-key #(map long %)
-                                 (:executor->node+port assignment))))
-    (.set_executor_start_time_secs
-      (map-val
-        long
-        (map-key #(map long %)
-          (:executor->start-time-secs assignment))))))
+  (let [thrift-assignment (doto (Assignment.)
+                            (.set_master_code_dir (:master-code-dir assignment))
+                            (.set_node_host (:node->host assignment))
+                            (.set_executor_node_port (into {}
+                                                           (map (fn [[k v]]
+                                                                  [(map long k)
+                                                                   (NodeInfo. (first v) (set (map long (rest v))))])
+                                                                (:executor->node+port assignment))))
+                            (.set_executor_start_time_secs
+                              (into {}
+                                    (map (fn [[k v]]
+                                           [(map long k) (long v)])
+                                         (:executor->start-time-secs assignment)))))]
+    (if (:worker->resources assignment)
+      (.set_worker_resources thrift-assignment (into {} (map
+                                                          (fn [[node+port resources]]
+                                                            [(NodeInfo. (first node+port) (set (map long (rest node+port))))
+                                                             (doto (WorkerResources.)
+                                                               (.set_mem_on_heap (first resources))
+                                                               (.set_mem_off_heap (second resources))
+                                                               (.set_cpu (last resources)))])
+                                                          (:worker->resources assignment)))))
+    thrift-assignment))
 
 (defn clojurify-executor->node_port [executor->node_port]
   (into {}
@@ -71,6 +81,15 @@
           (into [] list-of-executors)) ; list of executors must be coverted to clojure vector to ensure it is sortable.
         executor->node_port))))
 
+(defn clojurify-worker->resources [worker->resources]
+  "convert worker info to be [node, port]
+   convert resources to be [mem_on_heap mem_off_heap cpu]"
+  (into {} (map
+             (fn [[nodeInfo resources]]
+               [(concat [(.get_node nodeInfo)] (.get_port nodeInfo))
+                [(.get_mem_on_heap resources) (.get_mem_off_heap resources) (.get_cpu resources)]])
+             worker->resources)))
+
 (defn clojurify-assignment [^Assignment assignment]
   (if assignment
     (backtype.storm.daemon.common.Assignment.
@@ -78,7 +97,8 @@
       (into {} (.get_node_host assignment))
       (clojurify-executor->node_port (into {} (.get_executor_node_port assignment)))
       (map-key (fn [executor] (into [] executor))
-        (into {} (.get_executor_start_time_secs assignment))))))
+        (into {} (.get_executor_start_time_secs assignment)))
+      (clojurify-worker->resources (into {} (.get_worker_resources assignment))))))
 
 (defn convert-to-symbol-from-status [status]
   (condp = status

@@ -230,6 +230,33 @@ public class RAS_Node {
         _topIdToUsedSlots.remove(topId);
     }
 
+    /**
+     * Allocate Mem and CPU resources to the assigned slot for the topology's executors.
+     * @param td the TopologyDetails that the slot is assigned to.
+     * @param executors the executors to run in that slot.
+     * @param slot the slot to allocate resource to
+     */
+    public void allocateResourceToSlot (TopologyDetails td, Collection<ExecutorDetails> executors, WorkerSlot slot) {
+        double onHeapMem = 0.0;
+        double offHeapMem = 0.0;
+        double cpu = 0.0;
+        for (ExecutorDetails exec : executors) {
+            Double onHeapMemForExec = td.getOnHeapMemoryRequirement(exec);
+            if (onHeapMemForExec != null) {
+                onHeapMem += onHeapMemForExec;
+            }
+            Double offHeapMemForExec = td.getOffHeapMemoryRequirement(exec);
+            if (offHeapMemForExec != null) {
+                offHeapMem += offHeapMemForExec;
+            }
+            Double cpuForExec = td.getTotalCpuReqTask(exec);
+            if (cpuForExec != null) {
+                cpu += cpuForExec;
+            }
+        }
+        slot.allocateResource(onHeapMem, offHeapMem, cpu);
+    }
+
     public void assign(WorkerSlot target, TopologyDetails td, Collection<ExecutorDetails> executors,
                        Cluster cluster) {
         if (!_isAlive) {
@@ -248,6 +275,7 @@ public class RAS_Node {
         if (!_freeSlots.contains(target)) {
             throw new IllegalStateException("Trying to assign already used slot" + target.getPort() + "on node " + _nodeId);
         } else {
+            allocateResourceToSlot(td, executors, target);
             cluster.assign(target, td.getId(), executors);
             assignInternal(target, td.getId(), false);
         }

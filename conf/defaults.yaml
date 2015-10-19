@@ -140,7 +140,8 @@ supervisor.memory.capacity.mb: 3072.0
 supervisor.cpu.capacity: 400.0
 
 ### worker.* configs are for task workers
-worker.childopts: "-Xmx768m"
+worker.heap.memory.mb: 768
+worker.childopts: "-Xmx%HEAP-MEM%m"
 worker.gc.childopts: ""
 worker.heartbeat.frequency.secs: 1
 

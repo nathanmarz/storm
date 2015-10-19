@@ -103,6 +103,7 @@
                          ["sup1" 2] [0.0 0.0 0.0]
                          ["sup1" 3] [0.0 0.0 0.0]
                          })
+                      (.rebalance (:nimbus cluster) "test" (doto (RebalanceOptions.) (.set_wait_secs 0)))
                       (advance-cluster-time cluster 2)
                       (heartbeat-workers cluster "sup1" [1 2 3])
                       (advance-cluster-time cluster 10)))
@@ -158,6 +159,7 @@
                          ["sup1" 2] [0.0 0.0 0.0]
                          ["sup2" 1] [0.0 0.0 0.0]
                          })
+                      (.rebalance (:nimbus cluster) "test" (doto (RebalanceOptions.) (.set_wait_secs 0)))
                       (advance-cluster-time cluster 2)
                       (heartbeat-workers cluster "sup1" [1 2])
                       (heartbeat-workers cluster "sup2" [1])
@@ -181,6 +183,7 @@
                         {["sup1" 3] [0.0 0.0 0.0]
                          ["sup2" 2] [0.0 0.0 0.0]
                          })
+                      (.rebalance (:nimbus cluster) "test2" (doto (RebalanceOptions.) (.set_wait_secs 0)))
                       (advance-cluster-time cluster 2)
                       (heartbeat-workers cluster "sup1" [3])
                       (heartbeat-workers cluster "sup2" [2])
@@ -693,7 +696,7 @@
                      {["sup1" 1] [0.0 0.0 0.0]
                       ["sup1" 2] [0.0 0.0 0.0]
                       })
-                    (advance-cluster-time cluster 10)
+                    (.rebalance (:nimbus cluster) "topology1" (doto (RebalanceOptions.) (.set_wait_secs 0)))
                     ))
      (is (empty? (:launched changed)))
      (bind options (RebalanceOptions.))

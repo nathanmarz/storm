@@ -411,6 +411,7 @@
                               "transactional-test"
                               {TOPOLOGY-MAX-SPOUT-PENDING 2}
                               (:topology topo-info))
+       (Thread/sleep 11000)
 
        (bind ack-tx! (fn [txid]
                        (let [[to-ack not-to-ack] (separate
@@ -666,6 +667,7 @@
                               {TOPOLOGY-MAX-SPOUT-PENDING 2
                                }
                               (:topology topo-info))
+       (Thread/sleep 11000)
 
        (bind ack-tx! (fn [txid]
                        (let [[to-ack not-to-ack] (separate

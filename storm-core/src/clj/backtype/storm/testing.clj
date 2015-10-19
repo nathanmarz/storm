@@ -515,6 +515,7 @@
       (startup spout))
 
     (submit-local-topology (:nimbus cluster-map) storm-name storm-conf topology)
+    (advance-cluster-time cluster-map 11)
 
     (let [storm-id (common/get-storm-id state storm-name)]
       ;;Give the topology time to come up without using it to wait for the spouts to complete

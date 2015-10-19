@@ -115,6 +115,10 @@ public class ThroughputVsLatency {
         StormSubmitter.submitTopology(name, stormConf, topology);
       }
     }
+
+    public boolean isLocal() {
+      return _local != null;
+    }
   }
 
   public static class FastRandomSentenceSpout extends BaseRichSpout {
@@ -388,12 +392,19 @@ public class ThroughputVsLatency {
     metricServer.serve();
     String url = metricServer.getUrl();
 
+    C cluster = new C(conf);
     conf.setNumWorkers(parallelism);
     conf.registerMetricsConsumer(backtype.storm.metric.HttpForwardingMetricsConsumer.class, url, 1);
     Map<String, String> workerMetrics = new HashMap<String, String>();
-    workerMetrics.put("CPU", "org.apache.storm.metrics.sigar.CPUMetric");
+    if (!cluster.isLocal()) {
+      //sigar uses JNI and does not work in local mode
+      workerMetrics.put("CPU", "org.apache.storm.metrics.sigar.CPUMetric");
+    }
     conf.put(Config.TOPOLOGY_WORKER_METRICS, workerMetrics);
     conf.put(Config.TOPOLOGY_BUILTIN_METRICS_BUCKET_SIZE_SECS, 10);
+    conf.put(Config.TOPOLOGY_WORKER_GC_CHILDOPTS,
+      "-XX:+UseConcMarkSweepGC -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:NewSize=128m -XX:CMSInitiatingOccupancyFraction=70 -XX:-CMSConcurrentMTEnabled");
+    conf.put(Config.TOPOLOGY_WORKER_CHILDOPTS, "-Xmx2g");
 
     TopologyBuilder builder = new TopologyBuilder();
 
@@ -403,7 +414,6 @@ public class ThroughputVsLatency {
     builder.setBolt("split", new SplitSentence(), numEach).shuffleGrouping("spout");
     builder.setBolt("count", new WordCount(), numEach).fieldsGrouping("split", new Fields("word"));
 
-    C cluster = new C(conf);
     try {
         cluster.submitTopology(name, conf, builder.createTopology());
 

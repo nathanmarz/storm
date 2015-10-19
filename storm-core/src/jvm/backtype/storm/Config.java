@@ -1047,8 +1047,9 @@ public class Config extends HashMap<String, Object> {
     /**
      * The default heap memory size in MB per worker, used in the jvm -Xmx opts for launching the worker
       */
+    @isInteger
+    @isPositiveNumber
     public static final String WORKER_HEAP_MEMORY_MB = "worker.heap.memory.mb";
-    public static final Object WORKER_HEAP_MEMORY_MB_SCHEMA = ConfigValidation.PositiveIntegerValidator;
 
     /**
      * The jvm opts provided to workers launched by this supervisor for GC. All "%ID%" substrings are replaced

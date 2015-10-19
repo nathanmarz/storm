@@ -45,6 +45,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -216,11 +217,38 @@ public class ThroughputVsLatency {
     }
   }
 
+  private static class MemMeasure {
+    private long _mem = 0;
+    private long _time = 0;
+
+    public synchronized void update(long mem) {
+        _mem = mem;
+        _time = System.currentTimeMillis();
+    }
+
+    public synchronized long get() {
+        return isExpired() ? 0l : _mem;
+    }
+
+    public synchronized boolean isExpired() {
+        return (System.currentTimeMillis() - _time) >= 20000;
+    }
+  }
+
   private static final Histogram _histo = new Histogram(3600000000000L, 3);
   private static final AtomicLong _systemCPU = new AtomicLong(0);
   private static final AtomicLong _userCPU = new AtomicLong(0);
   private static final AtomicLong _gcCount = new AtomicLong(0);
   private static final AtomicLong _gcMs = new AtomicLong(0);
+  private static final ConcurrentHashMap<String, MemMeasure> _memoryBytes = new ConcurrentHashMap<String, MemMeasure>();
+
+  private static long readMemory() {
+    long total = 0;
+    for (MemMeasure mem: _memoryBytes.values()) {
+      total += mem.get();
+    }
+    return total;
+  }
 
   private static long _prev_acked = 0;
   private static long _prev_uptime = 0;
@@ -273,10 +301,12 @@ public class ThroughputVsLatency {
     long user = _userCPU.getAndSet(0);
     long sys = _systemCPU.getAndSet(0);
     long gc = _gcMs.getAndSet(0);
-    System.out.printf("uptime: %,4d acked: %,8d acked/sec: %,8.2f failed: %,8d " +
-                      "99%%: %,15d 99.9%%: %,15d min: %,15d max: %,15d mean: %,15.2f stddev: %,15.2f user: %,10d sys: %,10d gc: %,10d\n",
+    double memMB = readMemory() / (1024.0 * 1024.0);
+    System.out.printf("uptime: %,4d acked: %,9d acked/sec: %,10.2f failed: %,8d " +
+                      "99%%: %,15d 99.9%%: %,15d min: %,15d max: %,15d mean: %,15.2f " +
+                      "stddev: %,15.2f user: %,10d sys: %,10d gc: %,10d mem: %,10.2f\n",
                        uptime, ackedThisTime, (((double)ackedThisTime)/thisTime), failed, nnpct, nnnpct,
-                       min, max, mean, stddev, user, sys, gc);
+                       min, max, mean, stddev, user, sys, gc, memMB);
     _prev_uptime = uptime;
     _prev_acked = acked;
   }
@@ -312,6 +342,7 @@ public class ThroughputVsLatency {
     HttpForwardingMetricsServer metricServer = new HttpForwardingMetricsServer(conf) {
         @Override
         public void handle(TaskInfo taskInfo, Collection<DataPoint> dataPoints) {
+            String worker = taskInfo.srcWorkerHost + ":" + taskInfo.srcWorkerPort;
             for (DataPoint dp: dataPoints) {
                 if ("comp-lat-histo".equals(dp.name) && dp.value instanceof Histogram) {
                     synchronized(_histo) {
@@ -336,6 +367,18 @@ public class ThroughputVsLatency {
                    Object time = m.get("timeMs");
                    if (time instanceof Number) {
                        _gcMs.getAndAdd(((Number)time).longValue());
+                   }
+                } else if (dp.name.startsWith("memory/") && dp.value instanceof Map) {
+                   Map<Object, Object> m = (Map<Object, Object>)dp.value;
+                   Object val = m.get("usedBytes");
+                   if (val instanceof Number) {
+                       MemMeasure mm = _memoryBytes.get(worker);
+                       if (mm == null) {
+                         mm = new MemMeasure();
+                         MemMeasure tmp = _memoryBytes.putIfAbsent(worker, mm);
+                         mm = tmp == null ? mm : tmp; 
+                       }
+                       mm.update(((Number)val).longValue());
                    }
                 }
             }

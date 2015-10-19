@@ -45,6 +45,7 @@ public class ConfigValidationAnnotations {
         static final String KEY_TYPE = "keyType";
         static final String VALUE_TYPE = "valueType";
         static final String INCLUDE_ZERO = "includeZero";
+        static final String ACCEPTED_VALUES = "acceptedValues";
     }
 
     /**
@@ -86,6 +87,7 @@ public class ConfigValidationAnnotations {
     @Target(ElementType.FIELD)
     public @interface isString {
         Class validatorClass() default ConfigValidation.StringValidator.class;
+        String[] acceptedValues() default "";
     }
 
     @Retention(RetentionPolicy.RUNTIME)

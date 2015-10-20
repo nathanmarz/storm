@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1110: Fix Component Page for system components
  * STORM-1093: Launching Workers with resources specified in resource-aware schedulers
  * STORM-1102: Add a default flush interval for HiveBolt
  * STORM-1112: Add executor id to the thread name of the executor thread for debug

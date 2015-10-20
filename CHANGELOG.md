@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1119: Create access logging for all daemons
  * STORM-1117: Adds visualization-init route previously missing
  * STORM-1118: Added test to compare latency vs. throughput in storm.
  * STORM-1110: Fix Component Page for system components

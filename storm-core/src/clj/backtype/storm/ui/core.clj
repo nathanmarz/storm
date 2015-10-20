@@ -24,7 +24,7 @@
   (:use [backtype.storm config util log stats tuple zookeeper])
   (:use [backtype.storm.ui helpers])
   (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID ACKER-INIT-STREAM-ID ACKER-ACK-STREAM-ID
-                                              ACKER-FAIL-STREAM-ID system-id? mk-authorization-handler]]])
+                                              ACKER-FAIL-STREAM-ID mk-authorization-handler]]])
   (:use [clojure.string :only [blank? lower-case trim]])
   (:import [backtype.storm.utils Utils]
            [backtype.storm.generated NimbusSummary])

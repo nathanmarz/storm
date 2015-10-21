@@ -39,6 +39,11 @@
             Tasks
           </span>
         </th>
+        <th>
+          <span data-toggle="tooltip" data-placement="above" title="Click on the link below to open the logviewer and view the events emitted by this component.">
+            Debug
+          </span>
+        </th>
       </tr>
     </thead>
     <tbody>
@@ -47,6 +52,7 @@
         <td><a href="/topology.html?id={{encodedTopologyId}}">{{name}}</a></td>
         <td>{{executors}}</td>
         <td>{{tasks}}</td>
+        <td><a href="{{eventLogLink}}">events</a></td>
     </tbody>
   </table>
 </script>
@@ -475,7 +481,7 @@
     <tbody>
       {{#componentErrors}}
       <tr>
-        <td>{{time}}</td>
+        <td>{{errorTime}}</td>
         <td>{{errorHost}}</td>
         <td><a href="{{errorWorkerLogLink}}">{{errorPort}}</a></td>
         <td>
@@ -485,4 +491,11 @@
       {{/componentErrors}}
     </tbody>
   </table>
+</script>
+<script id="component-actions-template" type="text/html">
+  <h2>Component actions</h2>
+  <p id="component-actions">
+    <input {{startDebugStatus}} onclick="confirmComponentAction('{{encodedTopologyId}}', '{{encodedId}}', '{{componentName}}', 'debug/enable', true, {{currentSamplingPct}}, 'sampling percentage', 'debug')" type="button" value="Debug" class="btn btn-default">
+    <input {{stopDebugStatus}} onclick="confirmComponentAction('{{encodedTopologyId}}', '{{encodedId}}', '{{componentName}}', 'debug/disable', false, 0, 'sampling percentage', 'stop debugging')" type="button" value="Stop Debug" class="btn btn-default">
+  </p>
 </script>

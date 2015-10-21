@@ -84,7 +84,7 @@ public class FeederCommitterBatchSpout implements ICommitterTridentSpout, IFeede
     }
 
     @Override
-    public Map getComponentConfiguration() {
+    public Map<String, Object> getComponentConfiguration() {
         return _spout.getComponentConfiguration();
     }
 

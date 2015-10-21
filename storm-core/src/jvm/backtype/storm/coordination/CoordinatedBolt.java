@@ -364,7 +364,7 @@ public class CoordinatedBolt implements IRichBolt {
     
     private TupleType getTupleType(Tuple tuple) {
         if(_idStreamSpec!=null
-                && tuple.getSourceGlobalStreamid().equals(_idStreamSpec._id)) {
+                && tuple.getSourceGlobalStreamId().equals(_idStreamSpec._id)) {
             return TupleType.ID;
         } else if(!_sourceArgs.isEmpty()
                 && tuple.getSourceStreamId().equals(Constants.COORDINATED_STREAM_ID)) {

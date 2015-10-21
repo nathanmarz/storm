@@ -44,7 +44,20 @@ public class SimpleACLAuthorizer implements IAuthorizer {
 
     protected Set<String> _userCommands = new HashSet<String>(Arrays.asList("submitTopology", "fileUpload", "getNimbusConf", "getClusterInfo"));
     protected Set<String> _supervisorCommands = new HashSet<String>(Arrays.asList("fileDownload"));
-    protected Set<String> _topoCommands = new HashSet<String>(Arrays.asList("killTopology","rebalance","activate","deactivate","getTopologyConf","getTopology","getUserTopology","getTopologyInfo","uploadNewCredentials"));
+    protected Set<String> _topoCommands = new HashSet<String>(Arrays.asList(
+            "killTopology",
+            "rebalance",
+            "activate",
+            "deactivate",
+            "getTopologyConf",
+            "getTopology",
+            "getUserTopology",
+            "getTopologyInfo",
+            "getTopologyPageInfo",
+            "getComponentPageInfo",
+            "uploadNewCredentials",
+            "setLogConfig",
+            "getLogConfig"));
 
     protected Set<String> _admins;
     protected Set<String> _supervisors;
@@ -90,12 +103,6 @@ public class SimpleACLAuthorizer implements IAuthorizer {
      */
     @Override
     public boolean permit(ReqContext context, String operation, Map topology_conf) {
-        LOG.info("[req " + context.requestID() + "] Access "
-                + " from: " + (context.remoteAddress() == null ? "null" : context.remoteAddress().toString())
-                + (context.principal() == null ? "" : (" principal:" + context.principal()))
-                + " op:" + operation
-                + (topology_conf == null ? "" : (" topoology:" + topology_conf.get(Config.TOPOLOGY_NAME))));
-
         String principal = context.principal().getName();
         String user = _ptol.toLocal(context.principal());
         Set<String> userGroups = new HashSet<String>();

@@ -3,6 +3,8 @@ Storm/Trident integration for JDBC. This package includes the core bolts and tri
 to either insert storm tuples in a database table or to execute select queries against a database and enrich tuples 
 in a storm topology.
 
+**Note**: Throughout the examples below, we make use of com.google.common.collect.Lists and com.google.common.collect.Maps.
+
 ## Inserting into a database.
 The bolt and trident state included in this package for inserting data into a database tables are tied to a single table.
 
@@ -62,7 +64,7 @@ hikariConfigMap.put("dataSourceClassName","com.mysql.jdbc.jdbc2.optional.MysqlDa
 hikariConfigMap.put("dataSource.url", "jdbc:mysql://localhost/test");
 hikariConfigMap.put("dataSource.user","root");
 hikariConfigMap.put("dataSource.password","password");
-ConnectionProvider connectionProvider = new HikariCPConnectionProvider(map);
+ConnectionProvider connectionProvider = new HikariCPConnectionProvider(hikariConfigMap);
 
 String tableName = "user_details";
 JdbcMapper simpleJdbcMapper = new SimpleJdbcMapper(tableName, connectionProvider);
@@ -96,7 +98,7 @@ hikariConfigMap.put("dataSourceClassName","com.mysql.jdbc.jdbc2.optional.MysqlDa
 hikariConfigMap.put("dataSource.url", "jdbc:mysql://localhost/test");
 hikariConfigMap.put("dataSource.user","root");
 hikariConfigMap.put("dataSource.password","password");
-ConnectionProvider connectionProvider = new HikariCPConnectionProvider(map);
+ConnectionProvider connectionProvider = new HikariCPConnectionProvider(hikariConfigMap);
 String tableName = "user_details";
 JdbcMapper simpleJdbcMapper = new SimpleJdbcMapper(tableName, connectionProvider);
 ```

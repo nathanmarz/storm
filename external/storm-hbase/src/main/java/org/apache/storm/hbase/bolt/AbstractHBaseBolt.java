@@ -42,6 +42,8 @@ public abstract class AbstractHBaseBolt extends BaseRichBolt {
     protected String tableName;
     protected HBaseMapper mapper;
     protected String configKey;
+    protected int batchSize = 15000;
+    protected int flushIntervalSecs = 0;
 
     public AbstractHBaseBolt(String tableName, HBaseMapper mapper) {
         Validate.notEmpty(tableName, "Table name can not be blank or null");

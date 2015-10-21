@@ -1,6 +1,8 @@
 package backtype.storm.nimbus;
 
 import backtype.storm.Config;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 import java.net.InetAddress;
@@ -8,6 +10,7 @@ import java.net.UnknownHostException;
 import java.util.Map;
 
 public class NimbusInfo implements Serializable {
+    private static final Logger LOG = LoggerFactory.getLogger(NimbusInfo.class);
     private static final String DELIM = ":";
 
     private String host;
@@ -32,6 +35,11 @@ public class NimbusInfo implements Serializable {
     public static NimbusInfo fromConf(Map conf) {
         try {
             String host = InetAddress.getLocalHost().getCanonicalHostName();
+            if (conf.containsKey(Config.STORM_LOCAL_HOSTNAME)) {
+                host = conf.get(Config.STORM_LOCAL_HOSTNAME).toString();
+                LOG.info("Overriding nimbus host to storm.local.hostname -> {}", host);
+            }
+
             int port = Integer.parseInt(conf.get(Config.NIMBUS_THRIFT_PORT).toString());
             return new NimbusInfo(host, port, false);
 

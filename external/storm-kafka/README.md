@@ -218,7 +218,7 @@ You can return a null and the message will be ignored. If you have one static to
 DefaultTopicSelector.java and set the name of the topic in the constructor.
 
 ### Specifying Kafka producer properties
-You can provide all the produce properties , see http://kafka.apache.org/documentation.html#producerconfigs 
+You can provide all the produce properties , see http://kafka.apache.org/documentation.html#newproducerconfigs 
 section "Important configuration properties for the producer", in your Storm topology config by setting the properties
 map with key kafka.broker.properties.
 
@@ -245,9 +245,10 @@ For the bolt :
         Config conf = new Config();
         //set producer properties.
         Properties props = new Properties();
-        props.put("metadata.broker.list", "localhost:9092");
-        props.put("request.required.acks", "1");
-        props.put("serializer.class", "kafka.serializer.StringEncoder");
+        props.put("bootstrap.servers", "localhost:9092");
+        props.put("acks", "1");
+        props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         conf.put(KafkaBolt.KAFKA_BROKER_PROPERTIES, props);
         
         StormSubmitter.submitTopology("kafkaboltTest", conf, builder.createTopology());
@@ -276,9 +277,10 @@ For Trident:
         Config conf = new Config();
         //set producer properties.
         Properties props = new Properties();
-        props.put("metadata.broker.list", "localhost:9092");
-        props.put("request.required.acks", "1");
-        props.put("serializer.class", "kafka.serializer.StringEncoder");
+        props.put("bootstrap.servers", "localhost:9092");
+        props.put("acks", "1");
+        props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         conf.put(TridentKafkaState.KAFKA_BROKER_PROPERTIES, props);
         StormSubmitter.submitTopology("kafkaTridentTest", conf, topology.build());
 ```

@@ -23,6 +23,7 @@
   (:use [backtype.storm.util :only [clojurify-structure uuid defnk url-encode not-nil?]])
   (:use [clj-time coerce format])
   (:import [backtype.storm.generated ExecutorInfo ExecutorSummary])
+  (:import [backtype.storm.logging.filters AccessLoggingFilter])
   (:import [java.util EnumSet])
   (:import [org.eclipse.jetty.server Server]
            [org.eclipse.jetty.server.nio SelectChannelConnector]
@@ -96,39 +97,9 @@
       )]
    ])
 
-(defn float-str [n]
-  (if n
-    (format "%.3f" (float n))
-    "0"
-    ))
-
-(defn swap-map-order [m]
-  (->> m
-       (map (fn [[k v]]
-              (into
-               {}
-               (for [[k2 v2] v]
-                 [k2 {k v2}]
-                 ))
-              ))
-       (apply merge-with merge)
-       ))
-
 (defn url-format [fmt & args]
   (String/format fmt
     (to-array (map #(url-encode (str %)) args))))
-
-(defn to-tasks [^ExecutorInfo e]
-  (let [start (.get_task_start e)
-        end (.get_task_end e)]
-    (range start (inc end))
-    ))
-
-(defn sum-tasks [executors]
-  (reduce + (->> executors
-                 (map #(.get_executor_info ^ExecutorSummary %))
-                 (map to-tasks)
-                 (map count))))
 
 (defn pretty-executor-info [^ExecutorInfo e]
   (str "[" (.get_task_start e) "-" (.get_task_end e) "]"))
@@ -173,6 +144,9 @@
     (.setInitParameter CrossOriginFilter/ACCESS_CONTROL_ALLOW_ORIGIN_HEADER "*")
     ))
 
+(defn mk-access-logging-filter-handler []
+  (org.eclipse.jetty.servlet.FilterHolder. (AccessLoggingFilter.)))
+
 (defn config-filter [server handler filters-confs]
   (if filters-confs
     (let [servlet-holder (ServletHolder.
@@ -187,6 +161,7 @@
                                 (.setName (or filter-name filter-class))
                                 (.setInitParameters (or filter-params {})))]
             (.addFilter context filter-holder "/*" FilterMapping/ALL))))
+      (.addFilter context (mk-access-logging-filter-handler) "/*" (EnumSet/allOf DispatcherType))
       (.setHandler server context))))
 
 (defn ring-response-from-exception [ex]

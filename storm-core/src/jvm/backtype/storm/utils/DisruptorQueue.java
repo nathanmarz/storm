@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
+ * <p/>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -28,17 +28,18 @@ import com.lmax.disruptor.SequenceBarrier;
 import com.lmax.disruptor.SingleThreadedClaimStrategy;
 import com.lmax.disruptor.WaitStrategy;
 
+import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.HashMap;
 import java.util.Map;
+
 import backtype.storm.metric.api.IStatefulObject;
 
 
 /**
- *
  * A single consumer queue that uses the LMAX Disruptor. They key to the performance is
  * the ability to catch up to the producer by processing tuples in batches.
  */
@@ -64,6 +65,11 @@ public class DisruptorQueue implements IStatefulObject {
     private long _waitTimeout;
 
     private final QueueMetrics _metrics;
+    private DisruptorBackpressureCallback _cb = null;
+    private int _highWaterMark = 0;
+    private int _lowWaterMark = 0;
+    private boolean _enableBackpressure = false;
+    private volatile boolean _throttleOn = false;
 
     public DisruptorQueue(String queueName, ClaimStrategy claim, WaitStrategy wait, long timeout) {
         this._queueName = PREFIX + queueName;
@@ -134,6 +140,16 @@ public class DisruptorQueue implements IStatefulObject {
                     throw new InterruptedException("Disruptor processing interrupted");
                 } else {
                     handler.onEvent(o, curr, curr == cursor);
+                    if (_enableBackpressure && _cb != null && _metrics.writePos() - curr <= _lowWaterMark) {
+                        try {
+                            if (_throttleOn) {
+                                _throttleOn = false;
+                                _cb.lowWaterMark();
+                            }
+                        } catch (Exception e) {
+                            throw new RuntimeException("Exception during calling lowWaterMark callback!");
+                        }
+                    }
                 }
             } catch (Exception e) {
                 throw new RuntimeException(e);
@@ -141,6 +157,10 @@ public class DisruptorQueue implements IStatefulObject {
         }
         //TODO: only set this if the consumer cursor has changed?
         _consumer.set(cursor);
+    }
+
+    public void registerBackpressureCallback(DisruptorBackpressureCallback cb) {
+        this._cb = cb;
     }
 
     /*
@@ -189,6 +209,17 @@ public class DisruptorQueue implements IStatefulObject {
         final MutableObject m = _buffer.get(id);
         m.setObject(obj);
         _buffer.publish(id);
+        _metrics.notifyArrivals(1);
+        if (_enableBackpressure && _cb != null && _metrics.population() >= _highWaterMark) {
+           try {
+               if (!_throttleOn) {
+                   _cb.highWaterMark();
+                   _throttleOn = true;
+               }
+           } catch (Exception e) {
+               throw new RuntimeException("Exception during calling highWaterMark callback!");
+           }
+        }
     }
 
     public void consumerStarted() {
@@ -205,6 +236,29 @@ public class DisruptorQueue implements IStatefulObject {
         return _metrics.getState();
     }
 
+    public DisruptorQueue setHighWaterMark(double highWaterMark) {
+        this._highWaterMark = (int)(_metrics.capacity() * highWaterMark);
+        return this;
+    }
+
+    public DisruptorQueue setLowWaterMark(double lowWaterMark) {
+        this._lowWaterMark = (int)(_metrics.capacity() * lowWaterMark);
+        return this;
+    }
+
+    public int getHighWaterMark() {
+        return this._highWaterMark;
+    }
+
+    public int getLowWaterMark() {
+        return this._lowWaterMark;
+    }
+
+    public DisruptorQueue setEnableBackpressure(boolean enableBackpressure) {
+        this._enableBackpressure = enableBackpressure;
+        return this;
+    }
+
     public static class ObjectEventFactory implements EventFactory<MutableObject> {
         @Override
         public MutableObject newInstance() {
@@ -217,11 +271,11 @@ public class DisruptorQueue implements IStatefulObject {
         return _metrics;
     }
 
-
     /**
      * This inner class provides methods to access the metrics of the disruptor queue.
      */
     public class QueueMetrics {
+        private final RateTracker _rateTracker = new RateTracker(10000, 10);
 
         public long writePos() {
             return _buffer.getCursor();
@@ -249,13 +303,26 @@ public class DisruptorQueue implements IStatefulObject {
             // get readPos then writePos so it's never an under-estimate
             long rp = readPos();
             long wp = writePos();
+
+            final double arrivalRateInSecs = _rateTracker.reportRate();
+
+            //Assume the queue is stable, in which the arrival rate is equal to the consumption rate.
+            // If this assumption does not hold, the calculation of sojourn time should also consider
+            // departure rate according to Queuing Theory.
+            final double sojournTime = (wp - rp) / Math.max(arrivalRateInSecs, 0.00001) * 1000.0;
+
             state.put("capacity", capacity());
             state.put("population", wp - rp);
             state.put("write_pos", wp);
             state.put("read_pos", rp);
+            state.put("arrival_rate_secs", arrivalRateInSecs);
+            state.put("sojourn_time_ms", sojournTime); //element sojourn time in milliseconds
 
             return state;
         }
-    }
 
+        public void notifyArrivals(long counts) {
+            _rateTracker.notify(counts);
+        }
+    }
 }

@@ -226,6 +226,15 @@ under the License.
 * Renkai Ge ([@Renkai](https://github.com/Renkai))
 * Aaron Coburn ([@acoburn](https://github.com/acoburn))
 * Rick Kellogg ([@rmkellogg](https://github.com/rmkellogg))
+* Abhishek Agarwal ([@abhishekagarwal87](https://github.com/abhishekagarwal87))
+* chenyuzhao ([@danny0405](https://github.com/danny0405))
+* Michael Schonfeld ([@schonfeld](https://github.com/schonfeld))
+* Matthias J. Sax ([@mjsax](https://github.com/mjsax))
+* Erik Weathers ([@erikdw](https://github.com/erikdw))
+* Bryan Shell ([@shellbj](https://github.com/shellbj))
+* Dmytro Dragan ([@3Dragan](https://github.com/3Dragan))
+* Ningyu An ([@jetan9](https://github.com/jetan9))
+* Pete Prokopowicz ([@prokopowicz](https://github.com/prokopowicz))
 
 ## Acknowledgements
 

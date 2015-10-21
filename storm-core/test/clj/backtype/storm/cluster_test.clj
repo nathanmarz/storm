@@ -170,14 +170,14 @@
 (deftest test-storm-cluster-state-basics
   (with-inprocess-zookeeper zk-port
     (let [state (mk-storm-state zk-port)
-          assignment1 (Assignment. "/aaa" {} {[1] ["1" 1001 1]} {})
-          assignment2 (Assignment. "/aaa" {} {[2] ["2" 2002]} {})
+          assignment1 (Assignment. "/aaa" {} {[1] ["1" 1001 1]} {} {})
+          assignment2 (Assignment. "/aaa" {} {[2] ["2" 2002]} {} {})
           nimbusInfo1 (NimbusInfo. "nimbus1" 6667 false)
           nimbusInfo2 (NimbusInfo. "nimbus2" 6667 false)
           nimbusSummary1 (NimbusSummary. "nimbus1" 6667 (current-time-secs) false "v1")
           nimbusSummary2 (NimbusSummary. "nimbus2" 6667 (current-time-secs) false "v2")
-          base1 (StormBase. "/tmp/storm1" 1 {:type :active} 2 {} "" nil nil)
-          base2 (StormBase. "/tmp/storm2" 2 {:type :active} 2 {} "" nil nil)]
+          base1 (StormBase. "/tmp/storm1" 1 {:type :active} 2 {} "" nil nil {})
+          base2 (StormBase. "/tmp/storm2" 2 {:type :active} 2 {} "" nil nil {})]
       (is (= [] (.assignments state nil)))
       (.set-assignment! state "storm1" assignment1)
       (is (= assignment1 (.assignment-info state "storm1" nil)))
@@ -264,8 +264,8 @@
   (with-inprocess-zookeeper zk-port
     (let [state1 (mk-storm-state zk-port)
           state2 (mk-storm-state zk-port)
-          supervisor-info1 (SupervisorInfo. 10 "hostname-1" "id1" [1 2] [] {} 1000 "0.9.2")
-          supervisor-info2 (SupervisorInfo. 10 "hostname-2" "id2" [1 2] [] {} 1000 "0.9.2")
+          supervisor-info1 (SupervisorInfo. 10 "hostname-1" "id1" [1 2] [] {} 1000 "0.9.2" nil)
+          supervisor-info2 (SupervisorInfo. 10 "hostname-2" "id2" [1 2] [] {} 1000 "0.9.2" nil)
           ]
       (is (= [] (.supervisors state1 nil)))
       (.supervisor-heartbeat! state2 "2" supervisor-info2)

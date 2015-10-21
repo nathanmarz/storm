@@ -1,4 +1,41 @@
 ## 0.11.0
+ * STORM-1119: Create access logging for all daemons
+ * STORM-1117: Adds visualization-init route previously missing
+ * STORM-1118: Added test to compare latency vs. throughput in storm.
+ * STORM-1110: Fix Component Page for system components
+ * STORM-1093: Launching Workers with resources specified in resource-aware schedulers
+ * STORM-1102: Add a default flush interval for HiveBolt
+ * STORM-1112: Add executor id to the thread name of the executor thread for debug
+ * STORM-1079: Batch Puts to HBase
+ * STORM-1084: Improve Storm config validation process to use java annotations instead of *_SCHEMA format
+ * STORM-1106: Netty should not limit attempts to reconnect
+ * STORM-1103: Changes log message to DEBUG from INFO
+ * STORM-1104: Nimbus HA fails to find newly downloaded code files
+ * STORM-1087: Avoid issues with transfer-queue backpressure.
+ * STORM-893: Resource Aware Scheduling (Experimental)
+ * STORM-1095: Tuple.getSourceGlobalStreamid() has wrong camel-case naming
+ * STORM-1091: Add unit test for tick tuples to HiveBolt and HdfsBolt
+ * STORM-1090: Nimbus HA should support `storm.local.hostname`
+ * STORM-820: Aggregate topo stats on nimbus, not ui
+ * STORM-412: Allow users to modify logging levels of running topologies
+ * STORM-1078: Updated RateTracker to be thread safe
+ * STORM-1082: fix nits for properties in kafka tests
+ * STORM-993: include uptimeSeconds as JSON integer field
+ * STORM-1053: Update storm-kafka README for new producer API confs.
+ * STORM-1058: create CLI kill_workers to kill workers on a supervisor node
+ * STORM-1063: support relative log4j conf dir for both daemons and workers
+ * STORM-1059: Upgrade Storm to use Clojure 1.7.0
+ * STORM-1069: add check case for external change of 'now' value.
+ * STORM-969: HDFS Bolt can end up in an unrecoverable state.
+ * STORM-1068: Configure request.required.acks to be 1 in KafkaUtilsTest for sync
+ * STORM-1017: If ignoreZkOffsets set true,KafkaSpout will reset zk offset when recover from failure.
+ * STORM-1054: Excessive logging ShellBasedGroupsMapping if the user doesn't have any groups.
+ * STORM-954: Toplogy Event Inspector
+ * STORM-862: Pluggable System Metrics
+ * STORM-1032: Add generics to component configuration methods
+ * STORM-886: Automatic Back Pressure
+ * STORM-1037: do not remove storm-code in supervisor until kill job
+ * STORM-1007: Add more metrics to DisruptorQueue
  * STORM-1011: HBaseBolt default mapper should handle null values
  * STORM-1019: Added missing dependency version to use of org.codehaus.mojo:make-maven-plugin
  * STORM-1020: Document exceptions in ITuple & Fields
@@ -25,7 +62,6 @@
  * STORM-980: Re-include storm-kafka tests from Travis CI build
  * STORM-960: HiveBolt should ack tuples only after flushing.
  * STORM-951: Storm Hive connector leaking connections.
- * STORM_803: Better CI logs
  * STORM-806: use storm.zookeeper.connection.timeout in storm-kafka ZkState when newCurator
  * STORM-809: topology.message.timeout.secs should not allow for null or <= 0 values
  * STORM-847: Add cli to get the last storm error from the topology
@@ -53,8 +89,22 @@
  * STORM-949: On the topology summary UI page, last shown error should have the time and date
 
 ## 0.10.0-beta2
+ * STORM-1108: Fix NPE in simulated time
+ * STORM-1099: Fix worker childopts as arraylist of strings
+ * STORM-1094: advance kafka offset when deserializer yields no object
+ * STORM-1066: Specify current directory when supervisor launches a worker
+ * STORM-1012: Shaded everything that was not already shaded
+ * STORM-967: Shaded everything that was not already shaded
+ * STORM-922: Shaded everything that was not already shaded
+ * STORM-1042: Shaded everything that was not already shaded
+ * STORM-1026: Adding external classpath elements does not work
+ * STORM-1055: storm-jdbc README needs fixes and context
+ * STORM-1044: Setting dop to zero does not raise an error
+ * STORM-1050: Topologies with same name run on one cluster
+ * STORM-1005: Supervisor do not get running workers after restart.
+ * STORM-803: Better CI logs
+ * STORM-1027: Use overflow buffer for emitting metrics
  * STORM-1024: log4j changes leaving ${sys:storm.log.dir} under STORM_HOME dir
- * STORM-996: netty-unit-tests/test-batch demonstrates out-of-order delivery
  * STORM-944: storm-hive pom.xml has a dependency conflict with calcite
  * STORM-994: Connection leak between nimbus and supervisors
  * STORM-1001: Undefined STORM_EXT_CLASSPATH adds '::' to classpath of workers
@@ -71,6 +121,9 @@
  * STORM-966: ConfigValidation.DoubleValidator doesn't really validate whether the type of the object is a double
  * STORM-742: Let ShellBolt treat all messages to update heartbeat
  * STORM-992: A bug in the timer.clj might cause unexpected delay to schedule new event
+
+## 0.10.0
+ * STORM-1096: Fix some issues with impersonation on the UI
 
 ## 0.10.0-beta1
  * STORM-873: Flux does not handle diamond topologies
@@ -238,6 +291,9 @@
  * STORM-130: Supervisor getting killed due to java.io.FileNotFoundException: File '../stormconf.ser' does not exist.
 
 ## 0.9.6
+ * STORM-996: netty-unit-tests/test-batch demonstrates out-of-order delivery
+ * STORM-1056: allow supervisor log filename to be configurable via ENV variable
+ * STORM-1051: Netty Client.java's flushMessages produces a NullPointerException
  * STORM-763: nimbus reassigned worker A to another machine, but other worker's netty client can't connect to the new worker A
  * STORM-935: Update Disruptor queue version to 2.10.4
  * STORM-503: Short disruptor queue wait time leads to high CPU usage when idle
@@ -798,3 +854,4 @@ NOTE: The change from 0.7.0 in which OutputCollector no longer assumes immutable
 ## 0.5.0
  
  * Initial release!
+

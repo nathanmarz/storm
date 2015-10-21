@@ -206,7 +206,9 @@
                       "4" (thrift/mk-bolt-spec {"1" :global "2" :none} (TestPlannerBolt.) :parallelism-hint 4)}
                      )
           _ (submit-local-topology nimbus "mystorm" {TOPOLOGY-WORKERS 4} topology)
-          _ (Thread/sleep 11000)
+          ;; Instead of sleeping until topology is scheduled, rebalance topology so mk-assignments is called.
+          _ (.rebalance nimbus "mystorm" (doto (RebalanceOptions.) (.set_wait_secs 0)))
+          _ (Thread/sleep 1000)
           task-info (storm-component->task-info cluster "mystorm")]
       (check-consistency cluster "mystorm")
       ;; 3 should be assigned once (if it were optimized, we'd have
@@ -217,7 +219,9 @@
       (is (= 1 (count (task-info "3"))))
       (is (= 4 (storm-num-workers state "mystorm")))
       (submit-local-topology nimbus "storm2" {TOPOLOGY-WORKERS 20} topology2)
-      (Thread/sleep 11000)
+      ;; Instead of sleeping until topology is scheduled, rebalance topology so mk-assignments is called.
+      (.rebalance nimbus "storm2" (doto (RebalanceOptions.) (.set_wait_secs 0)))
+      (Thread/sleep 1000)
       (check-consistency cluster "storm2")
       (is (= 2 (count (.assignments state nil))))
       (let [task-info (storm-component->task-info cluster "storm2")]
@@ -342,7 +346,9 @@
                     {"2" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 1 :conf {TOPOLOGY-TASKS 2})
                      "3" (thrift/mk-bolt-spec {"2" :none} (TestPlannerBolt.) :conf {TOPOLOGY-TASKS 5})})
           _ (submit-local-topology nimbus "mystorm" {TOPOLOGY-WORKERS 4} topology)
-          _ (Thread/sleep 11000)
+          ;; Instead of sleeping until topology is scheduled, rebalance topology so mk-assignments is called.
+          _ (.rebalance nimbus "mystorm" (doto (RebalanceOptions.) (.set_wait_secs 0)))
+          _ (Thread/sleep 1000)
           task-info (storm-component->task-info cluster "mystorm")]
       (check-consistency cluster "mystorm")
       (is (= 0 (count (task-info "1"))))
@@ -359,7 +365,9 @@
                     {"2" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 8 :conf {TOPOLOGY-TASKS 2})
                      "3" (thrift/mk-bolt-spec {"2" :none} (TestPlannerBolt.) :parallelism-hint 3)})
           _ (submit-local-topology nimbus "mystorm" {TOPOLOGY-WORKERS 4} topology)
-          _ (Thread/sleep 11000)
+          ;; Instead of sleeping until topology is scheduled, rebalance topology so mk-assignments is called.
+          _ (.rebalance nimbus "mystorm" (doto (RebalanceOptions.) (.set_wait_secs 0)))
+          _ (Thread/sleep 1000)
           task-info (storm-component->task-info cluster "mystorm")
           executor-info (->> (storm-component->executor-info cluster "mystorm")
                              (map-val #(map executor-id->tasks %)))]
@@ -386,7 +394,9 @@
                       "4" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 10)}
                      )
           _ (submit-local-topology nimbus "test" {TOPOLOGY-WORKERS 7} topology)
-          _ (Thread/sleep 11000)
+          ;; Instead of sleeping until topology is scheduled, rebalance topology so mk-assignments is called.
+          _ (.rebalance nimbus "test" (doto (RebalanceOptions.) (.set_wait_secs 0)))
+          _ (Thread/sleep 1000)
           task-info (storm-component->task-info cluster "test")]
       (check-consistency cluster "test")
       (is (= 21 (count (task-info "1"))))
@@ -1038,7 +1048,9 @@
 
               ;first we verify that the master nimbus can perform all actions, even with another nimbus present.
               (submit-local-topology nimbus "t1" {} topology)
-              (Thread/sleep 11000)
+              ;; Instead of sleeping until topology is scheduled, rebalance topology so mk-assignments is called.
+              (.rebalance nimbus "t1" (doto (RebalanceOptions.) (.set_wait_secs 0)))
+              (Thread/sleep 1000)
               (.deactivate nimbus "t1")
               (.activate nimbus "t1")
               (.rebalance nimbus "t1" (RebalanceOptions.))

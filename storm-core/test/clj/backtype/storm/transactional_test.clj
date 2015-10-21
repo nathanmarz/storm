@@ -20,6 +20,7 @@
   (:import [backtype.storm.transactional TransactionalSpoutCoordinator ITransactionalSpout ITransactionalSpout$Coordinator TransactionAttempt
             TransactionalTopologyBuilder])
   (:import [backtype.storm.transactional.state TransactionalState TestTransactionalState RotatingTransactionalState RotatingTransactionalState$StateInitializer])
+  (:import [backtype.storm.generated RebalanceOptions])
   (:import [backtype.storm.spout SpoutOutputCollector ISpoutOutputCollector])
   (:import [backtype.storm.task OutputCollector IOutputCollector])
   (:import [backtype.storm.coordination BatchBoltExecutor])
@@ -411,7 +412,11 @@
                               "transactional-test"
                               {TOPOLOGY-MAX-SPOUT-PENDING 2}
                               (:topology topo-info))
-       (Thread/sleep 11000)
+       ;; Instead of sleeping until topology is scheduled, rebalance topology so mk-assignments is called.
+       (.rebalance (:nimbus cluster)
+                   "test-acking2" 
+                   (doto (RebalanceOptions.) (.set_wait_secs 0)))
+
 
        (bind ack-tx! (fn [txid]
                        (let [[to-ack not-to-ack] (separate
@@ -667,7 +672,10 @@
                               {TOPOLOGY-MAX-SPOUT-PENDING 2
                                }
                               (:topology topo-info))
-       (Thread/sleep 11000)
+       ;; Instead of sleeping until topology is scheduled, rebalance topology so mk-assignments is called.
+       (.rebalance (:nimbus cluster)
+                   "test-acking2" 
+                   (doto (RebalanceOptions.) (.set_wait_secs 0)))
 
        (bind ack-tx! (fn [txid]
                        (let [[to-ack not-to-ack] (separate

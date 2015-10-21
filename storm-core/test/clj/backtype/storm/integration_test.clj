@@ -17,7 +17,7 @@
   (:use [clojure test])
   (:import [backtype.storm Config])
   (:import [backtype.storm.topology TopologyBuilder])
-  (:import [backtype.storm.generated InvalidTopologyException SubmitOptions TopologyInitialStatus])
+  (:import [backtype.storm.generated InvalidTopologyException SubmitOptions TopologyInitialStatus RebalanceOptions])
   (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount
             TestAggregatesCounter TestConfBolt AckFailMapTracker AckTracker TestPlannerSpout])
   (:import [backtype.storm.tuple Fields])
@@ -237,7 +237,9 @@
                              "acking-test1"
                              {}
                              (:topology tracked))
-      (Thread/sleep 11000)
+      ;; Instead of sleeping until topology is scheduled, rebalance topology so mk-assignments is called.
+      (.rebalance (:nimbus cluster)
+                             "acking-test1" (doto (RebalanceOptions.) (.set_wait_secs 0)))
       (.feed feeder1 [1])
       (tracked-wait tracked 1)
       (checker1 0)
@@ -280,7 +282,9 @@
                              "test-acking2"
                              {}
                              (:topology tracked))
-      (Thread/sleep 11000)
+      ;; Instead of sleeping until topology is scheduled, rebalance topology so mk-assignments is called.
+      (.rebalance (:nimbus cluster)
+                             "test-acking2" (doto (RebalanceOptions.) (.set_wait_secs 0)))
       (.feed feeder [1])
       (tracked-wait tracked 1)
       (checker 0)
@@ -326,7 +330,7 @@
         {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10}
         topology
         (SubmitOptions. TopologyInitialStatus/INACTIVE))
-      (Thread/sleep 11000)
+      (advance-cluster-time cluster 11)
       (.feed feeder ["a"] 1)
       (advance-cluster-time cluster 9)
       (is (not @bolt-prepared?))
@@ -351,7 +355,9 @@
                              "test"
                              {}
                              (:topology tracked))
-      (Thread/sleep 11000)
+      ;; Instead of sleeping until topology is scheduled, rebalance topology so mk-assignments is called.
+      (.rebalance (:nimbus cluster)
+                             "test" (doto (RebalanceOptions.) (.set_wait_secs 0)))
       (.feed feeder [1])
       (tracked-wait tracked 1)
       (checker 1)
@@ -573,7 +579,9 @@
                                               TOPOLOGY-DEBUG true
                                               }
                                              (:topology tracked))
-            _ (advance-cluster-time cluster 11)
+            ;; Instead of sleeping until topology is scheduled, rebalance topology so mk-assignments is called.
+            _ (.rebalance (:nimbus cluster)
+                                             "test-errors" (doto (RebalanceOptions.) (.set_wait_secs 0)))
             storm-id (get-storm-id state "test-errors")
             errors-count (fn [] (count (.errors state storm-id "2")))]
 

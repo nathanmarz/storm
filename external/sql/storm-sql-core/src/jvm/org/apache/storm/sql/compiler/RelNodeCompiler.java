@@ -33,8 +33,17 @@ import java.util.TreeSet;
  * Compile RelNodes into individual functions.
  */
 class RelNodeCompiler extends PostOrderRelNodeVisitor<Void> {
+  public static Joiner NEW_LINE_JOINER = Joiner.on('\n');
+
   private final PrintWriter pw;
   private final JavaTypeFactory typeFactory;
+  private static final String STAGE_PROLOGUE = NEW_LINE_JOINER.join(
+    "  private static final ChannelHandler %1$s = ",
+    "    new AbstractChannelHandler() {",
+    "    @Override",
+    "    public void dataReceived(ChannelContext ctx, Values _data) {",
+    ""
+  );
 
   public Set<String> getReferredTables() {
     return Collections.unmodifiableSet(referredTables);
@@ -49,19 +58,17 @@ class RelNodeCompiler extends PostOrderRelNodeVisitor<Void> {
 
   @Override
   Void visitFilter(Filter filter) throws Exception {
-    beginFunction(filter);
-    pw.print("  if (_data == null) return null;\n");
+    beginStage(filter);
     ExprCompiler compiler = new ExprCompiler(pw, typeFactory);
     String r = filter.getCondition().accept(compiler);
-    pw.print(String.format("  return %s ? _data : null;\n", r));
-    endFunction();
+    pw.print(String.format("    if (%s) { ctx.emit(_data); }\n", r));
+    endStage();
     return null;
   }
 
   @Override
   Void visitProject(Project project) throws Exception {
-    beginFunction(project);
-    pw.print("  if (_data == null) return null;\n");
+    beginStage(project);
     ExprCompiler compiler = new ExprCompiler(pw, typeFactory);
 
     int size = project.getChildExps().size();
@@ -70,9 +77,9 @@ class RelNodeCompiler extends PostOrderRelNodeVisitor<Void> {
       res[i] = project.getChildExps().get(i).accept(compiler);
     }
 
-    pw.print(String.format("  return new Values(%s);\n", Joiner.on(',').join
-        (res)));
-    endFunction();
+    pw.print(String.format("    ctx.emit(new Values(%s));\n",
+                           Joiner.on(',').join(res)));
+    endStage();
     return null;
   }
 
@@ -85,23 +92,21 @@ class RelNodeCompiler extends PostOrderRelNodeVisitor<Void> {
   Void visitTableScan(TableScan scan) throws Exception {
     String tableName = Joiner.on('_').join(scan.getTable().getQualifiedName());
     referredTables.add(tableName);
-    beginFunction(scan);
-    pw.print(String.format("  return _datasources[TABLE_%s].next();\n",
-                           tableName));
-    endFunction();
+    beginStage(scan);
+    pw.print("    ctx.emit(_data);\n");
+    endStage();
     return null;
   }
 
-  private void beginFunction(RelNode n) {
-    pw.print(String.format("private Values %s(%s) {\n", getFunctionName(n), n
-        .getInputs().isEmpty() ? "" : "Values _data"));
+  private void beginStage(RelNode n) {
+    pw.print(String.format(STAGE_PROLOGUE, getStageName(n)));
   }
 
-  private void endFunction() {
-    pw.print("}\n");
+  private void endStage() {
+    pw.print("  }\n  };\n");
   }
 
-  static String getFunctionName(RelNode n) {
-    return n.getClass().getSimpleName() + "_" + n.getId();
+  static String getStageName(RelNode n) {
+    return n.getClass().getSimpleName().toUpperCase() + "_" + n.getId();
   }
 }

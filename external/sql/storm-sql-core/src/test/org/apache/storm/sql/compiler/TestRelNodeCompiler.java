@@ -38,16 +38,6 @@ public class TestRelNodeCompiler {
         RelDataTypeSystem.DEFAULT);
     LogicalProject project = (LogicalProject) state.tree;
     LogicalFilter filter = (LogicalFilter) project.getInput();
-    TableScan scan = (TableScan) filter.getInput();
-
-    try (StringWriter sw = new StringWriter();
-         PrintWriter pw = new PrintWriter(sw)
-    ) {
-      RelNodeCompiler compiler = new RelNodeCompiler(pw, typeFactory);
-      compiler.visitTableScan(scan);
-      pw.flush();
-      Assert.assertTrue(sw.toString().contains("_datasources[TABLE_FOO]"));
-    }
 
     try (StringWriter sw = new StringWriter();
          PrintWriter pw = new PrintWriter(sw)

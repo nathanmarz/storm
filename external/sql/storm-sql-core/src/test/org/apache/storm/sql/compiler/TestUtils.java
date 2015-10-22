@@ -1,13 +1,11 @@
 package org.apache.storm.sql.compiler;
 
-import com.google.common.collect.ImmutableList;
+import backtype.storm.tuple.Values;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.schema.Schema;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.schema.Statistic;
-import org.apache.calcite.schema.Statistics;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
@@ -17,15 +15,21 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.ValidationException;
-import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.storm.sql.storm.ChannelContext;
+import org.apache.storm.sql.storm.ChannelHandler;
+import org.apache.storm.sql.storm.DataSource;
 
 import java.util.ArrayList;
+import java.util.List;
 
-class TestUtils {
+public class TestUtils {
   static CalciteState sqlOverDummyTable(String sql)
       throws RelConversionException, ValidationException, SqlParseException {
     SchemaPlus schema = Frameworks.createRootSchema(true);
-    Table table = newTable().field("ID", SqlTypeName.INTEGER).build();
+    JavaTypeFactory typeFactory = new JavaTypeFactoryImpl
+        (RelDataTypeSystem.DEFAULT);
+    Table table = new CompilerUtil.TableBuilderInfo(typeFactory)
+        .field("ID", SqlTypeName.INTEGER).build();
     schema.add("FOO", table);
     FrameworkConfig config = Frameworks.newConfigBuilder().defaultSchema(
         schema).build();
@@ -34,83 +38,6 @@ class TestUtils {
     SqlNode validate = planner.validate(parse);
     RelNode tree = planner.convert(validate);
     return new CalciteState(schema, tree);
-  }
-
-  static class TableBuilderInfo {
-    private static class FieldType {
-      private static final int NO_PRECISION = -1;
-      private final String name;
-      private final SqlTypeName type;
-      private final int precision;
-
-      private FieldType(String name, SqlTypeName type, int precision) {
-        this.name = name;
-        this.type = type;
-        this.precision = precision;
-      }
-
-      private FieldType(String name, SqlTypeName type) {
-        this(name, type, NO_PRECISION);
-      }
-    }
-
-    private final ArrayList<FieldType> fields = new ArrayList<>();
-    private final ArrayList<Object[]> rows = new ArrayList<>();
-    private Statistic stats;
-
-    TableBuilderInfo field(String name, SqlTypeName type) {
-      fields.add(new FieldType(name, type));
-      return this;
-    }
-
-    TableBuilderInfo field(String name, SqlTypeName type, int precision) {
-      fields.add(new FieldType(name, type, precision));
-      return this;
-    }
-
-    TableBuilderInfo statistics(Statistic stats) {
-      this.stats = stats;
-      return this;
-    }
-
-    TableBuilderInfo rows(Object[] data) {
-      rows.add(data);
-      return this;
-    }
-
-    Table build() {
-      final Statistic stat = stats;
-      return new Table() {
-        @Override
-        public RelDataType getRowType(
-            RelDataTypeFactory relDataTypeFactory) {
-          RelDataTypeFactory.FieldInfoBuilder b = relDataTypeFactory.builder();
-          for (FieldType f : fields) {
-            if (f.precision == FieldType.NO_PRECISION) {
-              b.add(f.name, f.type);
-            } else {
-              b.add(f.name, f.type, f.precision);
-            }
-          }
-          return b.build();
-        }
-
-        @Override
-        public Statistic getStatistic() {
-          return stat != null ? stat : Statistics.of(rows.size(),
-                                                     ImmutableList.<ImmutableBitSet>of());
-        }
-
-        @Override
-        public Schema.TableType getJdbcTableType() {
-          return Schema.TableType.TABLE;
-        }
-      };
-    }
-  }
-
-  static TableBuilderInfo newTable() {
-    return new TableBuilderInfo();
   }
 
   static class CalciteState {
@@ -122,4 +49,44 @@ class TestUtils {
       this.tree = tree;
     }
   }
+
+  public static class MockDataSource implements DataSource {
+    private final ArrayList<Values> RECORDS = new ArrayList<>();
+
+    public MockDataSource() {
+      for (int i = 0; i < 5; ++i) {
+        RECORDS.add(new Values(i));
+      }
+    }
+
+    @Override
+    public void open(ChannelContext ctx) {
+      for (Values v : RECORDS) {
+        ctx.emit(v);
+      }
+      ctx.fireChannelInactive();
+    }
+  }
+
+  public static class CollectDataChannelHandler implements ChannelHandler {
+    private final List<Values> values;
+
+    public CollectDataChannelHandler(List<Values> values) {
+      this.values = values;
+    }
+
+    @Override
+    public void dataReceived(ChannelContext ctx, Values data) {
+      values.add(data);
+    }
+
+    @Override
+    public void channelInactive(ChannelContext ctx) {}
+
+    @Override
+    public void exceptionCaught(Throwable cause) {
+      throw new RuntimeException(cause);
+    }
+  }
+
 }

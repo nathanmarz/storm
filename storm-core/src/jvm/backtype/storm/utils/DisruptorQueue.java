@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import backtype.storm.metric.api.IStatefulObject;
+import backtype.storm.metric.internal.RateTracker;
 
 
 /**

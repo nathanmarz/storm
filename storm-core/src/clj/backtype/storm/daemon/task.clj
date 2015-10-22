@@ -145,11 +145,9 @@
               (throw (IllegalArgumentException. "Cannot emitDirect to a task expecting a regular grouping")))                          
             (apply-hooks user-context .emit (EmitInfo. values stream task-id [out-task-id]))
             (when (emit-sampler)
-              (builtin-metrics/emitted-tuple! (:builtin-metrics task-data) executor-stats stream)
               (stats/emitted-tuple! executor-stats stream)
               (if out-task-id
-                (stats/transferred-tuples! executor-stats stream 1)
-                (builtin-metrics/transferred-tuple! (:builtin-metrics task-data) executor-stats stream 1)))
+                (stats/transferred-tuples! executor-stats stream 1)))
             (if out-task-id [out-task-id])
             ))
         ([^String stream ^List values]
@@ -168,9 +166,7 @@
              (apply-hooks user-context .emit (EmitInfo. values stream task-id out-tasks))
              (when (emit-sampler)
                (stats/emitted-tuple! executor-stats stream)
-               (builtin-metrics/emitted-tuple! (:builtin-metrics task-data) executor-stats stream)              
-               (stats/transferred-tuples! executor-stats stream (count out-tasks))
-               (builtin-metrics/transferred-tuple! (:builtin-metrics task-data) executor-stats stream (count out-tasks)))
+               (stats/transferred-tuples! executor-stats stream (count out-tasks)))
              out-tasks)))
     ))
 
@@ -180,7 +176,7 @@
     :task-id task-id
     :system-context (system-topology-context (:worker executor-data) executor-data task-id)
     :user-context (user-topology-context (:worker executor-data) executor-data task-id)
-    :builtin-metrics (builtin-metrics/make-data (:type executor-data))
+    :builtin-metrics (builtin-metrics/make-data (:type executor-data) (:stats executor-data))
     :tasks-fn (mk-tasks-fn <>)
     :object (get-task-object (.getRawTopology ^TopologyContext (:system-context <>)) (:component-id executor-data))))
 

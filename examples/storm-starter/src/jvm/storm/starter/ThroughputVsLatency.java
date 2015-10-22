@@ -277,15 +277,17 @@ public class ThroughputVsLatency {
         SpoutStats stats = exec.get_stats().get_specific().get_spout();
         Map<String, Long> failedMap = stats.get_failed().get(":all-time");
         Map<String, Long> ackedMap = stats.get_acked().get(":all-time");
-        for (String key: ackedMap.keySet()) {
-          if (failedMap != null) {
+        if (ackedMap != null) {
+          for (String key: ackedMap.keySet()) {
+            if (failedMap != null) {
               Long tmp = failedMap.get(key);
               if (tmp != null) {
                   failed += tmp;
               }
+            }
+            long ackVal = ackedMap.get(key);
+            acked += ackVal;
           }
-          long ackVal = ackedMap.get(key);
-          acked += ackVal;
         }
       }
     }
@@ -394,6 +396,7 @@ public class ThroughputVsLatency {
 
     C cluster = new C(conf);
     conf.setNumWorkers(parallelism);
+    conf.registerMetricsConsumer(backtype.storm.metric.LoggingMetricsConsumer.class);
     conf.registerMetricsConsumer(backtype.storm.metric.HttpForwardingMetricsConsumer.class, url, 1);
     Map<String, String> workerMetrics = new HashMap<String, String>();
     if (!cluster.isLocal()) {

@@ -1,18 +1,41 @@
 package org.apache.storm.sql.compiler;
 
 import com.google.common.collect.ImmutableList;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.Schema;
+import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Statistic;
 import org.apache.calcite.schema.Statistics;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.tools.FrameworkConfig;
+import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.tools.Planner;
+import org.apache.calcite.tools.RelConversionException;
+import org.apache.calcite.tools.ValidationException;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import java.util.ArrayList;
 
 class TestUtils {
+  static CalciteState sqlOverDummyTable(String sql)
+      throws RelConversionException, ValidationException, SqlParseException {
+    SchemaPlus schema = Frameworks.createRootSchema(true);
+    Table table = newTable().field("ID", SqlTypeName.INTEGER).build();
+    schema.add("FOO", table);
+    FrameworkConfig config = Frameworks.newConfigBuilder().defaultSchema(
+        schema).build();
+    Planner planner = Frameworks.getPlanner(config);
+    SqlNode parse = planner.parse(sql);
+    SqlNode validate = planner.validate(parse);
+    RelNode tree = planner.convert(validate);
+    return new CalciteState(schema, tree);
+  }
+
   static class TableBuilderInfo {
     private static class FieldType {
       private static final int NO_PRECISION = -1;
@@ -88,5 +111,15 @@ class TestUtils {
 
   static TableBuilderInfo newTable() {
     return new TableBuilderInfo();
+  }
+
+  static class CalciteState {
+    final SchemaPlus schema;
+    final RelNode tree;
+
+    private CalciteState(SchemaPlus schema, RelNode tree) {
+      this.schema = schema;
+      this.tree = tree;
+    }
   }
 }

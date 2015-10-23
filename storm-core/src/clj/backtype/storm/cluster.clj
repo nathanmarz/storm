@@ -55,12 +55,8 @@
       [(first ZooDefs$Ids/CREATOR_ALL_ACL)
        (ACL. ZooDefs$Perms/READ (Id. "digest" (DigestAuthenticationProvider/generateDigest payload)))])))
  
-(defn is-nimbus?
-  []
-  (= (System/getProperty "daemon.name") "nimbus"))
-
 (defnk mk-distributed-cluster-state
-  [conf :auth-conf nil :acls nil]
+  [conf :auth-conf nil :acls nil :separate-zk-writer? false]
   (let [zk (zk/mk-client conf (conf STORM-ZOOKEEPER-SERVERS) (conf STORM-ZOOKEEPER-PORT) :auth-conf auth-conf)]
     (zk/mkdirs zk (conf STORM-ZOOKEEPER-ROOT) acls)
     (.close zk))
@@ -78,7 +74,7 @@
                                       (when-not (= :none type)
                                         (doseq [callback (vals @callbacks)]
                                           (callback type path))))))
-        zk-reader (if (is-nimbus?)
+        zk-reader (if separate-zk-writer?
                     (zk/mk-client conf
                          (conf STORM-ZOOKEEPER-SERVERS)
                          (conf STORM-ZOOKEEPER-PORT)
@@ -161,7 +157,7 @@
        [this]
        (reset! active false)
        (.close zk-writer)
-       (if (is-nimbus?) (.close zk-reader)))
+       (if separate-zk-writer? (.close zk-reader)))
 
       (add-listener
         [this listener]
@@ -346,10 +342,10 @@
 
 ;; Watches should be used for optimization. When ZK is reconnecting, they're not guaranteed to be called.
 (defnk mk-storm-cluster-state
-  [cluster-state-spec :acls nil]
+  [cluster-state-spec :acls nil :separate-zk-writer? false]
   (let [[solo? cluster-state] (if (satisfies? ClusterState cluster-state-spec)
                                 [false cluster-state-spec]
-                                [true (mk-distributed-cluster-state cluster-state-spec :auth-conf cluster-state-spec :acls acls)])
+                                [true (mk-distributed-cluster-state cluster-state-spec :auth-conf cluster-state-spec :acls acls :separate-zk-writer? separate-zk-writer?)])
         assignment-info-callback (atom {})
         assignment-info-with-version-callback (atom {})
         assignment-version-callback (atom {})

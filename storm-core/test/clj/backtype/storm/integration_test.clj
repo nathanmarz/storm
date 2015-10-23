@@ -237,9 +237,7 @@
                              "acking-test1"
                              {}
                              (:topology tracked))
-      ;; Instead of sleeping until topology is scheduled, rebalance topology so mk-assignments is called.
-      (.rebalance (:nimbus cluster)
-                             "acking-test1" (doto (RebalanceOptions.) (.set_wait_secs 0)))
+      (advance-cluster-time cluster 11)
       (.feed feeder1 [1])
       (tracked-wait tracked 1)
       (checker1 0)
@@ -282,9 +280,7 @@
                              "test-acking2"
                              {}
                              (:topology tracked))
-      ;; Instead of sleeping until topology is scheduled, rebalance topology so mk-assignments is called.
-      (.rebalance (:nimbus cluster)
-                             "test-acking2" (doto (RebalanceOptions.) (.set_wait_secs 0)))
+      (advance-cluster-time cluster 11)
       (.feed feeder [1])
       (tracked-wait tracked 1)
       (checker 0)
@@ -355,9 +351,7 @@
                              "test"
                              {}
                              (:topology tracked))
-      ;; Instead of sleeping until topology is scheduled, rebalance topology so mk-assignments is called.
-      (.rebalance (:nimbus cluster)
-                             "test" (doto (RebalanceOptions.) (.set_wait_secs 0)))
+      (advance-cluster-time cluster 11)
       (.feed feeder [1])
       (tracked-wait tracked 1)
       (checker 1)
@@ -579,9 +573,7 @@
                                               TOPOLOGY-DEBUG true
                                               }
                                              (:topology tracked))
-            ;; Instead of sleeping until topology is scheduled, rebalance topology so mk-assignments is called.
-            _ (.rebalance (:nimbus cluster)
-                                             "test-errors" (doto (RebalanceOptions.) (.set_wait_secs 0)))
+            _ (advance-cluster-time cluster 11)
             storm-id (get-storm-id state "test-errors")
             errors-count (fn [] (count (.errors state storm-id "2")))]
 

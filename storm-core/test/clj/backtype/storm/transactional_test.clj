@@ -412,12 +412,7 @@
                               "transactional-test"
                               {TOPOLOGY-MAX-SPOUT-PENDING 2}
                               (:topology topo-info))
-       ;; Instead of sleeping until topology is scheduled, rebalance topology so mk-assignments is called.
-       (.rebalance (:nimbus cluster)
-                   "test-acking2" 
-                   (doto (RebalanceOptions.) (.set_wait_secs 0)))
-
-
+       (advance-cluster-time cluster 11)
        (bind ack-tx! (fn [txid]
                        (let [[to-ack not-to-ack] (separate
                                                   #(-> %
@@ -672,11 +667,7 @@
                               {TOPOLOGY-MAX-SPOUT-PENDING 2
                                }
                               (:topology topo-info))
-       ;; Instead of sleeping until topology is scheduled, rebalance topology so mk-assignments is called.
-       (.rebalance (:nimbus cluster)
-                   "test-acking2" 
-                   (doto (RebalanceOptions.) (.set_wait_secs 0)))
-
+       (advance-cluster-time cluster 11)
        (bind ack-tx! (fn [txid]
                        (let [[to-ack not-to-ack] (separate
                                                   #(-> %

@@ -20,7 +20,6 @@
   (:require [backtype.storm.thrift :as thrift])
   (:import [backtype.storm Testing Config ILocalCluster])
   (:import [backtype.storm.tuple Values Tuple])
-  (:import [backtype.storm.generated RebalanceOptions])
   (:import [backtype.storm.utils Time Utils])
   (:import [backtype.storm.testing MkClusterParam TestJob MockedSources TestWordSpout
             TestWordCounter TestGlobalCount TestAggregatesCounter CompleteTopologyParam
@@ -119,10 +118,7 @@
                           "test-acking2"
                           (Config.)
                           (.getTopology tracked))
-         ;; Instead of sleeping until topology is scheduled, rebalance topology so mk-assignments is called.
-         (.rebalance cluster
-                          "test-acking2" (doto (RebalanceOptions.) (.set_wait_secs 0)))
-         (Thread/sleep 1000)
+         (advance-cluster-time (.getState cluster) 11)
          (.feed feeder [1])
          (Testing/trackedWait tracked (int 1))
          (checker 0)

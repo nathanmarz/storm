@@ -612,7 +612,7 @@
                 ;; (log-message "Transferring: " transfer-args#)
                 (increment-global! id# "transferred" 1)
                 (apply transferrer# args2#)))))]
-       (with-local-cluster [~cluster-sym ~@cluster-args]
+       (with-simulated-time-local-cluster [~cluster-sym ~@cluster-args]
                            (let [~cluster-sym (assoc-track-id ~cluster-sym id#)]
                              ~@body)))
      (RegisteredGlobalState/clearState id#)))

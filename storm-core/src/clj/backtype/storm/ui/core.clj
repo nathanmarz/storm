@@ -852,11 +852,11 @@
     (populate-context! servlet-request)
     (assert-authorized-user "getClusterInfo")
     (json-response (all-topologies-summary) (:callback m)))
-  (GET "/api/v1/topology/:id" [:as {:keys [cookies servlet-request schema]} id & m]
+  (GET "/api/v1/topology/:id" [:as {:keys [cookies servlet-request scheme]} id & m]
     (populate-context! servlet-request)
     (assert-authorized-user "getTopology" (topology-config id))
     (let [user (get-user-name servlet-request)]
-      (json-response (topology-page id (:window m) (check-include-sys? (:sys m)) user (= schema :https)) (:callback m))))
+      (json-response (topology-page id (:window m) (check-include-sys? (:sys m)) user (= scheme :https)) (:callback m))))
   (GET "/api/v1/topology/:id/visualization-init" [:as {:keys [cookies servlet-request]} id & m]
     (populate-context! servlet-request)
     (assert-authorized-user "getTopology" (topology-config id))

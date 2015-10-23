@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1120: Fix keyword (schema -> scheme) from main-routes
  * STORM-1115: Stale leader-lock key effectively bans all nodes from becoming leaders
  * STORM-1119: Create access logging for all daemons
  * STORM-1117: Adds visualization-init route previously missing

@@ -401,7 +401,7 @@ public class ConfigValidation {
                     }
                 }
                 for (Class vv : valueValidators) {
-                    Object valueValidator = vv.getConstructor().newInstance();;
+                    Object valueValidator = vv.getConstructor().newInstance();
                     if (valueValidator instanceof Validator) {
                         ((Validator) valueValidator).validateField(name + " Map value", entry.getValue());
                     } else {
@@ -463,7 +463,7 @@ public class ConfigValidation {
                 throw new IllegalAccessException("Field " + name + " must have map entry with key: class");
             }
             if(!((Map) o).containsKey("parallelism.hint") ) {
-                throw new IllegalAccessException("Field " + name + " must have map entry with key: class");
+                throw new IllegalAccessException("Field " + name + " must have map entry with key: parallelism.hint");
             }
 
             SimpleTypeValidator.validateField(name, String.class, ((Map) o).get("class"));

@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1111: Fix Validation for lots of different configs
  * STORM-1125: Adding separate ZK client for read in Nimbus ZK State
  * STORM-1121: Remove method call to avoid overhead during topology submission time
  * STORM-1120: Fix keyword (schema -> scheme) from main-routes

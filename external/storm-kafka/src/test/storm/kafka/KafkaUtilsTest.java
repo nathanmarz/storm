@@ -180,37 +180,16 @@ public class KafkaUtilsTest {
         mockPartition.partition = 0;
         long offset = 0L;
         
-        config.scheme = new MessageMetadataSchemeAsMultiScheme(new StringMessageAndMetadataScheme());
-        config.tupleMetaData = true;
+        MessageMetadataSchemeAsMultiScheme scheme = new MessageMetadataSchemeAsMultiScheme(new StringMessageAndMetadataScheme());
         
         createTopicAndSendMessage(null, value);
         ByteBufferMessageSet messageAndOffsets = getLastMessage();
         for (MessageAndOffset msg : messageAndOffsets) {
-            Iterable<List<Object>> lists = KafkaUtils.generateTuples(config, msg.message(), mockPartition, offset);
+            Iterable<List<Object>> lists = KafkaUtils.generateTuples(scheme, msg.message(), mockPartition, offset);
             List<Object> values = lists.iterator().next(); 
             assertEquals("Message is incorrect", value, values.get(0));
             assertEquals("Partition is incorrect", mockPartition.partition, values.get(1));
             assertEquals("Offset is incorrect", offset, values.get(2));
-        }
-    }
-    
-    @Test
-    public void generateTuplesWithValueSchemeAndMessageAndMetadata() {
-        String value = "value";
-        Partition mockPartition = Mockito.mock(Partition.class);
-        mockPartition.partition = 0;
-        Long offset = 0L;
-        
-        config.scheme = new SchemeAsMultiScheme(new StringScheme());
-        config.tupleMetaData = true;
-        
-        createTopicAndSendMessage(null, value);
-        ByteBufferMessageSet messageAndOffsets = getLastMessage();
-        for (MessageAndOffset msg : messageAndOffsets) {
-            Iterable<List<Object>> lists = KafkaUtils.generateTuples(config, msg.message(), mockPartition, offset);
-            List<Object> values = lists.iterator().next();
-            assertEquals("Incorrect number of tuple values", 1, values.size());
-            assertEquals("Message is incorrect", value, values.get(0));
         }
     }
 

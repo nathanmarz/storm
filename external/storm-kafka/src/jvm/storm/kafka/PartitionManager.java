@@ -23,12 +23,16 @@ import backtype.storm.metric.api.CountMetric;
 import backtype.storm.metric.api.MeanReducer;
 import backtype.storm.metric.api.ReducedMetric;
 import backtype.storm.spout.SpoutOutputCollector;
+
 import com.google.common.collect.ImmutableMap;
+
 import kafka.javaapi.consumer.SimpleConsumer;
 import kafka.javaapi.message.ByteBufferMessageSet;
 import kafka.message.MessageAndOffset;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import storm.kafka.KafkaSpout.EmitState;
 import storm.kafka.KafkaSpout.MessageAndRealOffset;
 import storm.kafka.trident.MaxMetric;
@@ -137,8 +141,8 @@ public class PartitionManager {
             }
 
             Iterable<List<Object>> tups;
-            if (_spoutConfig.tupleMetaData) {
-                tups = KafkaUtils.generateTuples(_spoutConfig, toEmit.msg, _partition, toEmit.offset);
+            if (_spoutConfig.scheme instanceof MessageMetadataSchemeAsMultiScheme) {
+                tups = KafkaUtils.generateTuples((MessageMetadataSchemeAsMultiScheme) _spoutConfig.scheme, toEmit.msg, _partition, toEmit.offset);
             } else {
                 tups = KafkaUtils.generateTuples(_spoutConfig, toEmit.msg);
             }

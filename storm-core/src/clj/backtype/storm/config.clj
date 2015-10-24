@@ -25,6 +25,7 @@
   (:use [backtype.storm log util]))
 
 (def RESOURCES-SUBDIR "resources")
+(def NIMBUS-DO-NOT-REASSIGN "NIMBUS-DO-NOT-REASSIGN")
 
 (defn- clojure-config-name [name]
   (.replace (.toUpperCase name) "_" "-"))

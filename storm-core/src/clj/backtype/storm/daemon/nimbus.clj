@@ -1166,7 +1166,7 @@
                         0
                         (conf NIMBUS-MONITOR-FREQ-SECS)
                         (fn []
-                          (when (conf NIMBUS-REASSIGN)
+                          (when-not (conf NIMBUS-DO-NOT-REASSIGN)
                             (locking (:submit-lock nimbus)
                               (mk-assignments nimbus)))
                           (do-cleanup nimbus)

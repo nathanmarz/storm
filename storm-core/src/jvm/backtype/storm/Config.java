@@ -470,13 +470,6 @@ public class Config extends HashMap<String, Object> {
     public static final String NIMBUS_TASK_LAUNCH_SECS = "nimbus.task.launch.secs";
 
     /**
-     * Whether or not nimbus should reassign tasks if it detects that a task goes down.
-     * Defaults to true, and it's not recommended to change this value.
-     */
-    @isBoolean
-    public static final String NIMBUS_REASSIGN = "nimbus.reassign";
-
-    /**
      * During upload/download with the master, how long an upload or download connection is idle
      * before nimbus considers it dead and drops the connection.
      */

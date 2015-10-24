@@ -75,7 +75,7 @@
 
 (deftest launches-assignment
   (with-simulated-time-local-cluster [cluster :supervisors 0
-    :daemon-conf {NIMBUS-REASSIGN false
+    :daemon-conf {NIMBUS-DO-NOT-REASSIGN true
                   SUPERVISOR-WORKER-START-TIMEOUT-SECS 5
                   SUPERVISOR-WORKER-TIMEOUT-SECS 15
                   SUPERVISOR-MONITOR-FREQUENCY-SECS 3}]
@@ -128,7 +128,7 @@
 
 (deftest test-multiple-active-storms-multiple-supervisors
   (with-simulated-time-local-cluster [cluster :supervisors 0
-    :daemon-conf {NIMBUS-REASSIGN false
+    :daemon-conf {NIMBUS-DO-NOT-REASSIGN true
                   SUPERVISOR-WORKER-START-TIMEOUT-SECS 5
                   SUPERVISOR-WORKER-TIMEOUT-SECS 15
                   SUPERVISOR-MONITOR-FREQUENCY-SECS 3}]
@@ -659,7 +659,7 @@
   (with-simulated-time-local-cluster [cluster
                                       :supervisors 0
                                       :ports-per-supervisor 2
-                                      :daemon-conf {NIMBUS-REASSIGN false
+                                      :daemon-conf {NIMBUS-DO-NOT-REASSIGN true
                                                     NIMBUS-MONITOR-FREQ-SECS 10
                                                     TOPOLOGY-MESSAGE-TIMEOUT-SECS 30
                                                     TOPOLOGY-ACKER-EXECUTORS 0}]

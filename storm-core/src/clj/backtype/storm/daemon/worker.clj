@@ -169,9 +169,9 @@
                   (do
                     (when (not (.get remoteMap task))
                       (.put remoteMap task (ArrayList.)))
-                    (let [remote (.get remoteMap task)]
+                    (let [^ArrayList remote (.get remoteMap task)]
                       (if (not-nil? task)
-                        (.add remote (TaskMessage. task (.serialize serializer tuple)))
+                        (.add remote (TaskMessage. ^int task ^bytes (.serialize serializer tuple)))
                         (log-warn "Can't transfer tuple - task value is nil. tuple type: " (pr-str (type tuple)) " and information: " (pr-str tuple)))
                      ))))
 

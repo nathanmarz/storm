@@ -116,11 +116,11 @@
 
 (defn emitted-tuple!
   [stats stream]
-  (.incBy ^MultiCountStatAndMetric (stats-emitted stats) stream (stats-rate stats)))
+  (.incBy ^MultiCountStatAndMetric (stats-emitted stats) ^Object stream ^long (stats-rate stats)))
 
 (defn transferred-tuples!
   [stats stream amt]
-  (.incBy ^MultiCountStatAndMetric (stats-transferred stats) stream (* (stats-rate stats) amt)))
+  (.incBy ^MultiCountStatAndMetric (stats-transferred stats) ^Object stream ^long (* (stats-rate stats) amt)))
 
 (defn bolt-execute-tuple!
   [^BoltExecutorStats stats component stream latency-ms]

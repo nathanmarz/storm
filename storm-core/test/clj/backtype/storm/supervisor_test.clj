@@ -75,7 +75,7 @@
 
 (deftest launches-assignment
   (with-simulated-time-local-cluster [cluster :supervisors 0
-    :daemon-conf {NIMBUS-REASSIGN false
+    :daemon-conf {NIMBUS-DO-NOT-REASSIGN true
                   SUPERVISOR-WORKER-START-TIMEOUT-SECS 5
                   SUPERVISOR-WORKER-TIMEOUT-SECS 15
                   SUPERVISOR-MONITOR-FREQUENCY-SECS 3}]
@@ -103,6 +103,8 @@
                          ["sup1" 2] [0.0 0.0 0.0]
                          ["sup1" 3] [0.0 0.0 0.0]
                          })
+                      ;; Instead of sleeping until topology is scheduled, rebalance topology so mk-assignments is called.
+                      (.rebalance (:nimbus cluster) "test" (doto (RebalanceOptions.) (.set_wait_secs 0)))
                       (advance-cluster-time cluster 2)
                       (heartbeat-workers cluster "sup1" [1 2 3])
                       (advance-cluster-time cluster 10)))
@@ -126,7 +128,7 @@
 
 (deftest test-multiple-active-storms-multiple-supervisors
   (with-simulated-time-local-cluster [cluster :supervisors 0
-    :daemon-conf {NIMBUS-REASSIGN false
+    :daemon-conf {NIMBUS-DO-NOT-REASSIGN true
                   SUPERVISOR-WORKER-START-TIMEOUT-SECS 5
                   SUPERVISOR-WORKER-TIMEOUT-SECS 15
                   SUPERVISOR-MONITOR-FREQUENCY-SECS 3}]
@@ -158,6 +160,8 @@
                          ["sup1" 2] [0.0 0.0 0.0]
                          ["sup2" 1] [0.0 0.0 0.0]
                          })
+                      ;; Instead of sleeping until topology is scheduled, rebalance topology so mk-assignments is called.
+                      (.rebalance (:nimbus cluster) "test" (doto (RebalanceOptions.) (.set_wait_secs 0)))
                       (advance-cluster-time cluster 2)
                       (heartbeat-workers cluster "sup1" [1 2])
                       (heartbeat-workers cluster "sup2" [1])
@@ -181,6 +185,8 @@
                         {["sup1" 3] [0.0 0.0 0.0]
                          ["sup2" 2] [0.0 0.0 0.0]
                          })
+                      ;; Instead of sleeping until topology is scheduled, rebalance topology so mk-assignments is called.
+                      (.rebalance (:nimbus cluster) "test2" (doto (RebalanceOptions.) (.set_wait_secs 0)))
                       (advance-cluster-time cluster 2)
                       (heartbeat-workers cluster "sup1" [3])
                       (heartbeat-workers cluster "sup2" [2])
@@ -653,7 +659,7 @@
   (with-simulated-time-local-cluster [cluster
                                       :supervisors 0
                                       :ports-per-supervisor 2
-                                      :daemon-conf {NIMBUS-REASSIGN false
+                                      :daemon-conf {NIMBUS-DO-NOT-REASSIGN true
                                                     NIMBUS-MONITOR-FREQ-SECS 10
                                                     TOPOLOGY-MESSAGE-TIMEOUT-SECS 30
                                                     TOPOLOGY-ACKER-EXECUTORS 0}]
@@ -693,7 +699,8 @@
                      {["sup1" 1] [0.0 0.0 0.0]
                       ["sup1" 2] [0.0 0.0 0.0]
                       })
-                    (advance-cluster-time cluster 10)
+                    ;; Instead of sleeping until topology is scheduled, rebalance topology so mk-assignments is called.
+                    (.rebalance (:nimbus cluster) "topology1" (doto (RebalanceOptions.) (.set_wait_secs 0)))
                     ))
      (is (empty? (:launched changed)))
      (bind options (RebalanceOptions.))

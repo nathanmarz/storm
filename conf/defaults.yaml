@@ -65,7 +65,6 @@ nimbus.cleanup.inbox.freq.secs: 600
 nimbus.inbox.jar.expiration.secs: 3600
 nimbus.code.sync.freq.secs: 300
 nimbus.task.launch.secs: 120
-nimbus.reassign: true
 nimbus.file.copy.expiration.secs: 600
 nimbus.topology.validator: "backtype.storm.nimbus.DefaultTopologyValidator"
 topology.min.replication.count: 1

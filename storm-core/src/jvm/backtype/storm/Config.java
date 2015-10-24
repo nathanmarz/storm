@@ -66,12 +66,14 @@ public class Config extends HashMap<String, Object> {
      * Netty based messaging: The buffer size for send/recv buffer
      */
     @isInteger
+    @isPositiveNumber
     public static final String STORM_MESSAGING_NETTY_BUFFER_SIZE = "storm.messaging.netty.buffer_size";
 
     /**
      * Netty based messaging: Sets the backlog value to specify when the channel binds to a local address
      */
     @isInteger
+    @isPositiveNumber
     public static final String STORM_MESSAGING_NETTY_SOCKET_BACKLOG = "storm.messaging.netty.socket.backlog";
 
     /**
@@ -86,18 +88,21 @@ public class Config extends HashMap<String, Object> {
      * Netty based messaging: The min # of milliseconds that a peer will wait.
      */
     @isInteger
+    @isPositiveNumber(includeZero = true)
     public static final String STORM_MESSAGING_NETTY_MIN_SLEEP_MS = "storm.messaging.netty.min_wait_ms";
 
     /**
      * Netty based messaging: The max # of milliseconds that a peer will wait.
      */
     @isInteger
+    @isPositiveNumber(includeZero = true)
     public static final String STORM_MESSAGING_NETTY_MAX_SLEEP_MS = "storm.messaging.netty.max_wait_ms";
 
     /**
      * Netty based messaging: The # of worker threads for the server.
      */
     @isInteger
+    @isPositiveNumber(includeZero = true)
     public static final String STORM_MESSAGING_NETTY_SERVER_WORKER_THREADS = "storm.messaging.netty.server_worker_threads";
 
     /**
@@ -141,6 +146,7 @@ public class Config extends HashMap<String, Object> {
      * The port Storm will use to connect to each of the ZooKeeper servers.
      */
     @isInteger
+    @isPositiveNumber
     public static final String STORM_ZOOKEEPER_PORT = "storm.zookeeper.port";
 
     /**
@@ -208,7 +214,7 @@ public class Config extends HashMap<String, Object> {
     /**
      * Max no.of seconds group mapping service will cache user groups
      */
-    @isNumber
+    @isInteger
     public static final String STORM_GROUP_MAPPING_SERVICE_CACHE_DURATION_SECS = "storm.group.mapping.service.cache.duration.secs";
 
     /**
@@ -365,12 +371,14 @@ public class Config extends HashMap<String, Object> {
      * connect to this port to upload jars and submit topologies.
      */
     @isInteger
+    @isPositiveNumber
     public static final String NIMBUS_THRIFT_PORT = "nimbus.thrift.port";
 
     /**
      * The number of threads that should be used by the nimbus thrift server.
      */
-    @isNumber
+    @isInteger
+    @isPositiveNumber
     public static final String NIMBUS_THRIFT_THREADS = "nimbus.thrift.threads";
 
     /**
@@ -406,6 +414,7 @@ public class Config extends HashMap<String, Object> {
      * The maximum buffer size thrift should use when reading messages.
      */
     @isInteger
+    @isPositiveNumber
     public static final String NIMBUS_THRIFT_MAX_BUFFER_SIZE = "nimbus.thrift.max_buffer_size";
 
     /**
@@ -421,6 +430,7 @@ public class Config extends HashMap<String, Object> {
      * task dead and reassign it to another location.
      */
     @isInteger
+    @isPositiveNumber
     public static final String NIMBUS_TASK_TIMEOUT_SECS = "nimbus.task.timeout.secs";
 
 
@@ -431,6 +441,7 @@ public class Config extends HashMap<String, Object> {
      * occuring.
      */
     @isInteger
+    @isPositiveNumber
     public static final String NIMBUS_MONITOR_FREQ_SECS = "nimbus.monitor.freq.secs";
 
     /**
@@ -438,6 +449,7 @@ public class Config extends HashMap<String, Object> {
      * @see NIMBUS_INBOX_JAR_EXPIRATION_SECS
      */
     @isInteger
+    @isPositiveNumber
     public static final String NIMBUS_CLEANUP_INBOX_FREQ_SECS = "nimbus.cleanup.inbox.freq.secs";
 
     /**
@@ -457,6 +469,7 @@ public class Config extends HashMap<String, Object> {
      * and stops assigning new work to it.
      */
     @isInteger
+    @isPositiveNumber
     public static final String NIMBUS_SUPERVISOR_TIMEOUT_SECS = "nimbus.supervisor.timeout.secs";
 
     /**
@@ -467,6 +480,7 @@ public class Config extends HashMap<String, Object> {
      * to launching new JVM's and configuring them.</p>
      */
     @isInteger
+    @isPositiveNumber
     public static final String NIMBUS_TASK_LAUNCH_SECS = "nimbus.task.launch.secs";
 
     /**
@@ -499,13 +513,14 @@ public class Config extends HashMap<String, Object> {
     /**
      * Impersonation user ACL config entries.
      */
-    @isImpersonationAcl
+    @isMapEntryCustom(keyValidatorClasses = {StringValidator.class}, valueValidatorClasses = {ImpersonationAclUserEntryValidator.class})
     public static final String NIMBUS_IMPERSONATION_ACL = "nimbus.impersonation.acl";
 
     /**
      * How often nimbus should wake up to renew credentials if needed.
      */
-    @isNumber
+    @isInteger
+    @isPositiveNumber
     public static final String NIMBUS_CREDENTIAL_RENEW_FREQ_SECS = "nimbus.credential.renewers.freq.secs";
 
     /**
@@ -531,12 +546,14 @@ public class Config extends HashMap<String, Object> {
      * Storm UI binds to this port.
      */
     @isInteger
+    @isPositiveNumber
     public static final String UI_PORT = "ui.port";
 
     /**
      * HTTP UI port for log viewer
      */
     @isInteger
+    @isPositiveNumber
     public static final String LOGVIEWER_PORT = "logviewer.port";
 
     /**
@@ -562,7 +579,8 @@ public class Config extends HashMap<String, Object> {
     /**
      * Storm Logviewer HTTPS port
      */
-    @isNumber
+    @isInteger
+    @isPositiveNumber
     public static final String LOGVIEWER_HTTPS_PORT = "logviewer.https.port";
 
     /**
@@ -651,19 +669,21 @@ public class Config extends HashMap<String, Object> {
     /**
      * Initialization parameters for the javax.servlet.Filter
      */
-    @isType(type=Map.class)
+    @isMapEntryType(keyType = String.class, valueType = String.class)
     public static final String UI_FILTER_PARAMS = "ui.filter.params";
 
     /**
      * The size of the header buffer for the UI in bytes
      */
-    @isNumber
+    @isInteger
+    @isPositiveNumber
     public static final String UI_HEADER_BUFFER_BYTES = "ui.header.buffer.bytes";
 
     /**
      * This port is used by Storm DRPC for receiving HTTPS (SSL) DPRC requests from clients.
      */
-    @isNumber
+    @isInteger
+    @isPositiveNumber
     public static final String UI_HTTPS_PORT = "ui.https.port";
 
     /**
@@ -728,13 +748,13 @@ public class Config extends HashMap<String, Object> {
     /**
      * This port is used by Storm DRPC for receiving HTTP DPRC requests from clients.
      */
-    @isNumber
+    @isInteger
     public static final String DRPC_HTTP_PORT = "drpc.http.port";
 
     /**
      * This port is used by Storm DRPC for receiving HTTPS (SSL) DPRC requests from clients.
      */
-    @isNumber
+    @isInteger
     public static final String DRPC_HTTPS_PORT = "drpc.https.port";
 
     /**
@@ -800,6 +820,7 @@ public class Config extends HashMap<String, Object> {
      * This port is used by Storm DRPC for receiving DPRC requests from clients.
      */
     @isInteger
+    @isPositiveNumber
     public static final String DRPC_PORT = "drpc.port";
 
     /**
@@ -838,18 +859,21 @@ public class Config extends HashMap<String, Object> {
      * DRPC thrift server worker threads
      */
     @isInteger
+    @isPositiveNumber
     public static final String DRPC_WORKER_THREADS = "drpc.worker.threads";
 
     /**
      * The maximum buffer size thrift should use when reading messages for DRPC.
      */
     @isNumber
+    @isPositiveNumber
     public static final String DRPC_MAX_BUFFER_SIZE = "drpc.max_buffer_size";
 
     /**
      * DRPC thrift server queue size
      */
     @isInteger
+    @isPositiveNumber
     public static final String DRPC_QUEUE_SIZE = "drpc.queue.size";
 
     /**
@@ -862,12 +886,14 @@ public class Config extends HashMap<String, Object> {
      * This port on Storm DRPC is used by DRPC topologies to receive function invocations and send results back.
      */
     @isInteger
+    @isPositiveNumber
     public static final String DRPC_INVOCATIONS_PORT = "drpc.invocations.port";
 
     /**
      * DRPC invocations thrift server worker threads
      */
-    @isNumber
+    @isInteger
+    @isPositiveNumber
     public static final String DRPC_INVOCATIONS_THREADS = "drpc.invocations.threads";
 
     /**
@@ -918,7 +944,8 @@ public class Config extends HashMap<String, Object> {
     /**
      * A number representing the maximum number of workers any single topology can acquire.
      */
-    @isNumber
+    @isInteger
+    @isPositiveNumber(includeZero = true)
     public static final String NIMBUS_SLOTS_PER_TOPOLOGY = "nimbus.slots.perTopology";
 
     /**
@@ -931,13 +958,14 @@ public class Config extends HashMap<String, Object> {
      * Initialization parameters for the javax.servlet.Filter of the DRPC HTTP
      * service
      */
-    @isType(type=Map.class)
+    @isMapEntryType(keyType = String.class, valueType = String.class)
     public static final String DRPC_HTTP_FILTER_PARAMS = "drpc.http.filter.params";
 
     /**
      * A number representing the maximum number of executors any single topology can acquire.
      */
-    @isNumber
+    @isInteger
+    @isPositiveNumber(includeZero = true)
     public static final String NIMBUS_EXECUTORS_PER_TOPOLOGY = "nimbus.executors.perTopology";
 
     /**
@@ -960,6 +988,7 @@ public class Config extends HashMap<String, Object> {
      * How many seconds to sleep for before shutting down threads on worker
      */
     @isInteger
+    @isPositiveNumber
     public static final String SUPERVISOR_WORKER_SHUTDOWN_SLEEP_SECS = "supervisor.worker.shutdown.sleep.secs";
 
     /**
@@ -993,6 +1022,7 @@ public class Config extends HashMap<String, Object> {
      * need to be restarted.
      */
     @isInteger
+    @isPositiveNumber
     public static final String SUPERVISOR_MONITOR_FREQUENCY_SECS = "supervisor.monitor.frequency.secs";
 
     /**
@@ -1056,18 +1086,21 @@ public class Config extends HashMap<String, Object> {
      * control how many worker receiver threads we need per worker
      */
     @isInteger
+    @isPositiveNumber
     public static final String WORKER_RECEIVER_THREAD_COUNT = "topology.worker.receiver.thread.count";
 
     /**
      * How often this worker should heartbeat to the supervisor.
      */
     @isInteger
+    @isPositiveNumber
     public static final String WORKER_HEARTBEAT_FREQUENCY_SECS = "worker.heartbeat.frequency.secs";
 
     /**
      * How often a task should heartbeat its status to the master.
      */
     @isInteger
+    @isPositiveNumber
     public static final String TASK_HEARTBEAT_FREQUENCY_SECS = "task.heartbeat.frequency.secs";
 
     /**
@@ -1078,6 +1111,7 @@ public class Config extends HashMap<String, Object> {
      * come through.
      */
     @isInteger
+    @isPositiveNumber
     public static final String TASK_REFRESH_POLL_SECS = "task.refresh.poll.secs";
 
     /**
@@ -1092,7 +1126,8 @@ public class Config extends HashMap<String, Object> {
     /**
      * How often a task should sync credentials, worst case.
      */
-    @isNumber
+    @isInteger
+    @isPositiveNumber
     public static final String TASK_CREDENTIALS_POLL_SECS = "task.credentials.poll.secs";
 
     /**
@@ -1159,6 +1194,7 @@ public class Config extends HashMap<String, Object> {
      * on each component in the topology to tune the performance of a topology.
      */
     @isInteger
+    @isPositiveNumber
     public static final String TOPOLOGY_WORKERS = "topology.workers";
 
     /**
@@ -1170,6 +1206,7 @@ public class Config extends HashMap<String, Object> {
      * guaranteeing that the same value goes to the same task).
      */
     @isInteger
+    @isPositiveNumber
     public static final String TOPOLOGY_TASKS = "topology.tasks";
 
     /**
@@ -1208,6 +1245,7 @@ public class Config extends HashMap<String, Object> {
      * then Storm will immediately ack tuples as soon as they come off the spout, effectively disabling reliability.</p>
      */
     @isInteger
+    @isPositiveNumber
     public static final String TOPOLOGY_ACKER_EXECUTORS = "topology.acker.executors";
 
     /**
@@ -1218,6 +1256,7 @@ public class Config extends HashMap<String, Object> {
      * event logging will be disabled.</p>
      */
     @isInteger
+    @isPositiveNumber
     public static final String TOPOLOGY_EVENTLOGGER_EXECUTORS = "topology.eventlogger.executors";
 
     /**
@@ -1278,19 +1317,19 @@ public class Config extends HashMap<String, Object> {
      * Each listed class maps 1:1 to a system bolt named __metrics_ClassName#N, and it's parallelism is configurable.
      */
 
-    @isListEntryType(type=Map.class)
+    @isListEntryCustom(entryValidatorClasses={MetricRegistryValidator.class})
     public static final String TOPOLOGY_METRICS_CONSUMER_REGISTER = "topology.metrics.consumer.register";
 
     /**
      * A map of metric name to class name implementing IMetric that will be created once per worker JVM
      */
-    @isType(type=Map.class)
+    @isMapEntryType(keyType = String.class, valueType = String.class)
     public static final String TOPOLOGY_WORKER_METRICS = "topology.worker.metrics";
 
     /**
      * A map of metric name to class name implementing IMetric that will be created once per worker JVM
      */
-    @isType(type=Map.class)
+    @isMapEntryType(keyType = String.class, valueType = String.class)
     public static final String WORKER_METRICS = "worker.metrics";
 
     /**
@@ -1298,6 +1337,7 @@ public class Config extends HashMap<String, Object> {
      * typically used in testing to limit the number of threads spawned in local mode.
      */
     @isInteger
+    @isPositiveNumber
     public static final String TOPOLOGY_MAX_TASK_PARALLELISM="topology.max.task.parallelism";
 
     /**
@@ -1309,6 +1349,7 @@ public class Config extends HashMap<String, Object> {
      * their tuples with a message id.
      */
     @isInteger
+    @isPositiveNumber
     public static final String TOPOLOGY_MAX_SPOUT_PENDING="topology.max.spout.pending";
 
     /**
@@ -1325,6 +1366,7 @@ public class Config extends HashMap<String, Object> {
      * The amount of milliseconds the SleepEmptyEmitStrategy should sleep for.
      */
     @isInteger
+    @isPositiveNumber(includeZero = true)
     public static final String TOPOLOGY_SLEEP_SPOUT_WAIT_STRATEGY_TIME_MS="topology.sleep.spout.wait.strategy.time.ms";
 
     /**
@@ -1382,7 +1424,7 @@ public class Config extends HashMap<String, Object> {
      * Topology-specific environment variables for the worker child process.
      * This is added to the existing environment (that of the supervisor)
      */
-    @isType(type=Map.class)
+    @isMapEntryType(keyType = String.class, valueType = String.class)
     public static final String TOPOLOGY_ENVIRONMENT="topology.environment";
 
     /*
@@ -1427,6 +1469,7 @@ public class Config extends HashMap<String, Object> {
      * The size of the Disruptor transfer queue for each worker.
      */
     @isInteger
+    @isPowerOf2
     public static final String TOPOLOGY_TRANSFER_BUFFER_SIZE="topology.transfer.buffer.size";
 
     /**
@@ -1462,12 +1505,14 @@ public class Config extends HashMap<String, Object> {
      * See doc for TOPOLOGY_ERROR_THROTTLE_INTERVAL_SECS
      */
     @isInteger
+    @isPositiveNumber
     public static final String TOPOLOGY_MAX_ERROR_REPORT_PER_INTERVAL="topology.max.error.report.per.interval";
 
     /**
      * How often a batch can be emitted in a Trident topology.
      */
     @isInteger
+    @isPositiveNumber
     public static final String TOPOLOGY_TRIDENT_BATCH_EMIT_INTERVAL_MILLIS="topology.trident.batch.emit.interval.millis";
 
     /**
@@ -1504,6 +1549,7 @@ public class Config extends HashMap<String, Object> {
      * Max pending tuples in one ShellBolt
      */
     @isInteger
+    @isPositiveNumber
     public static final String TOPOLOGY_SHELLBOLT_MAX_PENDING="topology.shellbolt.max.pending";
 
     /**
@@ -1514,7 +1560,7 @@ public class Config extends HashMap<String, Object> {
      *   S2 - Confidential
      *   S3 - Secret (default.)
      */
-    @isString
+    @isString(acceptedValues = {"S0", "S1", "S2", "S3"})
     public static final String TOPOLOGY_LOGGING_SENSITIVITY="topology.logging.sensitivity";
 
     /**
@@ -1535,6 +1581,7 @@ public class Config extends HashMap<String, Object> {
      * will use storm.zookeeper.port
      */
     @isInteger
+    @isPositiveNumber
     public static final String TRANSACTIONAL_ZOOKEEPER_PORT="transactional.zookeeper.port";
 
     /**
@@ -1546,6 +1593,7 @@ public class Config extends HashMap<String, Object> {
     /**
      * The number of threads that should be used by the zeromq context in each worker process.
      */
+    @Deprecated
     @isInteger
     public static final String ZMQ_THREADS = "zmq.threads";
 
@@ -1554,6 +1602,7 @@ public class Config extends HashMap<String, Object> {
      * the connection is closed. This is an advanced configuration and can almost
      * certainly be ignored.
      */
+    @Deprecated
     @isInteger
     public static final String ZMQ_LINGER_MILLIS = "zmq.linger.millis";
 
@@ -1561,6 +1610,7 @@ public class Config extends HashMap<String, Object> {
      * The high water for the ZeroMQ push sockets used for networking. Use this config to prevent buffer explosion
      * on the networking layer.
      */
+    @Deprecated
     @isInteger
     public static final String ZMQ_HWM = "zmq.hwm";
 
@@ -1599,7 +1649,8 @@ public class Config extends HashMap<String, Object> {
      * The number of machines that should be used by this topology to isolate it from all others. Set storm.scheduler
      * to backtype.storm.scheduler.multitenant.MultitenantScheduler
      */
-    @isNumber
+    @isInteger
+    @isPositiveNumber
     public static final String TOPOLOGY_ISOLATED_MACHINES = "topology.isolate.machines";
 
     /**

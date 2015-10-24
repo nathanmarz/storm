@@ -25,8 +25,10 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -41,7 +43,7 @@ public class ConfigValidation {
     public static abstract class Validator {
         public Validator(Map<String, Object> params) {}
         public Validator() {}
-        public abstract void validateField(String name, Object o) throws InstantiationException, IllegalAccessException;
+        public abstract void validateField(String name, Object o) throws InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException;
     }
 
     /**
@@ -91,9 +93,27 @@ public class ConfigValidation {
 
     public static class StringValidator extends Validator {
 
+        private HashSet<String> acceptedValues = null;
+
+        public StringValidator(){}
+
+        public StringValidator(Map<String, Object> params) {
+
+            this.acceptedValues = new HashSet<String>(Arrays.asList((String[])params.get(ConfigValidationAnnotations.ValidatorParams.ACCEPTED_VALUES)));
+
+            if(this.acceptedValues.isEmpty() || (this.acceptedValues.size() == 1 && this.acceptedValues.contains(""))) {
+                this.acceptedValues = null;
+            }
+        }
+
         @Override
         public void validateField(String name, Object o) {
             SimpleTypeValidator.validateField(name, String.class, o);
+            if(this.acceptedValues != null) {
+                if (!this.acceptedValues.contains((String) o)) {
+                    throw new IllegalArgumentException("Field " + name + " is not an accepted value. Value: " + o + " Accepted values: " + this.acceptedValues);
+                }
+            }
         }
     }
 
@@ -147,20 +167,26 @@ public class ConfigValidation {
     }
 
     /**
-     * Validates a map of Strings to a map of Strings to a list.
-     * {str -> {str -> [str,str]}
+     * Validates an entry for ImpersonationAclUser
      */
-    public static class ImpersonationAclValidator extends Validator {
+    public static class ImpersonationAclUserEntryValidator extends Validator {
 
         @Override
-        public void validateField(String name, Object o) {
+        public void validateField(String name, Object o) throws InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
             if (o == null) {
                 return;
             }
+            LOG.info("object: {}", o);
             ConfigValidationUtils.NestableFieldValidator validator = ConfigValidationUtils.mapFv(ConfigValidationUtils.fv(String.class, false),
-                    ConfigValidationUtils.mapFv(ConfigValidationUtils.fv(String.class, false),
-                            ConfigValidationUtils.listFv(String.class, false), false), true);
+                    ConfigValidationUtils.listFv(String.class, false), false);
             validator.validateField(name, o);
+            Map<String, List<String>> mapObject = (Map<String, List<String>>) o;
+            if (!mapObject.containsKey("hosts")) {
+                throw new IllegalArgumentException(name + " should contain Map entry with key: hosts");
+            }
+            if (!mapObject.containsKey("groups")) {
+                throw new IllegalArgumentException(name + " should contain Map entry with key: groups");
+            }
         }
     }
 
@@ -293,12 +319,12 @@ public class ConfigValidation {
         }
 
         @Override
-        public void validateField(String name, Object o) throws InstantiationException, IllegalAccessException {
+        public void validateField(String name, Object o) throws InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
 
             validateField(name, this.entryValidators, o);
         }
 
-        public static void validateField(String name, Class[] validators, Object o) throws IllegalAccessException, InstantiationException {
+        public static void validateField(String name, Class[] validators, Object o) throws IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
             if (o == null) {
                 return;
             }
@@ -306,7 +332,7 @@ public class ConfigValidation {
             SimpleTypeValidator.validateField(name, Iterable.class, o);
             for (Object entry : (Iterable) o) {
                 for (Class validator : validators) {
-                    Object v = validator.newInstance();
+                    Object v = validator.getConstructor().newInstance();
                     if (v instanceof Validator) {
                         ((Validator) v).validateField(name + " list entry", entry);
                     } else {
@@ -355,11 +381,11 @@ public class ConfigValidation {
         }
 
         @Override
-        public void validateField(String name, Object o) throws InstantiationException, IllegalAccessException {
+        public void validateField(String name, Object o) throws InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
             validateField(name, this.keyValidators, this.valueValidators, o);
         }
 
-        public static void validateField(String name, Class[] keyValidators, Class[] valueValidators, Object o) throws IllegalAccessException, InstantiationException {
+        public static void validateField(String name, Class[] keyValidators, Class[] valueValidators, Object o) throws IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
             if (o == null) {
                 return;
             }
@@ -367,7 +393,7 @@ public class ConfigValidation {
             SimpleTypeValidator.validateField(name, Map.class, o);
             for (Map.Entry<Object, Object> entry : ((Map<Object, Object>) o).entrySet()) {
                 for (Class kv : keyValidators) {
-                    Object keyValidator = kv.newInstance();
+                    Object keyValidator = kv.getConstructor().newInstance();
                     if (keyValidator instanceof Validator) {
                         ((Validator) keyValidator).validateField(name + " Map key", entry.getKey());
                     } else {
@@ -375,7 +401,7 @@ public class ConfigValidation {
                     }
                 }
                 for (Class vv : valueValidators) {
-                    Object valueValidator = vv.newInstance();
+                    Object valueValidator = vv.getConstructor().newInstance();
                     if (valueValidator instanceof Validator) {
                         ((Validator) valueValidator).validateField(name + " Map value", entry.getValue());
                     } else {
@@ -422,6 +448,26 @@ public class ConfigValidation {
                 }
             }
             throw new IllegalArgumentException("Field " + name + " must be a Positive Number");
+        }
+    }
+
+    public static class MetricRegistryValidator extends Validator {
+
+        @Override
+        public void validateField(String name, Object o) throws IllegalAccessException {
+            if(o == null) {
+                return;
+            }
+            SimpleTypeValidator.validateField(name, Map.class, o);
+            if(!((Map) o).containsKey("class") ) {
+                throw new IllegalAccessException("Field " + name + " must have map entry with key: class");
+            }
+            if(!((Map) o).containsKey("parallelism.hint") ) {
+                throw new IllegalAccessException("Field " + name + " must have map entry with key: parallelism.hint");
+            }
+
+            SimpleTypeValidator.validateField(name, String.class, ((Map) o).get("class"));
+            SimpleTypeValidator.validateField(name, long.class, ((Map) o).get("parallelism.hint"));
         }
     }
 

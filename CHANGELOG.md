@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1073: Refactor AbstractHdfsBolt
  * STORM-1128: Make metrics fast
  * STORM-1122: Fix the format issue in Utils.java
  * STORM-1111: Fix Validation for lots of different configs

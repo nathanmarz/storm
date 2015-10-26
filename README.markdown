@@ -236,6 +236,7 @@ under the License.
 * Ningyu An ([@jetan9](https://github.com/jetan9))
 * Pete Prokopowicz ([@prokopowicz](https://github.com/prokopowicz))
 * Priyank Shah ([@priyank5485](https://github.com/priyank5485)]
+* Joshua Martell ([@jmartell7](https://github.com/jmartell7)]
 
 ## Acknowledgements
 

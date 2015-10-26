@@ -1206,7 +1206,7 @@ public class Config extends HashMap<String, Object> {
      * guaranteeing that the same value goes to the same task).
      */
     @isInteger
-    @isPositiveNumber
+    @isPositiveNumber(includeZero = true)
     public static final String TOPOLOGY_TASKS = "topology.tasks";
 
     /**
@@ -1245,7 +1245,7 @@ public class Config extends HashMap<String, Object> {
      * then Storm will immediately ack tuples as soon as they come off the spout, effectively disabling reliability.</p>
      */
     @isInteger
-    @isPositiveNumber
+    @isPositiveNumber(includeZero = true)
     public static final String TOPOLOGY_ACKER_EXECUTORS = "topology.acker.executors";
 
     /**
@@ -1256,7 +1256,7 @@ public class Config extends HashMap<String, Object> {
      * event logging will be disabled.</p>
      */
     @isInteger
-    @isPositiveNumber
+    @isPositiveNumber(includeZero = true)
     public static final String TOPOLOGY_EVENTLOGGER_EXECUTORS = "topology.eventlogger.executors";
 
     /**

@@ -192,6 +192,7 @@ To pull in a merge request you should generally follow the command line instruct
 3. Merge the pull request into your local test branch.
 
         $ git pull <remote_repo_url> <remote_branch>
+    You can use `./dev-tools/storm-merge.py <pull-number>` to produce the above command most of the time.
 
 4.  Assuming that the pull request merges without any conflicts:
     Update the top-level `CHANGELOG.md`, and add in the JIRA ticket number (example: `STORM-1234`) and ticket
@@ -223,6 +224,9 @@ To pull in a merge request you should generally follow the command line instruct
 # Build the code and run the tests
 
 ## Prerequisites
+Firt of all you need to make sure you are using maven 3.2.5 or below.  There is a bug in later versions of maven as linked to from https://issues.apache.org/jira/browse/MSHADE-206 that
+cause shaded dependencies to not be packaged correctly.  Also please be aware that because we are shading dependencies mvn dependency:tree will not always show the dependencies correctly. 
+
 In order to build `storm` you need `python`, `ruby` and `nodejs`. In order to avoid an overful page we don't provide platform/OS specific installation instructions for those here. Please refer to you platform's/OS' documentation for support.
 
 The `ruby` package manager `rvm` and `nodejs` package manager `nvm` are for convenience and are used in the tests which run on [travis](https://travis-ci.org/apache/storm). They can be installed using `curl -L https://get.rvm.io | bash -s stable --autolibs=enabled && source ~/.profile` (see the [rvm installation instructions](https://github.com/rvm/rvm) for details) and `wget -qO- https://raw.githubusercontent.com/creationix/nvm/v0.26.1/install.sh | bash && source ~/.bashrc` (see the [nvm installation instructions](https://github.com/creationix/nvm) for details).
@@ -241,17 +245,9 @@ in order to get started as fast as possible. Users can still install a specific 
 
 The following commands must be run from the top-level directory.
 
-    # Build the code and run the tests (requires nodejs, python and ruby installed) 
-    # `mvn clean package` will fail because storm-core requires storm-maven-plugin.
-    # This plugin should be installed before compiling storm-core.
-    $ mvn clean install
+`mvn clean install`
 
-    # Build the code and run the tests, with specifying default test timeout (in millisecond)
-    $ export STORM_TEST_TIMEOUT_MS=10000
-    $ mvn clean install
-
-    # Build the code but skip the tests
-    $ mvn clean install -DskipTests=true
+If you wish to skip the unit tests you can do this by adding `-DskipTests` to the command line. 
 
 In case you modified `storm.thrift`, you have to regenerate thrift code as java and python code before compiling whole project.
 
@@ -266,26 +262,13 @@ You can also run tests selectively via the Clojure REPL.  The following example 
 [auth_test.clj](storm-core/test/clj/backtype/storm/security/auth/auth_test.clj), which has the namespace
 `backtype.storm.security.auth.auth-test`.
 
-First, start the REPL from within the relevant sub-project (here: `storm-core`):
-
-    $ cd storm-core/
-    $ mvn clojure:repl
-
-Now we run the tests in `auth_test.clj` in the REPL:
-
-```clojure
-;; You can use both absolute as well as relative paths to the .clj file.
-(load-file "test/clj/backtype/storm/security/auth/auth_test.clj")
-(ns backtype.storm.security.auth.auth-test)
-(run-tests)
-```
+You can also run tests selectively with `-Dtest=<test_name>`.  This works for both clojure and junit tests.
 
 > Tip: IDEs such as IntelliJ IDEA support a built-in Clojure REPL, which you can also use to run tests selectively.
 > Sometimes you may find that tests pass/fail depending on which REPL you use, which -- although frustrating --
 > can be helpful to narrow down errors.
 
 Unfortunately you might experience failures in clojure tests which are wrapped in the `maven-clojure-plugin` and thus doesn't provide too much useful output at first sight - you might end up with a maven test failure with an error message as unhelpful as `Clojure failed.`. In this case it's recommended to look into `target/test-reports` of the failed project to see what actual tests have failed or scroll through the maven output looking for obvious issues like missing binaries.
-
 
 <a name="packaging"></a>
 
@@ -295,7 +278,7 @@ You can create a _distribution_ (like what you can download from Apache) as foll
 do not use the Maven release plugin because creating an official release is the task of our release manager.
 
     # First, build the code.
-    $ mvn clean install  # you may skip tests with `-DskipTests=true` to save time
+    $ mvn clean install # you may skip tests with `-DskipTests=true` to save time
 
     # Create the binary distribution.
     $ cd storm-dist/binary && mvn package

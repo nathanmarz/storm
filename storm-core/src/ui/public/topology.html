@@ -82,6 +82,146 @@
 </div>
 </body>
 <script>
+
+var toggleChangeLogLevel;
+
+function closeChangeLogLevel (){
+    var container = $("#change-log-level");
+    container.hide();
+}
+
+function clearLoggerLevel(id){
+    $("#loggerRemove-" + id).val("true");
+    sendLoggerLevel(id);
+    $("#logger-" + id).remove();
+}
+
+function sendLoggerLevel(id){
+    var topologyId = $.url("?id");
+    var shouldRemove = $("#loggerRemove-" + id).val() === "true";
+    var level = $("#loggerLevel-" + id).val();
+    var timeout = parseInt($("#loggerTimeout-" + id).val());
+        timeout = isNaN(timeout) ? 0 : timeout;
+    var loggerName = $("#loggerName-" + id).val();
+    if (level === 'Pick Level'){
+        alert ('Please pick a valid log level');
+        return;
+    }
+    var levelBelowInfo = level === 'DEBUG';
+
+    if (!shouldRemove && levelBelowInfo && timeout <= 0){
+        timeout = parseInt (
+            prompt ("You must provide a timeout > 0 for DEBUG log level. What timeout would you like (secs)?", 30));
+        if (!timeout){
+            return;
+        }
+    }
+    var data = {};
+    var loggerSetting;
+
+    if (id === 0) {
+        data["namedLoggerLevels"] = {};
+        data["namedLoggerLevels"]["ROOT"] = {};
+        loggerSetting = data["namedLoggerLevels"]["ROOT"];
+    } else {
+        data["namedLoggerLevels"] = {};
+        data["namedLoggerLevels"][loggerName] = {};
+        loggerSetting = data["namedLoggerLevels"][loggerName];
+    }
+
+    loggerSetting.target_level = shouldRemove ? null : level;
+    loggerSetting.reset_level  = "INFO";
+    loggerSetting.timeout = timeout;
+
+    sendRequest (topologyId, "logconfig", null, data, toggleChangeLogLevel);
+};
+
+function renderLogLevelForm (template, responseData){
+    var topologyId = $.url("?id");
+    var container = $("#change-log-level");
+
+    var levels = [
+        {name: "Pick Level"},
+        {name: "ALL"},
+        {name: "TRACE"},
+        {name: "DEBUG"},
+        {name: "INFO" },
+        {name: "WARN" },
+        {name: "ERROR"},
+        {name: "FATAL"},
+        {name: "OFF"}
+    ];
+    var partialTemplates = $(template).filter('.partials');
+    var partials = {};
+
+    $.each(partialTemplates, function (ix, partial){
+        var obj = $(partial);
+        partials [obj.attr('id')] = obj.html(); 
+    });
+
+    var logLevelTemplate = $(template).filter("#topology-change-log-level-template").html();
+
+    var calcAbsoluteTimeout = function (timeout_epoch) {
+        var absoluteTimeout = "";
+        if (timeout_epoch) {
+            var d = new Date(0); 
+            d.setUTCSeconds(timeout_epoch / 1000);
+            absoluteTimeout = d.toLocaleDateString() + " " + d.toLocaleTimeString();
+        }
+        return absoluteTimeout;
+    };
+    var renderImpl = function (data){
+        var loggers = [];
+        var loggerCount = 1;
+        var obj = data.namedLoggerLevels;
+        if (!obj) {
+            obj = {};
+            data.namedLoggerLevels = obj;
+        }
+
+        var sortedLoggers = Object.keys(obj).sort(function (l1, l2){
+            if (l1 === "ROOT") return -1;
+            if (l2 === "ROOT") return 1;
+            return l1 > l2;
+        });
+
+        sortedLoggers.forEach (function (l){
+            var obj = data.namedLoggerLevels[l];
+            obj.loggerId = loggerCount++;
+            obj.loggerName = l;
+            obj.named = l != "ROOT";
+            obj.cls = "namedLoggers";
+            obj.levelSelected = function (obj){
+                return function (){
+                    return this.name === obj.target_level ? "selected" : "";
+                }
+            }(obj);
+            obj.absoluteTimeout = calcAbsoluteTimeout (obj.timeout_epoch);
+            obj.canClear = true;
+            loggers.push(obj);
+        });
+
+        loggers.push({
+            loggerId: loggerCount,
+            isNew: true,
+            cls: 'newLogger'
+        });
+
+        var tmplData = {
+            loggers: loggers,
+            levels: levels
+        };
+
+        container.html(Mustache.render(logLevelTemplate, tmplData, partials));
+        container.show('fast');
+    };
+    if (!responseData) {
+        var topologyId = $.url("?id");
+        $.get ('/api/v1/topology/' + topologyId + '/logconfig', renderImpl);
+    } else {
+        renderImpl (responseData);
+    }
+} 
 $(document).ajaxStop($.unblockUI);
 $(document).ajaxStart(function(){
     if ($("#topology-visualization").children().size() == 0) {
@@ -134,7 +274,10 @@ $(document).ready(function() {
         var formattedConfig = formatConfigData(response["configuration"]);
         var buttonJsonData = topologyActionJson(response["id"],response["encodedId"],response["name"],response["status"]
                                                 ,response["msgTimeout"],response["debug"],response["samplingPct"]);
-        $.get("/templates/topology-page-template.html", function(template) {
+        $.ajax ({url: "/templates/topology-page-template.html", success: function(template) {
+          toggleChangeLogLevel = function (data) {
+              renderLogLevelForm (template, data);
+            }
             topologySummary.append(Mustache.render($(template).filter("#topology-summary-template").html(),response));
             topologyActions.append(Mustache.render($(template).filter("#topology-actions-template").html(),buttonJsonData));
             topologyStats.append(Mustache.render($(template).filter("#topology-stats-template").html(),response));
@@ -222,7 +365,7 @@ $(document).ready(function() {
             $('#topology-configuration [data-toggle="tooltip"]').tooltip();
             $('#topology-actions [data-toggle="tooltip"]').tooltip();
             $('#topology-visualization [data-toggle="tooltip"]').tooltip();
-        });
+      }});
     });
  });
 </script>

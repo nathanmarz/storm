@@ -107,6 +107,16 @@ To use the `HBaseBolt`, construct it with the name of the table to write to, an 
  ```java
 HBaseBolt hbase = new HBaseBolt("WordCount", mapper);
  ```
+ 
+ HBaseBolt params
+
+|Arg  |Description | Type | Default |
+|---	|--- |---
+|writeToWAL | To turn Durability SYNC_WAL or SKIP_WAL | Boolean (Optional) | True |
+|configKey | Any Hbase related configs | Map (Optional) | |
+|batchSize | Max no.of Tuples batched together to write to HBase | Int (Optional) | 15000 |
+|flushIntervalSecs| (In seconds)  If > 0 HBase Bolt will periodically flush transaction batches. Enabling this is recommended to avoid tuple timeouts while waiting for a batch to fill up. | Int (Optional) | 0 |
+
 
 The `HBaseBolt` will delegate to the `mapper` instance to figure out how to persist tuple data to HBase.
 

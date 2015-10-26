@@ -26,6 +26,7 @@ import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.TupleImpl;
 import backtype.storm.tuple.Values;
+import backtype.storm.utils.MockTupleHelpers;
 
 import org.apache.storm.hive.common.HiveOptions;
 import org.apache.storm.hive.bolt.mapper.DelimitedRecordHiveMapper;
@@ -45,7 +46,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.Spy;
 import org.mockito.MockitoAnnotations;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
@@ -248,7 +248,6 @@ public class TestHiveBolt {
         bolt = new HiveBolt(hiveOptions);
         bolt.prepare(config, null, new OutputCollector(collector));
         Tuple tuple1 = generateTestTuple(1, "SJC", "Sunnyvale", "CA");
-
         //Tuple tuple2 = generateTestTuple(2,"SFO","San Jose","CA");
         bolt.execute(tuple1);
         verify(collector).ack(tuple1);
@@ -334,6 +333,59 @@ public class TestHiveBolt {
         verify(collector, never()).ack(tuple2);
 
         spyBolt.cleanup();
+    }
+
+    @Test
+    public void testTickTuple()
+    {
+        JsonRecordHiveMapper mapper = new JsonRecordHiveMapper()
+                .withColumnFields(new Fields(colNames1))
+                .withPartitionFields(new Fields(partNames));
+        HiveOptions hiveOptions = new HiveOptions(metaStoreURI,dbName,tblName,mapper)
+                .withTxnsPerBatch(2)
+                .withBatchSize(2);
+
+        bolt = new HiveBolt(hiveOptions);
+        bolt.prepare(config, null, new OutputCollector(collector));
+
+        Tuple tuple1 = generateTestTuple(1, "SJC", "Sunnyvale", "CA");
+        Tuple tuple2 = generateTestTuple(2, "SFO", "San Jose", "CA");
+
+
+        bolt.execute(tuple1);
+
+        //The tick should cause tuple1 to be ack'd
+        Tuple mockTick = MockTupleHelpers.mockTickTuple();
+        bolt.execute(mockTick);
+        verify(collector).ack(tuple1);
+
+        //The second tuple should NOT be ack'd because the batch should be cleared and this will be
+        //the first transaction in the new batch
+        bolt.execute(tuple2);
+        verify(collector, never()).ack(tuple2);
+
+        bolt.cleanup();
+    }
+
+    @Test
+    public void testNoTickEmptyBatches() throws Exception
+    {
+        JsonRecordHiveMapper mapper = new JsonRecordHiveMapper()
+                .withColumnFields(new Fields(colNames1))
+                .withPartitionFields(new Fields(partNames));
+        HiveOptions hiveOptions = new HiveOptions(metaStoreURI,dbName,tblName,mapper)
+                .withTxnsPerBatch(2)
+                .withBatchSize(2);
+
+        bolt = new HiveBolt(hiveOptions);
+        bolt.prepare(config, null, new OutputCollector(collector));
+
+        //The tick should NOT cause any acks since the batch was empty
+        Tuple mockTick = MockTupleHelpers.mockTickTuple();
+        bolt.execute(mockTick);
+        verifyZeroInteractions(collector);
+
+        bolt.cleanup();
     }
 
     @Test

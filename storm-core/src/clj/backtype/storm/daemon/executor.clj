@@ -349,7 +349,7 @@
         receive-queue (:receive-queue executor-data)
         context (:worker-context executor-data)]
     (when tick-time-secs
-      (if (or (system-id? (:component-id executor-data))
+      (if (or (Utils/isSystemId (:component-id executor-data))
               (and (= false (storm-conf TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS))
                    (= :spout (:type executor-data))))
         (log-message "Timeouts disabled for executor " (:component-id executor-data) ":" (:executor-id executor-data))
@@ -438,7 +438,6 @@
     (.fail spout msg-id)
     (task/apply-hooks (:user-context task-data) .spoutFail (SpoutFailInfo. msg-id task-id time-delta))
     (when time-delta
-      (builtin-metrics/spout-failed-tuple! (:builtin-metrics task-data) (:stats executor-data) (:stream tuple-info))      
       (stats/spout-failed-tuple! (:stats executor-data) (:stream tuple-info) time-delta))))
 
 (defn- ack-spout-msg [executor-data task-data msg-id tuple-info time-delta id]
@@ -450,7 +449,6 @@
     (.ack spout msg-id)
     (task/apply-hooks (:user-context task-data) .spoutAck (SpoutAckInfo. msg-id task-id time-delta))
     (when time-delta
-      (builtin-metrics/spout-acked-tuple! (:builtin-metrics task-data) (:stats executor-data) (:stream tuple-info) time-delta)
       (stats/spout-acked-tuple! (:stats executor-data) (:stream tuple-info) time-delta))))
 
 (defn mk-task-receiver [executor-data tuple-action-fn]
@@ -570,7 +568,7 @@
                                                          (tasks-fn out-stream-id values))
                                              rooted? (and message-id has-ackers?)
                                              root-id (if rooted? (MessageId/generateId rand))
-                                             out-ids (fast-list-for [t out-tasks] (if rooted? (MessageId/generateId rand)))]
+                                             ^List out-ids (fast-list-for [t out-tasks] (if rooted? (MessageId/generateId rand)))]
                                          (fast-list-iter [out-task out-tasks id out-ids]
                                                          (let [tuple-id (if rooted?
                                                                           (MessageId/makeRootId root-id id)
@@ -647,7 +645,6 @@
           
           (let [active? @(:storm-active-atom executor-data)
                 curr-count (.get emitted-count)
-                ;; suspend-time ((:storm-conf executor-data) BACKPRESSURE-SPOUT-SUSPEND-TIME-MS)
                 backpressure-enabled ((:storm-conf executor-data) TOPOLOGY-BACKPRESSURE-ENABLE)
                 throttle-on (and backpressure-enabled
                               @(:throttle-on (:worker executor-data)))
@@ -686,7 +683,7 @@
           0))
       :kill-fn (:report-error-and-die executor-data)
       :factory? true
-      :thread-name component-id)]))
+      :thread-name (str component-id "-executor" (:executor-id executor-data)))]))
 
 (defn- tuple-time-delta! [^TupleImpl tuple]
   (let [ms (.getProcessSampleStartTime tuple)]
@@ -761,11 +758,6 @@
  
                                   (task/apply-hooks user-context .boltExecute (BoltExecuteInfo. tuple task-id delta))
                                   (when delta
-                                    (builtin-metrics/bolt-execute-tuple! (:builtin-metrics task-data)
-                                                                         executor-stats
-                                                                         (.getSourceComponent tuple)                                                      
-                                                                         (.getSourceStreamId tuple)
-                                                                         delta)
                                     (stats/bolt-execute-tuple! executor-stats
                                                                (.getSourceComponent tuple)
                                                                (.getSourceStreamId tuple)
@@ -847,11 +839,6 @@
                              (log-message "BOLT ack TASK: " task-id " TIME: " delta " TUPLE: " tuple))
                            (task/apply-hooks user-context .boltAck (BoltAckInfo. tuple task-id delta))
                            (when delta
-                             (builtin-metrics/bolt-acked-tuple! (:builtin-metrics task-data)
-                                                                executor-stats
-                                                                (.getSourceComponent tuple)                                                      
-                                                                (.getSourceStreamId tuple)
-                                                                delta)
                              (stats/bolt-acked-tuple! executor-stats
                                                       (.getSourceComponent tuple)
                                                       (.getSourceStreamId tuple)
@@ -867,10 +854,6 @@
                              (log-message "BOLT fail TASK: " task-id " TIME: " delta " TUPLE: " tuple))
                            (task/apply-hooks user-context .boltFail (BoltFailInfo. tuple task-id delta))
                            (when delta
-                             (builtin-metrics/bolt-failed-tuple! (:builtin-metrics task-data)
-                                                                 executor-stats
-                                                                 (.getSourceComponent tuple)                                                      
-                                                                 (.getSourceStreamId tuple))
                              (stats/bolt-failed-tuple! executor-stats
                                                        (.getSourceComponent tuple)
                                                        (.getSourceStreamId tuple)
@@ -900,7 +883,7 @@
             0)))
       :kill-fn (:report-error-and-die executor-data)
       :factory? true
-      :thread-name component-id)]))
+      :thread-name (str component-id "-executor" (:executor-id executor-data)))]))
 
 (defmethod close-component :spout [executor-data spout]
   (.close spout))

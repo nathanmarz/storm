@@ -84,7 +84,6 @@ Response fields:
 |Field  |Value|Description
 |---	|---	|---
 |stormVersion|String| Storm version|
-|nimbusUptime|String| Shows how long the cluster is running|
 |supervisors|Integer| Number of supervisors running|
 |topologies| Integer| Number of topologies running| 
 |slotsTotal| Integer|Total number of available worker slots|
@@ -98,7 +97,6 @@ Sample response:
 ```json
    {
     "stormVersion": "0.9.2-incubating-SNAPSHOT",
-    "nimbusUptime": "3m 53s",
     "supervisors": 1,
     "slotsTotal": 4,
     "slotsUsed": 3,
@@ -119,6 +117,7 @@ Response fields:
 |id| String | Supervisor's id|
 |host| String| Supervisor's host name|
 |uptime| String| Shows how long the supervisor is running|
+|uptimeSeconds| Integer| Shows how long the supervisor is running in seconds|
 |slotsTotal| Integer| Total number of available worker slots for this supervisor|
 |slotsUsed| Integer| Number of worker slots used on this supervisor|
 
@@ -131,6 +130,7 @@ Sample response:
             "id": "0b879808-2a26-442b-8f7d-23101e0c3696",
             "host": "10.11.1.7",
             "uptime": "5m 58s",
+            "uptimeSeconds": 358,
             "slotsTotal": 4,
             "slotsUsed": 3
         }
@@ -150,6 +150,7 @@ Response fields:
 |port| int| Nimbus' port number|
 |status| String| Possible values are Leader, Not a Leader, Dead|
 |nimbusUpTime| String| Shows since how long the nimbus has been running|
+|nimbusUpTimeSeconds| String| Shows since how long the nimbus has been running in seconds|
 |nimbusLogLink| String| Logviewer url to view the nimbus.log|
 |version| String| Version of storm this nimbus host is running|
 
@@ -164,7 +165,8 @@ Sample response:
             "nimbusLogLink":"http:\/\/192.168.202.1:8000\/log?file=nimbus.log",
             "status":Leader,
             "version":"0.10.0-SNAPSHOT",
-            "nimbusUpTime":"3m 33s"
+            "nimbusUpTime":"3m 33s",
+            "nimbusUpTimeSeconds":"213"
         }
     ]
 }
@@ -182,6 +184,7 @@ Response fields:
 |name| String| Topology Name|
 |status| String| Topology Status|
 |uptime| String|  Shows how long the topology is running|
+|uptimeSeconds| Integer|  Shows how long the topology is running in seconds|
 |tasksTotal| Integer |Total number of tasks for this topology|
 |workersTotal| Integer |Number of workers used for this topology|
 |executorsTotal| Integer |Number of executors used for this topology|
@@ -196,6 +199,7 @@ Sample response:
             "name": "WordCount3",
             "status": "ACTIVE",
             "uptime": "6m 5s",
+            "uptimeSeconds": 365,
             "tasksTotal": 28,
             "workersTotal": 3,
             "executorsTotal": 28,
@@ -225,6 +229,7 @@ Response fields:
 |id| String| Topology Id|
 |name| String |Topology Name|
 |uptime| String |How long the topology has been running|
+|uptimeSeconds| Integer |How long the topology has been running in seconds|
 |status| String |Current status of the topology, e.g. "ACTIVE"|
 |tasksTotal| Integer |Total number of tasks for this topology|
 |workersTotal| Integer |Number of workers used for this topology|
@@ -286,6 +291,7 @@ Sample response:
     "tasksTotal": 28,
     "executorsTotal": 28,
     "uptime": "29m 19s",
+    "uptimeSeconds": 1759,
     "msgTimeout": 30,
     "windowHint": "10m 0s",
     "topologyStats": [
@@ -436,7 +442,7 @@ Response fields:
 |windowHint| String | window param value in "hh mm ss" format. Default value is "All Time"|
 |executors| Integer |Number of executor tasks in the component|
 |componentErrors| Array of Errors | List of component errors|
-|componentErrors.time| Long | Timestamp when the exception occurred |
+|componentErrors.errorTime| Long | Timestamp when the exception occurred (Prior to 0.11.0, this field was named 'time'.)|
 |componentErrors.errorHost| String | host name for the error|
 |componentErrors.errorPort| String | port for the error|
 |componentErrors.error| String |Shows the error happened in a component|
@@ -477,7 +483,7 @@ Sample response:
     "componentType": "spout",
     "windowHint": "10m 0s",
     "executors": 5,
-    "componentErrors":[{"time": 1406006074000,
+    "componentErrors":[{"errorTime": 1406006074000,
                         "errorHost": "10.11.1.70",
                         "errorPort": 6701,
                         "errorWorkerLogLink": "http://10.11.1.7:8000/log?file=worker-6701.log",
@@ -553,6 +559,7 @@ Sample response:
             "host": "10.11.1.7",
             "acked": 0,
             "uptime": "43m 4s",
+            "uptimeSeconds": 2584,
             "id": "[24-24]",
             "failed": 0
         },
@@ -565,6 +572,7 @@ Sample response:
             "host": "10.11.1.7",
             "acked": 0,
             "uptime": "42m 57s",
+            "uptimeSeconds": 2577,
             "id": "[25-25]",
             "failed": 0
         },
@@ -577,6 +585,7 @@ Sample response:
             "host": "10.11.1.7",
             "acked": 0,
             "uptime": "42m 57s",
+            "uptimeSeconds": 2577,
             "id": "[26-26]",
             "failed": 0
         },
@@ -589,6 +598,7 @@ Sample response:
             "host": "10.11.1.7",
             "acked": 0,
             "uptime": "43m 4s",
+            "uptimeSeconds": 2584,
             "id": "[27-27]",
             "failed": 0
         },
@@ -601,6 +611,7 @@ Sample response:
             "host": "10.11.1.7",
             "acked": 0,
             "uptime": "42m 57s",
+            "uptimeSeconds": 2577,
             "id": "[28-28]",
             "failed": 0
         }

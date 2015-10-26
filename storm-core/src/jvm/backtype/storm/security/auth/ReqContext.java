@@ -55,6 +55,13 @@ public class ReqContext {
         return ctxt.get();
     }
 
+    /**
+     * Reset the context back to a default.  used for testing.
+     */
+    public static void reset() {
+        ctxt.remove();
+    }
+
     //each thread will have its own request context
     private static final ThreadLocal < ReqContext > ctxt = 
             new ThreadLocal < ReqContext > () {

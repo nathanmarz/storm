@@ -17,7 +17,7 @@
   (:use [clojure test])
   (:import [backtype.storm Config])
   (:import [backtype.storm.topology TopologyBuilder])
-  (:import [backtype.storm.generated InvalidTopologyException SubmitOptions TopologyInitialStatus])
+  (:import [backtype.storm.generated InvalidTopologyException SubmitOptions TopologyInitialStatus RebalanceOptions])
   (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount
             TestAggregatesCounter TestConfBolt AckFailMapTracker AckTracker TestPlannerSpout])
   (:import [backtype.storm.tuple Fields])
@@ -105,6 +105,7 @@
                              "timeout-tester"
                              {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10}
                              topology)
+      (advance-cluster-time cluster 11)
       (.feed feeder ["a"] 1)
       (.feed feeder ["b"] 2)
       (.feed feeder ["c"] 3)
@@ -236,6 +237,7 @@
                              "acking-test1"
                              {}
                              (:topology tracked))
+      (advance-cluster-time cluster 11)
       (.feed feeder1 [1])
       (tracked-wait tracked 1)
       (checker1 0)
@@ -278,6 +280,7 @@
                              "test-acking2"
                              {}
                              (:topology tracked))
+      (advance-cluster-time cluster 11)
       (.feed feeder [1])
       (tracked-wait tracked 1)
       (checker 0)
@@ -323,6 +326,7 @@
         {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10}
         topology
         (SubmitOptions. TopologyInitialStatus/INACTIVE))
+      (advance-cluster-time cluster 11)
       (.feed feeder ["a"] 1)
       (advance-cluster-time cluster 9)
       (is (not @bolt-prepared?))
@@ -347,6 +351,7 @@
                              "test"
                              {}
                              (:topology tracked))
+      (advance-cluster-time cluster 11)
       (.feed feeder [1])
       (tracked-wait tracked 1)
       (checker 1)
@@ -568,6 +573,7 @@
                                               TOPOLOGY-DEBUG true
                                               }
                                              (:topology tracked))
+            _ (advance-cluster-time cluster 11)
             storm-id (get-storm-id state "test-errors")
             errors-count (fn [] (count (.errors state storm-id "2")))]
 

@@ -75,7 +75,7 @@
 
 (deftest launches-assignment
   (with-simulated-time-local-cluster [cluster :supervisors 0
-    :daemon-conf {NIMBUS-REASSIGN false
+    :daemon-conf {NIMBUS-DO-NOT-REASSIGN true
                   SUPERVISOR-WORKER-START-TIMEOUT-SECS 5
                   SUPERVISOR-WORKER-TIMEOUT-SECS 15
                   SUPERVISOR-MONITOR-FREQUENCY-SECS 3}]
@@ -85,23 +85,29 @@
                        {}))
       (bind sup1 (add-supervisor cluster :id "sup1" :ports [1 2 3 4]))
       (bind changed (capture-changed-workers
-                        (submit-mocked-assignment
-                          (:nimbus cluster)
-                          "test"
-                          {TOPOLOGY-WORKERS 3}
-                          topology
-                          {1 "1"
-                           2 "1"
-                           3 "1"
-                           4 "1"}
-                          {[1 1] ["sup1" 1]
-                           [2 2] ["sup1" 2]
-                           [3 3] ["sup1" 3]
-                           [4 4] ["sup1" 3]
-                           })
-                        (advance-cluster-time cluster 2)
-                        (heartbeat-workers cluster "sup1" [1 2 3])
-                        (advance-cluster-time cluster 10)))
+                      (submit-mocked-assignment
+                        (:nimbus cluster)
+                        (:storm-cluster-state cluster)
+                        "test"
+                        {TOPOLOGY-WORKERS 3}
+                        topology
+                        {1 "1"
+                         2 "1"
+                         3 "1"
+                         4 "1"}
+                        {[1 1] ["sup1" 1]
+                         [2 2] ["sup1" 2]
+                         [3 3] ["sup1" 3]
+                         [4 4] ["sup1" 3]}
+                        {["sup1" 1] [0.0 0.0 0.0]
+                         ["sup1" 2] [0.0 0.0 0.0]
+                         ["sup1" 3] [0.0 0.0 0.0]
+                         })
+                      ;; Instead of sleeping until topology is scheduled, rebalance topology so mk-assignments is called.
+                      (.rebalance (:nimbus cluster) "test" (doto (RebalanceOptions.) (.set_wait_secs 0)))
+                      (advance-cluster-time cluster 2)
+                      (heartbeat-workers cluster "sup1" [1 2 3])
+                      (advance-cluster-time cluster 10)))
       (bind storm-id (get-storm-id (:storm-cluster-state cluster) "test"))
       (is (empty? (:shutdown changed)))
       (validate-launched-once (:launched changed) {"sup1" [1 2 3]} storm-id)
@@ -122,7 +128,7 @@
 
 (deftest test-multiple-active-storms-multiple-supervisors
   (with-simulated-time-local-cluster [cluster :supervisors 0
-    :daemon-conf {NIMBUS-REASSIGN false
+    :daemon-conf {NIMBUS-DO-NOT-REASSIGN true
                   SUPERVISOR-WORKER-START-TIMEOUT-SECS 5
                   SUPERVISOR-WORKER-TIMEOUT-SECS 15
                   SUPERVISOR-MONITOR-FREQUENCY-SECS 3}]
@@ -136,44 +142,55 @@
       (bind sup1 (add-supervisor cluster :id "sup1" :ports [1 2 3 4]))
       (bind sup2 (add-supervisor cluster :id "sup2" :ports [1 2]))
       (bind changed (capture-changed-workers
-                        (submit-mocked-assignment
-                          (:nimbus cluster)
-                          "test"
-                          {TOPOLOGY-WORKERS 3 TOPOLOGY-MESSAGE-TIMEOUT-SECS 40}
-                          topology
-                          {1 "1"
-                           2 "1"
-                           3 "1"
-                           4 "1"}
-                          {[1 1] ["sup1" 1]
-                           [2 2] ["sup1" 2]
-                           [3 3] ["sup2" 1]
-                           [4 4] ["sup2" 1]
-                           })
-                        (advance-cluster-time cluster 2)
-                        (heartbeat-workers cluster "sup1" [1 2])
-                        (heartbeat-workers cluster "sup2" [1])
-                        ))
+                      (submit-mocked-assignment
+                        (:nimbus cluster)
+                        (:storm-cluster-state cluster)
+                        "test"
+                        {TOPOLOGY-WORKERS 3 TOPOLOGY-MESSAGE-TIMEOUT-SECS 40}
+                        topology
+                        {1 "1"
+                         2 "1"
+                         3 "1"
+                         4 "1"}
+                        {[1 1] ["sup1" 1]
+                         [2 2] ["sup1" 2]
+                         [3 3] ["sup2" 1]
+                         [4 4] ["sup2" 1]}
+                        {["sup1" 1] [0.0 0.0 0.0]
+                         ["sup1" 2] [0.0 0.0 0.0]
+                         ["sup2" 1] [0.0 0.0 0.0]
+                         })
+                      ;; Instead of sleeping until topology is scheduled, rebalance topology so mk-assignments is called.
+                      (.rebalance (:nimbus cluster) "test" (doto (RebalanceOptions.) (.set_wait_secs 0)))
+                      (advance-cluster-time cluster 2)
+                      (heartbeat-workers cluster "sup1" [1 2])
+                      (heartbeat-workers cluster "sup2" [1])
+                      ))
       (bind storm-id (get-storm-id (:storm-cluster-state cluster) "test"))
       (is (empty? (:shutdown changed)))
       (validate-launched-once (:launched changed) {"sup1" [1 2] "sup2" [1]} storm-id)
       (bind changed (capture-changed-workers
-                        (submit-mocked-assignment
-                          (:nimbus cluster)
-                          "test2"
-                          {TOPOLOGY-WORKERS 2}
-                          topology2
-                          {1 "1"
-                           2 "1"
-                           3 "1"}
-                          {[1 1] ["sup1" 3]
-                           [2 2] ["sup1" 3]
-                           [3 3] ["sup2" 2]
-                           })
-                        (advance-cluster-time cluster 2)
-                        (heartbeat-workers cluster "sup1" [3])
-                        (heartbeat-workers cluster "sup2" [2])
-                        ))
+                      (submit-mocked-assignment
+                        (:nimbus cluster)
+                        (:storm-cluster-state cluster)
+                        "test2"
+                        {TOPOLOGY-WORKERS 2}
+                        topology2
+                        {1 "1"
+                         2 "1"
+                         3 "1"}
+                        {[1 1] ["sup1" 3]
+                         [2 2] ["sup1" 3]
+                         [3 3] ["sup2" 2]}
+                        {["sup1" 3] [0.0 0.0 0.0]
+                         ["sup2" 2] [0.0 0.0 0.0]
+                         })
+                      ;; Instead of sleeping until topology is scheduled, rebalance topology so mk-assignments is called.
+                      (.rebalance (:nimbus cluster) "test2" (doto (RebalanceOptions.) (.set_wait_secs 0)))
+                      (advance-cluster-time cluster 2)
+                      (heartbeat-workers cluster "sup1" [3])
+                      (heartbeat-workers cluster "sup2" [2])
+                      ))
       (bind storm-id2 (get-storm-id (:storm-cluster-state cluster) "test2"))
       (is (empty? (:shutdown changed)))
       (validate-launched-once (:launched changed) {"sup1" [3] "sup2" [2]} storm-id2)
@@ -251,6 +268,7 @@
     (let [mock-port "42"
           mock-storm-id "fake-storm-id"
           mock-worker-id "fake-worker-id"
+          mock-mem-onheap 512
           mock-cp (str file-path-separator "base" class-path-separator file-path-separator "stormjar.jar")
           mock-sensitivity "S3"
           mock-cp "/base:/stormjar.jar"
@@ -263,6 +281,7 @@
                                 (str "-Dworker.port=" mock-port)
                                "-Dstorm.log.dir=/logs"
                                "-Dlog4j.configurationFile=/log4j2/worker.xml"
+                               "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector"
                                "backtype.storm.LogWriter"]
                                [(supervisor/java-cmd) "-server"]
                                opts
@@ -275,6 +294,7 @@
                                 (str "-Dstorm.log.dir=" file-path-separator "logs")
                                 (str "-Dlogging.sensitivity=" mock-sensitivity)
                                 (str "-Dlog4j.configurationFile=" file-path-separator "log4j2" file-path-separator "worker.xml")
+                                "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector"
                                 (str "-Dstorm.id=" mock-storm-id)
                                 (str "-Dworker.id=" mock-worker-id)
                                 (str "-Dworker.port=" mock-port)
@@ -302,7 +322,8 @@
             (supervisor/launch-worker mock-supervisor
                                       mock-storm-id
                                       mock-port
-                                      mock-worker-id)
+                                      mock-worker-id
+                                      mock-mem-onheap)
             (verify-first-call-args-for-indices launch-process
                                                 [0]
                                                 exp-args))))
@@ -323,7 +344,8 @@
             (supervisor/launch-worker mock-supervisor
                                       mock-storm-id
                                       mock-port
-                                      mock-worker-id)
+                                      mock-worker-id
+                                      mock-mem-onheap)
             (verify-first-call-args-for-indices launch-process
                                                 [0]
                                                 exp-args))))
@@ -341,7 +363,8 @@
                     (supervisor/launch-worker mock-supervisor
                                               mock-storm-id
                                               mock-port
-                                              mock-worker-id)
+                                              mock-worker-id
+                                              mock-mem-onheap)
                     (verify-first-call-args-for-indices launch-process
                                                         [0]
                                                         exp-args))))
@@ -360,7 +383,8 @@
                     (supervisor/launch-worker mock-supervisor
                                               mock-storm-id
                                               mock-port
-                                              mock-worker-id)
+                                              mock-worker-id
+                                              mock-mem-onheap)
                     (verify-first-call-args-for-indices launch-process
                                                         [2]
                                                         full-env)))))))
@@ -376,6 +400,7 @@
     (let [mock-port "42"
           mock-storm-id "fake-storm-id"
           mock-worker-id "fake-worker-id"
+          mock-mem-onheap 512
           mock-sensitivity "S3"
           mock-cp "mock-classpath'quote-on-purpose"
           storm-local (str "/tmp/" (UUID/randomUUID))
@@ -395,6 +420,7 @@
                                 " '-Dworker.port=" mock-port "'"
                                 " '-Dstorm.log.dir=/logs'"
                                 " '-Dlog4j.configurationFile=/log4j2/worker.xml'"
+                                " '-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector'"
                                 " 'backtype.storm.LogWriter'"
                                 " 'java' '-server'"
                                 " " (shell-cmd opts)
@@ -407,6 +433,7 @@
                                 " '-Dstorm.log.dir=/logs'"
                                 " '-Dlogging.sensitivity=" mock-sensitivity "'"
                                 " '-Dlog4j.configurationFile=/log4j2/worker.xml'"
+                                " '-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector'"
                                 " '-Dstorm.id=" mock-storm-id "'"
                                 " '-Dworker.id=" mock-worker-id "'"
                                 " '-Dworker.port=" mock-port "'"
@@ -439,7 +466,8 @@
             (supervisor/launch-worker mock-supervisor
                                       mock-storm-id
                                       mock-port
-                                      mock-worker-id)
+                                      mock-worker-id
+                                      mock-mem-onheap)
             (verify-first-call-args-for-indices launch-process
                                                 [0]
                                                 exp-launch))
@@ -465,7 +493,8 @@
             (supervisor/launch-worker mock-supervisor
                                       mock-storm-id
                                       mock-port
-                                      mock-worker-id)
+                                      mock-worker-id
+                                      mock-mem-onheap)
             (verify-first-call-args-for-indices launch-process
                                                 [0]
                                                 exp-launch))
@@ -554,9 +583,10 @@
     (let [worker-id "w-01"
           topology-id "s-01"
           port 9999
-          childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%ID%-%TOPOLOGY-ID%-%WORKER-ID%-%WORKER-PORT%.log -Xms256m"
-          expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-9999-s-01-w-01-9999.log" "-Xms256m")
-          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port)]
+          mem-onheap 512
+          childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%ID%-%TOPOLOGY-ID%-%WORKER-ID%-%WORKER-PORT%.log -Xms256m -Xmx%HEAP-MEM%m"
+          expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-9999-s-01-w-01-9999.log" "-Xms256m" "-Xmx512m")
+          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port mem-onheap)]
       (is (= expected-childopts childopts-with-ids)))))
 
 (deftest test-substitute-childopts-happy-path-list
@@ -564,9 +594,21 @@
     (let [worker-id "w-01"
           topology-id "s-01"
           port 9999
-          childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%ID%-%TOPOLOGY-ID%-%WORKER-ID%-%WORKER-PORT%.log" "-Xms256m")
-          expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-9999-s-01-w-01-9999.log" "-Xms256m")
-          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port)]
+          mem-onheap 512
+          childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%ID%-%TOPOLOGY-ID%-%WORKER-ID%-%WORKER-PORT%.log" "-Xms256m" "-Xmx%HEAP-MEM%m")
+          expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-9999-s-01-w-01-9999.log" "-Xms256m" "-Xmx512m")
+          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port mem-onheap)]
+      (is (= expected-childopts childopts-with-ids)))))
+
+(deftest test-substitute-childopts-happy-path-list-arraylist
+  (testing "worker-launcher replaces ids in childopts"
+    (let [worker-id "w-01"
+          topology-id "s-01"
+          port 9999
+          mem-onheap 512
+          childopts '["-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%ID%-%TOPOLOGY-ID%-%WORKER-ID%-%WORKER-PORT%.log" "-Xms256m" "-Xmx%HEAP-MEM%m"]
+          expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-9999-s-01-w-01-9999.log" "-Xms256m" "-Xmx512m")
+          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port mem-onheap)]
       (is (= expected-childopts childopts-with-ids)))))
 
 (deftest test-substitute-childopts-topology-id-alone
@@ -574,9 +616,10 @@
     (let [worker-id "w-01"
           topology-id "s-01"
           port 9999
+          mem-onheap 512
           childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%TOPOLOGY-ID%.log"
           expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-s-01.log")
-          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port)]
+          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port mem-onheap)]
       (is (= expected-childopts childopts-with-ids)))))
 
 (deftest test-substitute-childopts-no-keys
@@ -584,9 +627,10 @@
     (let [worker-id "w-01"
           topology-id "s-01"
           port 9999
+          mem-onheap 512
           childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker.log"
           expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker.log")
-          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port)]
+          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port mem-onheap)]
       (is (= expected-childopts childopts-with-ids)))))
 
 (deftest test-substitute-childopts-nil-childopts
@@ -594,9 +638,10 @@
     (let [worker-id "w-01"
           topology-id "s-01"
           port 9999
+          mem-onheap 512
           childopts nil
           expected-childopts nil
-          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port)]
+          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port mem-onheap)]
       (is (= expected-childopts childopts-with-ids)))))
 
 (deftest test-substitute-childopts-nil-ids
@@ -604,16 +649,17 @@
     (let [worker-id nil
           topology-id "s-01"
           port 9999
+          mem-onheap 512
           childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%ID%-%TOPOLOGY-ID%-%WORKER-ID%-%WORKER-PORT%.log"
           expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-9999-s-01--9999.log")
-          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port)]
+          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port mem-onheap)]
       (is (= expected-childopts childopts-with-ids)))))
 
 (deftest test-retry-read-assignments
   (with-simulated-time-local-cluster [cluster
                                       :supervisors 0
                                       :ports-per-supervisor 2
-                                      :daemon-conf {NIMBUS-REASSIGN false
+                                      :daemon-conf {NIMBUS-DO-NOT-REASSIGN true
                                                     NIMBUS-MONITOR-FREQ-SECS 10
                                                     TOPOLOGY-MESSAGE-TIMEOUT-SECS 30
                                                     TOPOLOGY-ACKER-EXECUTORS 0}]
@@ -629,25 +675,32 @@
      (bind changed (capture-changed-workers
                     (submit-mocked-assignment
                      (:nimbus cluster)
+                     (:storm-cluster-state cluster)
                      "topology1"
                      {TOPOLOGY-WORKERS 2}
                      topology1
                      {1 "1"
                       2 "1"}
                      {[1 1] ["sup1" 1]
-                      [2 2] ["sup1" 2]
+                      [2 2] ["sup1" 2]}
+                     {["sup1" 1] [0.0 0.0 0.0]
+                      ["sup1" 2] [0.0 0.0 0.0]
                       })
                     (submit-mocked-assignment
                      (:nimbus cluster)
+                     (:storm-cluster-state cluster)
                      "topology2"
                      {TOPOLOGY-WORKERS 2}
                      topology2
                      {1 "1"
                       2 "1"}
                      {[1 1] ["sup1" 1]
-                      [2 2] ["sup1" 2]
+                      [2 2] ["sup1" 2]}
+                     {["sup1" 1] [0.0 0.0 0.0]
+                      ["sup1" 2] [0.0 0.0 0.0]
                       })
-                    (advance-cluster-time cluster 10)
+                    ;; Instead of sleeping until topology is scheduled, rebalance topology so mk-assignments is called.
+                    (.rebalance (:nimbus cluster) "topology1" (doto (RebalanceOptions.) (.set_wait_secs 0)))
                     ))
      (is (empty? (:launched changed)))
      (bind options (RebalanceOptions.))

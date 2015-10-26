@@ -19,7 +19,8 @@
             InvalidTopologyException GlobalStreamId
             LSSupervisorId LSApprovedWorkers
             LSSupervisorAssignments LocalAssignment
-            ExecutorInfo LSWorkerHeartbeat])
+            ExecutorInfo LSWorkerHeartbeat
+            WorkerResources])
   (:import [backtype.storm.utils LocalState]))
 
 (def LS-WORKER-HEARTBEAT "worker-heartbeat")
@@ -59,18 +60,25 @@
       [(.get_task_start exec-info) (.get_task_end exec-info)])))
 
 (defn ->LocalAssignment
-  [{storm-id :storm-id executors :executors}]
-  (LocalAssignment. storm-id (->ExecutorInfo-list executors)))
+  [{storm-id :storm-id executors :executors resources :resources}]
+  (let [assignment (LocalAssignment. storm-id (->ExecutorInfo-list executors))]
+    (if resources (.set_resources assignment
+                                  (doto (WorkerResources. )
+                                    (.set_mem_on_heap (first resources))
+                                    (.set_mem_off_heap (second resources))
+                                    (.set_cpu (last resources)))))
+    assignment))
 
 (defn mk-local-assignment
-  [storm-id executors]
-  {:storm-id storm-id :executors executors})
+  [storm-id executors resources]
+  {:storm-id storm-id :executors executors :resources resources})
 
 (defn ->local-assignment
   [^LocalAssignment thrift-local-assignment]
     (mk-local-assignment
       (.get_topology_id thrift-local-assignment)
-      (->executor-list (.get_executors thrift-local-assignment))))
+      (->executor-list (.get_executors thrift-local-assignment))
+      (.get_resources thrift-local-assignment)))
 
 (defn ls-local-assignments!
   [^LocalState local-state assignments]

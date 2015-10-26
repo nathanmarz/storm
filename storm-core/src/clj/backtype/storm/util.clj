@@ -31,6 +31,7 @@
   (:import [java.lang.management ManagementFactory])
   (:import [org.apache.commons.exec DefaultExecutor CommandLine])
   (:import [org.apache.commons.io FileUtils])
+  (:import [backtype.storm.logging ThriftAccessLogger])
   (:import [org.apache.commons.exec ExecuteException])
   (:import [org.json.simple JSONValue])
   (:import [org.yaml.snakeyaml Yaml]
@@ -523,9 +524,10 @@
   ))
 
 (defnk launch-process
-  [command :environment {} :log-prefix nil :exit-code-callback nil]
+  [command :environment {} :log-prefix nil :exit-code-callback nil :directory nil]
   (let [builder (ProcessBuilder. command)
         process-env (.environment builder)]
+    (when directory (.directory builder directory))
     (.redirectErrorStream builder true)
     (doseq [[k v] environment]
       (.put process-env k v))
@@ -754,10 +756,6 @@
           my-elems (map first colls)
           rest-elems (apply interleave-all (map rest colls))]
       (concat my-elems rest-elems))))
-
-(defn update
-  [m k afn]
-  (assoc m k (afn (get m k))))
 
 (defn any-intersection
   [& sets]
@@ -1073,3 +1071,7 @@
     (assoc coll k (apply str (repeat (count (coll k)) "#")))
     coll))
 
+(defn log-thrift-access [request-id remoteAddress principal operation]
+  (doto
+    (ThriftAccessLogger.)
+    (.log (str "Request ID: " request-id " access from: " remoteAddress " principal: " principal " operation: " operation))))

@@ -20,6 +20,7 @@
   (:import [backtype.storm.transactional TransactionalSpoutCoordinator ITransactionalSpout ITransactionalSpout$Coordinator TransactionAttempt
             TransactionalTopologyBuilder])
   (:import [backtype.storm.transactional.state TransactionalState TestTransactionalState RotatingTransactionalState RotatingTransactionalState$StateInitializer])
+  (:import [backtype.storm.generated RebalanceOptions])
   (:import [backtype.storm.spout SpoutOutputCollector ISpoutOutputCollector])
   (:import [backtype.storm.task OutputCollector IOutputCollector])
   (:import [backtype.storm.coordination BatchBoltExecutor])
@@ -411,7 +412,7 @@
                               "transactional-test"
                               {TOPOLOGY-MAX-SPOUT-PENDING 2}
                               (:topology topo-info))
-
+       (advance-cluster-time cluster 11)
        (bind ack-tx! (fn [txid]
                        (let [[to-ack not-to-ack] (separate
                                                   #(-> %
@@ -666,7 +667,7 @@
                               {TOPOLOGY-MAX-SPOUT-PENDING 2
                                }
                               (:topology topo-info))
-
+       (advance-cluster-time cluster 11)
        (bind ack-tx! (fn [txid]
                        (let [[to-ack not-to-ack] (separate
                                                   #(-> %

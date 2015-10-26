@@ -17,10 +17,14 @@
  */
 package org.apache.storm.hdfs.bolt;
 
+import backtype.storm.Config;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseRichBolt;
+import backtype.storm.tuple.Tuple;
+import backtype.storm.utils.TupleUtils;
+import backtype.storm.utils.Utils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -35,12 +39,15 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.Map;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
 public abstract class AbstractHdfsBolt extends BaseRichBolt {
     private static final Logger LOG = LoggerFactory.getLogger(AbstractHdfsBolt.class);
+    private static final Integer DEFAULT_RETRY_COUNT = 3;
 
     protected ArrayList<RotationAction> rotationActions = new ArrayList<RotationAction>();
     private Path currentFile;
@@ -54,6 +61,10 @@ public abstract class AbstractHdfsBolt extends BaseRichBolt {
     protected String configKey;
     protected transient Object writeLock;
     protected transient Timer rotationTimer; // only used for TimedRotationPolicy
+    private List<Tuple> tupleBatch = new LinkedList<>();
+    protected long offset = 0;
+    protected Integer fileRetryCount = DEFAULT_RETRY_COUNT;
+    protected Integer tickTupleInterval = 0;
 
     protected transient Configuration hdfsConfig;
 
@@ -99,6 +110,13 @@ public abstract class AbstractHdfsBolt extends BaseRichBolt {
             }
         }
 
+        // If interval is non-zero then it has already been explicitly set and we should not default it
+        if (conf.containsKey("topology.message.timeout.secs") && tickTupleInterval == 0)
+        {
+            Integer topologyTimeout = Utils.getInt(conf.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS));
+            tickTupleInterval = (int)(Math.floor(topologyTimeout / 2));
+            LOG.debug("Setting tick tuple interval to [{}] based on topology timeout", tickTupleInterval);
+        }
 
         try{
             HdfsSecurityUtil.login(conf, hdfsConfig);
@@ -127,8 +145,111 @@ public abstract class AbstractHdfsBolt extends BaseRichBolt {
     }
 
     @Override
+    public final void execute(Tuple tuple) {
+
+        synchronized (this.writeLock) {
+            boolean forceSync = false;
+            if (TupleUtils.isTick(tuple)) {
+                LOG.debug("TICK! forcing a file system flush");
+                forceSync = true;
+            } else {
+                try {
+                    writeTuple(tuple);
+                    tupleBatch.add(tuple);
+                } catch (IOException e) {
+                    //If the write failed, try to sync anything already written
+                    LOG.info("Tuple failed to write, forcing a flush of existing data.");
+                    this.collector.reportError(e);
+                    forceSync = true;
+                    this.collector.fail(tuple);
+                }
+            }
+
+            if (this.syncPolicy.mark(tuple, this.offset) || (forceSync && tupleBatch.size() > 0)) {
+                int attempts = 0;
+                boolean success = false;
+                IOException lastException = null;
+                // Make every attempt to sync the data we have.  If it can't be done then kill the bolt with
+                // a runtime exception.  The filesystem is presumably in a very bad state.
+                while (success == false && attempts < fileRetryCount) {
+                    attempts += 1;
+                    try {
+                        syncTuples();
+                        LOG.debug("Data synced to filesystem. Ack'ing [{}] tuples", tupleBatch.size());
+                        for (Tuple t : tupleBatch) {
+                            this.collector.ack(t);
+                        }
+                        tupleBatch.clear();
+                        syncPolicy.reset();
+                        success = true;
+                    } catch (IOException e) {
+                        LOG.warn("Data could not be synced to filesystem on attempt [{}]", attempts);
+                        this.collector.reportError(e);
+                        lastException = e;
+                    }
+                }
+
+                // If unsuccesful fail the pending tuples
+                if (success == false) {
+                    LOG.warn("Data could not be synced to filesystem, failing this batch of tuples");
+                    for (Tuple t : tupleBatch) {
+                        this.collector.fail(t);
+                    }
+                    tupleBatch.clear();
+
+                    throw new RuntimeException("Sync failed [" + attempts + "] times.", lastException);
+                }
+            }
+
+            if(this.rotationPolicy.mark(tuple, this.offset)) {
+                try {
+                    rotateOutputFile();
+                    this.rotationPolicy.reset();
+                    this.offset = 0;
+                } catch (IOException e) {
+                    this.collector.reportError(e);
+                    LOG.warn("File could not be rotated");
+                    //At this point there is nothing to do.  In all likelihood any filesystem operations will fail.
+                    //The next tuple will almost certainly fail to write and/or sync, which force a rotation.  That
+                    //will give rotateAndReset() a chance to work which includes creating a fresh file handle.
+                }
+            }
+        }
+    }
+
+    @Override
+    public Map<String, Object> getComponentConfiguration() {
+        Map<String, Object> conf = super.getComponentConfiguration();
+        if (conf == null)
+            conf = new Config();
+
+        if (tickTupleInterval > 0) {
+            LOG.info("Enabling tick tuple with interval [{}]", tickTupleInterval);
+            conf.put(Config.TOPOLOGY_TICK_TUPLE_FREQ_SECS, tickTupleInterval);
+        }
+
+        return conf;
+    }
+
+    @Override
     public void declareOutputFields(OutputFieldsDeclarer outputFieldsDeclarer) {
     }
+
+    /**
+     * writes a tuple to the underlying filesystem but makes no guarantees about syncing data
+     * @param tuple
+     * @throws IOException
+     */
+    abstract void writeTuple(Tuple tuple) throws IOException;
+
+    /**
+     * Make the best effort to sync written data to the underlying file system.  Concrete classes should very clearly
+     * state the file state that sync guarantees.  For example, HdfsBolt can make a much stronger guarantee than
+     * SequenceFileBolt.
+     *
+     * @throws IOException
+     */
+    abstract void syncTuples() throws IOException;
 
     abstract void closeOutputFile() throws IOException;
 

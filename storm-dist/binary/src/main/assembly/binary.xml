@@ -30,38 +30,6 @@
             <useProjectArtifact>false</useProjectArtifact>
             <outputDirectory>lib</outputDirectory>
             <unpack>false</unpack>
-            <excludes>
-                <exclude>org.apache.thrift:*</exclude>
-                <exclude>io.netty:netty</exclude>
-                <exclude>com.google.guava:guava</exclude>
-                <exclude>org.apache.httpcomponents:http*</exclude>
-                <exclude>org.apache.zookeeper:zookeeper</exclude>
-                <exclude>org.apache.curator:*</exclude>
-                <exclude>org.apache.httpcomponents:http*</exclude>
-                <exclude>org.apache.zookeeper:zookeeper</exclude>
-                <exclude>org.apache.curator:*</exclude>
-                <exclude>com.twitter:carbonite</exclude>
-                <exclude>com.twitter:chill-java</exclude>
-                <exclude>org.objenesis:objenesis</exclude>
-                <exclude>org.tukaani:xz</exclude>
-                <exclude>org.yaml:snakeyaml</exclude>
-                <exclude>org.jgrapht:jgrapht-core</exclude>
-                <exclude>commons-httpclient:commons-httpclient</exclude>
-                <exclude>org.apache.commons:commons-compress</exclude>
-                <exclude>org.apache.commons:commons-exec</exclude>
-                <exclude>commons-io:commons-io</exclude>
-                <exclude>commons-codec:commons-codec</exclude>
-                <exclude>commons-fileupload:commons-fileupload</exclude>
-                <exclude>commons-lang:commons-lang</exclude>
-                <exclude>com.googlecode.json-simple:json-simple</exclude>
-                <exclude>org.clojure:math.numeric-tower</exclude>
-                <exclude>org.clojure:tools.cli</exclude>
-                <exclude>org.clojure:tools.macro</exclude>
-                <exclude>joda-time:joda-time</exclude>
-                <exclude>org.eclipse.jetty:*</exclude>
-                <exclude>com.fasterxml.jackson.core:*</exclude>
-                <exclude>com.fasterxml.jackson.dataformat:*</exclude>
-            </excludes>
         </dependencySet>
     </dependencySets>
 

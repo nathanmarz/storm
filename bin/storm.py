@@ -277,6 +277,39 @@ def activate(*args):
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
 
+def set_log_level(*args):
+    """
+    Dynamically change topology log levels
+
+    Syntax: [storm set_log_level -l [logger name]=[log level][:optional timeout] -r [logger name]
+    where log level is one of:
+        ALL, TRACE, DEBUG, INFO, WARN, ERROR, FATAL, OFF
+    and timeout is integer seconds.
+
+    e.g.
+        ./bin/storm set_log_level -l ROOT=DEBUG:30
+
+        Set the root logger's level to DEBUG for 30 seconds
+
+        ./bin/storm set_log_level -l com.myapp=WARN
+
+        Set the com.myapp logger's level to WARN for 30 seconds
+
+        ./bin/storm set_log_level -l com.myapp=WARN -l com.myOtherLogger=ERROR:123
+
+        Set the com.myapp logger's level to WARN indifinitely, and com.myOtherLogger
+        to ERROR for 123 seconds
+
+        ./bin/storm set_log_level -r com.myOtherLogger
+
+        Clears settings, resetting back to the original level
+    """
+    exec_storm_class(
+        "backtype.storm.command.set_log_level",
+        args=args,
+        jvmtype="-client",
+        extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
+
 def listtopos(*args):
     """Syntax: [storm list]
 
@@ -348,6 +381,19 @@ def get_errors(*args):
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, os.path.join(STORM_DIR, "bin")])
 
+def kill_workers(*args):
+    """Syntax: [storm kill_workers]
+
+    Kill the workers running on this supervisor. This command should be run
+    on a supervisor node. If the cluster is running in secure mode, then user needs
+    to have admin rights on the node to be able to successfully kill all workers.
+    """
+    exec_storm_class(
+        "backtype.storm.command.kill_workers",
+        args=args,
+        jvmtype="-client",
+        extrajars=[USER_CONF_DIR, os.path.join(STORM_DIR, "bin")])
+
 def shell(resourcesdir, command, *args):
     tmpjarpath = "stormshell" + str(random.randint(0, 10000000)) + ".jar"
     os.system("jar cf %s %s" % (tmpjarpath, resourcesdir))
@@ -375,6 +421,8 @@ def get_log4j2_conf_dir():
     storm_log4j2_conf_dir = confvalue("storm.log4j2.conf.dir", cppaths)
     if(storm_log4j2_conf_dir == None or storm_log4j2_conf_dir == "nil"):
         storm_log4j2_conf_dir = STORM_LOG4J2_CONF_DIR
+    elif(not os.path.isabs(storm_log4j2_conf_dir)):
+        storm_log4j2_conf_dir = os.path.join(STORM_DIR, storm_log4j2_conf_dir)
     return storm_log4j2_conf_dir
 
 def nimbus(klass="backtype.storm.daemon.nimbus"):
@@ -561,7 +609,8 @@ COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui
             "remoteconfvalue": print_remoteconfvalue, "repl": repl, "classpath": print_classpath,
             "activate": activate, "deactivate": deactivate, "rebalance": rebalance, "help": print_usage,
             "list": listtopos, "dev-zookeeper": dev_zookeeper, "version": version, "monitor": monitor,
-            "upload-credentials": upload_credentials, "get-errors": get_errors }
+            "upload-credentials": upload_credentials, "get-errors": get_errors, "set_log_level": set_log_level,
+            "kill_workers": kill_workers }
 
 def parse_config(config_list):
     global CONFIG_OPTS

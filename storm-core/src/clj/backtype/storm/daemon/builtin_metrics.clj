@@ -14,41 +14,42 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns backtype.storm.daemon.builtin-metrics
-  (:import [backtype.storm.metric.api MultiCountMetric MultiReducedMetric CountMetric MeanReducer StateMetric IMetric IStatefulObject])
+  (:import [backtype.storm.metric.api CountMetric StateMetric IMetric IStatefulObject])
+  (:import [backtype.storm.metric.internal MultiCountStatAndMetric MultiLatencyStatAndMetric])
   (:import [backtype.storm Config])
-  (:use [backtype.storm.stats :only [stats-rate]]))
+  (:use [backtype.storm.stats]))
 
-(defrecord BuiltinSpoutMetrics [^MultiCountMetric ack-count                                
-                                ^MultiReducedMetric complete-latency
-                                ^MultiCountMetric fail-count
-                                ^MultiCountMetric emit-count
-                                ^MultiCountMetric transfer-count])
-(defrecord BuiltinBoltMetrics [^MultiCountMetric ack-count
-                               ^MultiReducedMetric process-latency
-                               ^MultiCountMetric fail-count
-                               ^MultiCountMetric execute-count
-                               ^MultiReducedMetric execute-latency
-                               ^MultiCountMetric emit-count
-                               ^MultiCountMetric transfer-count])
+(defrecord BuiltinSpoutMetrics [^MultiCountStatAndMetric ack-count
+                                ^MultiLatencyStatAndMetric complete-latency
+                                ^MultiCountStatAndMetric fail-count
+                                ^MultiCountStatAndMetric emit-count
+                                ^MultiCountStatAndMetric transfer-count])
+(defrecord BuiltinBoltMetrics [^MultiCountStatAndMetric ack-count
+                               ^MultiLatencyStatAndMetric process-latency
+                               ^MultiCountStatAndMetric fail-count
+                               ^MultiCountStatAndMetric execute-count
+                               ^MultiLatencyStatAndMetric execute-latency
+                               ^MultiCountStatAndMetric emit-count
+                               ^MultiCountStatAndMetric transfer-count])
 (defrecord SpoutThrottlingMetrics [^CountMetric skipped-max-spout
                                    ^CountMetric skipped-throttle
                                    ^CountMetric skipped-inactive])
 
 
-(defn make-data [executor-type]
+(defn make-data [executor-type stats]
   (condp = executor-type
-    :spout (BuiltinSpoutMetrics. (MultiCountMetric.)
-                                 (MultiReducedMetric. (MeanReducer.))
-                                 (MultiCountMetric.)
-                                 (MultiCountMetric.)
-                                 (MultiCountMetric.))
-    :bolt (BuiltinBoltMetrics. (MultiCountMetric.)
-                               (MultiReducedMetric. (MeanReducer.))
-                               (MultiCountMetric.)
-                               (MultiCountMetric.)
-                               (MultiReducedMetric. (MeanReducer.))
-                               (MultiCountMetric.)
-                               (MultiCountMetric.))))
+    :spout (BuiltinSpoutMetrics. (stats-acked stats)
+                                 (stats-complete-latencies stats)
+                                 (stats-failed stats)
+                                 (stats-emitted stats)
+                                 (stats-transferred stats))
+    :bolt (BuiltinBoltMetrics. (stats-acked stats)
+                               (stats-process-latencies stats)
+                               (stats-failed stats)
+                               (stats-executed stats)
+                               (stats-execute-latencies stats)
+                               (stats-emitted stats)
+                               (stats-transferred stats))))
 
 (defn make-spout-throttling-data []
   (SpoutThrottlingMetrics. (CountMetric.)
@@ -86,33 +87,6 @@
   (doseq [[qname q] queues]
     (.registerMetric topology-context (str "__" (name qname)) (StateMetric. q)
                      (int (get storm-conf Config/TOPOLOGY_BUILTIN_METRICS_BUCKET_SIZE_SECS)))))
-
-(defn spout-acked-tuple! [^BuiltinSpoutMetrics m stats stream latency-ms]  
-  (-> m .ack-count (.scope stream) (.incrBy (stats-rate stats)))
-  (-> m .complete-latency (.scope stream) (.update latency-ms)))
-
-(defn spout-failed-tuple! [^BuiltinSpoutMetrics m stats stream]  
-  (-> m .fail-count (.scope stream) (.incrBy (stats-rate stats))))
-
-(defn bolt-execute-tuple! [^BuiltinBoltMetrics m stats comp-id stream latency-ms]
-  (let [scope (str comp-id ":" stream)]    
-    (-> m .execute-count (.scope scope) (.incrBy (stats-rate stats)))
-    (-> m .execute-latency (.scope scope) (.update latency-ms))))
-
-(defn bolt-acked-tuple! [^BuiltinBoltMetrics m stats comp-id stream latency-ms]
-  (let [scope (str comp-id ":" stream)]
-    (-> m .ack-count (.scope scope) (.incrBy (stats-rate stats)))
-    (-> m .process-latency (.scope scope) (.update latency-ms))))
-
-(defn bolt-failed-tuple! [^BuiltinBoltMetrics m stats comp-id stream]
-  (let [scope (str comp-id ":" stream)]    
-    (-> m .fail-count (.scope scope) (.incrBy (stats-rate stats)))))
-
-(defn emitted-tuple! [m stats stream]
-  (-> m :emit-count (.scope stream) (.incrBy (stats-rate stats))))
-
-(defn transferred-tuple! [m stats stream num-out-tasks]
-  (-> m :transfer-count (.scope stream) (.incrBy (* num-out-tasks (stats-rate stats)))))
 
 (defn skipped-max-spout! [^SpoutThrottlingMetrics m stats]
   (-> m .skipped-max-spout (.incrBy (stats-rate stats))))

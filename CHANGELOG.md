@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-566: Improve documentation including incorrect Kryo ser. framework docs
  * STORM-1073: Refactor AbstractHdfsBolt
  * STORM-1128: Make metrics fast
  * STORM-1122: Fix the format issue in Utils.java

@@ -26,6 +26,8 @@
   (:import [java.util.zip ZipFile])
   (:import [java.util.concurrent.locks ReentrantReadWriteLock])
   (:import [java.util.concurrent Semaphore])
+  (:import [java.nio.file Files Paths])
+  (:import [java.nio.file.attribute FileAttribute])
   (:import [java.io File FileOutputStream RandomAccessFile StringWriter
             PrintWriter BufferedReader InputStreamReader IOException])
   (:import [java.lang.management ManagementFactory])
@@ -580,6 +582,21 @@
     (when-not success?
       (throw (RuntimeException. (str "Failed to touch " path))))))
 
+(defn create-symlink!
+  "Create symlink is to the target"
+  ([path-dir target-dir file-name]
+    (create-symlink! path-dir target-dir file-name file-name))
+  ([path-dir target-dir from-file-name to-file-name]
+    (let [path (str path-dir file-path-separator from-file-name)
+          target (str target-dir file-path-separator to-file-name)
+          empty-array (make-array String 0)
+          attrs (make-array FileAttribute 0)
+          abs-path (.toAbsolutePath (Paths/get path empty-array))
+          abs-target (.toAbsolutePath (Paths/get target empty-array))]
+      (log-message "Creating symlink [" abs-path "] to [" abs-target "]")
+      (if (not (.exists (.toFile abs-path)))
+        (Files/createSymbolicLink abs-path abs-target attrs)))))
+
 (defn read-dir-contents
   [dir]
   (if (exists-file? dir)
@@ -1019,27 +1036,13 @@
   (.getCanonicalPath 
                 (clojure.java.io/file (System/getProperty "storm.home") "logs")))
 
-(defn- logs-rootname
-  ([storm-id port] (logs-rootname storm-id port "-worker-"))
-  ([storm-id port type] (str storm-id type port)))
-
 (defn logs-filename
-  ([storm-id port] (str (logs-rootname storm-id port) ".log"))
-  ([storm-id port type] (str (logs-rootname storm-id port type) ".log")))
+  [storm-id port]
+  (str storm-id file-path-separator port file-path-separator "worker.log"))
 
-(defn event-logs-filename [storm-id port] (logs-filename storm-id port "-events-"))
-
-(defn logs-metadata-filename [storm-id port]
-  (str (logs-rootname storm-id port) ".yaml"))
-
-(def worker-log-filename-pattern #"^((.*-\d+-\d+)-worker-(\d+))\.log")
-
-(defn get-log-metadata-file
-  ([fname]
-    (if-let [[_ _ id port] (re-matches worker-log-filename-pattern fname)]
-      (get-log-metadata-file id port)))
-  ([id port]
-    (clojure.java.io/file LOG-DIR "metadata" (logs-metadata-filename id port))))
+(defn event-logs-filename
+  [storm-id port]
+  (str storm-id file-path-separator port file-path-separator "events.log"))
 
 (defn clojure-from-yaml-file [yamlFile]
   (try

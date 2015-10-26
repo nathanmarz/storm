@@ -273,12 +273,13 @@
           mock-sensitivity "S3"
           mock-cp "/base:/stormjar.jar"
           exp-args-fn (fn [opts topo-opts classpath]
-                       (concat [(supervisor/java-cmd) "-cp" classpath 
-                               (str "-Dlogfile.name=" mock-storm-id "-worker-" mock-port ".log")
+                       (concat [(supervisor/java-cmd) "-cp" classpath
+                               (str "-Dlogfile.name=" "worker.log")
                                "-Dstorm.home="
-                                (str "-Dstorm.id=" mock-storm-id)
-                                (str "-Dworker.id=" mock-worker-id)
-                                (str "-Dworker.port=" mock-port)
+                               (str "-Dworkers.artifacts=" "/tmp/workers-artifacts")
+                               (str "-Dstorm.id=" mock-storm-id)
+                               (str "-Dworker.id=" mock-worker-id)
+                               (str "-Dworker.port=" mock-port)
                                "-Dstorm.log.dir=/logs"
                                "-Dlog4j.configurationFile=/log4j2/worker.xml"
                                "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector"
@@ -287,8 +288,9 @@
                                opts
                                topo-opts
                                ["-Djava.library.path="
-                                (str "-Dlogfile.name=" mock-storm-id "-worker-" mock-port ".log")
+                                (str "-Dlogfile.name=" "worker.log")
                                 "-Dstorm.home="
+                                "-Dworkers.artifacts=/tmp/workers-artifacts"
                                 "-Dstorm.conf.file="
                                 "-Dstorm.options="
                                 (str "-Dstorm.log.dir=" file-path-separator "logs")
@@ -318,6 +320,7 @@
                      launch-process nil
                      set-worker-user! nil
                      supervisor/jlp nil
+                     worker-artifacts-root "/tmp/workers-artifacts"
                      supervisor/write-log-metadata! nil]
             (supervisor/launch-worker mock-supervisor
                                       mock-storm-id
@@ -340,6 +343,7 @@
                      launch-process nil
                      set-worker-user! nil
                      supervisor/jlp nil
+                     worker-artifacts-root "/tmp/workers-artifacts"
                      supervisor/write-log-metadata! nil]
             (supervisor/launch-worker mock-supervisor
                                       mock-storm-id
@@ -356,6 +360,7 @@
           (stubbing [read-supervisor-storm-conf {TOPOLOGY-CLASSPATH topo-cp}
                      supervisor-stormdist-root nil
                      supervisor/jlp nil
+                     worker-artifacts-root "/tmp/workers-artifacts"
                      set-worker-user! nil
                      supervisor/write-log-metadata! nil
                      launch-process nil
@@ -376,6 +381,7 @@
           (stubbing [read-supervisor-storm-conf {TOPOLOGY-ENVIRONMENT topo-env}
                      supervisor-stormdist-root nil
                      supervisor/jlp nil
+                     worker-artifacts-root "/tmp/workers-artifacts"
                      launch-process nil
                      set-worker-user! nil
                      supervisor/write-log-metadata! nil
@@ -411,96 +417,99 @@
                       (str storm-local "/workers/" mock-worker-id)
                       worker-script]
           exp-script-fn (fn [opts topo-opts]
-                       (str "#!/bin/bash\n'export' 'LD_LIBRARY_PATH=';\n\nexec 'java'"
-                                " '-cp' 'mock-classpath'\"'\"'quote-on-purpose'"
-                                " '-Dlogfile.name=" mock-storm-id "-worker-" mock-port ".log'"
-                                " '-Dstorm.home='"
-                                " '-Dstorm.id=" mock-storm-id "'"
-                                " '-Dworker.id=" mock-worker-id "'"
-                                " '-Dworker.port=" mock-port "'"
-                                " '-Dstorm.log.dir=/logs'"
-                                " '-Dlog4j.configurationFile=/log4j2/worker.xml'"
-                                " '-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector'"
-                                " 'backtype.storm.LogWriter'"
-                                " 'java' '-server'"
-                                " " (shell-cmd opts)
-                                " " (shell-cmd topo-opts)
-                                " '-Djava.library.path='"
-                                " '-Dlogfile.name=" mock-storm-id "-worker-" mock-port ".log'"
-                                " '-Dstorm.home='"
-                                " '-Dstorm.conf.file='"
-                                " '-Dstorm.options='"
-                                " '-Dstorm.log.dir=/logs'"
-                                " '-Dlogging.sensitivity=" mock-sensitivity "'"
-                                " '-Dlog4j.configurationFile=/log4j2/worker.xml'"
-                                " '-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector'"
-                                " '-Dstorm.id=" mock-storm-id "'"
-                                " '-Dworker.id=" mock-worker-id "'"
-                                " '-Dworker.port=" mock-port "'"
-                                " '-cp' 'mock-classpath'\"'\"'quote-on-purpose'"
-                                " 'backtype.storm.daemon.worker'"
-                                " '" mock-storm-id "'"
-                                " '" mock-port "'"
-                                " '" mock-worker-id "';"))]
+                          (str "#!/bin/bash\n'export' 'LD_LIBRARY_PATH=';\n\nexec 'java'"
+                               " '-cp' 'mock-classpath'\"'\"'quote-on-purpose'"
+                               " '-Dlogfile.name=" "worker.log'"
+                               " '-Dstorm.home='"
+                               " '-Dworkers.artifacts=" (str storm-local "/workers-artifacts'")
+                               " '-Dstorm.id=" mock-storm-id "'"
+                               " '-Dworker.id=" mock-worker-id "'"
+                               " '-Dworker.port=" mock-port "'"
+                               " '-Dstorm.log.dir=/logs'"
+                               " '-Dlog4j.configurationFile=/log4j2/worker.xml'"
+                               " '-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector'"
+                               " 'backtype.storm.LogWriter'"
+                               " 'java' '-server'"
+                               " " (shell-cmd opts)
+                               " " (shell-cmd topo-opts)
+                               " '-Djava.library.path='"
+                               " '-Dlogfile.name=" "worker.log'"
+                               " '-Dstorm.home='"
+                               " '-Dworkers.artifacts=" (str storm-local "/workers-artifacts'")
+                               " '-Dstorm.conf.file='"
+                               " '-Dstorm.options='"
+                               " '-Dstorm.log.dir=/logs'"
+                               " '-Dlogging.sensitivity=" mock-sensitivity "'"
+                               " '-Dlog4j.configurationFile=/log4j2/worker.xml'"
+                               " '-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector'"
+                               " '-Dstorm.id=" mock-storm-id "'"
+                               " '-Dworker.id=" mock-worker-id "'"
+                               " '-Dworker.port=" mock-port "'"
+                               " '-cp' 'mock-classpath'\"'\"'quote-on-purpose'"
+                               " 'backtype.storm.daemon.worker'"
+                               " '" mock-storm-id "'"
+                               " '" mock-port "'"
+                               " '" mock-worker-id "';"))]
       (.mkdirs (io/file storm-local "workers" mock-worker-id))
       (try
-      (testing "testing *.worker.childopts as strings with extra spaces"
-        (let [string-opts "-Dfoo=bar  -Xmx1024m"
-              topo-string-opts "-Dkau=aux   -Xmx2048m"
-              exp-script (exp-script-fn ["-Dfoo=bar" "-Xmx1024m"]
-                                    ["-Dkau=aux" "-Xmx2048m"])
-              mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed
-                                      STORM-LOCAL-DIR storm-local
-                                      SUPERVISOR-RUN-WORKER-AS-USER true
-                                      WORKER-CHILDOPTS string-opts}}]
-          (stubbing [read-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
-                                                 topo-string-opts
-                                                 TOPOLOGY-SUBMITTER-USER "me"}
-                     add-to-classpath mock-cp
-                     supervisor-stormdist-root nil
-                     launch-process nil
-                     set-worker-user! nil
-                     supervisor/java-cmd "java"
-                     supervisor/jlp nil
-                     supervisor/write-log-metadata! nil]
-            (supervisor/launch-worker mock-supervisor
-                                      mock-storm-id
-                                      mock-port
-                                      mock-worker-id
-                                      mock-mem-onheap)
-            (verify-first-call-args-for-indices launch-process
-                                                [0]
-                                                exp-launch))
-          (is (= (slurp worker-script) exp-script))))
-      (testing "testing *.worker.childopts as list of strings, with spaces in values"
-        (let [list-opts '("-Dopt1='this has a space in it'" "-Xmx1024m")
-              topo-list-opts '("-Dopt2='val with spaces'" "-Xmx2048m")
-              exp-script (exp-script-fn list-opts topo-list-opts)
-              mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed
-                                      STORM-LOCAL-DIR storm-local
-                                      SUPERVISOR-RUN-WORKER-AS-USER true
-                                      WORKER-CHILDOPTS list-opts}}]
-          (stubbing [read-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
-                                                 topo-list-opts
-                                                 TOPOLOGY-SUBMITTER-USER "me"}
-                     add-to-classpath mock-cp
-                     supervisor-stormdist-root nil
-                     launch-process nil
-                     set-worker-user! nil
-                     supervisor/java-cmd "java"
-                     supervisor/jlp nil
-                     supervisor/write-log-metadata! nil]
-            (supervisor/launch-worker mock-supervisor
-                                      mock-storm-id
-                                      mock-port
-                                      mock-worker-id
-                                      mock-mem-onheap)
-            (verify-first-call-args-for-indices launch-process
-                                                [0]
-                                                exp-launch))
-          (is (= (slurp worker-script) exp-script))))
-(finally (rm-r (io/file storm-local)))
-))))
+        (testing "testing *.worker.childopts as strings with extra spaces"
+          (let [string-opts "-Dfoo=bar  -Xmx1024m"
+                topo-string-opts "-Dkau=aux   -Xmx2048m"
+                exp-script (exp-script-fn ["-Dfoo=bar" "-Xmx1024m"]
+                                          ["-Dkau=aux" "-Xmx2048m"])
+                mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed
+                                        STORM-LOCAL-DIR storm-local
+                                        SUPERVISOR-RUN-WORKER-AS-USER true
+                                        WORKER-CHILDOPTS string-opts}}]
+            (stubbing [read-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
+                                                   topo-string-opts
+                                                   TOPOLOGY-SUBMITTER-USER "me"}
+                       add-to-classpath mock-cp
+                       supervisor-stormdist-root nil
+                       launch-process nil
+                       set-worker-user! nil
+                       supervisor/java-cmd "java"
+                       supervisor/jlp nil
+                       supervisor/write-log-metadata! nil]
+                      (supervisor/launch-worker mock-supervisor
+                                                mock-storm-id
+                                                mock-port
+                                                mock-worker-id
+                                                mock-mem-onheap)
+                      (verify-first-call-args-for-indices launch-process
+                                                          [0]
+                                                          exp-launch))
+            (is (= (slurp worker-script) exp-script))))
+        (finally (rm-r (io/file storm-local))))
+      (try
+        (testing "testing *.worker.childopts as list of strings, with spaces in values"
+          (let [list-opts '("-Dopt1='this has a space in it'" "-Xmx1024m")
+                topo-list-opts '("-Dopt2='val with spaces'" "-Xmx2048m")
+                exp-script (exp-script-fn list-opts topo-list-opts)
+                mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed
+                                        STORM-LOCAL-DIR storm-local
+                                        SUPERVISOR-RUN-WORKER-AS-USER true
+                                        WORKER-CHILDOPTS list-opts}}]
+            (stubbing [read-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
+                                                   topo-list-opts
+                                                   TOPOLOGY-SUBMITTER-USER "me"}
+                       add-to-classpath mock-cp
+                       supervisor-stormdist-root nil
+                       launch-process nil
+                       set-worker-user! nil
+                       supervisor/java-cmd "java"
+                       supervisor/jlp nil
+                       supervisor/write-log-metadata! nil]
+                      (supervisor/launch-worker mock-supervisor
+                                                mock-storm-id
+                                                mock-port
+                                                mock-worker-id
+                                                mock-mem-onheap)
+                      (verify-first-call-args-for-indices launch-process
+                                                          [0]
+                                                          exp-launch))
+            (is (= (slurp worker-script) exp-script))))
+        (finally (rm-r (io/file storm-local)))))))
 
 (deftest test-workers-go-bananas
   ;; test that multiple workers are started for a port, and test that

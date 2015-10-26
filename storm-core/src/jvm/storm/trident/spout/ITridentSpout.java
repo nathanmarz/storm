@@ -102,6 +102,7 @@ public interface ITridentSpout<T> extends Serializable {
      * @param conf Storm config map
      * @param context topology context
      * @return spout coordinator instance
+     */
     BatchCoordinator<T> getCoordinator(String txStateId, Map conf, TopologyContext context);
 
     /**

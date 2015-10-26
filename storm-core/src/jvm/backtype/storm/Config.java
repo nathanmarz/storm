@@ -1256,7 +1256,7 @@ public class Config extends HashMap<String, Object> {
      * event logging will be disabled.</p>
      */
     @isInteger
-    @isPositiveNumber
+    @isPositiveNumber(includeZero = true)
     public static final String TOPOLOGY_EVENTLOGGER_EXECUTORS = "topology.eventlogger.executors";
 
     /**

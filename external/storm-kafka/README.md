@@ -104,8 +104,8 @@ also controls the naming of your output field.
 ```
 
 The default `RawMultiScheme` just takes the `byte[]` and returns a tuple with `byte[]` as is. The name of the
-outputField is "bytes".  There are alternative implementation like `SchemeAsMultiScheme` and
-`KeyValueSchemeAsMultiScheme` which can convert the `byte[]` to `String`.
+outputField is "bytes".  There are alternative implementations like `SchemeAsMultiScheme`,
+`KeyValueSchemeAsMultiScheme`, and `MessageMetadataSchemeAsMultiScheme` which can convert the `byte[]` to `String`.
 
 
 ### Examples

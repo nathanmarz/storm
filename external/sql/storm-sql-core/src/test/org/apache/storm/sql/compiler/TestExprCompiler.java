@@ -86,5 +86,4 @@ public class TestExprCompiler {
     assertArrayEquals(new String[]{"1 > 2", "3 + 5", "1 - 1.0E0", "3 + t0"},
                       res);
   }
-
 }

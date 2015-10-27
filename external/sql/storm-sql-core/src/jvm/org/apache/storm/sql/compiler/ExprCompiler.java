@@ -42,6 +42,7 @@ import java.util.AbstractMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.AND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE_INTEGER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN;
@@ -50,6 +51,8 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LESS_THAN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LESS_THAN_OR_EQUAL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 
 /**
@@ -71,8 +74,10 @@ class ExprCompiler implements RexVisitor<String> {
     if (expr.containsKey(rexInputRef)) {
       return expr.get(rexInputRef);
     }
-    String name = printExpr(rexInputRef, String.format("_data.get(%d)",
-                            rexInputRef.getIndex()));
+    String name = reserveName(rexInputRef);
+    String typeName = javaTypeName(rexInputRef);
+    pw.print(String.format("%s %s = (%s)(_data.get(%d));\n", typeName, name,
+                           typeName, rexInputRef.getIndex()));
     expr.put(rexInputRef, name);
     return name;
   }
@@ -149,12 +154,14 @@ class ExprCompiler implements RexVisitor<String> {
     throw new UnsupportedOperationException();
   }
 
-  private String printExpr(RexNode node, String definition) {
-    String name = "t" + expr.size();
+  private String javaTypeName(RexNode node) {
     Type ty = typeFactory.getJavaClass(node.getType());
-    String typeName = ((Class<?>)ty).getCanonicalName();
-    pw.append(
-        String.format("%s %s = (%s)(%s);\n", typeName, name, typeName, definition));
+    return ((Class<?>)ty).getCanonicalName();
+  }
+
+  private String reserveName(RexNode node) {
+    String name = "t" + expr.size();
+    expr.put(node, name);
     return name;
   }
 
@@ -181,7 +188,10 @@ class ExprCompiler implements RexVisitor<String> {
           .put(infixBinary(MINUS, "-"))
           .put(infixBinary(MULTIPLY, "*"))
           .put(infixBinary(DIVIDE, "/"))
-          .put(infixBinary(DIVIDE_INTEGER, "/"));
+          .put(infixBinary(DIVIDE_INTEGER, "/"))
+          .put(AND, AND_EXPR)
+          .put(OR, OR_EXPR)
+          .put(NOT, NOT_EXPR);
       this.translators = builder.build();
     }
 
@@ -212,5 +222,54 @@ class ExprCompiler implements RexVisitor<String> {
       };
       return new AbstractMap.SimpleImmutableEntry<>(op, trans);
     }
+
+    private static final CallExprPrinter AND_EXPR = new CallExprPrinter() {
+      @Override
+      public String translate(
+          ExprCompiler compiler, RexCall call) {
+        String val = compiler.reserveName(call);
+        PrintWriter pw = compiler.pw;
+        pw.print(String.format("final %s %s;\n", compiler.javaTypeName(call),
+                               val));
+        String lhs = call.getOperands().get(0).accept(compiler);
+        pw.print(String.format("if (!(%2$s)) { %1$s = false; }\n", val, lhs));
+        pw.print("else {\n");
+        String rhs = call.getOperands().get(1).accept(compiler);
+        pw.print(String.format("  %1$s = %2$s;\n}\n", val, rhs));
+        return val;
+      }
+    };
+
+    private static final CallExprPrinter OR_EXPR = new CallExprPrinter() {
+      @Override
+      public String translate(
+          ExprCompiler compiler, RexCall call) {
+        String val = compiler.reserveName(call);
+        PrintWriter pw = compiler.pw;
+        pw.print(String.format("final %s %s;\n", compiler.javaTypeName(call),
+                               val));
+        String lhs = call.getOperands().get(0).accept(compiler);
+        pw.print(String.format("if (%2$s) { %1$s = true; }\n", val, lhs));
+        pw.print("else {\n");
+        String rhs = call.getOperands().get(1).accept(compiler);
+        pw.print(String.format("  %1$s = %2$s;\n}\n", val, rhs));
+        return val;
+      }
+    };
+
+    private static final CallExprPrinter NOT_EXPR = new CallExprPrinter() {
+      @Override
+      public String translate(
+          ExprCompiler compiler, RexCall call) {
+        String val = compiler.reserveName(call);
+        PrintWriter pw = compiler.pw;
+        String lhs = call.getOperands().get(0).accept(compiler);
+        pw.print(String.format("final %s %s;\n", compiler.javaTypeName(call),
+                               val));
+        pw.print(String.format("%1$s = !(%2$s);\n", val, lhs));
+        return val;
+      }
+    };
   }
+
 }

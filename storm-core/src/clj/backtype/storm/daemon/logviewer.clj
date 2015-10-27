@@ -321,7 +321,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
     (if (and appender-name appender (instance? RollingFileAppender appender))
       (.getParent (File. (.getFileName appender)))
       (throw
-       (RuntimeException. "Log viewer could not find configured appender, or the appender is not a FileAppender. Please check that the appender name configured in storm and logback agree.")))))
+       (RuntimeException. "Log viewer could not find configured appender, or the appender is not a FileAppender. Please check that the appender name configured in storm and log4j agree.")))))
 
 (defnk to-btn-link
   "Create a link that is formatted like a button"
@@ -329,8 +329,8 @@ Note that if anything goes wrong, this will throw an Error and exit."
   [:a {:href (java.net.URI. url)
        :class (str "btn btn-default " (if enabled "enabled" "disabled"))} text])
 
-(defn log-file-selection-form [log-files]
-  [[:form {:action "log" :id "list-of-files"}
+(defn log-file-selection-form [log-files type]
+  [[:form {:action type :id "list-of-files"}
     (drop-down "file" log-files )
     [:input {:type "submit" :value "Switch file"}]]])
 
@@ -364,6 +364,9 @@ Note that if anything goes wrong, this will throw an Error and exit."
 (defn- download-link [fname]
   [[:p (link-to (url-format "/download/%s" fname) "Download Full File")]])
 
+(defn- daemon-download-link [fname]
+  [[:p (link-to (url-format "/daemondownload/%s" fname) "Download Full File")]])
+
 (def default-bytes-per-page 51200)
 
 (defn log-page [fname start length grep user root-dir]
@@ -372,20 +375,22 @@ Note that if anything goes wrong, this will throw an Error and exit."
     (let [file (.getCanonicalFile (File. root-dir fname))
           path (.getCanonicalPath file)
           zip-file? (.endsWith path ".gz")
-          file-length (if zip-file? (Utils/zipFileSize (clojure.java.io/file path)) (.length (clojure.java.io/file path)))
-          topo-dir (.getParentFile (.getParentFile file))
-          log-files (reduce clojure.set/union
-                            (sorted-set)
-                            (for [^File port-dir (.listFiles topo-dir)]
-                              (into [] (filter #(.isFile %) (.listFiles port-dir))))) ;all types of files included
-          files-str (for [file log-files]
-                      (get-topo-port-workerlog file))
-          reordered-files-str (conj (filter #(not= fname %) files-str) fname)]
-      (if (.exists file)
-        (let [length (if length
+          topo-dir (.getParentFile (.getParentFile file))]
+      (if (and (.exists file)
+               (= (.getCanonicalFile (File. root-dir))
+                  (.getParentFile topo-dir)))
+        (let [file-length (if zip-file? (Utils/zipFileSize (clojure.java.io/file path)) (.length (clojure.java.io/file path)))
+              log-files (reduce clojure.set/union
+                          (sorted-set)
+                          (for [^File port-dir (.listFiles topo-dir)]
+                            (into [] (filter #(.isFile %) (.listFiles port-dir))))) ;all types of files included
+              files-str (for [file log-files]
+                          (get-topo-port-workerlog file))
+              reordered-files-str (conj (filter #(not= fname %) files-str) fname)
+               length (if length
                        (min 10485760 length)
                        default-bytes-per-page)
-              is-txt-file (re-find #"\.(log.*|txt|yaml)$" fname)
+              is-txt-file (re-find #"\.(log.*|txt|yaml|pid)$" fname)
               log-string (escape-html
                            (if is-txt-file
                              (if start
@@ -401,13 +406,59 @@ Note that if anything goes wrong, this will throw an Error and exit."
                           (string/join "\n"))
                      log-string)])
             (let [pager-data (if is-txt-file (pager-links fname start length file-length) nil)]
-              (html (concat (log-file-selection-form reordered-files-str) ; list all files for this topology
+              (html (concat (log-file-selection-form reordered-files-str "log") ; list all files for this topology
                             pager-data
                             (download-link fname)
                             [[:pre#logContent log-string]]
                             pager-data)))))
         (-> (resp/response "Page not found")
             (resp/status 404))))
+    (if (nil? (get-log-user-group-whitelist fname))
+      (-> (resp/response "Page not found")
+        (resp/status 404))
+      (unauthorized-user-html user))))
+
+(defn daemonlog-page [fname start length grep user root-dir]
+  (if (or (blank? (*STORM-CONF* UI-FILTER))
+        (authorized-log-user? user fname *STORM-CONF*)) ;; how to deal with this???????????
+    (let [file (.getCanonicalFile (File. root-dir fname))
+          file-length (.length file)
+          path (.getCanonicalPath file)
+          zip-file? (.endsWith path ".gz")]
+      (if (and (= (.getCanonicalFile (File. root-dir))
+                 (.getParentFile file))
+            (.exists file))
+        (let [file-length (if zip-file? (Utils/zipFileSize (clojure.java.io/file path)) (.length (clojure.java.io/file path)))
+              length (if length
+                       (min 10485760 length)
+                       default-bytes-per-page)
+              log-files (into [] (filter #(.isFile %) (.listFiles (File. root-dir)))) ;all types of files included
+              files-str (for [file log-files]
+                          (.getName file))
+              reordered-files-str (conj (filter #(not= fname %) files-str) fname)
+              is-txt-file (re-find #"\.(log.*|txt|yaml|pid)$" fname)
+              log-string (escape-html
+                           (if is-txt-file
+                             (if start
+                               (page-file path start length)
+                               (page-file path length))
+                             "This is a binary file and cannot display! You may download the full file."))
+              start (or start (- file-length length))]
+          (if grep
+            (html [:pre#logContent
+                   (if grep
+                     (->> (.split log-string "\n")
+                       (filter #(.contains % grep))
+                       (string/join "\n"))
+                     log-string)])
+            (let [pager-data (if is-txt-file (pager-links fname start length file-length) nil)]
+              (html (concat (log-file-selection-form reordered-files-str "daemonlog") ; list all daemon logs
+                      pager-data
+                      (daemon-download-link fname)
+                      [[:pre#logContent log-string]]
+                      pager-data)))))
+        (-> (resp/response "Page not found")
+          (resp/status 404))))
     (if (nil? (get-log-user-group-whitelist fname))
       (-> (resp/response "Page not found")
         (resp/status 404))
@@ -496,6 +547,19 @@ Note that if anything goes wrong, this will throw an Error and exit."
       (catch InvalidRequestException ex
         (log-error ex)
         (ring-response-from-exception ex))))
+  (GET "/daemonlog" [:as req & m]
+    (try
+      (let [servlet-request (:servlet-request req)
+            daemonlog-root (:daemonlog-root req)
+            user (.getUserName http-creds-handler servlet-request)
+            start (if (:start m) (parse-long-from-map m :start))
+            length (if (:length m) (parse-long-from-map m :length))
+            file (url-decode (:file m))]
+        (log-template (daemonlog-page file start length (:grep m) user daemonlog-root)
+          file user))
+      (catch InvalidRequestException ex
+        (log-error ex)
+        (ring-response-from-exception ex))))
   (GET "/download/:file" [:as {:keys [servlet-request servlet-response log-root]} file & m]
     ;; We do not use servlet-response here, but do not remove it from the
     ;; :keys list, or this rule could stop working when an authentication
@@ -503,6 +567,16 @@ Note that if anything goes wrong, this will throw an Error and exit."
     (try
       (let [user (.getUserName http-creds-handler servlet-request)]
         (download-log-file file servlet-request servlet-response user log-root))
+      (catch InvalidRequestException ex
+        (log-error ex)
+        (ring-response-from-exception ex))))
+  (GET "/daemondownload/:file" [:as {:keys [servlet-request servlet-response daemonlog-root]} file & m]
+    ;; We do not use servlet-response here, but do not remove it from the
+    ;; :keys list, or this rule could stop working when an authentication
+    ;; filter is configured.
+    (try
+      (let [user (.getUserName http-creds-handler servlet-request)]
+        (download-log-file file servlet-request servlet-response user daemonlog-root))
       (catch InvalidRequestException ex
         (log-error ex)
         (ring-response-from-exception ex))))
@@ -524,17 +598,17 @@ Note that if anything goes wrong, this will throw an Error and exit."
 
 (defn conf-middleware
   "For passing the storm configuration with each request."
-  [app log-root]
+  [app log-root daemonlog-root]
   (fn [req]
-    (app (assoc req :log-root log-root))))
+    (app (assoc req :log-root log-root :daemonlog-root daemonlog-root))))
 
-(defn start-logviewer! [conf log-root-dir]
+(defn start-logviewer! [conf log-root-dir daemonlog-root-dir]
   (try
     (let [header-buffer-size (int (.get conf UI-HEADER-BUFFER-BYTES))
           filter-class (conf UI-FILTER)
           filter-params (conf UI-FILTER-PARAMS)
           logapp (handler/api log-routes) ;; query params as map
-          middle (conf-middleware logapp log-root-dir)
+          middle (conf-middleware logapp log-root-dir daemonlog-root-dir)
           filters-confs (if (conf UI-FILTER)
                           [{:filter-class filter-class
                             :filter-params (or (conf UI-FILTER-PARAMS) {})}]
@@ -572,7 +646,8 @@ Note that if anything goes wrong, this will throw an Error and exit."
 
 (defn -main []
   (let [conf (read-storm-config)
-        log-root (worker-artifacts-root conf)]
+        log-root (worker-artifacts-root conf)
+        daemonlog-root (log-root-dir (conf LOGVIEWER-APPENDER-NAME))]
     (setup-default-uncaught-exception-handler)
     (start-log-cleaner! conf log-root)
-    (start-logviewer! conf log-root)))
+    (start-logviewer! conf log-root daemonlog-root)))

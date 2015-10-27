@@ -128,7 +128,8 @@
     (logviewer-link host fname secure?)))
 
 (defn nimbus-log-link [host port]
-  (url-format "http://%s:%s/log?file=nimbus.log" host (*STORM-CONF* LOGVIEWER-PORT) port))
+  (url-format "http://%s:%s/daemonlog?file=nimbus.log" host (*STORM-CONF* LOGVIEWER-PORT) port))
+
 (defn get-error-time
   [error]
   (if error

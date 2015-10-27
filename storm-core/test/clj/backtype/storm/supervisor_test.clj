@@ -23,6 +23,9 @@
   (:import [backtype.storm.scheduler ISupervisor])
   (:import [backtype.storm.generated RebalanceOptions])
   (:import [java.util UUID])
+  (:import [java.io File])
+  (:import [java.nio.file Files])
+  (:import [java.nio.file.attribute FileAttribute])
   (:use [backtype.storm config testing util timer])
   (:use [backtype.storm.daemon common])
   (:require [backtype.storm.daemon [worker :as worker] [supervisor :as supervisor]]
@@ -395,12 +398,6 @@
                                                         [2]
                                                         full-env)))))))
 
-(defn rm-r [f]
-  (if (.isDirectory f)
-    (for [sub (.listFiles f)] (rm-r sub))
-    (.delete f)
-  ))
-
 (deftest test-worker-launch-command-run-as-user
   (testing "*.worker.childopts configuration"
     (let [mock-port "42"
@@ -409,7 +406,8 @@
           mock-mem-onheap 512
           mock-sensitivity "S3"
           mock-cp "mock-classpath'quote-on-purpose"
-          storm-local (str "/tmp/" (UUID/randomUUID))
+          attrs (make-array FileAttribute 0)
+          storm-local (.getCanonicalPath (.toFile (Files/createTempDirectory "storm-local" attrs)))
           worker-script (str storm-local "/workers/" mock-worker-id "/storm-worker-script.sh")
           exp-launch ["/bin/worker-launcher"
                       "me"
@@ -450,13 +448,13 @@
                                " '" mock-storm-id "'"
                                " '" mock-port "'"
                                " '" mock-worker-id "';"))]
-      (.mkdirs (io/file storm-local "workers" mock-worker-id))
       (try
         (testing "testing *.worker.childopts as strings with extra spaces"
           (let [string-opts "-Dfoo=bar  -Xmx1024m"
                 topo-string-opts "-Dkau=aux   -Xmx2048m"
                 exp-script (exp-script-fn ["-Dfoo=bar" "-Xmx1024m"]
                                           ["-Dkau=aux" "-Xmx2048m"])
+                _ (.mkdirs (io/file storm-local "workers" mock-worker-id))
                 mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed
                                         STORM-LOCAL-DIR storm-local
                                         SUPERVISOR-RUN-WORKER-AS-USER true
@@ -480,7 +478,8 @@
                                                           [0]
                                                           exp-launch))
             (is (= (slurp worker-script) exp-script))))
-        (finally (rm-r (io/file storm-local))))
+        (finally (rmr storm-local)))
+      (.mkdirs (io/file storm-local "workers" mock-worker-id))
       (try
         (testing "testing *.worker.childopts as list of strings, with spaces in values"
           (let [list-opts '("-Dopt1='this has a space in it'" "-Xmx1024m")
@@ -509,7 +508,7 @@
                                                           [0]
                                                           exp-launch))
             (is (= (slurp worker-script) exp-script))))
-        (finally (rm-r (io/file storm-local)))))))
+        (finally (rmr storm-local))))))
 
 (deftest test-workers-go-bananas
   ;; test that multiple workers are started for a port, and test that

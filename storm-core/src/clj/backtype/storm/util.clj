@@ -593,7 +593,7 @@
           attrs (make-array FileAttribute 0)
           abs-path (.toAbsolutePath (Paths/get path empty-array))
           abs-target (.toAbsolutePath (Paths/get target empty-array))]
-      (log-message "Creating symlink [" abs-path "] to [" abs-target "]")
+      (log-debug "Creating symlink [" abs-path "] to [" abs-target "]")
       (if (not (.exists (.toFile abs-path)))
         (Files/createSymbolicLink abs-path abs-target attrs)))))
 

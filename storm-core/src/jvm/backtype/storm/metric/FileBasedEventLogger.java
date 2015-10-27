@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -81,6 +82,10 @@ public class FileBasedEventLogger implements IEventLogger {
         if (!path.isAbsolute()) {
             path = Paths.get(System.getProperty("storm.home"), logDir, "workers-artifacts",
                     stormId, Integer.toString(port), "events.log");
+        }
+        File dir = path.toFile().getParentFile();
+        if (!dir.exists()) {
+             dir.mkdirs();
         }
         initLogWriter(path);
         setUpFlushTask();

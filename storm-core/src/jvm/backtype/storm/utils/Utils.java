@@ -742,9 +742,14 @@ public class Utils {
         }
     }
 
-    //Note: Only works for zip files whose uncompressed size is less than 4 GB
-    //Otherwise returns the size module 2^32, per gzip specifications
-    //Returns a long, since that's what file lengths in Java/Clojure usually are.
+    /**
+     * Given a zip File input it will return its size
+     * Only works for zip files whose uncompressed size is less than 4 GB,
+     * otherwise returns the size module 2^32, per gzip specifications
+     * @param myFile The zip file as input
+     * @throws IOException
+     * @return zip file size as a long
+     */
     public static long zipFileSize(File myFile) throws IOException{
         RandomAccessFile raf = new RandomAccessFile(myFile, "r");
         raf.seek(raf.length() - 4);

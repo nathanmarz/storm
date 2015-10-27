@@ -18,6 +18,7 @@
 package backtype.storm;
 
 import java.io.File;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -25,6 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import backtype.storm.scheduler.resource.ResourceUtils;
+import backtype.storm.validation.ConfigValidation;
 import org.apache.commons.lang.StringUtils;
 import org.apache.thrift.TException;
 import org.json.simple.JSONValue;
@@ -153,8 +155,8 @@ public class StormSubmitter {
      * @throws InvalidTopologyException if an invalid topology was submitted
      * @throws AuthorizationException if authorization is failed
      */
-    public static void submitTopology(String name, Map stormConf, StormTopology topology) 
-            throws AlreadyAliveException, InvalidTopologyException, AuthorizationException {
+    public static void submitTopology(String name, Map stormConf, StormTopology topology)
+            throws AlreadyAliveException, InvalidTopologyException, AuthorizationException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, NoSuchFieldException {
         submitTopology(name, stormConf, topology, null, null);
     }    
 
@@ -170,8 +172,8 @@ public class StormSubmitter {
      * @throws InvalidTopologyException if an invalid topology was submitted
      * @throws AuthorizationException if authorization is failed
      */
-    public static void submitTopology(String name, Map stormConf, StormTopology topology, SubmitOptions opts) 
-            throws AlreadyAliveException, InvalidTopologyException, AuthorizationException {
+    public static void submitTopology(String name, Map stormConf, StormTopology topology, SubmitOptions opts)
+            throws AlreadyAliveException, InvalidTopologyException, AuthorizationException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, NoSuchFieldException {
         submitTopology(name, stormConf, topology, opts, null);
     }
 
@@ -189,7 +191,7 @@ public class StormSubmitter {
      * @throws IllegalArgumentException thrown if configs will yield an unschedulable topology. validateConfs validates confs
      */
     public static void submitTopologyAs(String name, Map stormConf, StormTopology topology, SubmitOptions opts, ProgressListener progressListener, String asUser)
-            throws AlreadyAliveException, InvalidTopologyException, AuthorizationException, IllegalArgumentException {
+            throws AlreadyAliveException, InvalidTopologyException, AuthorizationException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, NoSuchFieldException, InstantiationException, IllegalAccessException {
         if(!Utils.isValidConf(stormConf)) {
             throw new IllegalArgumentException("Storm conf is not valid. Must be json-serializable");
         }
@@ -271,7 +273,7 @@ public class StormSubmitter {
      */
     @SuppressWarnings("unchecked")
     public static void submitTopology(String name, Map stormConf, StormTopology topology, SubmitOptions opts,
-             ProgressListener progressListener) throws AlreadyAliveException, InvalidTopologyException, AuthorizationException {
+             ProgressListener progressListener) throws AlreadyAliveException, InvalidTopologyException, AuthorizationException, NoSuchMethodException, NoSuchFieldException, InstantiationException, IllegalAccessException, InvocationTargetException {
         submitTopologyAs(name, stormConf, topology, opts, progressListener, null);
     }
 
@@ -288,7 +290,7 @@ public class StormSubmitter {
      * @throws AuthorizationException if authorization is failed
      */
 
-    public static void submitTopologyWithProgressBar(String name, Map stormConf, StormTopology topology) throws AlreadyAliveException, InvalidTopologyException, AuthorizationException {
+    public static void submitTopologyWithProgressBar(String name, Map stormConf, StormTopology topology) throws AlreadyAliveException, InvalidTopologyException, AuthorizationException, NoSuchMethodException, NoSuchFieldException, InstantiationException, IllegalAccessException, InvocationTargetException {
         submitTopologyWithProgressBar(name, stormConf, topology, null);
     }
 
@@ -306,7 +308,7 @@ public class StormSubmitter {
      * @throws AuthorizationException if authorization is failed
      */
 
-    public static void submitTopologyWithProgressBar(String name, Map stormConf, StormTopology topology, SubmitOptions opts) throws AlreadyAliveException, InvalidTopologyException, AuthorizationException {
+    public static void submitTopologyWithProgressBar(String name, Map stormConf, StormTopology topology, SubmitOptions opts) throws AlreadyAliveException, InvalidTopologyException, AuthorizationException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, NoSuchFieldException {
         // show a progress bar so we know we're not stuck (especially on slow connections)
         submitTopology(name, stormConf, topology, opts, new StormSubmitter.ProgressListener() {
             @Override
@@ -447,13 +449,18 @@ public class StormSubmitter {
         public void onCompleted(String srcFile, String targetFile, long totalBytes);
     }
 
-    private static void validateConfs(Map stormConf, StormTopology topology) throws IllegalArgumentException {
+    private static void validateConfs(Map stormConf, StormTopology topology) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, InstantiationException, NoSuchFieldException {
+        ConfigValidation.validateFields(stormConf);
+        validateTopologyWorkerMaxHeapSizeMBConfigs(stormConf, topology);
+    }
+
+    private static void validateTopologyWorkerMaxHeapSizeMBConfigs(Map stormConf, StormTopology topology) {
         double largestMemReq = getMaxExecutorMemoryUsageForTopo(topology, stormConf);
         Double topologyWorkerMaxHeapSize = Utils.getDouble(stormConf.get(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB));
         if(topologyWorkerMaxHeapSize < largestMemReq) {
             throw new IllegalArgumentException("Topology will not be able to be successfully scheduled: Config TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB="
-                    +Utils.getDouble(stormConf.get(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB)) + " < " 
-                            + largestMemReq + " (Largest memory requirement of a component in the topology). Perhaps set TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB to a larger amount");
+                    +Utils.getDouble(stormConf.get(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB)) + " < "
+                    + largestMemReq + " (Largest memory requirement of a component in the topology). Perhaps set TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB to a larger amount");
         }
     }
 

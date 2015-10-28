@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-697: Support for Emitting Kafka Message Offset and Partition
  * STORM-1074: Add Avro HDFS bolt
  * STORM-566: Improve documentation including incorrect Kryo ser. framework docs
  * STORM-1073: Refactor AbstractHdfsBolt

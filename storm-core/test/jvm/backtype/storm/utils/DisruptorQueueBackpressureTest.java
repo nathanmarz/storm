@@ -20,9 +20,8 @@ package backtype.storm.utils;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.lmax.disruptor.BlockingWaitStrategy;
 import com.lmax.disruptor.EventHandler;
-import com.lmax.disruptor.MultiThreadedClaimStrategy;
+import com.lmax.disruptor.dsl.ProducerType;
 import org.junit.Assert;
 import org.junit.Test;
 import junit.framework.TestCase;
@@ -30,14 +29,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DisruptorQueueBackpressureTest extends TestCase {
-
     private static final Logger LOG = LoggerFactory.getLogger(DisruptorQueueBackpressureTest.class);
 
     private final static int MESSAGES = 100;
     private final static int CAPACITY = 128;
     private final static double HIGH_WATERMARK = 0.6;
     private final static double LOW_WATERMARK = 0.2;
-
 
     @Test
     public void testBackPressureCallback() throws Exception {
@@ -109,7 +106,6 @@ public class DisruptorQueueBackpressureTest extends TestCase {
     }
 
     private static DisruptorQueue createQueue(String name, int queueSize) {
-        return new DisruptorQueue(name, new MultiThreadedClaimStrategy(
-                queueSize), new BlockingWaitStrategy(), 10L);
+        return new DisruptorQueue(name, ProducerType.MULTI, queueSize, 0L);
     }
 }

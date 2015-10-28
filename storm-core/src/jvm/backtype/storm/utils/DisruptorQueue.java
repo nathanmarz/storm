@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * <p/>
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p/>
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,52 +18,56 @@
 package backtype.storm.utils;
 
 import com.lmax.disruptor.AlertException;
-import com.lmax.disruptor.ClaimStrategy;
 import com.lmax.disruptor.EventFactory;
 import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.InsufficientCapacityException;
+import com.lmax.disruptor.LiteBlockingWaitStrategy;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.Sequence;
 import com.lmax.disruptor.SequenceBarrier;
-import com.lmax.disruptor.SingleThreadedClaimStrategy;
+import com.lmax.disruptor.TimeoutBlockingWaitStrategy;
+import com.lmax.disruptor.TimeoutException;
 import com.lmax.disruptor.WaitStrategy;
+import com.lmax.disruptor.dsl.ProducerType;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import backtype.storm.metric.api.IStatefulObject;
 import backtype.storm.metric.internal.RateTracker;
-
 
 /**
  * A single consumer queue that uses the LMAX Disruptor. They key to the performance is
  * the ability to catch up to the producer by processing tuples in batches.
  */
 public class DisruptorQueue implements IStatefulObject {
-    static final Object FLUSH_CACHE = new Object();
-    static final Object INTERRUPT = new Object();
+    private static final Logger LOG = LoggerFactory.getLogger(DisruptorQueue.class);
+    private static final Object FLUSH_CACHE = new Object();
+    private static final Object INTERRUPT = new Object();
+    private static final String PREFIX = "disruptor-";
 
-    RingBuffer<MutableObject> _buffer;
-    Sequence _consumer;
-    SequenceBarrier _barrier;
+    private final RingBuffer<AtomicReference<Object>> _buffer;
+    private final Sequence _consumer;
+    private final SequenceBarrier _barrier;
 
-    // TODO: consider having a threadlocal cache of this variable to speed up reads?
-    volatile boolean consumerStartedFlag = false;
-    ConcurrentLinkedQueue<Object> _cache = new ConcurrentLinkedQueue();
+    private volatile boolean consumerStartedFlag = false;
+    private final ConcurrentLinkedQueue<Object> _cache = new ConcurrentLinkedQueue();
 
     private final ReentrantReadWriteLock cacheLock = new ReentrantReadWriteLock();
     private final Lock readLock = cacheLock.readLock();
     private final Lock writeLock = cacheLock.writeLock();
 
-    private static String PREFIX = "disruptor-";
     private String _queueName = "";
-
-    private long _waitTimeout;
 
     private final QueueMetrics _metrics;
     private DisruptorBackpressureCallback _cb = null;
@@ -72,15 +76,22 @@ public class DisruptorQueue implements IStatefulObject {
     private boolean _enableBackpressure = false;
     private volatile boolean _throttleOn = false;
 
-    public DisruptorQueue(String queueName, ClaimStrategy claim, WaitStrategy wait, long timeout) {
+    public DisruptorQueue(String queueName, ProducerType type, int size, long timeout) {
         this._queueName = PREFIX + queueName;
-        _buffer = new RingBuffer<MutableObject>(new ObjectEventFactory(), claim, wait);
+        WaitStrategy wait = null;
+        if (timeout <= 0) {
+            wait = new LiteBlockingWaitStrategy();
+        } else {
+            wait = new TimeoutBlockingWaitStrategy(timeout, TimeUnit.MILLISECONDS);
+        }
+
+        _buffer = RingBuffer.create(type, new ObjectEventFactory(), size, wait);
         _consumer = new Sequence();
         _barrier = _buffer.newBarrier();
-        _buffer.setGatingSequences(_consumer);
+        _buffer.addGatingSequences(_consumer);
         _metrics = new QueueMetrics();
 
-        if (claim instanceof SingleThreadedClaimStrategy) {
+        if (type == ProducerType.SINGLE) {
             consumerStartedFlag = true;
         } else {
             // make sure we flush the pending messages in cache first
@@ -90,8 +101,6 @@ public class DisruptorQueue implements IStatefulObject {
                 throw new RuntimeException("This code should be unreachable!", e);
             }
         }
-
-        _waitTimeout = timeout;
     }
 
     public String getName() {
@@ -99,7 +108,9 @@ public class DisruptorQueue implements IStatefulObject {
     }
 
     public void consumeBatch(EventHandler<Object> handler) {
-        consumeBatchToCursor(_barrier.getCursor(), handler);
+        if (_metrics.population() > 0) {
+            consumeBatchWhenAvailable(handler);
+        }
     }
 
     public void haltWithInterrupt() {
@@ -109,13 +120,13 @@ public class DisruptorQueue implements IStatefulObject {
     public void consumeBatchWhenAvailable(EventHandler<Object> handler) {
         try {
             final long nextSequence = _consumer.get() + 1;
-            final long availableSequence =
-                    _waitTimeout == 0L ? _barrier.waitFor(nextSequence) : _barrier.waitFor(nextSequence, _waitTimeout,
-                            TimeUnit.MILLISECONDS);
+            long availableSequence = _barrier.waitFor(nextSequence);
 
             if (availableSequence >= nextSequence) {
                 consumeBatchToCursor(availableSequence, handler);
             }
+        } catch (TimeoutException te) {
+            //Ignored
         } catch (AlertException e) {
             throw new RuntimeException(e);
         } catch (InterruptedException e) {
@@ -123,14 +134,15 @@ public class DisruptorQueue implements IStatefulObject {
         }
     }
 
-
     private void consumeBatchToCursor(long cursor, EventHandler<Object> handler) {
         for (long curr = _consumer.get() + 1; curr <= cursor; curr++) {
             try {
-                MutableObject mo = _buffer.get(curr);
-                Object o = mo.o;
-                mo.setObject(null);
-                if (o == FLUSH_CACHE) {
+                AtomicReference<Object> mo = _buffer.get(curr);
+                Object o = mo.getAndSet(null);
+
+                if (o == null) {
+                    LOG.error("NULL found in {}:{}", this.getName(), cursor);
+                } else if (o == FLUSH_CACHE) {
                     Object c = null;
                     while (true) {
                         c = _cache.poll();
@@ -156,7 +168,6 @@ public class DisruptorQueue implements IStatefulObject {
                 throw new RuntimeException(e);
             }
         }
-        //TODO: only set this if the consumer cursor has changed?
         _consumer.set(cursor);
     }
 
@@ -180,7 +191,6 @@ public class DisruptorQueue implements IStatefulObject {
     }
 
     public void publish(Object obj, boolean block) throws InsufficientCapacityException {
-
         boolean publishNow = consumerStartedFlag;
 
         if (!publishNow) {
@@ -207,8 +217,8 @@ public class DisruptorQueue implements IStatefulObject {
         } else {
             id = _buffer.tryNext(1);
         }
-        final MutableObject m = _buffer.get(id);
-        m.setObject(obj);
+        final AtomicReference<Object> m = _buffer.get(id);
+        Object old = m.getAndSet(obj);
         _buffer.publish(id);
         _metrics.notifyArrivals(1);
         if (_enableBackpressure && _cb != null && _metrics.population() >= _highWaterMark) {
@@ -218,13 +228,15 @@ public class DisruptorQueue implements IStatefulObject {
                    _throttleOn = true;
                }
            } catch (Exception e) {
-               throw new RuntimeException("Exception during calling highWaterMark callback!");
+               throw new RuntimeException("Exception during calling highWaterMark callback!", e);
            }
+        }
+        if (old != null) {
+            LOG.warn("Tuple was overwritten in {}:{}", getName(), id);
         }
     }
 
     public void consumerStarted() {
-
         consumerStartedFlag = true;
 
         // Use writeLock to make sure all pending cache add opearation completed
@@ -260,10 +272,10 @@ public class DisruptorQueue implements IStatefulObject {
         return this;
     }
 
-    public static class ObjectEventFactory implements EventFactory<MutableObject> {
+    public static class ObjectEventFactory implements EventFactory<AtomicReference<Object>> {
         @Override
-        public MutableObject newInstance() {
-            return new MutableObject();
+        public AtomicReference<Object> newInstance() {
+            return new AtomicReference<Object>();
         }
     }
 

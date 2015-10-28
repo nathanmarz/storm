@@ -236,7 +236,10 @@ public abstract class AbstractHdfsBolt extends BaseRichBolt {
     }
 
     /**
-     * writes a tuple to the underlying filesystem but makes no guarantees about syncing data
+     * writes a tuple to the underlying filesystem but makes no guarantees about syncing data.
+     *
+     * this.offset is also updated to reflect additional data written
+     *
      * @param tuple
      * @throws IOException
      */

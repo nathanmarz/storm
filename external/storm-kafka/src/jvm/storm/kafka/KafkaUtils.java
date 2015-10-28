@@ -207,6 +207,14 @@ public class KafkaUtils {
         }
         return tups;
     }
+    
+    public static Iterable<List<Object>> generateTuples(MessageMetadataSchemeAsMultiScheme scheme, Message msg, Partition partition, long offset) {
+        ByteBuffer payload = msg.payload();
+        if (payload == null) {
+            return null;
+        }
+        return scheme.deserializeMessageWithMetadata(Utils.toByteArray(payload), partition, offset);
+    }
 
 
     public static List<Partition> calculatePartitionsForTask(GlobalPartitionInformation partitionInformation, int totalTasks, int taskIndex) {

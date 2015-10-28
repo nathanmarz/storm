@@ -1,8 +1,3 @@
-package storm.kafka;
-
-import java.util.List;
-import backtype.storm.spout.Scheme;
-
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -20,6 +15,11 @@ import backtype.storm.spout.Scheme;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package storm.kafka;
+
+import java.util.List;
+import backtype.storm.spout.Scheme;
+
 public interface MessageMetadataScheme extends Scheme {
     public List<Object> deserializeMessageWithMetadata(byte[] message, Partition partition, long offset);
 }

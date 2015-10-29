@@ -171,7 +171,7 @@
       (is (= 1 (.size assigned-slots)))
       (is (= 1 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
       (is (= 2 (.size executors))))
-    (is (= "topology1 Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))))
+    (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))))
 
 (deftest test-topology-with-multiple-spouts
   (let [builder1 (TopologyBuilder.)  ;; a topology with multiple spouts
@@ -230,14 +230,14 @@
       (is (= 1 (.size assigned-slots)))
       (is (= 1 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
       (is (= 7 (.size executors))))
-    (is (= "topology1 Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))
+    (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))
     (let [assignment (.getAssignmentById cluster "topology2")
           assigned-slots (.getSlots assignment)
           executors (.getExecutors assignment)]
       (is (= 1 (.size assigned-slots)))
       (is (= 1 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
       (is (= 2 (.size executors))))
-    (is (= "topology2 Fully Scheduled" (.get (.getStatusMap cluster) "topology2")))))
+    (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology2")))))
 
 (deftest test-topology-set-memory-and-cpu-load
   (let [builder (TopologyBuilder.)
@@ -273,7 +273,7 @@
       (is (= 1 (.size assigned-slots)))
       (is (= 1 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
       (is (= 2 (.size executors))))
-    (is (= "topology2 Fully Scheduled" (.get (.getStatusMap cluster) "topology2")))))
+    (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology2")))))
 
 (deftest test-resource-limitation
   (let [builder (TopologyBuilder.)
@@ -335,7 +335,7 @@
       (is (>= avail used)))
     (doseq [[avail used] cpu-avail->used] ;; for each node, assigned cpu smaller than total
       (is (>= avail used))))
-  (is (= "topology1 Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))))
+  (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))))
 
 (deftest test-scheduling-resilience
   (let [supers (gen-supervisors 2 2)

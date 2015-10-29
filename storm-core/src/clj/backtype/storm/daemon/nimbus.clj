@@ -1606,7 +1606,7 @@
             (.set_owner topo-page-info owner))
           (when-let [sched-status (.get @(:id->sched-status nimbus) topo-id)]
             (.set_sched_status topo-page-info sched-status))
-          (when-let [resources (.get @(:id->resources nimbus) storm-id)]
+          (when-let [resources (.get @(:id->resources nimbus) topo-id)]
             (.set_requested_memonheap topo-page-info (get resources 0))
             (.set_requested_memoffheap topo-page-info (get resources 1))
             (.set_requested_cpu topo-page-info (get resources 2))

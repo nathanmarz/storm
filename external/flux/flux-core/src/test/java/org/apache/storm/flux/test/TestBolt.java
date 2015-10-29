@@ -45,6 +45,10 @@ public class TestBolt extends BaseBasicBolt {
 
     }
 
+    public TestBolt(TestEnum te, float f, boolean b){
+
+    }
+
     @Override
     public void execute(Tuple tuple, BasicOutputCollector basicOutputCollector) {
         LOG.info("{}", tuple);

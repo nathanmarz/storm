@@ -122,6 +122,7 @@
      :leader-elector (zk-leader-elector conf)
      :code-distributor (mk-code-distributor conf)
      :id->sched-status (atom {})
+     :id->resources (atom {})
      :cred-renewers (AuthUtils/GetCredentialRenewers conf)
      :nimbus-autocred-plugins (AuthUtils/getNimbusAutoCredPlugins conf)
      }))
@@ -699,7 +700,8 @@
         ;; call scheduler.schedule to schedule all the topologies
         ;; the new assignments for all the topologies are in the cluster object.
         _ (.schedule (:scheduler nimbus) topologies cluster)
-        _ (reset! (:id->sched-status nimbus) (.getStatusMap cluster))]
+        _ (reset! (:id->sched-status nimbus) (.getStatusMap cluster))
+        _ (reset! (:id->resources nimbus) (merge @(:id->resources nimbus) (.getResourcesMap cluster)))]
     (.getAssignments cluster)))
 
 (defn changed-executors [executor->node+port new-executor->node+port]
@@ -1499,6 +1501,13 @@
                                                             (extract-status-str base))]
                                                (when-let [owner (:owner base)] (.set_owner topo-summ owner))
                                                (when-let [sched-status (.get @(:id->sched-status nimbus) id)] (.set_sched_status topo-summ sched-status))
+                                               (when-let [resources (.get @(:id->resources nimbus) id)]
+                                                 (.set_requested_memonheap topo-summ (get resources 0))
+                                                 (.set_requested_memoffheap topo-summ (get resources 1))
+                                                 (.set_requested_cpu topo-summ (get resources 2))
+                                                 (.set_assigned_memonheap topo-summ (get resources 3))
+                                                 (.set_assigned_memoffheap topo-summ (get resources 4))
+                                                 (.set_assigned_cpu topo-summ (get resources 5)))
                                                (.set_replication_count topo-summ (if (:code-distributor nimbus)
                                                                                    (.getReplicationCount (:code-distributor nimbus) id)
                                                                                    1))
@@ -1558,9 +1567,17 @@
                            )]
             (when-let [owner (:owner base)] (.set_owner topo-info owner))
             (when-let [sched-status (.get @(:id->sched-status nimbus) storm-id)] (.set_sched_status topo-info sched-status))
+            (when-let [resources (.get @(:id->resources nimbus) storm-id)]
+              (.set_requested_memonheap topo-info (get resources 0))
+              (.set_requested_memoffheap topo-info (get resources 1))
+              (.set_requested_cpu topo-info (get resources 2))
+              (.set_assigned_memonheap topo-info (get resources 3))
+              (.set_assigned_memoffheap topo-info (get resources 4))
+              (.set_assigned_cpu topo-info (get resources 5)))
             (when-let [component->debug (:component->debug base)]
               (.set_component_debug topo-info (map-val converter/thriftify-debugoptions component->debug)))
             (.set_replication_count topo-info (if (:code-distributor nimbus) (.getReplicationCount (:code-distributor nimbus) storm-id) 1))
+
             topo-info
           ))
 
@@ -1589,6 +1606,13 @@
             (.set_owner topo-page-info owner))
           (when-let [sched-status (.get @(:id->sched-status nimbus) topo-id)]
             (.set_sched_status topo-page-info sched-status))
+          (when-let [resources (.get @(:id->resources nimbus) storm-id)]
+            (.set_requested_memonheap topo-page-info (get resources 0))
+            (.set_requested_memoffheap topo-page-info (get resources 1))
+            (.set_requested_cpu topo-page-info (get resources 2))
+            (.set_assigned_memonheap topo-page-info (get resources 3))
+            (.set_assigned_memoffheap topo-page-info (get resources 4))
+            (.set_assigned_cpu topo-page-info (get resources 5)))
           (doto topo-page-info
             (.set_name (:storm-name info))
             (.set_status (extract-status-str (:base info)))

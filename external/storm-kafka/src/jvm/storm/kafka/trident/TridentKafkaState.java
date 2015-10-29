@@ -94,5 +94,4 @@ public class TridentKafkaState implements State {
             }
         }
     }
-    }
 }

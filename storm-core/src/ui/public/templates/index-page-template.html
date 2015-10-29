@@ -150,8 +150,8 @@
           </span>
         </th>
         <th>
-          <span data-toggle="tooltip" data-placement="left" title="This shows information from the scheduler about the latest attempt to schedule the Topology on the cluster.">
-            Scheduler Info
+          <span data-toggle="tooltip" data-placement="above" title="Assigned Total Memory by Scheduler.">
+            Assigned Mem (MB)
           </span>
         </th>
         <th>
@@ -170,7 +170,6 @@
       {{#topologies}}
       <tr>
         <td><a href="/topology.html?id={{encodedId}}">{{name}}</a></td>
-        <td>{{id}}</td>
         <td>{{owner}}</td>
         <td>{{status}}</td>
         <td>{{uptime}}</td>
@@ -178,9 +177,9 @@
         <td>{{executorsTotal}}</td>
         <td>{{tasksTotal}}</td>
         <td>{{replicationCount}}</td>
-        <td>{{schedulerInfo}}</td>
         <td>{{assignedTotalMem}}</td>
         <td>{{assignedTotalCpu}}</td>
+        <td>{{schedulerInfo}}</td>
       </tr>
       {{/topologies}}
     </tbody>

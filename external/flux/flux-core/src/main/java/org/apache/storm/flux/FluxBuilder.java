@@ -417,6 +417,9 @@ public class FluxBuilder {
         Class clazz = instance.getClass();
         for(ConfigMethodDef methodDef : methodDefs){
             List<Object> args = methodDef.getArgs();
+            if (args == null){
+                args = new ArrayList();
+            }
             if(methodDef.hasReferences()){
                 args = resolveReferences(args, context);
             }
@@ -444,7 +447,13 @@ public class FluxBuilder {
             Class[] paramClasses = method.getParameterTypes();
             if (paramClasses.length == args.size() && method.getName().equals(methodName)) {
                 LOG.debug("found constructor with same number of args..");
-                boolean invokable = canInvokeWithArgs(args, method.getParameterTypes());
+                boolean invokable = false;
+                if (args.size() == 0){
+                    // it's a method with zero args
+                    invokable = true;
+                } else {
+                    invokable = canInvokeWithArgs(args, method.getParameterTypes());
+                }
                 if (invokable) {
                     retval = method;
                     eligibleCount++;

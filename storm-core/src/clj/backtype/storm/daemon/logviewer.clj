@@ -190,7 +190,7 @@
       logs)))
 
 (defn per-workerdir-cleanup
-  "Delete the oldest files in overloaded worker log dir"
+  "Delete the oldest files in each overloaded worker log dir"
   [^File root-dir size]
   (dofor [worker-dir (get-all-worker-dirs root-dir)]
     (let [filtered-logs (filter #(not (is-active-log %)) (.listFiles worker-dir))
@@ -367,6 +367,9 @@ Note that if anything goes wrong, this will throw an Error and exit."
 (defn- daemon-download-link [fname]
   [[:p (link-to (url-format "/daemondownload/%s" fname) "Download Full File")]])
 
+(defn- is-txt-file [fname]
+  (re-find #"\.(log.*|txt|yaml|pid)$" fname))
+
 (def default-bytes-per-page 51200)
 
 (defn log-page [fname start length grep user root-dir]
@@ -390,9 +393,8 @@ Note that if anything goes wrong, this will throw an Error and exit."
                length (if length
                        (min 10485760 length)
                        default-bytes-per-page)
-              is-txt-file (re-find #"\.(log.*|txt|yaml|pid)$" fname)
               log-string (escape-html
-                           (if is-txt-file
+                           (if (is-txt-file fname)
                              (if start
                                (page-file path start length)
                                (page-file path length))
@@ -405,7 +407,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                           (filter #(.contains % grep))
                           (string/join "\n"))
                      log-string)])
-            (let [pager-data (if is-txt-file (pager-links fname start length file-length) nil)]
+            (let [pager-data (if (is-txt-file fname) (pager-links fname start length file-length) nil)]
               (html (concat (log-file-selection-form reordered-files-str "log") ; list all files for this topology
                             pager-data
                             (download-link fname)
@@ -420,7 +422,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
 
 (defn daemonlog-page [fname start length grep user root-dir]
   (if (or (blank? (*STORM-CONF* UI-FILTER))
-        (authorized-log-user? user fname *STORM-CONF*)) ;; how to deal with this???????????
+        (authorized-log-user? user fname *STORM-CONF*))
     (let [file (.getCanonicalFile (File. root-dir fname))
           file-length (.length file)
           path (.getCanonicalPath file)
@@ -436,9 +438,8 @@ Note that if anything goes wrong, this will throw an Error and exit."
               files-str (for [file log-files]
                           (.getName file))
               reordered-files-str (conj (filter #(not= fname %) files-str) fname)
-              is-txt-file (re-find #"\.(log.*|txt|yaml|pid)$" fname)
               log-string (escape-html
-                           (if is-txt-file
+                           (if (is-txt-file fname)
                              (if start
                                (page-file path start length)
                                (page-file path length))
@@ -451,7 +452,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                        (filter #(.contains % grep))
                        (string/join "\n"))
                      log-string)])
-            (let [pager-data (if is-txt-file (pager-links fname start length file-length) nil)]
+            (let [pager-data (if (is-txt-file fname) (pager-links fname start length file-length) nil)]
               (html (concat (log-file-selection-form reordered-files-str "daemonlog") ; list all daemon logs
                       pager-data
                       (daemon-download-link fname)
@@ -561,9 +562,6 @@ Note that if anything goes wrong, this will throw an Error and exit."
         (log-error ex)
         (ring-response-from-exception ex))))
   (GET "/download/:file" [:as {:keys [servlet-request servlet-response log-root]} file & m]
-    ;; We do not use servlet-response here, but do not remove it from the
-    ;; :keys list, or this rule could stop working when an authentication
-    ;; filter is configured.
     (try
       (let [user (.getUserName http-creds-handler servlet-request)]
         (download-log-file file servlet-request servlet-response user log-root))
@@ -571,9 +569,6 @@ Note that if anything goes wrong, this will throw an Error and exit."
         (log-error ex)
         (ring-response-from-exception ex))))
   (GET "/daemondownload/:file" [:as {:keys [servlet-request servlet-response daemonlog-root]} file & m]
-    ;; We do not use servlet-response here, but do not remove it from the
-    ;; :keys list, or this rule could stop working when an authentication
-    ;; filter is configured.
     (try
       (let [user (.getUserName http-creds-handler servlet-request)]
         (download-log-file file servlet-request servlet-response user daemonlog-root))

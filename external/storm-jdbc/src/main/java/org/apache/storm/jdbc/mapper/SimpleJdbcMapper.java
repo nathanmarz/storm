@@ -18,6 +18,7 @@
 package org.apache.storm.jdbc.mapper;
 
 import backtype.storm.tuple.ITuple;
+import org.apache.commons.lang.Validate;
 import org.apache.storm.jdbc.common.Column;
 import org.apache.storm.jdbc.common.ConnectionProvider;
 import org.apache.storm.jdbc.common.JdbcClient;
@@ -35,6 +36,9 @@ public class SimpleJdbcMapper implements JdbcMapper {
     private List<Column> schemaColumns;
 
     public SimpleJdbcMapper(String tableName, ConnectionProvider connectionProvider) {
+        Validate.notEmpty(tableName);
+        Validate.notNull(connectionProvider);
+
         int queryTimeoutSecs = 30;
         connectionProvider.prepare();
         JdbcClient client = new JdbcClient(connectionProvider, queryTimeoutSecs);
@@ -42,6 +46,7 @@ public class SimpleJdbcMapper implements JdbcMapper {
     }
 
     public SimpleJdbcMapper(List<Column> schemaColumns) {
+        Validate.notEmpty(schemaColumns);
         this.schemaColumns = schemaColumns;
     }
 

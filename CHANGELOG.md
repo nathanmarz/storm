@@ -100,6 +100,7 @@
  * STORM-958: Add config for init params of group mapping service
  * STORM-949: On the topology summary UI page, last shown error should have the time and date
  * STORM-1142: Some config validators for positive ints need to allow 0
+ * STORM-901: Worker Artifacts Directory
 
 ## 0.10.0-beta2
  * STORM-1108: Fix NPE in simulated time

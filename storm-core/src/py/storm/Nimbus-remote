@@ -69,6 +69,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print('  string getTopologyConf(string id)')
   print('  StormTopology getTopology(string id)')
   print('  StormTopology getUserTopology(string id)')
+  print('  TopologyHistoryInfo getTopologyHistory(string user)')
   print('')
   sys.exit(0)
 
@@ -286,6 +287,12 @@ elif cmd == 'getUserTopology':
     print('getUserTopology requires 1 args')
     sys.exit(1)
   pp.pprint(client.getUserTopology(args[0],))
+
+elif cmd == 'getTopologyHistory':
+  if len(args) != 1:
+    print('getTopologyHistory requires 1 args')
+    sys.exit(1)
+  pp.pprint(client.getTopologyHistory(args[0],))
 
 else:
   print('Unrecognized method %s' % cmd)

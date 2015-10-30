@@ -316,3 +316,421 @@
       (is   (= expected-all returned-all))
       (is   (= expected-filter-port returned-filter-port))
       (is   (= expected-filter-topoId returned-filter-topoId)))))
+
+(deftest test-search-via-rest-api
+  (testing "Throws if bogus file is given"
+    (thrown-cause? java.lang.RuntimeException
+      (logviewer/substring-search nil "a string")))
+
+  (let [pattern "needle"
+        expected-host "dev.null.invalid"
+        expected-port 8888
+        ;; When we click a link to the logviewer, we expect the match line to
+        ;; be somewhere near the middle of the page.  So we subtract half of
+        ;; the default page length from the offset at which we found the
+        ;; match.
+        exp-offset-fn #(- (/ logviewer/default-bytes-per-page 2) %)]
+
+    (stubbing [local-hostname expected-host
+               logviewer/logviewer-port expected-port]
+
+      (testing "Logviewer link centers the match in the page"
+        (let [expected-fname "foobar.log"]
+          (is (= (str "http://"
+                   expected-host
+                   ":"
+                   expected-port
+                   "/log?file="
+                   expected-fname
+                   "&start=1947&length="
+                   logviewer/default-bytes-per-page)
+                (logviewer/url-to-match-centered-in-log-page (byte-array 42)
+                  expected-fname
+                  27526
+                  8888)))))
+
+      (let [file (->> "logviewer-search-context-tests.log"
+                   (clojure.java.io/file "src" "dev"))]
+        (testing "returns correct before/after context"
+          (is (= {"searchString" pattern
+                  "startByteOffset" 0
+                  "matches" [{"byteOffset" 0
+                              "beforeString" ""
+                              "afterString" " needle000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000needle "
+                              "matchString" pattern
+                              "logviewerURL" (str "http://"
+                                               expected-host
+                                               ":"
+                                               expected-port
+                                               "/log?file=src%2Fdev%2F"
+                                               (.getName file)
+                                               "&start=0&length=51200")}
+                             {"byteOffset" 7
+                              "beforeString" "needle "
+                              "afterString" "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000needle needle\n"
+                              "matchString" pattern
+                              "logviewerURL" (str "http://"
+                                               expected-host
+                                               ":"
+                                               expected-port
+                                               "/log?file=src%2Fdev%2F"
+                                               (.getName file)
+                                               "&start=0&length=51200")}
+                             {"byteOffset" 127
+                              "beforeString" "needle needle000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+                              "afterString" " needle\n"
+                              "matchString" pattern
+                              "logviewerURL" (str "http://"
+                                               expected-host
+                                               ":"
+                                               expected-port
+                                               "/log?file=src%2Fdev%2F"
+                                               (.getName file)
+                                               "&start=0&length=51200")}
+                             {"byteOffset" 134
+                              "beforeString" " needle000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000needle "
+                              "afterString" "\n"
+                              "matchString" pattern
+                              "logviewerURL" (str "http://"
+                                               expected-host
+                                               ":"
+                                               expected-port
+                                               "/log?file=src%2Fdev%2F"
+                                               (.getName file)
+                                               "&start=0&length=51200")}
+                             ]}
+                (logviewer/substring-search file pattern)))))
+
+      (let [file (clojure.java.io/file "src" "dev" "small-worker.log")]
+        (testing "a really small log file"
+          (is (= {"searchString" pattern
+                  "startByteOffset" 0
+                  "matches" [{"byteOffset" 7
+                              "beforeString" "000000 "
+                              "afterString" " 000000\n"
+                              "matchString" pattern
+                              "logviewerURL" (str "http://"
+                                               expected-host
+                                               ":"
+                                               expected-port
+                                               "/log?file=src%2Fdev%2F"
+                                               (.getName file)
+                                               "&start=0&length=51200")}]}
+                (logviewer/substring-search file pattern)))))
+
+      (let [file (clojure.java.io/file "src" "dev" "test-3072.log")]
+        (testing "no offset returned when file ends on buffer offset"
+          (let [expected
+                {"searchString" pattern
+                 "startByteOffset" 0
+                 "matches" [{"byteOffset" 3066
+                             "beforeString" (->>
+                                              (repeat 128 '.)
+                                              clojure.string/join)
+                             "afterString" ""
+                             "matchString" pattern
+                             "logviewerURL" (str "http://"
+                                              expected-host
+                                              ":"
+                                              expected-port
+                                              "/log?file=src%2Fdev%2F"
+                                              (.getName file)
+                                              "&start=0&length=51200")}]}]
+            (is (= expected
+                  (logviewer/substring-search file pattern)))
+            (is (= expected
+                  (logviewer/substring-search file pattern :num-matches 1))))))
+
+      (let [file (clojure.java.io/file "src" "dev" "test-worker.log")]
+
+        (testing "next byte offsets are correct for each match"
+          (doseq [[num-matches-sought
+                   num-matches-found
+                   expected-next-byte-offset] [[1 1 11]
+                                               [2 2 2042]
+                                               [3 3 2052]
+                                               [4 4 3078]
+                                               [5 5 3196]
+                                               [6 6 3202]
+                                               [7 7 6252]
+                                               [8 8 6321]
+                                               [9 9 6397]
+                                               [10 10 6476]
+                                               [11 11 6554]
+                                               [12 12 nil]
+                                               [13 12 nil]]]
+            (let [result
+                  (logviewer/substring-search file
+                    pattern
+                    :num-matches num-matches-sought)]
+              (is (= expected-next-byte-offset
+                    (get result "nextByteOffset")))
+              (is (= num-matches-found (count (get result "matches")))))))
+
+        (is
+          (= {"nextByteOffset" 6252
+              "searchString" pattern
+              "startByteOffset" 0
+              "matches" [
+                          {"byteOffset" 5
+                           "beforeString" "Test "
+                           "afterString" " is near the beginning of the file.\nThis file assumes a buffer size of 2048 bytes, a max search string size of 1024 bytes, and a"
+                           "matchString" pattern
+                           "logviewerURL" (str "http://"
+                                            expected-host
+                                            ":"
+                                            expected-port
+                                            "/log?file=src%2Fdev%2F"
+                                            (.getName file)
+                                            "&start=0&length=51200")}
+                          {"byteOffset" 2036
+                           "beforeString" "ng 146\npadding 147\npadding 148\npadding 149\npadding 150\npadding 151\npadding 152\npadding 153\nNear the end of a 1024 byte block, a "
+                           "afterString" ".\nA needle that straddles a 1024 byte boundary should also be detected.\n\npadding 157\npadding 158\npadding 159\npadding 160\npadding"
+                           "matchString" pattern
+                           "logviewerURL" (str "http://"
+                                            expected-host
+                                            ":"
+                                            expected-port
+                                            "/log?file=src%2Fdev%2F"
+                                            (.getName file)
+                                            "&start=0&length=51200")}
+                          {"byteOffset" 2046
+                           "beforeString" "ding 147\npadding 148\npadding 149\npadding 150\npadding 151\npadding 152\npadding 153\nNear the end of a 1024 byte block, a needle.\nA "
+                           "afterString" " that straddles a 1024 byte boundary should also be detected.\n\npadding 157\npadding 158\npadding 159\npadding 160\npadding 161\npaddi"
+                           "matchString" pattern
+                           "logviewerURL" (str "http://"
+                                            expected-host
+                                            ":"
+                                            expected-port
+                                            "/log?file=src%2Fdev%2F"
+                                            (.getName file)
+                                            "&start=0&length=51200")}
+                          {"byteOffset" 3072
+                           "beforeString" "adding 226\npadding 227\npadding 228\npadding 229\npadding 230\npadding 231\npadding 232\npadding 233\npadding 234\npadding 235\n\n\nHere a "
+                           "afterString" " occurs just after a 1024 byte boundary.  It should have the correct context.\n\nText with two adjoining matches: needleneedle\n\npa"
+                           "matchString" pattern
+                           "logviewerURL" (str "http://"
+                                            expected-host
+                                            ":"
+                                            expected-port
+                                            "/log?file=src%2Fdev%2F"
+                                            (.getName file)
+                                            "&start=0&length=51200")}
+                          {"byteOffset" 3190
+                           "beforeString" "\n\n\nHere a needle occurs just after a 1024 byte boundary.  It should have the correct context.\n\nText with two adjoining matches: "
+                           "afterString" "needle\n\npadding 243\npadding 244\npadding 245\npadding 246\npadding 247\npadding 248\npadding 249\npadding 250\npadding 251\npadding 252\n"
+                           "matchString" pattern
+                           "logviewerURL" (str "http://"
+                                            expected-host
+                                            ":"
+                                            expected-port
+                                            "/log?file=src%2Fdev%2F"
+                                            (.getName file)
+                                            "&start=0&length=51200")}
+                          {"byteOffset" 3196
+                           "beforeString" "e a needle occurs just after a 1024 byte boundary.  It should have the correct context.\n\nText with two adjoining matches: needle"
+                           "afterString" "\n\npadding 243\npadding 244\npadding 245\npadding 246\npadding 247\npadding 248\npadding 249\npadding 250\npadding 251\npadding 252\npaddin"
+                           "matchString" pattern
+                           "logviewerURL" (str "http://"
+                                            expected-host
+                                            ":"
+                                            expected-port
+                                            "/log?file=src%2Fdev%2F"
+                                            (.getName file)
+                                            "&start=0&length=51200")}
+                          {"byteOffset" 6246
+                           "beforeString" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n\nHere are four non-ascii 1-byte UTF-8 characters: αβγδε\n\n"
+                           "afterString" "\n\nHere are four printable 2-byte UTF-8 characters: ¡¢£¤¥\n\nneedle\n\n\n\nHere are four printable 3-byte UTF-8 characters: ऄअ"
+                           "matchString" pattern
+                           "logviewerURL" (str "http://"
+                                            expected-host
+                                            ":"
+                                            expected-port
+                                            "/log?file=src%2Fdev%2F"
+                                            (.getName file)
+                                            "&start=0&length=51200")}
+                          ]}
+            (logviewer/substring-search file pattern :num-matches 7)))
+
+        (testing "Correct match offset is returned when skipping bytes"
+          (let [start-byte-offset 3197]
+            (is (= {"nextByteOffset" 6252
+                    "searchString" pattern
+                    "startByteOffset" start-byte-offset
+                    "matches" [{"byteOffset" 6246
+                                "beforeString" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n\nHere are four non-ascii 1-byte UTF-8 characters: αβγδε\n\n"
+                                "afterString" "\n\nHere are four printable 2-byte UTF-8 characters: ¡¢£¤¥\n\nneedle\n\n\n\nHere are four printable 3-byte UTF-8 characters: ऄअ"
+                                "matchString" pattern
+                                "logviewerURL" (str "http://"
+                                                 expected-host
+                                                 ":"
+                                                 expected-port
+                                                 "/log?file=src%2Fdev%2F"
+                                                 (.getName file)
+                                                 "&start=0&length=51200")}]}
+                  (logviewer/substring-search file
+                    pattern
+                    :num-matches 1
+                    :start-byte-offset start-byte-offset)))))
+
+        (let [pattern (clojure.string/join (repeat 1024 'X))]
+          (is
+            (= {"nextByteOffset" 6183
+                "searchString" pattern
+                "startByteOffset" 0
+                "matches" [
+                            {"byteOffset" 4075
+                             "beforeString" "\n\nThe following match of 1024 bytes completely fills half the byte buffer.  It is a search substring of the maximum size......\n\n"
+                             "afterString" "\nThe following max-size match straddles a 1024 byte buffer.\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+                             "matchString" pattern
+                             "logviewerURL" (str "http://"
+                                              expected-host
+                                              ":"
+                                              expected-port
+                                              "/log?file=src%2Fdev%2F"
+                                              (.getName file)
+                                              "&start=0&length=51200")}
+                            {"byteOffset" 5159
+                             "beforeString" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\nThe following max-size match straddles a 1024 byte buffer.\n"
+                             "afterString" "\n\nHere are four non-ascii 1-byte UTF-8 characters: αβγδε\n\nneedle\n\nHere are four printable 2-byte UTF-8 characters: ¡¢£¤"
+                             "matchString" pattern
+                             "logviewerURL" (str "http://"
+                                              expected-host
+                                              ":"
+                                              expected-port
+                                              "/log?file=src%2Fdev%2F"
+                                              (.getName file)
+                                              "&start=0&length=51200")}
+                            ]}
+              (logviewer/substring-search file pattern :num-matches 2))))
+
+        (let [pattern "𐄀𐄁𐄂"]
+          (is
+            (= {"nextByteOffset" 7176
+                "searchString" pattern
+                "startByteOffset" 0
+                "matches" [
+                            {"byteOffset" 7164
+                             "beforeString" "padding 372\npadding 373\npadding 374\npadding 375\n\nThe following tests multibyte UTF-8 Characters straddling the byte boundary:   "
+                             "afterString" "\n\nneedle"
+                             "matchString" pattern
+                             "logviewerURL" (str "http://"
+                                              expected-host
+                                              ":"
+                                              expected-port
+                                              "/log?file=src%2Fdev%2F"
+                                              (.getName file)
+                                              "&start=0&length=51200")}
+                            ]}
+              (logviewer/substring-search file pattern :num-matches 1))))
+
+        (testing "Returns 0 matches for unseen pattern"
+          (let [pattern "Not There"]
+            (is (= {"searchString" pattern
+                    "startByteOffset" 0
+                    "matches" []}
+                  (logviewer/substring-search file
+                    pattern
+                    :num-matches nil
+                    :start-byte-offset nil)))))))))
+
+(deftest test-find-n-matches
+  (testing "find-n-matches looks through logs properly"
+    (let [files [(clojure.java.io/file "src" "dev" "logviewer-search-context-tests.log")
+                 (clojure.java.io/file "src" "dev" "logviewer-search-context-tests.log.gz")]
+          matches1 ((logviewer/find-n-matches files 20 0 0 "needle") "matches")
+          matches2 ((logviewer/find-n-matches files 20 0 126 "needle") "matches")
+          matches3 ((logviewer/find-n-matches files 20 1 0 "needle") "matches")]
+
+      (is (= 2 (count matches1)))
+      (is (= 4 (count ((first matches1) "matches"))))
+      (is (= 4 (count ((second matches1) "matches"))))
+      (is (= ((first matches1) "fileName") "src/dev/logviewer-search-context-tests.log"))
+      (is (= ((second matches1) "fileName") "src/dev/logviewer-search-context-tests.log.gz"))
+
+      (is (= 2 (count ((first matches2) "matches"))))
+      (is (= 4 (count ((second matches2) "matches"))))
+
+      (is (= 1 (count matches3)))
+      (is (= 4 (count ((first matches3) "matches")))))))
+
+(deftest test-deep-search-logs-for-topology
+  (let [files [(clojure.java.io/file "src" "dev" "logviewer-search-context-tests.log")
+               (clojure.java.io/file "src" "dev" "logviewer-search-context-tests.log.gz")]
+        attrs (make-array FileAttribute 0)
+        topo-path (.getCanonicalPath (.toFile (Files/createTempDirectory "topoA" attrs)))
+        _ (.createNewFile (clojure.java.io/file topo-path "6400"))
+        _ (.createNewFile (clojure.java.io/file topo-path "6500"))
+        _ (.createNewFile (clojure.java.io/file topo-path "6600"))
+        _ (.createNewFile (clojure.java.io/file topo-path "6700"))]
+    (stubbing
+      [logviewer/logs-for-port files
+       logviewer/find-n-matches nil]
+      (testing "deep-search-logs-for-topology all-ports search-archived = true"
+        (instrumenting
+          [logviewer/find-n-matches
+           logviewer/logs-for-port]
+          (logviewer/deep-search-logs-for-topology "" nil topo-path "search" "20" "*" "20" "199" true nil nil)
+          (verify-call-times-for logviewer/find-n-matches 4)
+          (verify-call-times-for logviewer/logs-for-port 4)
+          ; File offset and byte offset should always be zero when searching multiple workers (multiple ports).
+          (verify-nth-call-args-for 1 logviewer/find-n-matches files 20 0 0 "search")
+          (verify-nth-call-args-for 2 logviewer/find-n-matches files 20 0 0 "search")
+          (verify-nth-call-args-for 3 logviewer/find-n-matches files 20 0 0 "search")
+          (verify-nth-call-args-for 4 logviewer/find-n-matches files 20 0 0 "search")))
+      (testing "deep-search-logs-for-topology all-ports search-archived = false"
+        (instrumenting
+          [logviewer/find-n-matches
+           logviewer/logs-for-port]
+          (logviewer/deep-search-logs-for-topology "" nil topo-path "search" "20" nil "20" "199" nil nil nil)
+          (verify-call-times-for logviewer/find-n-matches 4)
+          (verify-call-times-for logviewer/logs-for-port 4)
+          ; File offset and byte offset should always be zero when searching multiple workers (multiple ports).
+          (verify-nth-call-args-for 1 logviewer/find-n-matches [(first files)] 20 0 0 "search")
+          (verify-nth-call-args-for 2 logviewer/find-n-matches [(first files)] 20 0 0 "search")
+          (verify-nth-call-args-for 3 logviewer/find-n-matches [(first files)] 20 0 0 "search")
+          (verify-nth-call-args-for 4 logviewer/find-n-matches [(first files)] 20 0 0 "search")))
+      (testing "deep-search-logs-for-topology one-port search-archived = true, no file-offset"
+        (instrumenting
+          [logviewer/find-n-matches
+           logviewer/logs-for-port]
+          (logviewer/deep-search-logs-for-topology "" nil topo-path "search" "20" "6700" "0" "0" true nil nil)
+          (verify-call-times-for logviewer/find-n-matches 1)
+          (verify-call-times-for logviewer/logs-for-port 2)
+          (verify-nth-call-args-for 1 logviewer/find-n-matches files 20 0 0 "search")))
+      (testing "deep-search-logs-for-topology one-port search-archived = true, file-offset = 1"
+        (instrumenting
+          [logviewer/find-n-matches
+           logviewer/logs-for-port]
+          (logviewer/deep-search-logs-for-topology "" nil topo-path "search" "20" "6700" "1" "0" true nil nil)
+          (verify-call-times-for logviewer/find-n-matches 1)
+          (verify-call-times-for logviewer/logs-for-port 2)
+          (verify-nth-call-args-for 1 logviewer/find-n-matches files 20 1 0 "search")))
+      (testing "deep-search-logs-for-topology one-port search-archived = false, file-offset = 1"
+        (instrumenting
+          [logviewer/find-n-matches
+           logviewer/logs-for-port]
+          (logviewer/deep-search-logs-for-topology "" nil topo-path "search" "20" "6700" "1" "0" nil nil nil)
+          (verify-call-times-for logviewer/find-n-matches 1)
+          (verify-call-times-for logviewer/logs-for-port 2)
+          ; File offset should be zero, since search-archived is false.
+          (verify-nth-call-args-for 1 logviewer/find-n-matches [(first files)] 20 0 0 "search")))
+      (testing "deep-search-logs-for-topology one-port search-archived = true, file-offset = 1, byte-offset = 100"
+        (instrumenting
+          [logviewer/find-n-matches
+           logviewer/logs-for-port]
+          (logviewer/deep-search-logs-for-topology "" nil topo-path "search" "20" "6700" "1" "100" true nil nil)
+          (verify-call-times-for logviewer/find-n-matches 1)
+          (verify-call-times-for logviewer/logs-for-port 2)
+          ; File offset should be zero, since search-archived is false.
+          (verify-nth-call-args-for 1 logviewer/find-n-matches files 20 1 100 "search")))
+      (testing "deep-search-logs-for-topology bad-port search-archived = false, file-offset = 1"
+        (instrumenting
+          [logviewer/find-n-matches
+           logviewer/logs-for-port]
+          (logviewer/deep-search-logs-for-topology "" nil topo-path "search" "20" "2700" "1" "0" nil nil nil)
+          ; Called with a bad port (not in the config) No searching should be done.
+          (verify-call-times-for logviewer/find-n-matches 0)
+          (verify-call-times-for logviewer/logs-for-port 0)))
+      (rmr topo-path))))
+

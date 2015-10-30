@@ -8579,6 +8579,210 @@ class LSWorkerHeartbeat:
   def __ne__(self, other):
     return not (self == other)
 
+class LSTopoHistory:
+  """
+  Attributes:
+   - topology_id
+   - time_stamp
+   - users
+   - groups
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'topology_id', None, None, ), # 1
+    (2, TType.I64, 'time_stamp', None, None, ), # 2
+    (3, TType.LIST, 'users', (TType.STRING,None), None, ), # 3
+    (4, TType.LIST, 'groups', (TType.STRING,None), None, ), # 4
+  )
+
+  def __init__(self, topology_id=None, time_stamp=None, users=None, groups=None,):
+    self.topology_id = topology_id
+    self.time_stamp = time_stamp
+    self.users = users
+    self.groups = groups
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.topology_id = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.I64:
+          self.time_stamp = iprot.readI64();
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.LIST:
+          self.users = []
+          (_etype590, _size587) = iprot.readListBegin()
+          for _i591 in xrange(_size587):
+            _elem592 = iprot.readString().decode('utf-8')
+            self.users.append(_elem592)
+          iprot.readListEnd()
+        else:
+          iprot.skip(ftype)
+      elif fid == 4:
+        if ftype == TType.LIST:
+          self.groups = []
+          (_etype596, _size593) = iprot.readListBegin()
+          for _i597 in xrange(_size593):
+            _elem598 = iprot.readString().decode('utf-8')
+            self.groups.append(_elem598)
+          iprot.readListEnd()
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('LSTopoHistory')
+    if self.topology_id is not None:
+      oprot.writeFieldBegin('topology_id', TType.STRING, 1)
+      oprot.writeString(self.topology_id.encode('utf-8'))
+      oprot.writeFieldEnd()
+    if self.time_stamp is not None:
+      oprot.writeFieldBegin('time_stamp', TType.I64, 2)
+      oprot.writeI64(self.time_stamp)
+      oprot.writeFieldEnd()
+    if self.users is not None:
+      oprot.writeFieldBegin('users', TType.LIST, 3)
+      oprot.writeListBegin(TType.STRING, len(self.users))
+      for iter599 in self.users:
+        oprot.writeString(iter599.encode('utf-8'))
+      oprot.writeListEnd()
+      oprot.writeFieldEnd()
+    if self.groups is not None:
+      oprot.writeFieldBegin('groups', TType.LIST, 4)
+      oprot.writeListBegin(TType.STRING, len(self.groups))
+      for iter600 in self.groups:
+        oprot.writeString(iter600.encode('utf-8'))
+      oprot.writeListEnd()
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    if self.topology_id is None:
+      raise TProtocol.TProtocolException(message='Required field topology_id is unset!')
+    if self.time_stamp is None:
+      raise TProtocol.TProtocolException(message='Required field time_stamp is unset!')
+    if self.users is None:
+      raise TProtocol.TProtocolException(message='Required field users is unset!')
+    if self.groups is None:
+      raise TProtocol.TProtocolException(message='Required field groups is unset!')
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.topology_id)
+    value = (value * 31) ^ hash(self.time_stamp)
+    value = (value * 31) ^ hash(self.users)
+    value = (value * 31) ^ hash(self.groups)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class LSTopoHistoryList:
+  """
+  Attributes:
+   - topo_history
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.LIST, 'topo_history', (TType.STRUCT,(LSTopoHistory, LSTopoHistory.thrift_spec)), None, ), # 1
+  )
+
+  def __init__(self, topo_history=None,):
+    self.topo_history = topo_history
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.LIST:
+          self.topo_history = []
+          (_etype604, _size601) = iprot.readListBegin()
+          for _i605 in xrange(_size601):
+            _elem606 = LSTopoHistory()
+            _elem606.read(iprot)
+            self.topo_history.append(_elem606)
+          iprot.readListEnd()
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('LSTopoHistoryList')
+    if self.topo_history is not None:
+      oprot.writeFieldBegin('topo_history', TType.LIST, 1)
+      oprot.writeListBegin(TType.STRUCT, len(self.topo_history))
+      for iter607 in self.topo_history:
+        iter607.write(oprot)
+      oprot.writeListEnd()
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    if self.topo_history is None:
+      raise TProtocol.TProtocolException(message='Required field topo_history is unset!')
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.topo_history)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
 class ProfileRequest:
   """
   Attributes:
@@ -8886,12 +9090,12 @@ class LogConfig:
       if fid == 2:
         if ftype == TType.MAP:
           self.named_logger_level = {}
-          (_ktype588, _vtype589, _size587 ) = iprot.readMapBegin()
-          for _i591 in xrange(_size587):
-            _key592 = iprot.readString().decode('utf-8')
-            _val593 = LogLevel()
-            _val593.read(iprot)
-            self.named_logger_level[_key592] = _val593
+          (_ktype609, _vtype610, _size608 ) = iprot.readMapBegin()
+          for _i612 in xrange(_size608):
+            _key613 = iprot.readString().decode('utf-8')
+            _val614 = LogLevel()
+            _val614.read(iprot)
+            self.named_logger_level[_key613] = _val614
           iprot.readMapEnd()
         else:
           iprot.skip(ftype)
@@ -8908,9 +9112,9 @@ class LogConfig:
     if self.named_logger_level is not None:
       oprot.writeFieldBegin('named_logger_level', TType.MAP, 2)
       oprot.writeMapBegin(TType.STRING, TType.STRUCT, len(self.named_logger_level))
-      for kiter594,viter595 in self.named_logger_level.items():
-        oprot.writeString(kiter594.encode('utf-8'))
-        viter595.write(oprot)
+      for kiter615,viter616 in self.named_logger_level.items():
+        oprot.writeString(kiter615.encode('utf-8'))
+        viter616.write(oprot)
       oprot.writeMapEnd()
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
@@ -8923,6 +9127,79 @@ class LogConfig:
   def __hash__(self):
     value = 17
     value = (value * 31) ^ hash(self.named_logger_level)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class TopologyHistoryInfo:
+  """
+  Attributes:
+   - topo_ids
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.LIST, 'topo_ids', (TType.STRING,None), None, ), # 1
+  )
+
+  def __init__(self, topo_ids=None,):
+    self.topo_ids = topo_ids
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.LIST:
+          self.topo_ids = []
+          (_etype620, _size617) = iprot.readListBegin()
+          for _i621 in xrange(_size617):
+            _elem622 = iprot.readString().decode('utf-8')
+            self.topo_ids.append(_elem622)
+          iprot.readListEnd()
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('TopologyHistoryInfo')
+    if self.topo_ids is not None:
+      oprot.writeFieldBegin('topo_ids', TType.LIST, 1)
+      oprot.writeListBegin(TType.STRING, len(self.topo_ids))
+      for iter623 in self.topo_ids:
+        oprot.writeString(iter623.encode('utf-8'))
+      oprot.writeListEnd()
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.topo_ids)
     return value
 
   def __repr__(self):

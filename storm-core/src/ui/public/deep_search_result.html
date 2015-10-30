@@ -1,0 +1,155 @@
+<html><head>
+    <!--
+     Licensed to the Apache Software Foundation (ASF) under one or more
+     contributor license agreements.  See the NOTICE file distributed with
+     this work for additional information regarding copyright ownership.
+     The ASF licenses this file to You under the Apache License, Version 2.0
+     (the "License"); you may not use this file except in compliance with
+     the License.  You may obtain a copy of the License at
+
+         http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+    -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Storm UI</title>
+<link href="/css/bootstrap-3.3.1.min.css" rel="stylesheet" type="text/css">
+<link href="/css/jquery.dataTables.1.10.4.min.css" rel="stylesheet" type="text/css">
+<link href="/css/dataTables.bootstrap.css" rel="stylesheet" type="text/css">
+<link href="/css/style.css" rel="stylesheet" type="text/css">
+<script src="/js/jquery-1.11.1.min.js" type="text/javascript"></script>
+<script src="/js/jquery.dataTables.1.10.4.min.js" type="text/javascript"></script>
+<script src="/js/jquery.cookies.2.2.0.min.js" type="text/javascript"></script>
+<script src="/js/jquery.mustache.js" type="text/javascript"></script>
+<script src="/js/typeahead.jquery.min.js" type="text/javascript"></script>
+<script src="/js/bootstrap-3.3.1.min.js" type="text/javascript"></script>
+<script src="/js/jquery.blockUI.min.js" type="text/javascript"></script>
+<script src="/js/url.min.js" type="text/javascript"></script>
+<script src="/js/dataTables.bootstrap.min.js" type="text/javascript"></script>
+<script src="/js/script.js" type="text/javascript"></script>
+</head>
+<body>
+<div class="container-fluid">
+  <div class="row">
+    <div id="search-form"></div>
+  </div>
+  <div class="row">
+    <div id="result"></div>
+  </div>
+</div>
+</body>
+<script type="text/javascript">
+
+function elem_id_for_host(host) {
+    return "search-results-"+host.replace(/\./g,"-");
+}
+
+$(document).ready(function() {
+    var id = $.url("?id");
+    var search = $.url("?search");
+    var count = $.url("?count") || 2;
+    var port = $.url("?port") || "*";
+    var search_archived = $.url("?search-archived");
+
+    $.get("/templates/deep-search-result-page-template.html", function(template) {
+        var checked;
+        if (search_archived) {
+            checked = "checked";
+        }
+        $.get("/api/v1/history/summary", function (response, status, jqXHR) {
+            var findIds = function findIds(query, cb) {
+                var found = [];
+                var re = new RegExp(query, 'i');
+                for (var i in response["topo-history"]) {
+                    var host = response["topo-history"][i].host;
+                    if (re.test(host)) {
+                        found.push({ value: host });
+                    }
+               }
+               cb(found);
+            };
+
+            $("#search-form").append(Mustache.render($(template).filter("#search-form-template").html(),{id: id, search: search, count: count, search_archived: checked, topologies: response["topo-history"]}));
+            $('#search-id').typeahead({
+              hint: true,
+              highlight: true,
+              minLength: 1
+            },
+            {
+              name: 'ids',
+              displayKey: 'value',
+              source: findIds 
+            });
+            $('#search-form [data-toggle="tooltip"]').tooltip();
+        });
+
+        function render_file(file, host, logviewerPort, count, template) {
+            file.host = host;
+            file.id = id;
+            file.count = count;
+            file.logviewerPort = logviewerPort;
+            file.search_archived = search_archived;
+            var searchTemplate = $(template).filter("#search-result-identified-template").html();
+            var rendered = Mustache.render(searchTemplate, file);
+            var elemId = elem_id_for_host(host);
+            $("#"+elemId).remove();
+            $("#search-result-table > tbody").append(rendered);
+        }
+
+
+        var result = $("#result");
+        if(search) {
+            $.get("/api/v1/supervisor/summary", function(response, status, jqXHR) {
+
+                for(var i in response.supervisors) {
+                    response.supervisors[i].elemId = elem_id_for_host(response.supervisors[i].host);
+                }
+
+                result.append(Mustache.render($(template).filter("#search-result-files-template").html(),response));
+
+                var logviewerPort = response.logviewerPort;
+                var distinct_hosts = {};
+                for (var index in response.supervisors) {
+                    distinct_hosts[response.supervisors[index].host] = true;
+                }
+
+
+                for (var host in distinct_hosts) {
+                    var searchURL = "http://"+host+":"+logviewerPort+"/deepSearch/"+id+"?search-string="+search+"&num-matches="+count+"&port="+port;
+                    if(search_archived)
+                        searchURL += "&search-archived=" + search_archived;
+                    
+                    
+                    $.ajax({dataType: "json",
+                            url: searchURL,
+                            xhrFields: {
+                                withCredentials: true
+                            },
+                            success: $.proxy(function(data,status,jqXHR) {
+                                if(port == "*") {
+                                    for(var by_port in data) {
+                                        for(var i in data[by_port].matches) {
+                                            render_file(data[by_port].matches[i], this.host, logviewerPort, count, template);
+                                        }
+                                    }
+                                }
+                                else {
+                                    for(var i in data.matches) {
+                                        render_file(data.matches[i], this.host, logviewerPort, count, template);
+                                    }
+                                }
+                            }, {host: host, id: id})
+                           });
+                }
+            });
+        }
+    });
+});
+
+</script>
+</html>

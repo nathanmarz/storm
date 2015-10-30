@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1147: Storm JDBCBolt should add validation to ensure either insertQuery or table name is specified and not both.
  * STORM-1151: Batching in DisruptorQueue
  * STORM-350: Update disruptor to latest version (3.3.2)
  * STORM-697: Support for Emitting Kafka Message Offset and Partition

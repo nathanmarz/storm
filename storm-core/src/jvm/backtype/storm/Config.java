@@ -347,6 +347,13 @@ public class Config extends HashMap<String, Object> {
     public static final String STORM_NIMBUS_RETRY_INTERVAL_CEILING="storm.nimbus.retry.intervalceiling.millis";
 
     /**
+     * The ClusterState factory that worker will use to create a ClusterState
+     * to store state in. Defaults to ZooKeeper.
+     */
+    @isString
+    public static final String STORM_CLUSTER_STATE_STORE = "storm.cluster.state.store";
+
+    /**
      * The Nimbus transport plug-in for Thrift client/server communication
      */
     @isString
@@ -751,6 +758,54 @@ public class Config extends HashMap<String, Object> {
     @isBoolean
     public static final String UI_HTTPS_NEED_CLIENT_AUTH = "ui.https.need.client.auth";
 
+    /**
+     * The host that Pacemaker is running on.
+     */
+    @isString
+    public static final String PACEMAKER_HOST = "pacemaker.host";
+
+    /**
+     * The port Pacemaker should run on. Clients should
+     * connect to this port to submit or read heartbeats.
+     */
+    @isNumber
+    @isPositiveNumber
+    public static final String PACEMAKER_PORT = "pacemaker.port";
+
+    /**
+     * The maximum number of threads that should be used by the Pacemaker.
+     * When Pacemaker gets loaded it will spawn new threads, up to 
+     * this many total, to handle the load.
+     */
+    @isNumber
+    @isPositiveNumber
+    public static final String PACEMAKER_MAX_THREADS = "pacemaker.max.threads";
+
+    /**
+     * This parameter is used by the storm-deploy project to configure the
+     * jvm options for the nimbus daemon.
+     */
+    @isString
+    public static final String PACEMAKER_CHILDOPTS = "pacemaker.childopts";
+
+    /**
+     * This should be one of "DIGEST", "KERBEROS", or "NONE"
+     * Determines the mode of authentication the pacemaker server and client use.
+     * The client must either match the server, or be NONE. In the case of NONE,
+     * no authentication is performed for the client, and if the server is running with
+     * DIGEST or KERBEROS, the client can only write to the server (no reads).
+     * This is intended to provide a primitive form of access-control.
+     */
+    @isString
+    public static final String PACEMAKER_AUTH_METHOD = "pacemaker.auth.method";
+
+    /**
+     * These are the kerberos users who are authorized to read hearbeats from
+     * Pacemaker.
+     */
+    @isStringList
+    public static final String PACEMAKER_KERBEROS_USERS = "pacemaker.kerberos.users";
+    
     /**
      * List of DRPC servers so that the DRPCSpout knows who to talk to.
      */

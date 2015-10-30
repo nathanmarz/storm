@@ -54,7 +54,10 @@
                     STORM-MESSAGING-NETTY-MAX-SLEEP-MS 5000
                     STORM-MESSAGING-NETTY-SERVER-WORKER-THREADS 1
                     STORM-MESSAGING-NETTY-CLIENT-WORKER-THREADS 1
-                    }
+                    TOPOLOGY-KRYO-FACTORY "backtype.storm.serialization.DefaultKryoFactory"
+                    TOPOLOGY-TUPLE-SERIALIZER "backtype.storm.serialization.types.ListDelegateSerializer"
+                    TOPOLOGY-FALL-BACK-ON-JAVA-SERIALIZATION false
+                    TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS false}
         context (TransportFactory/makeContext storm-conf)
         server (.bind context nil port)
         client (.connect context nil "localhost" port)
@@ -79,7 +82,10 @@
                     STORM-MESSAGING-NETTY-MAX-SLEEP-MS 5000
                     STORM-MESSAGING-NETTY-SERVER-WORKER-THREADS 1
                     STORM-MESSAGING-NETTY-CLIENT-WORKER-THREADS 1
-                    }
+                    TOPOLOGY-KRYO-FACTORY "backtype.storm.serialization.DefaultKryoFactory"
+                    TOPOLOGY-TUPLE-SERIALIZER "backtype.storm.serialization.types.ListDelegateSerializer"
+                    TOPOLOGY-FALL-BACK-ON-JAVA-SERIALIZATION false
+                    TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS false}
         context (TransportFactory/makeContext storm-conf)
         server (.bind context nil port)
         client (.connect context nil "localhost" port)
@@ -104,7 +110,10 @@
                     STORM-MESSAGING-NETTY-MAX-SLEEP-MS 5000
                     STORM-MESSAGING-NETTY-SERVER-WORKER-THREADS 1
                     STORM-MESSAGING-NETTY-CLIENT-WORKER-THREADS 1
-                    }
+                    TOPOLOGY-KRYO-FACTORY "backtype.storm.serialization.DefaultKryoFactory"
+                    TOPOLOGY-TUPLE-SERIALIZER "backtype.storm.serialization.types.ListDelegateSerializer"
+                    TOPOLOGY-FALL-BACK-ON-JAVA-SERIALIZATION false
+                    TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS false}
         _ (log-message "Should send and receive many messages (testing with " num-messages " messages)")
         context (TransportFactory/makeContext storm-conf)
         server (.bind context nil port)

@@ -1054,6 +1054,22 @@
 (defn hashmap-to-persistent [^HashMap m]
   (zipmap (.keySet m) (.values m)))
 
+(defn retry-on-exception
+  "Retries specific function on exception based on retries count"
+  [tries task-description f & args]
+  (let [res (try {:value (apply f args)}
+              (catch Exception e
+                (if (= 0 tries)
+                  (throw e)
+                  {:exception e})))]
+    (if (:exception res)
+      (do 
+        (log-error (:exception res) (str "Failed to " task-description ". Will make [" tries "] more attempts."))
+        (recur (dec tries) task-description f args))
+      (do 
+        (log-debug (str "Successful " task-description "."))
+        (:value res)))))
+
 (defn setup-default-uncaught-exception-handler
   "Set a default uncaught exception handler to handle exceptions not caught in other threads."
   []

@@ -17,19 +17,11 @@
  */
 package backtype.storm.messaging.netty;
 
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadFactory;
-
+import backtype.storm.Config;
+import backtype.storm.messaging.TaskMessage;
+import backtype.storm.metric.api.IStatefulObject;
+import backtype.storm.serialization.KryoValuesSerializer;
+import backtype.storm.utils.Utils;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFactory;
@@ -39,14 +31,24 @@ import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import backtype.storm.Config;
-import backtype.storm.messaging.ConnectionWithStatus;
-import backtype.storm.messaging.IConnection;
-import backtype.storm.messaging.TaskMessage;
-import backtype.storm.metric.api.IStatefulObject;
-import backtype.storm.utils.Utils;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Collection;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadFactory;
+import java.io.IOException;
 
-class Server extends ConnectionWithStatus implements IStatefulObject {
+import backtype.storm.messaging.ConnectionWithStatus;
+
+class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServer {
 
     private static final Logger LOG = LoggerFactory.getLogger(Server.class);
     @SuppressWarnings("rawtypes")
@@ -55,58 +57,58 @@ class Server extends ConnectionWithStatus implements IStatefulObject {
     private final ConcurrentHashMap<String, AtomicInteger> messagesEnqueued = new ConcurrentHashMap<String, AtomicInteger>();
     private final AtomicInteger messagesDequeued = new AtomicInteger(0);
     private final AtomicInteger[] pendingMessages;
-    
-    
+
     // Create multiple queues for incoming messages. The size equals the number of receiver threads.
     // For message which is sent to same task, it will be stored in the same queue to preserve the message order.
     private LinkedBlockingQueue<ArrayList<TaskMessage>>[] message_queue;
-    
+
     volatile ChannelGroup allChannels = new DefaultChannelGroup("storm-server");
     final ChannelFactory factory;
     final ServerBootstrap bootstrap;
-    
+
     private int queueCount;
     private volatile HashMap<Integer, Integer> taskToQueueId = null;
     int roundRobinQueueId;
-	
+
     private volatile boolean closing = false;
     List<TaskMessage> closeMessage = Arrays.asList(new TaskMessage(-1, null));
-    
-    
+    private KryoValuesSerializer _ser;
+
     @SuppressWarnings("rawtypes")
     Server(Map storm_conf, int port) {
         this.storm_conf = storm_conf;
         this.port = port;
-        
+        _ser = new KryoValuesSerializer(storm_conf);
+
         queueCount = Utils.getInt(storm_conf.get(Config.WORKER_RECEIVER_THREAD_COUNT), 1);
         roundRobinQueueId = 0;
         taskToQueueId = new HashMap<Integer, Integer>();
-    
+
         message_queue = new LinkedBlockingQueue[queueCount];
         pendingMessages = new AtomicInteger[queueCount];
         for (int i = 0; i < queueCount; i++) {
             message_queue[i] = new LinkedBlockingQueue<ArrayList<TaskMessage>>();
             pendingMessages[i] = new AtomicInteger(0);
         }
-        
+
         // Configure the server.
         int buffer_size = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_BUFFER_SIZE));
         int backlog = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_SOCKET_BACKLOG), 500);
         int maxWorkers = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_SERVER_WORKER_THREADS));
 
-        ThreadFactory bossFactory = new NettyRenameThreadFactory(name() + "-boss");
-        ThreadFactory workerFactory = new NettyRenameThreadFactory(name() + "-worker");
-        
+        ThreadFactory bossFactory = new NettyRenameThreadFactory(netty_name() + "-boss");
+        ThreadFactory workerFactory = new NettyRenameThreadFactory(netty_name() + "-worker");
+
         if (maxWorkers > 0) {
-            factory = new NioServerSocketChannelFactory(Executors.newCachedThreadPool(bossFactory), 
+            factory = new NioServerSocketChannelFactory(Executors.newCachedThreadPool(bossFactory),
                 Executors.newCachedThreadPool(workerFactory), maxWorkers);
         } else {
-            factory = new NioServerSocketChannelFactory(Executors.newCachedThreadPool(bossFactory), 
+            factory = new NioServerSocketChannelFactory(Executors.newCachedThreadPool(bossFactory),
                 Executors.newCachedThreadPool(workerFactory));
         }
-        
-        LOG.info("Create Netty Server " + name() + ", buffer_size: " + buffer_size + ", maxWorkers: " + maxWorkers);
-        
+
+        LOG.info("Create Netty Server " + netty_name() + ", buffer_size: " + buffer_size + ", maxWorkers: " + maxWorkers);
+
         bootstrap = new ServerBootstrap(factory);
         bootstrap.setOption("child.tcpNoDelay", true);
         bootstrap.setOption("child.receiveBufferSize", buffer_size);
@@ -120,7 +122,7 @@ class Server extends ConnectionWithStatus implements IStatefulObject {
         Channel channel = bootstrap.bind(new InetSocketAddress(port));
         allChannels.add(channel);
     }
-    
+
     private ArrayList<TaskMessage>[] groupMessages(List<TaskMessage> msgs) {
         ArrayList<TaskMessage> messageGroups[] = new ArrayList[queueCount];
 
@@ -142,7 +144,7 @@ class Server extends ConnectionWithStatus implements IStatefulObject {
         }
         return messageGroups;
     }
-    
+
     private Integer getMessageQueueId(int task) {
         // try to construct the map from taskId -> queueId in round robin manner.
         Integer queueId = taskToQueueId.get(task);
@@ -181,9 +183,8 @@ class Server extends ConnectionWithStatus implements IStatefulObject {
         }
     }
 
-
     /**
-     * enqueue a received message 
+     * enqueue a received message
      * @throws InterruptedException
      */
     protected void enqueue(List<TaskMessage> msgs, String from) throws InterruptedException {
@@ -206,7 +207,7 @@ class Server extends ConnectionWithStatus implements IStatefulObject {
         }
     }
 
-    public Iterator<TaskMessage> recv(int flags, int receiverId) {
+    public Iterator<TaskMessage> recv(int flags, int receiverId)  {
         if (closing) {
             return closeMessage.iterator();
         }
@@ -236,7 +237,7 @@ class Server extends ConnectionWithStatus implements IStatefulObject {
         }
         return null;
     }
-   
+
     /**
      * register a newly created channel
      * @param channel
@@ -244,12 +245,12 @@ class Server extends ConnectionWithStatus implements IStatefulObject {
     protected void addChannel(Channel channel) {
         allChannels.add(channel);
     }
-    
+
     /**
      * close a channel
      * @param channel
      */
-    protected void closeChannel(Channel channel) {
+    public void closeChannel(Channel channel) {
         channel.close().awaitUninterruptibly();
         allChannels.remove(channel);
     }
@@ -265,15 +266,17 @@ class Server extends ConnectionWithStatus implements IStatefulObject {
         }
     }
 
+    @Override
     public void send(int task, byte[] message) {
         throw new UnsupportedOperationException("Server connection should not send any messages");
     }
-    
+
+    @Override
     public void send(Iterator<TaskMessage> msgs) {
       throw new UnsupportedOperationException("Server connection should not send any messages");
     }
-	
-    public String name() {
+
+    public String netty_name() {
       return "Netty-server-localhost-" + port;
     }
 
@@ -306,7 +309,7 @@ class Server extends ConnectionWithStatus implements IStatefulObject {
     }
 
     public Object getState() {
-        LOG.info("Getting metrics for server on port {}", port);
+        LOG.debug("Getting metrics for server on port {}", port);
         HashMap<String, Object> ret = new HashMap<String, Object>();
         ret.put("dequeuedMessages", messagesDequeued.getAndSet(0));
         ArrayList<Integer> pending = new ArrayList<Integer>(pendingMessages.length);
@@ -330,8 +333,31 @@ class Server extends ConnectionWithStatus implements IStatefulObject {
         return ret;
     }
 
-    @Override public String toString() {
-       return String.format("Netty server listening on port %s", port);
+    /** Implementing IServer. **/
+    public void channelConnected(Channel c) {
+        addChannel(c);
+    }
+
+    public void received(Object message, String remote, Channel channel)  throws InterruptedException {
+        List<TaskMessage>msgs = (List<TaskMessage>)message;
+        enqueue(msgs, remote);
+    }
+
+    public String name() {
+        return (String)storm_conf.get(Config.TOPOLOGY_NAME);
+    }
+
+    public String secretKey() {
+        return SaslUtils.getSecretKey(storm_conf);
+    }
+
+    public void authenticated(Channel c) {
+        return;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("Netty server listening on port %s", port);
     }
 
 }

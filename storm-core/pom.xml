@@ -126,7 +126,12 @@
             <artifactId>data.codec</artifactId>
             <scope>test</scope>
         </dependency>
-
+        <dependency>
+          <groupId>org.clojure</groupId>
+          <artifactId>java.jmx</artifactId>
+          <version>${java_jmx.version}</version>
+        </dependency>
+        
         <!--java-->
         <dependency>
             <groupId>commons-io</groupId>

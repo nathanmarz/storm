@@ -438,11 +438,6 @@
     (.shutdownNow (get dr WorkerTopologyContext/SHARED_EXECUTOR))
     (log-message "Shut down default resources")))
 
-(defn- override-login-config-with-system-property [conf]
-  (if-let [login_conf_file (System/getProperty "java.security.auth.login.config")]
-    (assoc conf "java.security.auth.login.config" login_conf_file)
-    conf))
-
 (defn- get-logger-levels []
   (into {}
     (let [logger-config (.getConfiguration (LogManager/getContext false))]

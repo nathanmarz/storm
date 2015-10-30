@@ -415,7 +415,7 @@
        "assignedMemOnHeap" (.get_assigned_memonheap t)
        "assignedMemOffHeap" (.get_assigned_memoffheap t)
        "assignedTotalMem" (+ (.get_assigned_memonheap t) (.get_assigned_memoffheap t))
-       "assignedTotalCpu" (.get_assigned_cpu t)})}))
+       "assignedCpu" (.get_assigned_cpu t)})}))
 
 (defn topology-stats [window stats]
   (let [times (stats-times (:emitted stats))

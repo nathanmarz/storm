@@ -189,6 +189,15 @@ Response fields:
 |workersTotal| Integer |Number of workers used for this topology|
 |executorsTotal| Integer |Number of executors used for this topology|
 |replicationCount| Integer |Number of nimbus hosts on which this topology code is replicated|
+|requestedMemOnHeap| Double|Requested On-Heap Memory by User (MB)
+|requestedMemOffHeap| Double|Requested Off-Heap Memory by User (MB)|
+|requestedTotalMem| Double|Requested Total Memory by User (MB)|
+|requestedCpu| Double|Requested CPU by User (%)|
+|assignedMemOnHeap| Double|Assigned On-Heap Memory by Scheduler (MB)|
+|assignedMemOffHeap| Double|Assigned Off-Heap Memory by Scheduler (MB)|
+|assignedTotalMem| Double|Assigned Total Memory by Scheduler (MB)|
+|assignedCpu| Double|Assigned CPU by Scheduler (%)|
+
 Sample response:
 
 ```json
@@ -204,6 +213,14 @@ Sample response:
             "workersTotal": 3,
             "executorsTotal": 28,
             "replicationCount": 1
+            "requestedMemOnHeap": 640
+            "requestedMemOffHeap": 128
+            "requestedTotalMem": 768
+            "requestedCpu": 80
+            "assignedMemOnHeap": 640
+            "assignedMemOffHeap": 128
+            "assignedTotalMem": 768
+            "assignedCpu": 80
         }
     ]
 }

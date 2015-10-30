@@ -54,8 +54,10 @@ import java.io.ByteArrayInputStream;
 import java.io.OutputStreamWriter;
 import java.io.InputStreamReader;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.FileOutputStream;
 import java.io.BufferedReader;
+import java.io.RandomAccessFile;
 import java.io.Serializable;
 import java.io.IOException;
 import java.util.Map;
@@ -69,6 +71,8 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 public class Utils {
     private static final Logger LOG = LoggerFactory.getLogger(Utils.class);
@@ -691,6 +695,71 @@ public class Utils {
                 throw (Error) t;
             }
         }
+    }
+
+    /**
+     * Given a File input it will unzip the file in a the unzip directory
+     * passed as the second parameter
+     * @param inFile The zip file as input
+     * @param unzipDir The unzip directory where to unzip the zip file.
+     * @throws IOException
+     */
+    public static void unZip(File inFile, File unzipDir) throws IOException {
+        Enumeration<? extends ZipEntry> entries;
+        ZipFile zipFile = new ZipFile(inFile);
+
+        try {
+            entries = zipFile.entries();
+            while (entries.hasMoreElements()) {
+                ZipEntry entry = entries.nextElement();
+                if (!entry.isDirectory()) {
+                    InputStream in = zipFile.getInputStream(entry);
+                    try {
+                        File file = new File(unzipDir, entry.getName());
+                        if (!file.getParentFile().mkdirs()) {
+                            if (!file.getParentFile().isDirectory()) {
+                                throw new IOException("Mkdirs failed to create " +
+                                        file.getParentFile().toString());
+                            }
+                        }
+                        OutputStream out = new FileOutputStream(file);
+                        try {
+                            byte[] buffer = new byte[8192];
+                            int i;
+                            while ((i = in.read(buffer)) != -1) {
+                                out.write(buffer, 0, i);
+                            }
+                        } finally {
+                            out.close();
+                        }
+                    } finally {
+                        in.close();
+                    }
+                }
+            }
+        } finally {
+            zipFile.close();
+        }
+    }
+
+    /**
+     * Given a zip File input it will return its size
+     * Only works for zip files whose uncompressed size is less than 4 GB,
+     * otherwise returns the size module 2^32, per gzip specifications
+     * @param myFile The zip file as input
+     * @throws IOException
+     * @return zip file size as a long
+     */
+    public static long zipFileSize(File myFile) throws IOException{
+        RandomAccessFile raf = new RandomAccessFile(myFile, "r");
+        raf.seek(raf.length() - 4);
+        long b4 = raf.read();
+        long b3 = raf.read();
+        long b2 = raf.read();
+        long b1 = raf.read();
+        long val = (b1 << 24) | (b2 << 16) + (b3 << 8) + b4;
+        raf.close();
+        return val;
     }
 }
 

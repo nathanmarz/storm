@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -61,11 +62,11 @@ public class FileBasedEventLogger implements IEventLogger {
 
     @Override
     public void prepare(Map stormConf, TopologyContext context) {
-        String logDir;
+        String logDir; // storm local directory
         String stormId = context.getStormId();
         int port = context.getThisWorkerPort();
-        if((logDir = System.getProperty("storm.log.dir")) == null
-                && (logDir = System.getProperty("java.io.tmpdir")) == null) {
+        if ((logDir = System.getProperty("storm.local.dir")) == null &&
+                (logDir = (String)stormConf.get("storm.local.dir")) == null) {
             String msg = "Could not determine the directory to log events.";
             LOG.error(msg);
             throw new RuntimeException(msg);
@@ -77,7 +78,16 @@ public class FileBasedEventLogger implements IEventLogger {
          * Include the topology name & worker port in the file name so that
          * multiple event loggers can log independently.
          */
-        initLogWriter(Paths.get(logDir, String.format("%s-events-%d.log", stormId, port)));
+        Path path = Paths.get(logDir, "workers-artifacts", stormId, Integer.toString(port), "events.log");
+        if (!path.isAbsolute()) {
+            path = Paths.get(System.getProperty("storm.home"), logDir, "workers-artifacts",
+                    stormId, Integer.toString(port), "events.log");
+        }
+        File dir = path.toFile().getParentFile();
+        if (!dir.exists()) {
+             dir.mkdirs();
+        }
+        initLogWriter(path);
         setUpFlushTask();
     }
 

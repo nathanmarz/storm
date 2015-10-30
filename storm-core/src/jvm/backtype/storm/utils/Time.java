@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 
 
 public class Time {
-    public static Logger LOG = LoggerFactory.getLogger(Time.class);    
+    public static final Logger LOG = LoggerFactory.getLogger(Time.class);
     
     private static AtomicBoolean simulating = new AtomicBoolean(false);
     //TODO: should probably use weak references here or something
@@ -39,7 +39,7 @@ public class Time {
         synchronized(sleepTimesLock) {
             simulating.set(true);
             simulatedCurrTimeMs = new AtomicLong(0);
-            threadSleepTimes = new ConcurrentHashMap<Thread, AtomicLong>();
+            threadSleepTimes = new ConcurrentHashMap<>();
         }
     }
     

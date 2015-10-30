@@ -23,7 +23,6 @@ import java.util.Set;
 import java.util.HashSet;
 import java.util.Collection;
 
-import backtype.storm.Config;
 import backtype.storm.security.auth.IAuthorizer;
 import backtype.storm.security.auth.ReqContext;
 
@@ -36,7 +35,7 @@ import org.slf4j.LoggerFactory;
  */
 public class SimpleWhitelistAuthorizer implements IAuthorizer {
     private static final Logger LOG = LoggerFactory.getLogger(SimpleWhitelistAuthorizer.class);
-    public static String WHITELIST_USERS_CONF = "storm.auth.simple-white-list.users";
+    public static final String WHITELIST_USERS_CONF = "storm.auth.simple-white-list.users";
     protected Set<String> users;
 
     /**
@@ -45,7 +44,7 @@ public class SimpleWhitelistAuthorizer implements IAuthorizer {
      */
     @Override
     public void prepare(Map conf) {
-        users = new HashSet<String>();
+        users = new HashSet<>();
         if (conf.containsKey(WHITELIST_USERS_CONF)) {
             users.addAll((Collection<String>)conf.get(WHITELIST_USERS_CONF));
         }
@@ -55,7 +54,7 @@ public class SimpleWhitelistAuthorizer implements IAuthorizer {
      * permit() method is invoked for each incoming Thrift request
      * @param context request context includes info about 
      * @param operation operation name
-     * @param topology_storm configuration of targeted topology 
+     * @param topology_conf configuration of targeted topology
      * @return true if the request is authorized, false if reject
      */
     @Override

@@ -68,13 +68,12 @@ import static java.util.concurrent.TimeUnit.SECONDS;
  */
 public class ShellBolt implements IBolt {
     public static final String HEARTBEAT_STREAM_ID = "__heartbeat";
-    public static Logger LOG = LoggerFactory.getLogger(ShellBolt.class);
-    Process _subprocess;
+    public static final Logger LOG = LoggerFactory.getLogger(ShellBolt.class);
     OutputCollector _collector;
-    Map<String, Tuple> _inputs = new ConcurrentHashMap<String, Tuple>();
+    Map<String, Tuple> _inputs = new ConcurrentHashMap<>();
 
     private String[] _command;
-    private Map<String, String> env = new HashMap<String, String>();
+    private Map<String, String> env = new HashMap<>();
     private ShellProcess _process;
     private volatile boolean _running = true;
     private volatile Throwable _exception;
@@ -198,7 +197,7 @@ public class ShellBolt implements IBolt {
     }
 
     private void handleEmit(ShellMsg shellMsg) throws InterruptedException {
-        List<Tuple> anchors = new ArrayList<Tuple>();
+        List<Tuple> anchors = new ArrayList<>();
         List<String> recvAnchors = shellMsg.getAnchors();
         if (recvAnchors != null) {
             for (String anchor : recvAnchors) {
@@ -337,18 +336,25 @@ public class ShellBolt implements IBolt {
                     setHeartbeat();
 
                     // We don't need to take care of sync, cause we're always updating heartbeat
-                    if(command.equals("ack")) {
-                        handleAck(shellMsg.getId());
-                    } else if (command.equals("fail")) {
-                        handleFail(shellMsg.getId());
-                    } else if (command.equals("error")) {
-                        handleError(shellMsg.getMsg());
-                    } else if (command.equals("log")) {
-                        handleLog(shellMsg);
-                    } else if (command.equals("emit")) {
-                        handleEmit(shellMsg);
-                    } else if (command.equals("metrics")) {
-                        handleMetrics(shellMsg);
+                    switch (command) {
+                        case "ack":
+                            handleAck(shellMsg.getId());
+                            break;
+                        case "fail":
+                            handleFail(shellMsg.getId());
+                            break;
+                        case "error":
+                            handleError(shellMsg.getMsg());
+                            break;
+                        case "log":
+                            handleLog(shellMsg);
+                            break;
+                        case "emit":
+                            handleEmit(shellMsg);
+                            break;
+                        case "metrics":
+                            handleMetrics(shellMsg);
+                            break;
                     }
                 } catch (InterruptedException e) {
                 } catch (Throwable t) {
@@ -390,7 +396,7 @@ public class ShellBolt implements IBolt {
             msg.setId(genId);
             msg.setTask(Constants.SYSTEM_TASK_ID);
             msg.setStream(HEARTBEAT_STREAM_ID);
-            msg.setTuple(new ArrayList<Object>());
+            msg.setTuple(new ArrayList<>());
             return msg;
         }
     }

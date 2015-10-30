@@ -33,11 +33,11 @@ import org.slf4j.LoggerFactory;
 
 
 public class JoinResult extends BaseRichBolt {
-    public static Logger LOG = LoggerFactory.getLogger(JoinResult.class);
+    public static final Logger LOG = LoggerFactory.getLogger(JoinResult.class);
 
     String returnComponent;
-    Map<Object, Tuple> returns = new HashMap<Object, Tuple>();
-    Map<Object, Tuple> results = new HashMap<Object, Tuple>();
+    Map<Object, Tuple> returns = new HashMap<>();
+    Map<Object, Tuple> results = new HashMap<>();
     OutputCollector _collector;
 
     public JoinResult(String returnComponent) {
@@ -60,7 +60,7 @@ public class JoinResult extends BaseRichBolt {
             Tuple result = results.remove(requestId);
             Tuple returner = returns.remove(requestId);
             LOG.debug(result.getValue(1).toString());
-            List<Tuple> anchors = new ArrayList<Tuple>();
+            List<Tuple> anchors = new ArrayList<>();
             anchors.add(result);
             anchors.add(returner);            
             _collector.emit(anchors, new Values(""+result.getValue(1), returner.getValue(1)));

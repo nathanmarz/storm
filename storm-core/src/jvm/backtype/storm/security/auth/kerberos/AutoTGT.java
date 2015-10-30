@@ -22,7 +22,6 @@ import backtype.storm.security.auth.IAutoCredentials;
 import backtype.storm.security.auth.ICredentialsRenewer;
 import backtype.storm.security.auth.AuthUtils;
 
-import java.util.Date;
 import java.util.Map;
 import java.util.Set;
 import java.io.ByteArrayInputStream;
@@ -38,7 +37,6 @@ import java.util.Iterator;
 import javax.security.auth.kerberos.KerberosTicket;
 import javax.security.auth.kerberos.KerberosPrincipal;
 import javax.security.auth.login.Configuration;
-import javax.security.auth.login.LoginException;
 import javax.security.auth.login.LoginContext;
 import javax.security.auth.DestroyFailedException;
 import javax.security.auth.RefreshFailedException;
@@ -54,7 +52,7 @@ import org.slf4j.LoggerFactory;
 public class AutoTGT implements IAutoCredentials, ICredentialsRenewer {
     private static final Logger LOG = LoggerFactory.getLogger(AutoTGT.class);
     private static final float TICKET_RENEW_WINDOW = 0.80f;
-    protected static AtomicReference<KerberosTicket> kerbTicket = new AtomicReference<KerberosTicket>();
+    protected static final AtomicReference<KerberosTicket> kerbTicket = new AtomicReference<>();
     private Map conf;
 
     public void prepare(Map conf) {
@@ -66,11 +64,9 @@ public class AutoTGT implements IAutoCredentials, ICredentialsRenewer {
         for(KerberosTicket ticket: tickets) {
             KerberosPrincipal server = ticket.getServer();
             if (server.getName().equals("krbtgt/" + server.getRealm() + "@" + server.getRealm())) {
-                tickets = null;
                 return ticket;
             }
         }
-        tickets = null;
         return null;
     } 
 
@@ -165,7 +161,7 @@ public class AutoTGT implements IAutoCredentials, ICredentialsRenewer {
                         try {
                             t.destroy();
                         } catch (DestroyFailedException  e) {
-                            LOG.warn("Failed to destory ticket ", e);
+                            LOG.warn("Failed to destroy ticket ", e);
                         }
                     }
                 }
@@ -184,7 +180,7 @@ public class AutoTGT implements IAutoCredentials, ICredentialsRenewer {
      * @param subject the subject that should have a TGT in it.
      */
     private void loginHadoopUser(Subject subject) {
-        Class<?> ugi = null;
+        Class<?> ugi;
         try {
             ugi = Class.forName("org.apache.hadoop.security.UserGroupInformation");
         } catch (ClassNotFoundException e) {

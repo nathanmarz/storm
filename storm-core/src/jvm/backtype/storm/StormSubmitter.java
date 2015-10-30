@@ -44,7 +44,7 @@ import backtype.storm.utils.Utils;
  * submit your topologies.
  */
 public class StormSubmitter {
-    public static Logger LOG = LoggerFactory.getLogger(StormSubmitter.class);    
+    public static final Logger LOG = LoggerFactory.getLogger(StormSubmitter.class);
 
     private static final int THRIFT_CHUNK_SIZE_BYTES = 307200;
     
@@ -90,7 +90,7 @@ public class StormSubmitter {
     }
 
     private static Map<String,String> populateCredentials(Map conf, Map<String, String> creds) {
-        Map<String,String> ret = new HashMap<String,String>();
+        Map<String,String> ret = new HashMap<>();
         for (IAutoCredentials autoCred: AuthUtils.GetAutoCredentials(conf)) {
             LOG.info("Running "+autoCred);
             autoCred.populateCredentials(ret);
@@ -201,7 +201,7 @@ public class StormSubmitter {
 
         validateConfs(conf, topology);
 
-        Map<String,String> passedCreds = new HashMap<String, String>();
+        Map<String,String> passedCreds = new HashMap<>();
         if (opts != null) {
             Credentials tmpCreds = opts.get_creds();
             if (tmpCreds != null) {

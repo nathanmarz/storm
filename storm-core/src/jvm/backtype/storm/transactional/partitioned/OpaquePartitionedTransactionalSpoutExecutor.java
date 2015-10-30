@@ -120,8 +120,9 @@ public class OpaquePartitionedTransactionalSpoutExecutor implements ICommitterTr
         public void commit(TransactionAttempt attempt) {
             BigInteger txid = attempt.getTransactionId();
             Map<Integer, Object> metas = _cachedMetas.remove(txid);
-            for(Integer partition: metas.keySet()) {
-                Object meta = metas.get(partition);
+            for(Entry<Integer, Object> entry: metas.entrySet()) {
+                Integer partition = entry.getKey();
+                Object meta = entry.getValue();
                 _partitionStates.get(partition).overrideState(txid, meta);
             }
         }

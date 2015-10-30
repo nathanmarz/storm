@@ -102,6 +102,7 @@
  * STORM-949: On the topology summary UI page, last shown error should have the time and date
  * STORM-1142: Some config validators for positive ints need to allow 0
  * STORM-901: Worker Artifacts Directory
+ * STORM-1144: Display requested and assigned cpu/mem resources for schedulers in UI
 
 ## 0.10.0-beta2
  * STORM-1108: Fix NPE in simulated time

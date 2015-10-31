@@ -141,11 +141,12 @@ public class GeneralTopologyContext implements JSONAware {
         Map<String, Map<String, Grouping>> ret = new HashMap<String, Map<String, Grouping>>();
         for(String otherComponentId: getComponentIds()) {
             Map<GlobalStreamId, Grouping> inputs = getComponentCommon(otherComponentId).get_inputs();
-            for(GlobalStreamId id: inputs.keySet()) {
+            for(Map.Entry<GlobalStreamId, Grouping> entry: inputs.entrySet()) {
+                GlobalStreamId id = entry.getKey();
                 if(id.get_componentId().equals(componentId)) {
                     Map<String, Grouping> curr = ret.get(id.get_streamId());
                     if(curr==null) curr = new HashMap<String, Grouping>();
-                    curr.put(otherComponentId, inputs.get(id));
+                    curr.put(otherComponentId, entry.getValue());
                     ret.put(id.get_streamId(), curr);
                 }
             }

@@ -29,6 +29,7 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
 
+import java.net.URI;
 import java.util.List;
 
 public class SqlCreateTable extends SqlCall {
@@ -102,4 +103,28 @@ public class SqlCreateTable extends SqlCall {
                                     outputFormatClass, location, properties,
                                     query);
   }
+
+  public String tableName() {
+    return tblName.toString();
+  }
+
+  public URI location() {
+    return URI.create(SqlLiteral.stringValue(location));
+  }
+
+  public String inputFormatClass() {
+    return inputFormatClass == null ? null : SqlLiteral.stringValue(
+        inputFormatClass);
+  }
+
+  public String outputFormatClass() {
+    return outputFormatClass == null ? null : SqlLiteral.stringValue
+        (outputFormatClass);
+  }
+
+  @SuppressWarnings("unchecked")
+  public List<ColumnDefinition> fieldList() {
+    return (List<ColumnDefinition>)((List<? extends SqlNode>)fieldList.getList());
+  }
+
 }

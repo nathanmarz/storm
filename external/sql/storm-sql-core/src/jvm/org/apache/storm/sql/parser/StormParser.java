@@ -36,7 +36,7 @@ public class StormParser {
   }
 
   @VisibleForTesting
-  StormParserImpl impl() {
+  public StormParserImpl impl() {
     return impl;
   }
 }

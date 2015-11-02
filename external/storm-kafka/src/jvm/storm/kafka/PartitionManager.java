@@ -145,7 +145,7 @@ public class PartitionManager {
             if (_spoutConfig.scheme instanceof MessageMetadataSchemeAsMultiScheme) {
                 tups = KafkaUtils.generateTuples((MessageMetadataSchemeAsMultiScheme) _spoutConfig.scheme, toEmit.msg, _partition, toEmit.offset);
             } else {
-                tups = KafkaUtils.generateTuples(_spoutConfig, toEmit.msg, partition.topic);
+                tups = KafkaUtils.generateTuples(_spoutConfig, toEmit.msg, _partition.topic);
             }
             
             if ((tups != null) && tups.iterator().hasNext()) {

@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-817: Kafka Wildcard Topic Support.
  * STORM-40: Turn worker garbage collection and heapdump on by default.
  * STORM-1152: Change map keySet iteration to entrySet iteration for efficiency.
  * STORM-1147: Storm JDBCBolt should add validation to ensure either insertQuery or table name is specified and not both.

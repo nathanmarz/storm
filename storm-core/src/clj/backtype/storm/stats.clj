@@ -810,6 +810,15 @@
       (.containsKey bolts id) :bolt
       (.containsKey spouts id) :spout)))
 
+(defn extract-nodeinfos-from-hb-for-comp
+  ([exec->host+port task->component include-sys? comp-id]
+   (distinct (for [[[start end :as executor] [host port]] exec->host+port
+         :let [id (task->component start)]
+         :when (and (or (nil? comp-id) (= comp-id id))
+                 (or include-sys? (not (Utils/isSystemId id))))]
+     {:host host
+      :port port}))))
+
 (defn extract-data-from-hb
   ([exec->host+port task->component beats include-sys? topology comp-id]
    (for [[[start end :as executor] [host port]] exec->host+port

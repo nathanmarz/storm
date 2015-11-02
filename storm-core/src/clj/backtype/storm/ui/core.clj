@@ -117,8 +117,7 @@
     (url-format "http://%s:%s/log?file=%s"
       host
       (*STORM-CONF* LOGVIEWER-PORT)
-      fname))
-  )
+      fname)))
 
 (defn event-log-link
   [topology-id component-id host port secure?]
@@ -129,7 +128,8 @@
     (logviewer-link host fname secure?)))
 
 (defn nimbus-log-link [host port]
-  (url-format "http://%s:%s/log?file=nimbus.log" host (*STORM-CONF* LOGVIEWER-PORT) port))
+  (url-format "http://%s:%s/daemonlog?file=nimbus.log" host (*STORM-CONF* LOGVIEWER-PORT) port))
+
 (defn get-error-time
   [error]
   (if error
@@ -407,7 +407,15 @@
        "workersTotal" (.get_num_workers t)
        "executorsTotal" (.get_num_executors t)
        "replicationCount" (.get_replication_count t)
-       "schedulerInfo" (.get_sched_status t)})}))
+       "schedulerInfo" (.get_sched_status t)
+       "requestedMemOnHeap" (.get_requested_memonheap t)
+       "requestedMemOffHeap" (.get_requested_memoffheap t)
+       "requestedMem" (+ (.get_requested_memonheap t) (.get_requested_memoffheap t))
+       "requestedCpu" (.get_requested_cpu t)
+       "assignedMemOnHeap" (.get_assigned_memonheap t)
+       "assignedMemOffHeap" (.get_assigned_memoffheap t)
+       "assignedTotalMem" (+ (.get_assigned_memonheap t) (.get_assigned_memoffheap t))
+       "assignedCpu" (.get_assigned_cpu t)})}))
 
 (defn topology-stats [window stats]
   (let [times (stats-times (:emitted stats))
@@ -525,6 +533,12 @@
      "workersTotal" (.get_num_workers topo-info)
      "executorsTotal" (.get_num_executors topo-info)
      "schedulerInfo" (.get_sched_status topo-info)
+     "requestedMemOnHeap" (.get_requested_memonheap topo-info)
+     "requestedMemOffHeap" (.get_requested_memoffheap topo-info)
+     "requestedCpu" (.get_requested_cpu topo-info)
+     "assignedMemOnHeap" (.get_assigned_memonheap topo-info)
+     "assignedMemOffHeap" (.get_assigned_memoffheap topo-info)
+     "assignedCpu" (.get_assigned_cpu topo-info)
      "topologyStats" topo-stats
      "spouts" (map (partial comp-agg-stats-json id secure?)
                    (.get_id_to_spout_agg_stats topo-info))
@@ -804,21 +818,6 @@
   [sys?]
   (if (or (nil? sys?) (= "false" sys?)) false true))
 
-(defn wrap-json-in-callback [callback response]
-  (str callback "(" response ");"))
-
-(defnk json-response
-  [data callback :serialize-fn to-json :status 200]
-     {:status status
-      :headers (merge {"Cache-Control" "no-cache, no-store"
-                       "Access-Control-Allow-Origin" "*"
-                       "Access-Control-Allow-Headers" "Content-Type, Access-Control-Allow-Headers, Access-Controler-Allow-Origin, X-Requested-By, Authorization, X-Requested-With"}
-                      (if (not-nil? callback) {"Content-Type" "application/javascript;charset=utf-8"}
-                          {"Content-Type" "application/json;charset=utf-8"}))
-      :body (if (not-nil? callback)
-              (wrap-json-in-callback callback (serialize-fn data))
-              (serialize-fn data))})
-
 (def http-creds-handler (AuthUtils/GetUiHttpCredentialsPlugin *STORM-CONF*))
 
 (defn populate-context!
@@ -991,14 +990,6 @@
     (resp/redirect "/index.html"))
   (route/resources "/")
   (route/not-found "Page not found"))
-
-(defn exception->json
-  [ex]
-  {"error" "Internal Server Error"
-   "errorMessage"
-   (let [sw (java.io.StringWriter.)]
-     (.printStackTrace ex (java.io.PrintWriter. sw))
-     (.toString sw))})
 
 (defn catch-errors
   [handler]

@@ -81,10 +81,10 @@ public class SerializationFactory {
         kryoFactory.preRegister(k, conf);
 
         boolean skipMissing = (Boolean) conf.get(Config.TOPOLOGY_SKIP_MISSING_KRYO_REGISTRATIONS);
-        for(String klassName: registrations.keySet()) {
-            String serializerClassName = registrations.get(klassName);
+        for(Map.Entry<String, String> entry: registrations.entrySet()) {
+            String serializerClassName = entry.getValue();
             try {
-                Class klass = Class.forName(klassName);
+                Class klass = Class.forName(entry.getKey());
                 Class serializerClass = null;
                 if(serializerClassName!=null)
                     serializerClass = Class.forName(serializerClassName);

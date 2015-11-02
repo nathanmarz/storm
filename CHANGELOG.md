@@ -1,4 +1,12 @@
 ## 0.11.0
+ * STORM-40: Turn worker garbage collection and heapdump on by default.
+ * STORM-1152: Change map keySet iteration to entrySet iteration for efficiency.
+ * STORM-1147: Storm JDBCBolt should add validation to ensure either insertQuery or table name is specified and not both.
+ * STORM-1151: Batching in DisruptorQueue
+ * STORM-350: Update disruptor to latest version (3.3.2)
+ * STORM-697: Support for Emitting Kafka Message Offset and Partition
+ * STORM-1074: Add Avro HDFS bolt
+ * STORM-566: Improve documentation including incorrect Kryo ser. framework docs
  * STORM-1073: Refactor AbstractHdfsBolt
  * STORM-1128: Make metrics fast
  * STORM-1122: Fix the format issue in Utils.java
@@ -95,6 +103,9 @@
  * STORM-975: Storm-Kafka trident topology example
  * STORM-958: Add config for init params of group mapping service
  * STORM-949: On the topology summary UI page, last shown error should have the time and date
+ * STORM-1142: Some config validators for positive ints need to allow 0
+ * STORM-901: Worker Artifacts Directory
+ * STORM-1144: Display requested and assigned cpu/mem resources for schedulers in UI
 
 ## 0.10.0-beta2
  * STORM-1108: Fix NPE in simulated time

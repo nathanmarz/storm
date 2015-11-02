@@ -15,24 +15,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package backtype.storm.utils;
+package storm.kafka;
 
-public class MutableObject {
-    private Object o = null;
-    
-    public MutableObject() {
-        
+import java.util.Arrays;
+import java.util.List;
+
+import backtype.storm.spout.SchemeAsMultiScheme;
+
+public class MessageMetadataSchemeAsMultiScheme extends SchemeAsMultiScheme {
+    private static final long serialVersionUID = -7172403703813625116L;
+
+    public MessageMetadataSchemeAsMultiScheme(MessageMetadataScheme scheme) {
+        super(scheme);
     }
 
-    public MutableObject(Object o) {
-        this.o = o;
-    }
-    
-    public synchronized void setObject(Object o) {
-        this.o = o;
-    }
-    
-    public synchronized Object getObject() {
-        return o;
+    public Iterable<List<Object>> deserializeMessageWithMetadata(byte[] message, Partition partition, long offset) {
+        List<Object> o = ((MessageMetadataScheme) scheme).deserializeMessageWithMetadata(message, partition, offset);
+        if (o == null) {
+            return null;
+        } else {
+            return Arrays.asList(o);
+        }
     }
 }

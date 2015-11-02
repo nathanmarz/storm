@@ -20,6 +20,7 @@ import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
+import org.apache.commons.lang.Validate;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.storm.jdbc.common.Column;
 import org.apache.storm.jdbc.common.ConnectionProvider;
@@ -45,15 +46,23 @@ public class JdbcInsertBolt extends AbstractJdbcBolt {
 
     public JdbcInsertBolt(ConnectionProvider connectionProvider,  JdbcMapper jdbcMapper) {
         super(connectionProvider);
+
+        Validate.notNull(jdbcMapper);
         this.jdbcMapper = jdbcMapper;
     }
 
     public JdbcInsertBolt withTableName(String tableName) {
+        if (insertQuery != null) {
+            throw new IllegalArgumentException("You can not specify both insertQuery and tableName.");
+        }
         this.tableName = tableName;
         return this;
     }
 
     public JdbcInsertBolt withInsertQuery(String insertQuery) {
+        if (this.tableName != null) {
+            throw new IllegalArgumentException("You can not specify both insertQuery and tableName.");
+        }
         this.insertQuery = insertQuery;
         return this;
     }

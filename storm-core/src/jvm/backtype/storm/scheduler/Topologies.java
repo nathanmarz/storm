@@ -34,9 +34,9 @@ public class Topologies {
         this.topologies.putAll(topologies);
         this.nameToId = new HashMap<String, String>(topologies.size());
         
-        for (String topologyId : topologies.keySet()) {
-            TopologyDetails topology = topologies.get(topologyId);
-            this.nameToId.put(topology.getName(), topologyId);
+        for (Map.Entry<String, TopologyDetails> entry : topologies.entrySet()) {
+            TopologyDetails topology = entry.getValue();
+            this.nameToId.put(topology.getName(), entry.getKey());
         }
     }
     

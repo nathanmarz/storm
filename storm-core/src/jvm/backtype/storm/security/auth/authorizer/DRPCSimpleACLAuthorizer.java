@@ -37,7 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DRPCSimpleACLAuthorizer extends DRPCAuthorizerBase {
-    public static Logger LOG =
+    public static final Logger LOG =
         LoggerFactory.getLogger(DRPCSimpleACLAuthorizer.class);
 
     public static final String CLIENT_USERS_KEY = "client.users";
@@ -75,15 +75,15 @@ public class DRPCSimpleACLAuthorizer extends DRPCAuthorizerBase {
                     (Map<String,Map<String,?>>)
                     conf.get(Config.DRPC_AUTHORIZER_ACL);
 
-                for (String function : confAcl.keySet()) {
-                    Map<String,?> val = confAcl.get(function);
+                for (Map.Entry<String, Map<String, ?>> entry : confAcl.entrySet()) {
+                    Map<String,?> val = entry.getValue();
                     Collection<String> clientUsers =
                         val.containsKey(CLIENT_USERS_KEY) ?
                         (Collection<String>) val.get(CLIENT_USERS_KEY) : null;
                     String invocationUser =
                         val.containsKey(INVOCATION_USER_KEY) ?
                         (String) val.get(INVOCATION_USER_KEY) : null;
-                    acl.put(function,
+                    acl.put(entry.getKey(),
                             new AclFunctionEntry(clientUsers, invocationUser));
                 }
             } else if (!_permitWhenMissingFunctionEntry) {

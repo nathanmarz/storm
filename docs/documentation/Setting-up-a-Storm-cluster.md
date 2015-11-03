@@ -90,7 +90,7 @@ The health check directory location can be configured with:
 storm.health.check.dir: "healthchecks"
 
 ```
-The scripts just have execute permissions.
+The scripts must have execute permissions.
 The time to allow any given healthcheck script to run before it is marked failed due to timeout can be configured with:
 
 ```yaml

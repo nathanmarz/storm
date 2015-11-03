@@ -55,7 +55,7 @@
   (.prepare grouping context (GlobalStreamId. component-id stream-id) target-tasks)
   (if (instance? LoadAwareCustomStreamGrouping grouping)
     (fn [task-id ^List values load]
-        (.chooseTasks grouping task-id values load))
+      (.chooseTasks grouping task-id values load))
     (fn [task-id ^List values load]
       (.chooseTasks grouping task-id values))))
 

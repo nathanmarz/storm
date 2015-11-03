@@ -313,6 +313,8 @@
     [node (Integer/valueOf port-str)]
     ))
 
+(def LOAD-REFRESH-INTERVAL-MS 5000)
+
 (defn mk-refresh-load [worker]
   (let [local-tasks (set (:task-ids worker))
         remote-tasks (set/difference (worker-outbound-tasks worker) local-tasks)
@@ -331,7 +333,7 @@
           (.setRemote load-mapping remote-load)
           (when (> now @next-update)
             (.sendLoadMetrics (:receiver worker) local-pop)
-            (reset! next-update (+ 5000 now))))))))
+            (reset! next-update (+ LOAD-REFRESH-INTERVAL-MS now))))))))
 
 (defn mk-refresh-connections [worker]
   (let [outbound-tasks (worker-outbound-tasks worker)

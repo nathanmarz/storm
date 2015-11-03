@@ -18,7 +18,6 @@
 package backtype.storm;
 
 import java.io.File;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -273,7 +272,7 @@ public class StormSubmitter {
      */
     @SuppressWarnings("unchecked")
     public static void submitTopology(String name, Map stormConf, StormTopology topology, SubmitOptions opts,
-             ProgressListener progressListener) throws AlreadyAliveException, InvalidTopologyException, AuthorizationException{
+             ProgressListener progressListener) throws AlreadyAliveException, InvalidTopologyException, AuthorizationException {
         submitTopologyAs(name, stormConf, topology, opts, progressListener, null);
     }
 

@@ -844,7 +844,9 @@
                              (substitute-childopts s worker-id storm-id port mem-onheap))
           topo-worker-childopts (when-let [s (storm-conf TOPOLOGY-WORKER-CHILDOPTS)]
                                   (substitute-childopts s worker-id storm-id port mem-onheap))
-          worker--profiler-childopts (substitute-childopts (conf WORKER-PROFILER-CHILDOPTS) worker-id storm-id port mem-onheap)
+          worker--profiler-childopts (if (conf WORKER-PROFILER-ENABLED)
+                                       (substitute-childopts (conf WORKER-PROFILER-CHILDOPTS) worker-id storm-id port mem-onheap)
+                                       "")
           topology-worker-environment (if-let [env (storm-conf TOPOLOGY-ENVIRONMENT)]
                                         (merge env {"LD_LIBRARY_PATH" jlp})
                                         {"LD_LIBRARY_PATH" jlp})

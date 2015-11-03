@@ -18,6 +18,7 @@
 package org.apache.storm.sql.compiler;
 
 import com.google.common.collect.ImmutableMap;
+import org.apache.calcite.adapter.enumerable.RexImpTable;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
@@ -47,6 +48,12 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE_INTEGER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN_OR_EQUAL;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_FALSE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_FALSE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_NULL;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_TRUE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NULL;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_TRUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LESS_THAN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LESS_THAN_OR_EQUAL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
@@ -189,6 +196,12 @@ class ExprCompiler implements RexVisitor<String> {
           .put(infixBinary(MULTIPLY, "*"))
           .put(infixBinary(DIVIDE, "/"))
           .put(infixBinary(DIVIDE_INTEGER, "/"))
+          .put(expect(IS_NULL, null))
+          .put(expectNot(IS_NOT_NULL, null))
+          .put(expect(IS_TRUE, true))
+          .put(expectNot(IS_NOT_TRUE, true))
+          .put(expect(IS_FALSE, false))
+          .put(expectNot(IS_NOT_FALSE, false))
           .put(AND, AND_EXPR)
           .put(OR, OR_EXPR)
           .put(NOT, NOT_EXPR);
@@ -222,6 +235,55 @@ class ExprCompiler implements RexVisitor<String> {
       };
       return new AbstractMap.SimpleImmutableEntry<>(op, trans);
     }
+
+    private Map.Entry<SqlOperator, CallExprPrinter> expect(
+        SqlOperator op, final Boolean expect) {
+      return expect0(op, expect, false);
+    }
+
+    private Map.Entry<SqlOperator, CallExprPrinter> expectNot(
+        SqlOperator op, final Boolean expect) {
+      return expect0(op, expect, true);
+    }
+
+    private Map.Entry<SqlOperator, CallExprPrinter> expect0(
+        SqlOperator op, final Boolean expect, final boolean negate) {
+      CallExprPrinter trans = new CallExprPrinter() {
+        @Override
+        public String translate(
+            ExprCompiler compiler, RexCall call) {
+          assert call.getOperands().size() == 1;
+          String val = compiler.reserveName(call);
+          RexNode operand = call.getOperands().get(0);
+          boolean nullable = operand.getType().isNullable();
+          String op = operand.accept(compiler);
+          PrintWriter pw = compiler.pw;
+          if (!nullable) {
+            if (expect == null) {
+              pw.print(String.format("boolean %s = %b;\n", val, !negate));
+            } else {
+              pw.print(String.format("boolean %s = %s == %b;\n", val, op,
+                                     expect ^ negate));
+            }
+          } else {
+            String expr;
+            if (expect == null) {
+              expr = String.format("%s == null", op);
+            } else {
+              expr = String.format("%s == Boolean.%s", op, expect ? "TRUE" :
+                  "FALSE");
+            }
+            if (negate) {
+              expr = String.format("!(%s)", expr);
+            }
+            pw.print(String.format("boolean %s = %s;\n", val, expr));
+          }
+          return val;
+        }
+      };
+      return new AbstractMap.SimpleImmutableEntry<>(op, trans);
+    }
+
 
     private static final CallExprPrinter AND_EXPR = new CallExprPrinter() {
       @Override

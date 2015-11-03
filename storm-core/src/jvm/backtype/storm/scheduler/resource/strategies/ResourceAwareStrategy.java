@@ -209,18 +209,18 @@ public class ResourceAwareStrategy implements IStrategy {
         for (RAS_Node n : nodes) {
             if(n.getFreeSlots().size()>0) {
                 if (n.getAvailableMemoryResources() >= taskMem
-                      && n.getAvailableCpuResources() >= taskCPU) {
-                  double a = Math.pow((taskCPU - n.getAvailableCpuResources())
-                          * this.CPU_WEIGHT, 2);
-                  double b = Math.pow((taskMem - n.getAvailableMemoryResources())
-                          * this.MEM_WEIGHT, 2);
-                  double c = 0.0;
-                  if(this.refNode != null) {
-                      c = Math.pow(this.distToNode(this.refNode, n)
-                              * this.NETWORK_WEIGHT, 2);
-                  }
-                  double distance = Math.sqrt(a + b + c);
-                  nodeRankMap.put(distance, n);
+                        && n.getAvailableCpuResources() >= taskCPU) {
+                    double a = Math.pow(((taskCPU - n.getAvailableCpuResources())/n.getAvailableCpuResources())
+                            * this.CPU_WEIGHT, 2);
+                    double b = Math.pow(((taskMem - n.getAvailableMemoryResources())/n.getAvailableMemoryResources())
+                            * this.MEM_WEIGHT, 2);
+                    double c = 0.0;
+                    if(this.refNode != null) {
+                        c = Math.pow(this.distToNode(this.refNode, n)
+                                * this.NETWORK_WEIGHT, 2);
+                    }
+                    double distance = Math.sqrt(a + b + c);
+                    nodeRankMap.put(distance, n);
                 }
             }
         }
@@ -262,12 +262,12 @@ public class ResourceAwareStrategy implements IStrategy {
     }
 
     private Double distToNode(RAS_Node src, RAS_Node dest) {
-        if (src.getId().equals(dest.getId())==true) {
-            return 1.0;
+        if (src.getId().equals(dest.getId()) == true) {
+            return 0.0;
         }else if (this.NodeToCluster(src) == this.NodeToCluster(dest)) {
-            return 2.0;
+            return 0.5;
         } else {
-            return 3.0;
+            return 1.0;
         }
     }
 

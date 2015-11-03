@@ -172,6 +172,27 @@ Sample response:
 }
 ```
 
+### /api/v1/history/summary (GET)
+
+Returns a list of topology ID submitted by the current user.
+
+Response fields:
+
+|Field  |Value | Description|
+|---	|---	|---
+|topo-history| List| List of Topologies' IDs|
+
+Sample response:
+
+```json
+{
+    "topo-history":[
+        {"host":"wc6-1-1446571009"},
+        {"host":"wc8-2-1446587178"}
+     ]
+}
+```
+
 ### /api/v1/topology/summary (GET)
 
 Returns summary information for all topologies.
@@ -223,6 +244,39 @@ Sample response:
             "assignedCpu": 80
         }
     ]
+}
+```
+
+### /api/v1/topology-workers/:id (GET)
+
+Returns the worker' information (host and port) for a topology.
+
+Response fields:
+
+|Field  |Value | Description|
+|---	|---	|---
+|hostPortList| List| Workers' information for a topology|
+|name| Integer| Logviewer Port|
+
+Sample response:
+
+```json
+{
+    "hostPortList":[
+            {
+                "host":"192.168.202.2",
+                "port":6701
+            },
+            {
+                "host":"192.168.202.2",
+                "port":6702
+            },
+            {
+                "host":"192.168.202.3",
+                "port":6700
+            }
+        ],
+    "logviewerPort":8000
 }
 ```
 

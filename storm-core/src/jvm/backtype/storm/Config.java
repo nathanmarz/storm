@@ -1093,6 +1093,21 @@ public class Config extends HashMap<String, Object> {
     public static final String WORKER_PROFILER_CHILDOPTS = "worker.profiler.childopts";
 
     /**
+     * This configuration would enable or disable component page profiing and debugging for workers.
+     */
+    @isBoolean
+    public static final String WORKER_PROFILER_ENABLED = "worker.profiler.enabled";
+
+    /**
+     * The command launched supervisor with worker arguments
+     * pid, action and [target_directory]
+     * Where action is - start profile, stop profile, jstack, heapdump and kill against pid
+     *
+     */
+    @isString
+    public static final String WORKER_PROFILER_COMMAND = "worker.profiler.command";
+
+    /**
      * The jvm opts provided to workers launched by this supervisor for GC. All "%ID%" substrings are replaced
      * with an identifier for this worker.  Because the JVM complains about multiple GC opts the topology
      * can override this default value by setting topology.worker.gc.childopts.

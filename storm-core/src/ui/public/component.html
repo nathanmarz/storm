@@ -166,11 +166,13 @@ $(document).ready(function() {
               componentActions.append(Mustache.render($(template).filter("#component-actions-template").html(),buttonJsonData));
             });
 
-            jsError(function() {
-                var part = $(template).filter('#profiler-active-partial').html();
-                var partials = {"profilerActive": part};
-                profilerControl.append(Mustache.render($(template).filter("#profiling-template").html(), response, partials));
-            });
+            if(response["profileActionEnabled"] == true) {
+                jsError(function () {
+                    var part = $(template).filter('#profiler-active-partial').html();
+                    var partials = {"profilerActive": part};
+                    profilerControl.append(Mustache.render($(template).filter("#profiling-template").html(), response, partials));
+                });
+            }
 
             if(response["componentType"] == "spout") {
                 componentStatsDetail.append(Mustache.render($(template).filter("#spout-stats-detail-template").html(),response));

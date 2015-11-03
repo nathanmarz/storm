@@ -530,25 +530,23 @@
 (defn java-cmd []
   (jvm-cmd "java"))
 
-(def PROFILE-CMD "flight.bash")
+(defn jmap-dump-cmd [profile-cmd pid target-dir]
+  [profile-cmd pid "jmap" target-dir])
 
-(defn jmap-dump-cmd [pid target-dir]
-  [PROFILE-CMD pid "jmap" target-dir])
+(defn jstack-dump-cmd [profile-cmd pid target-dir]
+  [profile-cmd pid "jstack" target-dir])
 
-(defn jstack-dump-cmd [pid target-dir]
-  [PROFILE-CMD pid "jstack" target-dir])
+(defn jprofile-start [profile-cmd pid]
+  [profile-cmd pid "start"])
 
-(defn jprofile-start [pid]
-  [PROFILE-CMD pid "start" ])
+(defn jprofile-stop [profile-cmd pid target-dir]
+  [profile-cmd pid "stop" target-dir])
 
-(defn jprofile-stop [pid target-dir]
-  [PROFILE-CMD pid "stop" target-dir])
+(defn jprofile-dump [profile-cmd pid workers-artifacts-directory]
+  [profile-cmd pid "dump" workers-artifacts-directory])
 
-(defn jprofile-dump [pid workers-artifacts-directory]
-  [PROFILE-CMD pid "dump" workers-artifacts-directory])
-
-(defn jprofile-jvm-restart [pid]
-  [PROFILE-CMD pid "kill" ])
+(defn jprofile-jvm-restart [profile-cmd pid]
+  [profile-cmd pid "kill"])
 
 (defn- delete-topology-profiler-action [storm-cluster-state storm-id profile-action]
   (log-message "Deleting profiler action.." profile-action)
@@ -587,6 +585,7 @@
             stormid->profiler-actions @(:stormid->profiler-actions supervisor)
             storm-cluster-state (:storm-cluster-state supervisor)
             hostname (:my-hostname supervisor)
+            profile-cmd (conf WORKER-PROFILER-COMMAND)
             new-assignment @(:curr-assignment supervisor)
             assigned-storm-ids (assigned-storm-ids-from-port-assignments new-assignment)]
         (doseq [[storm-id profiler-actions] stormid->profiler-actions]
@@ -605,14 +604,14 @@
                       ;; Until PROFILER_STOP action is invalid, keep launching profiler start in case worker restarted
                       ;; The profiler plugin script validates if JVM is recording before starting another recording.
                       command (cond
-                                (= action ProfileAction/JMAP_DUMP) (jmap-dump-cmd worker-pid target-dir)
-                                (= action ProfileAction/JSTACK_DUMP) (jstack-dump-cmd worker-pid target-dir)
-                                (= action ProfileAction/JPROFILE_DUMP) (jprofile-dump worker-pid target-dir)
-                                (= action ProfileAction/JVM_RESTART) (jprofile-jvm-restart worker-pid)
+                                (= action ProfileAction/JMAP_DUMP) (jmap-dump-cmd profile-cmd worker-pid target-dir)
+                                (= action ProfileAction/JSTACK_DUMP) (jstack-dump-cmd profile-cmd worker-pid target-dir)
+                                (= action ProfileAction/JPROFILE_DUMP) (jprofile-dump profile-cmd worker-pid target-dir)
+                                (= action ProfileAction/JVM_RESTART) (jprofile-jvm-restart profile-cmd worker-pid)
                                 (and (not stop?)
                                      (= action ProfileAction/JPROFILE_STOP))
-                                  (jprofile-start worker-pid) ;; Ensure the profiler is still running
-                                (and stop? (= action ProfileAction/JPROFILE_STOP)) (jprofile-stop worker-pid target-dir))
+                                  (jprofile-start profile-cmd worker-pid) ;; Ensure the profiler is still running
+                                (and stop? (= action ProfileAction/JPROFILE_STOP)) (jprofile-stop profile-cmd worker-pid target-dir))
                       action-on-exit (fn [exit-code]
                                        (log-message log-prefix " profile-action exited for code: " exit-code)
                                        (if (and (= exit-code 0) stop?)

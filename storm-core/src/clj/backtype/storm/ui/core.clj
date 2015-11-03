@@ -83,6 +83,14 @@
            (throw (AuthorizationException.
                    (str "UI request '" op "' for '" user "' user is not authorized")))))))))
 
+
+(defn assert-authorized-profiler-action
+  [op]
+  (if-not (*STORM-CONF* WORKER-PROFILER-ENABLED)
+    (throw (AuthorizationException.
+             (str "UI request for profiler action '" op "' is disabled.")))))
+
+
 (defn executor-summary-type
   [topology ^ExecutorSummary s]
   (component-type topology (.get_component_id s)))
@@ -799,7 +807,10 @@
                                       (.get_eventlog_host comp-page-info)
                                       (.get_eventlog_port comp-page-info)
                                       secure?)
-       "profilerActive" (get-active-profile-actions nimbus topology-id component)))))
+       "profileActionEnabled" (*STORM-CONF* WORKER-PROFILER-ENABLED)
+       "profilerActive" (if (*STORM-CONF* WORKER-PROFILER-ENABLED)
+                          (get-active-profile-actions nimbus topology-id component)
+                          [])))))
     
 (defn- level-to-dict [level]
   (if level
@@ -1017,7 +1028,8 @@
          (let [user (.getUserName http-creds-handler servlet-request)
                topology-conf (from-json
                               (.getTopologyConf ^Nimbus$Client nimbus id))]
-           (assert-authorized-user "setWorkerProfiler" (topology-config id)))
+           (assert-authorized-user "setWorkerProfiler" (topology-config id))
+           (assert-authorized-profiler-action "start"))
 
          (let [[host, port] (split host-port #":")
                nodeinfo (NodeInfo. host (set [(Long. port)]))
@@ -1041,7 +1053,8 @@
          (let [user (.getUserName http-creds-handler servlet-request)
                topology-conf (from-json
                               (.getTopologyConf ^Nimbus$Client nimbus id))]
-           (assert-authorized-user "setWorkerProfiler" (topology-config id)))
+           (assert-authorized-user "setWorkerProfiler" (topology-config id))
+           (assert-authorized-profiler-action "stop"))
          (let [[host, port] (split host-port #":")
                nodeinfo (NodeInfo. host (set [(Long. port)]))
                timestamp 0
@@ -1059,7 +1072,8 @@
          (let [user (.getUserName http-creds-handler servlet-request)
                topology-conf (from-json
                               (.getTopologyConf ^Nimbus$Client nimbus id))]
-           (assert-authorized-user "setWorkerProfiler" (topology-config id)))
+           (assert-authorized-user "setWorkerProfiler" (topology-config id))
+           (assert-authorized-profiler-action "dumpprofile"))
          (let [[host, port] (split host-port #":")
                nodeinfo (NodeInfo. host (set [(Long. port)]))
                timestamp (System/currentTimeMillis)
@@ -1077,7 +1091,8 @@
          (let [user (.getUserName http-creds-handler servlet-request)
                topology-conf (from-json
                               (.getTopologyConf ^Nimbus$Client nimbus id))]
-           (assert-authorized-user "setWorkerProfiler" (topology-config id)))
+           (assert-authorized-user "setWorkerProfiler" (topology-config id))
+           (assert-authorized-profiler-action "dumpjstack"))
          (let [[host, port] (split host-port #":")
                nodeinfo (NodeInfo. host (set [(Long. port)]))
                timestamp (System/currentTimeMillis)
@@ -1095,7 +1110,8 @@
          (let [user (.getUserName http-creds-handler servlet-request)
                topology-conf (from-json
                               (.getTopologyConf ^Nimbus$Client nimbus id))]
-           (assert-authorized-user "setWorkerProfiler" (topology-config id)))
+           (assert-authorized-user "setWorkerProfiler" (topology-config id))
+           (assert-authorized-profiler-action "restartworker"))
          (let [[host, port] (split host-port #":")
                nodeinfo (NodeInfo. host (set [(Long. port)]))
                timestamp (System/currentTimeMillis)
@@ -1113,7 +1129,8 @@
          (let [user (.getUserName http-creds-handler servlet-request)
                topology-conf (from-json
                               (.getTopologyConf ^Nimbus$Client nimbus id))]
-           (assert-authorized-user "setWorkerProfiler" (topology-config id)))
+           (assert-authorized-user "setWorkerProfiler" (topology-config id))
+           (assert-authorized-profiler-action "dumpheap"))
          (let [[host, port] (split host-port #":")
                nodeinfo (NodeInfo. host (set [(Long. port)]))
                timestamp (System/currentTimeMillis)

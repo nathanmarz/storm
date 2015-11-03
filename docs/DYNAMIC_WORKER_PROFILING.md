@@ -22,3 +22,8 @@ Click on "My Dump Files" to go the logviewer UI for list of worker specific dump
 
 ![Dump Files Links for worker](images/dynamic_profiling_debugging_3.png "Dump Files Links for worker")
 
+Configuration
+-------------
+
+The "worker.profiler.command" can be configured to point to specific pluggable profiler, heapdump commands. The "worker.profiler.enabled" can be disabled if plugin is not available.
+

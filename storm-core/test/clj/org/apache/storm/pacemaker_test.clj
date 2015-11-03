@@ -72,11 +72,11 @@
                bad-response (.handleMessage handler message false)
                good-response (.handleMessage handler message true)]
            (is (= (.get_message_id bad-response) mid))
-          (is (= (.get_type bad-response) HBServerMessageType/NOT_AUTHORIZED))
+           (is (= (.get_type bad-response) HBServerMessageType/NOT_AUTHORIZED))
 
-          (is (= (.get_message_id good-response) mid))
-          (is (= (.get_type good-response) HBServerMessageType/EXISTS_RESPONSE))
-          (is (= (.get_boolval (.get_data good-response)) true))))))))
+           (is (= (.get_message_id good-response) mid))
+           (is (= (.get_type good-response) HBServerMessageType/EXISTS_RESPONSE))
+           (is (= (.get_boolval (.get_data good-response)) true))))))))
 
 (deftest pacemaker-server-send-pulse-get-pulse
   (conjure/stubbing

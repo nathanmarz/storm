@@ -34,6 +34,8 @@ import backtype.storm.utils.Utils;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+
+import backtype.storm.windowing.TupleWindow;
 import org.json.simple.JSONValue;
 
 /**
@@ -174,6 +176,21 @@ public class TopologyBuilder {
      */
     public BoltDeclarer setBolt(String id, IBasicBolt bolt, Number parallelism_hint) throws IllegalArgumentException {
         return setBolt(id, new BasicBoltExecutor(bolt), parallelism_hint);
+    }
+
+    /**
+     * Define a new bolt in this topology. This defines a windowed bolt, intended
+     * for windowing operations. The {@link IWindowedBolt#execute(TupleWindow)} method
+     * is triggered for each window interval with the list of current events in the window.
+     *
+     * @param id the id of this component. This id is referenced by other components that want to consume this bolt's outputs.
+     * @param bolt the windowed bolt
+     * @param parallelism_hint the number of tasks that should be assigned to execute this bolt. Each task will run on a thread in a process somwehere around the cluster.
+     * @return use the returned object to declare the inputs to this component
+     * @throws IllegalArgumentException if {@code parallelism_hint} is not positive
+     */
+    public BoltDeclarer setBolt(String id, IWindowedBolt bolt, Number parallelism_hint) throws IllegalArgumentException {
+        return setBolt(id, new WindowedBoltExecutor(bolt), parallelism_hint);
     }
 
     /**

@@ -19,12 +19,11 @@
 package org.apache.storm.sql;
 
 import com.google.common.annotations.VisibleForTesting;
-import org.apache.storm.sql.storm.DataSource;
+import org.apache.storm.sql.runtime.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

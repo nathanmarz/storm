@@ -15,9 +15,9 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.ValidationException;
-import org.apache.storm.sql.storm.ChannelContext;
-import org.apache.storm.sql.storm.ChannelHandler;
-import org.apache.storm.sql.storm.DataSource;
+import org.apache.storm.sql.runtime.ChannelContext;
+import org.apache.storm.sql.runtime.ChannelHandler;
+import org.apache.storm.sql.runtime.DataSource;
 
 import java.util.ArrayList;
 import java.util.List;

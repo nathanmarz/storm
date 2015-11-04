@@ -17,48 +17,33 @@
  */
 package org.apache.storm.sql.compiler;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexCorrelVariable;
-import org.apache.calcite.rex.RexDynamicParam;
-import org.apache.calcite.rex.RexFieldAccess;
-import org.apache.calcite.rex.RexInputRef;
-import org.apache.calcite.rex.RexLiteral;
-import org.apache.calcite.rex.RexLocalRef;
-import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexOver;
-import org.apache.calcite.rex.RexRangeRef;
-import org.apache.calcite.rex.RexVisitor;
+import org.apache.calcite.rex.*;
+import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Util;
+import org.apache.storm.sql.runtime.StormSqlFunctions;
 
 import java.io.PrintWriter;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.AND;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE_INTEGER;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN_OR_EQUAL;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_FALSE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_FALSE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_NULL;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_TRUE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NULL;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_TRUE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LESS_THAN;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LESS_THAN_OR_EQUAL;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OR;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.*;
 
 /**
  * Compile RexNode on top of the Tuple abstraction.
@@ -98,7 +83,7 @@ class ExprCompiler implements RexVisitor<String> {
       case CHAR:
         return CompilerUtil.escapeJavaString(((NlsString) v).getValue(), true);
       case NULL:
-        return "null";
+        return "((" + ((Class<?>)typeFactory.getJavaClass(ty)).getCanonicalName() + ")null)";
       case DOUBLE:
       case BIGINT:
       case DECIMAL:
@@ -164,6 +149,13 @@ class ExprCompiler implements RexVisitor<String> {
     return "t" + ++nameCount;
   }
 
+  // Only generate inline expressions when comparing primitive types
+  private boolean primitiveCompareExpr(SqlOperator op, RelDataType type) {
+    final Primitive primitive = Primitive.ofBoxOr(typeFactory.getJavaClass(type));
+    return primitive != null &&
+        (op == LESS_THAN || op == LESS_THAN_OR_EQUAL || op == GREATER_THAN || op == GREATER_THAN_OR_EQUAL);
+  }
+
   private interface CallExprPrinter {
     String translate(ExprCompiler compiler, RexCall call);
   }
@@ -179,15 +171,25 @@ class ExprCompiler implements RexVisitor<String> {
     private ImpTable() {
       ImmutableMap.Builder<SqlOperator, CallExprPrinter> builder =
           ImmutableMap.builder();
-      builder.put(infixBinary(LESS_THAN, "<"))
-          .put(infixBinary(LESS_THAN_OR_EQUAL, "<="))
-          .put(infixBinary(GREATER_THAN, ">"))
-          .put(infixBinary(GREATER_THAN_OR_EQUAL, ">="))
-          .put(infixBinary(PLUS, "+"))
-          .put(infixBinary(MINUS, "-"))
-          .put(infixBinary(MULTIPLY, "*"))
-          .put(infixBinary(DIVIDE, "/"))
-          .put(infixBinary(DIVIDE_INTEGER, "/"))
+      builder
+          .put(builtInMethod(UPPER, BuiltInMethod.UPPER, NullPolicy.STRICT))
+          .put(builtInMethod(LOWER, BuiltInMethod.LOWER, NullPolicy.STRICT))
+          .put(builtInMethod(INITCAP, BuiltInMethod.INITCAP, NullPolicy.STRICT))
+          .put(builtInMethod(SUBSTRING, BuiltInMethod.SUBSTRING, NullPolicy.STRICT))
+          .put(builtInMethod(CHARACTER_LENGTH, BuiltInMethod.CHAR_LENGTH, NullPolicy.STRICT))
+          .put(builtInMethod(CHAR_LENGTH, BuiltInMethod.CHAR_LENGTH, NullPolicy.STRICT))
+          .put(builtInMethod(CONCAT, BuiltInMethod.STRING_CONCAT, NullPolicy.STRICT))
+          .put(infixBinary(LESS_THAN, "<", "lt"))
+          .put(infixBinary(LESS_THAN_OR_EQUAL, "<=", "le"))
+          .put(infixBinary(GREATER_THAN, ">", "gt"))
+          .put(infixBinary(GREATER_THAN_OR_EQUAL, ">=", "ge"))
+          .put(infixBinary(EQUALS, "==", StormSqlFunctions.class, "eq"))
+          .put(infixBinary(NOT_EQUALS, "<>", StormSqlFunctions.class, "ne"))
+          .put(infixBinary(PLUS, "+", "plus"))
+          .put(infixBinary(MINUS, "-", "minus"))
+          .put(infixBinary(MULTIPLY, "*", "multiply"))
+          .put(infixBinary(DIVIDE, "/", "divide"))
+          .put(infixBinary(DIVIDE_INTEGER, "/", "divide"))
           .put(expect(IS_NULL, null))
           .put(expectNot(IS_NOT_NULL, null))
           .put(expect(IS_TRUE, true))
@@ -210,8 +212,38 @@ class ExprCompiler implements RexVisitor<String> {
       }
     }
 
+    private Map.Entry<SqlOperator, CallExprPrinter> builtInMethod(
+        final SqlOperator op, final BuiltInMethod method, NullPolicy nullPolicy) {
+      if (nullPolicy != NullPolicy.STRICT) {
+        throw new UnsupportedOperationException();
+      }
+      CallExprPrinter printer = new CallExprPrinter() {
+        @Override
+        public String translate(ExprCompiler compiler, RexCall call) {
+          PrintWriter pw = compiler.pw;
+          String val = compiler.reserveName();
+          pw.print(String.format("final %s %s;\n", compiler.javaTypeName(call), val));
+          List<String> args = new ArrayList<>();
+          for (RexNode op : call.getOperands()) {
+            args.add(op.accept(compiler));
+          }
+          pw.print("if (false) {}\n");
+          for (int i = 0; i < args.size(); ++i) {
+            String arg = args.get(i);
+            if (call.getOperands().get(i).getType().isNullable()) {
+              pw.print(String.format("else if (%2$s == null) { %1$s = null; }\n", val, arg));
+            }
+          }
+          String calc = printMethodCall(method.method, args);
+          pw.print(String.format("else { %1$s = %2$s; }\n", val, calc));
+          return val;
+        }
+      };
+      return new AbstractMap.SimpleImmutableEntry<>(op, printer);
+    }
+
     private Map.Entry<SqlOperator, CallExprPrinter> infixBinary
-        (SqlOperator op, final String javaOperator) {
+        (final SqlOperator op, final String javaOperator, final Class<?> clazz, final String backupMethodName) {
       CallExprPrinter trans = new CallExprPrinter() {
         @Override
         public String translate(
@@ -221,38 +253,42 @@ class ExprCompiler implements RexVisitor<String> {
           String val = compiler.reserveName();
           RexNode op0 = call.getOperands().get(0);
           RexNode op1 = call.getOperands().get(1);
+          PrintWriter pw = compiler.pw;
+          if (backupMethodName != null) {
+            if (!compiler.primitiveCompareExpr(op, op0.getType())) {
+              String lhs = op0.accept(compiler);
+              String rhs = op1.accept(compiler);
+              pw.print(String.format("%s %s = %s;\n", compiler.javaTypeName(call), val,
+                  printMethodCall(clazz, backupMethodName, true, Lists.newArrayList(lhs, rhs))));
+              return val;
+            }
+          }
           boolean lhsNullable = op0.getType().isNullable();
           boolean rhsNullable = op1.getType().isNullable();
 
-          PrintWriter pw = compiler.pw;
-          String lhs = op0.accept(compiler);
           pw.print(String.format("final %s %s;\n", compiler.javaTypeName(call), val));
-          if (!lhsNullable) {
-            String rhs = op1.accept(compiler);
-            String calc = foldNullExpr(String.format("%s %s %s", lhs, javaOperator, rhs), "null", rhs);
-            if (!rhsNullable) {
-              pw.print(String.format("%s = %s;\n", val, calc));
-            } else {
-              pw.print(
-                  String.format("%s = %s == null ? null : (%s);\n",
-                      val, rhs, calc));
-            }
-          } else {
-            pw.print(String.format("if (%2$s == null) { %1$s = null; }\n",
-                val, lhs));
-            pw.print("else {\n");
-            String rhs = op1.accept(compiler);
-            String calc = foldNullExpr(String.format("%s %s %s", lhs, javaOperator, rhs), "null", lhs);
-            if (!rhsNullable) {
-              pw.print(String.format("%s = %s;\n}\n", val, calc));
-            } else {
-              pw.print(String.format("%1$s = %2$s == null ? null : (%3$s);\n}\n", val, rhs, calc));
-            }
+          String lhs = op0.accept(compiler);
+          String rhs = op1.accept(compiler);
+          pw.print("if (false) {}\n");
+          if (lhsNullable) {
+            String calc = foldNullExpr(String.format("%s %s %s", lhs, javaOperator, rhs), "null", op1);
+            pw.print(String.format("else if (%2$s == null) { %1$s = %3$s; }\n", val, lhs, calc));
           }
+          if (rhsNullable) {
+            String calc = foldNullExpr(String.format("%s %s %s", lhs, javaOperator, rhs), "null", op0);
+            pw.print(String.format("else if (%2$s == null) { %1$s = %3$s; }\n", val, rhs, calc));
+          }
+          String calc = String.format("%s %s %s", lhs, javaOperator, rhs);
+          pw.print(String.format("else { %1$s = %2$s; }\n", val, calc));
           return val;
         }
       };
       return new AbstractMap.SimpleImmutableEntry<>(op, trans);
+    }
+
+    private Map.Entry<SqlOperator, CallExprPrinter> infixBinary
+        (final SqlOperator op, final String javaOperator, final String backupMethodName) {
+      return infixBinary(op, javaOperator, SqlFunctions.class, backupMethodName);
     }
 
     private Map.Entry<SqlOperator, CallExprPrinter> expect(
@@ -327,17 +363,16 @@ class ExprCompiler implements RexVisitor<String> {
           pw.print(String.format("  %1$s = %2$s;\n}\n", val, rhs));
         } else {
           String foldedLHS = foldNullExpr(
-              String.format("%1$s == null || %1$s", lhs), "true", lhs);
+              String.format("%1$s == null || %1$s", lhs), "true", op0);
           pw.print(String.format("if (%s) {\n", foldedLHS));
           String rhs = op1.accept(compiler);
           String s;
           if (rhsNullable) {
             s = foldNullExpr(
                 String.format("(%2$s != null && !(%2$s)) ? false : %1$s", lhs,
-                              rhs),
-                "null", rhs);
+                    rhs), "null", op1);
           } else {
-            s = String.format("!(%2$s) ? false : %1$s", lhs, rhs);
+            s = String.format("!(%2$s) ? Boolean.FALSE : %1$s", lhs, rhs);
           }
           pw.print(String.format("  %1$s = %2$s;\n", val, s));
           pw.print(String.format("} else { %1$s = false; }\n", val));
@@ -369,16 +404,16 @@ class ExprCompiler implements RexVisitor<String> {
           pw.print(String.format("  %1$s = %2$s;\n}\n", val, rhs));
         } else {
           String foldedLHS = foldNullExpr(
-              String.format("%1$s == null || !(%1$s)", lhs), "true", lhs);
+              String.format("%1$s == null || !(%1$s)", lhs), "true", op0);
           pw.print(String.format("if (%s) {\n", foldedLHS));
           String rhs = op1.accept(compiler);
           String s;
           if (rhsNullable) {
             s = foldNullExpr(
                 String.format("(%2$s != null && %2$s) ? true : %1$s", lhs, rhs),
-                "null", rhs);
+                "null", op1);
           } else {
-            s = String.format("%2$s ? %2$s : %1$s", lhs, rhs);
+            s = String.format("%2$s ? Boolean.valueOf(%2$s) : %1$s", lhs, rhs);
           }
           pw.print(String.format("  %1$s = %2$s;\n", val, s));
           pw.print(String.format("} else { %1$s = true; }\n", val));
@@ -402,20 +437,34 @@ class ExprCompiler implements RexVisitor<String> {
           pw.print(String.format("%1$s = !(%2$s);\n", val, lhs));
         } else {
           String s = foldNullExpr(
-              String.format("%1$s == null ? null : !(%1$s)", lhs), "null", lhs);
+              String.format("%1$s == null ? null : !(%1$s)", lhs), "null", op);
           pw.print(String.format("%1$s = %2$s;\n", val, s));
         }
         return val;
       }
     };
+  }
 
-    private static String foldNullExpr(String notNullExpr, String
-        nullExpr, String op) {
-      if (op.equals("null")) {
-        return nullExpr;
-      } else {
-        return notNullExpr;
-      }
+  private static String foldNullExpr(String notNullExpr, String
+      nullExpr, RexNode op) {
+    if (op instanceof RexLiteral && ((RexLiteral)op).getTypeName() == SqlTypeName.NULL) {
+      return nullExpr;
+    } else {
+      return notNullExpr;
+    }
+  }
+
+  private static String printMethodCall(Method method, List<String> args) {
+    return printMethodCall(method.getDeclaringClass(), method.getName(),
+        Modifier.isStatic(method.getModifiers()), args);
+  }
+
+  private static String printMethodCall(Class<?> clazz, String method, boolean isStatic, List<String> args) {
+    if (isStatic) {
+      return String.format("%s.%s(%s)", clazz.getCanonicalName(), method, Joiner.on(',').join(args));
+    } else {
+      return String.format("%s.%s(%s)", args.get(0), method,
+          Joiner.on(',').join(args.subList(1, args.size())));
     }
   }
 

@@ -57,7 +57,7 @@ public class TestRelNodeCompiler {
       RelNodeCompiler compiler = new RelNodeCompiler(pw, typeFactory);
       compiler.visitProject(project);
       pw.flush();
-      Assert.assertThat(sw.toString(), containsString("+ 1"));
+      Assert.assertThat(sw.toString(), containsString("plus("));
     }
   }
 }

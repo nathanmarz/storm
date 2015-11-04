@@ -23,9 +23,9 @@ import com.google.common.collect.Lists;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
-import org.apache.storm.sql.storm.ChannelHandler;
-import org.apache.storm.sql.storm.DataSource;
-import org.apache.storm.sql.storm.runtime.AbstractValuesProcessor;
+import org.apache.storm.sql.runtime.ChannelHandler;
+import org.apache.storm.sql.runtime.DataSource;
+import org.apache.storm.sql.runtime.AbstractValuesProcessor;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -97,6 +97,28 @@ public class TestExprSemantic {
             ));
     assertEquals(new Values(true, null, null, true, true, true, true,
                             false, null), v);
+  }
+
+  @Test
+  public void testEquals() throws Exception {
+    Values v = testExpr(
+        Lists.newArrayList(
+            "1 = 2", "UNKNOWN = UNKNOWN", "'a' = 'a'", "'a' = UNKNOWN", "UNKNOWN = 'a'", "'a' = 'b'",
+            "1 <> 2", "UNKNOWN <> UNKNOWN", "'a' <> 'a'", "'a' <> UNKNOWN", "UNKNOWN <> 'a'", "'a' <> 'b'"
+        ));
+    assertEquals(new Values(false, null, true, null, null, false,
+        true, null, false, null, null, true), v);
+  }
+
+  @Test
+  public void testStringMethods() throws Exception {
+    Values v = testExpr(
+        Lists.newArrayList(
+            "UPPER('a')", "LOWER('A')", "INITCAP('foo')",
+            "SUBSTRING('foo', 2)", "CHARACTER_LENGTH('foo')", "CHAR_LENGTH('foo')",
+            "'ab' || 'cd'"
+        ));
+    assertEquals(new Values("A", "a", "Foo", "oo", 3, 3, "abcd"), v);
   }
 
   private Values testExpr(List<String> exprs) throws Exception {

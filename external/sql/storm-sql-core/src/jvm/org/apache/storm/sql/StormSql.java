@@ -17,11 +17,7 @@
  */
 package org.apache.storm.sql;
 
-import backtype.storm.tuple.Values;
-import org.apache.storm.sql.storm.ChannelHandler;
-import org.apache.storm.sql.storm.DataSource;
-
-import java.util.Map;
+import org.apache.storm.sql.runtime.ChannelHandler;
 
 /**
  * The StormSql class provides standalone, interactive interfaces to execute

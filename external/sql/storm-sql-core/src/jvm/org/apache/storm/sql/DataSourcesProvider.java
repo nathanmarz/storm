@@ -18,8 +18,7 @@
 
 package org.apache.storm.sql;
 
-import backtype.storm.tuple.Values;
-import org.apache.storm.sql.storm.DataSource;
+import org.apache.storm.sql.runtime.DataSource;
 
 import java.net.URI;
 import java.util.List;

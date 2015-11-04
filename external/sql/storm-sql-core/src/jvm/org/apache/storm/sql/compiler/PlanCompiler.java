@@ -22,7 +22,7 @@ import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.storm.sql.javac.CompilingClassLoader;
-import org.apache.storm.sql.storm.runtime.AbstractValuesProcessor;
+import org.apache.storm.sql.runtime.AbstractValuesProcessor;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -38,12 +38,12 @@ public class PlanCompiler {
       "// GENERATED CODE", "package " + PACKAGE_NAME + ";", "",
       "import java.util.Iterator;", "import java.util.Map;",
       "import backtype.storm.tuple.Values;",
-      "import org.apache.storm.sql.storm.AbstractChannelHandler;",
-      "import org.apache.storm.sql.storm.Channels;",
-      "import org.apache.storm.sql.storm.ChannelContext;",
-      "import org.apache.storm.sql.storm.ChannelHandler;",
-      "import org.apache.storm.sql.storm.DataSource;",
-      "import org.apache.storm.sql.storm.runtime.AbstractValuesProcessor;",
+      "import org.apache.storm.sql.runtime.AbstractChannelHandler;",
+      "import org.apache.storm.sql.runtime.Channels;",
+      "import org.apache.storm.sql.runtime.ChannelContext;",
+      "import org.apache.storm.sql.runtime.ChannelHandler;",
+      "import org.apache.storm.sql.runtime.DataSource;",
+      "import org.apache.storm.sql.runtime.AbstractValuesProcessor;",
       "public final class Processor extends AbstractValuesProcessor {", "");
   private static final String INITIALIZER_PROLOGUE = NEW_LINE_JOINER.join(
       "  @Override",

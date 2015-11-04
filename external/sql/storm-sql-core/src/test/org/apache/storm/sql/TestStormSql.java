@@ -19,8 +19,8 @@ package org.apache.storm.sql;
 
 import backtype.storm.tuple.Values;
 import org.apache.storm.sql.compiler.TestUtils;
-import org.apache.storm.sql.storm.ChannelHandler;
-import org.apache.storm.sql.storm.DataSource;
+import org.apache.storm.sql.runtime.ChannelHandler;
+import org.apache.storm.sql.runtime.DataSource;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;

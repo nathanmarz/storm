@@ -86,8 +86,8 @@ public class TestExprCompiler {
       }
     }
     assertThat(sw.get(0).toString(), containsString("1 > 2"));
-    assertThat(sw.get(1).toString(), containsString("3 + 5"));
-    assertThat(sw.get(2).toString(), containsString("1 - 1.0E0"));
-    assertThat(sw.get(3).toString(), containsString("3 +"));
+    assertThat(sw.get(1).toString(), containsString("plus(3,5)"));
+    assertThat(sw.get(2).toString(), containsString("minus(1,1.0E0)"));
+    assertThat(sw.get(3).toString(), containsString("plus(3,"));
   }
 }

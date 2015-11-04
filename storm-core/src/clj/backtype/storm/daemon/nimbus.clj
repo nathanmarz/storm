@@ -56,7 +56,6 @@
   (:gen-class
     :methods [^{:static true} [launch [backtype.storm.scheduler.INimbus] void]]))
 
-
 (defmeter nimbus:num-submitTopologyWithOpts-calls)
 (defmeter nimbus:num-submitTopology-calls)
 (defmeter nimbus:num-killTopologyWithOpts-calls)

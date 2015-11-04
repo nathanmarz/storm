@@ -210,9 +210,9 @@ public class ResourceAwareStrategy implements IStrategy {
             if(n.getFreeSlots().size()>0) {
                 if (n.getAvailableMemoryResources() >= taskMem
                         && n.getAvailableCpuResources() >= taskCPU) {
-                    double a = Math.pow(((taskCPU - n.getAvailableCpuResources())/n.getAvailableCpuResources())
+                    double a = Math.pow(((taskCPU - n.getAvailableCpuResources())/(n.getAvailableCpuResources() + 1))
                             * this.CPU_WEIGHT, 2);
-                    double b = Math.pow(((taskMem - n.getAvailableMemoryResources())/n.getAvailableMemoryResources())
+                    double b = Math.pow(((taskMem - n.getAvailableMemoryResources())/(n.getAvailableMemoryResources() + 1))
                             * this.MEM_WEIGHT, 2);
                     double c = 0.0;
                     if(this.refNode != null) {

@@ -99,6 +99,32 @@ class NumErrorsChoice:
     "ONE": 2,
   }
 
+class ProfileAction:
+  JPROFILE_STOP = 0
+  JPROFILE_START = 1
+  JPROFILE_DUMP = 2
+  JMAP_DUMP = 3
+  JSTACK_DUMP = 4
+  JVM_RESTART = 5
+
+  _VALUES_TO_NAMES = {
+    0: "JPROFILE_STOP",
+    1: "JPROFILE_START",
+    2: "JPROFILE_DUMP",
+    3: "JMAP_DUMP",
+    4: "JSTACK_DUMP",
+    5: "JVM_RESTART",
+  }
+
+  _NAMES_TO_VALUES = {
+    "JPROFILE_STOP": 0,
+    "JPROFILE_START": 1,
+    "JPROFILE_DUMP": 2,
+    "JMAP_DUMP": 3,
+    "JSTACK_DUMP": 4,
+    "JVM_RESTART": 5,
+  }
+
 class LogLevelAction:
   UNCHANGED = 1
   UPDATE = 2
@@ -8540,6 +8566,102 @@ class LSWorkerHeartbeat:
     value = (value * 31) ^ hash(self.topology_id)
     value = (value * 31) ^ hash(self.executors)
     value = (value * 31) ^ hash(self.port)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class ProfileRequest:
+  """
+  Attributes:
+   - nodeInfo
+   - action
+   - time_stamp
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRUCT, 'nodeInfo', (NodeInfo, NodeInfo.thrift_spec), None, ), # 1
+    (2, TType.I32, 'action', None, None, ), # 2
+    (3, TType.I64, 'time_stamp', None, None, ), # 3
+  )
+
+  def __init__(self, nodeInfo=None, action=None, time_stamp=None,):
+    self.nodeInfo = nodeInfo
+    self.action = action
+    self.time_stamp = time_stamp
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRUCT:
+          self.nodeInfo = NodeInfo()
+          self.nodeInfo.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.I32:
+          self.action = iprot.readI32();
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.I64:
+          self.time_stamp = iprot.readI64();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('ProfileRequest')
+    if self.nodeInfo is not None:
+      oprot.writeFieldBegin('nodeInfo', TType.STRUCT, 1)
+      self.nodeInfo.write(oprot)
+      oprot.writeFieldEnd()
+    if self.action is not None:
+      oprot.writeFieldBegin('action', TType.I32, 2)
+      oprot.writeI32(self.action)
+      oprot.writeFieldEnd()
+    if self.time_stamp is not None:
+      oprot.writeFieldBegin('time_stamp', TType.I64, 3)
+      oprot.writeI64(self.time_stamp)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    if self.nodeInfo is None:
+      raise TProtocol.TProtocolException(message='Required field nodeInfo is unset!')
+    if self.action is None:
+      raise TProtocol.TProtocolException(message='Required field action is unset!')
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.nodeInfo)
+    value = (value * 31) ^ hash(self.action)
+    value = (value * 31) ^ hash(self.time_stamp)
     return value
 
   def __repr__(self):

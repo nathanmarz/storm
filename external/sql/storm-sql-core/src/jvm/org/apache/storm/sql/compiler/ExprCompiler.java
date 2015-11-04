@@ -17,7 +17,9 @@
  */
 package org.apache.storm.sql.compiler;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
+import org.apache.calcite.adapter.enumerable.CallImplementor;
 import org.apache.calcite.adapter.enumerable.RexImpTable;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.rel.type.RelDataType;
@@ -67,9 +69,9 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
  */
 class ExprCompiler implements RexVisitor<String> {
   private final PrintWriter pw;
-  private final Map<RexNode, String> expr = new IdentityHashMap<>();
   private final JavaTypeFactory typeFactory;
   private static final ImpTable IMP_TABLE = new ImpTable();
+  private int nameCount;
 
   ExprCompiler(PrintWriter pw, JavaTypeFactory typeFactory) {
     this.pw = pw;
@@ -78,14 +80,10 @@ class ExprCompiler implements RexVisitor<String> {
 
   @Override
   public String visitInputRef(RexInputRef rexInputRef) {
-    if (expr.containsKey(rexInputRef)) {
-      return expr.get(rexInputRef);
-    }
     String name = reserveName(rexInputRef);
     String typeName = javaTypeName(rexInputRef);
     pw.print(String.format("%s %s = (%s)(_data.get(%d));\n", typeName, name,
                            typeName, rexInputRef.getIndex()));
-    expr.put(rexInputRef, name);
     return name;
   }
 
@@ -167,8 +165,7 @@ class ExprCompiler implements RexVisitor<String> {
   }
 
   private String reserveName(RexNode node) {
-    String name = "t" + expr.size();
-    expr.put(node, name);
+    String name = "t" + ++nameCount;
     return name;
   }
 
@@ -285,6 +282,9 @@ class ExprCompiler implements RexVisitor<String> {
     }
 
 
+    // If any of the arguments are false, result is false;
+    // else if any arguments are null, result is null;
+    // else true.
     private static final CallExprPrinter AND_EXPR = new CallExprPrinter() {
       @Override
       public String translate(
@@ -293,15 +293,40 @@ class ExprCompiler implements RexVisitor<String> {
         PrintWriter pw = compiler.pw;
         pw.print(String.format("final %s %s;\n", compiler.javaTypeName(call),
                                val));
-        String lhs = call.getOperands().get(0).accept(compiler);
-        pw.print(String.format("if (!(%2$s)) { %1$s = false; }\n", val, lhs));
-        pw.print("else {\n");
-        String rhs = call.getOperands().get(1).accept(compiler);
-        pw.print(String.format("  %1$s = %2$s;\n}\n", val, rhs));
+        RexNode op0 = call.getOperands().get(0);
+        RexNode op1 = call.getOperands().get(1);
+        boolean lhsNullable = op0.getType().isNullable();
+        boolean rhsNullable = op1.getType().isNullable();
+        String lhs = op0.accept(compiler);
+        if (!lhsNullable) {
+          pw.print(String.format("if (!(%2$s)) { %1$s = false; }\n", val, lhs));
+          pw.print("else {\n");
+          String rhs = op1.accept(compiler);
+          pw.print(String.format("  %1$s = %2$s;\n}\n", val, rhs));
+        } else {
+          String foldedLHS = foldNullExpr(
+              String.format("%1$s == null || %1$s", lhs), "true", lhs);
+          pw.print(String.format("if (%s) {\n", foldedLHS));
+          String rhs = op1.accept(compiler);
+          String s;
+          if (rhsNullable) {
+            s = foldNullExpr(
+                String.format("(%2$s != null && !(%2$s)) ? false : %1$s", lhs,
+                              rhs),
+                "null", rhs);
+          } else {
+            s = String.format("!(%2$s) ? false : %1$s", lhs, rhs);
+          }
+          pw.print(String.format("  %1$s = %2$s;\n", val, s));
+          pw.print(String.format("} else { %1$s = false; }\n", val));
+        }
         return val;
       }
     };
 
+    // If any of the arguments are true, result is true;
+    // else if any arguments are null, result is null;
+    // else false.
     private static final CallExprPrinter OR_EXPR = new CallExprPrinter() {
       @Override
       public String translate(
@@ -310,11 +335,32 @@ class ExprCompiler implements RexVisitor<String> {
         PrintWriter pw = compiler.pw;
         pw.print(String.format("final %s %s;\n", compiler.javaTypeName(call),
                                val));
-        String lhs = call.getOperands().get(0).accept(compiler);
-        pw.print(String.format("if (%2$s) { %1$s = true; }\n", val, lhs));
-        pw.print("else {\n");
-        String rhs = call.getOperands().get(1).accept(compiler);
-        pw.print(String.format("  %1$s = %2$s;\n}\n", val, rhs));
+        RexNode op0 = call.getOperands().get(0);
+        RexNode op1 = call.getOperands().get(1);
+        boolean lhsNullable = op0.getType().isNullable();
+        boolean rhsNullable = op1.getType().isNullable();
+        String lhs = op0.accept(compiler);
+        if (!lhsNullable) {
+          pw.print(String.format("if (%2$s) { %1$s = true; }\n", val, lhs));
+          pw.print("else {\n");
+          String rhs = op1.accept(compiler);
+          pw.print(String.format("  %1$s = %2$s;\n}\n", val, rhs));
+        } else {
+          String foldedLHS = foldNullExpr(
+              String.format("%1$s == null || !(%1$s)", lhs), "true", lhs);
+          pw.print(String.format("if (%s) {\n", foldedLHS));
+          String rhs = op1.accept(compiler);
+          String s;
+          if (rhsNullable) {
+            s = foldNullExpr(
+                String.format("(%2$s != null && %2$s) ? true : %1$s", lhs, rhs),
+                "null", rhs);
+          } else {
+            s = String.format("%2$s ? %2$s : %1$s", lhs, rhs);
+          }
+          pw.print(String.format("  %1$s = %2$s;\n", val, s));
+          pw.print(String.format("} else { %1$s = true; }\n", val));
+        }
         return val;
       }
     };
@@ -325,13 +371,30 @@ class ExprCompiler implements RexVisitor<String> {
           ExprCompiler compiler, RexCall call) {
         String val = compiler.reserveName(call);
         PrintWriter pw = compiler.pw;
-        String lhs = call.getOperands().get(0).accept(compiler);
+        RexNode op = call.getOperands().get(0);
+        String lhs = op.accept(compiler);
+        boolean nullable = call.getType().isNullable();
         pw.print(String.format("final %s %s;\n", compiler.javaTypeName(call),
                                val));
-        pw.print(String.format("%1$s = !(%2$s);\n", val, lhs));
+        if (!nullable) {
+          pw.print(String.format("%1$s = !(%2$s);\n", val, lhs));
+        } else {
+          String s = foldNullExpr(
+              String.format("%1$s == null ? null : !(%1$s)", lhs), "null", lhs);
+          pw.print(String.format("%1$s = %2$s;\n", val, s));
+        }
         return val;
       }
     };
+
+    private static String foldNullExpr(String notNullExpr, String
+        nullExpr, String op) {
+      if (op.equals("null")) {
+        return nullExpr;
+      } else {
+        return notNullExpr;
+      }
+    }
   }
 
 }

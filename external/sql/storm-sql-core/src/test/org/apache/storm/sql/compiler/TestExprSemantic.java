@@ -43,8 +43,7 @@ public class TestExprSemantic {
   public void testLogicalExpr() throws Exception {
     Values v = testExpr(
         Lists.newArrayList("ID > 0 OR ID < 1", "ID > 0 AND ID < 1",
-                           "NOT (ID > 0 AND ID < 1)"),
-        "WHERE ID > 0 AND ID < 2");
+                           "NOT (ID > 0 AND ID < 1)"));
     assertEquals(new Values(true, false, true), v);
   }
 
@@ -58,12 +57,42 @@ public class TestExprSemantic {
     assertEquals(new Values(true, false, false, true, false, true, false), v);
   }
 
-  private Values testExpr(List<String> exprs, String additionalCaluse)
-      throws Exception {
-    String sql = "SELECT " + Joiner.on(',').join(exprs) + " FROM FOO";
-    if (additionalCaluse != null) {
-      sql += " " + additionalCaluse;
-    }
+  @Test
+  public void testNotWithNull() throws Exception {
+    Values v = testExpr(
+        Lists.newArrayList(
+            "NOT TRUE", "NOT FALSE", "NOT UNKNOWN"
+        ));
+    assertEquals(new Values(false, true, null), v);
+  }
+
+  @Test
+  public void testAndWithNull() throws Exception {
+    Values v = testExpr(
+        Lists.newArrayList(
+            "UNKNOWN AND TRUE", "UNKNOWN AND FALSE", "UNKNOWN AND UNKNOWN",
+            "TRUE AND TRUE", "TRUE AND FALSE", "TRUE AND UNKNOWN",
+            "FALSE AND TRUE", "FALSE AND FALSE", "FALSE AND UNKNOWN"
+        ));
+    assertEquals(new Values(null, false, null, true, false, null, false,
+                            false, false), v);
+  }
+
+  @Test
+  public void testOrWithNull() throws Exception {
+    Values v = testExpr(
+        Lists.newArrayList(
+            "UNKNOWN OR TRUE", "UNKNOWN OR FALSE", "UNKNOWN OR UNKNOWN",
+            "TRUE OR TRUE", "TRUE OR FALSE", "TRUE OR UNKNOWN",
+            "FALSE OR TRUE", "FALSE OR FALSE", "FALSE OR UNKNOWN"
+            ));
+    assertEquals(new Values(true, null, null, true, true, true, true,
+                            false, null), v);
+  }
+
+  private Values testExpr(List<String> exprs) throws Exception {
+    String sql = "SELECT " + Joiner.on(',').join(exprs) + " FROM FOO" +
+        " WHERE ID > 0 AND ID < 2";
     TestUtils.CalciteState state = TestUtils.sqlOverDummyTable(sql);
     PlanCompiler compiler = new PlanCompiler(typeFactory);
     AbstractValuesProcessor proc = compiler.compile(state.tree);
@@ -73,10 +102,6 @@ public class TestExprSemantic {
     ChannelHandler h = new TestUtils.CollectDataChannelHandler(values);
     proc.initialize(data, h);
     return values.get(0);
-  }
-
-  private Values testExpr(List<String> exprs) throws Exception {
-    return testExpr(exprs, null);
   }
 
 }

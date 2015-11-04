@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1157: Adding dynamic profiling for worker, restarting worker, jstack, heap dump, and profiling
  * STORM-1123: TupleImpl - Unnecessary variable initialization.
  * STORM-1153: Use static final instead of just static for class members.
  * STORM-817: Kafka Wildcard Topic Support.

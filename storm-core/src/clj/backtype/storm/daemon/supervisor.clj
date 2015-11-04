@@ -34,9 +34,12 @@
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
   (:import [org.yaml.snakeyaml Yaml]
            [org.yaml.snakeyaml.constructor SafeConstructor])
-  (:import [java.util Date])
+  (:require [metrics.gauges :refer [defgauge]])
+  (:require [metrics.meters :refer [defmeter mark!]])
   (:gen-class
     :methods [^{:static true} [launch [backtype.storm.scheduler.ISupervisor] void]]))
+
+(defmeter supervisor:num-workers-launched)
 
 (defmulti download-storm-code cluster-mode)
 (defmulti launch-worker (fn [supervisor & _] (cluster-mode (:conf supervisor))))
@@ -419,6 +422,7 @@
                                port
                                id
                                mem-onheap)
+                (mark! supervisor:num-workers-launched)
                 (catch java.io.FileNotFoundException e
                   (log-message "Unable to launch worker due to "
                                (.getMessage e)))
@@ -957,7 +961,9 @@
   (let [conf (read-storm-config)]
     (validate-distributed-mode! conf)
     (let [supervisor (mk-supervisor conf nil supervisor)]
-      (add-shutdown-hook-with-force-kill-in-1-sec #(.shutdown supervisor)))))
+      (add-shutdown-hook-with-force-kill-in-1-sec #(.shutdown supervisor)))
+    (defgauge supervisor:num-slots-used-gauge #(count (my-worker-ids conf)))
+    (start-metrics-reporters)))
 
 (defn standalone-supervisor []
   (let [conf-atom (atom nil)

@@ -39,9 +39,17 @@
             [ring.util.codec :as codec]
             [ring.util.response :as resp]
             [clojure.string :as string])
+  (:require [metrics.meters :refer [defmeter mark!]])
+  (:use [backtype.storm.daemon.common :only [start-metrics-reporters]])
   (:gen-class))
 
 (def ^:dynamic *STORM-CONF* (read-storm-config))
+
+(defmeter num:logviewer-log-page-httpRequests)
+(defmeter num:logviewer-daemonlog-page-httpRequests)
+(defmeter num:logviewer-download-log-file-httpRequests)
+(defmeter num:logviewer-download-log-daemon-file-httpRequests)
+(defmeter num:logviewer-list-logs-httpRequests)
 
 (defn cleanup-cutoff-age-millis [conf now-millis]
   (- now-millis (* (conf LOGVIEWER-CLEANUP-AGE-MINS) 60 1000)))
@@ -537,6 +545,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
 (defroutes log-routes
   (GET "/log" [:as req & m]
     (try
+      (mark! num:logviewer-log-page-httpRequests)
       (let [servlet-request (:servlet-request req)
             log-root (:log-root req)
             user (.getUserName http-creds-handler servlet-request)
@@ -595,6 +604,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
            (resp/status 404)))))
   (GET "/daemonlog" [:as req & m]
     (try
+      (mark! num:logviewer-daemonlog-page-httpRequests)
       (let [servlet-request (:servlet-request req)
             daemonlog-root (:daemonlog-root req)
             user (.getUserName http-creds-handler servlet-request)
@@ -608,6 +618,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
         (ring-response-from-exception ex))))
   (GET "/download/:file" [:as {:keys [servlet-request servlet-response log-root]} file & m]
     (try
+      (mark! num:logviewer-download-log-file-httpRequests)
       (let [user (.getUserName http-creds-handler servlet-request)]
         (download-log-file file servlet-request servlet-response user log-root))
       (catch InvalidRequestException ex
@@ -615,6 +626,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
         (ring-response-from-exception ex))))
   (GET "/daemondownload/:file" [:as {:keys [servlet-request servlet-response daemonlog-root]} file & m]
     (try
+      (mark! num:logviewer-download-log-daemon-file-httpRequests)
       (let [user (.getUserName http-creds-handler servlet-request)]
         (download-log-file file servlet-request servlet-response user daemonlog-root))
       (catch InvalidRequestException ex
@@ -622,6 +634,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
         (ring-response-from-exception ex))))
   (GET "/listLogs" [:as req & m]
     (try
+      (mark! num:logviewer-list-logs-httpRequests)
       (let [servlet-request (:servlet-request req)
             user (.getUserName http-creds-handler servlet-request)]
         (list-log-files user
@@ -647,7 +660,8 @@ Note that if anything goes wrong, this will throw an Error and exit."
     (let [header-buffer-size (int (.get conf UI-HEADER-BUFFER-BYTES))
           filter-class (conf UI-FILTER)
           filter-params (conf UI-FILTER-PARAMS)
-          logapp (handler/api log-routes) ;; query params as map
+          logapp (handler/api (-> log-routes
+                                requests-middleware))  ;; query params as map
           middle (conf-middleware logapp log-root-dir daemonlog-root-dir)
           filters-confs (if (conf UI-FILTER)
                           [{:filter-class filter-class
@@ -690,4 +704,5 @@ Note that if anything goes wrong, this will throw an Error and exit."
         daemonlog-root (log-root-dir (conf LOGVIEWER-APPENDER-NAME))]
     (setup-default-uncaught-exception-handler)
     (start-log-cleaner! conf log-root)
-    (start-logviewer! conf log-root daemonlog-root)))
+    (start-logviewer! conf log-root daemonlog-root)
+    (start-metrics-reporters)))

@@ -27,7 +27,10 @@
   (:require [clojure.set :as set])  
   (:require [backtype.storm.daemon.acker :as acker])
   (:require [backtype.storm.thrift :as thrift])
-  )
+  (:require [metrics.reporters.jmx :as jmx]))
+
+(defn start-metrics-reporters []
+  (jmx/start (jmx/reporter {})))
 
 (def ACKER-COMPONENT-ID acker/ACKER-COMPONENT-ID)
 (def ACKER-INIT-STREAM-ID acker/ACKER-INIT-STREAM-ID)

@@ -39,9 +39,9 @@ public abstract class ConnectionWithStatus implements IConnection {
      * data sending or receiving. All data sending request will be dropped.
      */
     Closed
-  };
+  }
 
-  /**
+    /**
    * whether this connection is available to transfer data
    */
   public abstract Status status();

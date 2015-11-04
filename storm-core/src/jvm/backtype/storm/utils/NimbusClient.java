@@ -22,13 +22,8 @@ import backtype.storm.Config;
 import backtype.storm.generated.ClusterSummary;
 import backtype.storm.generated.Nimbus;
 import backtype.storm.generated.NimbusSummary;
-import backtype.storm.nimbus.ILeaderElector;
-import backtype.storm.nimbus.NimbusInfo;
 import backtype.storm.security.auth.ThriftClient;
 import backtype.storm.security.auth.ThriftConnectionType;
-import clojure.lang.IFn;
-import clojure.lang.PersistentArrayMap;
-import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
@@ -38,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 
 public class NimbusClient extends ThriftClient {
-    public static final String DELIMITER = ":";
     private Nimbus.Client _client;
     private static final Logger LOG = LoggerFactory.getLogger(NimbusClient.class);
 
@@ -56,7 +50,7 @@ public class NimbusClient extends ThriftClient {
             asUser = (String) conf.get(Config.STORM_DO_AS_USER);
         }
 
-        List<String> seeds = null;
+        List<String> seeds;
         if(conf.containsKey(Config.NIMBUS_HOST)) {
             LOG.warn("Using deprecated config {} for backward compatibility. Please update your storm.yaml so it only has config {}",
                     Config.NIMBUS_HOST, Config.NIMBUS_SEEDS);
@@ -67,7 +61,7 @@ public class NimbusClient extends ThriftClient {
 
         for (String host : seeds) {
             int port = Integer.parseInt(conf.get(Config.NIMBUS_THRIFT_PORT).toString());
-            ClusterSummary clusterInfo = null;
+            ClusterSummary clusterInfo;
             try {
                 NimbusClient client = new NimbusClient(conf, host, port);
                 clusterInfo = client.getClient().getClusterInfo();

@@ -39,7 +39,7 @@ import storm.trident.tuple.ConsList;
 public class TridentSpoutExecutor implements ITridentBatchBolt {
     public static final String ID_FIELD = "$tx";
     
-    public static Logger LOG = LoggerFactory.getLogger(TridentSpoutExecutor.class);    
+    public static final Logger LOG = LoggerFactory.getLogger(TridentSpoutExecutor.class);
 
     AddIdCollector _collector;
     ITridentSpout<Object> _spout;

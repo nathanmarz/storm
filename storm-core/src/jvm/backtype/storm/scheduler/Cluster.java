@@ -265,14 +265,13 @@ public class Cluster {
      * @return the number of workers assigned to this topology.
      */
     public int getAssignedNumWorkers(TopologyDetails topology) {
-        SchedulerAssignment assignment = this.getAssignmentById(topology.getId());
-        if (topology == null || assignment == null) {
+        SchedulerAssignment assignment = topology != null ? this.getAssignmentById(topology.getId()) : null;
+        if (assignment == null) {
             return 0;
         }
 
         Set<WorkerSlot> slots = new HashSet<WorkerSlot>();
         slots.addAll(assignment.getExecutorToSlot().values());
-
         return slots.size();
     }
 

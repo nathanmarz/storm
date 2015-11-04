@@ -81,7 +81,7 @@ public abstract class NodePool {
       
       Map<ExecutorDetails, String> execToComp = td.getExecutorToComponent();
       SchedulerAssignment assignment = _cluster.getAssignmentById(_topId);
-      _nodeToComps = new HashMap<String, Set<String>>();
+      _nodeToComps = new HashMap<>();
 
       if (assignment != null) {
         Map<ExecutorDetails, WorkerSlot> execToSlot = assignment.getExecutorToSlot();
@@ -90,14 +90,14 @@ public abstract class NodePool {
           String nodeId = entry.getValue().getNodeId();
           Set<String> comps = _nodeToComps.get(nodeId);
           if (comps == null) {
-            comps = new HashSet<String>();
+            comps = new HashSet<>();
             _nodeToComps.put(nodeId, comps);
           }
           comps.add(execToComp.get(entry.getKey()));
         }
       }
       
-      _spreadToSchedule = new HashMap<String, List<ExecutorDetails>>();
+      _spreadToSchedule = new HashMap<>();
       List<String> spreadComps = (List<String>)td.getConf().get(Config.TOPOLOGY_SPREAD_COMPONENTS);
       if (spreadComps != null) {
         for (String comp: spreadComps) {
@@ -105,7 +105,7 @@ public abstract class NodePool {
         }
       }
       
-      _slots = new LinkedList<Set<ExecutorDetails>>();
+      _slots = new LinkedList<>();
       for (int i = 0; i < slotsToUse; i++) {
         _slots.add(new HashSet<ExecutorDetails>());
       }
@@ -118,7 +118,7 @@ public abstract class NodePool {
           _spreadToSchedule.get(entry.getKey()).addAll(entry.getValue());
         } else {
           for (ExecutorDetails ed: entry.getValue()) {
-            LOG.debug("Assigning {} {} to slot {}", new Object[]{entry.getKey(), ed, at});
+            LOG.debug("Assigning {} {} to slot {}", entry.getKey(), ed, at);
             _slots.get(at).add(ed);
             at++;
             if (at >= _slots.size()) {
@@ -151,7 +151,7 @@ public abstract class NodePool {
         String nodeId = n.getId();
         Set<String> nodeComps = _nodeToComps.get(nodeId);
         if (nodeComps == null) {
-          nodeComps = new HashSet<String>();
+          nodeComps = new HashSet<>();
           _nodeToComps.put(nodeId, nodeComps);
         }
         for (Entry<String, List<ExecutorDetails>> entry: _spreadToSchedule.entrySet()) {
@@ -251,7 +251,7 @@ public abstract class NodePool {
   
   public static Collection<Node> takeNodesBySlot(int slotsNeeded,NodePool[] pools) {
     LOG.debug("Trying to grab {} free slots from {}",slotsNeeded, pools);
-    HashSet<Node> ret = new HashSet<Node>();
+    HashSet<Node> ret = new HashSet<>();
     for (NodePool pool: pools) {
       Collection<Node> got = pool.takeNodesBySlots(slotsNeeded);
       ret.addAll(got);
@@ -266,7 +266,7 @@ public abstract class NodePool {
   
   public static Collection<Node> takeNodes(int nodesNeeded,NodePool[] pools) {
     LOG.debug("Trying to grab {} free nodes from {}",nodesNeeded, pools);
-    HashSet<Node> ret = new HashSet<Node>();
+    HashSet<Node> ret = new HashSet<>();
     for (NodePool pool: pools) {
       Collection<Node> got = pool.takeNodes(nodesNeeded);
       ret.addAll(got);

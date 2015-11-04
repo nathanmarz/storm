@@ -25,7 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class BasicBoltExecutor implements IRichBolt {
-    public static Logger LOG = LoggerFactory.getLogger(BasicBoltExecutor.class);    
+    public static final Logger LOG = LoggerFactory.getLogger(BasicBoltExecutor.class);
     
     private IBasicBolt _bolt;
     private transient BasicOutputCollector _collector;

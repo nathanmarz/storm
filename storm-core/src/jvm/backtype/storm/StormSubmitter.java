@@ -51,10 +51,6 @@ public class StormSubmitter {
     
     private static ILocalCluster localNimbus = null;
 
-    public static void setLocalNimbus(ILocalCluster localNimbusHandler) {
-        StormSubmitter.localNimbus = localNimbusHandler;
-    }
-
     private static String generateZookeeperDigestSecretPayload() {
         return Utils.secureRandomLong() + ":" + Utils.secureRandomLong();
     }

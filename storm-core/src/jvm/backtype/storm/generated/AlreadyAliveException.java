@@ -221,11 +221,10 @@ public class AlreadyAliveException extends TException implements org.apache.thri
 
   @Override
   public boolean equals(Object that) {
-    if (that == null)
+    if (that == null) {
       return false;
-    if (that instanceof AlreadyAliveException)
-      return this.equals((AlreadyAliveException)that);
-    return false;
+    }
+    return (that instanceof AlreadyAliveException) ? this.equals((AlreadyAliveException)that) : false;
   }
 
   public boolean equals(AlreadyAliveException that) {

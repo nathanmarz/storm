@@ -43,7 +43,7 @@ public class MessageId {
     }
         
     public static MessageId makeRootId(long id, long val) {
-        Map<Long, Long> anchorsToIds = new HashMap<Long, Long>();
+        Map<Long, Long> anchorsToIds = new HashMap<>();
         anchorsToIds.put(id, val);
         return new MessageId(anchorsToIds);
     }
@@ -67,11 +67,7 @@ public class MessageId {
 
     @Override
     public boolean equals(Object other) {
-        if(other instanceof MessageId) {
-            return _anchorsToIds.equals(((MessageId) other)._anchorsToIds);
-        } else {
-            return false;
-        }
+        return other instanceof MessageId && _anchorsToIds.equals(((MessageId) other)._anchorsToIds);
     }
 
     @Override
@@ -89,7 +85,7 @@ public class MessageId {
 
     public static MessageId deserialize(Input in) throws IOException {
         int numAnchors = in.readInt(true);
-        Map<Long, Long> anchorsToIds = new HashMap<Long, Long>();
+        Map<Long, Long> anchorsToIds = new HashMap<>();
         for(int i=0; i<numAnchors; i++) {
             anchorsToIds.put(in.readLong(), in.readLong());
         }

@@ -38,7 +38,7 @@ public class ImpersonationAuthorizer implements IAuthorizer {
 
     @Override
     public void prepare(Map conf) {
-        userImpersonationACL = new HashMap<String, ImpersonationACL>();
+        userImpersonationACL = new HashMap<>();
 
         Map<String, Map<String, List<String>>> userToHostAndGroup = (Map<String, Map<String, List<String>>>) conf.get(Config.NIMBUS_IMPERSONATION_ACL);
 
@@ -67,7 +67,7 @@ public class ImpersonationAuthorizer implements IAuthorizer {
         String userBeingImpersonated = _ptol.toLocal(context.principal());
         InetAddress remoteAddress = context.remoteAddress();
 
-        LOG.info("user = {}, principal = {} is attmepting to impersonate user = {} for operation = {} from host = {}",
+        LOG.info("user = {}, principal = {} is attempting to impersonate user = {} for operation = {} from host = {}",
                 impersonatingUser, impersonatingPrincipal, userBeingImpersonated, operation, remoteAddress);
 
         /**
@@ -83,8 +83,8 @@ public class ImpersonationAuthorizer implements IAuthorizer {
         ImpersonationACL principalACL = userImpersonationACL.get(impersonatingPrincipal);
         ImpersonationACL userACL = userImpersonationACL.get(impersonatingUser);
 
-        Set<String> authorizedHosts = new HashSet<String>();
-        Set<String> authorizedGroups = new HashSet<String>();
+        Set<String> authorizedHosts = new HashSet<>();
+        Set<String> authorizedGroups = new HashSet<>();
 
         if (principalACL != null) {
             authorizedHosts.addAll(principalACL.authorizedHosts);
@@ -127,7 +127,7 @@ public class ImpersonationAuthorizer implements IAuthorizer {
             return true;
         }
 
-        Set<String> groups = null;
+        Set<String> groups;
         try {
             groups = _groupMappingProvider.getGroups(userBeingImpersonated);
         } catch (IOException e) {

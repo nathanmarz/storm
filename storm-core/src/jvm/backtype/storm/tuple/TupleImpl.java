@@ -237,7 +237,7 @@ public class TupleImpl extends IndifferentAccessMap implements Seqable, Indexed,
         return System.identityHashCode(this);
     }
 
-    private final Keyword makeKeyword(String name) {
+    private Keyword makeKeyword(String name) {
         return Keyword.intern(Symbol.create(name));
     }    
 
@@ -250,7 +250,7 @@ public class TupleImpl extends IndifferentAccessMap implements Seqable, Indexed,
             } else if(o instanceof String) {
                 return getValueByField((String) o);
             }
-        } catch(IllegalArgumentException e) {
+        } catch(IllegalArgumentException ignored) {
         }
         return null;
     }

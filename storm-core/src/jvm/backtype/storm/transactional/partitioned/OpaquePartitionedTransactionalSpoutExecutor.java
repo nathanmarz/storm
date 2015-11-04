@@ -63,8 +63,8 @@ public class OpaquePartitionedTransactionalSpoutExecutor implements ICommitterTr
     public class Emitter implements ICommitterTransactionalSpout.Emitter {
         IOpaquePartitionedTransactionalSpout.Emitter _emitter;
         TransactionalState _state;
-        TreeMap<BigInteger, Map<Integer, Object>> _cachedMetas = new TreeMap<BigInteger, Map<Integer, Object>>();
-        Map<Integer, RotatingTransactionalState> _partitionStates = new HashMap<Integer, RotatingTransactionalState>();
+        TreeMap<BigInteger, Map<Integer, Object>> _cachedMetas = new TreeMap<>();
+        Map<Integer, RotatingTransactionalState> _partitionStates = new HashMap<>();
         int _index;
         int _numTasks;
         
@@ -84,7 +84,7 @@ public class OpaquePartitionedTransactionalSpoutExecutor implements ICommitterTr
         
         @Override
         public void emitBatch(TransactionAttempt tx, Object coordinatorMeta, BatchOutputCollector collector) {
-            Map<Integer, Object> metas = new HashMap<Integer, Object>();
+            Map<Integer, Object> metas = new HashMap<>();
             _cachedMetas.put(tx.getTransactionId(), metas);
             int partitions = _emitter.numPartitions();
             Entry<BigInteger, Map<Integer, Object>> entry = _cachedMetas.lowerEntry(tx.getTransactionId());
@@ -92,7 +92,7 @@ public class OpaquePartitionedTransactionalSpoutExecutor implements ICommitterTr
             if(entry!=null) {
                 prevCached = entry.getValue();
             } else {
-                prevCached = new HashMap<Integer, Object>();
+                prevCached = new HashMap<>();
             }
             
             for(int i=_index; i < partitions; i+=_numTasks) {

@@ -100,8 +100,8 @@ public class GeneralTopologyContext implements JSONAware {
      */
     public List<Integer> getComponentTasks(String componentId) {
         List<Integer> ret = _componentToTasks.get(componentId);
-        if(ret==null) return new ArrayList<Integer>();
-        else return new ArrayList<Integer>(ret);
+        if(ret==null) return new ArrayList<>();
+        else return new ArrayList<>(ret);
     }
 
     /**
@@ -138,14 +138,14 @@ public class GeneralTopologyContext implements JSONAware {
      * @return Map from stream id to component id to the Grouping used.
      */
     public Map<String, Map<String, Grouping>> getTargets(String componentId) {
-        Map<String, Map<String, Grouping>> ret = new HashMap<String, Map<String, Grouping>>();
+        Map<String, Map<String, Grouping>> ret = new HashMap<>();
         for(String otherComponentId: getComponentIds()) {
             Map<GlobalStreamId, Grouping> inputs = getComponentCommon(otherComponentId).get_inputs();
             for(Map.Entry<GlobalStreamId, Grouping> entry: inputs.entrySet()) {
                 GlobalStreamId id = entry.getKey();
                 if(id.get_componentId().equals(componentId)) {
                     Map<String, Grouping> curr = ret.get(id.get_streamId());
-                    if(curr==null) curr = new HashMap<String, Grouping>();
+                    if(curr==null) curr = new HashMap<>();
                     curr.put(otherComponentId, entry.getValue());
                     ret.put(id.get_streamId(), curr);
                 }

@@ -59,7 +59,7 @@ public class ChainedAggregatorDeclarer implements ChainedFullAggregatorDeclarer,
         }
     }
     
-    List<AggSpec> _aggs = new ArrayList<AggSpec>();
+    List<AggSpec> _aggs = new ArrayList<>();
     IAggregatableStream _stream;
     AggType _type = null;
     GlobalAggregationScheme _globalScheme;
@@ -73,8 +73,8 @@ public class ChainedAggregatorDeclarer implements ChainedFullAggregatorDeclarer,
         Fields[] inputFields = new Fields[_aggs.size()];
         Aggregator[] aggs = new Aggregator[_aggs.size()];
         int[] outSizes = new int[_aggs.size()];
-        List<String> allOutFields = new ArrayList<String>();
-        Set<String> allInFields = new HashSet<String>();
+        List<String> allOutFields = new ArrayList<>();
+        Set<String> allInFields = new HashSet<>();
         for(int i=0; i<_aggs.size(); i++) {
             AggSpec spec = _aggs.get(i);
             Fields infields = spec.inFields;
@@ -92,7 +92,7 @@ public class ChainedAggregatorDeclarer implements ChainedFullAggregatorDeclarer,
             throw new IllegalArgumentException("Output fields for chained aggregators must be distinct: " + allOutFields.toString());
         }
         
-        Fields inFields = new Fields(new ArrayList<String>(allInFields));
+        Fields inFields = new Fields(new ArrayList<>(allInFields));
         Fields outFields = new Fields(allOutFields);
         Aggregator combined = new ChainedAggregatorImpl(aggs, inputFields, new ComboList.Factory(outSizes));
         

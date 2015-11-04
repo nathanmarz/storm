@@ -645,8 +645,8 @@ Request to start profiler on worker with timeout. Returns status and link to pro
 |Parameter |Value   |Description  |
 |----------|--------|-------------|
 |id   	   |String (required)| Topology Id  |
-|:host-port |String (required)| Worker Id |
-|:timeout |String (required)| Time out for profiler to stop in minutes |
+|host-port |String (required)| Worker Id |
+|timeout |String (required)| Time out for profiler to stop in minutes |
 
 Response fields:
 
@@ -683,7 +683,7 @@ Request to dump profiler recording on worker. Returns status and worker id for t
 |Parameter |Value   |Description  |
 |----------|--------|-------------|
 |id   	   |String (required)| Topology Id  |
-|:host-port |String (required)| Worker Id |
+|host-port |String (required)| Worker Id |
 
 Response fields:
 
@@ -714,7 +714,7 @@ Request to stop profiler on worker. Returns status and worker id for the request
 |Parameter |Value   |Description  |
 |----------|--------|-------------|
 |id   	   |String (required)| Topology Id  |
-|:host-port |String (required)| Worker Id |
+|host-port |String (required)| Worker Id |
 
 Response fields:
 
@@ -745,7 +745,7 @@ Request to dump jstack on worker. Returns status and worker id for the request.
 |Parameter |Value   |Description  |
 |----------|--------|-------------|
 |id   	   |String (required)| Topology Id  |
-|:host-port |String (required)| Worker Id |
+|host-port |String (required)| Worker Id |
 
 Response fields:
 
@@ -776,7 +776,7 @@ Request to dump heap (jmap) on worker. Returns status and worker id for the requ
 |Parameter |Value   |Description  |
 |----------|--------|-------------|
 |id   	   |String (required)| Topology Id  |
-|:host-port |String (required)| Worker Id |
+|host-port |String (required)| Worker Id |
 
 Response fields:
 
@@ -807,7 +807,7 @@ Request to request the worker. Returns status and worker id for the request.
 |Parameter |Value   |Description  |
 |----------|--------|-------------|
 |id   	   |String (required)| Topology Id  |
-|:host-port |String (required)| Worker Id |
+|host-port |String (required)| Worker Id |
 
 Response fields:
 

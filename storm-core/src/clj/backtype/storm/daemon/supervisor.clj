@@ -684,7 +684,7 @@
                                      (do
                                        (doseq [id ids]
                                          (shutdown-worker supervisor id))
-                                       (throw (RuntimeException. "Supervisor failed health check. Exiting."))))))))
+                                       (throw (RuntimeException. "Supervisor failed health check. Exiting.")))))))
       ;; Launch a thread that Runs profiler commands . Starts with 30 seconds delay, every 30 seconds
       (schedule-recurring (:event-timer supervisor)
                           30

@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1170: Fix the producer alive issue in DisruptorQueueTest
  * STORM-1168: removes noisy log message & a TODO
  * STORM-1143: Validate topology Configs during topology submission
  * STORM-1157: Adding dynamic profiling for worker, restarting worker, jstack, heap dump, and profiling

@@ -356,8 +356,7 @@
       (topology-history-info (.getTopologyHistory ^Nimbus$Client nimbus user) user)))
   ([history user]
     {"topo-history"
-     (for [^String s (.get_topo_ids history)]
-       {"host" s})}))
+     (into [] (.get_topo_ids history))}))
 
 (defn cluster-summary
   ([user]

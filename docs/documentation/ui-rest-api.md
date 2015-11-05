@@ -174,7 +174,7 @@ Sample response:
 
 ### /api/v1/history/summary (GET)
 
-Returns a list of topology ID submitted by the current user.
+Returns a list of all running topologies' IDs submitted by the current user.
 
 Response fields:
 
@@ -187,8 +187,8 @@ Sample response:
 ```json
 {
     "topo-history":[
-        {"host":"wc6-1-1446571009"},
-        {"host":"wc8-2-1446587178"}
+        "wc6-1-1446571009",
+        "wc8-2-1446587178"
      ]
 }
 ```

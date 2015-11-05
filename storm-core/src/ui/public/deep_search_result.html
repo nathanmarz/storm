@@ -65,10 +65,10 @@ $(document).ready(function() {
             var findIds = function findIds(query, cb) {
                 var found = [];
                 var re = new RegExp(query, 'i');
-                for (var i in response["topo-history"]) {
-                    var host = response["topo-history"][i].host;
-                    if (re.test(host)) {
-                        found.push({ value: host });
+                for (var j in response["topo-history"]) {
+                    var id = response["topo-history"][j];
+                    if (re.test(id)) {
+                        found.push({ value: id });
                     }
                }
                cb(found);

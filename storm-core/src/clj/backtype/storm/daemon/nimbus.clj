@@ -1265,6 +1265,14 @@
                         (fn []
                           (clean-inbox (inbox nimbus) (conf NIMBUS-INBOX-JAR-EXPIRATION-SECS))
                           ))
+    ;; Schedule topology history cleaner
+    (when-let [interval (conf LOGVIEWER-CLEANUP-INTERVAL-SECS)]
+      (schedule-recurring (:timer nimbus)
+        0
+        (conf LOGVIEWER-CLEANUP-INTERVAL-SECS)
+        (fn []
+          (clean-topology-history (conf LOGVIEWER-CLEANUP-AGE-MINS) nimbus)
+          )))
     ;;schedule nimbus code sync thread to sync code from other nimbuses.
     (schedule-recurring (:timer nimbus)
       0

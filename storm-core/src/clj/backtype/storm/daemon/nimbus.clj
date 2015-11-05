@@ -64,6 +64,8 @@
 (defmeter nimbus:num-activate-calls)
 (defmeter nimbus:num-deactivate-calls)
 (defmeter nimbus:num-debug-calls)
+(defmeter nimbus:num-setWorkerProfiler-calls)
+(defmeter nimbus:num-getComponentPendingProfileActions-calls)
 (defmeter nimbus:num-setLogConfig-calls)
 (defmeter nimbus:num-uploadNewCredentials-calls)
 (defmeter nimbus:num-beginFileUpload-calls)
@@ -1381,6 +1383,7 @@
 
       (^void setWorkerProfiler
         [this ^String id ^ProfileRequest profileRequest]
+        (mark! nimbus:num-setWorkerProfiler-calls)
         (let [topology-conf (try-read-storm-conf conf id)
               storm-name (topology-conf TOPOLOGY-NAME)
               _ (check-authorization! nimbus storm-name topology-conf "setWorkerProfiler")
@@ -1389,6 +1392,7 @@
 
       (^List getComponentPendingProfileActions
         [this ^String id ^String component_id ^ProfileAction action]
+        (mark! nimbus:num-getComponentPendingProfileActions-calls)
         (let [info (get-common-topo-info id "getComponentPendingProfileActions")
               storm-cluster-state (:storm-cluster-state info)
               task->component (:task->component info)

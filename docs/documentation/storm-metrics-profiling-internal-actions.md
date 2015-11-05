@@ -44,7 +44,7 @@ Metrics can be reported via JMX or HTTP.  A user can use JConsole or VisualVM to
 
 To view the metrics in a GUI use VisualVM or JConsole.  Screenshot of using VisualVm for metrics: 
 
-![alt text](https://dropwizard.github.io/metrics/3.1.0/_images/metrics-visualvm.png)
+![Viewing metrics with VisualVM](images/viewing_metrics_with_VisualVM.png)
 
 For detailed information regarding how to collect the metrics please reference: 
 
@@ -61,10 +61,10 @@ If you want use JMX and view metrics through JConsole or VisualVM, remember laun
     drpc.childopts: "-Xmx768m -Dcom.sun.management.jmxremote.port=3336 -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false"
    
     supervisor.childopts: "-Xmx256m -Dcom.sun.management.jmxremote.port=3337 -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false"
-    
+
+### Please Note:
+Since we shade all of the packages we use, additional plugins for collecting metrics might not work at this time.  Currently collecting the metrics via JMX is supported.
+   
 For more information about io.dropwizard.metrics and metrics-clojure packages please reference their original documentation:
 - https://dropwizard.github.io/metrics/3.1.0/
 - http://metrics-clojure.readthedocs.org/en/latest/
-
-
-

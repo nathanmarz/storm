@@ -28,8 +28,10 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 public class TestExprCompiler {
   @Test
@@ -62,7 +64,7 @@ public class TestExprCompiler {
       project.getChildExps().get(0).accept(compiler);
     }
 
-    assertEquals("int t0 = (int)(_data.get(0));\n", sw.toString());
+    assertThat(sw.toString(), containsString("(int)(_data.get(0));"));
   }
 
   @Test
@@ -83,7 +85,9 @@ public class TestExprCompiler {
         res[i] = project.getChildExps().get(i).accept(compiler);
       }
     }
-    assertArrayEquals(new String[]{"1 > 2", "3 + 5", "1 - 1.0E0", "3 + t0"},
-                      res);
+    assertThat(sw.get(0).toString(), containsString("1 > 2"));
+    assertThat(sw.get(1).toString(), containsString("3 + 5"));
+    assertThat(sw.get(2).toString(), containsString("1 - 1.0E0"));
+    assertThat(sw.get(3).toString(), containsString("3 +"));
   }
 }

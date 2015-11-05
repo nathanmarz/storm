@@ -23,11 +23,14 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+
+import static org.hamcrest.CoreMatchers.*;
 
 public class TestRelNodeCompiler {
   @Test
@@ -45,7 +48,7 @@ public class TestRelNodeCompiler {
       RelNodeCompiler compiler = new RelNodeCompiler(pw, typeFactory);
       compiler.visitFilter(filter);
       pw.flush();
-      Assert.assertTrue(sw.toString().contains("t0 > 3"));
+      Assert.assertThat(sw.toString(), containsString("> 3"));
     }
 
     try (StringWriter sw = new StringWriter();
@@ -54,7 +57,7 @@ public class TestRelNodeCompiler {
       RelNodeCompiler compiler = new RelNodeCompiler(pw, typeFactory);
       compiler.visitProject(project);
       pw.flush();
-      Assert.assertTrue(sw.toString().contains("t0 + 1"));
+      Assert.assertThat(sw.toString(), containsString("+ 1"));
     }
   }
 }

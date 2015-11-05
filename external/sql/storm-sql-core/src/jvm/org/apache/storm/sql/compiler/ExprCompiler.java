@@ -17,10 +17,7 @@
  */
 package org.apache.storm.sql.compiler;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
-import org.apache.calcite.adapter.enumerable.CallImplementor;
-import org.apache.calcite.adapter.enumerable.RexImpTable;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
@@ -42,7 +39,6 @@ import java.io.PrintWriter;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.AbstractMap;
-import java.util.IdentityHashMap;
 import java.util.Map;
 
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.AND;
@@ -80,7 +76,7 @@ class ExprCompiler implements RexVisitor<String> {
 
   @Override
   public String visitInputRef(RexInputRef rexInputRef) {
-    String name = reserveName(rexInputRef);
+    String name = reserveName();
     String typeName = javaTypeName(rexInputRef);
     pw.print(String.format("%s %s = (%s)(_data.get(%d));\n", typeName, name,
                            typeName, rexInputRef.getIndex()));
@@ -164,9 +160,8 @@ class ExprCompiler implements RexVisitor<String> {
     return ((Class<?>)ty).getCanonicalName();
   }
 
-  private String reserveName(RexNode node) {
-    String name = "t" + ++nameCount;
-    return name;
+  private String reserveName() {
+    return "t" + ++nameCount;
   }
 
   private interface CallExprPrinter {
@@ -223,11 +218,38 @@ class ExprCompiler implements RexVisitor<String> {
             ExprCompiler compiler, RexCall call) {
           int size = call.getOperands().size();
           assert size == 2;
-          String[] ops = new String[size];
-          for (int i = 0; i < size; ++i) {
-            ops[i] = call.getOperands().get(i).accept(compiler);
+          String val = compiler.reserveName();
+          RexNode op0 = call.getOperands().get(0);
+          RexNode op1 = call.getOperands().get(1);
+          boolean lhsNullable = op0.getType().isNullable();
+          boolean rhsNullable = op1.getType().isNullable();
+
+          PrintWriter pw = compiler.pw;
+          String lhs = op0.accept(compiler);
+          pw.print(String.format("final %s %s;\n", compiler.javaTypeName(call), val));
+          if (!lhsNullable) {
+            String rhs = op1.accept(compiler);
+            String calc = foldNullExpr(String.format("%s %s %s", lhs, javaOperator, rhs), "null", rhs);
+            if (!rhsNullable) {
+              pw.print(String.format("%s = %s;\n", val, calc));
+            } else {
+              pw.print(
+                  String.format("%s = %s == null ? null : (%s);\n",
+                      val, rhs, calc));
+            }
+          } else {
+            pw.print(String.format("if (%2$s == null) { %1$s = null; }\n",
+                val, lhs));
+            pw.print("else {\n");
+            String rhs = op1.accept(compiler);
+            String calc = foldNullExpr(String.format("%s %s %s", lhs, javaOperator, rhs), "null", lhs);
+            if (!rhsNullable) {
+              pw.print(String.format("%s = %s;\n}\n", val, calc));
+            } else {
+              pw.print(String.format("%1$s = %2$s == null ? null : (%3$s);\n}\n", val, rhs, calc));
+            }
           }
-          return String.format("%s %s %s", ops[0], javaOperator, ops[1]);
+          return val;
         }
       };
       return new AbstractMap.SimpleImmutableEntry<>(op, trans);
@@ -250,7 +272,7 @@ class ExprCompiler implements RexVisitor<String> {
         public String translate(
             ExprCompiler compiler, RexCall call) {
           assert call.getOperands().size() == 1;
-          String val = compiler.reserveName(call);
+          String val = compiler.reserveName();
           RexNode operand = call.getOperands().get(0);
           boolean nullable = operand.getType().isNullable();
           String op = operand.accept(compiler);
@@ -289,7 +311,7 @@ class ExprCompiler implements RexVisitor<String> {
       @Override
       public String translate(
           ExprCompiler compiler, RexCall call) {
-        String val = compiler.reserveName(call);
+        String val = compiler.reserveName();
         PrintWriter pw = compiler.pw;
         pw.print(String.format("final %s %s;\n", compiler.javaTypeName(call),
                                val));
@@ -331,7 +353,7 @@ class ExprCompiler implements RexVisitor<String> {
       @Override
       public String translate(
           ExprCompiler compiler, RexCall call) {
-        String val = compiler.reserveName(call);
+        String val = compiler.reserveName();
         PrintWriter pw = compiler.pw;
         pw.print(String.format("final %s %s;\n", compiler.javaTypeName(call),
                                val));
@@ -369,7 +391,7 @@ class ExprCompiler implements RexVisitor<String> {
       @Override
       public String translate(
           ExprCompiler compiler, RexCall call) {
-        String val = compiler.reserveName(call);
+        String val = compiler.reserveName();
         PrintWriter pw = compiler.pw;
         RexNode op = call.getOperands().get(0);
         String lhs = op.accept(compiler);

@@ -58,6 +58,15 @@ public class TestExprSemantic {
   }
 
   @Test
+  public void testArithmeticWithNull() throws Exception {
+    Values v = testExpr(
+      Lists.newArrayList(
+          "1 + CAST(NULL AS INT)", "CAST(NULL AS INT) + 1", "CAST(NULL AS INT) + CAST(NULL AS INT)", "1 + 2"
+      ));
+    assertEquals(new Values(null, null, null, 3), v);
+  }
+
+  @Test
   public void testNotWithNull() throws Exception {
     Values v = testExpr(
         Lists.newArrayList(

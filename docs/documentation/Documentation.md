@@ -45,6 +45,7 @@ Trident is an alternative interface to Storm. It provides exactly-once processin
 * [Metrics](Metrics.html)
 * [Lifecycle of a trident tuple]()
 * [UI REST API](ui-rest-api.html)
+* [Log Search](Log-Search.html)
 * [Dynamic Log Level Settings](dynamic-log-level-settings.html)
 * [Dynamic Worker Profiling](dynamic-worker-profiling.html)
 

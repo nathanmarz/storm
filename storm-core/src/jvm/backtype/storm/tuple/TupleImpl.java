@@ -40,7 +40,7 @@ public class TupleImpl extends IndifferentAccessMap implements Seqable, Indexed,
     private String streamId;
     private GeneralTopologyContext context;
     private MessageId id;
-    private IPersistentMap _meta = null;
+    private IPersistentMap _meta;
     
     public TupleImpl(GeneralTopologyContext context, List<Object> values, int taskId, String streamId, MessageId id) {
         this.values = values;
@@ -63,8 +63,8 @@ public class TupleImpl extends IndifferentAccessMap implements Seqable, Indexed,
         this(context, values, taskId, streamId, MessageId.makeUnanchored());
     }    
     
-    Long _processSampleStartTime = null;
-    Long _executeSampleStartTime = null;
+    Long _processSampleStartTime;
+    Long _executeSampleStartTime;
     
     public void setProcessSampleStartTime(long ms) {
         _processSampleStartTime = ms;

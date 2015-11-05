@@ -37,7 +37,7 @@ import storm.trident.topology.MasterBatchCoordinator;
 import storm.trident.tuple.ConsList;
 
 public class TridentSpoutExecutor implements ITridentBatchBolt {
-    public static String ID_FIELD = "$tx";
+    public static final String ID_FIELD = "$tx";
     
     public static Logger LOG = LoggerFactory.getLogger(TridentSpoutExecutor.class);    
 

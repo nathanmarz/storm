@@ -467,6 +467,21 @@ enum NumErrorsChoice {
   ONE
 }
 
+enum ProfileAction {
+  JPROFILE_STOP,
+  JPROFILE_START,
+  JPROFILE_DUMP,
+  JMAP_DUMP,
+  JSTACK_DUMP,
+  JVM_RESTART
+}
+
+struct ProfileRequest {
+  1: required NodeInfo nodeInfo,
+  2: required ProfileAction action,
+  3: optional i64 time_stamp; 
+}
+
 struct GetInfoOptions {
   1: optional NumErrorsChoice num_err_choice;
 }
@@ -523,6 +538,11 @@ service Nimbus {
   * The 'samplingPercentage' will limit loggging to a percentage of generated tuples.
   **/
   void debug(1: string name, 2: string component, 3: bool enable, 4: double samplingPercentage) throws (1: NotAliveException e, 2: AuthorizationException aze);
+
+  // dynamic profile actions
+  void setWorkerProfiler(1: string id, 2: ProfileRequest  profileRequest);
+  list<ProfileRequest> getComponentPendingProfileActions(1: string id, 2: string component_id, 3: ProfileAction action);
+
   void uploadNewCredentials(1: string name, 2: Credentials creds) throws (1: NotAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
 
   // need to add functions for asking about status of storms, what nodes they're running on, looking at task logs

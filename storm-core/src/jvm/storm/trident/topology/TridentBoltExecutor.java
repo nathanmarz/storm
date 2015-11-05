@@ -47,7 +47,7 @@ import org.apache.commons.lang.builder.ToStringBuilder;
 import storm.trident.spout.IBatchID;
 
 public class TridentBoltExecutor implements IRichBolt {
-    public static String COORD_STREAM_PREFIX = "$coord-";
+    public static final String COORD_STREAM_PREFIX = "$coord-";
     
     public static String COORD_STREAM(String batch) {
         return COORD_STREAM_PREFIX + batch;
@@ -81,7 +81,7 @@ public class TridentBoltExecutor implements IRichBolt {
     
     public static class CoordSpec implements Serializable {
         public GlobalStreamId commitStream = null;
-        public Map<String, CoordType> coords = new HashMap<String, CoordType>();
+        public Map<String, CoordType> coords = new HashMap<>();
         
         public CoordSpec() {
         }
@@ -317,7 +317,7 @@ public class TridentBoltExecutor implements IRichBolt {
         }
         IBatchID id = (IBatchID) tuple.getValue(0);
         //get transaction id
-        //if it already exissts and attempt id is greater than the attempt there
+        //if it already exists and attempt id is greater than the attempt there
         
         
         TrackedBatch tracked = (TrackedBatch) _batches.get(id.getId());

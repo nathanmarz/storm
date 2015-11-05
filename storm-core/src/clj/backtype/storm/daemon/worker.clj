@@ -538,7 +538,9 @@
   ;; because in local mode, its not a separate
   ;; process. supervisor will register it in this case
   (when (= :distributed (cluster-mode conf))
-    (touch (worker-pid-path conf worker-id (process-pid))))
+    (let [pid (process-pid)]
+      (touch (worker-pid-path conf worker-id pid))
+      (spit (worker-artifacts-pid-path conf storm-id port) pid)))
 
   (declare establish-log-setting-callback)
 

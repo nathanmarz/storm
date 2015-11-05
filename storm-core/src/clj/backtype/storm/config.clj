@@ -236,6 +236,10 @@
   ([conf id port]
    (str (worker-artifacts-root conf id) file-path-separator port)))
 
+(defn worker-artifacts-pid-path
+  [conf id port]
+  (str (worker-artifacts-root conf id port) file-path-separator "worker.pid"))
+
 (defn get-log-metadata-file
   ([fname]
     (let [[id port & _] (str/split fname (re-pattern file-path-separator))]

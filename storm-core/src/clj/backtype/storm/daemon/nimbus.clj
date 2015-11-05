@@ -124,6 +124,8 @@
      :id->sched-status (atom {})
      :cred-renewers (AuthUtils/GetCredentialRenewers conf)
      :nimbus-autocred-plugins (AuthUtils/getNimbusAutoCredPlugins conf)
+     :nimbus-topology-action-notifier (when-not (clojure.string/blank? (conf NIMBUS-TOPOLOGY-ACTION-NOTIFIER-PLUGIN))
+                                        (new-instance (conf NIMBUS-TOPOLOGY-ACTION-NOTIFIER-PLUGIN)))
      }))
 
 (defn inbox [nimbus]
@@ -814,6 +816,11 @@
           (.assignSlots inimbus topologies)))
     (log-message "not a leader, skipping assignments")))
 
+(defn notify-topology-action-listener [nimbus storm-id action]
+  (let [topology-action-notifier (:nimbus-topology-action-notifier nimbus)]
+    (when (not-nil? topology-action-notifier)
+      (.notify topology-action-notifier storm-id action))))
+
 (defn- start-storm [nimbus storm-name storm-id topology-initial-status]
   {:pre [(#{:active :inactive} topology-initial-status)]}
   (let [storm-cluster-state (:storm-cluster-state nimbus)
@@ -832,7 +839,8 @@
                                   (storm-conf TOPOLOGY-SUBMITTER-USER)
                                   nil
                                   nil
-                                  {}))))
+                                  {}))
+    (notify-topology-action-listener nimbus storm-id "activate")))
 
 ;; Master:
 ;; job submit:
@@ -1260,6 +1268,7 @@
               (wait-for-desired-code-replication nimbus total-storm-conf storm-id)
               (.setup-heartbeats! storm-cluster-state storm-id)
               (.setup-backpressure! storm-cluster-state storm-id)
+              (notify-topology-action-listener nimbus storm-id "submitTopology")
               (let [thrift-status->kw-status {TopologyInitialStatus/INACTIVE :inactive
                                               TopologyInitialStatus/ACTIVE :active}]
                 (start-storm nimbus storm-name storm-id (thrift-status->kw-status (.get_initial_status submitOptions))))))
@@ -1277,42 +1286,48 @@
 
       (^void killTopologyWithOpts [this ^String storm-name ^KillOptions options]
         (check-storm-active! nimbus storm-name true)
-        (let [topology-conf (try-read-storm-conf-from-name conf storm-name nimbus)]
-          (check-authorization! nimbus storm-name topology-conf "killTopology"))
-        (let [wait-amt (if (.is_set_wait_secs options)
-                         (.get_wait_secs options)                         
-                         )]
-          (transition-name! nimbus storm-name [:kill wait-amt] true)
-          ))
+        (let [topology-conf (try-read-storm-conf-from-name conf storm-name nimbus)
+              operation "killTopology"]
+          (check-authorization! nimbus storm-name topology-conf operation)
+          (let [wait-amt (if (.is_set_wait_secs options)
+                           (.get_wait_secs options)
+                           )]
+            (transition-name! nimbus storm-name [:kill wait-amt] true)
+            (notify-topology-action-listener nimbus storm-name operation))))
 
       (^void rebalance [this ^String storm-name ^RebalanceOptions options]
         (check-storm-active! nimbus storm-name true)
-        (let [topology-conf (try-read-storm-conf-from-name conf storm-name nimbus)]
-          (check-authorization! nimbus storm-name topology-conf "rebalance"))
-        (let [wait-amt (if (.is_set_wait_secs options)
-                         (.get_wait_secs options))
-              num-workers (if (.is_set_num_workers options)
-                            (.get_num_workers options))
-              executor-overrides (if (.is_set_num_executors options)
-                                   (.get_num_executors options)
-                                   {})]
-          (doseq [[c num-executors] executor-overrides]
-            (when (<= num-executors 0)
-              (throw (InvalidTopologyException. "Number of executors must be greater than 0"))
-              ))
-          (transition-name! nimbus storm-name [:rebalance wait-amt num-workers executor-overrides] true)
-          ))
+        (let [topology-conf (try-read-storm-conf-from-name conf storm-name nimbus)
+              operation "rebalance"]
+          (check-authorization! nimbus storm-name topology-conf operation)
+          (let [wait-amt (if (.is_set_wait_secs options)
+                           (.get_wait_secs options))
+                num-workers (if (.is_set_num_workers options)
+                              (.get_num_workers options))
+                executor-overrides (if (.is_set_num_executors options)
+                                     (.get_num_executors options)
+                                     {})]
+            (doseq [[c num-executors] executor-overrides]
+              (when (<= num-executors 0)
+                (throw (InvalidTopologyException. "Number of executors must be greater than 0"))
+                ))
+            (transition-name! nimbus storm-name [:rebalance wait-amt num-workers executor-overrides] true)
+
+            (notify-topology-action-listener nimbus storm-name operation))))
 
       (activate [this storm-name]
-        (let [topology-conf (try-read-storm-conf-from-name conf storm-name nimbus)]
-          (check-authorization! nimbus storm-name topology-conf "activate"))
-        (transition-name! nimbus storm-name :activate true)
-        )
+        (let [topology-conf (try-read-storm-conf-from-name conf storm-name nimbus)
+              operation "activate"]
+          (check-authorization! nimbus storm-name topology-conf operation)
+          (transition-name! nimbus storm-name :activate true)
+          (notify-topology-action-listener nimbus storm-name operation)))
 
       (deactivate [this storm-name]
-        (let [topology-conf (try-read-storm-conf-from-name conf storm-name nimbus)]
-          (check-authorization! nimbus storm-name topology-conf "deactivate"))
-        (transition-name! nimbus storm-name :inactivate true))
+        (let [topology-conf (try-read-storm-conf-from-name conf storm-name nimbus)
+              operation "deactivate"]
+          (check-authorization! nimbus storm-name topology-conf operation)
+          (transition-name! nimbus storm-name :inactivate true)
+          (notify-topology-action-listener nimbus storm-name operation)))
 
       (debug [this storm-name component-id enable? samplingPct]
         (let [storm-cluster-state (:storm-cluster-state nimbus)

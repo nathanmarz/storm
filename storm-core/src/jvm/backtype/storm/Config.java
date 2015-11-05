@@ -537,6 +537,12 @@ public class Config extends HashMap<String, Object> {
     public static final String NIMBUS_AUTO_CRED_PLUGINS = "nimbus.autocredential.plugins.classes";
 
     /**
+     * FQCN of a class that implements {@code ITopologyActionNotifierPlugin} @see backtype.storm.nimbus.ITopologyActionNotifierPlugin for details.
+     */
+    @isString
+    public static final String NIMBUS_TOPOLOGY_ACTION_NOTIFIER_PLUGIN = "nimbus.topology.action.notifier.plugin.class";
+
+    /**
      * Storm UI binds to this host/interface.
      */
     @isString

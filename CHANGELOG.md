@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1165: normalize the scales of CPU/Mem/Net when choosing the best node for Resource Aware Scheduler
  * STORM-1163: use rmr rather than rmpath for remove worker-root
  * STORM-1170: Fix the producer alive issue in DisruptorQueueTest
  * STORM-1168: removes noisy log message & a TODO

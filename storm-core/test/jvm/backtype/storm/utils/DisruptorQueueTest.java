@@ -126,7 +126,7 @@ public class DisruptorQueueTest extends TestCase {
 
         @Override
         public void run() {
-            for (long i = 0; i < _max; i++) {
+            for (long i = 0; i < _max && !(Thread.currentThread().isInterrupted()); i++) {
                 queue.publish(i);
             }
         }

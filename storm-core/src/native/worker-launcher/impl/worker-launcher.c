@@ -491,8 +491,6 @@ int setup_stormdist_dir(const char* local_dir) {
       case FTS_F:         // A regular file
       case FTS_SL:        // A symbolic link
       case FTS_SLNONE:    // A broken symbolic link
-        //TODO it would be good to validate that the file is owned by the correct user first.
-        fprintf(LOGFILE, "visiting: %s\n", entry->fts_path);
         if (setup_stormdist(entry, euser) != 0) {
           exit_code = -1;
         }

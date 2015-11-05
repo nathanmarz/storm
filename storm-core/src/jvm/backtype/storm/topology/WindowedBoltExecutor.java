@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * <p/>
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p/>
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -51,17 +51,25 @@ public class WindowedBoltExecutor implements IRichBolt {
     }
 
     private int getTopologyTimeoutMillis(Map stormConf) {
-        if (stormConf.containsKey(Config.TOPOLOGY_ENABLE_MESSAGE_TIMEOUTS)) {
+        if (stormConf.get(Config.TOPOLOGY_ENABLE_MESSAGE_TIMEOUTS) != null) {
             boolean timeOutsEnabled = (boolean) stormConf.get(Config.TOPOLOGY_ENABLE_MESSAGE_TIMEOUTS);
             if (!timeOutsEnabled) {
                 return Integer.MAX_VALUE;
             }
         }
         int timeout = 0;
-        if (stormConf.containsKey(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS)) {
+        if (stormConf.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS) != null) {
             timeout = ((Number) stormConf.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS)).intValue();
         }
         return timeout * 1000;
+    }
+
+    private int getMaxSpoutPending(Map stormConf) {
+        int maxPending = Integer.MAX_VALUE;
+        if (stormConf.get(Config.TOPOLOGY_MAX_SPOUT_PENDING) != null) {
+            maxPending = ((Number) stormConf.get(Config.TOPOLOGY_MAX_SPOUT_PENDING)).intValue();
+        }
+        return maxPending;
     }
 
     private void ensureDurationLessThanTimeout(int duration, int timeout) {
@@ -72,15 +80,33 @@ public class WindowedBoltExecutor implements IRichBolt {
         }
     }
 
-    // TODO: add more validation
+    private void ensureCountLessThanMaxPending(int count, int maxPending) {
+        if (count > maxPending) {
+            throw new IllegalArgumentException("Window count (length + sliding interval) value " + count +
+                                                       " is more than " + Config.TOPOLOGY_MAX_SPOUT_PENDING +
+                                                       " value " + maxPending);
+        }
+    }
+
     private void validate(Map stormConf, Count windowLengthCount, Duration windowLengthDuration,
                           Count slidingIntervalCount, Duration slidingIntervalDuration) {
 
         int topologyTimeout = getTopologyTimeoutMillis(stormConf);
+        int maxSpoutPending = getMaxSpoutPending(stormConf);
         if (windowLengthDuration != null && slidingIntervalDuration != null) {
             ensureDurationLessThanTimeout(windowLengthDuration.value + slidingIntervalDuration.value, topologyTimeout);
         } else if (windowLengthDuration != null) {
             ensureDurationLessThanTimeout(windowLengthDuration.value, topologyTimeout);
+        } else if (slidingIntervalDuration != null) {
+            ensureDurationLessThanTimeout(slidingIntervalDuration.value, topologyTimeout);
+        }
+
+        if (windowLengthCount != null && slidingIntervalCount != null) {
+            ensureCountLessThanMaxPending(windowLengthCount.value + slidingIntervalCount.value, maxSpoutPending);
+        } else if (windowLengthCount != null) {
+            ensureCountLessThanMaxPending(windowLengthCount.value, maxSpoutPending);
+        } else if (slidingIntervalCount != null) {
+            ensureCountLessThanMaxPending(slidingIntervalCount.value, maxSpoutPending);
         }
     }
 
@@ -128,7 +154,7 @@ public class WindowedBoltExecutor implements IRichBolt {
         bolt.prepare(stormConf, context, windowedOutputCollector);
         this.listener = newWindowLifecycleListener();
         this.windowManager = initWindowManager(listener, stormConf);
-        LOG.info("Initialized window manager {} ", this.windowManager);
+        LOG.debug("Initialized window manager {} ", this.windowManager);
     }
 
     @Override
@@ -165,8 +191,6 @@ public class WindowedBoltExecutor implements IRichBolt {
             public void onActivation(List<Tuple> tuples, List<Tuple> newTuples, List<Tuple> expiredTuples) {
                 windowedOutputCollector.setContext(tuples);
                 bolt.execute(new TupleWindowImpl(tuples, newTuples, expiredTuples));
-                newTuples.clear();
-                expiredTuples.clear();
             }
         };
     }

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * <p/>
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p/>
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -207,6 +207,32 @@ public class WindowManagerTest {
         Thread.sleep(70);
         assertTrue(listener.onActivationExpiredEvents.isEmpty());
         assertTrue(listener.onActivationEvents.isEmpty());
+
+    }
+
+    @Test
+    public void testTumblingWindow() throws Exception {
+        windowManager.setWindowLength(new Count(3));
+        windowManager.setSlidingInterval(new Count(3));
+        windowManager.add(1);
+        windowManager.add(2);
+        // nothing expired yet
+        assertTrue(listener.onExpiryEvents.isEmpty());
+        windowManager.add(3);
+        assertTrue(listener.onExpiryEvents.isEmpty());
+        assertEquals(seq(1, 3), listener.onActivationEvents);
+        assertTrue(listener.onActivationExpiredEvents.isEmpty());
+        assertEquals(seq(1, 3), listener.onActivationNewEvents);
+
+        listener.clear();
+        windowManager.add(4);
+        windowManager.add(5);
+        windowManager.add(6);
+
+        assertEquals(seq(1, 3), listener.onExpiryEvents);
+        assertEquals(seq(4, 6), listener.onActivationEvents);
+        assertEquals(seq(1, 3), listener.onActivationExpiredEvents);
+        assertEquals(seq(4, 6), listener.onActivationNewEvents);
 
     }
 

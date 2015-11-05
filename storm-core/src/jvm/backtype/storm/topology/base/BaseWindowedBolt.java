@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * <p/>
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p/>
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -30,10 +30,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-public class BaseWindowedBolt implements IWindowedBolt {
+public abstract class BaseWindowedBolt implements IWindowedBolt {
     private static final Logger LOG = LoggerFactory.getLogger(BaseWindowedBolt.class);
 
-    private transient Map<String, Object> windowConfiguration;
+    private final transient Map<String, Object> windowConfiguration;
 
     /**
      * Holds a count value for count based windows and sliding intervals.
@@ -160,21 +160,17 @@ public class BaseWindowedBolt implements IWindowedBolt {
 
     @Override
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
-    }
-
-    @Override
-    public void execute(TupleWindow inputWindow) {
-
+        // NOOP
     }
 
     @Override
     public void cleanup() {
-
+        // NOOP
     }
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-
+        // NOOP
     }
 
     @Override

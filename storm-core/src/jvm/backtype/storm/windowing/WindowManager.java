@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * <p/>
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p/>
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -110,7 +111,7 @@ public class WindowManager<T> implements TriggerHandler {
      */
     @Override
     public void onTrigger() {
-        List<Event<T>> windowEvents = new ArrayList<>();
+        List<Event<T>> windowEvents = null;
         List<T> expired = null;
         try {
             lock.lock();
@@ -118,7 +119,7 @@ public class WindowManager<T> implements TriggerHandler {
              * scan the entire window to handle out of order events in
              * the case of time based windows.
              */
-            expireEvents(true, windowEvents);
+            windowEvents = expireEvents(true);
             expired = new ArrayList<>(expiredEvents);
             expiredEvents.clear();
         } finally {
@@ -153,7 +154,7 @@ public class WindowManager<T> implements TriggerHandler {
      */
     private void compactWindow() {
         if (eventsSinceLastExpiry.incrementAndGet() >= EXPIRE_EVENTS_THRESHOLD) {
-            expireEvents(false, null);
+            expireEvents(false);
         }
     }
 
@@ -170,13 +171,14 @@ public class WindowManager<T> implements TriggerHandler {
      * Expire events from the window, using the expiration policy to check
      * if the event should be evicted or not.
      *
-     * @param fullScan  if set, will scan the entire window. if not set, will stop
-     *                  as soon as an event not satisfying the expiration policy is found.
-     * @param remaining the list of remaining events in the window after expiry.
+     * @param fullScan if set, will scan the entire window; if not set, will stop
+     *                 as soon as an event not satisfying the expiration policy is found
+     * @return the list of remaining events in the window after expiry
      */
-    private void expireEvents(boolean fullScan, List<Event<T>> remaining) {
+    private List<Event<T>> expireEvents(boolean fullScan) {
         LOG.debug("Expire events, eviction policy {}", evictionPolicy);
         List<T> eventsToExpire = new ArrayList<>();
+        List<Event<T>> remaining = new ArrayList<>();
         try {
             lock.lock();
             Iterator<Event<T>> it = window.iterator();
@@ -187,7 +189,7 @@ public class WindowManager<T> implements TriggerHandler {
                     it.remove();
                 } else if (!fullScan) {
                     break;
-                } else if (remaining != null) {
+                } else {
                     remaining.add(windowEvent);
                 }
             }
@@ -198,6 +200,7 @@ public class WindowManager<T> implements TriggerHandler {
         eventsSinceLastExpiry.set(0);
         LOG.debug("[{}] events expired from window.", eventsToExpire.size());
         windowLifecycleListener.onExpiry(eventsToExpire);
+        return remaining;
     }
 
     @Override

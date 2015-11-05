@@ -27,7 +27,7 @@ class EventImpl<T> implements Event<T> {
     }
 
     @Override
-    public long getTs() {
+    public long getTimestamp() {
         return ts;
     }
 

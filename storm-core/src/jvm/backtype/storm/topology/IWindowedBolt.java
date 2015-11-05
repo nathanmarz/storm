@@ -29,7 +29,7 @@ import java.util.Map;
 public interface IWindowedBolt extends IComponent {
     /**
      * This is similar to the {@link backtype.storm.task.IBolt#prepare(Map, TopologyContext, OutputCollector)} except
-     * that while emitting the tuples are are automatically anchored to the tuples in the inputWindow.
+     * that while emitting, the tuples are automatically anchored to the tuples in the inputWindow.
      */
     void prepare(Map stormConf, TopologyContext context, OutputCollector collector);
     /**

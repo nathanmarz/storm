@@ -26,34 +26,35 @@ import java.util.concurrent.TimeUnit;
  */
 public class TimeTriggerPolicy<T> implements TriggerPolicy<T> {
     private long duration;
-    private TriggerHandler handler;
-    private ScheduledExecutorService ex;
+    private final TriggerHandler handler;
+    private final ScheduledExecutorService executor;
 
     public TimeTriggerPolicy(long millis, TriggerHandler handler) {
         this.duration = millis;
         this.handler = handler;
+        this.executor = Executors.newSingleThreadScheduledExecutor();
         start();
     }
 
     @Override
     public void track(Event<T> event) {
-        // no-op
+        // NOOP
     }
 
     @Override
     public void reset() {
-        // no-op
+        // NOOP
     }
 
     @Override
     public void shutdown() {
-        ex.shutdown();
+        executor.shutdown();
         try {
-            if (!ex.awaitTermination(2, TimeUnit.SECONDS)) {
-                ex.shutdownNow();
+            if (!executor.awaitTermination(2, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
             }
         } catch (InterruptedException ie) {
-            ex.shutdownNow();
+            executor.shutdownNow();
             Thread.currentThread().interrupt();
         }
     }
@@ -65,8 +66,7 @@ public class TimeTriggerPolicy<T> implements TriggerPolicy<T> {
                 handler.onTrigger();
             }
         };
-        ex = Executors.newSingleThreadScheduledExecutor();
-        ex.scheduleAtFixedRate(task, duration, duration, TimeUnit.MILLISECONDS);
+        executor.scheduleAtFixedRate(task, duration, duration, TimeUnit.MILLISECONDS);
     }
 
     @Override

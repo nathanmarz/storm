@@ -94,6 +94,13 @@
       (if (is-absolute-path? path) path (str storm-home file-path-separator path))
       (str storm-home file-path-separator "storm-local"))))
 
+(defn absolute-healthcheck-dir [conf]
+  (let [storm-home (System/getProperty "storm.home")
+        path (conf STORM-HEALTH-CHECK-DIR)]
+    (if path
+      (if (is-absolute-path? path) path (str storm-home file-path-separator path))
+      (str storm-home file-path-separator "healthchecks"))))
+
 (defn master-local-dir
   [conf]
   (let [ret (str (absolute-storm-local-dir conf) file-path-separator "nimbus")]

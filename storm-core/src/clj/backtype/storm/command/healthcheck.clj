@@ -60,7 +60,7 @@
       (finally (.interrupt interrupter-thread)))))
 
 (defn health-check [conf]
-  (let [health-dir (conf STORM-HEALTH-CHECK-DIR)
+  (let [health-dir (absolute-healthcheck-dir conf)
         health-files (file-seq (io/file health-dir))
         health-scripts (filter #(and (.canExecute %)
                                      (not (.isDirectory %)))

@@ -251,8 +251,8 @@
           (do
             (rmr (worker-heartbeats-root conf id))
             ;; this avoids a race condition with worker or subprocess writing pid around same time
-            (rmpath (worker-pids-root conf id))
-            (rmpath (worker-root conf id))))
+            (rmr (worker-pids-root conf id))
+            (rmr (worker-root conf id))))
         (remove-worker-user! conf id)
         (remove-dead-worker id)
       ))

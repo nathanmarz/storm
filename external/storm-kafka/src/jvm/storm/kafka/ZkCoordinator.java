@@ -76,7 +76,7 @@ public class ZkCoordinator implements PartitionCoordinator {
     public void refresh() {
         try {
             LOG.info(taskId(_taskIndex, _totalTasks) + "Refreshing partition manager connections");
-            GlobalPartitionInformation brokerInfo = _reader.getBrokerInfo();
+            List<GlobalPartitionInformation> brokerInfo = _reader.getBrokerInfo();
             List<Partition> mine = KafkaUtils.calculatePartitionsForTask(brokerInfo, _totalTasks, _taskIndex);
 
             Set<Partition> curr = _managers.keySet();

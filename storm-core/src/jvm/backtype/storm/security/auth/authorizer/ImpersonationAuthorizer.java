@@ -43,9 +43,10 @@ public class ImpersonationAuthorizer implements IAuthorizer {
         Map<String, Map<String, List<String>>> userToHostAndGroup = (Map<String, Map<String, List<String>>>) conf.get(Config.NIMBUS_IMPERSONATION_ACL);
 
         if (userToHostAndGroup != null) {
-            for (String user : userToHostAndGroup.keySet()) {
-                Set<String> groups = ImmutableSet.copyOf(userToHostAndGroup.get(user).get("groups"));
-                Set<String> hosts = ImmutableSet.copyOf(userToHostAndGroup.get(user).get("hosts"));
+            for (Map.Entry<String, Map<String, List<String>>> entry : userToHostAndGroup.entrySet()) {
+                String user = entry.getKey();
+                Set<String> groups = ImmutableSet.copyOf(entry.getValue().get("groups"));
+                Set<String> hosts = ImmutableSet.copyOf(entry.getValue().get("hosts"));
                 userImpersonationACL.put(user, new ImpersonationACL(user, groups, hosts));
             }
         }

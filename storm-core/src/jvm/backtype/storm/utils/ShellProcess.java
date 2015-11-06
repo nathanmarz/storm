@@ -36,12 +36,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ShellProcess implements Serializable {
-    public static Logger LOG = LoggerFactory.getLogger(ShellProcess.class);
+    public static final Logger LOG = LoggerFactory.getLogger(ShellProcess.class);
     public static Logger ShellLogger;
     private Process      _subprocess;
     private InputStream  processErrorStream;
     private String[]     command;
-    private Map<String, String> env = new HashMap<String, String>();
+    private Map<String, String> env = new HashMap<>();
     public ISerializer   serializer;
     public Number pid;
     public String componentName;
@@ -98,7 +98,7 @@ public class ShellProcess implements Serializable {
         String serializer_className = (String)conf.get(Config.TOPOLOGY_MULTILANG_SERIALIZER);
         LOG.info("Storm multilang serializer: " + serializer_className);
 
-        ISerializer serializer = null;
+        ISerializer serializer;
         try {
             //create a factory class
             Class klass = Class.forName(serializer_className);

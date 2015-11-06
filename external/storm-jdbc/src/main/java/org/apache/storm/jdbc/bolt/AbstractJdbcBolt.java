@@ -21,6 +21,7 @@ import backtype.storm.Config;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.base.BaseRichBolt;
+import org.apache.commons.lang.Validate;
 import org.apache.storm.jdbc.common.ConnectionProvider;
 import org.apache.storm.jdbc.common.JdbcClient;
 import org.slf4j.Logger;
@@ -52,6 +53,7 @@ public abstract class AbstractJdbcBolt extends BaseRichBolt {
     }
 
     public AbstractJdbcBolt(ConnectionProvider connectionProvider) {
+        Validate.notNull(connectionProvider);
         this.connectionProvider = connectionProvider;
     }
 

@@ -41,11 +41,11 @@ import org.slf4j.LoggerFactory;
 
 
 public class ShellSpout implements ISpout {
-    public static Logger LOG = LoggerFactory.getLogger(ShellSpout.class);
+    public static final Logger LOG = LoggerFactory.getLogger(ShellSpout.class);
 
     private SpoutOutputCollector _collector;
     private String[] _command;
-    private Map<String, String> env = new HashMap<String, String>();
+    private Map<String, String> env = new HashMap<>();
     private ShellProcess _process;
     
     private TopologyContext _context;

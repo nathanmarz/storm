@@ -319,6 +319,57 @@ public class TopologyDetails {
     }
 
     /**
+     * Note: The public API relevant to resource aware scheduling is unstable as of May 2015.
+     *       We reserve the right to change them.
+     *
+     * @return the total on-heap memory requested for this topology
+     */
+    public Double getTotalRequestedMemOnHeap() {
+        Double total_memonheap = 0.0;
+        for (ExecutorDetails exec : this.getExecutors()) {
+            Double exec_mem = getOnHeapMemoryRequirement(exec);
+            if (exec_mem != null) {
+                total_memonheap += exec_mem;
+            }
+        }
+        return total_memonheap;
+    }
+
+    /**
+     * Note: The public API relevant to resource aware scheduling is unstable as of May 2015.
+     *       We reserve the right to change them.
+     *
+     * @return the total off-heap memory requested for this topology
+     */
+    public Double getTotalRequestedMemOffHeap() {
+        Double total_memoffheap = 0.0;
+        for (ExecutorDetails exec : this.getExecutors()) {
+            Double exec_mem = getOffHeapMemoryRequirement(exec);
+            if (exec_mem != null) {
+                total_memoffheap += exec_mem;
+            }
+        }
+        return total_memoffheap;
+    }
+
+    /**
+     * Note: The public API relevant to resource aware scheduling is unstable as of May 2015.
+     *       We reserve the right to change them.
+     *
+     * @return the total cpu requested for this topology
+     */
+    public Double getTotalRequestedCpu() {
+        Double total_cpu = 0.0;
+        for (ExecutorDetails exec : this.getExecutors()) {
+            Double exec_cpu = getTotalCpuReqTask(exec);
+            if (exec_cpu != null) {
+                total_cpu += exec_cpu;
+            }
+        }
+        return total_cpu;
+    }
+
+    /**
      * get the resources requirements for a executor
      * @param exec
      * @return a map containing the resource requirements for this exec

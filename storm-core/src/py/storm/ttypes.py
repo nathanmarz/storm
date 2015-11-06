@@ -99,6 +99,32 @@ class NumErrorsChoice:
     "ONE": 2,
   }
 
+class ProfileAction:
+  JPROFILE_STOP = 0
+  JPROFILE_START = 1
+  JPROFILE_DUMP = 2
+  JMAP_DUMP = 3
+  JSTACK_DUMP = 4
+  JVM_RESTART = 5
+
+  _VALUES_TO_NAMES = {
+    0: "JPROFILE_STOP",
+    1: "JPROFILE_START",
+    2: "JPROFILE_DUMP",
+    3: "JMAP_DUMP",
+    4: "JSTACK_DUMP",
+    5: "JVM_RESTART",
+  }
+
+  _NAMES_TO_VALUES = {
+    "JPROFILE_STOP": 0,
+    "JPROFILE_START": 1,
+    "JPROFILE_DUMP": 2,
+    "JMAP_DUMP": 3,
+    "JSTACK_DUMP": 4,
+    "JVM_RESTART": 5,
+  }
+
 class LogLevelAction:
   UNCHANGED = 1
   UPDATE = 2
@@ -1703,6 +1729,12 @@ class TopologySummary:
    - sched_status
    - owner
    - replication_count
+   - requested_memonheap
+   - requested_memoffheap
+   - requested_cpu
+   - assigned_memonheap
+   - assigned_memoffheap
+   - assigned_cpu
   """
 
   thrift_spec = (
@@ -2222,9 +2254,20 @@ class TopologySummary:
     (513, TType.STRING, 'sched_status', None, None, ), # 513
     (514, TType.STRING, 'owner', None, None, ), # 514
     (515, TType.I32, 'replication_count', None, None, ), # 515
+    None, # 516
+    None, # 517
+    None, # 518
+    None, # 519
+    None, # 520
+    (521, TType.DOUBLE, 'requested_memonheap', None, None, ), # 521
+    (522, TType.DOUBLE, 'requested_memoffheap', None, None, ), # 522
+    (523, TType.DOUBLE, 'requested_cpu', None, None, ), # 523
+    (524, TType.DOUBLE, 'assigned_memonheap', None, None, ), # 524
+    (525, TType.DOUBLE, 'assigned_memoffheap', None, None, ), # 525
+    (526, TType.DOUBLE, 'assigned_cpu', None, None, ), # 526
   )
 
-  def __init__(self, id=None, name=None, num_tasks=None, num_executors=None, num_workers=None, uptime_secs=None, status=None, sched_status=None, owner=None, replication_count=None,):
+  def __init__(self, id=None, name=None, num_tasks=None, num_executors=None, num_workers=None, uptime_secs=None, status=None, sched_status=None, owner=None, replication_count=None, requested_memonheap=None, requested_memoffheap=None, requested_cpu=None, assigned_memonheap=None, assigned_memoffheap=None, assigned_cpu=None,):
     self.id = id
     self.name = name
     self.num_tasks = num_tasks
@@ -2235,6 +2278,12 @@ class TopologySummary:
     self.sched_status = sched_status
     self.owner = owner
     self.replication_count = replication_count
+    self.requested_memonheap = requested_memonheap
+    self.requested_memoffheap = requested_memoffheap
+    self.requested_cpu = requested_cpu
+    self.assigned_memonheap = assigned_memonheap
+    self.assigned_memoffheap = assigned_memoffheap
+    self.assigned_cpu = assigned_cpu
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -2295,6 +2344,36 @@ class TopologySummary:
           self.replication_count = iprot.readI32();
         else:
           iprot.skip(ftype)
+      elif fid == 521:
+        if ftype == TType.DOUBLE:
+          self.requested_memonheap = iprot.readDouble();
+        else:
+          iprot.skip(ftype)
+      elif fid == 522:
+        if ftype == TType.DOUBLE:
+          self.requested_memoffheap = iprot.readDouble();
+        else:
+          iprot.skip(ftype)
+      elif fid == 523:
+        if ftype == TType.DOUBLE:
+          self.requested_cpu = iprot.readDouble();
+        else:
+          iprot.skip(ftype)
+      elif fid == 524:
+        if ftype == TType.DOUBLE:
+          self.assigned_memonheap = iprot.readDouble();
+        else:
+          iprot.skip(ftype)
+      elif fid == 525:
+        if ftype == TType.DOUBLE:
+          self.assigned_memoffheap = iprot.readDouble();
+        else:
+          iprot.skip(ftype)
+      elif fid == 526:
+        if ftype == TType.DOUBLE:
+          self.assigned_cpu = iprot.readDouble();
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -2345,6 +2424,30 @@ class TopologySummary:
       oprot.writeFieldBegin('replication_count', TType.I32, 515)
       oprot.writeI32(self.replication_count)
       oprot.writeFieldEnd()
+    if self.requested_memonheap is not None:
+      oprot.writeFieldBegin('requested_memonheap', TType.DOUBLE, 521)
+      oprot.writeDouble(self.requested_memonheap)
+      oprot.writeFieldEnd()
+    if self.requested_memoffheap is not None:
+      oprot.writeFieldBegin('requested_memoffheap', TType.DOUBLE, 522)
+      oprot.writeDouble(self.requested_memoffheap)
+      oprot.writeFieldEnd()
+    if self.requested_cpu is not None:
+      oprot.writeFieldBegin('requested_cpu', TType.DOUBLE, 523)
+      oprot.writeDouble(self.requested_cpu)
+      oprot.writeFieldEnd()
+    if self.assigned_memonheap is not None:
+      oprot.writeFieldBegin('assigned_memonheap', TType.DOUBLE, 524)
+      oprot.writeDouble(self.assigned_memonheap)
+      oprot.writeFieldEnd()
+    if self.assigned_memoffheap is not None:
+      oprot.writeFieldBegin('assigned_memoffheap', TType.DOUBLE, 525)
+      oprot.writeDouble(self.assigned_memoffheap)
+      oprot.writeFieldEnd()
+    if self.assigned_cpu is not None:
+      oprot.writeFieldBegin('assigned_cpu', TType.DOUBLE, 526)
+      oprot.writeDouble(self.assigned_cpu)
+      oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
@@ -2378,6 +2481,12 @@ class TopologySummary:
     value = (value * 31) ^ hash(self.sched_status)
     value = (value * 31) ^ hash(self.owner)
     value = (value * 31) ^ hash(self.replication_count)
+    value = (value * 31) ^ hash(self.requested_memonheap)
+    value = (value * 31) ^ hash(self.requested_memoffheap)
+    value = (value * 31) ^ hash(self.requested_cpu)
+    value = (value * 31) ^ hash(self.assigned_memonheap)
+    value = (value * 31) ^ hash(self.assigned_memoffheap)
+    value = (value * 31) ^ hash(self.assigned_cpu)
     return value
 
   def __repr__(self):
@@ -3774,6 +3883,12 @@ class TopologyInfo:
    - sched_status
    - owner
    - replication_count
+   - requested_memonheap
+   - requested_memoffheap
+   - requested_cpu
+   - assigned_memonheap
+   - assigned_memoffheap
+   - assigned_cpu
   """
 
   thrift_spec = (
@@ -4293,9 +4408,20 @@ class TopologyInfo:
     (513, TType.STRING, 'sched_status', None, None, ), # 513
     (514, TType.STRING, 'owner', None, None, ), # 514
     (515, TType.I32, 'replication_count', None, None, ), # 515
+    None, # 516
+    None, # 517
+    None, # 518
+    None, # 519
+    None, # 520
+    (521, TType.DOUBLE, 'requested_memonheap', None, None, ), # 521
+    (522, TType.DOUBLE, 'requested_memoffheap', None, None, ), # 522
+    (523, TType.DOUBLE, 'requested_cpu', None, None, ), # 523
+    (524, TType.DOUBLE, 'assigned_memonheap', None, None, ), # 524
+    (525, TType.DOUBLE, 'assigned_memoffheap', None, None, ), # 525
+    (526, TType.DOUBLE, 'assigned_cpu', None, None, ), # 526
   )
 
-  def __init__(self, id=None, name=None, uptime_secs=None, executors=None, status=None, errors=None, component_debug=None, sched_status=None, owner=None, replication_count=None,):
+  def __init__(self, id=None, name=None, uptime_secs=None, executors=None, status=None, errors=None, component_debug=None, sched_status=None, owner=None, replication_count=None, requested_memonheap=None, requested_memoffheap=None, requested_cpu=None, assigned_memonheap=None, assigned_memoffheap=None, assigned_cpu=None,):
     self.id = id
     self.name = name
     self.uptime_secs = uptime_secs
@@ -4306,6 +4432,12 @@ class TopologyInfo:
     self.sched_status = sched_status
     self.owner = owner
     self.replication_count = replication_count
+    self.requested_memonheap = requested_memonheap
+    self.requested_memoffheap = requested_memoffheap
+    self.requested_cpu = requested_cpu
+    self.assigned_memonheap = assigned_memonheap
+    self.assigned_memoffheap = assigned_memoffheap
+    self.assigned_cpu = assigned_cpu
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -4391,6 +4523,36 @@ class TopologyInfo:
           self.replication_count = iprot.readI32();
         else:
           iprot.skip(ftype)
+      elif fid == 521:
+        if ftype == TType.DOUBLE:
+          self.requested_memonheap = iprot.readDouble();
+        else:
+          iprot.skip(ftype)
+      elif fid == 522:
+        if ftype == TType.DOUBLE:
+          self.requested_memoffheap = iprot.readDouble();
+        else:
+          iprot.skip(ftype)
+      elif fid == 523:
+        if ftype == TType.DOUBLE:
+          self.requested_cpu = iprot.readDouble();
+        else:
+          iprot.skip(ftype)
+      elif fid == 524:
+        if ftype == TType.DOUBLE:
+          self.assigned_memonheap = iprot.readDouble();
+        else:
+          iprot.skip(ftype)
+      elif fid == 525:
+        if ftype == TType.DOUBLE:
+          self.assigned_memoffheap = iprot.readDouble();
+        else:
+          iprot.skip(ftype)
+      elif fid == 526:
+        if ftype == TType.DOUBLE:
+          self.assigned_cpu = iprot.readDouble();
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -4455,6 +4617,30 @@ class TopologyInfo:
       oprot.writeFieldBegin('replication_count', TType.I32, 515)
       oprot.writeI32(self.replication_count)
       oprot.writeFieldEnd()
+    if self.requested_memonheap is not None:
+      oprot.writeFieldBegin('requested_memonheap', TType.DOUBLE, 521)
+      oprot.writeDouble(self.requested_memonheap)
+      oprot.writeFieldEnd()
+    if self.requested_memoffheap is not None:
+      oprot.writeFieldBegin('requested_memoffheap', TType.DOUBLE, 522)
+      oprot.writeDouble(self.requested_memoffheap)
+      oprot.writeFieldEnd()
+    if self.requested_cpu is not None:
+      oprot.writeFieldBegin('requested_cpu', TType.DOUBLE, 523)
+      oprot.writeDouble(self.requested_cpu)
+      oprot.writeFieldEnd()
+    if self.assigned_memonheap is not None:
+      oprot.writeFieldBegin('assigned_memonheap', TType.DOUBLE, 524)
+      oprot.writeDouble(self.assigned_memonheap)
+      oprot.writeFieldEnd()
+    if self.assigned_memoffheap is not None:
+      oprot.writeFieldBegin('assigned_memoffheap', TType.DOUBLE, 525)
+      oprot.writeDouble(self.assigned_memoffheap)
+      oprot.writeFieldEnd()
+    if self.assigned_cpu is not None:
+      oprot.writeFieldBegin('assigned_cpu', TType.DOUBLE, 526)
+      oprot.writeDouble(self.assigned_cpu)
+      oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
@@ -4486,6 +4672,12 @@ class TopologyInfo:
     value = (value * 31) ^ hash(self.sched_status)
     value = (value * 31) ^ hash(self.owner)
     value = (value * 31) ^ hash(self.replication_count)
+    value = (value * 31) ^ hash(self.requested_memonheap)
+    value = (value * 31) ^ hash(self.requested_memoffheap)
+    value = (value * 31) ^ hash(self.requested_cpu)
+    value = (value * 31) ^ hash(self.assigned_memonheap)
+    value = (value * 31) ^ hash(self.assigned_memoffheap)
+    value = (value * 31) ^ hash(self.assigned_cpu)
     return value
 
   def __repr__(self):
@@ -5248,6 +5440,12 @@ class TopologyPageInfo:
    - owner
    - debug_options
    - replication_count
+   - requested_memonheap
+   - requested_memoffheap
+   - requested_cpu
+   - assigned_memonheap
+   - assigned_memoffheap
+   - assigned_cpu
   """
 
   thrift_spec = (
@@ -5267,9 +5465,520 @@ class TopologyPageInfo:
     (13, TType.STRING, 'owner', None, None, ), # 13
     (14, TType.STRUCT, 'debug_options', (DebugOptions, DebugOptions.thrift_spec), None, ), # 14
     (15, TType.I32, 'replication_count', None, None, ), # 15
+    None, # 16
+    None, # 17
+    None, # 18
+    None, # 19
+    None, # 20
+    None, # 21
+    None, # 22
+    None, # 23
+    None, # 24
+    None, # 25
+    None, # 26
+    None, # 27
+    None, # 28
+    None, # 29
+    None, # 30
+    None, # 31
+    None, # 32
+    None, # 33
+    None, # 34
+    None, # 35
+    None, # 36
+    None, # 37
+    None, # 38
+    None, # 39
+    None, # 40
+    None, # 41
+    None, # 42
+    None, # 43
+    None, # 44
+    None, # 45
+    None, # 46
+    None, # 47
+    None, # 48
+    None, # 49
+    None, # 50
+    None, # 51
+    None, # 52
+    None, # 53
+    None, # 54
+    None, # 55
+    None, # 56
+    None, # 57
+    None, # 58
+    None, # 59
+    None, # 60
+    None, # 61
+    None, # 62
+    None, # 63
+    None, # 64
+    None, # 65
+    None, # 66
+    None, # 67
+    None, # 68
+    None, # 69
+    None, # 70
+    None, # 71
+    None, # 72
+    None, # 73
+    None, # 74
+    None, # 75
+    None, # 76
+    None, # 77
+    None, # 78
+    None, # 79
+    None, # 80
+    None, # 81
+    None, # 82
+    None, # 83
+    None, # 84
+    None, # 85
+    None, # 86
+    None, # 87
+    None, # 88
+    None, # 89
+    None, # 90
+    None, # 91
+    None, # 92
+    None, # 93
+    None, # 94
+    None, # 95
+    None, # 96
+    None, # 97
+    None, # 98
+    None, # 99
+    None, # 100
+    None, # 101
+    None, # 102
+    None, # 103
+    None, # 104
+    None, # 105
+    None, # 106
+    None, # 107
+    None, # 108
+    None, # 109
+    None, # 110
+    None, # 111
+    None, # 112
+    None, # 113
+    None, # 114
+    None, # 115
+    None, # 116
+    None, # 117
+    None, # 118
+    None, # 119
+    None, # 120
+    None, # 121
+    None, # 122
+    None, # 123
+    None, # 124
+    None, # 125
+    None, # 126
+    None, # 127
+    None, # 128
+    None, # 129
+    None, # 130
+    None, # 131
+    None, # 132
+    None, # 133
+    None, # 134
+    None, # 135
+    None, # 136
+    None, # 137
+    None, # 138
+    None, # 139
+    None, # 140
+    None, # 141
+    None, # 142
+    None, # 143
+    None, # 144
+    None, # 145
+    None, # 146
+    None, # 147
+    None, # 148
+    None, # 149
+    None, # 150
+    None, # 151
+    None, # 152
+    None, # 153
+    None, # 154
+    None, # 155
+    None, # 156
+    None, # 157
+    None, # 158
+    None, # 159
+    None, # 160
+    None, # 161
+    None, # 162
+    None, # 163
+    None, # 164
+    None, # 165
+    None, # 166
+    None, # 167
+    None, # 168
+    None, # 169
+    None, # 170
+    None, # 171
+    None, # 172
+    None, # 173
+    None, # 174
+    None, # 175
+    None, # 176
+    None, # 177
+    None, # 178
+    None, # 179
+    None, # 180
+    None, # 181
+    None, # 182
+    None, # 183
+    None, # 184
+    None, # 185
+    None, # 186
+    None, # 187
+    None, # 188
+    None, # 189
+    None, # 190
+    None, # 191
+    None, # 192
+    None, # 193
+    None, # 194
+    None, # 195
+    None, # 196
+    None, # 197
+    None, # 198
+    None, # 199
+    None, # 200
+    None, # 201
+    None, # 202
+    None, # 203
+    None, # 204
+    None, # 205
+    None, # 206
+    None, # 207
+    None, # 208
+    None, # 209
+    None, # 210
+    None, # 211
+    None, # 212
+    None, # 213
+    None, # 214
+    None, # 215
+    None, # 216
+    None, # 217
+    None, # 218
+    None, # 219
+    None, # 220
+    None, # 221
+    None, # 222
+    None, # 223
+    None, # 224
+    None, # 225
+    None, # 226
+    None, # 227
+    None, # 228
+    None, # 229
+    None, # 230
+    None, # 231
+    None, # 232
+    None, # 233
+    None, # 234
+    None, # 235
+    None, # 236
+    None, # 237
+    None, # 238
+    None, # 239
+    None, # 240
+    None, # 241
+    None, # 242
+    None, # 243
+    None, # 244
+    None, # 245
+    None, # 246
+    None, # 247
+    None, # 248
+    None, # 249
+    None, # 250
+    None, # 251
+    None, # 252
+    None, # 253
+    None, # 254
+    None, # 255
+    None, # 256
+    None, # 257
+    None, # 258
+    None, # 259
+    None, # 260
+    None, # 261
+    None, # 262
+    None, # 263
+    None, # 264
+    None, # 265
+    None, # 266
+    None, # 267
+    None, # 268
+    None, # 269
+    None, # 270
+    None, # 271
+    None, # 272
+    None, # 273
+    None, # 274
+    None, # 275
+    None, # 276
+    None, # 277
+    None, # 278
+    None, # 279
+    None, # 280
+    None, # 281
+    None, # 282
+    None, # 283
+    None, # 284
+    None, # 285
+    None, # 286
+    None, # 287
+    None, # 288
+    None, # 289
+    None, # 290
+    None, # 291
+    None, # 292
+    None, # 293
+    None, # 294
+    None, # 295
+    None, # 296
+    None, # 297
+    None, # 298
+    None, # 299
+    None, # 300
+    None, # 301
+    None, # 302
+    None, # 303
+    None, # 304
+    None, # 305
+    None, # 306
+    None, # 307
+    None, # 308
+    None, # 309
+    None, # 310
+    None, # 311
+    None, # 312
+    None, # 313
+    None, # 314
+    None, # 315
+    None, # 316
+    None, # 317
+    None, # 318
+    None, # 319
+    None, # 320
+    None, # 321
+    None, # 322
+    None, # 323
+    None, # 324
+    None, # 325
+    None, # 326
+    None, # 327
+    None, # 328
+    None, # 329
+    None, # 330
+    None, # 331
+    None, # 332
+    None, # 333
+    None, # 334
+    None, # 335
+    None, # 336
+    None, # 337
+    None, # 338
+    None, # 339
+    None, # 340
+    None, # 341
+    None, # 342
+    None, # 343
+    None, # 344
+    None, # 345
+    None, # 346
+    None, # 347
+    None, # 348
+    None, # 349
+    None, # 350
+    None, # 351
+    None, # 352
+    None, # 353
+    None, # 354
+    None, # 355
+    None, # 356
+    None, # 357
+    None, # 358
+    None, # 359
+    None, # 360
+    None, # 361
+    None, # 362
+    None, # 363
+    None, # 364
+    None, # 365
+    None, # 366
+    None, # 367
+    None, # 368
+    None, # 369
+    None, # 370
+    None, # 371
+    None, # 372
+    None, # 373
+    None, # 374
+    None, # 375
+    None, # 376
+    None, # 377
+    None, # 378
+    None, # 379
+    None, # 380
+    None, # 381
+    None, # 382
+    None, # 383
+    None, # 384
+    None, # 385
+    None, # 386
+    None, # 387
+    None, # 388
+    None, # 389
+    None, # 390
+    None, # 391
+    None, # 392
+    None, # 393
+    None, # 394
+    None, # 395
+    None, # 396
+    None, # 397
+    None, # 398
+    None, # 399
+    None, # 400
+    None, # 401
+    None, # 402
+    None, # 403
+    None, # 404
+    None, # 405
+    None, # 406
+    None, # 407
+    None, # 408
+    None, # 409
+    None, # 410
+    None, # 411
+    None, # 412
+    None, # 413
+    None, # 414
+    None, # 415
+    None, # 416
+    None, # 417
+    None, # 418
+    None, # 419
+    None, # 420
+    None, # 421
+    None, # 422
+    None, # 423
+    None, # 424
+    None, # 425
+    None, # 426
+    None, # 427
+    None, # 428
+    None, # 429
+    None, # 430
+    None, # 431
+    None, # 432
+    None, # 433
+    None, # 434
+    None, # 435
+    None, # 436
+    None, # 437
+    None, # 438
+    None, # 439
+    None, # 440
+    None, # 441
+    None, # 442
+    None, # 443
+    None, # 444
+    None, # 445
+    None, # 446
+    None, # 447
+    None, # 448
+    None, # 449
+    None, # 450
+    None, # 451
+    None, # 452
+    None, # 453
+    None, # 454
+    None, # 455
+    None, # 456
+    None, # 457
+    None, # 458
+    None, # 459
+    None, # 460
+    None, # 461
+    None, # 462
+    None, # 463
+    None, # 464
+    None, # 465
+    None, # 466
+    None, # 467
+    None, # 468
+    None, # 469
+    None, # 470
+    None, # 471
+    None, # 472
+    None, # 473
+    None, # 474
+    None, # 475
+    None, # 476
+    None, # 477
+    None, # 478
+    None, # 479
+    None, # 480
+    None, # 481
+    None, # 482
+    None, # 483
+    None, # 484
+    None, # 485
+    None, # 486
+    None, # 487
+    None, # 488
+    None, # 489
+    None, # 490
+    None, # 491
+    None, # 492
+    None, # 493
+    None, # 494
+    None, # 495
+    None, # 496
+    None, # 497
+    None, # 498
+    None, # 499
+    None, # 500
+    None, # 501
+    None, # 502
+    None, # 503
+    None, # 504
+    None, # 505
+    None, # 506
+    None, # 507
+    None, # 508
+    None, # 509
+    None, # 510
+    None, # 511
+    None, # 512
+    None, # 513
+    None, # 514
+    None, # 515
+    None, # 516
+    None, # 517
+    None, # 518
+    None, # 519
+    None, # 520
+    (521, TType.DOUBLE, 'requested_memonheap', None, None, ), # 521
+    (522, TType.DOUBLE, 'requested_memoffheap', None, None, ), # 522
+    (523, TType.DOUBLE, 'requested_cpu', None, None, ), # 523
+    (524, TType.DOUBLE, 'assigned_memonheap', None, None, ), # 524
+    (525, TType.DOUBLE, 'assigned_memoffheap', None, None, ), # 525
+    (526, TType.DOUBLE, 'assigned_cpu', None, None, ), # 526
   )
 
-  def __init__(self, id=None, name=None, uptime_secs=None, status=None, num_tasks=None, num_workers=None, num_executors=None, topology_conf=None, id_to_spout_agg_stats=None, id_to_bolt_agg_stats=None, sched_status=None, topology_stats=None, owner=None, debug_options=None, replication_count=None,):
+  def __init__(self, id=None, name=None, uptime_secs=None, status=None, num_tasks=None, num_workers=None, num_executors=None, topology_conf=None, id_to_spout_agg_stats=None, id_to_bolt_agg_stats=None, sched_status=None, topology_stats=None, owner=None, debug_options=None, replication_count=None, requested_memonheap=None, requested_memoffheap=None, requested_cpu=None, assigned_memonheap=None, assigned_memoffheap=None, assigned_cpu=None,):
     self.id = id
     self.name = name
     self.uptime_secs = uptime_secs
@@ -5285,6 +5994,12 @@ class TopologyPageInfo:
     self.owner = owner
     self.debug_options = debug_options
     self.replication_count = replication_count
+    self.requested_memonheap = requested_memonheap
+    self.requested_memoffheap = requested_memoffheap
+    self.requested_cpu = requested_cpu
+    self.assigned_memonheap = assigned_memonheap
+    self.assigned_memoffheap = assigned_memoffheap
+    self.assigned_cpu = assigned_cpu
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -5386,6 +6101,36 @@ class TopologyPageInfo:
           self.replication_count = iprot.readI32();
         else:
           iprot.skip(ftype)
+      elif fid == 521:
+        if ftype == TType.DOUBLE:
+          self.requested_memonheap = iprot.readDouble();
+        else:
+          iprot.skip(ftype)
+      elif fid == 522:
+        if ftype == TType.DOUBLE:
+          self.requested_memoffheap = iprot.readDouble();
+        else:
+          iprot.skip(ftype)
+      elif fid == 523:
+        if ftype == TType.DOUBLE:
+          self.requested_cpu = iprot.readDouble();
+        else:
+          iprot.skip(ftype)
+      elif fid == 524:
+        if ftype == TType.DOUBLE:
+          self.assigned_memonheap = iprot.readDouble();
+        else:
+          iprot.skip(ftype)
+      elif fid == 525:
+        if ftype == TType.DOUBLE:
+          self.assigned_memoffheap = iprot.readDouble();
+        else:
+          iprot.skip(ftype)
+      elif fid == 526:
+        if ftype == TType.DOUBLE:
+          self.assigned_cpu = iprot.readDouble();
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -5464,6 +6209,30 @@ class TopologyPageInfo:
       oprot.writeFieldBegin('replication_count', TType.I32, 15)
       oprot.writeI32(self.replication_count)
       oprot.writeFieldEnd()
+    if self.requested_memonheap is not None:
+      oprot.writeFieldBegin('requested_memonheap', TType.DOUBLE, 521)
+      oprot.writeDouble(self.requested_memonheap)
+      oprot.writeFieldEnd()
+    if self.requested_memoffheap is not None:
+      oprot.writeFieldBegin('requested_memoffheap', TType.DOUBLE, 522)
+      oprot.writeDouble(self.requested_memoffheap)
+      oprot.writeFieldEnd()
+    if self.requested_cpu is not None:
+      oprot.writeFieldBegin('requested_cpu', TType.DOUBLE, 523)
+      oprot.writeDouble(self.requested_cpu)
+      oprot.writeFieldEnd()
+    if self.assigned_memonheap is not None:
+      oprot.writeFieldBegin('assigned_memonheap', TType.DOUBLE, 524)
+      oprot.writeDouble(self.assigned_memonheap)
+      oprot.writeFieldEnd()
+    if self.assigned_memoffheap is not None:
+      oprot.writeFieldBegin('assigned_memoffheap', TType.DOUBLE, 525)
+      oprot.writeDouble(self.assigned_memoffheap)
+      oprot.writeFieldEnd()
+    if self.assigned_cpu is not None:
+      oprot.writeFieldBegin('assigned_cpu', TType.DOUBLE, 526)
+      oprot.writeDouble(self.assigned_cpu)
+      oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
@@ -5490,6 +6259,12 @@ class TopologyPageInfo:
     value = (value * 31) ^ hash(self.owner)
     value = (value * 31) ^ hash(self.debug_options)
     value = (value * 31) ^ hash(self.replication_count)
+    value = (value * 31) ^ hash(self.requested_memonheap)
+    value = (value * 31) ^ hash(self.requested_memoffheap)
+    value = (value * 31) ^ hash(self.requested_cpu)
+    value = (value * 31) ^ hash(self.assigned_memonheap)
+    value = (value * 31) ^ hash(self.assigned_memoffheap)
+    value = (value * 31) ^ hash(self.assigned_cpu)
     return value
 
   def __repr__(self):
@@ -7791,6 +8566,102 @@ class LSWorkerHeartbeat:
     value = (value * 31) ^ hash(self.topology_id)
     value = (value * 31) ^ hash(self.executors)
     value = (value * 31) ^ hash(self.port)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class ProfileRequest:
+  """
+  Attributes:
+   - nodeInfo
+   - action
+   - time_stamp
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRUCT, 'nodeInfo', (NodeInfo, NodeInfo.thrift_spec), None, ), # 1
+    (2, TType.I32, 'action', None, None, ), # 2
+    (3, TType.I64, 'time_stamp', None, None, ), # 3
+  )
+
+  def __init__(self, nodeInfo=None, action=None, time_stamp=None,):
+    self.nodeInfo = nodeInfo
+    self.action = action
+    self.time_stamp = time_stamp
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRUCT:
+          self.nodeInfo = NodeInfo()
+          self.nodeInfo.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.I32:
+          self.action = iprot.readI32();
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.I64:
+          self.time_stamp = iprot.readI64();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('ProfileRequest')
+    if self.nodeInfo is not None:
+      oprot.writeFieldBegin('nodeInfo', TType.STRUCT, 1)
+      self.nodeInfo.write(oprot)
+      oprot.writeFieldEnd()
+    if self.action is not None:
+      oprot.writeFieldBegin('action', TType.I32, 2)
+      oprot.writeI32(self.action)
+      oprot.writeFieldEnd()
+    if self.time_stamp is not None:
+      oprot.writeFieldBegin('time_stamp', TType.I64, 3)
+      oprot.writeI64(self.time_stamp)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    if self.nodeInfo is None:
+      raise TProtocol.TProtocolException(message='Required field nodeInfo is unset!')
+    if self.action is None:
+      raise TProtocol.TProtocolException(message='Required field action is unset!')
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.nodeInfo)
+    value = (value * 31) ^ hash(self.action)
+    value = (value * 31) ^ hash(self.time_stamp)
     return value
 
   def __repr__(self):

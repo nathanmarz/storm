@@ -20,6 +20,7 @@ package backtype.storm.utils;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 
 import backtype.storm.messaging.IConnection;
 import backtype.storm.messaging.TaskMessage;
@@ -30,18 +31,19 @@ public class TransferDrainer {
   private HashMap<Integer, ArrayList<ArrayList<TaskMessage>>> bundles = new HashMap();
   
   public void add(HashMap<Integer, ArrayList<TaskMessage>> taskTupleSetMap) {
-    for (Integer task : taskTupleSetMap.keySet()) {
-      addListRefToMap(this.bundles, task, taskTupleSetMap.get(task));
+    for (Map.Entry<Integer, ArrayList<TaskMessage>> entry : taskTupleSetMap.entrySet()) {
+      addListRefToMap(this.bundles, entry.getKey(), entry.getValue());
     }
   }
   
   public void send(HashMap<Integer, String> taskToNode, HashMap<String, IConnection> connections) {
     HashMap<String, ArrayList<ArrayList<TaskMessage>>> bundleMapByDestination = groupBundleByDestination(taskToNode);
 
-    for (String hostPort : bundleMapByDestination.keySet()) {
+    for (Map.Entry<String, ArrayList<ArrayList<TaskMessage>>> entry : bundleMapByDestination.entrySet()) {
+      String hostPort = entry.getKey();
       IConnection connection = connections.get(hostPort);
       if (null != connection) {
-        ArrayList<ArrayList<TaskMessage>> bundle = bundleMapByDestination.get(hostPort);
+        ArrayList<ArrayList<TaskMessage>> bundle = entry.getValue();
         Iterator<TaskMessage> iter = getBundleIterator(bundle);
         if (null != iter && iter.hasNext()) {
           connection.send(iter);
@@ -98,15 +100,12 @@ public class TransferDrainer {
       
       @Override
       public boolean hasNext() {
-        if (offset < size) {
-          return true;
-        }
-        return false;
+          return offset < size;
       }
 
       @Override
       public TaskMessage next() {
-        TaskMessage msg = null;
+        TaskMessage msg;
         if (iter.hasNext()) {
           msg = iter.next(); 
         } else {

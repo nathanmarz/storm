@@ -34,6 +34,7 @@
   (:import [backtype.storm.daemon Shutdownable])
   (:import [backtype.storm.metric.api IMetric IMetricsConsumer$TaskInfo IMetricsConsumer$DataPoint StateMetric])
   (:import [backtype.storm Config Constants])
+  (:import [backtype.storm.grouping LoadAwareCustomStreamGrouping LoadAwareShuffleGrouping LoadMapping ShuffleGrouping])
   (:import [java.util.concurrent ConcurrentLinkedQueue])
   (:require [backtype.storm [tuple :as tuple] [thrift :as thrift]
              [cluster :as cluster] [disruptor :as disruptor] [stats :as stats]])
@@ -41,54 +42,59 @@
   (:require [backtype.storm.daemon.builtin-metrics :as builtin-metrics])
   (:require [clojure.set :as set]))
 
-(defn- mk-fields-grouper [^Fields out-fields ^Fields group-fields ^List target-tasks]
+(defn- mk-fields-grouper
+  [^Fields out-fields ^Fields group-fields ^List target-tasks]
   (let [num-tasks (count target-tasks)
         task-getter (fn [i] (.get target-tasks i))]
-    (fn [task-id ^List values]
+    (fn [task-id ^List values load]
       (-> (.select out-fields group-fields values)
           tuple/list-hash-code
           (mod num-tasks)
           task-getter))))
 
-(defn- mk-shuffle-grouper [^List target-tasks]
-  (let [choices (rotating-random-range target-tasks)]
-    (fn [task-id tuple]
-      (acquire-random-range-id choices))))
-
-(defn- mk-custom-grouper [^CustomStreamGrouping grouping ^WorkerTopologyContext context ^String component-id ^String stream-id target-tasks]
+(defn- mk-custom-grouper
+  [^CustomStreamGrouping grouping ^WorkerTopologyContext context ^String component-id ^String stream-id target-tasks]
   (.prepare grouping context (GlobalStreamId. component-id stream-id) target-tasks)
-  (fn [task-id ^List values]
-    (.chooseTasks grouping task-id values)
-    ))
+  (if (instance? LoadAwareCustomStreamGrouping grouping)
+    (fn [task-id ^List values load]
+      (.chooseTasks grouping task-id values load))
+    (fn [task-id ^List values load]
+      (.chooseTasks grouping task-id values))))
+
+(defn mk-shuffle-grouper
+  [^List target-tasks topo-conf ^WorkerTopologyContext context ^String component-id ^String stream-id]
+  (if (.get topo-conf TOPOLOGY-DISABLE-LOADAWARE-MESSAGING)
+    (mk-custom-grouper (ShuffleGrouping.) context component-id stream-id target-tasks)
+    (mk-custom-grouper (LoadAwareShuffleGrouping.) context component-id stream-id target-tasks)))
 
 (defn- mk-grouper
   "Returns a function that returns a vector of which task indices to send tuple to, or just a single task index."
-  [^WorkerTopologyContext context component-id stream-id ^Fields out-fields thrift-grouping ^List target-tasks]
+  [^WorkerTopologyContext context component-id stream-id ^Fields out-fields thrift-grouping ^List target-tasks topo-conf]
   (let [num-tasks (count target-tasks)
         random (Random.)
         target-tasks (vec (sort target-tasks))]
     (condp = (thrift/grouping-type thrift-grouping)
       :fields
         (if (thrift/global-grouping? thrift-grouping)
-          (fn [task-id tuple]
+          (fn [task-id tuple load]
             ;; It's possible for target to have multiple tasks if it reads multiple sources
             (first target-tasks))
           (let [group-fields (Fields. (thrift/field-grouping thrift-grouping))]
             (mk-fields-grouper out-fields group-fields target-tasks)
             ))
       :all
-        (fn [task-id tuple] target-tasks)
+        (fn [task-id tuple load] target-tasks)
       :shuffle
-        (mk-shuffle-grouper target-tasks)
+        (mk-shuffle-grouper target-tasks topo-conf context component-id stream-id)
       :local-or-shuffle
         (let [same-tasks (set/intersection
                            (set target-tasks)
                            (set (.getThisWorkerTasks context)))]
           (if-not (empty? same-tasks)
-            (mk-shuffle-grouper (vec same-tasks))
-            (mk-shuffle-grouper target-tasks)))
+            (mk-shuffle-grouper (vec same-tasks) topo-conf context component-id stream-id)
+            (mk-shuffle-grouper target-tasks topo-conf context component-id stream-id)))
       :none
-        (fn [task-id tuple]
+        (fn [task-id tuple load]
           (let [i (mod (.nextInt random) num-tasks)]
             (get target-tasks i)
             ))
@@ -102,7 +108,8 @@
         :direct
       )))
 
-(defn- outbound-groupings [^WorkerTopologyContext worker-context this-component-id stream-id out-fields component->grouping]
+(defn- outbound-groupings
+  [^WorkerTopologyContext worker-context this-component-id stream-id out-fields component->grouping topo-conf]
   (->> component->grouping
        (filter-key #(-> worker-context
                         (.getComponentTasks %)
@@ -116,13 +123,13 @@
                             out-fields
                             tgrouping
                             (.getComponentTasks worker-context component)
-                            )]))
+                            topo-conf)]))
        (into {})
        (HashMap.)))
 
 (defn outbound-components
   "Returns map of stream id to component id to grouper"
-  [^WorkerTopologyContext worker-context component-id]
+  [^WorkerTopologyContext worker-context component-id topo-conf]
   (->> (.getTargets worker-context component-id)
         clojurify-structure
         (map (fn [[stream-id component->grouping]]
@@ -132,7 +139,8 @@
                   component-id
                   stream-id
                   (.getComponentOutputFields worker-context component-id stream-id)
-                  component->grouping)]))
+                  component->grouping
+                  topo-conf)]))
          (into {})
          (HashMap.)))
 
@@ -197,23 +205,10 @@
 ;; in its own function so that it can be mocked out by tracked topologies
 (defn mk-executor-transfer-fn [batch-transfer->worker storm-conf]
   (fn this
-    ([task tuple block? ^ConcurrentLinkedQueue overflow-buffer]
-      (when (= true (storm-conf TOPOLOGY-DEBUG))
-        (log-message "TRANSFERING tuple TASK: " task " TUPLE: " tuple))
-      (if (and overflow-buffer (not (.isEmpty overflow-buffer)))
-        (.add overflow-buffer [task tuple])
-        (try-cause
-          (disruptor/publish batch-transfer->worker [task tuple] block?)
-        (catch InsufficientCapacityException e
-          (if overflow-buffer
-            (.add overflow-buffer [task tuple])
-            (throw e))
-          ))))
-    ([task tuple overflow-buffer]
-      (this task tuple (nil? overflow-buffer) overflow-buffer))
-    ([task tuple]
-      (this task tuple nil)
-      )))
+    [task tuple]
+    (when (= true (storm-conf TOPOLOGY-DEBUG))
+      (log-message "TRANSFERING tuple TASK: " task " TUPLE: " tuple))
+    (disruptor/publish batch-transfer->worker [task tuple])))
 
 (defn mk-executor-data [worker executor-id]
   (let [worker-context (worker-context worker)
@@ -225,7 +220,9 @@
                                   (str "executor"  executor-id "-send-queue")
                                   (storm-conf TOPOLOGY-EXECUTOR-SEND-BUFFER-SIZE)
                                   (storm-conf TOPOLOGY-DISRUPTOR-WAIT-TIMEOUT-MILLIS)
-                                  :producer-type :single-threaded)
+                                  :producer-type :single-threaded
+                                  :batch-size (storm-conf TOPOLOGY-DISRUPTOR-BATCH-SIZE)
+                                  :batch-timeout (storm-conf TOPOLOGY-DISRUPTOR-BATCH-TIMEOUT-MILLIS))
         ]
     (recursive-map
      :worker worker
@@ -251,7 +248,7 @@
      :stats (mk-executor-stats <> (sampling-rate storm-conf))
      :interval->task->metric-registry (HashMap.)
      :task->component (:task->component worker)
-     :stream->component->grouper (outbound-components worker-context component-id)
+     :stream->component->grouper (outbound-components worker-context component-id storm-conf)
      :report-error (throttled-report-error-fn <>)
      :report-error-and-die (fn [error]
                              ((:report-error <>) error)
@@ -283,6 +280,7 @@
       "When receive queue is below lowWaterMark"
       (if @(:backpressure executor-data)
         (do (reset! (:backpressure executor-data) false)
+            (log-debug "executor " (:executor-id executor-data) " is not-congested, set backpressure flag false")
             (WorkerBackpressureThread/notifyBackpressureChecker (:backpressure-trigger (:worker executor-data))))))))
 
 (defn start-batch-transfer->worker-handler! [worker executor-data]
@@ -316,7 +314,7 @@
           [[nil (TupleImpl. worker-context [interval] Constants/SYSTEM_TASK_ID Constants/METRICS_TICK_STREAM_ID)]]))))))
 
 (defn metrics-tick
-  ([executor-data task-data ^TupleImpl tuple overflow-buffer]
+  [executor-data task-data ^TupleImpl tuple]
    (let [{:keys [interval->task->metric-registry ^WorkerTopologyContext worker-context]} executor-data
          interval (.getInteger tuple 0)
          task-id (:task-id task-data)
@@ -336,11 +334,7 @@
                           (filter identity)
                           (into []))]
      (if (seq data-points)
-       (task/send-unanchored task-data Constants/METRICS_STREAM_ID [task-info data-points] overflow-buffer))))
-  ([executor-data task-data ^TupleImpl tuple]
-    (metrics-tick executor-data task-data tuple nil)
-    ))
-
+       (task/send-unanchored task-data Constants/METRICS_STREAM_ID [task-info data-points]))))
 
 (defn setup-ticks! [worker executor-data]
   (let [storm-conf (:storm-conf executor-data)
@@ -403,8 +397,7 @@
               context (:worker-context executor-data)]
           (disruptor/publish
             receive-queue
-            [[nil (TupleImpl. context [creds] Constants/SYSTEM_TASK_ID Constants/CREDENTIALS_CHANGED_STREAM_ID)]]
-              )))
+            [[nil (TupleImpl. context [creds] Constants/SYSTEM_TASK_ID Constants/CREDENTIALS_CHANGED_STREAM_ID)]])))
       (get-backpressure-flag [this]
         @(:backpressure executor-data))
       Shutdownable
@@ -480,7 +473,7 @@
 
 ;; Send sampled data to the eventlogger if the global or component level
 ;; debug flag is set (via nimbus api).
-(defn send-to-eventlogger [executor-data task-data values overflow-buffer component-id message-id random]
+(defn send-to-eventlogger [executor-data task-data values component-id message-id random]
     (let [c->d @(:storm-component->debug-atom executor-data)
           options (get c->d component-id (get c->d (:storm-id executor-data)))
           spct    (if (and (not-nil? options) (:enable options)) (:samplingpct options) 0)]
@@ -490,8 +483,7 @@
         (task/send-unanchored
           task-data
           EVENTLOGGER-STREAM-ID
-          [component-id message-id (System/currentTimeMillis) values]
-          overflow-buffer))))
+          [component-id message-id (System/currentTimeMillis) values]))))
 
 (defmethod mk-threads :spout [executor-data task-datas initial-credentials]
   (let [{:keys [storm-conf component-id worker-context transfer-fn report-error sampler open-or-prepare-was-called?]} executor-data
@@ -501,15 +493,7 @@
         last-active (atom false)        
         spouts (ArrayList. (map :object (vals task-datas)))
         rand (Random. (Utils/secureRandomLong))
-
-        ;; the overflow buffer is used to ensure that spouts never block when emitting
-        ;; this ensures that the spout can always clear the incoming buffer (acks and fails), which
-        ;; prevents deadlock from occuring across the topology (e.g. Spout -> Bolt -> Acker -> Spout, and all
-        ;; buffers filled up)
-        ;; when the overflow buffer is full, spouts stop calling nextTuple until it's able to clear the overflow buffer
-        ;; this limits the size of the overflow buffer to however many tuples a spout emits in one call of nextTuple, 
-        ;; preventing memory issues
-        overflow-buffer (ConcurrentLinkedQueue.)
+        ^DisruptorQueue transfer-queue (executor-data :batch-transfer-queue)
 
         pending (RotatingMap.
                  2 ;; microoptimize for performance of .size method
@@ -522,7 +506,7 @@
                           (let [stream-id (.getSourceStreamId tuple)]
                             (condp = stream-id
                               Constants/SYSTEM_TICK_STREAM_ID (.rotate pending)
-                              Constants/METRICS_TICK_STREAM_ID (metrics-tick executor-data (get task-datas task-id) tuple overflow-buffer)
+                              Constants/METRICS_TICK_STREAM_ID (metrics-tick executor-data (get task-datas task-id) tuple)
                               Constants/CREDENTIALS_CHANGED_STREAM_ID 
                                 (let [task-data (get task-datas task-id)
                                       spout-obj (:object task-data)]
@@ -578,11 +562,10 @@
                                                                                      out-stream-id
                                                                                      tuple-id)]
                                                            (transfer-fn out-task
-                                                                        out-tuple
-                                                                        overflow-buffer)
+                                                                        out-tuple)
                                                            ))
                                          (if has-eventloggers?
-                                           (send-to-eventlogger executor-data task-data values overflow-buffer component-id message-id rand))
+                                           (send-to-eventlogger executor-data task-data values component-id message-id rand))
                                          (if (and rooted?
                                                   (not (.isEmpty out-ids)))
                                            (do
@@ -592,8 +575,7 @@
                                                                     (if (sampler) (System/currentTimeMillis))])
                                              (task/send-unanchored task-data
                                                                    ACKER-INIT-STREAM-ID
-                                                                   [root-id (bit-xor-vals out-ids) task-id]
-                                                                   overflow-buffer))
+                                                                   [root-id (bit-xor-vals out-ids) task-id]))
                                            (when message-id
                                              (ack-spout-msg executor-data task-data message-id
                                                             {:stream out-stream-id :values values}
@@ -628,19 +610,9 @@
         (log-message "Opened spout " component-id ":" (keys task-datas))
         (setup-metrics! executor-data)
         
-        (disruptor/consumer-started! (:receive-queue executor-data))
         (fn []
           ;; This design requires that spouts be non-blocking
           (disruptor/consume-batch receive-queue event-handler)
-          
-          ;; try to clear the overflow-buffer
-          (try-cause
-            (while (not (.isEmpty overflow-buffer))
-              (let [[out-task out-tuple] (.peek overflow-buffer)]
-                (transfer-fn out-task out-tuple false nil)
-                (.poll overflow-buffer)))
-          (catch InsufficientCapacityException e
-            ))
           
           (let [active? @(:storm-active-atom executor-data)
                 curr-count (.get emitted-count)
@@ -650,7 +622,7 @@
                 reached-max-spout-pending (and max-spout-pending
                                                (>= (.size pending) max-spout-pending))
                 ]
-            (if (and (.isEmpty overflow-buffer)
+            (if (and (not (.isFull transfer-queue))
                      (not throttle-on)
                      (not reached-max-spout-pending))
               (if active?
@@ -706,14 +678,6 @@
                 open-or-prepare-was-called?]} executor-data
         rand (Random. (Utils/secureRandomLong))
 
-        ;; the overflow buffer is used to ensure that bolts do not block when emitting
-        ;; this ensures that the bolt can always clear the incoming messages, which
-        ;; prevents deadlock from occurs across the topology
-        ;; (e.g. Spout -> BoltA -> Splitter -> BoltB -> BoltA, and all
-        ;; buffers filled up)
-        ;; the overflow buffer is might gradually fill degrading the performance gradually
-        ;; eventually running out of memory, but at least prevent live-locks/deadlocks.
-        overflow-buffer (if (storm-conf TOPOLOGY-BOLTS-OUTGOING-OVERFLOW-BUFFER-ENABLE) (ConcurrentLinkedQueue.) nil)
         tuple-action-fn (fn [task-id ^TupleImpl tuple]
                           ;; synchronization needs to be done with a key provided by this bolt, otherwise:
                           ;; spout 1 sends synchronization (s1), dies, same spout restarts somewhere else, sends synchronization (s2) and incremental update. s2 and update finish before s1 -> lose the incremental update
@@ -738,7 +702,7 @@
                                       bolt-obj (:object task-data)]
                                   (when (instance? ICredentialsListener bolt-obj)
                                     (.setCredentials bolt-obj (.getValue tuple 0))))
-                              Constants/METRICS_TICK_STREAM_ID (metrics-tick executor-data (get task-datas task-id) tuple overflow-buffer)
+                              Constants/METRICS_TICK_STREAM_ID (metrics-tick executor-data (get task-datas task-id) tuple)
                               (let [task-data (get task-datas task-id)
                                     ^IBolt bolt-obj (:object task-data)
                                     user-context (:user-context task-data)
@@ -795,10 +759,9 @@
                                                                                values
                                                                                task-id
                                                                                stream
-                                                                               (MessageId/makeId anchors-to-ids))
-                                                                   overflow-buffer)))
+                                                                               (MessageId/makeId anchors-to-ids)))))
                                     (if has-eventloggers?
-                                      (send-to-eventlogger executor-data task-data values overflow-buffer component-id nil rand))
+                                      (send-to-eventlogger executor-data task-data values component-id nil rand))
                                     (or out-tasks [])))]]
           (builtin-metrics/register-all (:builtin-metrics task-data) storm-conf user-context)
           (when (instance? ICredentialsListener bolt-obj) (.setCredentials bolt-obj initial-credentials)) 
@@ -830,7 +793,7 @@
                            (fast-map-iter [[root id] (.. tuple getMessageId getAnchorsToIds)]
                                           (task/send-unanchored task-data
                                                                 ACKER-ACK-STREAM-ID
-                                                                [root (bit-xor id ack-val)] overflow-buffer)
+                                                                [root (bit-xor id ack-val)])
                                           ))
                          (let [delta (tuple-time-delta! tuple)
                                debug? (= true (storm-conf TOPOLOGY-DEBUG))]
@@ -846,7 +809,7 @@
                          (fast-list-iter [root (.. tuple getMessageId getAnchors)]
                                          (task/send-unanchored task-data
                                                                ACKER-FAIL-STREAM-ID
-                                                               [root] overflow-buffer))
+                                                               [root]))
                          (let [delta (tuple-time-delta! tuple)
                                debug? (= true (storm-conf TOPOLOGY-DEBUG))]
                            (when debug? 
@@ -866,19 +829,8 @@
 
         (let [receive-queue (:receive-queue executor-data)
               event-handler (mk-task-receiver executor-data tuple-action-fn)]
-          (disruptor/consumer-started! receive-queue)
           (fn []            
             (disruptor/consume-batch-when-available receive-queue event-handler)
-            ;; try to clear the overflow-buffer
-            (try-cause
-              (while (and overflow-buffer (not (.isEmpty overflow-buffer)))
-                (let [[out-task out-tuple] (.peek overflow-buffer)]
-                  (transfer-fn out-task out-tuple false nil)
-                  (.poll overflow-buffer)))
-              (catch InsufficientCapacityException e
-                (when (= true (storm-conf TOPOLOGY-DEBUG))
-                  (log-message "Insufficient Capacity on queue to emit by bolt " component-id ":" (keys task-datas) ))
-                ))
             0)))
       :kill-fn (:report-error-and-die executor-data)
       :factory? true

@@ -239,6 +239,13 @@ public class Config extends HashMap<String, Object> {
     public static final String TOPOLOGY_TUPLE_SERIALIZER = "topology.tuple.serializer";
 
     /**
+     * Disable load aware grouping support.
+     */
+    @isBoolean
+    @NotNull
+    public static final String TOPOLOGY_DISABLE_LOADAWARE_MESSAGING = "topology.disable.loadaware.messaging";
+
+    /**
      * Try to serialize all tuples, even for local transfers.  This should only be used
      * for testing, as a sanity check that all of your tuples are setup properly.
      */
@@ -581,6 +588,18 @@ public class Config extends HashMap<String, Object> {
     @isInteger
     @isPositiveNumber
     public static final String LOGVIEWER_CLEANUP_AGE_MINS = "logviewer.cleanup.age.mins";
+
+    /**
+     * The maximum number of bytes all worker log files can take up in MB
+     */
+    @isPositiveNumber
+    public static final String LOGVIEWER_MAX_SUM_WORKER_LOGS_SIZE_MB = "logviewer.max.sum.worker.logs.size.mb";
+
+    /**
+     * The maximum number of bytes per worker's files can take up in MB
+     */
+    @isPositiveNumber
+    public static final String LOGVIEWER_MAX_PER_WORKER_LOGS_SIZE_MB = "logviewer.max.per.worker.logs.size.mb";
 
     /**
      * Storm Logviewer HTTPS port
@@ -1079,6 +1098,27 @@ public class Config extends HashMap<String, Object> {
     @isInteger
     @isPositiveNumber
     public static final String WORKER_HEAP_MEMORY_MB = "worker.heap.memory.mb";
+
+    /**
+     * The jvm profiler opts provided to workers launched by this supervisor.
+     */
+    @isStringOrStringList
+    public static final String WORKER_PROFILER_CHILDOPTS = "worker.profiler.childopts";
+
+    /**
+     * This configuration would enable or disable component page profiing and debugging for workers.
+     */
+    @isBoolean
+    public static final String WORKER_PROFILER_ENABLED = "worker.profiler.enabled";
+
+    /**
+     * The command launched supervisor with worker arguments
+     * pid, action and [target_directory]
+     * Where action is - start profile, stop profile, jstack, heapdump and kill against pid
+     *
+     */
+    @isString
+    public static final String WORKER_PROFILER_COMMAND = "worker.profiler.command";
 
     /**
      * The jvm opts provided to workers launched by this supervisor for GC. All "%ID%" substrings are replaced
@@ -1668,6 +1708,24 @@ public class Config extends HashMap<String, Object> {
     @isInteger
     @NotNull
     public static final String TOPOLOGY_DISRUPTOR_WAIT_TIMEOUT_MILLIS="topology.disruptor.wait.timeout.millis";
+
+    /**
+     * The number of tuples to batch before sending to the next thread.  This number is just an initial suggestion and
+     * the code may adjust it as your topology runs.
+     */
+    @isInteger
+    @isPositiveNumber
+    @NotNull
+    public static final String TOPOLOGY_DISRUPTOR_BATCH_SIZE="topology.disruptor.batch.size";
+
+    /**
+     * The maximum age in milliseconds a batch can be before being sent to the next thread.  This number is just an
+     * initial suggestion and the code may adjust it as your topology runs.
+     */
+    @isInteger
+    @isPositiveNumber
+    @NotNull
+    public static final String TOPOLOGY_DISRUPTOR_BATCH_TIMEOUT_MILLIS="topology.disruptor.batch.timeout.millis";
 
     /**
      * Which implementation of {@link backtype.storm.codedistributor.ICodeDistributor} should be used by storm for code

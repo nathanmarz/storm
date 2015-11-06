@@ -21,13 +21,14 @@
         ring.middleware.multipart-params)
   (:use [ring.middleware.json :only [wrap-json-params]])
   (:use [hiccup core page-helpers])
-  (:use [backtype.storm config util log stats tuple zookeeper])
+  (:use [backtype.storm config util log stats tuple zookeeper converter])
   (:use [backtype.storm.ui helpers])
   (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID ACKER-INIT-STREAM-ID ACKER-ACK-STREAM-ID
-                                              ACKER-FAIL-STREAM-ID mk-authorization-handler]]])
-  (:use [clojure.string :only [blank? lower-case trim]])
+                                              ACKER-FAIL-STREAM-ID mk-authorization-handler
+                                              start-metrics-reporters]]])
   (:import [backtype.storm.utils Utils]
            [backtype.storm.generated NimbusSummary])
+  (:use [clojure.string :only [blank? lower-case trim split]])
   (:import [backtype.storm.generated ExecutorSpecificStats
             ExecutorStats ExecutorSummary ExecutorInfo TopologyInfo SpoutStats BoltStats
             ErrorInfo ClusterSummary SupervisorSummary TopologySummary
@@ -38,7 +39,7 @@
             ExecutorAggregateStats SpecificAggregateStats ComponentPageInfo
             LogConfig LogLevel LogLevelAction])
   (:import [backtype.storm.security.auth AuthUtils ReqContext])
-  (:import [backtype.storm.generated AuthorizationException])
+  (:import [backtype.storm.generated AuthorizationException ProfileRequest ProfileAction NodeInfo])
   (:import [backtype.storm.security.auth AuthUtils])
   (:import [backtype.storm.utils VersionInfo])
   (:import [java.io File])
@@ -46,6 +47,7 @@
             [compojure.handler :as handler]
             [ring.util.response :as resp]
             [backtype.storm [thrift :as thrift]])
+  (:require [metrics.meters :refer [defmeter mark!]])
   (:import [org.apache.commons.lang StringEscapeUtils])
   (:import [org.apache.logging.log4j Level])
   (:gen-class))
@@ -53,8 +55,26 @@
 (def ^:dynamic *STORM-CONF* (read-storm-config))
 (def ^:dynamic *UI-ACL-HANDLER* (mk-authorization-handler (*STORM-CONF* NIMBUS-AUTHORIZER) *STORM-CONF*))
 (def ^:dynamic *UI-IMPERSONATION-HANDLER* (mk-authorization-handler (*STORM-CONF* NIMBUS-IMPERSONATION-AUTHORIZER) *STORM-CONF*))
-
 (def http-creds-handler (AuthUtils/GetUiHttpCredentialsPlugin *STORM-CONF*))
+
+(defmeter ui:num-cluster-configuration-http-requests)
+(defmeter ui:num-cluster-summary-http-requests)
+(defmeter ui:num-nimbus-summary-http-requests)
+(defmeter ui:num-supervisor-summary-http-requests)
+(defmeter ui:num-all-topologies-summary-http-requests)
+(defmeter ui:num-topology-page-http-requests)
+(defmeter ui:num-build-visualization-http-requests)
+(defmeter ui:num-mk-visualization-data-http-requests)
+(defmeter ui:num-component-page-http-requests)
+(defmeter ui:num-log-config-http-requests)
+(defmeter ui:num-activate-topology-http-requests)
+(defmeter ui:num-deactivate-topology-http-requests)
+(defmeter ui:num-debug-topology-http-requests)
+(defmeter ui:num-component-op-response-http-requests)
+(defmeter ui:num-topology-op-response-http-requests)
+(defmeter ui:num-topology-op-response-http-requests)
+(defmeter ui:num-topology-op-response-http-requests)
+(defmeter ui:num-main-page-http-requests)
 
 (defn assert-authorized-user
   ([op]
@@ -82,6 +102,14 @@
                user (if principal (.getName principal) "unknown")]
            (throw (AuthorizationException.
                    (str "UI request '" op "' for '" user "' user is not authorized")))))))))
+
+
+(defn assert-authorized-profiler-action
+  [op]
+  (if-not (*STORM-CONF* WORKER-PROFILER-ENABLED)
+    (throw (AuthorizationException.
+             (str "UI request for profiler action '" op "' is disabled.")))))
+
 
 (defn executor-summary-type
   [topology ^ExecutorSummary s]
@@ -117,8 +145,7 @@
     (url-format "http://%s:%s/log?file=%s"
       host
       (*STORM-CONF* LOGVIEWER-PORT)
-      fname))
-  )
+      fname)))
 
 (defn event-log-link
   [topology-id component-id host port secure?]
@@ -129,7 +156,8 @@
     (logviewer-link host fname secure?)))
 
 (defn nimbus-log-link [host port]
-  (url-format "http://%s:%s/log?file=nimbus.log" host (*STORM-CONF* LOGVIEWER-PORT) port))
+  (url-format "http://%s:%s/daemonlog?file=nimbus.log" host (*STORM-CONF* LOGVIEWER-PORT) port))
+
 (defn get-error-time
   [error]
   (if error
@@ -158,6 +186,13 @@
   (if error
     (.get_error_time_secs ^ErrorInfo error)
     ""))
+
+(defn worker-dump-link [host port topology-id]
+  (url-format "http://%s:%s/dumps/%s/%s"
+              (url-encode host)
+              (*STORM-CONF* LOGVIEWER-PORT)
+              (url-encode topology-id)
+              (str (url-encode host) ":" (url-encode port))))
 
 (defn stats-times
   [stats-map]
@@ -407,7 +442,15 @@
        "workersTotal" (.get_num_workers t)
        "executorsTotal" (.get_num_executors t)
        "replicationCount" (.get_replication_count t)
-       "schedulerInfo" (.get_sched_status t)})}))
+       "schedulerInfo" (.get_sched_status t)
+       "requestedMemOnHeap" (.get_requested_memonheap t)
+       "requestedMemOffHeap" (.get_requested_memoffheap t)
+       "requestedMem" (+ (.get_requested_memonheap t) (.get_requested_memoffheap t))
+       "requestedCpu" (.get_requested_cpu t)
+       "assignedMemOnHeap" (.get_assigned_memonheap t)
+       "assignedMemOffHeap" (.get_assigned_memoffheap t)
+       "assignedTotalMem" (+ (.get_assigned_memonheap t) (.get_assigned_memoffheap t))
+       "assignedCpu" (.get_assigned_cpu t)})}))
 
 (defn topology-stats [window stats]
   (let [times (stats-times (:emitted stats))
@@ -525,6 +568,12 @@
      "workersTotal" (.get_num_workers topo-info)
      "executorsTotal" (.get_num_executors topo-info)
      "schedulerInfo" (.get_sched_status topo-info)
+     "requestedMemOnHeap" (.get_requested_memonheap topo-info)
+     "requestedMemOffHeap" (.get_requested_memoffheap topo-info)
+     "requestedCpu" (.get_requested_cpu topo-info)
+     "assignedMemOnHeap" (.get_assigned_memonheap topo-info)
+     "assignedMemOffHeap" (.get_assigned_memoffheap topo-info)
+     "assignedCpu" (.get_assigned_cpu topo-info)
      "topologyStats" topo-stats
      "spouts" (map (partial comp-agg-stats-json id secure?)
                    (.get_id_to_spout_agg_stats topo-info))
@@ -720,6 +769,22 @@
                           (.get_exec_stats info))}
     (-> info .get_errors (component-errors topology-id secure?))))
 
+(defn get-active-profile-actions
+  [nimbus topology-id component]
+  (let [profile-actions  (.getComponentPendingProfileActions nimbus
+                                               topology-id
+                                               component
+                                 ProfileAction/JPROFILE_STOP)
+        latest-profile-actions (map clojurify-profile-request profile-actions)
+        active-actions (map (fn [profile-action]
+                              {"host" (:host profile-action)
+                               "port" (str (:port profile-action))
+                               "dumplink" (worker-dump-link (:host profile-action) (str (:port profile-action)) topology-id)
+                               "timestamp" (str (- (:timestamp profile-action) (System/currentTimeMillis)))})
+                            latest-profile-actions)]
+    (log-message "Latest-active actions are: " (pr active-actions))
+    active-actions))
+
 (defn component-page
   [topology-id component window include-sys? user secure?]
   (thrift/with-configured-nimbus-connection nimbus
@@ -761,8 +826,12 @@
                                       component
                                       (.get_eventlog_host comp-page-info)
                                       (.get_eventlog_port comp-page-info)
-                                      secure?)))))
-
+                                      secure?)
+       "profileActionEnabled" (*STORM-CONF* WORKER-PROFILER-ENABLED)
+       "profilerActive" (if (*STORM-CONF* WORKER-PROFILER-ENABLED)
+                          (get-active-profile-actions nimbus topology-id component)
+                          [])))))
+    
 (defn- level-to-dict [level]
   (if level
     (let [timeout (.get_reset_log_level_timeout_secs level)
@@ -804,21 +873,6 @@
   [sys?]
   (if (or (nil? sys?) (= "false" sys?)) false true))
 
-(defn wrap-json-in-callback [callback response]
-  (str callback "(" response ");"))
-
-(defnk json-response
-  [data callback :serialize-fn to-json :status 200]
-     {:status status
-      :headers (merge {"Cache-Control" "no-cache, no-store"
-                       "Access-Control-Allow-Origin" "*"
-                       "Access-Control-Allow-Headers" "Content-Type, Access-Control-Allow-Headers, Access-Controler-Allow-Origin, X-Requested-By, Authorization, X-Requested-With"}
-                      (if (not-nil? callback) {"Content-Type" "application/javascript;charset=utf-8"}
-                          {"Content-Type" "application/json;charset=utf-8"}))
-      :body (if (not-nil? callback)
-              (wrap-json-in-callback callback (serialize-fn data))
-              (serialize-fn data))})
-
 (def http-creds-handler (AuthUtils/GetUiHttpCredentialsPlugin *STORM-CONF*))
 
 (defn populate-context!
@@ -833,39 +887,48 @@
 
 (defroutes main-routes
   (GET "/api/v1/cluster/configuration" [& m]
+    (mark! ui:num-cluster-configuration-http-requests)
     (json-response (cluster-configuration)
                    (:callback m) :serialize-fn identity))
   (GET "/api/v1/cluster/summary" [:as {:keys [cookies servlet-request]} & m]
+    (mark! ui:num-cluster-summary-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "getClusterInfo")
     (let [user (get-user-name servlet-request)]
       (json-response (cluster-summary user) (:callback m))))
   (GET "/api/v1/nimbus/summary" [:as {:keys [cookies servlet-request]} & m]
+    (mark! ui:num-nimbus-summary-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "getClusterInfo")
     (json-response (nimbus-summary) (:callback m)))
   (GET "/api/v1/supervisor/summary" [:as {:keys [cookies servlet-request]} & m]
+    (mark! ui:num-supervisor-summary-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "getClusterInfo")
     (json-response (supervisor-summary) (:callback m)))
   (GET "/api/v1/topology/summary" [:as {:keys [cookies servlet-request]} & m]
+    (mark! ui:num-all-topologies-summary-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "getClusterInfo")
     (json-response (all-topologies-summary) (:callback m)))
   (GET "/api/v1/topology/:id" [:as {:keys [cookies servlet-request scheme]} id & m]
+    (mark! ui:num-topology-page-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "getTopology" (topology-config id))
     (let [user (get-user-name servlet-request)]
       (json-response (topology-page id (:window m) (check-include-sys? (:sys m)) user (= scheme :https)) (:callback m))))
   (GET "/api/v1/topology/:id/visualization-init" [:as {:keys [cookies servlet-request]} id & m]
+    (mark! ui:num-build-visualization-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "getTopology" (topology-config id))
     (json-response (build-visualization id (:window m) (check-include-sys? (:sys m))) (:callback m)))
   (GET "/api/v1/topology/:id/visualization" [:as {:keys [cookies servlet-request]} id & m]
+    (mark! ui:num-mk-visualization-data-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "getTopology" (topology-config id))
     (json-response (mk-visualization-data id (:window m) (check-include-sys? (:sys m))) (:callback m)))
   (GET "/api/v1/topology/:id/component/:component" [:as {:keys [cookies servlet-request scheme]} id component & m]
+    (mark! ui:num-component-page-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "getTopology" (topology-config id))
     (let [user (get-user-name servlet-request)]
@@ -873,10 +936,12 @@
           (component-page id component (:window m) (check-include-sys? (:sys m)) user (= scheme :https))
           (:callback m))))
   (GET "/api/v1/topology/:id/logconfig" [:as {:keys [cookies servlet-request]} id & m]
+    (mark! ui:num-log-config-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "getTopology" (topology-config id))
        (json-response (log-config id) (:callback m)))
   (POST "/api/v1/topology/:id/activate" [:as {:keys [cookies servlet-request]} id & m]
+    (mark! ui:num-activate-topology-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "activate" (topology-config id))
     (thrift/with-configured-nimbus-connection nimbus
@@ -889,6 +954,7 @@
         (log-message "Activating topology '" name "'")))
     (json-response (topology-op-response id "activate") (m "callback")))
   (POST "/api/v1/topology/:id/deactivate" [:as {:keys [cookies servlet-request]} id & m]
+    (mark! ui:num-deactivate-topology-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "deactivate" (topology-config id))
     (thrift/with-configured-nimbus-connection nimbus
@@ -901,6 +967,7 @@
         (log-message "Deactivating topology '" name "'")))
     (json-response (topology-op-response id "deactivate") (m "callback")))
   (POST "/api/v1/topology/:id/debug/:action/:spct" [:as {:keys [cookies servlet-request]} id action spct & m]
+    (mark! ui:num-debug-topology-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "debug" (topology-config id))
     (thrift/with-configured-nimbus-connection nimbus
@@ -914,6 +981,7 @@
         (log-message "Debug topology [" name "] action [" action "] sampling pct [" spct "]")))
      (json-response (topology-op-response id (str "debug/" action)) (m "callback")))
   (POST "/api/v1/topology/:id/component/:component/debug/:action/:spct" [:as {:keys [cookies servlet-request]} id component action spct & m]
+    (mark! ui:num-component-op-response-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "debug" (topology-config id))
     (thrift/with-configured-nimbus-connection nimbus
@@ -927,6 +995,7 @@
         (log-message "Debug topology [" name "] component [" component "] action [" action "] sampling pct [" spct "]")))
     (json-response (component-op-response id component (str "/debug/" action)) (m "callback")))
   (POST "/api/v1/topology/:id/rebalance/:wait-time" [:as {:keys [cookies servlet-request]} id wait-time & m]
+    (mark! ui:num-topology-op-response-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "rebalance" (topology-config id))
     (thrift/with-configured-nimbus-connection nimbus
@@ -947,6 +1016,7 @@
         (log-message "Rebalancing topology '" name "' with wait time: " wait-time " secs")))
     (json-response (topology-op-response id "rebalance") (m "callback")))
   (POST "/api/v1/topology/:id/kill/:wait-time" [:as {:keys [cookies servlet-request]} id wait-time & m]
+    (mark! ui:num-topology-op-response-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "killTopology" (topology-config id))
     (thrift/with-configured-nimbus-connection nimbus
@@ -961,6 +1031,7 @@
         (log-message "Killing topology '" name "' with wait time: " wait-time " secs")))
     (json-response (topology-op-response id "kill") (m "callback")))
   (POST "/api/v1/topology/:id/logconfig" [:as {:keys [cookies servlet-request]} id namedLoggerLevels & m]
+    (mark! ui:num-topology-op-response-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "setLogConfig" (topology-config id))
     (thrift/with-configured-nimbus-connection
@@ -987,18 +1058,132 @@
         (log-message "Setting topology " id " log config " new-log-config)
         (.setLogConfig nimbus id new-log-config)
         (json-response (log-config id) (m "callback")))))
+
+  (GET "/api/v1/topology/:id/profiling/start/:host-port/:timeout"
+       [:as {:keys [servlet-request]} id host-port timeout & m]
+       (thrift/with-configured-nimbus-connection nimbus
+         (let [user (.getUserName http-creds-handler servlet-request)
+               topology-conf (from-json
+                              (.getTopologyConf ^Nimbus$Client nimbus id))]
+           (assert-authorized-user "setWorkerProfiler" (topology-config id))
+           (assert-authorized-profiler-action "start"))
+
+         (let [[host, port] (split host-port #":")
+               nodeinfo (NodeInfo. host (set [(Long. port)]))
+               timestamp (+ (System/currentTimeMillis) (* 60000 (Long. timeout)))
+               request (ProfileRequest. nodeinfo
+                                        ProfileAction/JPROFILE_STOP)]
+           (.set_time_stamp request timestamp)
+           (.setWorkerProfiler nimbus id request)
+           (json-response {"status" "ok"
+                           "id" host-port
+                           "timeout" timeout
+                           "dumplink" (worker-dump-link
+                                       host
+                                       port
+                                       id)}
+                          (m "callback")))))
+
+  (GET "/api/v1/topology/:id/profiling/stop/:host-port"
+       [:as {:keys [servlet-request]} id host-port & m]
+       (thrift/with-configured-nimbus-connection nimbus
+         (let [user (.getUserName http-creds-handler servlet-request)
+               topology-conf (from-json
+                              (.getTopologyConf ^Nimbus$Client nimbus id))]
+           (assert-authorized-user "setWorkerProfiler" (topology-config id))
+           (assert-authorized-profiler-action "stop"))
+         (let [[host, port] (split host-port #":")
+               nodeinfo (NodeInfo. host (set [(Long. port)]))
+               timestamp 0
+               request (ProfileRequest. nodeinfo
+                                        ProfileAction/JPROFILE_STOP)]
+           (.set_time_stamp request timestamp)
+           (.setWorkerProfiler nimbus id request)
+           (json-response {"status" "ok"
+                           "id" host-port}
+                          (m "callback")))))
+  
+  (GET "/api/v1/topology/:id/profiling/dumpprofile/:host-port"
+       [:as {:keys [servlet-request]} id host-port & m]
+       (thrift/with-configured-nimbus-connection nimbus
+         (let [user (.getUserName http-creds-handler servlet-request)
+               topology-conf (from-json
+                              (.getTopologyConf ^Nimbus$Client nimbus id))]
+           (assert-authorized-user "setWorkerProfiler" (topology-config id))
+           (assert-authorized-profiler-action "dumpprofile"))
+         (let [[host, port] (split host-port #":")
+               nodeinfo (NodeInfo. host (set [(Long. port)]))
+               timestamp (System/currentTimeMillis)
+               request (ProfileRequest. nodeinfo
+                                        ProfileAction/JPROFILE_DUMP)]
+           (.set_time_stamp request timestamp)
+           (.setWorkerProfiler nimbus id request)
+           (json-response {"status" "ok"
+                           "id" host-port}
+                          (m "callback")))))
+
+  (GET "/api/v1/topology/:id/profiling/dumpjstack/:host-port"
+       [:as {:keys [servlet-request]} id host-port & m]
+       (thrift/with-configured-nimbus-connection nimbus
+         (let [user (.getUserName http-creds-handler servlet-request)
+               topology-conf (from-json
+                              (.getTopologyConf ^Nimbus$Client nimbus id))]
+           (assert-authorized-user "setWorkerProfiler" (topology-config id))
+           (assert-authorized-profiler-action "dumpjstack"))
+         (let [[host, port] (split host-port #":")
+               nodeinfo (NodeInfo. host (set [(Long. port)]))
+               timestamp (System/currentTimeMillis)
+               request (ProfileRequest. nodeinfo
+                                        ProfileAction/JSTACK_DUMP)]
+           (.set_time_stamp request timestamp)
+           (.setWorkerProfiler nimbus id request)
+           (json-response {"status" "ok"
+                           "id" host-port}
+                          (m "callback")))))
+
+  (GET "/api/v1/topology/:id/profiling/restartworker/:host-port"
+       [:as {:keys [servlet-request]} id host-port & m]
+       (thrift/with-configured-nimbus-connection nimbus
+         (let [user (.getUserName http-creds-handler servlet-request)
+               topology-conf (from-json
+                              (.getTopologyConf ^Nimbus$Client nimbus id))]
+           (assert-authorized-user "setWorkerProfiler" (topology-config id))
+           (assert-authorized-profiler-action "restartworker"))
+         (let [[host, port] (split host-port #":")
+               nodeinfo (NodeInfo. host (set [(Long. port)]))
+               timestamp (System/currentTimeMillis)
+               request (ProfileRequest. nodeinfo
+                                        ProfileAction/JVM_RESTART)]
+           (.set_time_stamp request timestamp)
+           (.setWorkerProfiler nimbus id request)
+           (json-response {"status" "ok"
+                           "id" host-port}
+                          (m "callback")))))
+       
+  (GET "/api/v1/topology/:id/profiling/dumpheap/:host-port"
+       [:as {:keys [servlet-request]} id host-port & m]
+       (thrift/with-configured-nimbus-connection nimbus
+         (let [user (.getUserName http-creds-handler servlet-request)
+               topology-conf (from-json
+                              (.getTopologyConf ^Nimbus$Client nimbus id))]
+           (assert-authorized-user "setWorkerProfiler" (topology-config id))
+           (assert-authorized-profiler-action "dumpheap"))
+         (let [[host, port] (split host-port #":")
+               nodeinfo (NodeInfo. host (set [(Long. port)]))
+               timestamp (System/currentTimeMillis)
+               request (ProfileRequest. nodeinfo
+                                        ProfileAction/JMAP_DUMP)]
+           (.set_time_stamp request timestamp)
+           (.setWorkerProfiler nimbus id request)
+           (json-response {"status" "ok"
+                           "id" host-port}
+                          (m "callback")))))
+  
   (GET "/" [:as {cookies :cookies}]
+    (mark! ui:num-main-page-http-requests)
     (resp/redirect "/index.html"))
   (route/resources "/")
   (route/not-found "Page not found"))
-
-(defn exception->json
-  [ex]
-  {"error" "Internal Server Error"
-   "errorMessage"
-   (let [sw (java.io.StringWriter.)]
-     (.printStackTrace ex (java.io.PrintWriter. sw))
-     (.toString sw))})
 
 (defn catch-errors
   [handler]
@@ -1013,6 +1198,7 @@
                     (wrap-json-params)
                     (wrap-multipart-params)
                     (wrap-reload '[backtype.storm.ui.core])
+                    requests-middleware
                     catch-errors)))
 
 (defn start-server!
@@ -1032,6 +1218,7 @@
           https-ts-type (conf UI-HTTPS-TRUSTSTORE-TYPE)
           https-want-client-auth (conf UI-HTTPS-WANT-CLIENT-AUTH)
           https-need-client-auth (conf UI-HTTPS-NEED-CLIENT-AUTH)]
+      (start-metrics-reporters)
       (storm-run-jetty {:port (conf UI-PORT)
                         :host (conf UI-HOST)
                         :https-port https-port

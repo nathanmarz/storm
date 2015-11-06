@@ -237,7 +237,8 @@ under the License.
 * Pete Prokopowicz ([@prokopowicz](https://github.com/prokopowicz))
 * Priyank Shah ([@priyank5485](https://github.com/priyank5485))
 * Joshua Martell ([@jmartell7](https://github.com/jmartell7))
-* Matthew Tieman ([@mjtieman](https://github.com/mjtieman)])
+* Matthew Tieman ([@mjtieman](https://github.com/mjtieman))
+* Chuck Burgess ([@ashnazg](https://github.com/ashnazg))
 
 ## Acknowledgements
 

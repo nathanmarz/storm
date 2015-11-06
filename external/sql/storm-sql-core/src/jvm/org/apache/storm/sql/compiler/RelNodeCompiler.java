@@ -25,9 +25,6 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.TableScan;
 
 import java.io.PrintWriter;
-import java.util.Collections;
-import java.util.Set;
-import java.util.TreeSet;
 
 /**
  * Compile RelNodes into individual functions.
@@ -45,19 +42,13 @@ class RelNodeCompiler extends PostOrderRelNodeVisitor<Void> {
     ""
   );
 
-  public Set<String> getReferredTables() {
-    return Collections.unmodifiableSet(referredTables);
-  }
-
-  private final Set<String> referredTables = new TreeSet<>();
-
   RelNodeCompiler(PrintWriter pw, JavaTypeFactory typeFactory) {
     this.pw = pw;
     this.typeFactory = typeFactory;
   }
 
   @Override
-  Void visitFilter(Filter filter) throws Exception {
+  public Void visitFilter(Filter filter) throws Exception {
     beginStage(filter);
     ExprCompiler compiler = new ExprCompiler(pw, typeFactory);
     String r = filter.getCondition().accept(compiler);
@@ -67,7 +58,7 @@ class RelNodeCompiler extends PostOrderRelNodeVisitor<Void> {
   }
 
   @Override
-  Void visitProject(Project project) throws Exception {
+  public Void visitProject(Project project) throws Exception {
     beginStage(project);
     ExprCompiler compiler = new ExprCompiler(pw, typeFactory);
 
@@ -84,14 +75,12 @@ class RelNodeCompiler extends PostOrderRelNodeVisitor<Void> {
   }
 
   @Override
-  Void defaultValue(RelNode n) {
+  public Void defaultValue(RelNode n) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  Void visitTableScan(TableScan scan) throws Exception {
-    String tableName = Joiner.on('_').join(scan.getTable().getQualifiedName());
-    referredTables.add(tableName);
+  public Void visitTableScan(TableScan scan) throws Exception {
     beginStage(scan);
     pw.print("    ctx.emit(_data);\n");
     endStage();

@@ -18,22 +18,11 @@
 package org.apache.storm.sql.compiler;
 
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.Aggregate;
-import org.apache.calcite.rel.core.Calc;
-import org.apache.calcite.rel.core.Collect;
-import org.apache.calcite.rel.core.Correlate;
-import org.apache.calcite.rel.core.Exchange;
-import org.apache.calcite.rel.core.Filter;
-import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.Sample;
-import org.apache.calcite.rel.core.Sort;
-import org.apache.calcite.rel.core.TableScan;
-import org.apache.calcite.rel.core.Uncollect;
-import org.apache.calcite.rel.core.Window;
+import org.apache.calcite.rel.core.*;
 import org.apache.calcite.rel.stream.Delta;
 
-abstract class PostOrderRelNodeVisitor<T> {
-  final T traverse(RelNode n) throws Exception {
+public abstract class PostOrderRelNodeVisitor<T> {
+  public final T traverse(RelNode n) throws Exception {
     for (RelNode input : n.getInputs()) {
       traverse(input);
     }
@@ -58,6 +47,8 @@ abstract class PostOrderRelNodeVisitor<T> {
       return visitSample((Sample) n);
     } else if (n instanceof Sort) {
       return visitSort((Sort) n);
+    } else if (n instanceof TableModify) {
+      return visitTableModify((TableModify) n);
     } else if (n instanceof TableScan) {
       return visitTableScan((TableScan) n);
     } else if (n instanceof Uncollect) {
@@ -69,59 +60,63 @@ abstract class PostOrderRelNodeVisitor<T> {
     }
   }
 
-  T visitAggregate(Aggregate aggregate) throws Exception {
+  public T visitAggregate(Aggregate aggregate) throws Exception {
     return defaultValue(aggregate);
   }
 
-  T visitCalc(Calc calc) throws Exception {
+  public T visitCalc(Calc calc) throws Exception {
     return defaultValue(calc);
   }
 
-  T visitCollect(Collect collect) throws Exception {
+  public T visitCollect(Collect collect) throws Exception {
     return defaultValue(collect);
   }
 
-  T visitCorrelate(Correlate correlate) throws Exception {
+  public T visitCorrelate(Correlate correlate) throws Exception {
     return defaultValue(correlate);
   }
 
-  T visitDelta(Delta delta) throws Exception {
+  public T visitDelta(Delta delta) throws Exception {
     return defaultValue(delta);
   }
 
-  T visitExchange(Exchange exchange) throws Exception {
+  public T visitExchange(Exchange exchange) throws Exception {
     return defaultValue(exchange);
   }
 
-  T visitProject(Project project) throws Exception {
+  public T visitProject(Project project) throws Exception {
     return defaultValue(project);
   }
 
-  T visitFilter(Filter filter) throws Exception {
+  public T visitFilter(Filter filter) throws Exception {
     return defaultValue(filter);
   }
 
-  T visitSample(Sample sample) throws Exception {
+  public T visitSample(Sample sample) throws Exception {
     return defaultValue(sample);
   }
 
-  T visitSort(Sort sort) throws Exception {
+  public T visitSort(Sort sort) throws Exception {
     return defaultValue(sort);
   }
 
-  T visitTableScan(TableScan scan) throws Exception {
+  public T visitTableModify(TableModify modify) throws Exception {
+    return defaultValue(modify);
+  }
+
+  public T visitTableScan(TableScan scan) throws Exception {
     return defaultValue(scan);
   }
 
-  T visitUncollect(Uncollect uncollect) throws Exception {
+  public T visitUncollect(Uncollect uncollect) throws Exception {
     return defaultValue(uncollect);
   }
 
-  T visitWindow(Window window) throws Exception {
+  public T visitWindow(Window window) throws Exception {
     return defaultValue(window);
   }
 
-  T defaultValue(RelNode n) {
+  public T defaultValue(RelNode n) {
     return null;
   }
 }

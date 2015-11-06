@@ -33,7 +33,7 @@ import org.apache.calcite.util.Util;
 import java.util.ArrayList;
 
 public class CompilerUtil {
-  static String escapeJavaString(String s, boolean nullMeansNull) {
+  public static String escapeJavaString(String s, boolean nullMeansNull) {
       if(s == null) {
         return nullMeansNull ? "null" : "\"\"";
       } else {

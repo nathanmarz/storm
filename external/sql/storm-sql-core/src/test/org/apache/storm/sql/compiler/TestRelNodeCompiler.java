@@ -19,11 +19,9 @@ package org.apache.storm.sql.compiler;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
-import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
-import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -36,7 +34,7 @@ public class TestRelNodeCompiler {
   @Test
   public void testFilter() throws Exception {
     String sql = "SELECT ID + 1 FROM FOO WHERE ID > 3";
-    TestUtils.CalciteState state = TestUtils.sqlOverDummyTable(sql);
+    TestCompilerUtils.CalciteState state = TestCompilerUtils.sqlOverDummyTable(sql);
     JavaTypeFactory typeFactory = new JavaTypeFactoryImpl(
         RelDataTypeSystem.DEFAULT);
     LogicalProject project = (LogicalProject) state.tree;

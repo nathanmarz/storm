@@ -48,13 +48,13 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.*;
 /**
  * Compile RexNode on top of the Tuple abstraction.
  */
-class ExprCompiler implements RexVisitor<String> {
+public class ExprCompiler implements RexVisitor<String> {
   private final PrintWriter pw;
   private final JavaTypeFactory typeFactory;
   private static final ImpTable IMP_TABLE = new ImpTable();
   private int nameCount;
 
-  ExprCompiler(PrintWriter pw, JavaTypeFactory typeFactory) {
+  public ExprCompiler(PrintWriter pw, JavaTypeFactory typeFactory) {
     this.pw = pw;
     this.typeFactory = typeFactory;
   }

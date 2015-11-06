@@ -18,9 +18,7 @@
 package org.apache.storm.sql;
 
 import backtype.storm.tuple.Values;
-import org.apache.storm.sql.compiler.TestUtils;
-import org.apache.storm.sql.runtime.ChannelHandler;
-import org.apache.storm.sql.runtime.DataSource;
+import org.apache.storm.sql.runtime.*;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -29,7 +27,6 @@ import org.junit.Test;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class TestStormSql {
   private static class MockDataSourceProvider implements DataSourcesProvider {
@@ -41,8 +38,14 @@ public class TestStormSql {
     @Override
     public DataSource construct(
         URI uri, String inputFormatClass, String outputFormatClass,
-        List<Map.Entry<String, Class<?>>> fields) {
+        List<FieldInfo> fields) {
       return new TestUtils.MockDataSource();
+    }
+
+    @Override
+    public ISqlTridentDataSource constructTrident(URI uri, String inputFormatClass, String outputFormatClass,
+         List<FieldInfo> fields) {
+      throw new UnsupportedOperationException();
     }
   }
 

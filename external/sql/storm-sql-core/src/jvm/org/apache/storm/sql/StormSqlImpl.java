@@ -29,12 +29,11 @@ import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
 import org.apache.storm.sql.compiler.PlanCompiler;
+import org.apache.storm.sql.parser.ColumnConstraint;
 import org.apache.storm.sql.parser.ColumnDefinition;
 import org.apache.storm.sql.parser.SqlCreateTable;
 import org.apache.storm.sql.parser.StormParser;
-import org.apache.storm.sql.runtime.ChannelHandler;
-import org.apache.storm.sql.runtime.DataSource;
-import org.apache.storm.sql.runtime.AbstractValuesProcessor;
+import org.apache.storm.sql.runtime.*;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -76,14 +75,16 @@ class StormSqlImpl extends StormSql {
   private void handleCreateTable(
       SqlCreateTable n, Map<String, DataSource> dataSources) {
     TableBuilderInfo builder = new TableBuilderInfo(typeFactory);
-    List<Map.Entry<String, Class<?>>> fields = new ArrayList<>();
+    List<FieldInfo> fields = new ArrayList<>();
     for (ColumnDefinition col : n.fieldList()) {
       builder.field(col.name(), col.type());
       RelDataType dataType = col.type().deriveType(typeFactory);
       Class<?> javaType = (Class<?>)typeFactory.getJavaClass(dataType);
-      fields.add(new AbstractMap.SimpleImmutableEntry<String, Class<?>>
-                     (col.name(), javaType));
+      ColumnConstraint constraint = col.constraint();
+      boolean isPrimary = constraint != null && constraint instanceof ColumnConstraint.PrimaryKey;
+      fields.add(new FieldInfo(col.name(), javaType, isPrimary));
     }
+
     Table table = builder.build();
     schema.add(n.tableName(), table);
     DataSource ds = DataSourcesRegistry.construct(n.location(), n

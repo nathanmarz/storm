@@ -37,7 +37,7 @@ public class TestExprCompiler {
   @Test
   public void testLiteral() throws Exception {
     String sql = "SELECT 1,1.0,TRUE,'FOO' FROM FOO";
-    TestUtils.CalciteState state = TestUtils.sqlOverDummyTable(sql);
+    TestCompilerUtils.CalciteState state = TestCompilerUtils.sqlOverDummyTable(sql);
     JavaTypeFactory typeFactory = new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     LogicalProject project = (LogicalProject) state.tree;
     String[] res = new String[project.getChildExps().size()];
@@ -55,7 +55,7 @@ public class TestExprCompiler {
   @Test
   public void testInputRef() throws Exception {
     String sql = "SELECT ID FROM FOO";
-    TestUtils.CalciteState state = TestUtils.sqlOverDummyTable(sql);
+    TestCompilerUtils.CalciteState state = TestCompilerUtils.sqlOverDummyTable(sql);
     JavaTypeFactory typeFactory = new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     LogicalProject project = (LogicalProject) state.tree;
     StringWriter sw = new StringWriter();
@@ -70,7 +70,7 @@ public class TestExprCompiler {
   @Test
   public void testCallExpr() throws Exception {
     String sql = "SELECT 1>2, 3+5, 1-1.0, 3+ID FROM FOO";
-    TestUtils.CalciteState state = TestUtils.sqlOverDummyTable(sql);
+    TestCompilerUtils.CalciteState state = TestCompilerUtils.sqlOverDummyTable(sql);
     JavaTypeFactory typeFactory = new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     LogicalProject project = (LogicalProject) state.tree;
     String[] res = new String[project.getChildExps().size()];

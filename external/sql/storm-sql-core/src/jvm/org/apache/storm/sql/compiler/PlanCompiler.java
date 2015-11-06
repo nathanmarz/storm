@@ -96,9 +96,8 @@ public class PlanCompiler {
     RelNode n;
     while ((n = q.poll()) != null) {
       pw.print(
-          String.format("    ChannelContext CTX_%d = Channels.chain(%2$s, " +
-                            "%3$s);\n", n.getId(), lastCtx, RelNodeCompiler
-              .getStageName(n)));
+          String.format("    ChannelContext CTX_%d = Channels.chain(%2$s, %3$s);\n",
+              n.getId(), lastCtx, RelNodeCompiler.getStageName(n)));
       lastCtx = String.format("CTX_%d", n.getId());
 
       if (n instanceof TableScan) {

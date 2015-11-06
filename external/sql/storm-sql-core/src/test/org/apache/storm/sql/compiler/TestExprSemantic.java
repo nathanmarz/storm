@@ -23,6 +23,7 @@ import com.google.common.collect.Lists;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.storm.sql.TestUtils;
 import org.apache.storm.sql.runtime.ChannelHandler;
 import org.apache.storm.sql.runtime.DataSource;
 import org.apache.storm.sql.runtime.AbstractValuesProcessor;
@@ -124,7 +125,7 @@ public class TestExprSemantic {
   private Values testExpr(List<String> exprs) throws Exception {
     String sql = "SELECT " + Joiner.on(',').join(exprs) + " FROM FOO" +
         " WHERE ID > 0 AND ID < 2";
-    TestUtils.CalciteState state = TestUtils.sqlOverDummyTable(sql);
+    TestCompilerUtils.CalciteState state = TestCompilerUtils.sqlOverDummyTable(sql);
     PlanCompiler compiler = new PlanCompiler(typeFactory);
     AbstractValuesProcessor proc = compiler.compile(state.tree);
     Map<String, DataSource> data = new HashMap<>();

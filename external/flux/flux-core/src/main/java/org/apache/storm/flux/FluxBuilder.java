@@ -492,6 +492,12 @@ public class FluxBuilder {
                 constructorParams[i] = args.get(i);
                 continue;
             }
+            if (isPrimitiveBoolean(paramType) && Boolean.class.isAssignableFrom(objectType)){
+                LOG.debug("Its a primitive boolean.");
+                Boolean bool = (Boolean)args.get(i);
+                constructorParams[i] = bool.booleanValue();
+                continue;
+            }
             if(isPrimitiveNumber(paramType) && Number.class.isAssignableFrom(objectType)){
                 LOG.debug("Its a primitive number.");
                 Number num = (Number)args.get(i);
@@ -569,6 +575,9 @@ public class FluxBuilder {
                 LOG.debug("Yes, assignment is possible.");
                 return true;
             }
+            if (isPrimitiveBoolean(paramType) && Boolean.class.isAssignableFrom(objectType)){
+                return true;
+            }
             if(isPrimitiveNumber(paramType) && Number.class.isAssignableFrom(objectType)){
                 return true;
             }
@@ -590,6 +599,10 @@ public class FluxBuilder {
 
     public static boolean isPrimitiveNumber(Class clazz){
         return clazz.isPrimitive() && !clazz.equals(boolean.class);
+    }
+
+    public static boolean isPrimitiveBoolean(Class clazz){
+        return clazz.isPrimitive() && clazz.equals(boolean.class);
     }
 }
 

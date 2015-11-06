@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1154: SequenceFileBolt needs unit tests
  * STORM-162: Load Aware Shuffle Grouping
  * STORM-1158: Storm metrics to profile various storm functions
  * STORM-1161: Add License headers and add rat checks to builds

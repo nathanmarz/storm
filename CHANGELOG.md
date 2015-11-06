@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1180: FLUX logo wasn't appearing quite right
  * STORM-1138: Storm-hdfs README should be updated with Avro Bolt information
  * STORM-1154: SequenceFileBolt needs unit tests
  * STORM-162: Load Aware Shuffle Grouping

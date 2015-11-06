@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-162: Load Aware Shuffle Grouping
  * STORM-1158: Storm metrics to profile various storm functions
  * STORM-1161: Add License headers and add rat checks to builds
  * STORM-1165: normalize the scales of CPU/Mem/Net when choosing the best node for Resource Aware Scheduler

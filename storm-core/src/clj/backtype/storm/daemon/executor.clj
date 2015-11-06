@@ -42,7 +42,8 @@
   (:require [backtype.storm.daemon.builtin-metrics :as builtin-metrics])
   (:require [clojure.set :as set]))
 
-(defn- mk-fields-grouper [^Fields out-fields ^Fields group-fields ^List target-tasks]
+(defn- mk-fields-grouper
+  [^Fields out-fields ^Fields group-fields ^List target-tasks]
   (let [num-tasks (count target-tasks)
         task-getter (fn [i] (.get target-tasks i))]
     (fn [task-id ^List values load]
@@ -51,7 +52,8 @@
           (mod num-tasks)
           task-getter))))
 
-(defn- mk-custom-grouper [^CustomStreamGrouping grouping ^WorkerTopologyContext context ^String component-id ^String stream-id target-tasks]
+(defn- mk-custom-grouper
+  [^CustomStreamGrouping grouping ^WorkerTopologyContext context ^String component-id ^String stream-id target-tasks]
   (.prepare grouping context (GlobalStreamId. component-id stream-id) target-tasks)
   (if (instance? LoadAwareCustomStreamGrouping grouping)
     (fn [task-id ^List values load]
@@ -59,7 +61,8 @@
     (fn [task-id ^List values load]
       (.chooseTasks grouping task-id values))))
 
-(defn mk-shuffle-grouper [^List target-tasks topo-conf ^WorkerTopologyContext context ^String component-id ^String stream-id]
+(defn mk-shuffle-grouper
+  [^List target-tasks topo-conf ^WorkerTopologyContext context ^String component-id ^String stream-id]
   (if (.get topo-conf TOPOLOGY-DISABLE-LOADAWARE-MESSAGING)
     (mk-custom-grouper (ShuffleGrouping.) context component-id stream-id target-tasks)
     (mk-custom-grouper (LoadAwareShuffleGrouping.) context component-id stream-id target-tasks)))
@@ -105,7 +108,8 @@
         :direct
       )))
 
-(defn- outbound-groupings [^WorkerTopologyContext worker-context this-component-id stream-id out-fields component->grouping topo-conf]
+(defn- outbound-groupings
+  [^WorkerTopologyContext worker-context this-component-id stream-id out-fields component->grouping topo-conf]
   (->> component->grouping
        (filter-key #(-> worker-context
                         (.getComponentTasks %)

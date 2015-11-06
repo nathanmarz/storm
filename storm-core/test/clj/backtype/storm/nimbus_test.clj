@@ -19,7 +19,8 @@
   (:require [backtype.storm.daemon [nimbus :as nimbus]])
   (:require [backtype.storm [converter :as converter]])
   (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount
-            TestAggregatesCounter TestPlannerSpout TestPlannerBolt])
+            TestAggregatesCounter TestPlannerSpout TestPlannerBolt]
+           [backtype.storm.nimbus InMemoryTopologyAcitonNotifier])
   (:import [backtype.storm.scheduler INimbus])
   (:import [backtype.storm.nimbus ILeaderElector NimbusInfo])
   (:import [backtype.storm.generated Credentials NotAliveException SubmitOptions
@@ -296,7 +297,7 @@
                       {"1" (thrift/mk-spout-spec (TestPlannerSpout. false) :parallelism-hint 3)}
                       {"2" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 5)
                        "3" (thrift/mk-bolt-spec {"2" :none} (TestPlannerBolt.))}))
-          
+
       (submit-local-topology nimbus "noniso" {TOPOLOGY-WORKERS 4} topology)
       (advance-cluster-time cluster 11)
       (is (= 4 (topology-num-nodes state "noniso")))
@@ -305,19 +306,19 @@
       (submit-local-topology nimbus "tester1" {TOPOLOGY-WORKERS 6} topology)
       (submit-local-topology nimbus "tester2" {TOPOLOGY-WORKERS 6} topology)
       (advance-cluster-time cluster 11)
-    
+
       (bind task-info-tester1 (storm-component->task-info cluster "tester1"))
       (bind task-info-tester2 (storm-component->task-info cluster "tester2"))
-          
+
 
       (is (= 1 (topology-num-nodes state "noniso")))
       (is (= 3 (storm-num-workers state "noniso")))
 
       (is (= {2 3} (topology-node-distribution state "tester1")))
       (is (= {3 2} (topology-node-distribution state "tester2")))
-      
+
       (is (apply disjoint? (map (partial topology-nodes state) ["noniso" "tester1" "tester2"])))
-      
+
       (check-consistency cluster "tester1")
       (check-consistency cluster "tester2")
       (check-consistency cluster "noniso")
@@ -325,12 +326,12 @@
       ;;check that nothing gets reassigned
       (bind tester1-slots (topology-slots state "tester1"))
       (bind tester2-slots (topology-slots state "tester2"))
-      (bind noniso-slots (topology-slots state "noniso"))    
+      (bind noniso-slots (topology-slots state "noniso"))
       (advance-cluster-time cluster 20)
       (is (= tester1-slots (topology-slots state "tester1")))
       (is (= tester2-slots (topology-slots state "tester2")))
       (is (= noniso-slots (topology-slots state "noniso")))
-      
+
       )))
 
 (deftest test-zero-executor-or-tasks
@@ -366,7 +367,7 @@
       (check-consistency cluster "mystorm")
       (is (= 5 (count (task-info "1"))))
       (check-distribution (executor-info "1") [2 2 1])
-      
+
       (is (= 2 (count (task-info "2"))))
       (check-distribution (executor-info "2") [1 1])
 
@@ -444,13 +445,13 @@
       (is (thrown? AlreadyAliveException (submit-local-topology (:nimbus cluster) "2test" {} topology)))
       (advance-cluster-time cluster 11)
       (is (= 1 (count (.heartbeat-storms state))))
-      
+
       (advance-cluster-time cluster 6)
       (is (nil? (.storm-base state storm-id nil)))
       (is (nil? (.assignment-info state storm-id nil)))
       (advance-cluster-time cluster 11)
       (is (= 0 (count (.heartbeat-storms state))))
-      
+
       (submit-local-topology (:nimbus cluster) "test3" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 5} topology)
       (bind storm-id3 (get-storm-id state "test3"))
       (advance-cluster-time cluster 11)
@@ -464,13 +465,13 @@
       ;; this guarantees that monitor thread won't trigger for 10 more seconds
       (advance-time-secs! 11)
       (wait-until-cluster-waiting cluster)
-      
+
       (submit-local-topology (:nimbus cluster) "test3" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 5} topology)
       (bind storm-id3 (get-storm-id state "test3"))
 
       (advance-cluster-time cluster 11)
       (bind executor-id (first (topology-executors cluster storm-id3)))
-      
+
       (do-executor-heartbeat cluster storm-id3 executor-id)
 
       (.killTopology (:nimbus cluster) "test3")
@@ -487,7 +488,7 @@
       (advance-cluster-time cluster 9)
       (is (not-nil? (.assignment-info state storm-id4 nil)))
       (advance-cluster-time cluster 2)
-      (is (nil? (.assignment-info state storm-id4 nil)))      
+      (is (nil? (.assignment-info state storm-id4 nil)))
       )))
 
 (deftest test-reassignment
@@ -534,7 +535,7 @@
       (do-executor-heartbeat cluster storm-id executor-id1)
       (is (= ass1 (executor-assignment cluster storm-id executor-id1)))
       (check-consistency cluster "test")
-      
+
       (advance-cluster-time cluster 11)
       (is (= ass1 (executor-assignment cluster storm-id executor-id1)))
       (is (not= ass2 (executor-assignment cluster storm-id executor-id2)))
@@ -612,7 +613,7 @@
       (bind [executor-id1 executor-id2]  (topology-executors cluster storm-id))
       (bind ass1 (executor-assignment cluster storm-id executor-id1))
       (bind ass2 (executor-assignment cluster storm-id executor-id2))
-      
+
       (advance-cluster-time cluster 30)
       (do-executor-heartbeat cluster storm-id executor-id1)
       (do-executor-heartbeat cluster storm-id executor-id2)
@@ -686,7 +687,7 @@
       (bind common (first (find-first (fn [[k v]] (= 3 (count v))) slot-executors2)))
       (is (not-nil? common))
       (is (= (slot-executors2 common) (slot-executors common)))
-      
+
       ;; check that start times are changed for everything but the common one
       (bind same-executors (slot-executors2 common))
       (bind changed-executors (apply concat (vals (dissoc slot-executors2 common))))
@@ -891,7 +892,7 @@
       (is (thrown? InvalidTopologyException
                    (submit-local-topology (:nimbus cluster)
                                           "test"
-                                          {TOPOLOGY-WORKERS 3} 
+                                          {TOPOLOGY-WORKERS 3}
                                           topology)))
       (bind topology (thrift/mk-topology
                       {"1" (thrift/mk-spout-spec (TestPlannerSpout. true)
@@ -1072,15 +1073,15 @@
           (.disconnect cluster-state))))))
 
 (deftest test-nimbus-iface-submitTopologyWithOpts-checks-authorization
-  (with-local-cluster [cluster 
-                       :daemon-conf {NIMBUS-AUTHORIZER 
+  (with-local-cluster [cluster
+                       :daemon-conf {NIMBUS-AUTHORIZER
                           "backtype.storm.security.auth.authorizer.DenyAuthorizer"}]
     (let [
           nimbus (:nimbus cluster)
           topology (thrift/mk-topology {} {})
          ]
       (is (thrown? AuthorizationException
-          (submit-local-topology-with-opts nimbus "mystorm" {} topology 
+          (submit-local-topology-with-opts nimbus "mystorm" {} topology
             (SubmitOptions. TopologyInitialStatus/INACTIVE))
         ))
     )
@@ -1088,8 +1089,8 @@
 )
 
 (deftest test-nimbus-iface-methods-check-authorization
-  (with-local-cluster [cluster 
-                       :daemon-conf {NIMBUS-AUTHORIZER 
+  (with-local-cluster [cluster
+                       :daemon-conf {NIMBUS-AUTHORIZER
                           "backtype.storm.security.auth.authorizer.DenyAuthorizer"}]
     (let [
           nimbus (:nimbus cluster)
@@ -1097,7 +1098,7 @@
          ]
       ; Fake good authorization as part of setup.
       (mocking [nimbus/check-authorization!]
-          (submit-local-topology-with-opts nimbus "test" {} topology 
+          (submit-local-topology-with-opts nimbus "test" {} topology
               (SubmitOptions. TopologyInitialStatus/INACTIVE))
       )
       (stubbing [nimbus/storm-active? true]
@@ -1232,16 +1233,16 @@
       (stubbing [topology-bases bogus-bases]
         (let [topos (.get_topologies (.getClusterInfo nimbus))]
           ; The number of topologies in the summary is correct.
-          (is (= (count 
+          (is (= (count
             (filter (fn [b] (second b)) bogus-bases)) (count topos)))
           ; Each topology present has a valid name.
           (is (empty?
             (filter (fn [t] (or (nil? t) (nil? (.get_name t)))) topos)))
           ; The topologies are those with valid bases.
           (is (empty?
-            (filter (fn [t] 
-              (or 
-                (nil? t) 
+            (filter (fn [t]
+              (or
+                (nil? t)
                 (not (number? (read-string (.get_id t))))
                 (odd? (read-string (.get_id t)))
               )) topos)))
@@ -1330,6 +1331,44 @@
         (.disconnect cluster-state)
         ))))
 
+(deftest test-topology-action-notifier
+  (with-inprocess-zookeeper zk-port
+    (with-local-tmp [nimbus-dir]
+      (stubbing [zk-leader-elector (mock-leader-elector)]
+        (letlocals
+          (bind conf (merge (read-storm-config)
+                       {STORM-ZOOKEEPER-SERVERS ["localhost"]
+                        STORM-CLUSTER-MODE "local"
+                        STORM-ZOOKEEPER-PORT zk-port
+                        STORM-LOCAL-DIR nimbus-dir
+                        NIMBUS-TOPOLOGY-ACTION-NOTIFIER-PLUGIN (.getName InMemoryTopologyAcitonNotifier)}))
+          (bind cluster-state (cluster/mk-storm-cluster-state conf))
+          (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
+          (bind notifier (InMemoryTopologyAcitonNotifier.))
+          (sleep-secs 1)
+          (bind topology (thrift/mk-topology
+                           {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
+                           {}))
+          (submit-local-topology nimbus "test-notification" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 30} topology)
+
+          (.deactivate nimbus "test-notification")
+
+          (.activate nimbus "test-notification")
+
+          (.rebalance nimbus "test-notification" (doto (RebalanceOptions.)
+                                                   (.set_wait_secs 0)))
+
+          (.killTopologyWithOpts nimbus "test-notification" (doto (KillOptions.)
+                                                      (.set_wait_secs 0)))
+
+          (.shutdown nimbus)
+
+          ; ensure notifier was invoked for each action,and in the correct order.
+          (is (= ["submitTopology", "activate", "deactivate", "activate", "rebalance", "killTopology"]
+                (.getTopologyActions notifier "test-notification")))
+          (.disconnect cluster-state)
+          )))))
+
 (deftest test-debug-on-component
   (with-local-cluster [cluster]
     (let [nimbus (:nimbus cluster)
@@ -1386,7 +1425,7 @@
         (.set_action other-level LogLevelAction/UPDATE)
         (.put_to_named_logger_level previous-config "other-test" other-level)
         (.setLogConfig nimbus "foo" previous-config)
-      
+
         ;; only change "test"
         (.set_target_log_level level "INFO")
         (.set_action level LogLevelAction/UPDATE)

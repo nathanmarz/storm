@@ -17,9 +17,27 @@
  */
 package backtype.storm.nimbus;
 
+import java.util.Map;
+
 /**
  * A plugin interface that gets invoked any time there is an action for a topology.
  */
 public interface ITopologyActionNotifierPlugin {
-    void notify(String topologyId, String action);
+    /**
+     * Called once during nimbus initialization.
+     * @param StormConf
+     */
+    void prepare(Map StormConf);
+
+    /**
+     * When a new actions is executed for a topology, this method will be called.
+     * @param topologyName
+     * @param action
+     */
+    void notify(String topologyName, String action);
+
+    /**
+     * called during shutdown.
+     */
+    void cleanup();
 }

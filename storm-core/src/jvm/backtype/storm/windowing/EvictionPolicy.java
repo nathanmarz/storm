@@ -25,13 +25,18 @@ package backtype.storm.windowing;
  */
 public interface EvictionPolicy<T> {
     /**
-     * returns true if the event should be evicted from the window.
+     * Decides if an event should be evicted from the window or not.
+     *
+     * @param event the input event
+     * @return true if the event should be evicted, false otherwise
      */
     boolean evict(Event<T> event);
 
     /**
      * Tracks the event to later decide whether
-     * {@link EvictionPolicy#evict(Event)} should evict the event.
+     * {@link EvictionPolicy#evict(Event)} should evict it or not.
+     *
+     * @param event the input event to be tracked
      */
     void track(Event<T> event);
 }

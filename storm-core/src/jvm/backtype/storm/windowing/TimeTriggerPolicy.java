@@ -17,33 +17,42 @@
  */
 package backtype.storm.windowing;
 
+import backtype.storm.topology.FailedException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
  * Invokes {@link TriggerHandler#onTrigger()} after the duration.
  */
 public class TimeTriggerPolicy<T> implements TriggerPolicy<T> {
+    private static final Logger LOG = LoggerFactory.getLogger(TimeTriggerPolicy.class);
+
     private long duration;
     private final TriggerHandler handler;
     private final ScheduledExecutorService executor;
+    private final ScheduledFuture<?> executorFuture;
 
     public TimeTriggerPolicy(long millis, TriggerHandler handler) {
         this.duration = millis;
         this.handler = handler;
         this.executor = Executors.newSingleThreadScheduledExecutor();
-        start();
+        this.executorFuture = executor.scheduleAtFixedRate(newTriggerTask(), duration, duration, TimeUnit.MILLISECONDS);
     }
 
     @Override
     public void track(Event<T> event) {
-        // NOOP
+        checkFailures();
     }
 
     @Override
     public void reset() {
-        // NOOP
+        checkFailures();
     }
 
     @Override
@@ -59,20 +68,48 @@ public class TimeTriggerPolicy<T> implements TriggerPolicy<T> {
         }
     }
 
-    private void start() {
-        Runnable task = new Runnable() {
-            @Override
-            public void run() {
-                handler.onTrigger();
-            }
-        };
-        executor.scheduleAtFixedRate(task, duration, duration, TimeUnit.MILLISECONDS);
-    }
-
     @Override
     public String toString() {
         return "TimeTriggerPolicy{" +
                 "duration=" + duration +
                 '}';
+    }
+
+    /*
+    * Check for uncaught exceptions during the execution
+    * of the trigger and fail fast.
+    * The uncaught exceptions will be wrapped in
+    * ExecutionException and thrown when future.get() is invoked.
+    */
+    private void checkFailures() {
+        if (executorFuture.isDone()) {
+            try {
+                executorFuture.get();
+            } catch (InterruptedException ex) {
+                LOG.error("Got exception ", ex);
+                throw new FailedException(ex);
+            } catch (ExecutionException ex) {
+                LOG.error("Got exception ", ex);
+                throw new FailedException(ex.getCause());
+            }
+        }
+    }
+
+    private Runnable newTriggerTask() {
+        return new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    handler.onTrigger();
+                } catch (Throwable th) {
+                    LOG.error("handler.onTrigger failed ", th);
+                    /*
+                     * propagate it so that task gets canceled and the exception
+                     * can be retrieved from executorFuture.get()
+                     */
+                    throw th;
+                }
+            }
+        };
     }
 }

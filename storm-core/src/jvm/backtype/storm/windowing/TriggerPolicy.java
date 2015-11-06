@@ -25,6 +25,8 @@ package backtype.storm.windowing;
 public interface TriggerPolicy<T> {
     /**
      * Tracks the event and could use this to invoke the trigger.
+     *
+     * @param event the input event
      */
     void track(Event<T> event);
 

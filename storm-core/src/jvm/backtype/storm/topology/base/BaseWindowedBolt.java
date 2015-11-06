@@ -130,7 +130,6 @@ public abstract class BaseWindowedBolt implements IWindowedBolt {
         return withWindowLength(windowLength).withSlidingInterval(new Count(1));
     }
 
-
     /**
      * A time duration based window that slides with every incoming tuple.
      *

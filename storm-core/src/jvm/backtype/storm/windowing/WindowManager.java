@@ -17,7 +17,6 @@
  */
 package backtype.storm.windowing;
 
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,14 +48,14 @@ public class WindowManager<T> implements TriggerHandler {
      */
     public static final int EXPIRE_EVENTS_THRESHOLD = 100;
 
-    private WindowLifecycleListener<T> windowLifecycleListener;
-    private ConcurrentLinkedQueue<Event<T>> window;
+    private final WindowLifecycleListener<T> windowLifecycleListener;
+    private final ConcurrentLinkedQueue<Event<T>> window;
+    private final List<T> expiredEvents;
+    private final Set<Event<T>> prevWindowEvents;
+    private final AtomicInteger eventsSinceLastExpiry;
+    private final ReentrantLock lock;
     private EvictionPolicy<T> evictionPolicy;
     private TriggerPolicy<T> triggerPolicy;
-    private List<T> expiredEvents;
-    private Set<Event<T>> prevWindowEvents;
-    private AtomicInteger eventsSinceLastExpiry;
-    private ReentrantLock lock;
 
     public WindowManager(WindowLifecycleListener<T> lifecycleListener) {
         windowLifecycleListener = lifecycleListener;

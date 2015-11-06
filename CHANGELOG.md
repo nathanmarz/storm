@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1182: Removing and wrapping some exceptions in ConfigValidation to make code cleaner
  * STORM-1134. Windows: Fix log4j config.
  * STORM-1127: allow for boolean arguments (Flux)
  * STORM-1180: FLUX logo wasn't appearing quite right

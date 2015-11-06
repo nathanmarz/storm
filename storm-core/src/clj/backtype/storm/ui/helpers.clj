@@ -34,7 +34,16 @@
            [org.eclipse.jetty.servlets CrossOriginFilter])
   (:require [ring.util servlet])
   (:require [compojure.route :as route]
-            [compojure.handler :as handler]))
+            [compojure.handler :as handler])
+  (:require [metrics.meters :refer [defmeter mark!]]))
+
+(defmeter num-web-requests)
+(defn requests-middleware
+  "Coda Hale metric for counting the number of web requests."
+  [handler]
+  (fn [req]
+    (mark! num-web-requests)
+    (handler req)))
 
 (defn split-divide [val divider]
   [(Integer. (int (/ val divider))) (mod val divider)]

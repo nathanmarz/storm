@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1134. Windows: Fix log4j config.
  * STORM-1127: allow for boolean arguments (Flux)
  * STORM-1180: FLUX logo wasn't appearing quite right
  * STORM-1138: Storm-hdfs README should be updated with Avro Bolt information

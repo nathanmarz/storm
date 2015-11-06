@@ -62,13 +62,13 @@
   (with-simulated-time-local-cluster [cluster :supervisors 4]
     (let [topology (thrift/mk-topology
                     {"1" (thrift/mk-spout-spec (TestWordSpout. true))}
-                    {"2" (thrift/mk-bolt-spec {"1" :shuffle} emit-task-id
+                    {"2" (thrift/mk-bolt-spec {"1" :all} emit-task-id
                       :parallelism-hint 3
                       :conf {TOPOLOGY-TASKS 6})
                      })
           results (complete-topology cluster
                                      topology
-                                     :mock-sources {"1" [["a"] ["a"] ["a"] ["a"] ["a"] ["a"]]})]
+                                     :mock-sources {"1" [["a"]]})]
       (is (ms= [[0] [1] [2] [3] [4] [5]]
                (read-tuples results "2")))
       )))

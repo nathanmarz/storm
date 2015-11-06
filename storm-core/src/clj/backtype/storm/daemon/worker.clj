@@ -25,6 +25,7 @@
   (:import [java.util.concurrent Executors])
   (:import [java.util ArrayList HashMap])
   (:import [backtype.storm.utils Utils TransferDrainer ThriftTopologyUtils WorkerBackpressureThread DisruptorQueue])
+  (:import [backtype.storm.grouping LoadMapping])
   (:import [backtype.storm.messaging TransportFactory])
   (:import [backtype.storm.messaging TaskMessage IContext IConnection ConnectionWithStatus ConnectionWithStatus$Status])
   (:import [backtype.storm.daemon Shutdownable])
@@ -269,6 +270,7 @@
       :topology topology
       :system-topology (system-topology! storm-conf topology)
       :heartbeat-timer (mk-halting-timer "heartbeat-timer")
+      :refresh-load-timer (mk-halting-timer "refresh-load-timer")
       :refresh-connections-timer (mk-halting-timer "refresh-connections-timer")
       :refresh-credentials-timer (mk-halting-timer "refresh-credentials-timer")
       :reset-log-levels-timer (mk-halting-timer "reset-log-levels-timer")
@@ -295,6 +297,7 @@
       :transfer-local-fn (mk-transfer-local-fn <>)
       :receiver-thread-count (get storm-conf WORKER-RECEIVER-THREAD-COUNT)
       :transfer-fn (mk-transfer-fn <>)
+      :load-mapping (LoadMapping.)
       :assignment-versions assignment-versions
       :backpressure (atom false) ;; whether this worker is going slow
       :transfer-backpressure (atom false) ;; if the transfer queue is backed-up
@@ -309,6 +312,28 @@
   (let [[port-str node] (.split s "/" 2)]
     [node (Integer/valueOf port-str)]
     ))
+
+(def LOAD-REFRESH-INTERVAL-MS 5000)
+
+(defn mk-refresh-load [worker]
+  (let [local-tasks (set (:task-ids worker))
+        remote-tasks (set/difference (worker-outbound-tasks worker) local-tasks)
+        short-executor-receive-queue-map (:short-executor-receive-queue-map worker)
+        next-update (atom 0)]
+    (fn this
+      ([]
+        (let [^LoadMapping load-mapping (:load-mapping worker)
+              local-pop (map-val (fn [queue]
+                                   (let [q-metrics (.getMetrics queue)]
+                                     (/ (double (.population q-metrics)) (.capacity q-metrics))))
+                                 short-executor-receive-queue-map)
+              remote-load (reduce merge (for [[np conn] @(:cached-node+port->socket worker)] (into {} (.getLoad conn remote-tasks))))
+              now (System/currentTimeMillis)]
+          (.setLocal load-mapping local-pop)
+          (.setRemote load-mapping remote-load)
+          (when (> now @next-update)
+            (.sendLoadMetrics (:receiver worker) local-pop)
+            (reset! next-update (+ LOAD-REFRESH-INTERVAL-MS now))))))))
 
 (defn mk-refresh-connections [worker]
   (let [outbound-tasks (worker-outbound-tasks worker)
@@ -574,6 +599,7 @@
         receive-thread-shutdown (launch-receive-thread worker)
 
         refresh-connections (mk-refresh-connections worker)
+        refresh-load (mk-refresh-load worker)
 
         _ (refresh-connections nil)
 
@@ -635,6 +661,7 @@
                     (cancel-timer (:refresh-active-timer worker))
                     (cancel-timer (:executor-heartbeat-timer worker))
                     (cancel-timer (:user-timer worker))
+                    (cancel-timer (:refresh-load-timer worker))
 
                     (close-resources worker)
 
@@ -655,6 +682,7 @@
                (and
                  (timer-waiting? (:heartbeat-timer worker))
                  (timer-waiting? (:refresh-connections-timer worker))
+                 (timer-waiting? (:refresh-load-timer worker))
                  (timer-waiting? (:refresh-credentials-timer worker))
                  (timer-waiting? (:refresh-active-timer worker))
                  (timer-waiting? (:executor-heartbeat-timer worker))
@@ -691,6 +719,9 @@
                           (check-credentials-changed)
                           (if ((:storm-conf worker) TOPOLOGY-BACKPRESSURE-ENABLE)
                             (check-throttle-changed))))
+    ;; The jitter allows the clients to get the data at different times, and avoids thundering herd
+    (when-not (.get conf TOPOLOGY-DISABLE-LOADAWARE-MESSAGING)
+      (schedule-recurring-with-jitter (:refresh-load-timer worker) 0 1 500 refresh-load))
     (schedule-recurring (:refresh-connections-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) refresh-connections)
     (schedule-recurring (:reset-log-levels-timer worker) 0 (conf WORKER-LOG-LEVEL-RESET-POLL-SECS) (fn [] (reset-log-levels latest-log-config)))
     (schedule-recurring (:refresh-active-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) (partial refresh-storm-active worker))

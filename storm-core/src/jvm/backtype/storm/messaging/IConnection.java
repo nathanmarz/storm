@@ -17,7 +17,10 @@
  */
 package backtype.storm.messaging;
 
+import backtype.storm.grouping.Load;
+import java.util.Collection;
 import java.util.Iterator;
+import java.util.Map;
 
 public interface IConnection {   
     
@@ -27,6 +30,12 @@ public interface IConnection {
      * @return
      */
     public Iterator<TaskMessage> recv(int flags, int clientId);
+
+    /**
+     * Send load metrics to all downstream connections.
+     * @param taskToLoad a map from the task id to the load for that task.
+     */
+    public void sendLoadMetrics(Map<Integer, Double> taskToLoad);
     
     /**
      * send a message with taskId and payload
@@ -42,6 +51,13 @@ public interface IConnection {
 
     public void send(Iterator<TaskMessage> msgs);
     
+    /**
+     * Get the current load for the given tasks
+     * @param tasks the tasks to look for.
+     * @return a Load for each of the tasks it knows about.
+     */
+    public Map<Integer, Load> getLoad(Collection<Integer> tasks);
+
     /**
      * close this connection
      */

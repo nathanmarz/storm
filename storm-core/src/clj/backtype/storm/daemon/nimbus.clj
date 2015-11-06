@@ -97,9 +97,11 @@
 (defn create-tology-action-notifier [conf]
   (when-not (clojure.string/blank? (conf NIMBUS-TOPOLOGY-ACTION-NOTIFIER-PLUGIN))
     (let [instance (new-instance (conf NIMBUS-TOPOLOGY-ACTION-NOTIFIER-PLUGIN))]
-      (.prepare instance conf)
-      instance
-      )))
+      (try
+        (.prepare instance conf)
+        instance
+        (catch Exception e
+          (log-warn-error e "Ingoring exception, Could not initialize " (conf NIMBUS-TOPOLOGY-ACTION-NOTIFIER-PLUGIN)))))))
 
 (defn nimbus-data [conf inimbus]
   (let [forced-scheduler (.getForcedScheduler inimbus)]

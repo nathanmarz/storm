@@ -76,9 +76,10 @@ public class TestUtils {
     public static Config getConfig(String brokerConnectionString) {
         Config config = new Config();
         Properties props = new Properties();
-        props.put("metadata.broker.list", brokerConnectionString);
-        props.put("request.required.acks", "1");
-        props.put("serializer.class", "kafka.serializer.StringEncoder");
+        props.put("bootstrap.servers", brokerConnectionString);
+        props.put("acks", "1");
+        props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         config.put(KafkaBolt.KAFKA_BROKER_PROPERTIES, props);
         config.put(KafkaBolt.TOPIC, TOPIC);
 

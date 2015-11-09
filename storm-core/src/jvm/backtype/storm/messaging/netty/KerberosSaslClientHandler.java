@@ -145,8 +145,7 @@ public class KerberosSaslClientHandler extends SimpleChannelUpstreamHandler {
             // server.
             SaslMessageToken saslResponse = new SaslMessageToken(responseToServer);
             channel.write(saslResponse);
-        }
-        else {
+        } else {
             LOG.error("Unexpected message from server: {}", event.getMessage());
         }
     }

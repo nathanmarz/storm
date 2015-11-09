@@ -187,14 +187,6 @@ public class KerberosSaslNettyClient {
     private static class SaslClientCallbackHandler implements CallbackHandler {
 
         /**
-         * Set private members using topology token.
-         *
-         * @param topologyToken
-         */
-        public SaslClientCallbackHandler() {
-        }
-
-        /**
          * Implementation used to respond to SASL tokens from server.
          *
          * @param callbacks

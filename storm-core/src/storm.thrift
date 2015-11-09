@@ -174,6 +174,8 @@ struct NimbusSummary {
 
 struct ClusterSummary {
   1: required list<SupervisorSummary> supervisors;
+  //@deprecated, please use nimbuses.uptime_secs instead.
+  2: optional i32 nimbus_uptime_secs = 0;
   3: required list<TopologySummary> topologies;
   4: required list<NimbusSummary> nimbuses;
 }

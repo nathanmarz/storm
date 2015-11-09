@@ -1603,11 +1603,12 @@
                                                                                    (.getReplicationCount (:code-distributor nimbus) id)
                                                                                    1))
                                                topo-summ
-                                          ))]
-          (ClusterSummary. supervisor-summaries
-                           topology-summaries
-                           nimbuses)
-          ))
+                                          ))
+              ret (ClusterSummary. supervisor-summaries
+                                   topology-summaries
+                                   nimbuses)
+              _ (.set_nimbus_uptime_secs ret nimbus-uptime)]
+              ret))
       
       (^TopologyInfo getTopologyInfoWithOpts [this ^String storm-id ^GetInfoOptions options]
         (mark! nimbus:num-getTopologyInfoWithOpts-calls)

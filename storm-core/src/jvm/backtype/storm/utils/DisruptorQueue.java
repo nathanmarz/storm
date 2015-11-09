@@ -36,6 +36,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -55,6 +57,7 @@ public class DisruptorQueue implements IStatefulObject {
     private static final Logger LOG = LoggerFactory.getLogger(DisruptorQueue.class);    
     private static final Object INTERRUPT = new Object();
     private static final String PREFIX = "disruptor-";
+    private static final ScheduledThreadPoolExecutor TIMER = new ScheduledThreadPoolExecutor(0);
 
     private static class ObjectEventFactory implements EventFactory<AtomicReference<Object>> {
         @Override
@@ -137,40 +140,36 @@ public class DisruptorQueue implements IStatefulObject {
         }
     }
 
-    private class FlusherThread extends Thread {
+    private class Flusher implements Runnable {
+        private ScheduledFuture<?> _future;
         private final long _flushInterval;
-        private volatile boolean _done;
 
-        public FlusherThread(long flushInterval, String name) {
-            super(name+"-flusher");
+        public Flusher(long flushInterval, String name) {
             _flushInterval = flushInterval;
-            _done = false;
-            setDaemon(true);
         }
 
         public void run() {
-            try {
-                long nextFlushTime = System.currentTimeMillis();
-                while (!_done) {
-                    long now = System.currentTimeMillis();
-                    if (now >= nextFlushTime) {
-                        for (ThreadLocalBatcher batcher: _batchers.values()) {
-                            batcher.forceBatch();
-                            batcher.flush(true);
-                        }
-                        nextFlushTime = now + _flushInterval;
-                    } else {
-                        Thread.sleep(nextFlushTime - now);
-                    }
-                }
-            } catch (InterruptedException e) {
-                //Ignored we are done
+            for (ThreadLocalBatcher batcher: _batchers.values()) {
+                batcher.forceBatch();
+                batcher.flush(true);
+            }
+        }
+
+        public void start() {
+            _future = TIMER.scheduleWithFixedDelay(this, _flushInterval, _flushInterval, TimeUnit.MILLISECONDS);
+            synchronized(TIMER) {
+                TIMER.setCorePoolSize(TIMER.getCorePoolSize() + 1);
             }
         }
 
         public void close() {
-            _done = true;
-            interrupt();
+            if (_future != null) {
+                _future.cancel(true);
+                _future = null;
+                synchronized(TIMER) {
+                    TIMER.setCorePoolSize(TIMER.getCorePoolSize() - 1);
+                }
+            }
         }
     }
 
@@ -239,7 +238,7 @@ public class DisruptorQueue implements IStatefulObject {
     private final SequenceBarrier _barrier;
     private final int _inputBatchSize;
     private final ConcurrentHashMap<Long, ThreadLocalBatcher> _batchers = new ConcurrentHashMap<Long, ThreadLocalBatcher>();
-    private final FlusherThread _flusher;
+    private final Flusher _flusher;
     private final QueueMetrics _metrics;
 
     private String _queueName = "";
@@ -268,7 +267,7 @@ public class DisruptorQueue implements IStatefulObject {
         //This is mostly to avoid contention issues.
         _inputBatchSize = Math.max(1, Math.min(inputBatchSize, size/2));
 
-        _flusher = new FlusherThread(Math.max(flushInterval, 1), _queueName);
+        _flusher = new Flusher(Math.max(flushInterval, 1), _queueName);
         _flusher.start();
     }
 
@@ -284,11 +283,8 @@ public class DisruptorQueue implements IStatefulObject {
         try {
             publishDirect(new ArrayList<Object>(Arrays.asList(INTERRUPT)), true);
             _flusher.close();
-            _flusher.join();
         } catch (InsufficientCapacityException e) {
             //This should be impossible
-            throw new RuntimeException(e);
-        } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
     }

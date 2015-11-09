@@ -34,12 +34,12 @@
             BufferFileInputStream])
   (:import [backtype.storm.generated NotAliveException AlreadyAliveException StormTopology ErrorInfo
             ExecutorInfo InvalidTopologyException Nimbus$Iface Nimbus$Processor SubmitOptions TopologyInitialStatus
-            KillOptions RebalanceOptions ClusterSummary SupervisorSummary TopologySummary TopologyInfo
+            KillOptions RebalanceOptions ClusterSummary SupervisorSummary TopologySummary TopologyInfo TopologyHistoryInfo
             ExecutorSummary AuthorizationException GetInfoOptions NumErrorsChoice
             ComponentPageInfo TopologyPageInfo LogConfig LogLevel LogLevelAction
             ProfileRequest ProfileAction NodeInfo])
   (:import [backtype.storm.daemon Shutdownable])
-  (:use [backtype.storm util config log timer zookeeper])
+  (:use [backtype.storm util config log timer zookeeper local-state])
   (:require [backtype.storm [cluster :as cluster]
                             [converter :as converter]
                             [stats :as stats]
@@ -156,6 +156,8 @@
      :id->sched-status (atom {})
      :id->resources (atom {})
      :cred-renewers (AuthUtils/GetCredentialRenewers conf)
+     :topology-history-lock (Object.)
+     :topo-history-state (nimbus-topo-history-state conf)
      :nimbus-autocred-plugins (AuthUtils/getNimbusAutoCredPlugins conf)
      }))
 
@@ -1015,6 +1017,17 @@
         (log-error "Cleaning inbox ... error deleting: " (.getName f))
         ))))
 
+(defn clean-topology-history
+  "Deletes topologies from history older than minutes."
+  [mins nimbus]
+  (locking (:topology-history-lock nimbus)
+    (let [cutoff-age (- (current-time-secs) (* mins 60))
+          topo-history-state (:topo-history-state nimbus)
+          curr-history (vec (ls-topo-hist topo-history-state))
+          new-history (vec (filter (fn [line]
+                                     (> (line :timestamp) cutoff-age)) curr-history))]
+      (ls-topo-hist! topo-history-state new-history))))
+
 (defn cleanup-corrupt-topologies! [nimbus]
   (if (is-leader nimbus :throw-exception false)
     (let [storm-cluster-state (:storm-cluster-state nimbus)
@@ -1088,6 +1101,46 @@
   )
 )
 
+(defn add-topology-to-history-log
+  [storm-id nimbus topology-conf]
+  (log-message "Adding topo to history log: " storm-id)
+  (locking (:topology-history-lock nimbus)
+    (let [topo-history-state (:topo-history-state nimbus)
+          users (get-topo-logs-users topology-conf)
+          groups (get-topo-logs-groups topology-conf)
+          curr-history (vec (ls-topo-hist topo-history-state))
+          new-history (conj curr-history {:topoid storm-id :timestamp (current-time-secs)
+                                          :users users :groups groups})]
+      (ls-topo-hist! topo-history-state new-history))))
+
+(defn igroup-mapper
+  [storm-conf]
+  (AuthUtils/GetGroupMappingServiceProviderPlugin storm-conf))
+
+(defn user-groups
+  [user storm-conf]
+  (if (clojure.string/blank? user) [] (.getGroups (igroup-mapper storm-conf) user)))
+
+(defn does-users-group-intersect?
+  "Check to see if any of the users groups intersect with the list of groups passed in"
+  [user groups-to-check storm-conf]
+  (let [groups (user-groups user storm-conf)]
+    (> (.size (set/intersection (set groups) (set groups-to-check))) 0)))
+
+(defn read-topology-history
+  [nimbus user admin-users]
+  (let [topo-history-state (:topo-history-state nimbus)
+        curr-history (vec (ls-topo-hist topo-history-state))
+        topo-user-can-access (fn [line user storm-conf]
+                               (if (nil? user)
+                                 (line :topoid)
+                                 (if (or (some #(= % user) admin-users)
+                                       (does-users-group-intersect? user (line :groups) storm-conf)
+                                       (some #(= % user) (line :users)))
+                                   (line :topoid)
+                                   nil)))]
+    (remove nil? (map #(topo-user-can-access % user (:conf nimbus)) curr-history))))
+
 (defn renew-credentials [nimbus]
   (if (is-leader nimbus :throw-exception false)
     (let [storm-cluster-state (:storm-cluster-state nimbus)
@@ -1140,6 +1193,7 @@
   (log-message "Starting Nimbus with conf " conf)
   (let [nimbus (nimbus-data conf inimbus)
         principal-to-local (AuthUtils/GetPrincipalToLocalPlugin conf)
+        admin-users (or (.get conf NIMBUS-ADMINS) [])
         get-common-topo-info
           (fn [^String storm-id operation]
             (let [storm-cluster-state (:storm-cluster-state nimbus)
@@ -1211,6 +1265,14 @@
                         (fn []
                           (clean-inbox (inbox nimbus) (conf NIMBUS-INBOX-JAR-EXPIRATION-SECS))
                           ))
+    ;; Schedule topology history cleaner
+    (when-let [interval (conf LOGVIEWER-CLEANUP-INTERVAL-SECS)]
+      (schedule-recurring (:timer nimbus)
+        0
+        (conf LOGVIEWER-CLEANUP-INTERVAL-SECS)
+        (fn []
+          (clean-topology-history (conf LOGVIEWER-CLEANUP-AGE-MINS) nimbus)
+          )))
     ;;schedule nimbus code sync thread to sync code from other nimbuses.
     (schedule-recurring (:timer nimbus)
       0
@@ -1770,6 +1832,21 @@
                 (.set_eventlog_host host)
                 (.set_eventlog_port port))))
           comp-page-info))
+
+      (^TopologyHistoryInfo getTopologyHistory [this ^String user]
+        (let [storm-cluster-state (:storm-cluster-state nimbus)
+              bases (topology-bases storm-cluster-state)
+              assigned-topology-ids (.assignments storm-cluster-state nil)
+              user-group-match-fn (fn [topo-id user conf]
+                                    (let [topology-conf (try-read-storm-conf conf topo-id)
+                                          groups (get-topo-logs-groups topology-conf)]
+                                      (or (nil? user)
+                                          (some #(= % user) admin-users)
+                                          (does-users-group-intersect? user groups conf)
+                                          (some #(= % user) (get-topo-logs-users topology-conf)))))
+              active-ids-for-user (filter #(user-group-match-fn % user (:conf nimbus)) assigned-topology-ids)
+              topo-history-list (read-topology-history nimbus user admin-users)]
+          (TopologyHistoryInfo. (distinct (concat active-ids-for-user topo-history-list)))))
 
       Shutdownable
       (shutdown [this]

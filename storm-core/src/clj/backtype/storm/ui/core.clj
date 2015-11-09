@@ -283,6 +283,12 @@
     (map (fn [row]
            {:row row}) (partition 4 4 nil streams))))
 
+(defn- get-topology-info
+  ([^Nimbus$Client nimbus id]
+    (.getTopologyInfo nimbus id))
+  ([^Nimbus$Client nimbus id options]
+    (.getTopologyInfoWithOpts nimbus id options)))
+
 (defn mk-visualization-data
   [id window include-sys?]
   (thrift/with-configured-nimbus-connection
@@ -343,6 +349,14 @@
 (defn cluster-configuration []
   (thrift/with-configured-nimbus-connection nimbus
     (.getNimbusConf ^Nimbus$Client nimbus)))
+
+(defn topology-history-info
+  ([user]
+    (thrift/with-configured-nimbus-connection nimbus
+      (topology-history-info (.getTopologyHistory ^Nimbus$Client nimbus user) user)))
+  ([history user]
+    {"topo-history"
+     (into [] (.get_topo_ids history))}))
 
 (defn cluster-summary
   ([user]
@@ -583,6 +597,18 @@
      "debug" (or debugEnabled false)
      "samplingPct" (or samplingPct 10)
      "replicationCount" (.get_replication_count topo-info)}))
+
+(defn exec-host-port
+  [executors]
+  (for [^ExecutorSummary e executors]
+    {"host" (.get_host e)
+     "port" (.get_port e)}))
+
+(defn worker-host-port
+  "Get the set of all worker host/ports"
+  [id]
+  (thrift/with-configured-nimbus-connection nimbus
+    (distinct (exec-host-port (.get_executors (get-topology-info nimbus id))))))
 
 (defn topology-page [id window include-sys? user secure?]
   (thrift/with-configured-nimbus-connection nimbus
@@ -901,16 +927,24 @@
     (populate-context! servlet-request)
     (assert-authorized-user "getClusterInfo")
     (json-response (nimbus-summary) (:callback m)))
+  (GET "/api/v1/history/summary" [:as {:keys [cookies servlet-request]} & m]
+    (let [user (.getUserName http-creds-handler servlet-request)]
+      (json-response (topology-history-info user) (:callback m))))
   (GET "/api/v1/supervisor/summary" [:as {:keys [cookies servlet-request]} & m]
     (mark! ui:num-supervisor-summary-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "getClusterInfo")
-    (json-response (supervisor-summary) (:callback m)))
+    (json-response (assoc (supervisor-summary)
+                     "logviewerPort" (*STORM-CONF* LOGVIEWER-PORT)) (:callback m)))
   (GET "/api/v1/topology/summary" [:as {:keys [cookies servlet-request]} & m]
     (mark! ui:num-all-topologies-summary-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "getClusterInfo")
     (json-response (all-topologies-summary) (:callback m)))
+  (GET  "/api/v1/topology-workers/:id" [:as {:keys [cookies servlet-request]} id & m]
+    (let [id (url-decode id)]
+      (json-response {"hostPortList" (worker-host-port id)
+                      "logviewerPort" (*STORM-CONF* LOGVIEWER-PORT)} (:callback m))))
   (GET "/api/v1/topology/:id" [:as {:keys [cookies servlet-request scheme]} id & m]
     (mark! ui:num-topology-page-http-requests)
     (populate-context! servlet-request)

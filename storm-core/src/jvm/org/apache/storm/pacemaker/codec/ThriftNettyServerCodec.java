@@ -25,7 +25,7 @@ import backtype.storm.messaging.netty.SaslStormServerHandler;
 import backtype.storm.messaging.netty.StormServerHandler;
 import backtype.storm.security.auth.AuthUtils;
 import java.io.IOException;
-import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
@@ -76,10 +76,12 @@ public class ThriftNettyServerCodec {
                 else if(authMethod == AuthMethod.KERBEROS) {
                     try {
                         LOG.debug("Adding KerberosSaslServerHandler to pacemaker server pipeline.");
+                        ArrayList<String> authorizedUsers = new ArrayList(1);
+                        authorizedUsers.add((String)storm_conf.get(Config.NIMBUS_DAEMON_USER));
                         pipeline.addLast(KERBEROS_HANDLER, new KerberosSaslServerHandler((ISaslServer)server,
                                                                                          storm_conf,
                                                                                          AuthUtils.LOGIN_CONTEXT_PACEMAKER_SERVER,
-                                                                                         (List)storm_conf.get(Config.PACEMAKER_KERBEROS_USERS)));
+                                                                                         authorizedUsers));
                     }
                     catch (IOException e) {
                         throw new RuntimeException(e);

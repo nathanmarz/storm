@@ -418,6 +418,13 @@ public class Config extends HashMap<String, Object> {
     public static final String NIMBUS_SUPERVISOR_USERS = "nimbus.supervisor.users";
 
     /**
+     * This is the user that the Nimbus daemon process is running as. May be used when security
+     * is enabled to authorize actions in the cluster.
+     */
+    @isString
+    public static final String NIMBUS_DAEMON_USER = "nimbus.daemon.user";
+
+    /**
      * The maximum buffer size thrift should use when reading messages.
      */
     @isInteger
@@ -798,13 +805,6 @@ public class Config extends HashMap<String, Object> {
      */
     @isString
     public static final String PACEMAKER_AUTH_METHOD = "pacemaker.auth.method";
-
-    /**
-     * These are the kerberos users who are authorized to read hearbeats from
-     * Pacemaker.
-     */
-    @isStringList
-    public static final String PACEMAKER_KERBEROS_USERS = "pacemaker.kerberos.users";
     
     /**
      * List of DRPC servers so that the DRPCSpout knows who to talk to.

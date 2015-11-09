@@ -15,6 +15,7 @@
 ;; limitations under the License.
 
 (ns backtype.storm.cluster-state.zookeeper-state-factory
+  (:import [org.apache.curator.framework.state ConnectionStateListener])
   (:import [org.apache.zookeeper KeeperException KeeperException$NoNodeException ZooDefs ZooDefs$Ids ZooDefs$Perms]
            [backtype.storm.cluster ClusterState ClusterStateContext DaemonType])
   (:use [backtype.storm cluster config log util])
@@ -95,7 +96,7 @@
      (set-worker-hb
        [this path data acls]
        (.set_data this path data acls))
-     
+
      (delete-node
        [this path]
        (zk/delete-node zk-writer path))
@@ -103,7 +104,7 @@
      (delete-worker-hb
        [this path]
        (.delete_node this path))
-     
+
      (get-data
        [this path watch?]
        (zk/get-data zk-reader path watch?))
@@ -112,14 +113,14 @@
        [this path watch?]
        (zk/get-data-with-version zk-reader path watch?))
 
-     (get-version 
+     (get-version
        [this path watch?]
        (zk/get-version zk-reader path watch?))
 
      (get-worker-hb
        [this path watch?]
        (.get_data this path watch?))
-     
+
      (get-children
        [this path watch?]
        (zk/get-children zk-reader path watch?))
@@ -127,7 +128,7 @@
      (get-worker-hb-children
        [this path watch?]
        (.get_children this path watch?))
-     
+
      (mkdirs
        [this path acls]
        (zk/mkdirs zk-writer path acls))
@@ -137,13 +138,17 @@
        (zk/exists-node? zk-reader path watch?))
 
      (add-listener
-        [this listener]
-        (zk/add-listener zk-reader listener))
+       [this listener]
+       (let [curator-listener (reify ConnectionStateListener
+                                (stateChanged
+                                  [this client newState]
+                                  (.stateChanged listener client newState)))]
+         (zk/add-listener zk-reader curator-listener)))
 
-      (sync-path
-        [this path]
-        (zk/sync-path zk-writer path))
-     
+     (sync-path
+       [this path]
+       (zk/sync-path zk-writer path))
+
      (close
        [this]
        (reset! active false)

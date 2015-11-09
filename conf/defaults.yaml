@@ -49,7 +49,6 @@ storm.auth.simple-white-list.users: []
 storm.auth.simple-acl.users: []
 storm.auth.simple-acl.users.commands: []
 storm.auth.simple-acl.admins: []
-#storm.cluster.state.store: "org.apache.storm.pacemaker.pacemaker_state_factory"
 storm.cluster.state.store: "backtype.storm.cluster_state.zookeeper_state_factory"
 storm.meta.serialization.delegate: "backtype.storm.serialization.GzipThriftSerializationDelegate"
 storm.codedistributor.class: "backtype.storm.codedistributor.LocalFileSystemCodeDistributor"

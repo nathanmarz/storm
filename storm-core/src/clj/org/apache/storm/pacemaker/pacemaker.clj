@@ -27,16 +27,6 @@
   (:require [clojure.java.jmx :as jmx])
   (:gen-class))
 
-;; This is the old Thrift service that this server is emulating.
-;  void createPath(1: string path) throws (1: HBExecutionException e, 2: HBAuthorizationException aze);
-;  bool exists(1: string path) throws (1: HBExecutionException e, 2: HBAuthorizationException aze);
-;  void sendPulse(1: Pulse pulse) throws (1: HBExecutionException e, 2: HBAuthorizationException aze);
-;  HBRecords getAllPulseForPath(1: string idPrefix) throws (1: HBExecutionException e, 2: HBAuthorizationException aze);
-;  HBNodes getAllNodesForPath(1: string idPrefix) throws (1: HBExecutionException e, 2: HBAuthorizationException aze);
-;  Pulse getPulse(1: string id) throws (1: HBExecutionException e, 2: HBAuthorizationException aze);
-;  void deletePath(1: string idPrefix) throws (1: HBExecutionException e, 2: HBAuthorizationException aze);
-;  void deletePulseId(1: string id) throws (1: HBExecutionException e, 2: HBAuthorizationException aze);
-
 
 ;; Stats Functions
 
@@ -104,6 +94,7 @@
    (jmx/create-bean
     last-five-s)
    "org.apache.storm.pacemaker.pacemaker:stats=Stats_Last_5_Seconds"))
+
 
 ;; Pacemaker Functions
 

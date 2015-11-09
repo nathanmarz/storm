@@ -34,6 +34,11 @@ BUILD_RET_VAL=$?
 if [[ "$BUILD_RET_VAL" != "0" ]];
 then
   cat "install.txt"
+  echo "Looking for unapproved licenses"
+  for rat in `find . -name rat.txt`;
+  do
+    python ${TRAVIS_SCRIPT_DIR}/ratprint.py "${rat}"
+  done
 fi
 
 exit ${BUILD_RET_VAL}

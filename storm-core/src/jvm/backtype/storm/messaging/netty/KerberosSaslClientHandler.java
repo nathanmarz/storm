@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 public class KerberosSaslClientHandler extends SimpleChannelUpstreamHandler {
 
     private static final Logger LOG = LoggerFactory
-            .getLogger(KerberosSaslClientHandler.class);
+        .getLogger(KerberosSaslClientHandler.class);
     private ISaslClient client;
     long start_time;
     /** Used for client or server's token to send or receive from each other. */
@@ -47,7 +47,7 @@ public class KerberosSaslClientHandler extends SimpleChannelUpstreamHandler {
 
     @Override
     public void channelConnected(ChannelHandlerContext ctx,
-            ChannelStateEvent event) {
+                                 ChannelStateEvent event) {
         // register the newly established channel
         Channel channel = ctx.getChannel();
         client.channelConnected(channel);
@@ -57,14 +57,14 @@ public class KerberosSaslClientHandler extends SimpleChannelUpstreamHandler {
 
         try {
             KerberosSaslNettyClient saslNettyClient = KerberosSaslNettyClientState.getKerberosSaslNettyClient
-                    .get(channel);
+                .get(channel);
 
             if (saslNettyClient == null) {
                 LOG.debug("Creating saslNettyClient now for channel: {}",
                           channel);
                 saslNettyClient = new KerberosSaslNettyClient(storm_conf, jaas_section);
                 KerberosSaslNettyClientState.getKerberosSaslNettyClient.set(channel,
-                        saslNettyClient);
+                                                                            saslNettyClient);
             }
             LOG.debug("Going to initiate Kerberos negotiations.");
             byte[] initialChallenge = saslNettyClient.saslResponse(new SaslMessageToken(new byte[0]));
@@ -80,15 +80,15 @@ public class KerberosSaslClientHandler extends SimpleChannelUpstreamHandler {
 
     @Override
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent event)
-            throws Exception {
+        throws Exception {
         LOG.debug("send/recv time (ms): {}",
-                (System.currentTimeMillis() - start_time));
+                  (System.currentTimeMillis() - start_time));
 
         Channel channel = ctx.getChannel();
 
         // Generate SASL response to server using Channel-local SASL client.
         KerberosSaslNettyClient saslNettyClient = KerberosSaslNettyClientState.getKerberosSaslNettyClient
-                .get(channel);
+            .get(channel);
         if (saslNettyClient == null) {
             throw new Exception("saslNettyClient was unexpectedly null for channel:" + channel);
         }
@@ -111,8 +111,7 @@ public class KerberosSaslClientHandler extends SimpleChannelUpstreamHandler {
                 // perform this request. The client's request will now proceed
                 // to the next pipeline component namely StormClientHandler.
                 Channels.fireMessageReceived(ctx, msg);
-            }
-            else {
+            } else {
                 LOG.warn("Unexpected control message: {}", msg);
             }
             return;

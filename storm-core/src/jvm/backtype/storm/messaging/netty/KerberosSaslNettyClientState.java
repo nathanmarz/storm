@@ -22,10 +22,10 @@ import org.jboss.netty.channel.ChannelLocal;
 
 final class KerberosSaslNettyClientState {
 
-	public static final ChannelLocal<KerberosSaslNettyClient> getKerberosSaslNettyClient = new ChannelLocal<KerberosSaslNettyClient>() {
-		protected KerberosSaslNettyClient initialValue(Channel channel) {
-			return null;
-		}
-	};
+    public static final ChannelLocal<KerberosSaslNettyClient> getKerberosSaslNettyClient = new ChannelLocal<KerberosSaslNettyClient>() {
+        protected KerberosSaslNettyClient initialValue(Channel channel) {
+            return null;
+        }
+    };
 
 }

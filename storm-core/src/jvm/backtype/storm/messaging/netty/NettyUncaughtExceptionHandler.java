@@ -22,14 +22,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class NettyUncaughtExceptionHandler implements Thread.UncaughtExceptionHandler {
-  private static final Logger LOG = LoggerFactory.getLogger(NettyUncaughtExceptionHandler.class);
-  @Override
-  public void uncaughtException(Thread t, Throwable e) {
-    try {
-      Utils.handleUncaughtException(e);
-    } catch (Error error) {
-      LOG.info("Received error in netty thread.. terminating server...");
-      Runtime.getRuntime().exit(1);
+    private static final Logger LOG = LoggerFactory.getLogger(NettyUncaughtExceptionHandler.class);
+    @Override
+    public void uncaughtException(Thread t, Throwable e) {
+        try {
+            Utils.handleUncaughtException(e);
+        } catch (Error error) {
+            LOG.info("Received error in netty thread.. terminating server...");
+            Runtime.getRuntime().exit(1);
+        }
     }
-  }
 }

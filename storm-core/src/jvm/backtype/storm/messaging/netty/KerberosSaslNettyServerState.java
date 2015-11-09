@@ -26,5 +26,5 @@ final class KerberosSaslNettyServerState {
             protected KerberosSaslNettyServer initialValue(Channel channel) {
                 return null;
             }
-	};
+        };
 }

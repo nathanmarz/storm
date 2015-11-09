@@ -36,9 +36,9 @@ public class KerberosSaslServerHandler extends SimpleChannelUpstreamHandler {
     private Map storm_conf;
     private String jaas_section;
     private List<String> authorizedUsers;
-    
+
     private static final Logger LOG = LoggerFactory
-            .getLogger(KerberosSaslServerHandler.class);
+        .getLogger(KerberosSaslServerHandler.class);
 
     public KerberosSaslServerHandler(ISaslServer server, Map storm_conf, String jaas_section, List<String> authorizedUsers) throws IOException {
         this.server = server;
@@ -49,14 +49,14 @@ public class KerberosSaslServerHandler extends SimpleChannelUpstreamHandler {
 
     @Override
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent e)
-            throws Exception {
+        throws Exception {
         Object msg = e.getMessage();
         if (msg == null)
             return;
 
         Channel channel = ctx.getChannel();
 
-        
+
         if (msg instanceof SaslMessageToken) {
             // initialize server-side SASL functionality, if we haven't yet
             // (in which case we are looking at the first SASL message from the
@@ -71,11 +71,11 @@ public class KerberosSaslServerHandler extends SimpleChannelUpstreamHandler {
                     try {
                         saslNettyServer = new KerberosSaslNettyServer(storm_conf, jaas_section, authorizedUsers);
                     } catch (RuntimeException ioe) {
-                        LOG.error("Error occurred while creating saslNettyServer on server {} for client {}", 
+                        LOG.error("Error occurred while creating saslNettyServer on server {} for client {}",
                                   channel.getLocalAddress(), channel.getRemoteAddress());
                         saslNettyServer = null;
                     }
-                    
+
                     KerberosSaslNettyServerState.getKerberosSaslNettyServer.set(channel,
                                                                                 saslNettyServer);
                 } else {
@@ -85,17 +85,16 @@ public class KerberosSaslServerHandler extends SimpleChannelUpstreamHandler {
 
                 byte[] responseBytes = saslNettyServer.response(((SaslMessageToken) msg)
                                                                 .getSaslToken());
-                    
+
                 SaslMessageToken saslTokenMessageRequest = new SaslMessageToken(responseBytes);
 
                 if(saslTokenMessageRequest.getSaslToken() == null) {
                     channel.write(ControlMessage.SASL_COMPLETE_REQUEST);
-                }
-                else {   
+                } else {
                     // Send response to client.
                     channel.write(saslTokenMessageRequest);
                 }
-                    
+
                 if (saslNettyServer.isComplete()) {
                     // If authentication of client is complete, we will also send a
                     // SASL-Complete message to the client.

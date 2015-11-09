@@ -55,7 +55,7 @@ class KerberosSaslNettyServer {
     private Subject subject;
     private String jaas_section;
     private List<String> authorizedUsers;
-    
+
     KerberosSaslNettyServer(Map storm_conf, String jaas_section, List<String> authorizedUsers) {
         this.authorizedUsers = authorizedUsers;
         LOG.debug("Getting Configuration.");
@@ -67,17 +67,17 @@ class KerberosSaslNettyServer {
             LOG.error("Failed to get login_conf: ", t);
             throw t;
         }
-            
+
         LOG.debug("KerberosSaslNettyServer: authmethod {}", SaslUtils.KERBEROS);
 
         KerberosSaslCallbackHandler ch = new KerberosSaslNettyServer.KerberosSaslCallbackHandler(storm_conf, authorizedUsers);
-        
+
         //login our principal
         subject = null;
         try {
             LOG.debug("Setting Configuration to login_config: {}", login_conf);
             //specify a configuration object to be used
-            Configuration.setConfiguration(login_conf); 
+            Configuration.setConfiguration(login_conf);
             //now login
             LOG.debug("Trying to login.");
             Login login = new Login(jaas_section, ch);
@@ -87,9 +87,9 @@ class KerberosSaslNettyServer {
             LOG.error("Server failed to login in principal:", ex);
             throw new RuntimeException(ex);
         }
-        
+
         //check the credential of our principal
-        if (subject.getPrivateCredentials(KerberosTicket.class).isEmpty()) { 
+        if (subject.getPrivateCredentials(KerberosTicket.class).isEmpty()) {
             LOG.error("Failed to verifyuser principal.");
             throw new RuntimeException("Fail to verify user principal with section \""
                                        + jaas_section
@@ -97,7 +97,7 @@ class KerberosSaslNettyServer {
                                        + login_conf);
         }
 
-        try {    
+        try {
             LOG.info("Creating Kerberos Server.");
             final CallbackHandler fch = ch;
             Principal p = (Principal)subject.getPrincipals().toArray()[0];
@@ -123,7 +123,7 @@ class KerberosSaslNettyServer {
                         }
                     });
             LOG.info("Got Server: {}", saslServer);
-                 
+
         } catch (PrivilegedActionException e) {
             LOG.error("KerberosSaslNettyServer: Could not create SaslServer: ", e);
             throw new RuntimeException(e);
@@ -192,7 +192,7 @@ class KerberosSaslNettyServer {
     /**
      * Used by SaslTokenMessage::processToken() to respond to server SASL
      * tokens.
-     * 
+     *
      * @param token
      *            Server's SASL token
      * @return token to send back to the server.

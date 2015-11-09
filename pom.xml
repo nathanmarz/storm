@@ -857,6 +857,7 @@
                         <exclude>**/docs/**</exclude>
                         <exclude>**/.git/**</exclude>
                         <exclude>**/derby.log</exclude>
+                        <exclude>**/src/dev/**</exclude>
                     </excludes>
                 </configuration>
             </plugin>

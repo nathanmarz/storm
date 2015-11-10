@@ -51,7 +51,8 @@ public class HiveTopology {
         config.setNumWorkers(1);
         UserDataSpout spout = new UserDataSpout();
         DelimitedRecordHiveMapper mapper = new DelimitedRecordHiveMapper()
-            .withColumnFields(new Fields(colNames));
+                .withTimeAsPartitionField("yyyy/MM/dd/hh")
+                .withColumnFields(new Fields(colNames));
         HiveOptions hiveOptions;
         if (args.length == 6) {
             hiveOptions = new HiveOptions(metaStoreURI,dbName,tblName,mapper)
@@ -64,7 +65,8 @@ public class HiveTopology {
             hiveOptions = new HiveOptions(metaStoreURI,dbName,tblName,mapper)
                 .withTxnsPerBatch(10)
                 .withBatchSize(100)
-                .withIdleTimeout(10);
+                .withIdleTimeout(10)
+                .withMaxOpenConnections(1);
         }
 
         HiveBolt hiveBolt = new HiveBolt(hiveOptions);

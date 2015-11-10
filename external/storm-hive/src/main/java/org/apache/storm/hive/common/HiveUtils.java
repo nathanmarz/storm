@@ -25,12 +25,17 @@ import org.apache.hive.hcatalog.streaming.*;
 import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.io.File;
 import java.io.IOException;
 
 public class HiveUtils {
+    private static final Logger LOG = LoggerFactory.getLogger(HiveUtils.class);
 
     public static HiveEndPoint makeEndPoint(List<String> partitionVals, HiveOptions options) throws ConnectionError {
         if(partitionVals==null) {
@@ -72,5 +77,9 @@ public class HiveUtils {
          }
      }
 
-
+    public static void logAllHiveEndPoints(Map<HiveEndPoint, HiveWriter> allWriters) {
+        for (Map.Entry<HiveEndPoint,HiveWriter> entry : allWriters.entrySet()) {
+            LOG.info("cached writers {} ", entry.getValue());
+        }
+    }
 }

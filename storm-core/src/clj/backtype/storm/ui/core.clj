@@ -42,6 +42,7 @@
   (:import [backtype.storm.generated AuthorizationException ProfileRequest ProfileAction NodeInfo])
   (:import [backtype.storm.security.auth AuthUtils])
   (:import [backtype.storm.utils VersionInfo])
+  (:import [backtype.storm Config])
   (:import [java.io File])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]
@@ -433,6 +434,10 @@
        "uptimeSeconds" (.get_uptime_secs s)
        "slotsTotal" (.get_num_workers s)
        "slotsUsed" (.get_num_used_workers s)
+       "totalMem" (get (.get_total_resources s) Config/SUPERVISOR_MEMORY_CAPACITY_MB)
+       "totalCpu" (get (.get_total_resources s) Config/SUPERVISOR_CPU_CAPACITY)
+       "usedMem" (.get_used_mem s)
+       "usedCpu" (.get_used_cpu s)
        "version" (.get_version s)})}))
 
 (defn all-topologies-summary

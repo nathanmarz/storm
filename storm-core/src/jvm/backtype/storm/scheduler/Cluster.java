@@ -34,7 +34,11 @@ public class Cluster {
     /**
      * key: supervisor id, value: supervisor details
      */
-    private Map<String, SupervisorDetails>   supervisors;
+    private Map<String, SupervisorDetails> supervisors;
+    /**
+     * key: supervisor id, value: supervisor's total and used resources
+     */
+    private Map<String, Double[]> supervisorsResources;
 
     /**
      * key: rack, value: nodes in that rack
@@ -73,6 +77,7 @@ public class Cluster {
         this.assignments.putAll(assignments);
         this.status = new HashMap<String, String>();
         this.resources = new HashMap<String, Double[]>();
+        this.supervisorsResources = new HashMap<String, Double[]>();
         this.hostToId = new HashMap<String, List<String>>();
         for (Map.Entry<String, SupervisorDetails> entry : supervisors.entrySet()) {
             String nodeId = entry.getKey();
@@ -475,5 +480,13 @@ public class Cluster {
 
     public Map<String, Double[]> getResourcesMap() {
         return this.resources;
+    }
+
+    public void setSupervisorsResources(Map<String, Double[]> supervisors_resources) {
+        this.supervisorsResources.putAll(supervisors_resources);
+    }
+
+    public Map<String, Double[]> getSupervisorsResourcesMap() {
+        return this.supervisorsResources;
     }
 }

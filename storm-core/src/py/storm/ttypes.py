@@ -2510,6 +2510,8 @@ class SupervisorSummary:
    - supervisor_id
    - version
    - total_resources
+   - used_mem
+   - used_cpu
   """
 
   thrift_spec = (
@@ -2521,9 +2523,11 @@ class SupervisorSummary:
     (5, TType.STRING, 'supervisor_id', None, None, ), # 5
     (6, TType.STRING, 'version', None, "VERSION_NOT_PROVIDED", ), # 6
     (7, TType.MAP, 'total_resources', (TType.STRING,None,TType.DOUBLE,None), None, ), # 7
+    (8, TType.DOUBLE, 'used_mem', None, None, ), # 8
+    (9, TType.DOUBLE, 'used_cpu', None, None, ), # 9
   )
 
-  def __init__(self, host=None, uptime_secs=None, num_workers=None, num_used_workers=None, supervisor_id=None, version=thrift_spec[6][4], total_resources=None,):
+  def __init__(self, host=None, uptime_secs=None, num_workers=None, num_used_workers=None, supervisor_id=None, version=thrift_spec[6][4], total_resources=None, used_mem=None, used_cpu=None,):
     self.host = host
     self.uptime_secs = uptime_secs
     self.num_workers = num_workers
@@ -2531,6 +2535,8 @@ class SupervisorSummary:
     self.supervisor_id = supervisor_id
     self.version = version
     self.total_resources = total_resources
+    self.used_mem = used_mem
+    self.used_cpu = used_cpu
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -2582,6 +2588,16 @@ class SupervisorSummary:
           iprot.readMapEnd()
         else:
           iprot.skip(ftype)
+      elif fid == 8:
+        if ftype == TType.DOUBLE:
+          self.used_mem = iprot.readDouble();
+        else:
+          iprot.skip(ftype)
+      elif fid == 9:
+        if ftype == TType.DOUBLE:
+          self.used_cpu = iprot.readDouble();
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -2624,6 +2640,14 @@ class SupervisorSummary:
         oprot.writeDouble(viter74)
       oprot.writeMapEnd()
       oprot.writeFieldEnd()
+    if self.used_mem is not None:
+      oprot.writeFieldBegin('used_mem', TType.DOUBLE, 8)
+      oprot.writeDouble(self.used_mem)
+      oprot.writeFieldEnd()
+    if self.used_cpu is not None:
+      oprot.writeFieldBegin('used_cpu', TType.DOUBLE, 9)
+      oprot.writeDouble(self.used_cpu)
+      oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
@@ -2650,6 +2674,8 @@ class SupervisorSummary:
     value = (value * 31) ^ hash(self.supervisor_id)
     value = (value * 31) ^ hash(self.version)
     value = (value * 31) ^ hash(self.total_resources)
+    value = (value * 31) ^ hash(self.used_mem)
+    value = (value * 31) ^ hash(self.used_cpu)
     return value
 
   def __repr__(self):

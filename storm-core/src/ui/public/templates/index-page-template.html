@@ -215,6 +215,26 @@
         </span>
       </th>
       <th>
+        <span data-toggle="tooltip" data-placement="above" title="Memory capacity of a supervisor.">
+          Total Mem (MB)
+        </span>
+      </th>
+      <th>
+        <span data-toggle="tooltip" data-placement="left" title="Memory that has been allocated.">
+          Used Mem (MB)
+        </span>
+      </th>
+      <th>
+        <span data-toggle="tooltip" data-placement="above" title="CPU capacity of a supervisor. Every 100 means one core.">
+          Total CPU (%)
+        </span>
+      </th>
+      <th>
+        <span data-toggle="tooltip" data-placement="left" title="CPU that has been allocated. Every 100 means one core">
+          Used CPU (%)
+        </span>
+      </th>
+      <th>
         <span data-toggle="tooltip" data-placement="left" title="Version">
           Version
         </span>
@@ -229,6 +249,10 @@
       <td>{{uptime}}</td>
       <td>{{slotsTotal}}</td>
       <td>{{slotsUsed}}</td>
+      <td>{{totalMem}}</td>
+      <td>{{usedMem}}</td>
+      <td>{{totalCpu}}</td>
+      <td>{{usedCpu}}</td>
       <td>{{version}}</td>
     </tr>
     {{/supervisors}}

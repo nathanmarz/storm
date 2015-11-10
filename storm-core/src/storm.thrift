@@ -162,6 +162,8 @@ struct SupervisorSummary {
   5: required string supervisor_id;
   6: optional string version = "VERSION_NOT_PROVIDED";
   7: optional map<string, double> total_resources;
+  8: optional double used_mem;
+  9: optional double used_cpu;
 }
 
 struct NimbusSummary {

@@ -22,7 +22,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.HashMap;
 
-public class InMemoryTopologyAcitonNotifier implements  ITopologyActionNotifierPlugin {
+public class InMemoryTopologyActionNotifier implements  ITopologyActionNotifierPlugin {
 
     //static to ensure eventhough the class is created using reflection we can still get
     //the topology to actions

@@ -1,5 +1,6 @@
 ## 0.11.0
- * STORM-902: Simple Log Search
+ * STORM-1164: Code cleanup for typos, warnings and conciseness.
+ * STORM-902: Simple Log Search.
  * STORM-1052: TridentKafkaState uses new Kafka Producer API.
  * STORM-1182: Removing and wrapping some exceptions in ConfigValidation to make code cleaner
  * STORM-1134. Windows: Fix log4j config.

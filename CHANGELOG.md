@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1185: replace nimbus.host with nimbus.seeds
  * STORM-1164: Code cleanup for typos, warnings and conciseness.
  * STORM-902: Simple Log Search.
  * STORM-1052: TridentKafkaState uses new Kafka Producer API.

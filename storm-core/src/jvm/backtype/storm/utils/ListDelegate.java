@@ -27,7 +27,7 @@ public class ListDelegate implements List<Object> {
     private List<Object> _delegate;
     
     public ListDelegate() {
-    	_delegate = new ArrayList<Object>();
+    	_delegate = new ArrayList<>();
     }
     
     public void setDelegate(List<Object> delegate) {
@@ -84,12 +84,12 @@ public class ListDelegate implements List<Object> {
     }
 
     @Override
-    public boolean addAll(Collection<? extends Object> clctn) {
+    public boolean addAll(Collection<?> clctn) {
         return _delegate.addAll(clctn);
     }
 
     @Override
-    public boolean addAll(int i, Collection<? extends Object> clctn) {
+    public boolean addAll(int i, Collection<?> clctn) {
         return _delegate.addAll(i, clctn);
     }
 

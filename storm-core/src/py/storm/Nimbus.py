@@ -125,6 +125,23 @@ class Iface:
     """
     pass
 
+  def setWorkerProfiler(self, id, profileRequest):
+    """
+    Parameters:
+     - id
+     - profileRequest
+    """
+    pass
+
+  def getComponentPendingProfileActions(self, id, component_id, action):
+    """
+    Parameters:
+     - id
+     - component_id
+     - action
+    """
+    pass
+
   def uploadNewCredentials(self, name, creds):
     """
     Parameters:
@@ -227,6 +244,13 @@ class Iface:
 
     Parameters:
      - id
+    """
+    pass
+
+  def getTopologyHistory(self, user):
+    """
+    Parameters:
+     - user
     """
     pass
 
@@ -599,6 +623,72 @@ class Client(Iface):
     if result.aze is not None:
       raise result.aze
     return
+
+  def setWorkerProfiler(self, id, profileRequest):
+    """
+    Parameters:
+     - id
+     - profileRequest
+    """
+    self.send_setWorkerProfiler(id, profileRequest)
+    self.recv_setWorkerProfiler()
+
+  def send_setWorkerProfiler(self, id, profileRequest):
+    self._oprot.writeMessageBegin('setWorkerProfiler', TMessageType.CALL, self._seqid)
+    args = setWorkerProfiler_args()
+    args.id = id
+    args.profileRequest = profileRequest
+    args.write(self._oprot)
+    self._oprot.writeMessageEnd()
+    self._oprot.trans.flush()
+
+  def recv_setWorkerProfiler(self):
+    iprot = self._iprot
+    (fname, mtype, rseqid) = iprot.readMessageBegin()
+    if mtype == TMessageType.EXCEPTION:
+      x = TApplicationException()
+      x.read(iprot)
+      iprot.readMessageEnd()
+      raise x
+    result = setWorkerProfiler_result()
+    result.read(iprot)
+    iprot.readMessageEnd()
+    return
+
+  def getComponentPendingProfileActions(self, id, component_id, action):
+    """
+    Parameters:
+     - id
+     - component_id
+     - action
+    """
+    self.send_getComponentPendingProfileActions(id, component_id, action)
+    return self.recv_getComponentPendingProfileActions()
+
+  def send_getComponentPendingProfileActions(self, id, component_id, action):
+    self._oprot.writeMessageBegin('getComponentPendingProfileActions', TMessageType.CALL, self._seqid)
+    args = getComponentPendingProfileActions_args()
+    args.id = id
+    args.component_id = component_id
+    args.action = action
+    args.write(self._oprot)
+    self._oprot.writeMessageEnd()
+    self._oprot.trans.flush()
+
+  def recv_getComponentPendingProfileActions(self):
+    iprot = self._iprot
+    (fname, mtype, rseqid) = iprot.readMessageBegin()
+    if mtype == TMessageType.EXCEPTION:
+      x = TApplicationException()
+      x.read(iprot)
+      iprot.readMessageEnd()
+      raise x
+    result = getComponentPendingProfileActions_result()
+    result.read(iprot)
+    iprot.readMessageEnd()
+    if result.success is not None:
+      return result.success
+    raise TApplicationException(TApplicationException.MISSING_RESULT, "getComponentPendingProfileActions failed: unknown result");
 
   def uploadNewCredentials(self, name, creds):
     """
@@ -1112,6 +1202,39 @@ class Client(Iface):
       raise result.aze
     raise TApplicationException(TApplicationException.MISSING_RESULT, "getUserTopology failed: unknown result");
 
+  def getTopologyHistory(self, user):
+    """
+    Parameters:
+     - user
+    """
+    self.send_getTopologyHistory(user)
+    return self.recv_getTopologyHistory()
+
+  def send_getTopologyHistory(self, user):
+    self._oprot.writeMessageBegin('getTopologyHistory', TMessageType.CALL, self._seqid)
+    args = getTopologyHistory_args()
+    args.user = user
+    args.write(self._oprot)
+    self._oprot.writeMessageEnd()
+    self._oprot.trans.flush()
+
+  def recv_getTopologyHistory(self):
+    iprot = self._iprot
+    (fname, mtype, rseqid) = iprot.readMessageBegin()
+    if mtype == TMessageType.EXCEPTION:
+      x = TApplicationException()
+      x.read(iprot)
+      iprot.readMessageEnd()
+      raise x
+    result = getTopologyHistory_result()
+    result.read(iprot)
+    iprot.readMessageEnd()
+    if result.success is not None:
+      return result.success
+    if result.aze is not None:
+      raise result.aze
+    raise TApplicationException(TApplicationException.MISSING_RESULT, "getTopologyHistory failed: unknown result");
+
 
 class Processor(Iface, TProcessor):
   def __init__(self, handler):
@@ -1127,6 +1250,8 @@ class Processor(Iface, TProcessor):
     self._processMap["setLogConfig"] = Processor.process_setLogConfig
     self._processMap["getLogConfig"] = Processor.process_getLogConfig
     self._processMap["debug"] = Processor.process_debug
+    self._processMap["setWorkerProfiler"] = Processor.process_setWorkerProfiler
+    self._processMap["getComponentPendingProfileActions"] = Processor.process_getComponentPendingProfileActions
     self._processMap["uploadNewCredentials"] = Processor.process_uploadNewCredentials
     self._processMap["beginFileUpload"] = Processor.process_beginFileUpload
     self._processMap["uploadChunk"] = Processor.process_uploadChunk
@@ -1142,6 +1267,7 @@ class Processor(Iface, TProcessor):
     self._processMap["getTopologyConf"] = Processor.process_getTopologyConf
     self._processMap["getTopology"] = Processor.process_getTopology
     self._processMap["getUserTopology"] = Processor.process_getUserTopology
+    self._processMap["getTopologyHistory"] = Processor.process_getTopologyHistory
 
   def process(self, iprot, oprot):
     (name, type, seqid) = iprot.readMessageBegin()
@@ -1310,6 +1436,28 @@ class Processor(Iface, TProcessor):
     except AuthorizationException, aze:
       result.aze = aze
     oprot.writeMessageBegin("debug", TMessageType.REPLY, seqid)
+    result.write(oprot)
+    oprot.writeMessageEnd()
+    oprot.trans.flush()
+
+  def process_setWorkerProfiler(self, seqid, iprot, oprot):
+    args = setWorkerProfiler_args()
+    args.read(iprot)
+    iprot.readMessageEnd()
+    result = setWorkerProfiler_result()
+    self._handler.setWorkerProfiler(args.id, args.profileRequest)
+    oprot.writeMessageBegin("setWorkerProfiler", TMessageType.REPLY, seqid)
+    result.write(oprot)
+    oprot.writeMessageEnd()
+    oprot.trans.flush()
+
+  def process_getComponentPendingProfileActions(self, seqid, iprot, oprot):
+    args = getComponentPendingProfileActions_args()
+    args.read(iprot)
+    iprot.readMessageEnd()
+    result = getComponentPendingProfileActions_result()
+    result.success = self._handler.getComponentPendingProfileActions(args.id, args.component_id, args.action)
+    oprot.writeMessageBegin("getComponentPendingProfileActions", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
     oprot.trans.flush()
@@ -1538,6 +1686,20 @@ class Processor(Iface, TProcessor):
     except AuthorizationException, aze:
       result.aze = aze
     oprot.writeMessageBegin("getUserTopology", TMessageType.REPLY, seqid)
+    result.write(oprot)
+    oprot.writeMessageEnd()
+    oprot.trans.flush()
+
+  def process_getTopologyHistory(self, seqid, iprot, oprot):
+    args = getTopologyHistory_args()
+    args.read(iprot)
+    iprot.readMessageEnd()
+    result = getTopologyHistory_result()
+    try:
+      result.success = self._handler.getTopologyHistory(args.user)
+    except AuthorizationException, aze:
+      result.aze = aze
+    oprot.writeMessageBegin("getTopologyHistory", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
     oprot.trans.flush()
@@ -3150,6 +3312,295 @@ class debug_result:
     value = 17
     value = (value * 31) ^ hash(self.e)
     value = (value * 31) ^ hash(self.aze)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class setWorkerProfiler_args:
+  """
+  Attributes:
+   - id
+   - profileRequest
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'id', None, None, ), # 1
+    (2, TType.STRUCT, 'profileRequest', (ProfileRequest, ProfileRequest.thrift_spec), None, ), # 2
+  )
+
+  def __init__(self, id=None, profileRequest=None,):
+    self.id = id
+    self.profileRequest = profileRequest
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.id = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRUCT:
+          self.profileRequest = ProfileRequest()
+          self.profileRequest.read(iprot)
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('setWorkerProfiler_args')
+    if self.id is not None:
+      oprot.writeFieldBegin('id', TType.STRING, 1)
+      oprot.writeString(self.id.encode('utf-8'))
+      oprot.writeFieldEnd()
+    if self.profileRequest is not None:
+      oprot.writeFieldBegin('profileRequest', TType.STRUCT, 2)
+      self.profileRequest.write(oprot)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.id)
+    value = (value * 31) ^ hash(self.profileRequest)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class setWorkerProfiler_result:
+
+  thrift_spec = (
+  )
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('setWorkerProfiler_result')
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class getComponentPendingProfileActions_args:
+  """
+  Attributes:
+   - id
+   - component_id
+   - action
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'id', None, None, ), # 1
+    (2, TType.STRING, 'component_id', None, None, ), # 2
+    (3, TType.I32, 'action', None, None, ), # 3
+  )
+
+  def __init__(self, id=None, component_id=None, action=None,):
+    self.id = id
+    self.component_id = component_id
+    self.action = action
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.id = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRING:
+          self.component_id = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.I32:
+          self.action = iprot.readI32();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('getComponentPendingProfileActions_args')
+    if self.id is not None:
+      oprot.writeFieldBegin('id', TType.STRING, 1)
+      oprot.writeString(self.id.encode('utf-8'))
+      oprot.writeFieldEnd()
+    if self.component_id is not None:
+      oprot.writeFieldBegin('component_id', TType.STRING, 2)
+      oprot.writeString(self.component_id.encode('utf-8'))
+      oprot.writeFieldEnd()
+    if self.action is not None:
+      oprot.writeFieldBegin('action', TType.I32, 3)
+      oprot.writeI32(self.action)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.id)
+    value = (value * 31) ^ hash(self.component_id)
+    value = (value * 31) ^ hash(self.action)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class getComponentPendingProfileActions_result:
+  """
+  Attributes:
+   - success
+  """
+
+  thrift_spec = (
+    (0, TType.LIST, 'success', (TType.STRUCT,(ProfileRequest, ProfileRequest.thrift_spec)), None, ), # 0
+  )
+
+  def __init__(self, success=None,):
+    self.success = success
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 0:
+        if ftype == TType.LIST:
+          self.success = []
+          (_etype627, _size624) = iprot.readListBegin()
+          for _i628 in xrange(_size624):
+            _elem629 = ProfileRequest()
+            _elem629.read(iprot)
+            self.success.append(_elem629)
+          iprot.readListEnd()
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('getComponentPendingProfileActions_result')
+    if self.success is not None:
+      oprot.writeFieldBegin('success', TType.LIST, 0)
+      oprot.writeListBegin(TType.STRUCT, len(self.success))
+      for iter630 in self.success:
+        iter630.write(oprot)
+      oprot.writeListEnd()
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.success)
     return value
 
   def __repr__(self):
@@ -5440,6 +5891,150 @@ class getUserTopology_result:
     value = 17
     value = (value * 31) ^ hash(self.success)
     value = (value * 31) ^ hash(self.e)
+    value = (value * 31) ^ hash(self.aze)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class getTopologyHistory_args:
+  """
+  Attributes:
+   - user
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'user', None, None, ), # 1
+  )
+
+  def __init__(self, user=None,):
+    self.user = user
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.user = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('getTopologyHistory_args')
+    if self.user is not None:
+      oprot.writeFieldBegin('user', TType.STRING, 1)
+      oprot.writeString(self.user.encode('utf-8'))
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.user)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class getTopologyHistory_result:
+  """
+  Attributes:
+   - success
+   - aze
+  """
+
+  thrift_spec = (
+    (0, TType.STRUCT, 'success', (TopologyHistoryInfo, TopologyHistoryInfo.thrift_spec), None, ), # 0
+    (1, TType.STRUCT, 'aze', (AuthorizationException, AuthorizationException.thrift_spec), None, ), # 1
+  )
+
+  def __init__(self, success=None, aze=None,):
+    self.success = success
+    self.aze = aze
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 0:
+        if ftype == TType.STRUCT:
+          self.success = TopologyHistoryInfo()
+          self.success.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 1:
+        if ftype == TType.STRUCT:
+          self.aze = AuthorizationException()
+          self.aze.read(iprot)
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('getTopologyHistory_result')
+    if self.success is not None:
+      oprot.writeFieldBegin('success', TType.STRUCT, 0)
+      self.success.write(oprot)
+      oprot.writeFieldEnd()
+    if self.aze is not None:
+      oprot.writeFieldBegin('aze', TType.STRUCT, 1)
+      self.aze.write(oprot)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.success)
     value = (value * 31) ^ hash(self.aze)
     return value
 

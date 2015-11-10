@@ -22,7 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class MultiReducedMetric implements IMetric {
-    Map<String, ReducedMetric> _value = new HashMap();
+    Map<String, ReducedMetric> _value = new HashMap<>();
     IReducer _reducer;
 
     public MultiReducedMetric(IReducer reducer) {

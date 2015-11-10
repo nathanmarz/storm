@@ -181,6 +181,10 @@
   [conf]
   (LocalState. (str (supervisor-local-dir conf) file-path-separator "localstate")))
 
+(defn ^LocalState nimbus-topo-history-state
+  [conf]
+  (LocalState. (str (master-local-dir conf) file-path-separator "history")))
+
 (defn read-supervisor-storm-conf
   [conf storm-id]
   (let [stormroot (supervisor-stormdist-root conf storm-id)
@@ -229,6 +233,10 @@
   ([conf id port]
    (str (worker-artifacts-root conf id) file-path-separator port)))
 
+(defn worker-artifacts-pid-path
+  [conf id port]
+  (str (worker-artifacts-root conf id port) file-path-separator "worker.pid"))
+
 (defn get-log-metadata-file
   ([fname]
     (let [[id port & _] (str/split fname (re-pattern file-path-separator))]
@@ -269,3 +277,18 @@
   (if-let [login_conf_file (System/getProperty "java.security.auth.login.config")]
     (assoc conf "java.security.auth.login.config" login_conf_file)
     conf))
+
+(defn get-topo-logs-users
+  [topology-conf]
+  (sort (distinct (remove nil?
+                    (concat
+                      (topology-conf LOGS-USERS)
+                      (topology-conf TOPOLOGY-USERS))))))
+
+(defn get-topo-logs-groups
+  [topology-conf]
+  (sort (distinct (remove nil?
+                    (concat
+                      (topology-conf LOGS-GROUPS)
+                      (topology-conf TOPOLOGY-GROUPS))))))
+

@@ -39,9 +39,8 @@ public enum ControlMessage implements INettySerializable {
     }
 
     /**
-     * Return a control message per an encoded status code
-     * @param encoded
-     * @return
+     * @param encoded status code
+     * @return a control message per an encoded status code
      */
     public static ControlMessage mkMessage(short encoded) {
         for(ControlMessage cm: ControlMessage.values()) {

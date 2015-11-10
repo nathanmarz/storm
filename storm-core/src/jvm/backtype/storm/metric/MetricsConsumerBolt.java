@@ -20,7 +20,6 @@ package backtype.storm.metric;
 import backtype.storm.Config;
 import backtype.storm.metric.api.IMetricsConsumer;
 import backtype.storm.task.IBolt;
-import backtype.storm.task.IErrorReporter;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Tuple;

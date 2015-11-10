@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
 /**
  * Send and receive SASL tokens.
  */
-
 public class SaslMessageToken implements INettySerializable {
     public static final short IDENTIFIER = -500;
 
@@ -92,9 +91,9 @@ public class SaslMessageToken implements INettySerializable {
         if (token != null)
             payload_len = token.length;
 
-
         bout.writeShort(IDENTIFIER);
         bout.writeInt((int) payload_len);
+
         if (payload_len > 0) {
             bout.write(token);
         }

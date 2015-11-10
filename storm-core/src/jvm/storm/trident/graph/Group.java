@@ -29,14 +29,13 @@ import storm.trident.util.TridentUtils;
 
 
 public class Group {
-    public Set<Node> nodes = new HashSet<Node>();
-    private DirectedGraph<Node, IndexedEdge> graph;
-    private String id;
+    public final Set<Node> nodes = new HashSet<>();
+    private final DirectedGraph<Node, IndexedEdge> graph;
+    private final String id = UUID.randomUUID().toString();
     
     public Group(DirectedGraph graph, List<Node> nodes) {
-        init(graph);
-        this.nodes.addAll(nodes);
         this.graph = graph;
+        this.nodes.addAll(nodes);
     }
     
     public Group(DirectedGraph graph, Node n) {
@@ -44,18 +43,13 @@ public class Group {
     }
     
     public Group(Group g1, Group g2) {
-        init(g1.graph);
+        this.graph = g1.graph;
         nodes.addAll(g1.nodes);
         nodes.addAll(g2.nodes);
     }
     
-    private void init(DirectedGraph graph) {
-        this.graph = graph;
-        this.id = UUID.randomUUID().toString();
-    }
-    
     public Set<Node> outgoingNodes() {
-        Set<Node> ret = new HashSet<Node>();
+        Set<Node> ret = new HashSet<>();
         for(Node n: nodes) {
             ret.addAll(TridentUtils.getChildren(graph, n));
         }
@@ -63,7 +57,7 @@ public class Group {
     }
     
     public Set<Node> incomingNodes() {
-        Set<Node> ret = new HashSet<Node>();
+        Set<Node> ret = new HashSet<>();
         for(Node n: nodes) {
             ret.addAll(TridentUtils.getParents(graph, n));
         }        
@@ -77,6 +71,9 @@ public class Group {
 
     @Override
     public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
         return id.equals(((Group) o).id);
     }
 

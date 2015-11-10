@@ -41,4 +41,10 @@ do
   python ${TRAVIS_SCRIPT_DIR}/print-errors-from-test-reports.py "${dir}"
 done
 
+echo "Looking for unapproved licenses"
+for rat in `find . -name rat.txt`;
+do
+  python ${TRAVIS_SCRIPT_DIR}/ratprint.py "${rat}"
+done
+
 exit ${BUILD_RET_VAL}

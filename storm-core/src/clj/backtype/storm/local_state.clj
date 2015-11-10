@@ -20,6 +20,7 @@
             LSSupervisorId LSApprovedWorkers
             LSSupervisorAssignments LocalAssignment
             ExecutorInfo LSWorkerHeartbeat
+            LSTopoHistory LSTopoHistoryList
             WorkerResources])
   (:import [backtype.storm.utils LocalState]))
 
@@ -27,6 +28,29 @@
 (def LS-ID "supervisor-id")
 (def LS-LOCAL-ASSIGNMENTS "local-assignments")
 (def LS-APPROVED-WORKERS "approved-workers")
+(def LS-TOPO-HISTORY "topo-hist")
+
+(defn ->LSTopoHistory
+  [{topoid :topoid timestamp :timestamp users :users groups :groups}]
+  (LSTopoHistory. topoid timestamp users groups))
+
+(defn ->topo-history
+  [thrift-topo-hist]
+  {
+    :topoid (.get_topology_id thrift-topo-hist)
+    :timestamp (.get_time_stamp thrift-topo-hist)
+    :users (.get_users thrift-topo-hist)
+    :groups (.get_groups thrift-topo-hist)})
+
+(defn ls-topo-hist!
+  [^LocalState local-state hist-list]
+  (.put local-state LS-TOPO-HISTORY
+    (LSTopoHistoryList. (map ->LSTopoHistory hist-list))))
+
+(defn ls-topo-hist
+  [^LocalState local-state]
+  (if-let [thrift-hist-list (.get local-state LS-TOPO-HISTORY)]
+    (map ->topo-history (.get_topo_history thrift-hist-list))))
 
 (defn ls-supervisor-id!
   [^LocalState local-state ^String id]

@@ -88,11 +88,11 @@ public class TridentKafkaTopology {
 
     private  static Config getConfig(String brokerConnectionString) {
         Config conf = new Config();
-        Map config = new HashMap();
         Properties props = new Properties();
-        props.put("metadata.broker.list", brokerConnectionString);
-        props.put("request.required.acks", "1");
-        props.put("serializer.class", "kafka.serializer.StringEncoder");
+        props.put("bootstrap.servers", brokerConnectionString);
+        props.put("acks", "1");
+        props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         conf.put(TridentKafkaState.KAFKA_BROKER_PROPERTIES, props);
         return conf;
     }

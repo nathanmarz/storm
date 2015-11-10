@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.lang.InterruptedException;
 
 import backtype.storm.Config;
+import backtype.storm.grouping.Load;
 import backtype.storm.messaging.ConnectionWithStatus;
 import backtype.storm.messaging.TaskMessage;
 import backtype.storm.metric.api.IStatefulObject;
@@ -78,11 +79,12 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
     private final ClientBootstrap bootstrap;
     private final InetSocketAddress dstAddress;
     protected final String dstAddressPrefixedName;
-    
+    private volatile Map<Integer, Double> serverLoad = null;
+
     /**
      * The channel used for all write operations from this client to the remote destination.
      */
-    private final AtomicReference<Channel> channelRef = new AtomicReference<Channel>();
+    private final AtomicReference<Channel> channelRef = new AtomicReference<>();
 
     /**
      * Total number of connection attempts.
@@ -220,6 +222,11 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
     }
 
     @Override
+    public void sendLoadMetrics(Map<Integer, Double> taskToLoad) {
+        throw new RuntimeException("Client connection should not send load metrics");
+    }
+
+    @Override
     public void send(int taskId, byte[] payload) {
         TaskMessage msg = new TaskMessage(taskId, payload);
         List<TaskMessage> wrapper = new ArrayList<TaskMessage>(1);
@@ -305,7 +312,6 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
     private boolean hasMessages(Iterator<TaskMessage> msgs) {
         return msgs != null && msgs.hasNext();
     }
-
 
     private void dropMessages(Iterator<TaskMessage> msgs) {
         // We consume the iterator by traversing and thus "emptying" it.
@@ -402,8 +408,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
                     break;
                 }
                 Thread.sleep(PENDING_MESSAGES_FLUSH_INTERVAL_MS);
-            }
-            catch (InterruptedException e) {
+            } catch (InterruptedException e) {
                 break;
             }
         }
@@ -416,6 +421,26 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
             channel.close();
             LOG.debug("channel to {} closed", dstAddressPrefixedName);
         }
+    }
+
+    void setLoadMetrics(Map<Integer, Double> taskToLoad) {
+        this.serverLoad = taskToLoad;
+    }
+
+    @Override
+    public Map<Integer, Load> getLoad(Collection<Integer> tasks) {
+        Map<Integer, Double> loadCache = serverLoad;
+        Map<Integer, Load> ret = new HashMap<Integer, Load>();
+        if (loadCache != null) {
+            double clientLoad = Math.min(pendingMessages.get(), 1024)/1024.0;
+            for (Integer task : tasks) {
+                Double found = loadCache.get(task);
+                if (found != null) {
+                    ret.put(task, new Load(true, found, clientLoad));
+                }
+            }
+        }
+        return ret;
     }
 
     @Override

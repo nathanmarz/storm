@@ -45,8 +45,6 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import backtype.storm.security.auth.ThriftConnectionType;
-
 /**
  * Simple transport for Thrift plugin.
  * 
@@ -146,12 +144,12 @@ public class SimpleTransportPlugin implements ITransportPlugin {
             if (s == null) {
               final String user = (String)storm_conf.get("debug.simple.transport.user");
               if (user != null) {
-                HashSet<Principal> principals = new HashSet<Principal>();
+                HashSet<Principal> principals = new HashSet<>();
                 principals.add(new Principal() {
                   public String getName() { return user; }
                   public String toString() { return user; }
                 });
-                s = new Subject(true, principals, new HashSet<Object>(), new HashSet<Object>());
+                s = new Subject(true, principals, new HashSet<>(), new HashSet<>());
               }
             }
             req_context.setSubject(s);

@@ -253,7 +253,8 @@ public class Flux {
         // banner
         InputStream is = Flux.class.getResourceAsStream("/splash.txt");
         if(is != null){
-            BufferedReader br = new BufferedReader(new InputStreamReader(is));
+            InputStreamReader isr = new InputStreamReader(is, "UTF-8");
+            BufferedReader br = new BufferedReader(isr);
             String line = null;
             while((line = br.readLine()) != null){
                 System.out.println(line);

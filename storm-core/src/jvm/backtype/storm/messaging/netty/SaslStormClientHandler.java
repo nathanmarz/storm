@@ -69,8 +69,6 @@ public class SaslStormClientHandler extends SimpleChannelUpstreamHandler {
             LOG.error("Failed to authenticate with server " + "due to error: ",
                     e);
         }
-        return;
-
     }
 
     @Override
@@ -131,7 +129,7 @@ public class SaslStormClientHandler extends SimpleChannelUpstreamHandler {
             if (!saslNettyClient.isComplete()) {
                 LOG.warn("Generated a null response, "
                         + "but authentication is not complete.");
-                throw new Exception("Server reponse is null, but as far as "
+                throw new Exception("Server response is null, but as far as "
                         + "we can tell, we are not authenticated yet.");
             }
             this.client.channelReady();

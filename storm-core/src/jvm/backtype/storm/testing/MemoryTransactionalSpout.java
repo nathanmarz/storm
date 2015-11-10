@@ -23,7 +23,6 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.transactional.TransactionAttempt;
 import backtype.storm.coordination.BatchOutputCollector;
 import backtype.storm.transactional.partitioned.IPartitionedTransactionalSpout;
-import backtype.storm.transactional.partitioned.IPartitionedTransactionalSpout.Emitter;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.RegisteredGlobalState;
 import backtype.storm.utils.Utils;
@@ -34,7 +33,7 @@ import java.util.List;
 import java.util.Map;
 
 public class MemoryTransactionalSpout implements IPartitionedTransactionalSpout<MemoryTransactionalSpoutMeta> {
-    public static String TX_FIELD = MemoryTransactionalSpout.class.getName() + "/id";
+    public static final String TX_FIELD = MemoryTransactionalSpout.class.getName() + "/id";
     
     private String _id;
     private String _finishedPartitionsId;
@@ -81,7 +80,7 @@ public class MemoryTransactionalSpout implements IPartitionedTransactionalSpout<
     class Emitter implements IPartitionedTransactionalSpout.Emitter<MemoryTransactionalSpoutMeta> {
         
         Integer _maxSpoutPending;
-        Map<Integer, Integer> _emptyPartitions = new HashMap<Integer, Integer>();
+        Map<Integer, Integer> _emptyPartitions = new HashMap<>();
         
         public Emitter(Map conf) {
             Object c = conf.get(Config.TOPOLOGY_MAX_SPOUT_PENDING);
@@ -125,7 +124,7 @@ public class MemoryTransactionalSpout implements IPartitionedTransactionalSpout<
         public void emitPartitionBatch(TransactionAttempt tx, BatchOutputCollector collector, int partition, MemoryTransactionalSpoutMeta partitionMeta) {
             List<List<Object>> queue = getQueues().get(partition);
             for(int i=partitionMeta.index; i < partitionMeta.index + partitionMeta.amt; i++) {
-                List<Object> toEmit = new ArrayList<Object>(queue.get(i));
+                List<Object> toEmit = new ArrayList<>(queue.get(i));
                 toEmit.add(0, tx);
                 collector.emit(toEmit);                
             }
@@ -148,7 +147,7 @@ public class MemoryTransactionalSpout implements IPartitionedTransactionalSpout<
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        List<String> toDeclare = new ArrayList<String>(_outFields.toList());
+        List<String> toDeclare = new ArrayList<>(_outFields.toList());
         toDeclare.add(0, TX_FIELD);
         declarer.declare(new Fields(toDeclare));
     }

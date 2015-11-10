@@ -19,10 +19,10 @@ package storm.kafka.trident;
 
 import backtype.storm.task.OutputCollector;
 import backtype.storm.topology.FailedException;
-import kafka.javaapi.producer.Producer;
-import kafka.producer.KeyedMessage;
-import kafka.producer.ProducerConfig;
 import org.apache.commons.lang.Validate;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import storm.kafka.trident.mapper.TridentTupleToKafkaMapper;
@@ -34,13 +34,15 @@ import storm.trident.tuple.TridentTuple;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 public class TridentKafkaState implements State {
     private static final Logger LOG = LoggerFactory.getLogger(TridentKafkaState.class);
 
     public static final String KAFKA_BROKER_PROPERTIES = "kafka.broker.properties";
 
-    private Producer producer;
+    private KafkaProducer producer;
     private OutputCollector collector;
 
     private TridentTupleToKafkaMapper mapper;
@@ -72,8 +74,7 @@ public class TridentKafkaState implements State {
         Map configMap = (Map) stormConf.get(KAFKA_BROKER_PROPERTIES);
         Properties properties = new Properties();
         properties.putAll(configMap);
-        ProducerConfig config = new ProducerConfig(properties);
-        producer = new Producer(config);
+        producer = new KafkaProducer(properties);
     }
 
     public void updateState(List<TridentTuple> tuples, TridentCollector collector) {
@@ -83,8 +84,16 @@ public class TridentKafkaState implements State {
                 topic = topicSelector.getTopic(tuple);
 
                 if(topic != null) {
-                    producer.send(new KeyedMessage(topic, mapper.getKeyFromTuple(tuple),
-                            mapper.getMessageFromTuple(tuple)));
+                    Future<RecordMetadata> result = producer.send(new ProducerRecord(topic,
+                            mapper.getKeyFromTuple(tuple), mapper.getMessageFromTuple(tuple)));
+                    try {
+                        result.get();
+                    } catch (ExecutionException e) {
+                        String errorMsg = "Could not retrieve result for message with key = "
+                                + mapper.getKeyFromTuple(tuple) + " from topic = " + topic;
+                        LOG.error(errorMsg, e);
+                        throw new FailedException(errorMsg, e);
+                    }
                 } else {
                     LOG.warn("skipping key = " + mapper.getKeyFromTuple(tuple) + ", topic selector returned null.");
                 }

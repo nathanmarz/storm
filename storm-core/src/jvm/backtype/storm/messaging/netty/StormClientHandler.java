@@ -51,12 +51,28 @@ public class StormClientHandler extends SimpleChannelUpstreamHandler  {
         //examine the response message from server
         Object message = event.getMessage();
         if (message instanceof ControlMessage) {
-          ControlMessage msg = (ControlMessage)message;
-          if (msg==ControlMessage.FAILURE_RESPONSE)
-              LOG.info("failure response:{}", msg);
-
+            ControlMessage msg = (ControlMessage)message;
+            if (msg==ControlMessage.FAILURE_RESPONSE) {
+                LOG.info("failure response:{}", msg);
+            }
+        } else if (message instanceof List) {
+            try {
+                //This should be the metrics, and there should only be one of them
+                List<TaskMessage> list = (List<TaskMessage>)message;
+                if (list.size() < 1) throw new RuntimeException("Didn't see enough load metrics ("+client.getDstAddress()+") "+list);
+                if (list.size() != 1) LOG.warn("Messages are not being delivered fast enough, got "+list.size()+" metrics messages at once("+client.getDstAddress()+")");
+                TaskMessage tm = ((List<TaskMessage>)message).get(list.size() - 1);
+                if (tm.task() != -1) throw new RuntimeException("Metrics messages are sent to the system task ("+client.getDstAddress()+") "+tm);
+                List metrics = _des.deserialize(tm.message());
+                if (metrics.size() < 1) throw new RuntimeException("No metrics data in the metrics message ("+client.getDstAddress()+") "+metrics);
+                if (!(metrics.get(0) instanceof Map)) throw new RuntimeException("The metrics did not have a map in the first slot ("+client.getDstAddress()+") "+metrics);
+                client.setLoadMetrics((Map<Integer, Double>)metrics.get(0));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         } else {
-          throw new RuntimeException("Don't know how to handle a message of type "+message+" ("+client.getDstAddress()+")");
+            throw new RuntimeException("Don't know how to handle a message of type "
+                                       + message + " (" + client.getDstAddress() + ")");
         }
     }
         

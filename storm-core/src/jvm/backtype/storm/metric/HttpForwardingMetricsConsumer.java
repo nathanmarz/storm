@@ -21,7 +21,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.net.URL;
-import java.net.URLConnection;
 import java.net.HttpURLConnection;
 
 import com.esotericsoftware.kryo.io.Output;

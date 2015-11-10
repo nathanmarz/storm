@@ -42,7 +42,7 @@ import backtype.storm.generated.ThriftSerializedObject;
  * Every read/write hits disk.
  */
 public class LocalState {
-    public static Logger LOG = LoggerFactory.getLogger(LocalState.class);
+    public static final Logger LOG = LoggerFactory.getLogger(LocalState.class);
     private VersionedStore _vs;
     
     public LocalState(String backingDir) throws IOException {
@@ -65,7 +65,7 @@ public class LocalState {
     }
 
     private Map<String, TBase> deserializeLatestVersion() throws IOException {
-        Map<String, TBase> result = new HashMap<String, TBase>();
+        Map<String, TBase> result = new HashMap<>();
         TDeserializer td = new TDeserializer();
         for (Map.Entry<String, ThriftSerializedObject> ent: partialDeserializeLatestVersion(td).entrySet()) {
             result.put(ent.getKey(), deserialize(ent.getValue(), td));
@@ -87,7 +87,7 @@ public class LocalState {
     private Map<String, ThriftSerializedObject> partialDeserializeLatestVersion(TDeserializer td) {
         try {
             String latestPath = _vs.mostRecentVersionPath();
-            Map<String, ThriftSerializedObject> result = new HashMap<String, ThriftSerializedObject>();
+            Map<String, ThriftSerializedObject> result = new HashMap<>();
             if (latestPath != null) {
                 byte[] serialized = FileUtils.readFileToByteArray(new File(latestPath));
                 if (serialized.length == 0) {
@@ -181,21 +181,7 @@ public class LocalState {
 
     private ThriftSerializedObject serialize(TBase o, TSerializer ser) {
         try {
-            return new ThriftSerializedObject(o.getClass().getName(), ByteBuffer.wrap(ser.serialize((TBase)o)));
-        } catch(Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private void persist(Map<String, TBase> val, boolean cleanup) {
-        try {
-            TSerializer ser = new TSerializer();
-            Map<String, ThriftSerializedObject> serialized = new HashMap<String, ThriftSerializedObject>();
-            for (Map.Entry<String, TBase> ent: val.entrySet()) {
-                Object o = ent.getValue();
-                serialized.put(ent.getKey(), serialize(ent.getValue(), ser));
-            }
-            persistInternal(serialized, ser, cleanup);
+            return new ThriftSerializedObject(o.getClass().getName(), ByteBuffer.wrap(ser.serialize(o)));
         } catch(Exception e) {
             throw new RuntimeException(e);
         }

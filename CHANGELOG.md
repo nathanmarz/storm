@@ -1,4 +1,30 @@
 ## 0.11.0
+ * STORM-1189: Maintain wire compatability with 0.10.x versions of storm.
+ * STORM-1185: replace nimbus.host with nimbus.seeds
+ * STORM-1164: Code cleanup for typos, warnings and conciseness.
+ * STORM-902: Simple Log Search.
+ * STORM-1052: TridentKafkaState uses new Kafka Producer API.
+ * STORM-1182: Removing and wrapping some exceptions in ConfigValidation to make code cleaner
+ * STORM-1134. Windows: Fix log4j config.
+ * STORM-1127: allow for boolean arguments (Flux)
+ * STORM-1180: FLUX logo wasn't appearing quite right
+ * STORM-1138: Storm-hdfs README should be updated with Avro Bolt information
+ * STORM-1154: SequenceFileBolt needs unit tests
+ * STORM-162: Load Aware Shuffle Grouping
+ * STORM-1158: Storm metrics to profile various storm functions
+ * STORM-1161: Add License headers and add rat checks to builds
+ * STORM-1165: normalize the scales of CPU/Mem/Net when choosing the best node for Resource Aware Scheduler
+ * STORM-1163: use rmr rather than rmpath for remove worker-root
+ * STORM-1170: Fix the producer alive issue in DisruptorQueueTest
+ * STORM-1168: removes noisy log message & a TODO
+ * STORM-1143: Validate topology Configs during topology submission
+ * STORM-1157: Adding dynamic profiling for worker, restarting worker, jstack, heap dump, and profiling
+ * STORM-1123: TupleImpl - Unnecessary variable initialization.
+ * STORM-1153: Use static final instead of just static for class members.
+ * STORM-817: Kafka Wildcard Topic Support.
+ * STORM-40: Turn worker garbage collection and heapdump on by default.
+ * STORM-1152: Change map keySet iteration to entrySet iteration for efficiency.
+ * STORM-1147: Storm JDBCBolt should add validation to ensure either insertQuery or table name is specified and not both.
  * STORM-1151: Batching in DisruptorQueue
  * STORM-350: Update disruptor to latest version (3.3.2)
  * STORM-697: Support for Emitting Kafka Message Offset and Partition

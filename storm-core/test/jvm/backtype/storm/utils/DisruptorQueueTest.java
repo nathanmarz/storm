@@ -22,7 +22,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.dsl.ProducerType;
-import com.lmax.disruptor.InsufficientCapacityException;
 import org.junit.Assert;
 import org.junit.Test;
 import junit.framework.TestCase;
@@ -41,7 +40,7 @@ public class DisruptorQueueTest extends TestCase {
 
         Runnable producer = new IncProducer(queue, i+100);
 
-        final AtomicReference<Object> result = new AtomicReference<Object>();
+        final AtomicReference<Object> result = new AtomicReference<>();
         Runnable consumer = new Consumer(queue, new EventHandler<Object>() {
             private boolean head = true;
 
@@ -126,11 +125,11 @@ public class DisruptorQueueTest extends TestCase {
 
         @Override
         public void run() {
-            for (long i = 0; i < _max; i++) {
+            for (long i = 0; i < _max && !(Thread.currentThread().isInterrupted()); i++) {
                 queue.publish(i);
             }
         }
-    };
+    }
 
     private static class Consumer implements Runnable {
         private EventHandler handler;
@@ -151,7 +150,7 @@ public class DisruptorQueueTest extends TestCase {
                 //break
             }
         }
-    };
+    }
 
     private static DisruptorQueue createQueue(String name, int queueSize) {
         return new DisruptorQueue(name, ProducerType.MULTI, queueSize, 0L, 1, 1L);

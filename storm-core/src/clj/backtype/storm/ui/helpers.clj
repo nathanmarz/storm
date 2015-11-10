@@ -34,7 +34,16 @@
            [org.eclipse.jetty.servlets CrossOriginFilter])
   (:require [ring.util servlet])
   (:require [compojure.route :as route]
-            [compojure.handler :as handler]))
+            [compojure.handler :as handler])
+  (:require [metrics.meters :refer [defmeter mark!]]))
+
+(defmeter num-web-requests)
+(defn requests-middleware
+  "Coda Hale metric for counting the number of web requests."
+  [handler]
+  (fn [req]
+    (mark! num-web-requests)
+    (handler req)))
 
 (defn split-divide [val divider]
   [(Integer. (int (/ val divider))) (mod val divider)]
@@ -103,6 +112,11 @@
 
 (defn pretty-executor-info [^ExecutorInfo e]
   (str "[" (.get_task_start e) "-" (.get_task_end e) "]"))
+
+(defn unauthorized-user-json
+  [user]
+  {"error" "No Authorization"
+   "errorMessage" (str "User " user " is not authorized.")})
 
 (defn unauthorized-user-html [user]
   [[:h2 "User '" (escape-html user) "' is not authorized."]])

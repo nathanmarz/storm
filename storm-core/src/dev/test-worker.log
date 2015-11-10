@@ -1,0 +1,380 @@
+Test needle is near the beginning of the file.
+This file assumes a buffer size of 2048 bytes, a max search string size of 1024 bytes, and a context length of 128 UTF-8 characters.
+The early match tests the case when we find a match too close to the start of the file to give the normal before context strings.
+
+padding 5
+padding 6
+padding 7
+padding 8
+padding 9
+padding 10
+padding 11
+padding 12
+padding 13
+padding 14
+padding 15
+padding 16
+padding 17
+padding 18
+padding 19
+padding 20
+padding 21
+padding 22
+padding 23
+padding 24
+padding 25
+padding 26
+padding 27
+padding 28
+padding 29
+padding 30
+padding 31
+padding 32
+padding 33
+padding 34
+padding 35
+padding 36
+padding 37
+padding 38
+padding 39
+padding 40
+padding 41
+padding 42
+padding 43
+padding 44
+padding 45
+padding 46
+padding 47
+padding 48
+padding 49
+padding 50
+padding 51
+padding 52
+padding 53
+padding 54
+padding 55
+padding 56
+padding 57
+padding 58
+padding 59
+padding 60
+padding 61
+padding 62
+padding 63
+padding 64
+padding 65
+padding 66
+padding 67
+padding 68
+padding 69
+padding 70
+padding 71
+padding 72
+padding 73
+padding 74
+padding 75
+padding 76
+padding 77
+padding 78
+padding 79
+padding 80
+padding 81
+padding 82
+padding 83
+padding 84
+padding 85
+padding 86
+padding 87
+padding 88
+padding 89
+padding 90
+padding 91
+padding 92
+padding 93
+padding 94
+padding 95
+padding 96
+padding 97
+padding 98
+padding 99
+padding 100
+padding 101
+padding 102
+padding 103
+padding 104
+padding 105
+padding 106
+padding 107
+padding 108
+padding 109
+padding 110
+padding 111
+padding 112
+padding 113
+padding 114
+padding 115
+padding 116
+padding 117
+padding 118
+padding 119
+padding 120
+padding 121
+padding 122
+padding 123
+padding 124
+padding 125
+padding 126
+padding 127
+padding 128
+padding 129
+padding 130
+padding 131
+padding 132
+padding 133
+padding 134
+padding 135
+padding 136
+padding 137
+padding 138
+padding 139
+padding 140
+padding 141
+padding 142
+padding 143
+padding 144
+padding 145
+padding 146
+padding 147
+padding 148
+padding 149
+padding 150
+padding 151
+padding 152
+padding 153
+Near the end of a 1024 byte block, a needle.
+A needle that straddles a 1024 byte boundary should also be detected.
+
+padding 157
+padding 158
+padding 159
+padding 160
+padding 161
+padding 162
+padding 163
+padding 164
+padding 165
+padding 166
+padding 167
+padding 168
+padding 169
+padding 170
+padding 171
+padding 172
+padding 173
+padding 174
+padding 175
+padding 176
+padding 177
+padding 178
+padding 179
+padding 180
+padding 181
+padding 182
+padding 183
+padding 184
+padding 185
+padding 186
+padding 187
+padding 188
+padding 189
+padding 190
+padding 191
+padding 192
+padding 193
+padding 194
+padding 195
+padding 196
+padding 197
+padding 198
+padding 199
+padding 200
+padding 201
+padding 202
+padding 203
+padding 204
+padding 205
+padding 206
+padding 207
+padding 208
+padding 209
+padding 210
+padding 211
+padding 212
+padding 213
+padding 214
+padding 215
+padding 216
+padding 217
+padding 218
+padding 219
+padding 220
+padding 221
+padding 222
+padding 223
+padding 224
+padding 225
+padding 226
+padding 227
+padding 228
+padding 229
+padding 230
+padding 231
+padding 232
+padding 233
+padding 234
+padding 235
+
+
+Here a needle occurs just after a 1024 byte boundary.  It should have the correct context.
+
+Text with two adjoining matches: needleneedle
+
+padding 243
+padding 244
+padding 245
+padding 246
+padding 247
+padding 248
+padding 249
+padding 250
+padding 251
+padding 252
+padding 253
+padding 254
+padding 255
+padding 256
+padding 257
+padding 258
+padding 259
+padding 260
+padding 261
+padding 262
+padding 263
+padding 264
+padding 265
+padding 266
+padding 267
+padding 268
+padding 269
+padding 270
+padding 271
+padding 272
+padding 273
+padding 274
+padding 275
+padding 276
+padding 277
+padding 278
+padding 279
+padding 280
+padding 281
+padding 282
+padding 283
+padding 284
+padding 285
+padding 286
+padding 287
+padding 288
+padding 289
+padding 290
+padding 291
+padding 292
+padding 293
+padding 294
+padding 295
+padding 296
+padding 297
+padding 298
+padding 299
+padding 300
+padding 301
+padding 302
+padding 303
+padding 304
+
+The following match of 1024 bytes completely fills half the byte buffer.  It is a search substring of the maximum size......
+
+XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+The following max-size match straddles a 1024 byte buffer.
+XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+Here are four non-ascii 1-byte UTF-8 characters: Œ±Œ≤Œ≥Œ¥Œµ
+
+needle
+
+Here are four printable 2-byte UTF-8 characters: ¬°¬¢¬£¬§¬•
+
+needle
+
+
+
+Here are four printable 3-byte UTF-8 characters: ‡§Ñ‡§Ö‡§Ü‡§á‡§à
+
+needle
+
+Here are four printable 4-byte UTF-8 characters: êÑáêÑàêÑâêÑãêÑå
+
+needle
+
+Here are four of the same invalid UTF-8 characters: ˆÄÄÄˆÄÄÄˆÄÄÄˆÄÄÄ
+
+needle
+
+padding 332
+padding 333
+padding 334
+padding 335
+padding 336
+padding 337
+padding 338
+padding 339
+padding 340
+padding 341
+padding 342
+padding 343
+padding 344
+padding 345
+padding 346
+padding 347
+padding 348
+padding 349
+padding 350
+padding 351
+padding 352
+padding 353
+padding 354
+padding 355
+padding 356
+padding 357
+padding 358
+padding 359
+padding 360
+padding 361
+padding 362
+padding 363
+padding 364
+padding 365
+padding 366
+padding 367
+padding 368
+padding 369
+padding 370
+padding 371
+padding 372
+padding 373
+padding 374
+padding 375
+
+The following tests multibyte UTF-8 Characters straddling the byte boundary:   êÑÄêÑÅêÑÇ
+
+needle

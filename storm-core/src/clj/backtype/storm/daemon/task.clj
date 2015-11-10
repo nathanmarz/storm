@@ -18,6 +18,7 @@
   (:use [backtype.storm config util log])
   (:import [backtype.storm.hooks ITaskHook])
   (:import [backtype.storm.tuple Tuple TupleImpl])
+  (:import [backtype.storm.grouping LoadMapping])
   (:import [backtype.storm.generated SpoutSpec Bolt StateSpoutSpec StormTopology])
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
             EmitInfo BoltFailInfo BoltAckInfo])
@@ -119,6 +120,7 @@
 (defn mk-tasks-fn [task-data]
   (let [task-id (:task-id task-data)
         executor-data (:executor-data task-data)
+        ^LoadMapping load-mapping (:load-mapping (:worker executor-data))
         component-id (:component-id executor-data)
         ^WorkerTopologyContext worker-context (:worker-context executor-data)
         storm-conf (:storm-conf executor-data)
@@ -152,7 +154,7 @@
                (when (= :direct grouper)
                   ;;  TODO: this is wrong, need to check how the stream was declared
                   (throw (IllegalArgumentException. "Cannot do regular emit to direct stream")))
-               (let [comp-tasks (grouper task-id values)]
+               (let [comp-tasks (grouper task-id values load-mapping)]
                  (if (or (sequential? comp-tasks) (instance? Collection comp-tasks))
                    (.addAll out-tasks comp-tasks)
                    (.add out-tasks comp-tasks)

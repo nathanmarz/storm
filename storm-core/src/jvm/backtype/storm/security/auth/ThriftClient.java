@@ -24,14 +24,10 @@ import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import backtype.storm.utils.Utils;
 import backtype.storm.Config;
-import backtype.storm.security.auth.TBackoffConnect;
 
-public class ThriftClient {	
-    private static final Logger LOG = LoggerFactory.getLogger(ThriftClient.class);
+public class ThriftClient {
     private TTransport _transport;
     protected TProtocol _protocol;
     private String _host;
@@ -90,8 +86,6 @@ public class ThriftClient {
             //construct a transport plugin
             ITransportPlugin transportPlugin = AuthUtils.GetTransportPlugin(_type, _conf, login_conf);
 
-            final TTransport underlyingTransport = socket;
-
             //TODO get this from type instead of hardcoding to Nimbus.
             //establish client-server transport via plugin
             //do retries if the connect fails
@@ -100,7 +94,7 @@ public class ThriftClient {
                                       Utils.getInt(_conf.get(Config.STORM_NIMBUS_RETRY_TIMES)),
                                       Utils.getInt(_conf.get(Config.STORM_NIMBUS_RETRY_INTERVAL)),
                                       Utils.getInt(_conf.get(Config.STORM_NIMBUS_RETRY_INTERVAL_CEILING)));
-            _transport = connectionRetry.doConnectWithRetry(transportPlugin, underlyingTransport, _host, _asUser);
+            _transport = connectionRetry.doConnectWithRetry(transportPlugin, socket, _host, _asUser);
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }

@@ -1267,7 +1267,8 @@
                      NIMBUS-THRIFT-PORT 6666}
           expected-acls nimbus/NIMBUS-ZK-ACLS
           fake-inimbus (reify INimbus (getForcedScheduler [this] nil))]
-      (stubbing [mk-authorization-handler nil
+      (stubbing [nimbus-topo-history-state nil
+                 mk-authorization-handler nil
                  cluster/mk-storm-cluster-state nil
                  nimbus/file-cache-map nil
                  uptime-computer nil

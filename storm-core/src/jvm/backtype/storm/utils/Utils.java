@@ -237,14 +237,14 @@ public class Utils {
 
     public static <T> String join(Iterable<T> coll, String sep) {
         Iterator<T> it = coll.iterator();
-        String ret = "";
+        StringBuilder ret = new StringBuilder();
         while(it.hasNext()) {
-            ret = ret + it.next();
+            ret.append(it.next());
             if(it.hasNext()) {
-                ret = ret + sep;
+                ret.append(sep);
             }
         }
-        return ret;
+        return ret.toString();
     }
 
     public static void sleep(long millis) {
@@ -378,10 +378,9 @@ public class Utils {
     private static Object normalizeConf(Object conf) {
         if (conf == null) return new HashMap();
         if (conf instanceof Map) {
-            Map confMap = new HashMap((Map) conf);
-            for (Object key : confMap.keySet()) {
-                Object val = confMap.get(key);
-                confMap.put(key, normalizeConf(val));
+            Map<Object, Object> confMap = new HashMap((Map) conf);
+            for (Map.Entry<Object, Object> entry : confMap.entrySet()) {
+                confMap.put(entry.getKey(), normalizeConf(entry.getValue()));
             }
             return confMap;
         } else if (conf instanceof List) {
@@ -477,8 +476,8 @@ public class Utils {
 
     public static <K, V> Map<V, K> reverseMap(Map<K, V> map) {
         Map<V, K> ret = new HashMap<V, K>();
-        for (K key : map.keySet()) {
-            ret.put(map.get(key), key);
+        for (Map.Entry<K, V> entry : map.entrySet()) {
+            ret.put(entry.getValue(), entry.getKey());
         }
         return ret;
     }

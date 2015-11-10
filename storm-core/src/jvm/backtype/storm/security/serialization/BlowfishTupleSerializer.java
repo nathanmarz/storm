@@ -36,19 +36,19 @@ import backtype.storm.utils.ListDelegate;
 import backtype.storm.Config;
 
 /**
- * Apply Blowfish encrption for tuple communication to bolts
+ * Apply Blowfish encryption for tuple communication to bolts
  */
 public class BlowfishTupleSerializer extends Serializer<ListDelegate> {
     /**
      * The secret key (if any) for data encryption by blowfish payload serialization factory (BlowfishSerializationFactory). 
      * You should use in via "storm -c topology.tuple.serializer.blowfish.key=YOURKEY -c topology.tuple.serializer=backtype.storm.security.serialization.BlowfishTupleSerializer jar ...".
      */
-    public static String SECRET_KEY = "topology.tuple.serializer.blowfish.key";
+    public static final String SECRET_KEY = "topology.tuple.serializer.blowfish.key";
     private static final Logger LOG = LoggerFactory.getLogger(BlowfishTupleSerializer.class);
     private BlowfishSerializer _serializer;
 
     public BlowfishTupleSerializer(Kryo kryo, Map storm_conf) {
-        String encryption_key = null;
+        String encryption_key;
         try {
             encryption_key = (String)storm_conf.get(SECRET_KEY);
             LOG.debug("Blowfish serializer being constructed ...");

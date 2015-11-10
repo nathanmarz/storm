@@ -17,7 +17,6 @@
  */
 package backtype.storm.serialization;
 
-import java.io.IOException;
 import java.util.Map;
 import backtype.storm.utils.Utils;
 import org.apache.thrift.TBase;

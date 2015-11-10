@@ -36,6 +36,7 @@ bolts:
     constructorArgs:
       - FOO # enum class
       - 1.0
+      - true
     configMethods:
       - name: "withFoo"
         args:

@@ -1,0 +1,100 @@
+<html><head>
+    <!--
+     Licensed to the Apache Software Foundation (ASF) under one or more
+     contributor license agreements.  See the NOTICE file distributed with
+     this work for additional information regarding copyright ownership.
+     The ASF licenses this file to You under the Apache License, Version 2.0
+     (the "License"); you may not use this file except in compliance with
+     the License.  You may obtain a copy of the License at
+
+         http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+    -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Storm UI</title>
+<link href="/css/bootstrap-3.3.1.min.css" rel="stylesheet" type="text/css">
+<link href="/css/jquery.dataTables.1.10.4.min.css" rel="stylesheet" type="text/css">
+<link href="/css/dataTables.bootstrap.css" rel="stylesheet" type="text/css">
+<link href="/css/style.css" rel="stylesheet" type="text/css">
+<script src="/js/jquery-1.11.1.min.js" type="text/javascript"></script>
+<script src="/js/jquery.dataTables.1.10.4.min.js" type="text/javascript"></script>
+<script src="/js/jquery.cookies.2.2.0.min.js" type="text/javascript"></script>
+<script src="/js/jquery.mustache.js" type="text/javascript"></script>
+<script src="/js/bootstrap-3.3.1.min.js" type="text/javascript"></script>
+<script src="/js/jquery.blockUI.min.js" type="text/javascript"></script>
+<script src="/js/url.min.js" type="text/javascript"></script>
+<script src="/js/dataTables.bootstrap.min.js" type="text/javascript"></script>
+<script src="/js/script.js" type="text/javascript"></script>
+</head>
+<body>
+<div class="container-fluid">
+  <div class="row">
+    <div id="search-form"></div>
+  </div>
+  <div class="row">
+    <div id="result"></div>
+  </div>
+</div>
+</body>
+<script>
+$(document).ready(function() {
+    var id = $.url("?id");
+    var search = $.url("?search");
+    var count = $.url("?count") || 2;
+    var searchArchived = $.url("?searchArchived") || "";
+
+    $.get("/templates/search-result-page-template.html", function(template) {
+        $("#search-form").append(Mustache.render($(template).filter("#search-form-template").html(),{id: id, search: search, count: count, searchArchived: searchArchived}));
+
+        var result = $("#result");
+        $.getJSON("/api/v1/topology-workers/"+id, function(response,status,jqXHR) {
+           for (var index in response.hostPortList) {
+             var host = response.hostPortList[index].host;
+             var port = response.hostPortList[index].port;
+             var elemId = "search-results-"+host.replace(/\./g,"-")+"-"+port;
+             response.hostPortList[index].elemId = elemId;
+           }
+           result.append(Mustache.render($(template).filter("#search-result-files-template").html(),response));
+
+           var logviewerPort = response.logviewerPort;
+           for (var index in response.hostPortList) {
+             var host = response.hostPortList[index].host;
+             var port = response.hostPortList[index].port;
+             var elemId = response.hostPortList[index].elemId;
+             var file = id+"/"+port+"/worker.log";
+             var searchURL = "http://"+host+":"+logviewerPort+"/search/"+encodeURIComponent(file)+"?search-string="+search+"&num-matches="+count;
+             if (searchArchived != "") {
+               searchURL = "http://"+host+":"+logviewerPort+"/deepSearch/"+id+"?search-string="+search+"&num-matches="+count+"&search-archived=true&port="+port;
+             }
+
+             $.ajax({dataType: "json",
+               url: searchURL,
+               xhrFields: {
+                 withCredentials: true
+               },
+               success: $.proxy(function(data,status,jqXHR) {
+                                  data.file = this.file;
+                                  data.host = this.host;
+                                  data.port = this.port;
+                                  data.id = id;
+                                  data.logviewerPort = logviewerPort;
+                                  var searchTemp = $(template).filter("#search-result-identified-template").html();
+                                  if (searchArchived != "") {
+                                    searchTemp = $(template).filter("#deepsearch-result-identified-template").html();
+                                  }
+                                  var rendered = Mustache.render(searchTemp, data);
+                                  $("#"+this.elemId).replaceWith(rendered);
+                                  }, {host: host, port: port, file: file, elemId: elemId})
+             });
+           }
+       });
+    });
+  });
+</script>
+</html>

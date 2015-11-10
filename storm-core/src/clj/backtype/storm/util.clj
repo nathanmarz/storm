@@ -517,11 +517,17 @@
     (map #(str \' (clojure.string/escape % {\' "'\"'\"'"}) \'))
       (clojure.string/join " ")))
 
+(defn script-file-path [dir]
+  (str dir file-path-separator "storm-worker-script.sh"))
+
+(defn container-file-path [dir]
+  (str dir file-path-separator "launch_container.sh"))
+
 (defnk write-script
   [dir command :environment {}]
   (let [script-src (str "#!/bin/bash\n" (clojure.string/join "" (map (fn [[k v]] (str (shell-cmd ["export" (str k "=" v)]) ";\n")) environment)) "\nexec " (shell-cmd command) ";")
-        script-path (str dir "/storm-worker-script.sh")
-        - (spit script-path script-src)]
+        script-path (script-file-path dir)
+        _ (spit script-path script-src)]
     script-path
   ))
 
@@ -1039,6 +1045,8 @@
 (defn logs-filename
   [storm-id port]
   (str storm-id file-path-separator port file-path-separator "worker.log"))
+
+(def worker-log-filename-pattern #"^worker.log(.*)")
 
 (defn event-logs-filename
   [storm-id port]

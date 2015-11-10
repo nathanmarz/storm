@@ -46,8 +46,6 @@ public class ClientCallbackHandler implements CallbackHandler {
      * Constructor based on a JAAS configuration
      * 
      * For digest, you should have a pair of user name and password defined.
-     * 
-     * @param configuration
      * @throws IOException
      */
     public ClientCallbackHandler(Configuration configuration) throws IOException {

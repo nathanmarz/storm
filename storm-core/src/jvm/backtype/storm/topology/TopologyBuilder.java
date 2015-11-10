@@ -89,18 +89,18 @@ import org.json.simple.JSONValue;
  * the inputs for that component.</p>
  */
 public class TopologyBuilder {
-    private Map<String, IRichBolt> _bolts = new HashMap<String, IRichBolt>();
-    private Map<String, IRichSpout> _spouts = new HashMap<String, IRichSpout>();
-    private Map<String, ComponentCommon> _commons = new HashMap<String, ComponentCommon>();
+    private Map<String, IRichBolt> _bolts = new HashMap<>();
+    private Map<String, IRichSpout> _spouts = new HashMap<>();
+    private Map<String, ComponentCommon> _commons = new HashMap<>();
 
 //    private Map<String, Map<GlobalStreamId, Grouping>> _inputs = new HashMap<String, Map<GlobalStreamId, Grouping>>();
 
-    private Map<String, StateSpoutSpec> _stateSpouts = new HashMap<String, StateSpoutSpec>();
+    private Map<String, StateSpoutSpec> _stateSpouts = new HashMap<>();
     
     
     public StormTopology createTopology() {
-        Map<String, Bolt> boltSpecs = new HashMap<String, Bolt>();
-        Map<String, SpoutSpec> spoutSpecs = new HashMap<String, SpoutSpec>();
+        Map<String, Bolt> boltSpecs = new HashMap<>();
+        Map<String, SpoutSpec> spoutSpecs = new HashMap<>();
         for(String boltId: _bolts.keySet()) {
             IRichBolt bolt = _bolts.get(boltId);
             ComponentCommon common = getComponentCommon(boltId, bolt);
@@ -168,7 +168,7 @@ public class TopologyBuilder {
      *
      * @param id the id of this component. This id is referenced by other components that want to consume this bolt's outputs.
      * @param bolt the basic bolt
-     * @param parallelism_hint the number of tasks that should be assigned to execute this bolt. Each task will run on a thread in a process somwehere around the cluster.
+     * @param parallelism_hint the number of tasks that should be assigned to execute this bolt. Each task will run on a thread in a process somewhere around the cluster.
      * @return use the returned object to declare the inputs to this component
      * @throws IllegalArgumentException if {@code parallelism_hint} is not positive
      */
@@ -193,7 +193,7 @@ public class TopologyBuilder {
      * will be allocated to this component.
      *
      * @param id the id of this component. This id is referenced by other components that want to consume this spout's outputs.
-     * @param parallelism_hint the number of tasks that should be assigned to execute this spout. Each task will run on a thread in a process somwehere around the cluster.
+     * @param parallelism_hint the number of tasks that should be assigned to execute this spout. Each task will run on a thread in a process somewhere around the cluster.
      * @param spout the spout
      * @throws IllegalArgumentException if {@code parallelism_hint} is not positive
      */

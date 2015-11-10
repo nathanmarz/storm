@@ -84,6 +84,31 @@ public class DisruptorQueueTest extends TestCase {
                 allInOrder.get());
     }
 
+    @Test 
+    public void testInOrderBatch() throws InterruptedException {
+        final AtomicBoolean allInOrder = new AtomicBoolean(true);
+
+        DisruptorQueue queue = createQueue("consumerHang", 10, 1024);
+        Runnable producer = new IncProducer(queue, 1024*1024);
+        Runnable consumer = new Consumer(queue, new EventHandler<Object>() {
+            long _expected = 0;
+            @Override
+            public void onEvent(Object obj, long sequence, boolean endOfBatch)
+                    throws Exception {
+                if (_expected != ((Number)obj).longValue()) {
+                    allInOrder.set(false);
+                    System.out.println("Expected "+_expected+" but got "+obj);
+                }
+                _expected++;
+            }
+        });
+
+        run(producer, consumer, 1000, 1);
+        Assert.assertTrue("Messages delivered out of order",
+                allInOrder.get());
+    }
+
+
     private void run(Runnable producer, Runnable consumer)
             throws InterruptedException {
         run(producer, consumer, 10, PRODUCER_NUM);
@@ -154,5 +179,9 @@ public class DisruptorQueueTest extends TestCase {
 
     private static DisruptorQueue createQueue(String name, int queueSize) {
         return new DisruptorQueue(name, ProducerType.MULTI, queueSize, 0L, 1, 1L);
+    }
+
+    private static DisruptorQueue createQueue(String name, int batchSize, int queueSize) {
+        return new DisruptorQueue(name, ProducerType.MULTI, queueSize, 0L, batchSize, 1L);
     }
 }

@@ -17,9 +17,7 @@
  */
 package backtype.storm.metric;
 
-import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.tuple.Tuple;
 
 import java.util.Date;
 import java.util.Map;
@@ -54,11 +52,7 @@ public interface IEventLogger {
          */
         @Override
         public String toString() {
-            return new StringBuilder(new Date(Long.parseLong(ts)).toString()).append(",")
-                    .append(component).append(",")
-                    .append(task).append(",")
-                    .append(messageId).append(",")
-                    .append(values).toString();
+            return new Date(Long.parseLong(ts)).toString() + "," + component + "," + task + "," + messageId + "," + values;
         }
     }
 

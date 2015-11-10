@@ -26,15 +26,11 @@ import java.util.Collection;
 import backtype.storm.security.auth.IAuthorizer;
 import backtype.storm.security.auth.ReqContext;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * An authorization implementation that simply checks a whitelist of users that
  * are allowed to use the cluster.
  */
 public class SimpleWhitelistAuthorizer implements IAuthorizer {
-    private static final Logger LOG = LoggerFactory.getLogger(SimpleWhitelistAuthorizer.class);
     public static final String WHITELIST_USERS_CONF = "storm.auth.simple-white-list.users";
     protected Set<String> users;
 

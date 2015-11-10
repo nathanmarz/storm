@@ -56,7 +56,7 @@ class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServe
     @SuppressWarnings("rawtypes")
     Map storm_conf;
     int port;
-    private final ConcurrentHashMap<String, AtomicInteger> messagesEnqueued = new ConcurrentHashMap<String, AtomicInteger>();
+    private final ConcurrentHashMap<String, AtomicInteger> messagesEnqueued = new ConcurrentHashMap<>();
     private final AtomicInteger messagesDequeued = new AtomicInteger(0);
     private final AtomicInteger[] pendingMessages;
     
@@ -84,12 +84,12 @@ class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServe
         
         queueCount = Utils.getInt(storm_conf.get(Config.WORKER_RECEIVER_THREAD_COUNT), 1);
         roundRobinQueueId = 0;
-        taskToQueueId = new HashMap<Integer, Integer>();
+        taskToQueueId = new HashMap<>();
     
         message_queue = new LinkedBlockingQueue[queueCount];
         pendingMessages = new AtomicInteger[queueCount];
         for (int i = 0; i < queueCount; i++) {
-            message_queue[i] = new LinkedBlockingQueue<ArrayList<TaskMessage>>();
+            message_queue[i] = new LinkedBlockingQueue<>();
             pendingMessages[i] = new AtomicInteger(0);
         }
         
@@ -128,8 +128,7 @@ class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServe
     private ArrayList<TaskMessage>[] groupMessages(List<TaskMessage> msgs) {
         ArrayList<TaskMessage> messageGroups[] = new ArrayList[queueCount];
 
-        for (int i = 0; i < msgs.size(); i++) {
-            TaskMessage message = msgs.get(i);
+        for (TaskMessage message : msgs) {
             int task = message.task();
 
             if (task == -1) {
@@ -140,7 +139,7 @@ class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServe
             Integer queueId = getMessageQueueId(task);
 
             if (null == messageGroups[queueId]) {
-                messageGroups[queueId] = new ArrayList<TaskMessage>();
+                messageGroups[queueId] = new ArrayList<>();
             }
             messageGroups[queueId].add(message);
         }
@@ -158,7 +157,7 @@ class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServe
                     if (roundRobinQueueId == queueCount) {
                         roundRobinQueueId = 0;
                     }
-                    HashMap<Integer, Integer> newRef = new HashMap<Integer, Integer>(taskToQueueId);
+                    HashMap<Integer, Integer> newRef = new HashMap<>(taskToQueueId);
                     newRef.put(task, queueId);
                     taskToQueueId = newRef;
                 }
@@ -214,7 +213,7 @@ class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServe
             return closeMessage.iterator();
         }
 
-        ArrayList<TaskMessage> ret = null;
+        ArrayList<TaskMessage> ret;
         int queueId = receiverId % queueCount;
         if ((flags & 0x01) == 0x01) {
             //non-blocking
@@ -240,15 +239,14 @@ class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServe
    
     /**
      * register a newly created channel
-     * @param channel
+     * @param channel newly created channel
      */
     protected void addChannel(Channel channel) {
         allChannels.add(channel);
     }
     
     /**
-     * close a channel
-     * @param channel
+     * @param channel channel to close
      */
     public void closeChannel(Channel channel) {
         channel.close().awaitUninterruptibly();
@@ -326,14 +324,14 @@ class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServe
 
     public Object getState() {
         LOG.debug("Getting metrics for server on port {}", port);
-        HashMap<String, Object> ret = new HashMap<String, Object>();
+        HashMap<String, Object> ret = new HashMap<>();
         ret.put("dequeuedMessages", messagesDequeued.getAndSet(0));
-        ArrayList<Integer> pending = new ArrayList<Integer>(pendingMessages.length);
+        ArrayList<Integer> pending = new ArrayList<>(pendingMessages.length);
         for (AtomicInteger p: pendingMessages) {
             pending.add(p.get());
         }
         ret.put("pending", pending);
-        HashMap<String, Integer> enqueued = new HashMap<String, Integer>();
+        HashMap<String, Integer> enqueued = new HashMap<>();
         Iterator<Map.Entry<String, AtomicInteger>> it = messagesEnqueued.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<String, AtomicInteger> ent = it.next();

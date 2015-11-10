@@ -24,7 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class OutputFieldsGetter implements OutputFieldsDeclarer {
-    private Map<String, StreamInfo> _fields = new HashMap<String, StreamInfo>();
+    private Map<String, StreamInfo> _fields = new HashMap<>();
 
     public void declare(Fields fields) {
         declare(false, fields);

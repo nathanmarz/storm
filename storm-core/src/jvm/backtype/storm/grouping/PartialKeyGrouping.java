@@ -24,7 +24,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import backtype.storm.generated.GlobalStreamId;
-import backtype.storm.grouping.CustomStreamGrouping;
 import backtype.storm.task.WorkerTopologyContext;
 import backtype.storm.tuple.Fields;
 
@@ -59,9 +58,9 @@ public class PartialKeyGrouping implements CustomStreamGrouping, Serializable {
 
     @Override
     public List<Integer> chooseTasks(int taskId, List<Object> values) {
-        List<Integer> boltIds = new ArrayList<Integer>(1);
+        List<Integer> boltIds = new ArrayList<>(1);
         if (values.size() > 0) {
-            byte[] raw = null;
+            byte[] raw;
             if (fields != null) {
                 List<Object> selectedFields = outFields.select(fields, values);
                 ByteBuffer out = ByteBuffer.allocate(selectedFields.size() * 4);

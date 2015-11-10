@@ -18,7 +18,6 @@
 package backtype.storm.tuple;
 
 import backtype.storm.generated.GlobalStreamId;
-import java.util.List;
 
 /**
  * The tuple is the main data structure in Storm. A tuple is a named list of values, 

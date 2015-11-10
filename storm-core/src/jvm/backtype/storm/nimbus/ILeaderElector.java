@@ -17,11 +17,7 @@
  */
 package backtype.storm.nimbus;
 
-import org.apache.curator.framework.CuratorFramework;
-
 import java.io.Closeable;
-import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Map;
 
@@ -32,7 +28,7 @@ public interface ILeaderElector extends Closeable {
 
     /**
      * Method guaranteed to be called as part of initialization of leader elector instance.
-     * @param conf
+     * @param conf configuration
      */
     void prepare(Map conf);
 

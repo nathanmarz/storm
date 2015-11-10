@@ -42,9 +42,9 @@ import org.slf4j.LoggerFactory;
 public class SimpleACLAuthorizer implements IAuthorizer {
     private static final Logger LOG = LoggerFactory.getLogger(SimpleACLAuthorizer.class);
 
-    protected Set<String> _userCommands = new HashSet<String>(Arrays.asList("submitTopology", "fileUpload", "getNimbusConf", "getClusterInfo"));
-    protected Set<String> _supervisorCommands = new HashSet<String>(Arrays.asList("fileDownload"));
-    protected Set<String> _topoCommands = new HashSet<String>(Arrays.asList(
+    protected Set<String> _userCommands = new HashSet<>(Arrays.asList("submitTopology", "fileUpload", "getNimbusConf", "getClusterInfo"));
+    protected Set<String> _supervisorCommands = new HashSet<>(Arrays.asList("fileDownload"));
+    protected Set<String> _topoCommands = new HashSet<>(Arrays.asList(
             "killTopology",
             "rebalance",
             "activate",
@@ -79,10 +79,10 @@ public class SimpleACLAuthorizer implements IAuthorizer {
      */
     @Override
     public void prepare(Map conf) {
-        _admins = new HashSet<String>();
-        _supervisors = new HashSet<String>();
-        _nimbusUsers = new HashSet<String>();
-        _nimbusGroups = new HashSet<String>();
+        _admins = new HashSet<>();
+        _supervisors = new HashSet<>();
+        _nimbusUsers = new HashSet<>();
+        _nimbusGroups = new HashSet<>();
 
         if (conf.containsKey(Config.NIMBUS_ADMINS)) {
             _admins.addAll((Collection<String>)conf.get(Config.NIMBUS_ADMINS));
@@ -113,7 +113,7 @@ public class SimpleACLAuthorizer implements IAuthorizer {
     public boolean permit(ReqContext context, String operation, Map topology_conf) {
         String principal = context.principal().getName();
         String user = _ptol.toLocal(context.principal());
-        Set<String> userGroups = new HashSet<String>();
+        Set<String> userGroups = new HashSet<>();
 
         if (_groupMappingProvider != null) {
             try {
@@ -145,7 +145,7 @@ public class SimpleACLAuthorizer implements IAuthorizer {
                 return true;
             }
 
-            Set<String> topoGroups = new HashSet<String>();
+            Set<String> topoGroups = new HashSet<>();
             if (topology_conf.containsKey(Config.TOPOLOGY_GROUPS) && topology_conf.get(Config.TOPOLOGY_GROUPS) != null) {
                 topoGroups.addAll((Collection<String>)topology_conf.get(Config.TOPOLOGY_GROUPS));
             }

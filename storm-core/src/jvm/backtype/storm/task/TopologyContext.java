@@ -51,8 +51,8 @@ import org.json.simple.JSONValue;
  */
 public class TopologyContext extends WorkerTopologyContext implements IMetricsContext {
     private Integer _taskId;
-    private Map<String, Object> _taskData = new HashMap<String, Object>();
-    private List<ITaskHook> _hooks = new ArrayList<ITaskHook>();
+    private Map<String, Object> _taskData = new HashMap<>();
+    private List<ITaskHook> _hooks = new ArrayList<>();
     private Map<String, Object> _executorData;
     private Map<Integer,Map<Integer, Map<String, IMetric>>> _registeredMetrics;
     private clojure.lang.Atom _openOrPrepareWasCalled;
@@ -139,9 +139,8 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
     }
 
     /**
-     * Gets the component id for this task. The component id maps
+     * @return the component id for this task. The component id maps
      * to a component id specified for a Spout or Bolt in the topology definition.
-     * @return
      */
     public String getThisComponentId() {
         return getComponentId(_taskId);
@@ -308,7 +307,7 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
      * @return The IMetric argument unchanged.
      */
     public <T extends IMetric> T registerMetric(String name, T metric, int timeBucketSizeInSecs) {
-        if((Boolean)_openOrPrepareWasCalled.deref() == true) {
+        if((Boolean) _openOrPrepareWasCalled.deref()) {
             throw new RuntimeException("TopologyContext.registerMetric can only be called from within overridden " +
                                        "IBolt::prepare() or ISpout::open() method.");
         }

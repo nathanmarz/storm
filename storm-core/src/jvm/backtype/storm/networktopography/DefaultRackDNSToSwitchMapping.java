@@ -28,12 +28,12 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class DefaultRackDNSToSwitchMapping extends AbstractDNSToSwitchMapping {
 
-    private Map<String, String> mappingCache = new ConcurrentHashMap<String, String>();
+    private Map<String, String> mappingCache = new ConcurrentHashMap<>();
 
     @Override
     public Map<String,String> resolve(List<String> names) {
 
-        Map<String, String> m = new HashMap<String, String>();
+        Map<String, String> m = new HashMap<>();
         if (names.isEmpty()) {
             //name list is empty, return an empty map
             return m;

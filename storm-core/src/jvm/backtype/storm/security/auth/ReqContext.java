@@ -22,8 +22,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.net.InetAddress;
 import com.google.common.annotations.VisibleForTesting;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.security.AccessControlContext;
 import java.security.AccessController;
@@ -44,12 +42,8 @@ public class ReqContext {
     private Map _storm_conf;
     private Principal realPrincipal;
 
-    private static final Logger LOG = LoggerFactory.getLogger(ReqContext.class);
-
-
     /**
-     * Get a request context associated with current thread
-     * @return
+     * @return a request context associated with current thread
      */
     public static ReqContext context() {
         return ctxt.get();
@@ -132,8 +126,7 @@ public class ReqContext {
     }
 
     /**
-     * Returns true if this request is an impersonation request.
-     * @return
+     * @return true if this request is an impersonation request.
      */
     public boolean isImpersonating() {
         return this.realPrincipal != null;

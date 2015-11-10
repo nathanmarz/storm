@@ -28,7 +28,6 @@ import java.util.Set;
 
 import backtype.storm.Config;
 import backtype.storm.security.auth.ReqContext;
-import backtype.storm.security.auth.authorizer.DRPCAuthorizerBase;
 import backtype.storm.security.auth.AuthUtils;
 import backtype.storm.security.auth.IPrincipalToLocal;
 import backtype.storm.utils.Utils;
@@ -54,7 +53,7 @@ public class DRPCSimpleACLAuthorizer extends DRPCAuthorizerBase {
         public AclFunctionEntry(Collection<String> clientUsers,
                 String invocationUser) {
             this.clientUsers = (clientUsers != null) ?
-                new HashSet<String>(clientUsers) : new HashSet<String>();
+                new HashSet<>(clientUsers) : new HashSet<String>();
             this.invocationUser = invocationUser;
         }
     }
@@ -68,7 +67,7 @@ public class DRPCSimpleACLAuthorizer extends DRPCAuthorizerBase {
         //change is atomic
         long now = System.currentTimeMillis();
         if ((now - 5000) > _lastUpdate || _acl == null) {
-            Map<String,AclFunctionEntry> acl = new HashMap<String,AclFunctionEntry>();
+            Map<String,AclFunctionEntry> acl = new HashMap<>();
             Map conf = Utils.findAndReadConfigFile(_aclFileName);
             if (conf.containsKey(Config.DRPC_AUTHORIZER_ACL)) {
                 Map<String,Map<String,?>> confAcl =
@@ -88,7 +87,7 @@ public class DRPCSimpleACLAuthorizer extends DRPCAuthorizerBase {
                 }
             } else if (!_permitWhenMissingFunctionEntry) {
                 LOG.warn("Requiring explicit ACL entries, but none given. " +
-                        "Therefore, all operiations will be denied.");
+                        "Therefore, all operations will be denied.");
             }
             _acl = acl;
             _lastUpdate = System.currentTimeMillis();
@@ -100,8 +99,8 @@ public class DRPCSimpleACLAuthorizer extends DRPCAuthorizerBase {
     public void prepare(Map conf) {
         Boolean isStrict = 
                 (Boolean) conf.get(Config.DRPC_AUTHORIZER_ACL_STRICT);
-        _permitWhenMissingFunctionEntry = 
-                (isStrict != null && !isStrict) ? true : false;
+        _permitWhenMissingFunctionEntry =
+                (isStrict != null && !isStrict);
         _aclFileName = (String) conf.get(Config.DRPC_AUTHORIZER_ACL_FILENAME);
         _ptol = AuthUtils.GetPrincipalToLocalPlugin(conf);
     }

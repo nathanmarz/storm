@@ -53,12 +53,10 @@ public class ThriftServer {
     }
 
     /**
-     * Is ThriftServer listening to requests?
-     * @return
+     * @return true if ThriftServer is listening to requests?
      */
     public boolean isServing() {
-        if (_server == null) return false;
-        return _server.isServing();
+        return _server != null && _server.isServing();
     }
     
     public void serve()  {

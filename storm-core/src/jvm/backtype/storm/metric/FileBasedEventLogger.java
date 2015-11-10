@@ -35,7 +35,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class FileBasedEventLogger implements IEventLogger {
-    private static Logger LOG = LoggerFactory.getLogger(FileBasedEventLogger.class);
+    private static final Logger LOG = LoggerFactory.getLogger(FileBasedEventLogger.class);
 
     private static final int FLUSH_INTERVAL_MILLIS = 1000;
 

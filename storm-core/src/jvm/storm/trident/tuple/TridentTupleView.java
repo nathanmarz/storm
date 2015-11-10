@@ -31,7 +31,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Arrays;
 
-//extends abstractlist so that it can be emitted directly as Storm tuples
+/**
+ * Extends AbstractList so that it can be emitted directly as Storm tuples
+ */
 public class TridentTupleView extends AbstractList<Object> implements TridentTuple {
     ValuePointer[] _index;
     Map<String, ValuePointer> _fieldIndex;
@@ -114,7 +116,7 @@ public class TridentTupleView extends AbstractList<Object> implements TridentTup
 
         public OperationOutputFactory(Factory parent, Fields selfFields) {
             _parent = parent;
-            _fieldIndex = new HashMap(parent.getFieldIndex());
+            _fieldIndex = new HashMap<>(parent.getFieldIndex());
             int myIndex = parent.numDelegates();
             for(int i=0; i<selfFields.size(); i++) {
                 String field = selfFields.get(i);

@@ -94,9 +94,7 @@ public class NimbusInfo implements Serializable {
 
         if (isLeader != that.isLeader) return false;
         if (port != that.port) return false;
-        if (!host.equals(that.host)) return false;
-
-        return true;
+        return host.equals(that.host);
     }
 
     @Override

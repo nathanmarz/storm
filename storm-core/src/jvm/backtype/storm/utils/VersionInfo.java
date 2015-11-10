@@ -86,7 +86,7 @@ public class VersionInfo {
   }
 
 
-  private static VersionInfo COMMON_VERSION_INFO = new VersionInfo("storm-core");
+  private static final VersionInfo COMMON_VERSION_INFO = new VersionInfo("storm-core");
 
   public static String getVersion() {
     return COMMON_VERSION_INFO._getVersion();

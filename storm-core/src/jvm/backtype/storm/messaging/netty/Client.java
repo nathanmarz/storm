@@ -84,7 +84,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
     /**
      * The channel used for all write operations from this client to the remote destination.
      */
-    private final AtomicReference<Channel> channelRef = new AtomicReference<Channel>();
+    private final AtomicReference<Channel> channelRef = new AtomicReference<>();
 
     /**
      * Total number of connection attempts.

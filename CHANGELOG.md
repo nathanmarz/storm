@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1189: Maintain wire compatability with 0.10.x versions of storm.
  * STORM-1185: replace nimbus.host with nimbus.seeds
  * STORM-1164: Code cleanup for typos, warnings and conciseness.
  * STORM-902: Simple Log Search.

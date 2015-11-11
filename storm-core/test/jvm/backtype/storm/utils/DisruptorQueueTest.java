@@ -54,8 +54,7 @@ public class DisruptorQueueTest extends TestCase {
             }
         });
 
-        run(producer, consumer);
-        queue.haltWithInterrupt();
+        run(producer, consumer, queue);
         Assert.assertEquals("We expect to receive first published message first, but received " + result.get(),
                 "FIRST", result.get());
       }
@@ -80,8 +79,7 @@ public class DisruptorQueueTest extends TestCase {
             }
         });
 
-        run(producer, consumer, 1000, 1);
-        queue.haltWithInterrupt();
+        run(producer, consumer, queue, 1000, 1);
         Assert.assertTrue("Messages delivered out of order",
                 allInOrder.get());
     }
@@ -105,19 +103,18 @@ public class DisruptorQueueTest extends TestCase {
             }
         });
 
-        run(producer, consumer, 1000, 1);
-        queue.haltWithInterrupt();
+        run(producer, consumer, queue, 1000, 1);
         Assert.assertTrue("Messages delivered out of order",
                 allInOrder.get());
     }
 
 
-    private void run(Runnable producer, Runnable consumer)
+    private void run(Runnable producer, Runnable consumer, DisruptorQueue queue)
             throws InterruptedException {
-        run(producer, consumer, 10, PRODUCER_NUM);
+        run(producer, consumer, queue, 10, PRODUCER_NUM);
     }
 
-    private void run(Runnable producer, Runnable consumer, int sleepMs, int producerNum)
+    private void run(Runnable producer, Runnable consumer, DisruptorQueue queue, int sleepMs, int producerNum)
             throws InterruptedException {
 
         Thread[] producerThreads = new Thread[producerNum];
@@ -132,12 +129,12 @@ public class DisruptorQueueTest extends TestCase {
         for (int i = 0; i < producerNum; i++) {
             producerThreads[i].interrupt();
         }
-        consumerThread.interrupt();
         
         for (int i = 0; i < producerNum; i++) {
             producerThreads[i].join(TIMEOUT);
             assertFalse("producer "+i+" is still alive", producerThreads[i].isAlive());
         }
+        queue.haltWithInterrupt();
         consumerThread.join(TIMEOUT);
         assertFalse("consumer is still alive", consumerThread.isAlive());
     }

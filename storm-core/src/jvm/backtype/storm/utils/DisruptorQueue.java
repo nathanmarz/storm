@@ -65,7 +65,7 @@ public class DisruptorQueue implements IStatefulObject {
 
     private static class FlusherPool { 
         private Timer _timer = new Timer("disruptor-flush-trigger", true);
-        private ThreadPoolExecutor _exec = new ThreadPoolExecutor(1, 100, 10, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(1024));
+        private ThreadPoolExecutor _exec = new ThreadPoolExecutor(1, 100, 10, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(1024), new ThreadPoolExecutor.DiscardPolicy());
         private HashMap<Long, ArrayList<Flusher>> _pendingFlush = new HashMap<>();
         private HashMap<Long, TimerTask> _tt = new HashMap<>();
 
@@ -92,8 +92,8 @@ public class DisruptorQueue implements IStatefulObject {
                 if (tasks != null) {
                     _exec.invokeAll(tasks);
                 }
-            } catch (Exception e) {
-               LOG.error("Could not invoke all ", e); 
+            } catch (InterruptedException e) {
+               //Ignored
             }
         }
 

@@ -338,15 +338,15 @@ public class Config extends HashMap<String, Object> {
     /**
      * The directory where storm's health scripts go.
      */
+    @isString
     public static final String STORM_HEALTH_CHECK_DIR = "storm.health.check.dir";
-    public static final Object STORM_HEALTH_CHECK_DIR_SCHEMA = String.class;
 
     /**
      * The time to allow any given healthcheck script to run before it
      * is marked failed due to timeout
      */
+    @isNumber
     public static final String STORM_HEALTH_CHECK_TIMEOUT_MS = "storm.health.check.timeout.ms";
-    public static final Object STORM_HEALTH_CHECK_TIMEOUT_MS_SCHEMA = Number.class;
 
     /**
      * The number of times to retry a Nimbus operation.

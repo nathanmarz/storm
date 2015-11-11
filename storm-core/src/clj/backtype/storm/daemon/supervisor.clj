@@ -28,6 +28,7 @@
   (:import [backtype.storm Config])
   (:import [backtype.storm.generated WorkerResources ProfileAction])
   (:use [backtype.storm.daemon common])
+  (:require [backtype.storm.command [healthcheck :as healthcheck]])
   (:require [backtype.storm.daemon [worker :as worker]]
             [backtype.storm [process-simulator :as psim] [cluster :as cluster] [event :as event]]
             [clojure.set :as set])
@@ -678,6 +679,16 @@
                           0
                           (conf SUPERVISOR-MONITOR-FREQUENCY-SECS)
                           (fn [] (.add processes-event-manager sync-processes)))
+      (schedule-recurring (:event-timer supervisor)
+                          (* 60 5)
+                          (* 60 5)
+                          (fn [] (let [health-code (healthcheck/health-check conf)
+                                       ids (my-worker-ids conf)]
+                                   (if (not (= health-code 0))
+                                     (do
+                                       (doseq [id ids]
+                                         (shutdown-worker supervisor id))
+                                       (throw (RuntimeException. "Supervisor failed health check. Exiting.")))))))
       ;; Launch a thread that Runs profiler commands . Starts with 30 seconds delay, every 30 seconds
       (schedule-recurring (:event-timer supervisor)
                           30

@@ -51,6 +51,8 @@ storm.auth.simple-acl.users.commands: []
 storm.auth.simple-acl.admins: []
 storm.meta.serialization.delegate: "backtype.storm.serialization.GzipThriftSerializationDelegate"
 storm.codedistributor.class: "backtype.storm.codedistributor.LocalFileSystemCodeDistributor"
+storm.health.check.dir: "healthchecks"
+storm.health.check.timeout.ms: 5000
 
 ### nimbus.* configs are for the master
 nimbus.seeds : ["localhost"]

@@ -55,6 +55,7 @@ public class DisruptorQueueTest extends TestCase {
         });
 
         run(producer, consumer);
+        queue.haltWithInterrupt();
         Assert.assertEquals("We expect to receive first published message first, but received " + result.get(),
                 "FIRST", result.get());
       }
@@ -80,6 +81,7 @@ public class DisruptorQueueTest extends TestCase {
         });
 
         run(producer, consumer, 1000, 1);
+        queue.haltWithInterrupt();
         Assert.assertTrue("Messages delivered out of order",
                 allInOrder.get());
     }
@@ -104,6 +106,7 @@ public class DisruptorQueueTest extends TestCase {
         });
 
         run(producer, consumer, 1000, 1);
+        queue.haltWithInterrupt();
         Assert.assertTrue("Messages delivered out of order",
                 allInOrder.get());
     }

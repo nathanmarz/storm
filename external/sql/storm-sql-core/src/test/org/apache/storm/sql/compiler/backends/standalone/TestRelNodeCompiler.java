@@ -15,20 +15,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.storm.sql.compiler;
+package org.apache.storm.sql.compiler.backends.standalone;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.storm.sql.compiler.TestCompilerUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
-import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.CoreMatchers.containsString;
 
 public class TestRelNodeCompiler {
   @Test
@@ -37,7 +38,7 @@ public class TestRelNodeCompiler {
     TestCompilerUtils.CalciteState state = TestCompilerUtils.sqlOverDummyTable(sql);
     JavaTypeFactory typeFactory = new JavaTypeFactoryImpl(
         RelDataTypeSystem.DEFAULT);
-    LogicalProject project = (LogicalProject) state.tree;
+    LogicalProject project = (LogicalProject) state.tree();
     LogicalFilter filter = (LogicalFilter) project.getInput();
 
     try (StringWriter sw = new StringWriter();

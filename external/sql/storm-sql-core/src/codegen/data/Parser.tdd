@@ -21,6 +21,7 @@
 
   # List of import statements.
   imports: [
+    "org.apache.calcite.sql.validate.*",
     "org.apache.calcite.util.*",
     "org.apache.storm.sql.parser.*",
     "java.util.*"

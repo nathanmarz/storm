@@ -5,6 +5,7 @@ import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.StreamableTable;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
@@ -17,8 +18,9 @@ public class TestCompilerUtils {
     SchemaPlus schema = Frameworks.createRootSchema(true);
     JavaTypeFactory typeFactory = new JavaTypeFactoryImpl
         (RelDataTypeSystem.DEFAULT);
-    Table table = new CompilerUtil.TableBuilderInfo(typeFactory)
+    StreamableTable streamableTable = new CompilerUtil.TableBuilderInfo(typeFactory)
         .field("ID", SqlTypeName.INTEGER).build();
+    Table table = streamableTable.stream();
     schema.add("FOO", table);
     schema.add("BAR", table);
     FrameworkConfig config = Frameworks.newConfigBuilder().defaultSchema(

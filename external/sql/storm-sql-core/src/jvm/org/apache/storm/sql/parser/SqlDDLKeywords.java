@@ -15,34 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.storm.sql.parser;
 
-import org.apache.calcite.sql.SqlNode;
-import org.apache.storm.sql.parser.impl.ParseException;
-import org.junit.Test;
+import org.apache.calcite.sql.SqlLiteral;
 
-public class TestSqlParser {
-  @Test
-  public void testCreateTable() throws Exception {
-    String sql = "CREATE EXTERNAL TABLE foo (bar INT) LOCATION 'kafka:///foo'";
-    parse(sql);
-  }
-
-  @Test
-  public void testCreateTableWithPrimaryKey() throws Exception {
-    String sql = "CREATE EXTERNAL TABLE foo (bar INT PRIMARY KEY ASC) LOCATION 'kafka:///foo'";
-    parse(sql);
-  }
-
-  @Test(expected = ParseException.class)
-  public void testCreateTableWithoutLocation() throws Exception {
-    String sql = "CREATE EXTERNAL TABLE foo (bar INT)";
-    parse(sql);
-  }
-
-  private static SqlNode parse(String sql) throws Exception {
-    StormParser parser = new StormParser(sql);
-    return parser.impl().parseSqlStmtEof();
-  }
+/**
+ * Define the keywords that can occur in a CREATE TABLE statement
+ */
+public enum SqlDDLKeywords implements SqlLiteral.SqlSymbol {
+  PRIMARY
 }

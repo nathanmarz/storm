@@ -21,6 +21,7 @@ package org.apache.storm.sql.parser;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlMonotonicity;
 
 public class ColumnConstraint extends SqlLiteral {
   private ColumnConstraint(
@@ -29,8 +30,13 @@ public class ColumnConstraint extends SqlLiteral {
   }
 
   public static class PrimaryKey extends ColumnConstraint {
-    public PrimaryKey(SqlParserPos pos) {
-      super("PRIMARY", SqlTypeName.SYMBOL, pos);
+    private final SqlMonotonicity monotonicity;
+    public PrimaryKey(SqlMonotonicity monotonicity, SqlParserPos pos) {
+      super(SqlDDLKeywords.PRIMARY, SqlTypeName.SYMBOL, pos);
+      this.monotonicity = monotonicity;
+    }
+    public SqlMonotonicity monotonicity() {
+      return monotonicity;
     }
   }
 }

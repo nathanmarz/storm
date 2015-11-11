@@ -18,19 +18,27 @@
 package org.apache.storm.sql.compiler;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.schema.Schema;
-import org.apache.calcite.schema.Statistic;
-import org.apache.calcite.schema.Statistics;
-import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.*;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
+import org.apache.storm.sql.parser.ColumnConstraint;
 
 import java.util.ArrayList;
+
+import static org.apache.calcite.rel.RelFieldCollation.Direction;
+import static org.apache.calcite.rel.RelFieldCollation.Direction.ASCENDING;
+import static org.apache.calcite.rel.RelFieldCollation.Direction.DESCENDING;
+import static org.apache.calcite.rel.RelFieldCollation.NullDirection;
+import static org.apache.calcite.sql.validate.SqlMonotonicity.INCREASING;
 
 public class CompilerUtil {
   public static String escapeJavaString(String s, boolean nullMeansNull) {
@@ -66,6 +74,8 @@ public class CompilerUtil {
 
     private final ArrayList<FieldType> fields = new ArrayList<>();
     private final ArrayList<Object[]> rows = new ArrayList<>();
+    private int primaryKey = -1;
+    private SqlMonotonicity primaryKeyMonotonicity;
     private Statistic stats;
 
     public TableBuilderInfo field(String name, SqlTypeName type) {
@@ -74,16 +84,14 @@ public class CompilerUtil {
       return this;
     }
 
-    public TableBuilderInfo field(String name, SqlTypeName type, int
-        precision) {
-      RelDataType dataType = typeFactory.createSqlType(type, precision);
-      fields.add(new FieldType(name, dataType));
-      return this;
-    }
-
-    public TableBuilderInfo field(
-        String name, SqlDataTypeSpec type) {
+    public TableBuilderInfo field(String name, SqlDataTypeSpec type, ColumnConstraint constraint) {
       RelDataType dataType = type.deriveType(typeFactory);
+      if (constraint instanceof ColumnConstraint.PrimaryKey) {
+        ColumnConstraint.PrimaryKey pk = (ColumnConstraint.PrimaryKey) constraint;
+        Preconditions.checkState(primaryKey == -1, "There are more than one primary key in the table");
+        primaryKey = fields.size();
+        primaryKeyMonotonicity = pk.monotonicity();
+      }
       fields.add(new FieldType(name, dataType));
       return this;
     }
@@ -99,9 +107,9 @@ public class CompilerUtil {
       return this;
     }
 
-    public Table build() {
-      final Statistic stat = stats;
-      return new Table() {
+    public StreamableTable build() {
+      final Statistic stat = buildStatistic();
+      final Table tbl = new Table() {
         @Override
         public RelDataType getRowType(
             RelDataTypeFactory relDataTypeFactory) {
@@ -123,6 +131,38 @@ public class CompilerUtil {
           return Schema.TableType.TABLE;
         }
       };
+
+      return new StreamableTable() {
+        @Override
+        public Table stream() {
+          return tbl;
+        }
+
+        @Override
+        public RelDataType getRowType(RelDataTypeFactory relDataTypeFactory) {
+          return tbl.getRowType(relDataTypeFactory);
+        }
+
+        @Override
+        public Statistic getStatistic() {
+          return tbl.getStatistic();
+        }
+
+        @Override
+        public Schema.TableType getJdbcTableType() {
+          return Schema.TableType.TABLE;
+        }
+      };
+    }
+
+    private Statistic buildStatistic() {
+      if (stats != null || primaryKey == -1) {
+        return stats;
+      }
+      Direction dir = primaryKeyMonotonicity == INCREASING ? ASCENDING : DESCENDING;
+      RelFieldCollation collation = new RelFieldCollation(primaryKey, dir, NullDirection.UNSPECIFIED);
+      return Statistics.of(fields.size(), ImmutableList.of(ImmutableBitSet.of(primaryKey)),
+          ImmutableList.of(RelCollations.of(collation)));
     }
   }
 }

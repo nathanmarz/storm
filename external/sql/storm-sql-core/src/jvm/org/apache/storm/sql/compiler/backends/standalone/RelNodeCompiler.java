@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.storm.sql.compiler;
+package org.apache.storm.sql.compiler.backends.standalone;
 
 import com.google.common.base.Joiner;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
@@ -23,6 +23,9 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.stream.Delta;
+import org.apache.storm.sql.compiler.ExprCompiler;
+import org.apache.storm.sql.compiler.PostOrderRelNodeVisitor;
 
 import java.io.PrintWriter;
 
@@ -41,10 +44,19 @@ class RelNodeCompiler extends PostOrderRelNodeVisitor<Void> {
     "    public void dataReceived(ChannelContext ctx, Values _data) {",
     ""
   );
+  private static final String STAGE_PASSTHROUGH = NEW_LINE_JOINER.join(
+      "  private static final ChannelHandler %1$s = AbstractChannelHandler.PASS_THROUGH;",
+      "");
 
   RelNodeCompiler(PrintWriter pw, JavaTypeFactory typeFactory) {
     this.pw = pw;
     this.typeFactory = typeFactory;
+  }
+
+  @Override
+  public Void visitDelta(Delta delta) throws Exception {
+    pw.print(String.format(STAGE_PASSTHROUGH, getStageName(delta)));
+    return null;
   }
 
   @Override
@@ -81,9 +93,7 @@ class RelNodeCompiler extends PostOrderRelNodeVisitor<Void> {
 
   @Override
   public Void visitTableScan(TableScan scan) throws Exception {
-    beginStage(scan);
-    pw.print("    ctx.emit(_data);\n");
-    endStage();
+    pw.print(String.format(STAGE_PASSTHROUGH, getStageName(scan)));
     return null;
   }
 

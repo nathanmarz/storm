@@ -34,4 +34,11 @@ public abstract class AbstractChannelHandler implements ChannelHandler {
   public void exceptionCaught(Throwable cause) {
 
   }
+
+  public static final AbstractChannelHandler PASS_THROUGH = new AbstractChannelHandler() {
+    @Override
+    public void dataReceived(ChannelContext ctx, Values data) {
+      ctx.emit(data);
+    }
+  };
 }

@@ -16,12 +16,18 @@ private void ColumnDef(List<ColumnDefinition> list) :
     SqlIdentifier name;
     SqlDataTypeSpec type;
     ColumnConstraint constraint = null;
+    SqlMonotonicity monotonicity = SqlMonotonicity.NOT_MONOTONIC;
 }
 {
     name = SimpleIdentifier() { pos = getPos(); }
     type = DataType()
-    [ <PRIMARY> <KEY> { constraint = new ColumnConstraint.PrimaryKey
-    (getPos()); } ]
+    [
+      <PRIMARY> <KEY>
+      [ <ASC>   { monotonicity = SqlMonotonicity.INCREASING; }
+      | <DESC>  { monotonicity = SqlMonotonicity.DECREASING; }
+      ]
+      { constraint = new ColumnConstraint.PrimaryKey(monotonicity, getPos()); }
+    ]
     {
         list.add(new ColumnDefinition(name, type, constraint, pos));
     }

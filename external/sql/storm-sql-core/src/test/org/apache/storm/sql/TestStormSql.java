@@ -63,7 +63,7 @@ public class TestStormSql {
   public void testExternalDataSource() throws Exception {
     List<String> stmt = new ArrayList<>();
     stmt.add("CREATE EXTERNAL TABLE FOO (ID INT) LOCATION 'mock:///foo'");
-    stmt.add("SELECT ID + 1 FROM FOO WHERE ID > 2");
+    stmt.add("SELECT STREAM ID + 1 FROM FOO WHERE ID > 2");
     StormSql sql = StormSql.construct();
     List<Values> values = new ArrayList<>();
     ChannelHandler h = new TestUtils.CollectDataChannelHandler(values);

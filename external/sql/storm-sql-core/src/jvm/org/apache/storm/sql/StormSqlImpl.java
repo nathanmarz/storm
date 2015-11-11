@@ -28,8 +28,8 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
-import org.apache.storm.sql.compiler.PlanCompiler;
 import org.apache.storm.sql.parser.ColumnConstraint;
+import org.apache.storm.sql.compiler.backends.standalone.PlanCompiler;
 import org.apache.storm.sql.parser.ColumnDefinition;
 import org.apache.storm.sql.parser.SqlCreateTable;
 import org.apache.storm.sql.parser.StormParser;
@@ -77,7 +77,7 @@ class StormSqlImpl extends StormSql {
     TableBuilderInfo builder = new TableBuilderInfo(typeFactory);
     List<FieldInfo> fields = new ArrayList<>();
     for (ColumnDefinition col : n.fieldList()) {
-      builder.field(col.name(), col.type());
+      builder.field(col.name(), col.type(), col.constraint());
       RelDataType dataType = col.type().deriveType(typeFactory);
       Class<?> javaType = (Class<?>)typeFactory.getJavaClass(dataType);
       ColumnConstraint constraint = col.constraint();

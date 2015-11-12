@@ -20,7 +20,7 @@
   (:require [backtype.storm [converter :as converter]])
   (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount
             TestAggregatesCounter TestPlannerSpout TestPlannerBolt]
-           [backtype.storm.nimbus InMemoryTopologyAcitonNotifier])
+           [backtype.storm.nimbus InMemoryTopologyActionNotifier])
   (:import [backtype.storm.scheduler INimbus])
   (:import [backtype.storm.nimbus ILeaderElector NimbusInfo])
   (:import [backtype.storm.generated Credentials NotAliveException SubmitOptions
@@ -1341,10 +1341,10 @@
                         STORM-CLUSTER-MODE "local"
                         STORM-ZOOKEEPER-PORT zk-port
                         STORM-LOCAL-DIR nimbus-dir
-                        NIMBUS-TOPOLOGY-ACTION-NOTIFIER-PLUGIN (.getName InMemoryTopologyAcitonNotifier)}))
+                        NIMBUS-TOPOLOGY-ACTION-NOTIFIER-PLUGIN (.getName InMemoryTopologyActionNotifier)}))
           (bind cluster-state (cluster/mk-storm-cluster-state conf))
           (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
-          (bind notifier (InMemoryTopologyAcitonNotifier.))
+          (bind notifier (InMemoryTopologyActionNotifier.))
           (sleep-secs 1)
           (bind topology (thrift/mk-topology
                            {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}

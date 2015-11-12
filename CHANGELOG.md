@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1145: Have IConnection push tuples instead of pull them
  * STORM-1191: bump timeout by 50% due to intermittent travis build failures
  * STORM-794: Modify Spout async loop to treat activate/deactivate ASAP
  * STORM-1196: Upgrade to thrift 0.9.3

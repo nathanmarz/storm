@@ -73,7 +73,7 @@ public class SimpleTransportPlugin implements ITransportPlugin {
 
         THsHaServer.Args server_args = new THsHaServer.Args(serverTransport).
                 processor(new SimpleWrapProcessor(processor)).
-                workerThreads(numWorkerThreads).
+                maxWorkerThreads(numWorkerThreads).
                 protocolFactory(new TBinaryProtocol.Factory(false, true, maxBufferSize, -1));
 
         if (queueSize != null) {

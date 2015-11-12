@@ -1,4 +1,10 @@
 ## 0.11.0
+ * STORM-1098: Nimbus hook for topology actions.
+ * STORM-1145: Have IConnection push tuples instead of pull them
+ * STORM-1191: bump timeout by 50% due to intermittent travis build failures
+ * STORM-794: Modify Spout async loop to treat activate/deactivate ASAP
+ * STORM-1196: Upgrade to thrift 0.9.3
+ * STORM-1155: Supervisor recurring health checks
  * STORM-1189: Maintain wire compatability with 0.10.x versions of storm.
  * STORM-1185: replace nimbus.host with nimbus.seeds
  * STORM-1164: Code cleanup for typos, warnings and conciseness.

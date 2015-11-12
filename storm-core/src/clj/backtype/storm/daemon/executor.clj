@@ -21,7 +21,7 @@
   (:import [java.util List Random HashMap ArrayList LinkedList Map])
   (:import [backtype.storm ICredentialsListener])
   (:import [backtype.storm.hooks ITaskHook])
-  (:import [backtype.storm.tuple Tuple Fields TupleImpl MessageId])
+  (:import [backtype.storm.tuple AddressedTuple Tuple Fields TupleImpl MessageId])
   (:import [backtype.storm.spout ISpoutWaitStrategy ISpout SpoutOutputCollector ISpoutOutputCollector])
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
             EmitInfo BoltFailInfo BoltAckInfo BoltExecuteInfo])
@@ -30,7 +30,7 @@
   (:import [backtype.storm.generated GlobalStreamId])
   (:import [backtype.storm.utils Utils MutableObject RotatingMap RotatingMap$ExpiredCallback MutableLong Time DisruptorQueue WorkerBackpressureThread])
   (:import [com.lmax.disruptor InsufficientCapacityException])
-  (:import [backtype.storm.serialization KryoTupleSerializer KryoTupleDeserializer])
+  (:import [backtype.storm.serialization KryoTupleSerializer])
   (:import [backtype.storm.daemon Shutdownable])
   (:import [backtype.storm.metric.api IMetric IMetricsConsumer$TaskInfo IMetricsConsumer$DataPoint StateMetric])
   (:import [backtype.storm Config Constants])
@@ -206,9 +206,10 @@
 (defn mk-executor-transfer-fn [batch-transfer->worker storm-conf]
   (fn this
     [task tuple]
-    (when (= true (storm-conf TOPOLOGY-DEBUG))
-      (log-message "TRANSFERING tuple TASK: " task " TUPLE: " tuple))
-    (disruptor/publish batch-transfer->worker [task tuple])))
+    (let [val (AddressedTuple. task tuple)]
+      (when (= true (storm-conf TOPOLOGY-DEBUG))
+        (log-message "TRANSFERING tuple " val))
+      (disruptor/publish batch-transfer->worker val))))
 
 (defn mk-executor-data [worker executor-id]
   (let [worker-context (worker-context worker)
@@ -257,7 +258,6 @@
                                     (exception-cause? java.io.InterruptedIOException error))
                                (log-message "Got interrupted excpetion shutting thread down...")
                                ((:suicide-fn <>))))
-     :deserializer (KryoTupleDeserializer. storm-conf worker-context)
      :sampler (mk-stats-sampler storm-conf)
      :backpressure (atom false)
      :spout-throttling-metrics (if (= executor-type :spout) 
@@ -296,8 +296,7 @@
           (.add alist o)
           (when batch-end?
             (worker-transfer-fn serializer alist)
-            (.setObject cached-emit (ArrayList.))
-            )))
+            (.setObject cached-emit (ArrayList.)))))
       :kill-fn (:report-error-and-die executor-data))))
 
 (defn setup-metrics! [executor-data]
@@ -309,9 +308,8 @@
        interval
        interval
        (fn []
-         (disruptor/publish
-          receive-queue
-          [[nil (TupleImpl. worker-context [interval] Constants/SYSTEM_TASK_ID Constants/METRICS_TICK_STREAM_ID)]]))))))
+         (let [val [(AddressedTuple. AddressedTuple/BROADCAST_DEST (TupleImpl. worker-context [interval] Constants/SYSTEM_TASK_ID Constants/METRICS_TICK_STREAM_ID))]]
+           (disruptor/publish receive-queue val)))))))
 
 (defn metrics-tick
   [executor-data task-data ^TupleImpl tuple]
@@ -333,7 +331,7 @@
                                      (IMetricsConsumer$DataPoint. name value)))))
                           (filter identity)
                           (into []))]
-     (if (seq data-points)
+     (when (seq data-points)
        (task/send-unanchored task-data Constants/METRICS_STREAM_ID [task-info data-points]))))
 
 (defn setup-ticks! [worker executor-data]
@@ -351,10 +349,8 @@
           tick-time-secs
           tick-time-secs
           (fn []
-            (disruptor/publish
-              receive-queue
-              [[nil (TupleImpl. context [tick-time-secs] Constants/SYSTEM_TASK_ID Constants/SYSTEM_TICK_STREAM_ID)]]
-              )))))))
+            (let [val [(AddressedTuple. AddressedTuple/BROADCAST_DEST (TupleImpl. context [tick-time-secs] Constants/SYSTEM_TASK_ID Constants/SYSTEM_TICK_STREAM_ID))]]
+              (disruptor/publish receive-queue val))))))))
 
 (defn mk-executor [worker executor-id initial-credentials]
   (let [executor-data (mk-executor-data worker executor-id)
@@ -394,10 +390,9 @@
         executor-id)
       (credentials-changed [this creds]
         (let [receive-queue (:receive-queue executor-data)
-              context (:worker-context executor-data)]
-          (disruptor/publish
-            receive-queue
-            [[nil (TupleImpl. context [creds] Constants/SYSTEM_TASK_ID Constants/CREDENTIALS_CHANGED_STREAM_ID)]])))
+              context (:worker-context executor-data)
+              val [(AddressedTuple. AddressedTuple/BROADCAST_DEST (TupleImpl. context [creds] Constants/SYSTEM_TASK_ID Constants/CREDENTIALS_CHANGED_STREAM_ID))]]
+          (disruptor/publish receive-queue val)))
       (get-backpressure-flag [this]
         @(:backpressure executor-data))
       Shutdownable
@@ -444,16 +439,16 @@
       (stats/spout-acked-tuple! (:stats executor-data) (:stream tuple-info) time-delta))))
 
 (defn mk-task-receiver [executor-data tuple-action-fn]
-  (let [^KryoTupleDeserializer deserializer (:deserializer executor-data)
-        task-ids (:task-ids executor-data)
+  (let [task-ids (:task-ids executor-data)
         debug? (= true (-> executor-data :storm-conf (get TOPOLOGY-DEBUG)))
         ]
     (disruptor/clojure-handler
       (fn [tuple-batch sequence-id end-of-batch?]
-        (fast-list-iter [[task-id msg] tuple-batch]
-          (let [^TupleImpl tuple (if (instance? Tuple msg) msg (.deserialize deserializer msg))]
+        (fast-list-iter [^AddressedTuple addressed-tuple tuple-batch]
+          (let [^TupleImpl tuple (.getTuple addressed-tuple)
+                task-id (.getDest addressed-tuple)]
             (when debug? (log-message "Processing received message FOR " task-id " TUPLE: " tuple))
-            (if task-id
+            (if (not= task-id AddressedTuple/BROADCAST_DEST)
               (tuple-action-fn task-id tuple)
               ;; null task ids are broadcast tuples
               (fast-list-iter [task-id task-ids]
@@ -479,7 +474,7 @@
           spct    (if (and (not-nil? options) (:enable options)) (:samplingpct options) 0)]
       ;; the thread's initialized random number generator is used to generate
       ;; uniformily distributed random numbers.
-      (if (and (> spct 0) (< (* 100 (.nextDouble random)) spct))
+      (when (and (> spct 0) (< (* 100 (.nextDouble random)) spct))
         (task/send-unanchored
           task-data
           EVENTLOGGER-STREAM-ID
@@ -561,9 +556,7 @@
                                                                                      task-id
                                                                                      out-stream-id
                                                                                      tuple-id)]
-                                                           (transfer-fn out-task
-                                                                        out-tuple)
-                                                           ))
+                                                           (transfer-fn out-task out-tuple)))
                                          (if has-eventloggers?
                                            (send-to-eventlogger executor-data task-data values component-id message-id rand))
                                          (if (and rooted?
@@ -622,25 +615,28 @@
                 reached-max-spout-pending (and max-spout-pending
                                                (>= (.size pending) max-spout-pending))
                 ]
-            (if (and (not (.isFull transfer-queue))
-                     (not throttle-on)
-                     (not reached-max-spout-pending))
-              (if active?
-                (do
-                  (when-not @last-active
-                    (reset! last-active true)
-                    (log-message "Activating spout " component-id ":" (keys task-datas))
-                    (fast-list-iter [^ISpout spout spouts] (.activate spout)))
-               
-                  (fast-list-iter [^ISpout spout spouts] (.nextTuple spout)))
-                (do
-                  (when @last-active
-                    (reset! last-active false)
-                    (log-message "Deactivating spout " component-id ":" (keys task-datas))
-                    (fast-list-iter [^ISpout spout spouts] (.deactivate spout)))
-                  ;; TODO: log that it's getting throttled
-                  (Time/sleep 100)
-                  (builtin-metrics/skipped-inactive! (:spout-throttling-metrics executor-data) (:stats executor-data)))))
+            (if active?
+              ; activated
+              (do
+                (when-not @last-active
+                  (reset! last-active true)
+                  (log-message "Activating spout " component-id ":" (keys task-datas))
+                  (fast-list-iter [^ISpout spout spouts] (.activate spout)))
+
+                (if (and (not (.isFull transfer-queue))
+                      (not throttle-on)
+                      (not reached-max-spout-pending))
+                  (fast-list-iter [^ISpout spout spouts] (.nextTuple spout))))
+              ; deactivated
+              (do
+                (when @last-active
+                  (reset! last-active false)
+                  (log-message "Deactivating spout " component-id ":" (keys task-datas))
+                  (fast-list-iter [^ISpout spout spouts] (.deactivate spout)))
+                ;; TODO: log that it's getting throttled
+                (Time/sleep 100)
+                (builtin-metrics/skipped-inactive! (:spout-throttling-metrics executor-data) (:stats executor-data))))
+
             (if (and (= curr-count (.get emitted-count)) active?)
               (do (.increment empty-emit-streak)
                   (.emptyEmit spout-wait-strategy (.get empty-emit-streak))
@@ -650,7 +646,7 @@
                     (if reached-max-spout-pending
                       (builtin-metrics/skipped-max-spout! (:spout-throttling-metrics executor-data) (:stats executor-data)))))
               (.set empty-emit-streak 0)
-              ))           
+              ))
           0))
       :kill-fn (:report-error-and-die executor-data)
       :factory? true
@@ -754,12 +750,12 @@
                                                                             (fast-list-iter [root-id root-ids]
                                                                                             (put-xor! anchors-to-ids root-id edge-id))
                                                                             ))))
-                                                        (transfer-fn t
-                                                                   (TupleImpl. worker-context
+                                                        (let [tuple (TupleImpl. worker-context
                                                                                values
                                                                                task-id
                                                                                stream
-                                                                               (MessageId/makeId anchors-to-ids)))))
+                                                                               (MessageId/makeId anchors-to-ids))]
+                                                          (transfer-fn t tuple))))
                                     (if has-eventloggers?
                                       (send-to-eventlogger executor-data task-data values component-id nil rand))
                                     (or out-tasks [])))]]
@@ -793,8 +789,7 @@
                            (fast-map-iter [[root id] (.. tuple getMessageId getAnchorsToIds)]
                                           (task/send-unanchored task-data
                                                                 ACKER-ACK-STREAM-ID
-                                                                [root (bit-xor id ack-val)])
-                                          ))
+                                                                [root (bit-xor id ack-val)])))
                          (let [delta (tuple-time-delta! tuple)
                                debug? (= true (storm-conf TOPOLOGY-DEBUG))]
                            (when debug? 

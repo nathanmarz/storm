@@ -336,6 +336,19 @@ public class Config extends HashMap<String, Object> {
     public static final String STORM_ID = "storm.id";
 
     /**
+     * The directory where storm's health scripts go.
+     */
+    @isString
+    public static final String STORM_HEALTH_CHECK_DIR = "storm.health.check.dir";
+
+    /**
+     * The time to allow any given healthcheck script to run before it
+     * is marked failed due to timeout
+     */
+    @isNumber
+    public static final String STORM_HEALTH_CHECK_TIMEOUT_MS = "storm.health.check.timeout.ms";
+
+    /**
      * The number of times to retry a Nimbus operation.
      */
     @isNumber
@@ -556,6 +569,12 @@ public class Config extends HashMap<String, Object> {
      */
     @isStringList
     public static final String NIMBUS_AUTO_CRED_PLUGINS = "nimbus.autocredential.plugins.classes";
+
+    /**
+     * FQCN of a class that implements {@code ITopologyActionNotifierPlugin} @see backtype.storm.nimbus.ITopologyActionNotifierPlugin for details.
+     */
+    @isString
+    public static final String NIMBUS_TOPOLOGY_ACTION_NOTIFIER_PLUGIN = "nimbus.topology.action.notifier.plugin.class";
 
     /**
      * Storm UI binds to this host/interface.
@@ -1176,13 +1195,6 @@ public class Config extends HashMap<String, Object> {
      */
     @isStringOrStringList
     public static final String WORKER_GC_CHILDOPTS = "worker.gc.childopts";
-
-    /**
-     * control how many worker receiver threads we need per worker
-     */
-    @isInteger
-    @isPositiveNumber
-    public static final String WORKER_RECEIVER_THREAD_COUNT = "topology.worker.receiver.thread.count";
 
     /**
      * How often this worker should heartbeat to the supervisor.

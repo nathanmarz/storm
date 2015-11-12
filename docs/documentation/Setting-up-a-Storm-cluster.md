@@ -80,6 +80,25 @@ supervisor.slots.ports:
     - 6703
 ```
 
+### Monitoring Health of Supervisors
+
+Storm provides a mechanism by which administrators can configure the supervisor to run administrator supplied scripts periodically to determine if a node is healthy or not. Administrators can have the supervisor determine if the node is in a healthy state by performing any checks of their choice in scripts located in storm.health.check.dir. If a script detects the node to be in an unhealthy state, it must print a line to standard output beginning with the string ERROR. The supervisor will periodically run the scripts in the health check dir and check the output. If the script’s output contains the string ERROR, as described above, the supervisor will shut down any workers and exit. 
+
+If the supervisor is running with supervision "/bin/storm node-health-check" can be called to determine if the supervisor should be launched or if the node is unhealthy.
+
+The health check directory location can be configured with:
+
+```yaml
+storm.health.check.dir: "healthchecks"
+
+```
+The scripts must have execute permissions.
+The time to allow any given healthcheck script to run before it is marked failed due to timeout can be configured with:
+
+```yaml
+storm.health.check.timeout.ms: 5000
+```
+
 ### Configure external libraries and environmental variables (optional)
 
 If you need support from external libraries or custom plugins, you can place such jars into the extlib/ and extlib-daemon/ directories. Note that the extlib-daemon/ directory stores jars used only by daemons (Nimbus, Supervisor, DRPC, UI, Logviewer), e.g., HDFS and customized scheduling libraries. Accordingly, two environmental variables STORM_EXT_CLASSPATH and STORM_EXT_CLASSPATH_DAEMON can be configured by users for including the external classpath and daemon-only external classpath.

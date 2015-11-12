@@ -49,6 +49,12 @@ import java.io.IOException;
 
 
 import backtype.storm.messaging.ConnectionWithStatus;
+import backtype.storm.messaging.IConnection;
+import backtype.storm.messaging.IConnectionCallback;
+import backtype.storm.messaging.TaskMessage;
+import backtype.storm.metric.api.IStatefulObject;
+import backtype.storm.serialization.KryoValuesSerializer;
+import backtype.storm.utils.Utils;
 
 class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServer {
 
@@ -58,40 +64,21 @@ class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServe
     int port;
     private final ConcurrentHashMap<String, AtomicInteger> messagesEnqueued = new ConcurrentHashMap<>();
     private final AtomicInteger messagesDequeued = new AtomicInteger(0);
-    private final AtomicInteger[] pendingMessages;
-
-    // Create multiple queues for incoming messages. The size equals the number of receiver threads.
-    // For message which is sent to same task, it will be stored in the same queue to preserve the message order.
-    private LinkedBlockingQueue<ArrayList<TaskMessage>>[] message_queue;
-
+    
     volatile ChannelGroup allChannels = new DefaultChannelGroup("storm-server");
     final ChannelFactory factory;
     final ServerBootstrap bootstrap;
-
-    private int queueCount;
-    private volatile HashMap<Integer, Integer> taskToQueueId = null;
-    int roundRobinQueueId;
-
+ 
     private volatile boolean closing = false;
     List<TaskMessage> closeMessage = Arrays.asList(new TaskMessage(-1, null));
     private KryoValuesSerializer _ser;
-
+    private IConnectionCallback _cb = null; 
+    
     @SuppressWarnings("rawtypes")
     Server(Map storm_conf, int port) {
         this.storm_conf = storm_conf;
         this.port = port;
         _ser = new KryoValuesSerializer(storm_conf);
-
-        queueCount = Utils.getInt(storm_conf.get(Config.WORKER_RECEIVER_THREAD_COUNT), 1);
-        roundRobinQueueId = 0;
-        taskToQueueId = new HashMap<>();
-
-        message_queue = new LinkedBlockingQueue[queueCount];
-        pendingMessages = new AtomicInteger[queueCount];
-        for (int i = 0; i < queueCount; i++) {
-            message_queue[i] = new LinkedBlockingQueue<>();
-            pendingMessages[i] = new AtomicInteger(0);
-        }
 
         // Configure the server.
         int buffer_size = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_BUFFER_SIZE));
@@ -124,48 +111,7 @@ class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServe
         Channel channel = bootstrap.bind(new InetSocketAddress(port));
         allChannels.add(channel);
     }
-
-    private ArrayList<TaskMessage>[] groupMessages(List<TaskMessage> msgs) {
-        ArrayList<TaskMessage> messageGroups[] = new ArrayList[queueCount];
-
-        for (TaskMessage message : msgs) {
-            int task = message.task();
-
-            if (task == -1) {
-                closing = true;
-                return null;
-            }
-
-            Integer queueId = getMessageQueueId(task);
-
-            if (null == messageGroups[queueId]) {
-                messageGroups[queueId] = new ArrayList<>();
-            }
-            messageGroups[queueId].add(message);
-        }
-        return messageGroups;
-    }
-
-    private Integer getMessageQueueId(int task) {
-        // try to construct the map from taskId -> queueId in round robin manner.
-        Integer queueId = taskToQueueId.get(task);
-        if (null == queueId) {
-            synchronized (this) {
-                queueId = taskToQueueId.get(task);
-                if (queueId == null) {
-                    queueId = roundRobinQueueId++;
-                    if (roundRobinQueueId == queueCount) {
-                        roundRobinQueueId = 0;
-                    }
-                    HashMap<Integer, Integer> newRef = new HashMap<>(taskToQueueId);
-                    newRef.put(task, queueId);
-                    taskToQueueId = newRef;
-                }
-            }
-        }
-        return queueId;
-    }
-
+    
     private void addReceiveCount(String from, int amount) {
         //This is possibly lossy in the case where a value is deleted
         // because it has received no messages over the metrics collection
@@ -193,48 +139,14 @@ class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServe
             return;
         }
         addReceiveCount(from, msgs.size());
-        ArrayList<TaskMessage> messageGroups[] = groupMessages(msgs);
-
-        if (null == messageGroups || closing) {
-            return;
-        }
-
-        for (int receiverId = 0; receiverId < messageGroups.length; receiverId++) {
-            ArrayList<TaskMessage> msgGroup = messageGroups[receiverId];
-            if (null != msgGroup) {
-                message_queue[receiverId].put(msgGroup);
-                pendingMessages[receiverId].addAndGet(msgGroup.size());
-            }
+        if (_cb != null) {
+            _cb.recv(msgs);
         }
     }
 
-    public Iterator<TaskMessage> recv(int flags, int receiverId)  {
-        if (closing) {
-            return closeMessage.iterator();
-        }
-
-        ArrayList<TaskMessage> ret;
-        int queueId = receiverId % queueCount;
-        if ((flags & 0x01) == 0x01) {
-            //non-blocking
-            ret = message_queue[queueId].poll();
-        } else {
-            try {
-                ArrayList<TaskMessage> request = message_queue[queueId].take();
-                LOG.debug("request to be processed: {}", request);
-                ret = request;
-            } catch (InterruptedException e) {
-                LOG.info("exception within msg receiving", e);
-                ret = null;
-            }
-        }
-
-        if (null != ret) {
-            messagesDequeued.addAndGet(ret.size());
-            pendingMessages[queueId].addAndGet(0 - ret.size());
-            return ret.iterator();
-        }
-        return null;
+    @Override
+    public void registerRecv(IConnectionCallback cb) {
+        _cb = cb;
     }
 
     /**
@@ -326,12 +238,7 @@ class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServe
         LOG.debug("Getting metrics for server on port {}", port);
         HashMap<String, Object> ret = new HashMap<>();
         ret.put("dequeuedMessages", messagesDequeued.getAndSet(0));
-        ArrayList<Integer> pending = new ArrayList<>(pendingMessages.length);
-        for (AtomicInteger p: pendingMessages) {
-            pending.add(p.get());
-        }
-        ret.put("pending", pending);
-        HashMap<String, Integer> enqueued = new HashMap<>();
+        HashMap<String, Integer> enqueued = new HashMap<String, Integer>();
         Iterator<Map.Entry<String, AtomicInteger>> it = messagesEnqueued.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<String, AtomicInteger> ent = it.next();

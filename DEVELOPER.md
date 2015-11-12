@@ -366,6 +366,8 @@ The Storm JIRA is available at:
 
 If you do not have a JIRA account yet, then you can create one via the link above (registration is free).
 
+<a name="code-search"></a>
+The storm codebase is available at [Codota](https://www.codota.com/xref/#/github_apache_storm_560da9ada8cb8703008bbfdc/findUsages) where you can semantically search it like in an IDE (e.g. find usages for a method). 
 
 <a name="questions"></a>
 

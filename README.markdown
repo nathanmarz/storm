@@ -239,6 +239,8 @@ under the License.
 * Joshua Martell ([@jmartell7](https://github.com/jmartell7))
 * Matthew Tieman ([@mjtieman](https://github.com/mjtieman))
 * Chuck Burgess ([@ashnazg](https://github.com/ashnazg))
+* Tom Graves ([@tgravescs](https://github.com/tgravescs))
+* Dror Weiss ([@drorweiss](https://github.com/drorweiss))
 
 ## Acknowledgements
 

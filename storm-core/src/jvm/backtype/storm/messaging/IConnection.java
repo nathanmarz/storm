@@ -22,14 +22,12 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 
-public interface IConnection {   
-    
+public interface IConnection {
     /**
-     * receive a batch message iterator (consists taskId and payload)
-     * @param flags 0: block, 1: non-block
-     * @return
+     * Register a callback to be notified when data is ready to be processed.
+     * @param cb the callback to process the messages.
      */
-    public Iterator<TaskMessage> recv(int flags, int clientId);
+    public void registerRecv(IConnectionCallback cb);
 
     /**
      * Send load metrics to all downstream connections.

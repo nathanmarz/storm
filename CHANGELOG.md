@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-794: Modify Spout async loop to treat activate/deactivate ASAP
  * STORM-1196: Upgrade to thrift 0.9.3
  * STORM-1155: Supervisor recurring health checks
  * STORM-1189: Maintain wire compatability with 0.10.x versions of storm.

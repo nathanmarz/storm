@@ -120,6 +120,10 @@ Response fields:
 |uptimeSeconds| Integer| Shows how long the supervisor is running in seconds|
 |slotsTotal| Integer| Total number of available worker slots for this supervisor|
 |slotsUsed| Integer| Number of worker slots used on this supervisor|
+|totalMem| Double| Total memory capacity on this supervisor|
+|totalCpu| Double| Total CPU capacity on this supervisor|
+|usedMem| Double| Used memory capacity on this supervisor|
+|usedCpu| Double| Used CPU capacity on this supervisor|
 
 Sample response:
 
@@ -132,7 +136,11 @@ Sample response:
             "uptime": "5m 58s",
             "uptimeSeconds": 358,
             "slotsTotal": 4,
-            "slotsUsed": 3
+            "slotsUsed": 3,
+            "totalMem": 3000,
+            "totalCpu": 400,
+            "usedMem": 1280,
+            "usedCPU": 160
         }
     ]
 }

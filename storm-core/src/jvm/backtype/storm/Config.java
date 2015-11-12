@@ -570,16 +570,16 @@ public class Config extends HashMap<String, Object> {
     public static final String UI_PORT = "ui.port";
 
     /**
-     * Storm UI Project JIRA Link for reporting issue.
+     * Storm UI Project BUGTRACKER Link for reporting issue.
      */
-    public static final String UI_PROJECT_JIRA_URL = "ui.project.jira.url";
-    public static final Object UI_PROJECT_JIRA_URL_SCHEMA = String.class;
+    @isString
+    public static final String UI_PROJECT_BUGTRACKER_URL = "ui.project.bugtracker.url";
 
     /**
      * Storm UI Central Logging URL.
      */
+    @isString
     public static final String UI_CENTRAL_LOGGING_URL = "ui.central.logging.url";
-    public static final Object UI_CENTRAL_LOGGING_URL_SCHEMA = String.class;
 
     /**
      * HTTP UI port for log viewer

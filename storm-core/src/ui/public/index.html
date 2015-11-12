@@ -143,6 +143,13 @@ $(document).ready(function() {
             ]
           });
           $('#topology-summary [data-toggle="tooltip"]').tooltip();
+          $.getJSON("/api/v1/cluster/configuration", function(json){
+              var scheduler = json["storm.scheduler"];
+              if (scheduler != "backtype.storm.scheduler.resource.ResourceAwareScheduler"){
+                  $('#topology-summary td:nth-child(9),#topology-summary th:nth-child(9)').hide();
+                  $('#topology-summary td:nth-child(10),#topology-summary th:nth-child(10)').hide();
+              }
+          });
       });
     });
     $.getJSON("/api/v1/supervisor/summary",function(response,status,jqXHR) {
@@ -156,6 +163,15 @@ $(document).ready(function() {
             ]
           });
           $('#supervisor-summary [data-toggle="tooltip"]').tooltip();
+          $.getJSON("/api/v1/cluster/configuration", function(json){
+              var scheduler = json["storm.scheduler"];
+              if (scheduler != "backtype.storm.scheduler.resource.ResourceAwareScheduler"){
+                  $('#supervisor-summary td:nth-child(6),#supervisor-summary th:nth-child(6)').hide();
+                  $('#supervisor-summary td:nth-child(7),#supervisor-summary th:nth-child(7)').hide();
+                  $('#supervisor-summary td:nth-child(8),#supervisor-summary th:nth-child(8)').hide();
+                  $('#supervisor-summary td:nth-child(9),#supervisor-summary th:nth-child(9)').hide();
+              }
+          });
       });
     });
     $.getJSON("/api/v1/cluster/configuration",function(response,status,jqXHR) {

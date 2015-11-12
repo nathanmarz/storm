@@ -1847,6 +1847,13 @@ public class Config extends HashMap<String, Object> {
     public static final String TOPOLOGY_LOGGING_SENSITIVITY="topology.logging.sensitivity";
 
     /**
+     * Sets the priority for a topology
+     */
+    @isInteger
+    @isPositiveNumber
+    public static final String TOPOLOGY_PRIORITY = "topology.priority";
+
+    /**
      * The root directory in ZooKeeper for metadata about TransactionalSpouts.
      */
     @isString
@@ -1927,6 +1934,13 @@ public class Config extends HashMap<String, Object> {
      */
     @isMapEntryType(keyType = String.class, valueType = Number.class)
     public static final String MULTITENANT_SCHEDULER_USER_POOLS = "multitenant.scheduler.user.pools";
+
+    /**
+     * A map of users to another map of the resource guarantees of the user. Used by Resource Aware Scheduler to ensure
+     * per user resource guarantees.
+     */
+    @isMapEntryCustom(keyValidatorClasses = {StringValidator.class}, valueValidatorClasses = {UserResourcePoolEntryValidator.class})
+    public static final String RESOURCE_AWARE_SCHEDULER_USER_POOLS = "resource.aware.scheduler.user.pools";
 
     /**
      * The number of machines that should be used by this topology to isolate it from all others. Set storm.scheduler
@@ -2178,5 +2192,13 @@ public class Config extends HashMap<String, Object> {
         if(size != null) {
             this.put(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB, size);
         }
+    }
+
+    /**
+     * set the priority for a topology
+     * @param priority
+     */
+    public void setTopologyPriority(int priority) {
+        this.put(Config.TOPOLOGY_PRIORITY, priority);
     }
 }

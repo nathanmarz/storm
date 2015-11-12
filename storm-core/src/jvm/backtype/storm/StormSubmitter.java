@@ -48,7 +48,7 @@ public class StormSubmitter {
     public static final Logger LOG = LoggerFactory.getLogger(StormSubmitter.class);
 
     private static final int THRIFT_CHUNK_SIZE_BYTES = 307200;
-    
+
     private static ILocalCluster localNimbus = null;
 
     private static String generateZookeeperDigestSecretPayload() {
@@ -71,7 +71,7 @@ public class StormSubmitter {
 
         // Is the topology ZooKeeper authentication configuration unset?
         if (! conf.containsKey(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD) ||
-                conf.get(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD) == null || 
+                conf.get(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD) == null ||
                 !  validateZKDigestPayload((String)
                     conf.get(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD))) {
 
@@ -79,7 +79,7 @@ public class StormSubmitter {
             toRet.put(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD, secretPayload);
             LOG.info("Generated ZooKeeper secret payload for MD5-digest: " + secretPayload);
         }
-        
+
         // This should always be set to digest.
         toRet.put(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_SCHEME, "digest");
 
@@ -101,13 +101,13 @@ public class StormSubmitter {
     /**
      * Push a new set of credentials to the running topology.
      * @param name the name of the topology to push credentials to.
-     * @param stormConf the topology-specific configuration, if desired. See {@link Config}. 
+     * @param stormConf the topology-specific configuration, if desired. See {@link Config}.
      * @param credentials the credentials to push.
      * @throws AuthorizationException if you are not authorized ot push credentials.
      * @throws NotAliveException if the topology is not alive
      * @throws InvalidTopologyException if any other error happens
      */
-    public static void pushCredentials(String name, Map stormConf, Map<String, String> credentials) 
+    public static void pushCredentials(String name, Map stormConf, Map<String, String> credentials)
             throws AuthorizationException, NotAliveException, InvalidTopologyException {
         stormConf = new HashMap(stormConf);
         stormConf.putAll(Utils.readCommandLineOpts());
@@ -115,7 +115,7 @@ public class StormSubmitter {
         conf.putAll(stormConf);
         Map<String,String> fullCreds = populateCredentials(conf, credentials);
         if (fullCreds.isEmpty()) {
-            LOG.warn("No credentials were found to push to "+name);
+            LOG.warn("No credentials were found to push to " + name);
             return;
         }
         try {
@@ -136,15 +136,15 @@ public class StormSubmitter {
             throw new RuntimeException(e);
         }
     }
- 
+
 
     /**
-     * Submits a topology to run on the cluster. A topology runs forever or until 
+     * Submits a topology to run on the cluster. A topology runs forever or until
      * explicitly killed.
      *
      *
      * @param name the name of the storm.
-     * @param stormConf the topology-specific configuration. See {@link Config}. 
+     * @param stormConf the topology-specific configuration. See {@link Config}.
      * @param topology the processing to execute.
      * @throws AlreadyAliveException if a topology with this name is already running
      * @throws InvalidTopologyException if an invalid topology was submitted
@@ -153,14 +153,14 @@ public class StormSubmitter {
     public static void submitTopology(String name, Map stormConf, StormTopology topology)
             throws AlreadyAliveException, InvalidTopologyException, AuthorizationException {
         submitTopology(name, stormConf, topology, null, null);
-    }    
+    }
 
     /**
-     * Submits a topology to run on the cluster. A topology runs forever or until 
+     * Submits a topology to run on the cluster. A topology runs forever or until
      * explicitly killed.
      *
      * @param name the name of the storm.
-     * @param stormConf the topology-specific configuration. See {@link Config}. 
+     * @param stormConf the topology-specific configuration. See {@link Config}.
      * @param topology the processing to execute.
      * @param opts to manipulate the starting of the topology.
      * @throws AlreadyAliveException if a topology with this name is already running
@@ -252,6 +252,20 @@ public class StormSubmitter {
         } catch(TException e) {
             throw new RuntimeException(e);
         }
+        invokeSubmitterHook(name, asUser, conf, topology);
+
+    }
+
+    private static void invokeSubmitterHook(String name, String asUser, Map stormConf, StormTopology topology) {
+        try {
+            if (stormConf.containsKey(Config.STORM_TOPOLOGY_SUBMISSION_NOTIFIER_PLUGIN)) {
+                ISubmitterHook submitterHook = (ISubmitterHook) Class.forName(stormConf.get(Config.STORM_TOPOLOGY_SUBMISSION_NOTIFIER_PLUGIN).toString()).newInstance();
+                TopologyInfo topologyInfo = Utils.getTopologyInfo(name, asUser, stormConf);
+                submitterHook.notify(topologyInfo, stormConf, topology);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -335,10 +349,10 @@ public class StormSubmitter {
         try {
             ClusterSummary summary = client.getClient().getClusterInfo();
             for(TopologySummary s : summary.get_topologies()) {
-                if(s.get_name().equals(name)) {  
+                if(s.get_name().equals(name)) {
                     return true;
-                } 
-            }  
+                }
+            }
             return false;
 
         } catch(Exception e) {

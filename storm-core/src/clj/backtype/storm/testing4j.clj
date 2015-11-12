@@ -35,6 +35,7 @@
              ^:static [withSimulatedTime [Runnable] void]
              ^:static [withLocalCluster [backtype.storm.testing.TestJob] void]
              ^:static [withLocalCluster [backtype.storm.testing.MkClusterParam backtype.storm.testing.TestJob] void]
+             ^:static [getLocalCluster [java.util.Map] backtype.storm.ILocalCluster]
              ^:static [withSimulatedTimeLocalCluster [backtype.storm.testing.TestJob] void]
              ^:static [withSimulatedTimeLocalCluster [backtype.storm.testing.MkClusterParam backtype.storm.testing.TestJob] void]
              ^:static [withTrackedCluster [backtype.storm.testing.TestJob] void]
@@ -90,6 +91,23 @@
      (with-cluster with-local-cluster mkClusterParam code))
   ([^TestJob code]
      (-withLocalCluster (MkClusterParam.) code)))
+
+(defn -getLocalCluster
+  ([^Map clusterConf]
+     (let [daemon-conf (get-in clusterConf ["daemon-conf"] {})
+           supervisors (get-in clusterConf ["supervisors"] 2)
+           ports-per-supervisor (get-in clusterConf ["ports-per-supervisor"] 3)
+           inimbus (get-in clusterConf ["inimbus"] nil)
+           supervisor-slot-port-min (get-in clusterConf ["supervisor-slot-port-min"] 1024)
+           nimbus-daemon (get-in clusterConf ["nimbus-daemon"] false)
+           local-cluster-map (mk-local-storm-cluster :supervisors supervisors
+                                                     :ports-per-supervisor ports-per-supervisor
+                                                     :daemon-conf daemon-conf
+                                                     :inimbus inimbus
+                                                     :supervisor-slot-port-min supervisor-slot-port-min
+                                                     :nimbus-daemon nimbus-daemon
+                                                     )]
+       (LocalCluster. local-cluster-map))))
 
 (defn -withSimulatedTimeLocalCluster
   ([^MkClusterParam mkClusterParam ^TestJob code]

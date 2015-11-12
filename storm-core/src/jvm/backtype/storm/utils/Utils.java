@@ -23,15 +23,7 @@ import backtype.storm.blobstore.BlobStoreAclHandler;
 import backtype.storm.blobstore.ClientBlobStore;
 import backtype.storm.blobstore.InputStreamWithMeta;
 import backtype.storm.blobstore.LocalFsBlobStore;
-import backtype.storm.generated.AccessControl;
-import backtype.storm.generated.AccessControlType;
-import backtype.storm.generated.AuthorizationException;
-import backtype.storm.generated.ComponentCommon;
-import backtype.storm.generated.ComponentObject;
-import backtype.storm.generated.KeyNotFoundException;
-import backtype.storm.generated.ReadableBlobMeta;
-import backtype.storm.generated.SettableBlobMeta;
-import backtype.storm.generated.StormTopology;
+import backtype.storm.generated.*;
 import backtype.storm.localizer.Localizer;
 import backtype.storm.nimbus.NimbusInfo;
 import backtype.storm.serialization.DefaultSerializationDelegate;
@@ -1305,6 +1297,24 @@ public class Utils {
     @VisibleForTesting
     public static void resetClassLoaderForJavaDeSerialize() {
         Utils.cl = ClassLoader.getSystemClassLoader();
+    }
+
+    public static TopologyInfo getTopologyInfo(String name, String asUser, Map stormConf) {
+        NimbusClient client = NimbusClient.getConfiguredClientAs(stormConf, asUser);
+        TopologyInfo topologyInfo = null;
+        try {
+            ClusterSummary summary = client.getClient().getClusterInfo();
+            for(TopologySummary s : summary.get_topologies()) {
+                if(s.get_name().equals(name)) {
+                    topologyInfo = client.getClient().getTopologyInfo(s.get_id());
+                }
+            }
+        } catch(Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            client.close();
+        }
+        return topologyInfo;
     }
 }
 

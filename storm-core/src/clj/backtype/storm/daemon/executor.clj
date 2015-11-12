@@ -622,25 +622,28 @@
                 reached-max-spout-pending (and max-spout-pending
                                                (>= (.size pending) max-spout-pending))
                 ]
-            (if (and (not (.isFull transfer-queue))
-                     (not throttle-on)
-                     (not reached-max-spout-pending))
-              (if active?
-                (do
-                  (when-not @last-active
-                    (reset! last-active true)
-                    (log-message "Activating spout " component-id ":" (keys task-datas))
-                    (fast-list-iter [^ISpout spout spouts] (.activate spout)))
-               
-                  (fast-list-iter [^ISpout spout spouts] (.nextTuple spout)))
-                (do
-                  (when @last-active
-                    (reset! last-active false)
-                    (log-message "Deactivating spout " component-id ":" (keys task-datas))
-                    (fast-list-iter [^ISpout spout spouts] (.deactivate spout)))
-                  ;; TODO: log that it's getting throttled
-                  (Time/sleep 100)
-                  (builtin-metrics/skipped-inactive! (:spout-throttling-metrics executor-data) (:stats executor-data)))))
+            (if active?
+              ; activated
+              (do
+                (when-not @last-active
+                  (reset! last-active true)
+                  (log-message "Activating spout " component-id ":" (keys task-datas))
+                  (fast-list-iter [^ISpout spout spouts] (.activate spout)))
+
+                (if (and (not (.isFull transfer-queue))
+                      (not throttle-on)
+                      (not reached-max-spout-pending))
+                  (fast-list-iter [^ISpout spout spouts] (.nextTuple spout))))
+              ; deactivated
+              (do
+                (when @last-active
+                  (reset! last-active false)
+                  (log-message "Deactivating spout " component-id ":" (keys task-datas))
+                  (fast-list-iter [^ISpout spout spouts] (.deactivate spout)))
+                ;; TODO: log that it's getting throttled
+                (Time/sleep 100)
+                (builtin-metrics/skipped-inactive! (:spout-throttling-metrics executor-data) (:stats executor-data))))
+
             (if (and (= curr-count (.get emitted-count)) active?)
               (do (.increment empty-emit-streak)
                   (.emptyEmit spout-wait-strategy (.get empty-emit-streak))
@@ -650,7 +653,7 @@
                     (if reached-max-spout-pending
                       (builtin-metrics/skipped-max-spout! (:spout-throttling-metrics executor-data) (:stats executor-data)))))
               (.set empty-emit-streak 0)
-              ))           
+              ))
           0))
       :kill-fn (:report-error-and-die executor-data)
       :factory? true

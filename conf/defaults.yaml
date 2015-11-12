@@ -249,6 +249,7 @@ topology.disruptor.wait.timeout.millis: 1000
 topology.disruptor.batch.size: 100
 topology.disruptor.batch.timeout.millis: 1
 topology.disable.loadaware: false
+topology.priority: 30
 
 # Configs for Resource Aware Scheduler
 topology.component.resources.onheap.memory.mb: 128.0

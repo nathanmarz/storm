@@ -67,4 +67,13 @@ public class Topologies {
         }
         return _allComponents;
     }
+
+    @Override
+    public String toString() {
+        String ret = "Topologies:\n";
+        for(TopologyDetails td : this.getTopologies()) {
+            ret += td.toString() + "\n";
+        }
+        return ret;
+    }
 }

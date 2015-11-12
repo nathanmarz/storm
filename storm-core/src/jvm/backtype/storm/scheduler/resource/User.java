@@ -18,6 +18,7 @@
 
 package backtype.storm.scheduler.resource;
 
+import backtype.storm.scheduler.Cluster;
 import backtype.storm.scheduler.TopologyDetails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +43,8 @@ public class User {
     //Topologies that was attempted to be scheduled but wasn't successull
     private Set<TopologyDetails> attemptedQueue = new TreeSet<TopologyDetails>(new PQsortByPriorityAndSubmittionTime());
 
+    private Set<TopologyDetails> invalidQueue = new TreeSet<TopologyDetails>(new PQsortByPriorityAndSubmittionTime());
+
     private Map<String, Double> resourcePool = new HashMap<String, Double>();
 
     private static final Logger LOG = LoggerFactory.getLogger(User.class);
@@ -61,12 +64,26 @@ public class User {
         return this.userId;
     }
 
-    public void addTopologyToPendingQueue(TopologyDetails topo) {
+    public void addTopologyToPendingQueue(TopologyDetails topo, Cluster cluster) {
         this.pendingQueue.add(topo);
+        if (cluster != null) {
+            cluster.setStatus(topo.getId(), "Scheduling Pending");
+        }
+    }
+
+    public void addTopologyToPendingQueue(TopologyDetails topo) {
+        this.addTopologyToPendingQueue(topo, null);
+    }
+
+    public void addTopologyToRunningQueue(TopologyDetails topo, Cluster cluster) {
+        this.runningQueue.add(topo);
+        if (cluster != null) {
+            cluster.setStatus(topo.getId(), "Fully Scheduled");
+        }
     }
 
     public void addTopologyToRunningQueue(TopologyDetails topo) {
-        this.runningQueue.add(topo);
+        this.addTopologyToRunningQueue(topo, null);
     }
 
     public Set<TopologyDetails> getTopologiesPending() {
@@ -94,23 +111,69 @@ public class User {
         return null;
     }
 
-    public void moveTopoFromPendingToRunning(TopologyDetails topo) {
+    public void moveTopoFromPendingToRunning(TopologyDetails topo, Cluster cluster) {
         moveTopology(topo, this.pendingQueue, "pending", this.runningQueue, "running");
+        if (cluster != null) {
+            cluster.setStatus(topo.getId(), "Fully Scheduled");
+        }
+    }
+
+    public void moveTopoFromPendingToRunning(TopologyDetails topo) {
+        this.moveTopoFromPendingToRunning(topo, null);
+    }
+
+
+    public void moveTopoFromPendingToAttempted(TopologyDetails topo, Cluster cluster) {
+        moveTopology(topo, this.pendingQueue, "pending", this.attemptedQueue, "attempted");
+        if (cluster != null) {
+            cluster.setStatus(topo.getId(), "Scheduling Attempted but Failed");
+        }
     }
 
     public void moveTopoFromPendingToAttempted(TopologyDetails topo) {
-        moveTopology(topo, this.pendingQueue, "pending", this.attemptedQueue, "attempted");
+        this.moveTopoFromPendingToAttempted(topo, null);
     }
 
-    private void moveTopology(TopologyDetails topo, Set<TopologyDetails> src, String srcName, Set<TopologyDetails> dest, String destName)  {
-        if(topo == null) {
+
+    public void moveTopoFromPendingToInvalid(TopologyDetails topo, Cluster cluster) {
+        moveTopology(topo, this.pendingQueue, "pending", this.invalidQueue, "invalid");
+        if (cluster != null) {
+            cluster.setStatus(topo.getId(), "Scheduling Attempted but topology is invalid");
+        }
+    }
+
+    public void moveTopoFromPendingToInvalid(TopologyDetails topo) {
+        this.moveTopoFromPendingToInvalid(topo, null);
+    }
+
+
+    public void moveTopoFromRunningToPending(TopologyDetails topo, Cluster cluster) {
+        moveTopology(topo, this.runningQueue, "running", this.pendingQueue, "pending");
+        if (cluster != null) {
+            cluster.setStatus(topo.getId(), "Scheduling Pending");
+        }
+    }
+
+    public void moveTopoFromRunningToPending(TopologyDetails topo) {
+        this.moveTopoFromRunningToPending(topo, null);
+    }
+
+
+    private void moveTopology(TopologyDetails topo, Set<TopologyDetails> src, String srcName, Set<TopologyDetails> dest, String destName) {
+        LOG.info("{} queue: {}", srcName, src);
+        LOG.info("{} queue: {}", destName, dest);
+        if (topo == null) {
             return;
         }
-        if(!src.contains(topo)) {
+        if (!src.contains(topo)) {
             LOG.warn("Topo {} not in User: {} {} queue!", topo.getName(), this.userId, srcName);
+            LOG.info("topo {}-{}-{}", topo.getName(), topo.getId(), topo.hashCode());
+            for (TopologyDetails t : src) {
+                LOG.info("queue entry: {}-{}-{}", t.getName(), t.getId(), t.hashCode());
+            }
             return;
         }
-        if(dest.contains(topo)) {
+        if (dest.contains(topo)) {
             LOG.warn("Topo {} already in in User: {} {} queue!", topo.getName(), this.userId, destName);
             return;
         }
@@ -124,8 +187,8 @@ public class User {
         Double cpuResourcePoolUtilization = this.getCPUResourcePoolUtilization();
         Double memoryResourcePoolUtilization = this.getMemoryResourcePoolUtilization();
 
-        if(cpuResourcePoolUtilization != null && memoryResourcePoolUtilization != null) {
-            return (cpuResourcePoolUtilization + memoryResourcePoolUtilization ) / 2.0;
+        if (cpuResourcePoolUtilization != null && memoryResourcePoolUtilization != null) {
+            return (cpuResourcePoolUtilization + memoryResourcePoolUtilization) / 2.0;
         }
         return Double.MAX_VALUE;
     }
@@ -173,7 +236,7 @@ public class User {
 
     public TopologyDetails getNextTopologyToSchedule() {
         for (TopologyDetails topo : this.pendingQueue) {
-            if(!this.attemptedQueue.contains(topo)) {
+            if (!this.attemptedQueue.contains(topo)) {
                 return topo;
             }
         }
@@ -182,6 +245,13 @@ public class User {
 
     public boolean hasTopologyNeedSchedule() {
         return (!this.pendingQueue.isEmpty() && (this.pendingQueue.size() - this.attemptedQueue.size()) > 0);
+    }
+
+    public TopologyDetails getRunningTopologyWithLowestPriority() {
+        if (this.runningQueue.isEmpty()) {
+            return null;
+        }
+        return this.runningQueue.iterator().next();
     }
 
     @Override
@@ -197,9 +267,10 @@ public class User {
     public String getDetailedInfo() {
         String ret = "\nUser: " + this.userId;
         ret += "\n - " + " Resource Pool: " + this.resourcePool;
-        ret += "\n - " + " Running Queue: " + this.runningQueue;
-        ret += "\n - " + " Pending Queue: " + this.pendingQueue;
-        ret += "\n - " + " Attempted Queue: " + this.attemptedQueue;
+        ret += "\n - " + " Running Queue: " + this.runningQueue + " size: " + this.runningQueue.size();
+        ret += "\n - " + " Pending Queue: " + this.pendingQueue + " size: " + this.pendingQueue.size();
+        ret += "\n - " + " Attempted Queue: " + this.attemptedQueue + " size: " + this.attemptedQueue.size();
+        ret += "\n - " + " Invalid Queue: " + this.invalidQueue + " size: " + this.invalidQueue.size();
         ret += "\n - " + " CPU Used: " + this.getCPUResourceUsedByUser() + " CPU guaranteed: " + this.getCPUResourceGuaranteed();
         ret += "\n - " + " Memory Used: " + this.getMemoryResourceUsedByUser() + " Memory guaranteed: " + this.getMemoryResourceGuaranteed();
         ret += "\n - " + " % Resource Guarantee Used: \n -- CPU: " + this.getCPUResourcePoolUtilization()
@@ -209,10 +280,29 @@ public class User {
 
     public static String getResourcePoolAverageUtilizationForUsers(Collection<User> users) {
         String ret = "";
-        for(User user : users) {
+        for (User user : users) {
             ret += user.getId() + " - " + user.getResourcePoolAverageUtilization() + " ";
         }
         return ret;
+    }
+
+    public static int cTo(TopologyDetails topo1, TopologyDetails topo2) {
+        if (topo1.getId().compareTo(topo2.getId()) == 0) {
+            return 0;
+        }
+        if (topo1.getTopologyPriority() > topo2.getTopologyPriority()) {
+            return 1;
+        } else if (topo1.getTopologyPriority() < topo2.getTopologyPriority()) {
+            return -1;
+        } else {
+            if (topo1.getUpTime() > topo2.getUpTime()) {
+                return -1;
+            } else if (topo1.getUpTime() < topo2.getUpTime()) {
+                return 1;
+            } else {
+                return topo1.getId().compareTo(topo2.getId());
+            }
+        }
     }
 
     /**
@@ -231,7 +321,7 @@ public class User {
                 } else if (topo1.getUpTime() < topo2.getUpTime()) {
                     return 1;
                 } else {
-                    return 0;
+                    return topo1.getId().compareTo(topo2.getId());
                 }
             }
         }

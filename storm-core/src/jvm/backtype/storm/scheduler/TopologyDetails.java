@@ -63,15 +63,20 @@ public class TopologyDetails {
     }
 
     public TopologyDetails(String topologyId, Map topologyConf, StormTopology topology,
-                           int numWorkers, Map<ExecutorDetails, String> executorToComponents, int launchTime) {
+                           int numWorkers, Map<ExecutorDetails, String> executorToComponents) {
         this(topologyId, topologyConf, topology, numWorkers);
         this.executorToComponent = new HashMap<>(0);
         if (executorToComponents != null) {
             this.executorToComponent.putAll(executorToComponents);
         }
-        this.launchTime = launchTime;
         this.initResourceList();
         this.initConfigs();
+    }
+
+    public TopologyDetails(String topologyId, Map topologyConf, StormTopology topology,
+                           int numWorkers, Map<ExecutorDetails, String> executorToComponents, int launchTime) {
+        this(topologyId, topologyConf, topology, numWorkers, executorToComponents);
+        this.launchTime = launchTime;
     }
 
     public String getId() {
@@ -410,13 +415,24 @@ public class TopologyDetails {
      * Add default resource requirements for a executor
      */
     public void addDefaultResforExec(ExecutorDetails exec) {
+
+        Double topologyComponentCpuPcorePercent = Utils.getDouble(topologyConf.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT), null);
+        if(topologyComponentCpuPcorePercent == null) {
+            LOG.warn("default value for topology.component.cpu.pcore.percent needs to be set!");
+        }
+        Double topologyComponentResourcesOffheapMemoryMb =  Utils.getDouble(topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB), null);
+        if(topologyComponentResourcesOffheapMemoryMb == null) {
+            LOG.warn("default value for topology.component.resources.offheap.memory.mb needs to be set!");
+        }
+        Double topologyComponentResourcesOnheapMemoryMb = Utils.getDouble(topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB), null);
+        if(topologyComponentResourcesOnheapMemoryMb == null) {
+            LOG.warn("default value for topology.component.resources.onheap.memory.mb needs to be set!");
+        }
+
         Map<String, Double> defaultResourceList = new HashMap<>();
-        defaultResourceList.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT,
-                        Utils.getDouble(topologyConf.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT), null));
-        defaultResourceList.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB,
-                        Utils.getDouble(topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB), null));
-        defaultResourceList.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB,
-                        Utils.getDouble(topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB), null));
+        defaultResourceList.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, topologyComponentCpuPcorePercent);
+        defaultResourceList.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, topologyComponentResourcesOffheapMemoryMb);
+        defaultResourceList.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, topologyComponentResourcesOnheapMemoryMb);
         LOG.debug("Scheduling Executor: {} with memory requirement as onHeap: {} - offHeap: {} " +
                         "and CPU requirement: {}",
                 exec, topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB),
@@ -426,12 +442,17 @@ public class TopologyDetails {
     }
 
     /**
-     * initializes the scheduler member variable by extracting what scheduler
-     * this topology is going to use from topologyConf
+     * initializes member variables
      */
     private void initConfigs() {
         this.topologyWorkerMaxHeapSize = Utils.getDouble(this.topologyConf.get(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB), null);
+        if(this.topologyWorkerMaxHeapSize == null) {
+            LOG.warn("default value for topology.worker.max.heap.size.mb needs to be set!");
+        }
         this.topologyPriority = Utils.getInt(this.topologyConf.get(Config.TOPOLOGY_PRIORITY), null);
+        if(this.topologyPriority == null) {
+            LOG.warn("default value for topology.priority needs to be set!");
+        }
     }
 
     /**
@@ -459,7 +480,7 @@ public class TopologyDetails {
 
     @Override
     public String toString() {
-        return "Name: " + this.getName() + " Priority: " + this.getTopologyPriority()
+        return "Name: " + this.getName() + " id: " + this.getId() + " Priority: " + this.getTopologyPriority()
                 + " Uptime: " + this.getUpTime() + " CPU: " + this.getTotalRequestedCpu()
                 + " Memory: " + (this.getTotalRequestedMemOffHeap() + this.getTotalRequestedMemOnHeap());
     }

@@ -628,9 +628,64 @@ public class TestConfigValidate {
             } catch (IllegalArgumentException Ex) {
             }
         }
+    }
 
+    @Test
+    public void TestResourceAwareSchedulerUserPool() {
+        TestConfig config = new TestConfig();
+        Collection<Object> passCases = new LinkedList<Object>();
+        Collection<Object> failCases = new LinkedList<Object>();
 
+        Map<String, Map<String, Integer>> passCase1 = new HashMap<String, Map<String, Integer>>();
+        passCase1.put("jerry", new HashMap<String, Integer>());
+        passCase1.put("bobby", new HashMap<String, Integer>());
+        passCase1.put("derek", new HashMap<String, Integer>());
 
+        passCase1.get("jerry").put("cpu", 10000);
+        passCase1.get("jerry").put("memory", 20148);
+        passCase1.get("bobby").put("cpu", 20000);
+        passCase1.get("bobby").put("memory", 40148);
+        passCase1.get("derek").put("cpu", 30000);
+        passCase1.get("derek").put("memory", 60148);
+
+        passCases.add(passCase1);
+
+        for (Object value : passCases) {
+            config.put(TestConfig.TEST_MAP_CONFIG_7, value);
+            ConfigValidation.validateFields(config, TestConfig.class);
+        }
+
+        Map<String, Map<String, Integer>> failCase1 = new HashMap<String, Map<String, Integer>>();
+        failCase1.put("jerry", new HashMap<String, Integer>());
+        failCase1.put("bobby", new HashMap<String, Integer>());
+        failCase1.put("derek", new HashMap<String, Integer>());
+
+        failCase1.get("jerry").put("cpu", 10000);
+        failCase1.get("jerry").put("memory", 20148);
+        failCase1.get("bobby").put("cpu", 20000);
+        failCase1.get("bobby").put("memory", 40148);
+        failCase1.get("derek").put("cpu", 30000);
+
+        Map<String, Map<String, Integer>> failCase2 = new HashMap<String, Map<String, Integer>>();
+        failCase2.put("jerry", new HashMap<String, Integer>());
+        failCase2.put("bobby", new HashMap<String, Integer>());
+        failCase2.put("derek", new HashMap<String, Integer>());
+        failCase2.get("bobby").put("cpu", 20000);
+        failCase2.get("bobby").put("memory", 40148);
+        failCase2.get("derek").put("cpu", 30000);
+        failCase2.get("derek").put("memory", 60148);
+
+        failCases.add(failCase1);
+        failCases.add(failCase2);
+
+        for (Object value : failCases) {
+            try {
+                config.put(TestConfig.TEST_MAP_CONFIG_7, value);
+                ConfigValidation.validateFields(config, TestConfig.class);
+                Assert.fail("Expected Exception not Thrown for value: " + value);
+            } catch (IllegalArgumentException Ex) {
+            }
+        }
     }
 
     public class TestConfig extends HashMap<String, Object> {
@@ -656,5 +711,8 @@ public class TestConfigValidate {
 
         @isMapEntryCustom(keyValidatorClasses = {StringValidator.class}, valueValidatorClasses = {ImpersonationAclUserEntryValidator.class})
         public static final String TEST_MAP_CONFIG_6 = "test.map.config.6";
+
+        @isMapEntryCustom(keyValidatorClasses = {StringValidator.class}, valueValidatorClasses = {UserResourcePoolEntryValidator.class})
+        public static final String TEST_MAP_CONFIG_7 = "test.map.config.7";
     }
 }

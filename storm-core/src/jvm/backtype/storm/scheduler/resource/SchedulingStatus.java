@@ -16,23 +16,25 @@
  * limitations under the License.
  */
 
-package backtype.storm.scheduler.resource.strategies;
+package backtype.storm.scheduler.resource;
 
-import java.util.Collection;
-import java.util.Map;
+import java.util.EnumSet;
 
-import backtype.storm.scheduler.Topologies;
-import backtype.storm.scheduler.ExecutorDetails;
-import backtype.storm.scheduler.TopologyDetails;
-import backtype.storm.scheduler.WorkerSlot;
-import backtype.storm.scheduler.resource.RAS_Node;
-import backtype.storm.scheduler.resource.SchedulingResult;
+public enum SchedulingStatus {
+    SUCCESS,
+    FAIL_NOT_ENOUGH_RESOURCES,
+    FAIL_INVALID_TOPOLOGY,
+    FAIL_OTHER;
 
-/**
- * An interface to for implementing different scheduling strategies for the resource aware scheduling
- * In the future stategies will be pluggable
- */
-public interface IStrategy {
+    public static EnumSet<SchedulingStatus> success = EnumSet.of(SUCCESS);
+    public static EnumSet<SchedulingStatus> failure = EnumSet.of(FAIL_INVALID_TOPOLOGY, FAIL_NOT_ENOUGH_RESOURCES, FAIL_OTHER);
 
-    public SchedulingResult schedule(TopologyDetails td);
+    public static boolean isStatusSuccess(SchedulingStatus status) {
+        return success.contains(status);
+    }
+
+    public static boolean isStatusFailure(SchedulingStatus status) {
+        return failure.contains(status);
+    }
+
 }

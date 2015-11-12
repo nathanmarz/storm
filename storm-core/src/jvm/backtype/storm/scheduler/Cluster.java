@@ -379,6 +379,16 @@ public class Cluster {
     }
 
     /**
+     * get slots used by a topology
+     */
+    public Collection<WorkerSlot> getUsedSlotsByTopologyId(String topologyId) {
+        if (!this.assignments.containsKey(topologyId)) {
+            return null;
+        }
+        return this.assignments.get(topologyId).getSlots();
+    }
+
+    /**
      * Get a specific supervisor with the <code>nodeId</code>
      */
     public SupervisorDetails getSupervisorById(String nodeId) {
@@ -427,6 +437,13 @@ public class Cluster {
         }
 
         return ret;
+    }
+
+    public void setAssignments(Map<String, SchedulerAssignment> assignments) {
+        this.assignments = new HashMap<String, SchedulerAssignmentImpl>();
+        for(Map.Entry<String, SchedulerAssignmentImpl> entry : this.assignments.entrySet()) {
+            this.assignments.put(entry.getKey(), new SchedulerAssignmentImpl(entry.getValue().getTopologyId(), entry.getValue().getExecutorToSlot()));
+        }
     }
 
     /**

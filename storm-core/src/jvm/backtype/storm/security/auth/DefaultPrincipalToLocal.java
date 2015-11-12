@@ -28,7 +28,6 @@ import java.security.Principal;
 public class DefaultPrincipalToLocal implements IPrincipalToLocal {
     /**
      * Invoked once immediately after construction
-     * @param conf Storm configuration 
      */
     public void prepare(Map storm_conf) {}
     

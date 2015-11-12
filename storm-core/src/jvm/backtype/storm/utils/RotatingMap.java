@@ -32,24 +32,28 @@ import java.util.Map.Entry;
  *
  * The advantage of this design is that the expiration thread only locks the object
  * for O(1) time, meaning the object is essentially always available for gets/puts.
+ *
+ * Note: This class is not thread-safe since it does not protect against changes to
+ * _buckets while it is being read
+ *
  */
 public class RotatingMap<K, V> {
     //this default ensures things expire at most 50% past the expiration time
     private static final int DEFAULT_NUM_BUCKETS = 3;
 
-    public static interface ExpiredCallback<K, V> {
-        public void expire(K key, V val);
+    public interface ExpiredCallback<K, V> {
+        void expire(K key, V val);
     }
 
-    private LinkedList<HashMap<K, V>> _buckets;
+    private final LinkedList<HashMap<K, V>> _buckets;
 
-    private ExpiredCallback _callback;
+    private final ExpiredCallback<K, V> _callback;
     
     public RotatingMap(int numBuckets, ExpiredCallback<K, V> callback) {
         if(numBuckets<2) {
             throw new IllegalArgumentException("numBuckets must be >= 2");
         }
-        _buckets = new LinkedList<HashMap<K, V>>();
+        _buckets = new LinkedList<>();
         for(int i=0; i<numBuckets; i++) {
             _buckets.add(new HashMap<K, V>());
         }

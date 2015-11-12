@@ -19,6 +19,10 @@ package org.apache.storm.hdfs.trident.rotation;
 
 import storm.trident.tuple.TridentTuple;
 
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 
 public class TimedRotationPolicy implements FileRotationPolicy {
 
@@ -41,6 +45,9 @@ public class TimedRotationPolicy implements FileRotationPolicy {
     }
 
     private long interval;
+    private Timer rotationTimer;
+    private AtomicBoolean rotationTimerTriggered = new AtomicBoolean();
+
 
     public TimedRotationPolicy(float count, TimeUnit units){
         this.interval = (long)(count * units.getMilliSeconds());
@@ -54,7 +61,12 @@ public class TimedRotationPolicy implements FileRotationPolicy {
      */
     @Override
     public boolean mark(TridentTuple tuple, long offset) {
-        return false;
+        return rotationTimerTriggered.get();
+    }
+
+    @Override
+    public boolean mark(long offset) {
+        return rotationTimerTriggered.get();
     }
 
     /**
@@ -62,10 +74,25 @@ public class TimedRotationPolicy implements FileRotationPolicy {
      */
     @Override
     public void reset() {
-
+        rotationTimerTriggered.set(false);
     }
 
     public long getInterval(){
         return this.interval;
+    }
+
+    /**
+     * Start the timer to run at fixed intervals.
+     */
+    @Override
+    public void start() {
+        rotationTimer = new Timer(true);
+        TimerTask task = new TimerTask() {
+            @Override
+            public void run() {
+                rotationTimerTriggered.set(true);
+            }
+        };
+        rotationTimer.scheduleAtFixedRate(task, interval, interval);
     }
 }

@@ -22,6 +22,8 @@ import org.slf4j.LoggerFactory;
 import storm.kafka.DynamicBrokersReader;
 import storm.kafka.ZkHosts;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 
@@ -29,7 +31,7 @@ public class ZkBrokerReader implements IBrokerReader {
 
 	public static final Logger LOG = LoggerFactory.getLogger(ZkBrokerReader.class);
 
-	GlobalPartitionInformation cachedBrokers;
+	List<GlobalPartitionInformation> cachedBrokers = new ArrayList<GlobalPartitionInformation>();
 	DynamicBrokersReader reader;
 	long lastRefreshTimeMs;
 
@@ -48,8 +50,7 @@ public class ZkBrokerReader implements IBrokerReader {
 
 	}
 
-	@Override
-	public GlobalPartitionInformation getCurrentBrokers() {
+	private void refresh() {
 		long currTime = System.currentTimeMillis();
 		if (currTime > lastRefreshTimeMs + refreshMillis) {
 			try {
@@ -60,6 +61,19 @@ public class ZkBrokerReader implements IBrokerReader {
 				LOG.warn("Failed to update brokers", e);
 			}
 		}
+	}
+	@Override
+	public GlobalPartitionInformation getBrokerForTopic(String topic) {
+		refresh();
+        for(GlobalPartitionInformation partitionInformation : cachedBrokers) {
+            if (partitionInformation.topic.equals(topic)) return partitionInformation;
+        }
+		return null;
+	}
+
+	@Override
+	public List<GlobalPartitionInformation> getAllBrokers() {
+		refresh();
 		return cachedBrokers;
 	}
 

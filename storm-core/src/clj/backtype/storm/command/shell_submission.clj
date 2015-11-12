@@ -15,15 +15,18 @@
 ;; limitations under the License.
 (ns backtype.storm.command.shell-submission
   (:import [backtype.storm StormSubmitter])
-  (:use [backtype.storm thrift util config log])
+  (:use [backtype.storm thrift util config log zookeeper])
   (:require [clojure.string :as str])
   (:gen-class))
 
 
 (defn -main [^String tmpjarpath & args]
   (let [conf (read-storm-config)
-        host (conf NIMBUS-HOST)
-        port (conf NIMBUS-THRIFT-PORT)
+        zk-leader-elector (zk-leader-elector conf)
+        leader-nimbus (.getLeader zk-leader-elector)
+        host (.getHost leader-nimbus)
+        port (.getPort leader-nimbus)
+        no-op (.close zk-leader-elector)
         jarpath (StormSubmitter/submitJar conf tmpjarpath)
         args (concat args [host port jarpath])]
     (exec-command! (str/join " " args))

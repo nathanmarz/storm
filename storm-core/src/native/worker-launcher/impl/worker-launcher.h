@@ -70,6 +70,8 @@ int setup_stormdist_dir(const char* local_dir);
 
 int exec_as_user(const char * working_dir, const char * args);
 
+int fork_as_user(const char * working_dir, const char * args);
+
 // delete a directory (or file) recursively as the user. The directory
 // could optionally be relative to the baseDir set of directories (if the same
 // directory appears on multiple disk volumes, the disk volumes should be passed

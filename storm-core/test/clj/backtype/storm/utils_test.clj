@@ -42,18 +42,6 @@
   )
 )
 
-(deftest test-getConfiguredClient-throws-RunTimeException-on-bad-config
-  (let [storm-conf (merge (read-storm-config)
-                     {STORM-THRIFT-TRANSPORT-PLUGIN
-                       "backtype.storm.security.auth.SimpleTransportPlugin"
-                      Config/NIMBUS_HOST ""
-                      Config/NIMBUS_THRIFT_PORT 65535
-                      STORM-NIMBUS-RETRY-TIMES 0})]
-    (is (thrown-cause? RuntimeException
-      (NimbusClient/getConfiguredClient storm-conf)))
-  )
-)
-
 (deftest test-getConfiguredClient-throws-RunTimeException-on-bad-args
   (let [storm-conf (merge
                     (read-storm-config)

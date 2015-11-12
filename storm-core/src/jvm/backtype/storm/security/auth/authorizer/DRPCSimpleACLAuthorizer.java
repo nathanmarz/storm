@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package backtype.storm.security.auth.authorizer;
 
 import java.lang.reflect.Field;
@@ -10,7 +28,6 @@ import java.util.Set;
 
 import backtype.storm.Config;
 import backtype.storm.security.auth.ReqContext;
-import backtype.storm.security.auth.authorizer.DRPCAuthorizerBase;
 import backtype.storm.security.auth.AuthUtils;
 import backtype.storm.security.auth.IPrincipalToLocal;
 import backtype.storm.utils.Utils;
@@ -19,7 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DRPCSimpleACLAuthorizer extends DRPCAuthorizerBase {
-    public static Logger LOG =
+    public static final Logger LOG =
         LoggerFactory.getLogger(DRPCSimpleACLAuthorizer.class);
 
     public static final String CLIENT_USERS_KEY = "client.users";
@@ -30,13 +47,13 @@ public class DRPCSimpleACLAuthorizer extends DRPCAuthorizerBase {
     protected IPrincipalToLocal _ptol;
     protected boolean _permitWhenMissingFunctionEntry = false;
 
-    protected class AclFunctionEntry {
+    protected static class AclFunctionEntry {
         final public Set<String> clientUsers;
         final public String invocationUser;
         public AclFunctionEntry(Collection<String> clientUsers,
                 String invocationUser) {
             this.clientUsers = (clientUsers != null) ?
-                new HashSet<String>(clientUsers) : new HashSet<String>();
+                new HashSet<>(clientUsers) : new HashSet<String>();
             this.invocationUser = invocationUser;
         }
     }
@@ -50,27 +67,27 @@ public class DRPCSimpleACLAuthorizer extends DRPCAuthorizerBase {
         //change is atomic
         long now = System.currentTimeMillis();
         if ((now - 5000) > _lastUpdate || _acl == null) {
-            Map<String,AclFunctionEntry> acl = new HashMap<String,AclFunctionEntry>();
+            Map<String,AclFunctionEntry> acl = new HashMap<>();
             Map conf = Utils.findAndReadConfigFile(_aclFileName);
             if (conf.containsKey(Config.DRPC_AUTHORIZER_ACL)) {
                 Map<String,Map<String,?>> confAcl =
                     (Map<String,Map<String,?>>)
                     conf.get(Config.DRPC_AUTHORIZER_ACL);
 
-                for (String function : confAcl.keySet()) {
-                    Map<String,?> val = confAcl.get(function);
+                for (Map.Entry<String, Map<String, ?>> entry : confAcl.entrySet()) {
+                    Map<String,?> val = entry.getValue();
                     Collection<String> clientUsers =
                         val.containsKey(CLIENT_USERS_KEY) ?
                         (Collection<String>) val.get(CLIENT_USERS_KEY) : null;
                     String invocationUser =
                         val.containsKey(INVOCATION_USER_KEY) ?
                         (String) val.get(INVOCATION_USER_KEY) : null;
-                    acl.put(function,
+                    acl.put(entry.getKey(),
                             new AclFunctionEntry(clientUsers, invocationUser));
                 }
             } else if (!_permitWhenMissingFunctionEntry) {
                 LOG.warn("Requiring explicit ACL entries, but none given. " +
-                        "Therefore, all operiations will be denied.");
+                        "Therefore, all operations will be denied.");
             }
             _acl = acl;
             _lastUpdate = System.currentTimeMillis();
@@ -82,8 +99,8 @@ public class DRPCSimpleACLAuthorizer extends DRPCAuthorizerBase {
     public void prepare(Map conf) {
         Boolean isStrict = 
                 (Boolean) conf.get(Config.DRPC_AUTHORIZER_ACL_STRICT);
-        _permitWhenMissingFunctionEntry = 
-                (isStrict != null && !isStrict) ? true : false;
+        _permitWhenMissingFunctionEntry =
+                (isStrict != null && !isStrict);
         _aclFileName = (String) conf.get(Config.DRPC_AUTHORIZER_ACL_FILENAME);
         _ptol = AuthUtils.GetPrincipalToLocalPlugin(conf);
     }

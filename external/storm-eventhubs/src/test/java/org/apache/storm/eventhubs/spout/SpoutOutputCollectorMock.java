@@ -58,4 +58,9 @@ public class SpoutOutputCollectorMock implements ISpoutOutputCollector {
   @Override
   public void reportError(Throwable arg0) {
   }
+
+  @Override
+  public long getPendingCount() {
+    return 0;
+  }
 }

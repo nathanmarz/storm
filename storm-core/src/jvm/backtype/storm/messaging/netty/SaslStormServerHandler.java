@@ -55,7 +55,7 @@ public class SaslStormServerHandler extends SimpleChannelUpstreamHandler {
         Channel channel = ctx.getChannel();
 
         if (msg instanceof ControlMessage
-                && ((ControlMessage) e.getMessage()) == ControlMessage.SASL_TOKEN_MESSAGE_REQUEST) {
+                && e.getMessage() == ControlMessage.SASL_TOKEN_MESSAGE_REQUEST) {
             // initialize server-side SASL functionality, if we haven't yet
             // (in which case we are looking at the first SASL message from the
             // client).
@@ -85,7 +85,7 @@ public class SaslStormServerHandler extends SimpleChannelUpstreamHandler {
             LOG.debug("processToken:  With nettyServer: " + saslNettyServer
                     + " and token length: " + token.length);
 
-            SaslMessageToken saslTokenMessageRequest = null;
+            SaslMessageToken saslTokenMessageRequest;
             saslTokenMessageRequest = new SaslMessageToken(
                     saslNettyServer.response(new byte[0]));
             // Send response to client.
@@ -102,10 +102,8 @@ public class SaslStormServerHandler extends SimpleChannelUpstreamHandler {
             SaslNettyServer saslNettyServer = SaslNettyServerState.getSaslNettyServer
                     .get(channel);
             if (saslNettyServer == null) {
-                if (saslNettyServer == null) {
-                    throw new Exception("saslNettyServer was unexpectedly "
-                            + "null for channel: " + channel);
-                }
+                throw new Exception("saslNettyServer was unexpectedly "
+                        + "null for channel: " + channel);
             }
             SaslMessageToken saslTokenMessageRequest = new SaslMessageToken(
                     saslNettyServer.response(((SaslMessageToken) msg)
@@ -124,7 +122,6 @@ public class SaslStormServerHandler extends SimpleChannelUpstreamHandler {
                         + "authentication is complete.");
                 ctx.getPipeline().remove(this);
             }
-            return;
         } else {
             // Client should not be sending other-than-SASL messages before
             // SaslServerHandler has removed itself from the pipeline. Such

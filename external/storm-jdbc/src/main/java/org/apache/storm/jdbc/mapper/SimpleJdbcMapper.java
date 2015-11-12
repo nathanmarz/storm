@@ -18,7 +18,9 @@
 package org.apache.storm.jdbc.mapper;
 
 import backtype.storm.tuple.ITuple;
+import org.apache.commons.lang.Validate;
 import org.apache.storm.jdbc.common.Column;
+import org.apache.storm.jdbc.common.ConnectionProvider;
 import org.apache.storm.jdbc.common.JdbcClient;
 import org.apache.storm.jdbc.common.Util;
 
@@ -33,13 +35,18 @@ public class SimpleJdbcMapper implements JdbcMapper {
 
     private List<Column> schemaColumns;
 
-    public SimpleJdbcMapper(String tableName, Map hikariConfigurationMap) {
+    public SimpleJdbcMapper(String tableName, ConnectionProvider connectionProvider) {
+        Validate.notEmpty(tableName);
+        Validate.notNull(connectionProvider);
+
         int queryTimeoutSecs = 30;
-        JdbcClient client = new JdbcClient(hikariConfigurationMap, queryTimeoutSecs);
+        connectionProvider.prepare();
+        JdbcClient client = new JdbcClient(connectionProvider, queryTimeoutSecs);
         this.schemaColumns = client.getColumnSchema(tableName);
     }
 
     public SimpleJdbcMapper(List<Column> schemaColumns) {
+        Validate.notEmpty(schemaColumns);
         this.schemaColumns = schemaColumns;
     }
 

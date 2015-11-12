@@ -18,11 +18,10 @@
 
 package backtype.storm.security.auth;
 
-import java.util.Collection;
 import java.util.Map;
 
 /**
- * Provides a way to renew credentials on behelf of a user.
+ * Provides a way to renew credentials on behalf of a user.
  */
 public interface ICredentialsRenewer {
 

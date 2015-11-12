@@ -32,6 +32,7 @@ import javax.security.auth.login.Configuration;
 import javax.security.sasl.SaslServer;
 
 import backtype.storm.utils.ExtendedThreadPoolExecutor;
+import backtype.storm.security.auth.kerberos.NoOpTTrasport;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TBinaryProtocol;
@@ -44,10 +45,6 @@ import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.thrift.transport.TTransportFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import backtype.storm.security.auth.ThriftConnectionType;
 
 /**
  * Base class for SASL authentication plugin.
@@ -56,7 +53,6 @@ public abstract class SaslTransportPlugin implements ITransportPlugin {
     protected ThriftConnectionType type;
     protected Map storm_conf;
     protected Configuration login_conf;
-    private static final Logger LOG = LoggerFactory.getLogger(SaslTransportPlugin.class);
 
     @Override
     public void prepare(ThriftConnectionType type, Map storm_conf, Configuration login_conf) {
@@ -94,7 +90,7 @@ public abstract class SaslTransportPlugin implements ITransportPlugin {
 
     /**
      * All subclass must implement this method
-     * @return
+     * @return server transport factory
      * @throws IOException
      */
     protected abstract TTransportFactory getServerTransportFactory() throws IOException;
@@ -107,7 +103,7 @@ public abstract class SaslTransportPlugin implements ITransportPlugin {
      *                                                                                                                                                                              
      * This is used on the server side to set the UGI for each specific call.                                                                                                       
      */
-    private class TUGIWrapProcessor implements TProcessor {
+    private static class TUGIWrapProcessor implements TProcessor {
         final TProcessor wrapped;
 
         TUGIWrapProcessor(TProcessor wrapped) {
@@ -121,6 +117,11 @@ public abstract class SaslTransportPlugin implements ITransportPlugin {
             TTransport trans = inProt.getTransport();
             //Sasl transport
             TSaslServerTransport saslTrans = (TSaslServerTransport)trans;
+
+            if(trans instanceof NoOpTTrasport) {
+                return false;
+            }
+
             //remote address
             TSocket tsocket = (TSocket)saslTrans.getUnderlyingTransport();
             Socket socket = tsocket.getSocket();
@@ -156,11 +157,8 @@ public abstract class SaslTransportPlugin implements ITransportPlugin {
         public boolean equals(Object o) {
             if (this == o) {
                 return true;
-            } else if (o == null || getClass() != o.getClass()) {
-                return false;
-            } else {
-                return (name.equals(((User) o).name));
             }
+            return !(o == null || getClass() != o.getClass()) && (name.equals(((User) o).name));
         }
 
         @Override

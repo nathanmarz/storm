@@ -21,21 +21,18 @@ import backtype.storm.Config;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.Subject;
-import java.security.NoSuchAlgorithmException;
 import java.security.URIParameter;
 
 import backtype.storm.security.INimbusCredentialPlugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Collection;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 
 public class AuthUtils {
     private static final Logger LOG = LoggerFactory.getLogger(AuthUtils.class);
@@ -72,11 +69,11 @@ public class AuthUtils {
 
     /**
      * Construct a principal to local plugin
-     * @param conf storm configuration
+     * @param storm_conf storm configuration
      * @return the plugin
      */
     public static IPrincipalToLocal GetPrincipalToLocalPlugin(Map storm_conf) {
-        IPrincipalToLocal ptol = null;
+        IPrincipalToLocal ptol;
         try {
           String ptol_klassName = (String) storm_conf.get(Config.STORM_PRINCIPAL_TO_LOCAL_PLUGIN);
           Class klass = Class.forName(ptol_klassName);
@@ -90,11 +87,11 @@ public class AuthUtils {
 
     /**
      * Construct a group mapping service provider plugin
-     * @param conf storm configuration
+     * @param storm_conf storm configuration
      * @return the plugin
      */
     public static IGroupMappingServiceProvider GetGroupMappingServiceProviderPlugin(Map storm_conf) {
-        IGroupMappingServiceProvider gmsp = null;
+        IGroupMappingServiceProvider gmsp;
         try {
             String gmsp_klassName = (String) storm_conf.get(Config.STORM_GROUP_MAPPING_SERVICE_PROVIDER_PLUGIN);
             Class klass = Class.forName(gmsp_klassName);
@@ -107,13 +104,13 @@ public class AuthUtils {
     }
 
     /**
-     * Get all of the configured Credential Renwer Plugins.
-     * @param storm_conf the storm configuration to use.
+     * Get all of the configured Credential Renewer Plugins.
+     * @param conf the storm configuration to use.
      * @return the configured credential renewers.
      */
     public static Collection<ICredentialsRenewer> GetCredentialRenewers(Map conf) {
         try {
-            Set<ICredentialsRenewer> ret = new HashSet<ICredentialsRenewer>();
+            Set<ICredentialsRenewer> ret = new HashSet<>();
             Collection<String> clazzes = (Collection<String>)conf.get(Config.NIMBUS_CREDENTIAL_RENEWERS);
             if (clazzes != null) {
                 for (String clazz : clazzes) {
@@ -135,7 +132,7 @@ public class AuthUtils {
      */
     public static Collection<INimbusCredentialPlugin> getNimbusAutoCredPlugins(Map conf) {
         try {
-            Set<INimbusCredentialPlugin> ret = new HashSet<INimbusCredentialPlugin>();
+            Set<INimbusCredentialPlugin> ret = new HashSet<>();
             Collection<String> clazzes = (Collection<String>)conf.get(Config.NIMBUS_AUTO_CRED_PLUGINS);
             if (clazzes != null) {
                 for (String clazz : clazzes) {
@@ -157,7 +154,7 @@ public class AuthUtils {
      */
     public static Collection<IAutoCredentials> GetAutoCredentials(Map storm_conf) {
         try {
-            Set<IAutoCredentials> autos = new HashSet<IAutoCredentials>();
+            Set<IAutoCredentials> autos = new HashSet<>();
             Collection<String> clazzes = (Collection<String>)storm_conf.get(Config.TOPOLOGY_AUTO_CREDENTIALS);
             if (clazzes != null) {
                 for (String clazz : clazzes) {
@@ -216,11 +213,9 @@ public class AuthUtils {
 
     /**
      * Construct a transport plugin per storm configuration
-     * @param conf storm configuration
-     * @return
      */
     public static ITransportPlugin GetTransportPlugin(ThriftConnectionType type, Map storm_conf, Configuration login_conf) {
-        ITransportPlugin  transportPlugin = null;
+        ITransportPlugin  transportPlugin;
         try {
             String transport_plugin_klassName = type.getTransportPlugin(storm_conf);
             Class klass = Class.forName(transport_plugin_klassName);
@@ -234,7 +229,7 @@ public class AuthUtils {
 
     private static IHttpCredentialsPlugin GetHttpCredentialsPlugin(Map conf,
             String klassName) {
-        IHttpCredentialsPlugin plugin = null;
+        IHttpCredentialsPlugin plugin;
         try {
             Class klass = Class.forName(klassName);
             plugin = (IHttpCredentialsPlugin)klass.newInstance();

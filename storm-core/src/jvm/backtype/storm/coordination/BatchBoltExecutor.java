@@ -32,7 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class BatchBoltExecutor implements IRichBolt, FinishedCallback, TimeoutCallback {
-    public static Logger LOG = LoggerFactory.getLogger(BatchBoltExecutor.class);    
+    public static final Logger LOG = LoggerFactory.getLogger(BatchBoltExecutor.class);
 
     byte[] _boltSer;
     Map<Object, IBatchBolt> _openTransactions;
@@ -49,7 +49,7 @@ public class BatchBoltExecutor implements IRichBolt, FinishedCallback, TimeoutCa
         _conf = conf;
         _context = context;
         _collector = new BatchOutputCollectorImpl(collector);
-        _openTransactions = new HashMap<Object, IBatchBolt>();
+        _openTransactions = new HashMap<>();
     }
 
     @Override

@@ -19,8 +19,15 @@ package org.apache.storm.jdbc.topology;
 
 import backtype.storm.generated.StormTopology;
 import backtype.storm.topology.TopologyBuilder;
+import com.google.common.collect.Lists;
 import org.apache.storm.jdbc.bolt.JdbcInsertBolt;
 import org.apache.storm.jdbc.bolt.JdbcLookupBolt;
+import org.apache.storm.jdbc.common.Column;
+import org.apache.storm.jdbc.mapper.JdbcMapper;
+import org.apache.storm.jdbc.mapper.SimpleJdbcMapper;
+
+import java.sql.Types;
+import java.util.List;
 
 
 public class UserPersistanceTopology extends AbstractUserTopology {
@@ -34,8 +41,15 @@ public class UserPersistanceTopology extends AbstractUserTopology {
 
     @Override
     public StormTopology getTopology() {
-        JdbcLookupBolt departmentLookupBolt = new JdbcLookupBolt(JDBC_CONF, SELECT_QUERY, this.jdbcLookupMapper);
-        JdbcInsertBolt userPersistanceBolt = new JdbcInsertBolt(JDBC_CONF, this.jdbcMapper).withInsertQuery("insert into user (create_date, dept_name, user_id, user_name) values (?,?,?,?)");
+        JdbcLookupBolt departmentLookupBolt = new JdbcLookupBolt(connectionProvider, SELECT_QUERY, this.jdbcLookupMapper);
+
+        //must specify column schema when providing custom query.
+        List<Column> schemaColumns = Lists.newArrayList(new Column("create_date", Types.DATE),
+                new Column("dept_name", Types.VARCHAR), new Column("user_id", Types.INTEGER), new Column("user_name", Types.VARCHAR));
+        JdbcMapper mapper = new SimpleJdbcMapper(schemaColumns);
+
+        JdbcInsertBolt userPersistanceBolt = new JdbcInsertBolt(connectionProvider, mapper)
+                .withInsertQuery("insert into user (create_date, dept_name, user_id, user_name) values (?,?,?,?)");
 
         // userSpout ==> jdbcBolt
         TopologyBuilder builder = new TopologyBuilder();

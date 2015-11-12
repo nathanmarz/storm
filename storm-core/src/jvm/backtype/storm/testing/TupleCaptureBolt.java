@@ -30,7 +30,7 @@ import java.util.UUID;
 
 
 public class TupleCaptureBolt implements IRichBolt {
-    public static transient Map<String, Map<String, List<FixedTuple>>> emitted_tuples = new HashMap<String, Map<String, List<FixedTuple>>>();
+    public static final transient Map<String, Map<String, List<FixedTuple>>> emitted_tuples = new HashMap<>();
 
     private String _name;
     private OutputCollector _collector;
@@ -66,7 +66,7 @@ public class TupleCaptureBolt implements IRichBolt {
     }
 
     public Map<String, List<FixedTuple>> getAndClearResults() {
-        Map<String, List<FixedTuple>> ret = new HashMap<String, List<FixedTuple>>(emitted_tuples.get(_name));
+        Map<String, List<FixedTuple>> ret = new HashMap<>(emitted_tuples.get(_name));
         emitted_tuples.get(_name).clear();
         return ret;
     }

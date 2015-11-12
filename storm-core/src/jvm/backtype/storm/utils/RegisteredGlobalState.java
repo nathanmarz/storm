@@ -27,7 +27,7 @@ import java.util.UUID;
  * tuples.
  */
 public class RegisteredGlobalState {
-    private static HashMap<String, Object> _states = new HashMap<String, Object>();
+    private static HashMap<String, Object> _states = new HashMap<>();
     private static final Object _lock = new Object();
     
     public static Object globalLock() {
@@ -50,9 +50,7 @@ public class RegisteredGlobalState {
     
     public static Object getState(String id) {
         synchronized(_lock) {
-            Object ret = _states.get(id);
-            //System.out.println("State: " + ret.toString());
-            return ret;
+            return _states.get(id);
         }        
     }
     

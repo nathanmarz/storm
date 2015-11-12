@@ -1,3 +1,20 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package storm.kafka;
 
 import static org.junit.Assert.assertEquals;
@@ -12,6 +29,8 @@ public class ExponentialBackoffMsgRetryManagerTest {
 
     private static final Long TEST_OFFSET = 101L;
     private static final Long TEST_OFFSET2 = 102L;
+    private static final Long TEST_OFFSET3 = 105L;
+    private static final Long TEST_NEW_OFFSET = 103L;
 
     @Test
     public void testImmediateRetry() throws Exception {
@@ -191,4 +210,26 @@ public class ExponentialBackoffMsgRetryManagerTest {
         assertEquals("expect test offset next available for retry", TEST_OFFSET, next);
         assertTrue("message should be ready for retry", manager.shouldRetryMsg(TEST_OFFSET));
     }
+    
+    @Test
+    public void testClearInvalidMessages() throws Exception {
+        ExponentialBackoffMsgRetryManager manager = new ExponentialBackoffMsgRetryManager(0, 0d, 0);
+        manager.failed(TEST_OFFSET);
+        manager.failed(TEST_OFFSET2);
+        manager.failed(TEST_OFFSET3);
+        
+        assertTrue("message should be ready for retry", manager.shouldRetryMsg(TEST_OFFSET));
+        assertTrue("message should be ready for retry", manager.shouldRetryMsg(TEST_OFFSET2));
+        assertTrue("message should be ready for retry", manager.shouldRetryMsg(TEST_OFFSET3));
+
+        manager.clearInvalidMessages(TEST_NEW_OFFSET);
+
+        Long next = manager.nextFailedMessageToRetry();
+        assertEquals("expect test offset next available for retry", TEST_OFFSET3, next);
+        
+        manager.acked(TEST_OFFSET3);
+        next = manager.nextFailedMessageToRetry();
+        assertNull("expect no message ready after acked", next);
+    }
+
 }

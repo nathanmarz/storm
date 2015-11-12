@@ -15,40 +15,22 @@
 ;; limitations under the License.
 
 (ns backtype.storm.disruptor
-  (:import [backtype.storm.utils DisruptorQueue])
-  (:import [com.lmax.disruptor MultiThreadedClaimStrategy SingleThreadedClaimStrategy
-            BlockingWaitStrategy SleepingWaitStrategy YieldingWaitStrategy
-            BusySpinWaitStrategy])
+  (:import [backtype.storm.utils DisruptorQueue WorkerBackpressureCallback DisruptorBackpressureCallback])
+  (:import [com.lmax.disruptor.dsl ProducerType])
   (:require [clojure [string :as str]])
   (:require [clojure [set :as set]])
   (:use [clojure walk])
   (:use [backtype.storm util log]))
 
-(def CLAIM-STRATEGY
-  {:multi-threaded (fn [size] (MultiThreadedClaimStrategy. (int size)))
-   :single-threaded (fn [size] (SingleThreadedClaimStrategy. (int size)))})
+(def PRODUCER-TYPE
+  {:multi-threaded ProducerType/MULTI
+   :single-threaded ProducerType/SINGLE})
 
-(def WAIT-STRATEGY
-  {:block (fn [] (BlockingWaitStrategy.))
-   :yield (fn [] (YieldingWaitStrategy.))
-   :sleep (fn [] (SleepingWaitStrategy.))
-   :spin (fn [] (BusySpinWaitStrategy.))})
-
-(defn- mk-wait-strategy
-  [spec]
-  (if (keyword? spec)
-    ((WAIT-STRATEGY spec))
-    (-> (str spec) new-instance)))
-
-;; :block strategy requires using a timeout on waitFor (implemented in DisruptorQueue), as sometimes the consumer stays blocked even when there's an item on the queue.
-;; This would manifest itself in Trident when doing 1 batch at a time processing, and the ack_init message
-;; wouldn't make it to the acker until the batch timed out and another tuple was played into the queue,
-;; unblocking the consumer
 (defnk disruptor-queue
-  [^String queue-name buffer-size :claim-strategy :multi-threaded :wait-strategy :block]
+  [^String queue-name buffer-size timeout :producer-type :multi-threaded :batch-size 100 :batch-timeout 1]
   (DisruptorQueue. queue-name
-                   ((CLAIM-STRATEGY claim-strategy) buffer-size)
-                   (mk-wait-strategy wait-strategy)))
+                   (PRODUCER-TYPE producer-type) buffer-size
+                   timeout batch-size batch-timeout))
 
 (defn clojure-handler
   [afn]
@@ -57,19 +39,30 @@
       [this o seq-id batchEnd?]
       (afn o seq-id batchEnd?))))
 
+(defn disruptor-backpressure-handler
+  [afn-high-wm afn-low-wm]
+  (reify DisruptorBackpressureCallback
+    (highWaterMark
+      [this]
+      (afn-high-wm))
+    (lowWaterMark
+      [this]
+      (afn-low-wm))))
+
+(defn worker-backpressure-handler
+  [afn]
+  (reify WorkerBackpressureCallback
+    (onEvent
+      [this o]
+      (afn o))))
+
 (defmacro handler
   [& args]
   `(clojure-handler (fn ~@args)))
 
 (defn publish
-  ([^DisruptorQueue q o block?]
-   (.publish q o block?))
-  ([q o]
-   (publish q o true)))
-
-(defn try-publish
   [^DisruptorQueue q o]
-  (.tryPublish q o))
+  (.publish q o))
 
 (defn consume-batch
   [^DisruptorQueue queue handler]
@@ -79,10 +72,6 @@
   [^DisruptorQueue queue handler]
   (.consumeBatchWhenAvailable queue handler))
 
-(defn consumer-started!
-  [^DisruptorQueue queue]
-  (.consumerStarted queue))
-
 (defn halt-with-interrupt!
   [^DisruptorQueue queue]
   (.haltWithInterrupt queue))
@@ -90,11 +79,10 @@
 (defnk consume-loop*
   [^DisruptorQueue queue handler
    :kill-fn (fn [error] (exit-process! 1 "Async loop died!"))]
-  (let [ret (async-loop
-              (fn [] (consume-batch-when-available queue handler) 0)
-              :kill-fn kill-fn
-              :thread-name (.getName queue))]
-     (consumer-started! queue) ret))
+  (async-loop
+          (fn [] (consume-batch-when-available queue handler) 0)
+          :kill-fn kill-fn
+          :thread-name (.getName queue)))
 
 (defmacro consume-loop [queue & handler-args]
   `(let [handler# (handler ~@handler-args)]

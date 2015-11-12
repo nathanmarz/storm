@@ -19,16 +19,28 @@ package org.apache.storm.redis.common.mapper;
 
 import java.io.Serializable;
 
+/**
+ * RedisDataTypeDescription defines data type and additional key if needed for lookup / store tuples.
+ */
 public class RedisDataTypeDescription implements Serializable {
     public enum RedisDataType { STRING, HASH, LIST, SET, SORTED_SET, HYPER_LOG_LOG }
 
     private RedisDataType dataType;
     private String additionalKey;
 
+    /**
+     * Constructor
+     * @param dataType data type
+     */
     public RedisDataTypeDescription(RedisDataType dataType) {
         this(dataType, null);
     }
 
+    /**
+     * Constructor
+     * @param dataType data type
+     * @param additionalKey additional key for hash and sorted set
+     */
     public RedisDataTypeDescription(RedisDataType dataType, String additionalKey) {
         this.dataType = dataType;
         this.additionalKey = additionalKey;
@@ -40,10 +52,18 @@ public class RedisDataTypeDescription implements Serializable {
         }
     }
 
+    /**
+     * Returns defined data type.
+     * @return data type
+     */
     public RedisDataType getDataType() {
         return dataType;
     }
 
+    /**
+     * Returns defined additional key.
+     * @return additional key
+     */
     public String getAdditionalKey() {
         return additionalKey;
     }

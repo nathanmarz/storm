@@ -29,18 +29,16 @@ import java.util.Map;
 
 
 public class IdentityGrouping implements CustomStreamGrouping {
-
-    List<Integer> ret = new ArrayList<Integer>();
-    Map<Integer, List<Integer>> _precomputed = new HashMap();
+    final Map<Integer, List<Integer>> _precomputed = new HashMap<>();
     
     @Override
     public void prepare(WorkerTopologyContext context, GlobalStreamId stream, List<Integer> tasks) {
-        List<Integer> sourceTasks = new ArrayList<Integer>(context.getComponentTasks(stream.get_componentId()));
+        List<Integer> sourceTasks = new ArrayList<>(context.getComponentTasks(stream.get_componentId()));
         Collections.sort(sourceTasks);
         if(sourceTasks.size()!=tasks.size()) {
             throw new RuntimeException("Can only do an identity grouping when source and target have same number of tasks");
         }
-        tasks = new ArrayList<Integer>(tasks);
+        tasks = new ArrayList<>(tasks);
         Collections.sort(tasks);
         for(int i=0; i<sourceTasks.size(); i++) {
             int s = sourceTasks.get(i);

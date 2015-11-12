@@ -22,7 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class MultiCountMetric implements IMetric {
-    Map<String, CountMetric> _value = new HashMap();
+    Map<String, CountMetric> _value = new HashMap<>();
 
     public MultiCountMetric() {
     }

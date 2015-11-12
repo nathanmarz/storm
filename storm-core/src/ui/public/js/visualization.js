@@ -375,45 +375,67 @@ function update_data(jdat, sys) {
     });
 }
 
+function jsError(other) {
+  try {
+    other();
+  } catch (err) {
+    $.get("/templates/json-error-template.html", function(template) {
+      $("#json-response-error").append(Mustache.render($(template).filter("#json-error-template").html(),{error: "JS Error", errorMessage: err}));
+    });
+  }
+}
+
 var should_update;
 function show_visualization(sys) {
+    $.getJSON("/api/v1/topology/"+$.url("?id")+"/visualization-init",function(response,status,jqXHR) {
+        $.get("/templates/topology-page-template.html", function(template) {
+            jsError(function() {
+                var topologyVisualization = $("#visualization-container");
+                topologyVisualization.append(
+                    Mustache.render($(template)
+                        .filter("#topology-visualization-container-template")
+                        .html(),
+                        response));
+                });
 
-    if(sys == null)
-    {
-        sys = arbor.ParticleSystem(20, 1000, 0.15, true, 55, 0.02, 0.6);
-        sys.renderer = renderGraph("#topoGraph");
-        sys.stop();
+            if(sys == null)
+            {
+                sys = arbor.ParticleSystem(20, 1000, 0.15, true, 55, 0.02, 0.6);
+                sys.renderer = renderGraph("#topoGraph");
+                sys.stop();
 
-        $(".stream-box").click(function () { rechoose(topology_data, sys, this) });    
-    }
-
-    should_update = true;
-    var update_freq_ms = 10000;
-    var update = function(should_rechoose) {
-      if(should_update) {
-        $.ajax({
-            url: "/api/v1/topology/"+$.url("?id")+"/visualization",
-            success: function (data, status, jqXHR) {
-                topology_data = data;
-                update_data(topology_data, sys);
-                sys.renderer.signal_update();
-                sys.renderer.redraw();
-                if (should_update)
-                    setTimeout(update, update_freq_ms);
-                if (should_rechoose)
-                    $(".stream-box").each(function () {
-                        rechoose(topology_data, sys, this)
-                    });
+                $(".stream-box").click(function () { rechoose(topology_data, sys, this) });
             }
-        });
-      }
-    };
-    
-    update(true);
-    $("#visualization-container").show(500);
-    $("#show-hide-visualization").attr('value', 'Hide Visualization');
-    $("#show-hide-visualization").unbind("click");
-    $("#show-hide-visualization").click(function () { hide_visualization(sys) });
+
+            should_update = true;
+            var update_freq_ms = 10000;
+            var update = function(should_rechoose){
+              if(should_update) {
+                $.ajax({
+                    url: "/api/v1/topology/"+$.url("?id")+"/visualization",
+                    success: function(data, status, jqXHR) {
+                        topology_data = data;
+                        update_data(topology_data, sys);
+                        sys.renderer.signal_update();
+                        sys.renderer.redraw();
+                        if(should_update)
+                            setTimeout(update, update_freq_ms);
+                        if(should_rechoose)
+                            $(".stream-box").each(function () {
+                                rechoose(topology_data, sys, this)
+                            });
+                    }
+                });
+              }
+            };
+
+            update(true);
+            $("#visualization-container").show(500);
+            $("#show-hide-visualization").attr('value', 'Hide Visualization');
+            $("#show-hide-visualization").unbind("click");
+            $("#show-hide-visualization").click(function () { hide_visualization(sys) });
+        })
+    });
 }
 
 function hide_visualization(sys) {

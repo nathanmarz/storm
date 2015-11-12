@@ -19,7 +19,19 @@ package org.apache.storm.redis.common.container;
 
 import redis.clients.jedis.JedisCommands;
 
+/**
+ * Interfaces for containers which stores instances implementing JedisCommands.
+ */
 public interface JedisCommandsInstanceContainer {
+    /**
+     * Borrows instance from container.
+     * @return instance which implements JedisCommands
+     */
     JedisCommands getInstance();
+
+    /**
+     * Returns instance to container.
+     * @param jedisCommands borrowed instance
+     */
     void returnInstance(JedisCommands jedisCommands);
 }

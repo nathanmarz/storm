@@ -37,19 +37,19 @@ import storm.trident.topology.MasterBatchCoordinator;
 import storm.trident.tuple.ConsList;
 
 public class TridentSpoutExecutor implements ITridentBatchBolt {
-    public static String ID_FIELD = "$tx";
+    public static final String ID_FIELD = "$tx";
     
-    public static Logger LOG = LoggerFactory.getLogger(TridentSpoutExecutor.class);    
+    public static final Logger LOG = LoggerFactory.getLogger(TridentSpoutExecutor.class);
 
     AddIdCollector _collector;
-    ITridentSpout _spout;
-    ITridentSpout.Emitter _emitter;
+    ITridentSpout<Object> _spout;
+    ITridentSpout.Emitter<Object> _emitter;
     String _streamName;
     String _txStateId;
     
-    TreeMap<Long, TransactionAttempt> _activeBatches = new TreeMap<Long, TransactionAttempt>();
+    TreeMap<Long, TransactionAttempt> _activeBatches = new TreeMap<>();
 
-    public TridentSpoutExecutor(String txStateId, String streamName, ITridentSpout spout) {
+    public TridentSpoutExecutor(String txStateId, String streamName, ITridentSpout<Object> spout) {
         _txStateId = txStateId;
         _spout = spout;
         _streamName = streamName;
@@ -91,7 +91,7 @@ public class TridentSpoutExecutor implements ITridentBatchBolt {
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        List<String> fields = new ArrayList(_spout.getOutputFields().toList());
+        List<String> fields = new ArrayList<>(_spout.getOutputFields().toList());
         fields.add(0, ID_FIELD);
         declarer.declareStream(_streamName, new Fields(fields));
     }

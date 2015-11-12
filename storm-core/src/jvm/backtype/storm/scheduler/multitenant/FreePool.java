@@ -35,7 +35,7 @@ import backtype.storm.scheduler.TopologyDetails;
  */
 public class FreePool extends NodePool {
   private static final Logger LOG = LoggerFactory.getLogger(FreePool.class);
-  private Set<Node> _nodes = new HashSet<Node>();
+  private Set<Node> _nodes = new HashSet<>();
   private int _totalSlots = 0;
 
   @Override
@@ -63,7 +63,7 @@ public class FreePool extends NodePool {
   
   @Override
   public Collection<Node> takeNodes(int nodesNeeded) {
-    HashSet<Node> ret = new HashSet<Node>();
+    HashSet<Node> ret = new HashSet<>();
     Iterator<Node> it = _nodes.iterator();
     while (it.hasNext() && nodesNeeded > ret.size()) {
       Node n = it.next();
@@ -86,7 +86,7 @@ public class FreePool extends NodePool {
 
   @Override
   public Collection<Node> takeNodesBySlots(int slotsNeeded) {
-    HashSet<Node> ret = new HashSet<Node>();
+    HashSet<Node> ret = new HashSet<>();
     Iterator<Node> it = _nodes.iterator();
     while (it.hasNext() && slotsNeeded > 0) {
       Node n = it.next();

@@ -17,5 +17,8 @@
  */
 package org.apache.storm.redis.common.mapper;
 
+/**
+ * RedisStoreMapper is for defining spec. which is used for storing value to Redis.
+ */
 public interface RedisStoreMapper extends TupleMapper, RedisMapper {
 }

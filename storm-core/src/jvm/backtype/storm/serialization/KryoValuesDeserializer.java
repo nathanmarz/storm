@@ -21,7 +21,6 @@ import backtype.storm.utils.ListDelegate;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -35,7 +34,7 @@ public class KryoValuesDeserializer {
     }
     
     public List<Object> deserializeFrom(Input input) {
-    	ListDelegate delegate = (ListDelegate) _kryo.readObject(input, ListDelegate.class);
+    	ListDelegate delegate = _kryo.readObject(input, ListDelegate.class);
    	return delegate.getDelegate();
     }
     

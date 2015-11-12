@@ -491,8 +491,6 @@ int setup_stormdist_dir(const char* local_dir) {
       case FTS_F:         // A regular file
       case FTS_SL:        // A symbolic link
       case FTS_SLNONE:    // A broken symbolic link
-        //TODO it would be good to validate that the file is owned by the correct user first.
-        fprintf(LOGFILE, "visiting: %s\n", entry->fts_path);
         if (setup_stormdist(entry, euser) != 0) {
           exit_code = -1;
         }
@@ -739,6 +737,53 @@ int exec_as_user(const char * working_dir, const char * script_file) {
     return UNABLE_TO_EXECUTE_CONTAINER_SCRIPT;
   }
  
+  //Unreachable
+  return -1;
+}
+
+int fork_as_user(const char * working_dir, const char * script_file) {
+  char *script_file_dest = NULL;
+  script_file_dest = get_container_launcher_file(working_dir);
+  if (script_file_dest == NULL) {
+    return OUT_OF_MEMORY;
+  }
+
+  // open launch script
+  int script_file_source = open_file_as_nm(script_file);
+  if (script_file_source == -1) {
+    return -1;
+  }
+
+  setsid();
+
+  // give up root privs
+  if (change_user(user_detail->pw_uid, user_detail->pw_gid) != 0) {
+    return SETUID_OPER_FAILED;
+  }
+
+  if (copy_file(script_file_source, script_file, script_file_dest, S_IRWXU) != 0) {
+    return -1;
+  }
+
+  fcloseall();
+  umask(0027);
+  if (chdir(working_dir) != 0) {
+    fprintf(LOGFILE, "Can't change directory to %s -%s\n", working_dir,
+	    strerror(errno));
+    return -1;
+  }
+
+  int pid = fork();
+  if (pid == 0 && execlp(script_file_dest, script_file_dest, NULL) != 0) {
+    fprintf(LOGFILE, "Couldn't execute the container launch file %s - %s",
+            script_file_dest, strerror(errno));
+    return UNABLE_TO_EXECUTE_CONTAINER_SCRIPT;
+  } else {
+    fprintf(LOGFILE, "Launched the process from the container launch file %s - with pid %d",
+            script_file_dest, pid);
+    return 0;
+  }
+
   //Unreachable
   return -1;
 }

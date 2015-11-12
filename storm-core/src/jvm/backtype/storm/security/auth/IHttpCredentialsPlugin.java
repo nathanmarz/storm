@@ -21,8 +21,6 @@ package backtype.storm.security.auth;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 
-import backtype.storm.security.auth.ReqContext;
-
 /**
  * Interface for handling credentials in an HttpServletRequest
  */

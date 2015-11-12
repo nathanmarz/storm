@@ -18,9 +18,7 @@
 package backtype.storm.security.auth;
 
 import java.io.IOException;
-import java.security.Principal;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 
 import javax.security.auth.login.Configuration;
 
@@ -28,8 +26,6 @@ import org.apache.thrift.TProcessor;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
-
-import backtype.storm.security.auth.ThriftConnectionType;
 
 /**
  * Interface for Thrift Transport plugin

@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
 public class ShellBasedGroupsMapping implements
                                              IGroupMappingServiceProvider {
 
-    public static Logger LOG = LoggerFactory.getLogger(ShellBasedGroupsMapping.class);
+    public static final Logger LOG = LoggerFactory.getLogger(ShellBasedGroupsMapping.class);
     public TimeCacheMap<String, Set<String>> cachedGroups;
 
     /**
@@ -45,7 +45,7 @@ public class ShellBasedGroupsMapping implements
     @Override
     public void prepare(Map storm_conf) {
         int timeout = Utils.getInt(storm_conf.get(Config.STORM_GROUP_MAPPING_SERVICE_CACHE_DURATION_SECS));
-        cachedGroups = new TimeCacheMap<String, Set<String>>(timeout);
+        cachedGroups = new TimeCacheMap<>(timeout);
     }
 
     /**
@@ -73,18 +73,18 @@ public class ShellBasedGroupsMapping implements
      * @throws IOException if encounter any error when running the command
      */
     private static Set<String> getUnixGroups(final String user) throws IOException {
-        String result = "";
+        String result;
         try {
             result = ShellUtils.execCommand(ShellUtils.getGroupsForUserCommand(user));
         } catch (ExitCodeException e) {
             // if we didn't get the group - just return empty list;
-            LOG.warn("got exception trying to get groups for user " + user, e);
-            return new HashSet<String>();
+            LOG.debug("unable to get groups for user " + user + ".ShellUtils command failed with exit code "+ e.getExitCode());
+            return new HashSet<>();
         }
 
         StringTokenizer tokenizer =
             new StringTokenizer(result, ShellUtils.TOKEN_SEPARATOR_REGEX);
-        Set<String> groups = new HashSet<String>();
+        Set<String> groups = new HashSet<>();
         while (tokenizer.hasMoreTokens()) {
             groups.add(tokenizer.nextToken());
         }

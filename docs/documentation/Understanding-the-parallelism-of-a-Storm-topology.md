@@ -37,7 +37,7 @@ The following sections give an overview of the various configuration options and
 ### Number of executors (threads)
 
 * Description: How many executors to spawn _per component_.
-* Configuration option: ?
+* Configuration option: None (pass ``parallelism_hint`` parameter to ``setSpout`` or ``setBolt``)
 * How to set in your code (examples):
     * [TopologyBuilder#setSpout()](/javadoc/apidocs/backtype/storm/topology/TopologyBuilder.html)
     * [TopologyBuilder#setBolt()](/javadoc/apidocs/backtype/storm/topology/TopologyBuilder.html)
@@ -56,7 +56,7 @@ Here is an example code snippet to show these settings in practice:
 ```java
 topologyBuilder.setBolt("green-bolt", new GreenBolt(), 2)
                .setNumTasks(4)
-               .shuffleGrouping("blue-spout);
+               .shuffleGrouping("blue-spout");
 ```
 
 In the above code we configured Storm to run the bolt ``GreenBolt`` with an initial number of two executors and four associated tasks. Storm will run two tasks per executor (thread). If you do not explicitly configure the number of tasks, Storm will run by default one task per executor.
@@ -120,4 +120,3 @@ $ storm rebalance mytopology -n 5 -e blue-spout=3 -e yellow-bolt=10
 * [Local mode](Local-mode.html)
 * [Tutorial](Tutorial.html)
 * [Storm API documentation](/javadoc/apidocs/), most notably the class ``Config``
-

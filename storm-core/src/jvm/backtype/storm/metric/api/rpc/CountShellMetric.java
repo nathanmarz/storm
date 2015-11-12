@@ -21,8 +21,7 @@ import backtype.storm.metric.api.CountMetric;
 
 public class CountShellMetric extends CountMetric implements IShellMetric {
     /***
-     * @param
-     *  params should be null or long
+     * @param value should be null or long
      *  if value is null, it will call incr()
      *  if value is long, it will call incrBy((long)params)
      * */

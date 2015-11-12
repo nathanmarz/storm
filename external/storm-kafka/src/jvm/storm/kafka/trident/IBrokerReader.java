@@ -17,9 +17,14 @@
  */
 package storm.kafka.trident;
 
+import java.util.List;
+import java.util.Map;
+
 public interface IBrokerReader {
 
-    GlobalPartitionInformation getCurrentBrokers();
+    GlobalPartitionInformation getBrokerForTopic(String topic);
+
+    List<GlobalPartitionInformation> getAllBrokers();
 
     void close();
 }

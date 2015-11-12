@@ -26,7 +26,7 @@ import org.apache.commons.lang.builder.ToStringStyle;
 
 
 public class Node implements Serializable {
-    private static AtomicInteger INDEX = new AtomicInteger(0);
+    private static final AtomicInteger INDEX = new AtomicInteger(0);
     
     private String nodeId;
     
@@ -47,6 +47,9 @@ public class Node implements Serializable {
 
     @Override
     public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
         return nodeId.equals(((Node) o).nodeId);
     }
 

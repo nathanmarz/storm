@@ -25,11 +25,12 @@
             ShellComponent SupervisorInfo])
   (:import [backtype.storm.utils Utils NimbusClient])
   (:import [backtype.storm Constants])
+  (:import [backtype.storm.security.auth ReqContext])
   (:import [backtype.storm.grouping CustomStreamGrouping])
   (:import [backtype.storm.topology TopologyBuilder])
   (:import [backtype.storm.clojure RichShellBolt RichShellSpout])
   (:import [org.apache.thrift.transport TTransport])
-  (:use [backtype.storm util config log]))
+  (:use [backtype.storm util config log zookeeper]))
 
 (defn instantiate-java-object
   [^JavaObject obj]
@@ -85,20 +86,18 @@
       ~@body
     (finally (.close conn#)))))
 
-(defmacro with-nimbus-connection-as-user
-  [[client-sym host port as-user] & body]
-  `(let [[^Nimbus$Client ~client-sym ^TTransport conn#] (nimbus-client-and-conn ~host ~port ~as-user)]
-     (try
-       ~@body
-       (finally (.close conn#)))))
-
 (defmacro with-configured-nimbus-connection
   [client-sym & body]
   `(let [conf# (read-storm-config)
-         host# (conf# NIMBUS-HOST)
-         port# (conf# NIMBUS-THRIFT-PORT)]
-    (with-nimbus-connection [~client-sym host# port#]
-      ~@body)))
+         context# (ReqContext/context)
+         user# (if (.principal context#) (.getName (.principal context#)))
+         nimbusClient# (NimbusClient/getConfiguredClientAs conf# user#)
+         ~client-sym (.getClient nimbusClient#)
+         conn# (.transport nimbusClient#)
+         ]
+     (try
+       ~@body
+     (finally (.close conn#)))))
 
 (defn direct-output-fields
   [fields]

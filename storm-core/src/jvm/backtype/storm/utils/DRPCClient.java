@@ -17,7 +17,6 @@
  */
 package backtype.storm.utils;
 
-import backtype.storm.Config;
 import backtype.storm.generated.DRPCExecutionException;
 import backtype.storm.generated.DistributedRPC;
 import backtype.storm.generated.AuthorizationException;

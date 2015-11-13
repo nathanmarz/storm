@@ -34,9 +34,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
@@ -55,6 +60,49 @@ public class DisruptorQueue implements IStatefulObject {
     private static final Logger LOG = LoggerFactory.getLogger(DisruptorQueue.class);    
     private static final Object INTERRUPT = new Object();
     private static final String PREFIX = "disruptor-";
+    private static final FlusherPool FLUSHER = new FlusherPool();
+
+    private static class FlusherPool { 
+        private Timer _timer = new Timer("disruptor-flush-trigger", true);
+        private ThreadPoolExecutor _exec = new ThreadPoolExecutor(1, 100, 10, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(1024), new ThreadPoolExecutor.DiscardPolicy());
+        private HashMap<Long, ArrayList<Flusher>> _pendingFlush = new HashMap<>();
+        private HashMap<Long, TimerTask> _tt = new HashMap<>();
+
+        public synchronized void start(Flusher flusher, final long flushInterval) {
+            ArrayList<Flusher> pending = _pendingFlush.get(flushInterval);
+            if (pending == null) {
+                pending = new ArrayList<>();
+                TimerTask t = new TimerTask() {
+                    @Override
+                    public void run() {
+                        invokeAll(flushInterval);
+                    }
+                };
+                _pendingFlush.put(flushInterval, pending);
+                _timer.schedule(t, flushInterval, flushInterval);
+                _tt.put(flushInterval, t);
+            }
+            pending.add(flusher);
+        }
+
+        private synchronized void invokeAll(long flushInterval) {
+            ArrayList<Flusher> tasks = _pendingFlush.get(flushInterval);
+            if (tasks != null) {
+                for (Flusher f: tasks) {
+                    _exec.submit(f);
+                }
+            }
+        }
+
+        public synchronized void stop(Flusher flusher, long flushInterval) {
+            ArrayList<Flusher> pending = _pendingFlush.get(flushInterval);
+            pending.remove(flusher);
+            if (pending.size() == 0) {
+                _pendingFlush.remove(flushInterval);
+                _tt.remove(flushInterval).cancel();
+            }
+        }
+    }
 
     private static class ObjectEventFactory implements EventFactory<AtomicReference<Object>> {
         @Override
@@ -63,7 +111,78 @@ public class DisruptorQueue implements IStatefulObject {
         }
     }
 
-    private class ThreadLocalBatcher {
+    private interface ThreadLocalInserter {
+        public void add(Object obj);
+        public void forceBatch();
+        public void flush(boolean block);
+    }
+
+    private class ThreadLocalJustInserter implements ThreadLocalInserter {
+        private final ReentrantLock _flushLock;
+        private final ConcurrentLinkedQueue<Object> _overflow;
+
+        public ThreadLocalJustInserter() {
+            _flushLock = new ReentrantLock();
+            _overflow = new ConcurrentLinkedQueue<>();
+        }
+
+        //called by the main thread and should not block for an undefined period of time
+        public synchronized void add(Object obj) {
+            boolean inserted = false;
+            if (_overflow.isEmpty()) {
+                try {
+                    publishDirectSingle(obj, false);
+                    inserted = true;
+                } catch (InsufficientCapacityException e) {
+                    //Ignored
+                }
+            }
+
+            if (!inserted) {
+                _overflowCount.incrementAndGet();
+                _overflow.add(obj);
+            }
+
+            if (_enableBackpressure && _cb != null && (_metrics.population() + _overflowCount.get()) >= _highWaterMark) {
+                try {
+                    if (!_throttleOn) {
+                        _cb.highWaterMark();
+                        _throttleOn = true;
+                    }
+                } catch (Exception e) {
+                    throw new RuntimeException("Exception during calling highWaterMark callback!", e);
+                }
+            }
+        }
+
+        //May be called by a background thread
+        public void forceBatch() {
+            //NOOP
+        }
+
+        //May be called by a background thread
+        public void flush(boolean block) {
+            if (block) {
+                _flushLock.lock();
+            } else if (!_flushLock.tryLock()) {
+               //Someone else if flushing so don't do anything
+               return;
+            }
+            try {
+                while (!_overflow.isEmpty()) {
+                    publishDirectSingle(_overflow.peek(), block);
+                    _overflowCount.addAndGet(-1);
+                    _overflow.poll();
+                }
+            } catch (InsufficientCapacityException e) {
+                //Ignored we should not block
+            } finally {
+                _flushLock.unlock();
+            }
+        }
+    }
+
+    private class ThreadLocalBatcher implements ThreadLocalInserter {
         private final ReentrantLock _flushLock;
         private final ConcurrentLinkedQueue<ArrayList<Object>> _overflow;
         private ArrayList<Object> _currentBatch;
@@ -137,40 +256,30 @@ public class DisruptorQueue implements IStatefulObject {
         }
     }
 
-    private class FlusherThread extends Thread {
+    private class Flusher implements Runnable {
+        private AtomicBoolean _isFlushing = new AtomicBoolean(false);
         private final long _flushInterval;
-        private volatile boolean _done;
 
-        public FlusherThread(long flushInterval, String name) {
-            super(name+"-flusher");
+        public Flusher(long flushInterval, String name) {
             _flushInterval = flushInterval;
-            _done = false;
-            setDaemon(true);
         }
 
         public void run() {
-            try {
-                long nextFlushTime = System.currentTimeMillis();
-                while (!_done) {
-                    long now = System.currentTimeMillis();
-                    if (now >= nextFlushTime) {
-                        for (ThreadLocalBatcher batcher: _batchers.values()) {
-                            batcher.forceBatch();
-                            batcher.flush(true);
-                        }
-                        nextFlushTime = now + _flushInterval;
-                    } else {
-                        Thread.sleep(nextFlushTime - now);
-                    }
+            if (_isFlushing.compareAndSet(false, true)) {
+                for (ThreadLocalInserter batcher: _batchers.values()) {
+                    batcher.forceBatch();
+                    batcher.flush(true);
                 }
-            } catch (InterruptedException e) {
-                //Ignored we are done
+                _isFlushing.set(false);
             }
         }
 
+        public void start() {
+            FLUSHER.start(this, _flushInterval);
+        }
+
         public void close() {
-            _done = true;
-            interrupt();
+            FLUSHER.stop(this, _flushInterval);
         }
     }
 
@@ -238,8 +347,8 @@ public class DisruptorQueue implements IStatefulObject {
     private final Sequence _consumer;
     private final SequenceBarrier _barrier;
     private final int _inputBatchSize;
-    private final ConcurrentHashMap<Long, ThreadLocalBatcher> _batchers = new ConcurrentHashMap<Long, ThreadLocalBatcher>();
-    private final FlusherThread _flusher;
+    private final ConcurrentHashMap<Long, ThreadLocalInserter> _batchers = new ConcurrentHashMap<Long, ThreadLocalInserter>();
+    private final Flusher _flusher;
     private final QueueMetrics _metrics;
 
     private String _queueName = "";
@@ -268,7 +377,7 @@ public class DisruptorQueue implements IStatefulObject {
         //This is mostly to avoid contention issues.
         _inputBatchSize = Math.max(1, Math.min(inputBatchSize, size/2));
 
-        _flusher = new FlusherThread(Math.max(flushInterval, 1), _queueName);
+        _flusher = new Flusher(Math.max(flushInterval, 1), _queueName);
         _flusher.start();
     }
 
@@ -284,11 +393,8 @@ public class DisruptorQueue implements IStatefulObject {
         try {
             publishDirect(new ArrayList<Object>(Arrays.asList(INTERRUPT)), true);
             _flusher.close();
-            _flusher.join();
         } catch (InsufficientCapacityException e) {
             //This should be impossible
-            throw new RuntimeException(e);
-        } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
     }
@@ -353,6 +459,19 @@ public class DisruptorQueue implements IStatefulObject {
         return Thread.currentThread().getId();
     }
 
+    private void publishDirectSingle(Object obj, boolean block) throws InsufficientCapacityException {
+        long at;
+        if (block) {
+            at = _buffer.next();
+        } else {
+            at = _buffer.tryNext();
+        }
+        AtomicReference<Object> m = _buffer.get(at);
+        m.set(obj);
+        _buffer.publish(at);
+        _metrics.notifyArrivals(1);
+    }
+
     private void publishDirect(ArrayList<Object> objs, boolean block) throws InsufficientCapacityException {
         int size = objs.size();
         if (size > 0) {
@@ -376,10 +495,14 @@ public class DisruptorQueue implements IStatefulObject {
 
     public void publish(Object obj) {
         Long id = getId();
-        ThreadLocalBatcher batcher = _batchers.get(id);
+        ThreadLocalInserter batcher = _batchers.get(id);
         if (batcher == null) {
             //This thread is the only one ever creating this, so this is safe
-            batcher = new ThreadLocalBatcher();
+            if (_inputBatchSize > 1) {
+                batcher = new ThreadLocalBatcher();
+            } else {
+                batcher = new ThreadLocalJustInserter();
+            }
             _batchers.put(id, batcher);
         }
         batcher.add(obj);

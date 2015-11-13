@@ -54,7 +54,7 @@ public class DisruptorQueueTest extends TestCase {
             }
         });
 
-        run(producer, consumer);
+        run(producer, consumer, queue);
         Assert.assertEquals("We expect to receive first published message first, but received " + result.get(),
                 "FIRST", result.get());
       }
@@ -79,17 +79,42 @@ public class DisruptorQueueTest extends TestCase {
             }
         });
 
-        run(producer, consumer, 1000, 1);
+        run(producer, consumer, queue, 1000, 1);
         Assert.assertTrue("Messages delivered out of order",
                 allInOrder.get());
     }
 
-    private void run(Runnable producer, Runnable consumer)
-            throws InterruptedException {
-        run(producer, consumer, 10, PRODUCER_NUM);
+    @Test 
+    public void testInOrderBatch() throws InterruptedException {
+        final AtomicBoolean allInOrder = new AtomicBoolean(true);
+
+        DisruptorQueue queue = createQueue("consumerHang", 10, 1024);
+        Runnable producer = new IncProducer(queue, 1024*1024);
+        Runnable consumer = new Consumer(queue, new EventHandler<Object>() {
+            long _expected = 0;
+            @Override
+            public void onEvent(Object obj, long sequence, boolean endOfBatch)
+                    throws Exception {
+                if (_expected != ((Number)obj).longValue()) {
+                    allInOrder.set(false);
+                    System.out.println("Expected "+_expected+" but got "+obj);
+                }
+                _expected++;
+            }
+        });
+
+        run(producer, consumer, queue, 1000, 1);
+        Assert.assertTrue("Messages delivered out of order",
+                allInOrder.get());
     }
 
-    private void run(Runnable producer, Runnable consumer, int sleepMs, int producerNum)
+
+    private void run(Runnable producer, Runnable consumer, DisruptorQueue queue)
+            throws InterruptedException {
+        run(producer, consumer, queue, 10, PRODUCER_NUM);
+    }
+
+    private void run(Runnable producer, Runnable consumer, DisruptorQueue queue, int sleepMs, int producerNum)
             throws InterruptedException {
 
         Thread[] producerThreads = new Thread[producerNum];
@@ -104,12 +129,12 @@ public class DisruptorQueueTest extends TestCase {
         for (int i = 0; i < producerNum; i++) {
             producerThreads[i].interrupt();
         }
-        consumerThread.interrupt();
         
         for (int i = 0; i < producerNum; i++) {
             producerThreads[i].join(TIMEOUT);
             assertFalse("producer "+i+" is still alive", producerThreads[i].isAlive());
         }
+        queue.haltWithInterrupt();
         consumerThread.join(TIMEOUT);
         assertFalse("consumer is still alive", consumerThread.isAlive());
     }
@@ -154,5 +179,9 @@ public class DisruptorQueueTest extends TestCase {
 
     private static DisruptorQueue createQueue(String name, int queueSize) {
         return new DisruptorQueue(name, ProducerType.MULTI, queueSize, 0L, 1, 1L);
+    }
+
+    private static DisruptorQueue createQueue(String name, int batchSize, int queueSize) {
+        return new DisruptorQueue(name, ProducerType.MULTI, queueSize, 0L, batchSize, 1L);
     }
 }

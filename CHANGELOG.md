@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1190: System Load too high after recent changes
  * STORM-1098: Nimbus hook for topology actions.
  * STORM-1145: Have IConnection push tuples instead of pull them
  * STORM-1191: bump timeout by 50% due to intermittent travis build failures

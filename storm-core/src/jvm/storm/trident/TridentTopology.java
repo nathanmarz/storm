@@ -30,17 +30,8 @@ import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
+
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.UndirectedGraph;
 import org.jgrapht.alg.ConnectivityInspector;
@@ -93,7 +84,7 @@ public class TridentTopology {
     // is it too expensive to do a batch per drpc request?
     
     DefaultDirectedGraph<Node, IndexedEdge> _graph;
-    Map<String, List<Node>> _colocate = new HashMap();
+    Map<String, List<Node>> _colocate = new LinkedHashMap();
     UniqueIdGen _gen;
     
     public TridentTopology() {
@@ -173,7 +164,7 @@ public class TridentTopology {
     }
     
     public Stream multiReduce(Stream s1, Stream s2, MultiReducer function, Fields outputFields) {
-        return multiReduce(Arrays.asList(s1, s2), function, outputFields);
+        return multiReduce(Arrays.asList(s1, s2), function, outputFields);        
     }
 
     public Stream multiReduce(Fields inputFields1, Stream s1, Fields inputFields2, Stream s2, MultiReducer function, Fields outputFields) {
@@ -275,7 +266,7 @@ public class TridentTopology {
         List<SpoutNode> spoutNodes = new ArrayList<SpoutNode>();
         
         // can be regular nodes (static state) or processor nodes
-        Set<Node> boltNodes = new HashSet<Node>();
+        Set<Node> boltNodes = new LinkedHashSet<Node>();
         for(Node n: graph.vertexSet()) {
             if(n instanceof SpoutNode) {
                 spoutNodes.add((SpoutNode) n);
@@ -285,7 +276,7 @@ public class TridentTopology {
         }
         
         
-        Set<Group> initialGroups = new HashSet<Group>();
+        Set<Group> initialGroups = new LinkedHashSet<Group>();
         for(List<Node> colocate: _colocate.values()) {
             Group g = new Group(graph, colocate);
             boltNodes.removeAll(colocate);
@@ -528,29 +519,15 @@ public class TridentTopology {
 
     private static Map<Group, String> genBoltIds(Collection<Group> groups) {
         Map<Group, String> ret = new HashMap();
-        //sort by group name
-        final Map<Group, String> groupNames = new HashMap();
-        for (Group g : groups) {
-            String name = getGroupName(g);
-            groupNames.put(g, name == null ? "" : name);
-        }
-        List<Group> groupList = new ArrayList(groups);
-        Collections.sort(groupList, new Comparator<Group>() {
-            @Override
-            public int compare(Group o1, Group o2) {
-                return groupNames.get(o1).compareTo(groupNames.get(o2));
-            }
-        });
-
         int ctr = 0;
-        for (Group g : groupList) {
-            if (!isSpoutGroup(g)) {
+        for(Group g: groups) {
+            if(!isSpoutGroup(g)) {
                 List<String> name = new ArrayList();
                 name.add("b");
                 name.add("" + ctr);
-                String groupName = groupNames.get(g);
-                if (groupName != null && !groupName.isEmpty()) {
-                    name.add(groupName);
+                String groupName = getGroupName(g);
+                if(groupName!=null && !groupName.isEmpty()) {
+                    name.add(getGroupName(g));                
                 }
                 ret.put(g, Utils.join(name, "-"));
                 ctr++;

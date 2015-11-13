@@ -74,6 +74,8 @@ topology.max.replication.wait.time.sec: 60
 nimbus.credential.renewers.freq.secs: 600
 nimbus.impersonation.authorizer: "backtype.storm.security.auth.authorizer.ImpersonationAuthorizer"
 
+scheduler.resource.display: false
+
 ### ui.* configs are for the master
 ui.host: 0.0.0.0
 ui.port: 8080

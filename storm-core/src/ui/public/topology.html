@@ -294,8 +294,8 @@ $(document).ready(function() {
             topologySummary.append(Mustache.render($(template).filter("#topology-summary-template").html(),response));
             topologyResources.append(Mustache.render($(template).filter("#topology-resources-template").html(),response));
             $.getJSON("/api/v1/cluster/configuration", function(json){
-              var scheduler = json["storm.scheduler"];
-              if (scheduler != "backtype.storm.scheduler.resource.ResourceAwareScheduler"){
+              var displayResource = json["scheduler.resource.display"];
+              if (!displayResource){
                   $('#topology-resources-header').hide();
                   $('#topology-resources').hide();
               }

@@ -174,6 +174,15 @@ public class Config extends HashMap<String, Object> {
     public static final String STORM_SCHEDULER = "storm.scheduler";
 
     /**
+     * Whether we want to display all the resource capacity and scheduled usage on the UI page.
+     * We suggest to have this variable set if you are using any kind of resource-related scheduler.
+     *
+     * If this is not set, we will not display resource capacity and usage on the UI.
+     */
+    @isBoolean
+    public static final String SCHEDULER_RESOURCE_DISPLAY = "scheduler.resource.display";
+
+    /**
      * The mode this Storm cluster is running in. Either "distributed" or "local".
      */
     @isString

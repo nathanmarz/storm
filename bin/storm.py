@@ -22,6 +22,8 @@ import random
 import subprocess as sub
 import re
 import shlex
+import tempfile
+import uuid
 try:
     # python 3
     from urllib.parse import quote_plus
@@ -226,13 +228,27 @@ def jar(jarfile, klass, *args):
     (http://storm.apache.org/apidocs/backtype/storm/StormSubmitter.html)
     will upload the jar at topology-jar-path when the topology is submitted.
     """
-    exec_storm_class(
-        klass,
-        jvmtype="-client",
-        extrajars=[jarfile, USER_CONF_DIR, STORM_BIN_DIR],
-        args=args,
-        daemon=False,
-        jvmopts=JAR_JVM_OPTS + ["-Dstorm.jar=" + jarfile])
+    transform_class = confvalue("client.jartransformer.class", [CLUSTER_CONF_DIR])
+    if (transform_class != None and transform_class != "nil"):
+        tmpjar = os.path.join(tempfile.gettempdir(), uuid.uuid1().hex+".jar")
+        exec_storm_class("backtype.storm.daemon.ClientJarTransformerRunner", args=[transform_class, jarfile, tmpjar], fork=True, daemon=False)
+        exec_storm_class(
+            klass,
+            jvmtype="-client",
+            extrajars=[tmpjar, USER_CONF_DIR, STORM_BIN_DIR],
+            args=args,
+            daemon=False,
+            fork=True,
+            jvmopts=JAR_JVM_OPTS + ["-Dstorm.jar=" + tmpjar])
+        os.remove(tmpjar)
+    else:
+        exec_storm_class(
+            klass,
+            jvmtype="-client",
+            extrajars=[jarfile, USER_CONF_DIR, STORM_BIN_DIR],
+            args=args,
+            daemon=False,
+            jvmopts=JAR_JVM_OPTS + ["-Dstorm.jar=" + jarfile])
 
 def sql(sql_file, topo_nam):
     """Syntax: [storm sql sql-file topology]

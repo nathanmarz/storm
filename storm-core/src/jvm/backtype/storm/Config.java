@@ -2066,6 +2066,13 @@ public class Config extends HashMap<String, Object> {
     @isInteger
     public static final String NIMBUS_CODE_SYNC_FREQ_SECS = "nimbus.code.sync.freq.secs";
 
+    /**
+     * An implementation of @{link backtype.storm.daemon.JarTransformer} that will can be used to transform a jar
+     * file before storm jar runs with it. Use with extreme caution.
+     */
+    @isString
+    public static final Object CLIENT_JAR_TRANSFORMER = "client.jartransformer.class";
+
     public static void setClasspath(Map conf, String cp) {
         conf.put(Config.TOPOLOGY_CLASSPATH, cp);
     }

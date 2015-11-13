@@ -46,6 +46,11 @@
             <artifactId>storm-sql-runtime</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.storm</groupId>
+            <artifactId>storm-rename-hack</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

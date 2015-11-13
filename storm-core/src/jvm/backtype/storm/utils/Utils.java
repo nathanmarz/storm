@@ -23,6 +23,7 @@ import backtype.storm.blobstore.BlobStoreAclHandler;
 import backtype.storm.blobstore.ClientBlobStore;
 import backtype.storm.blobstore.InputStreamWithMeta;
 import backtype.storm.blobstore.LocalFsBlobStore;
+import backtype.storm.daemon.JarTransformer;
 import backtype.storm.generated.*;
 import backtype.storm.localizer.Localizer;
 import backtype.storm.nimbus.NimbusInfo;
@@ -126,6 +127,14 @@ public class Utils {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static JarTransformer jarTransformer(String klass) {
+        JarTransformer ret = null;
+        if (klass != null) {
+            ret = (JarTransformer)newInstance(klass);
+        }
+        return ret;
     }
 
     public static byte[] serialize(Object obj) {

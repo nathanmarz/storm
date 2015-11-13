@@ -37,12 +37,18 @@ public class TimeTriggerPolicy<T> implements TriggerPolicy<T> {
     private final TriggerHandler handler;
     private final ScheduledExecutorService executor;
     private final ScheduledFuture<?> executorFuture;
+    private final EvictionPolicy<T> evictionPolicy;
 
     public TimeTriggerPolicy(long millis, TriggerHandler handler) {
+        this(millis, handler, null);
+    }
+
+    public TimeTriggerPolicy(long millis, TriggerHandler handler, EvictionPolicy evictionPolicy) {
         this.duration = millis;
         this.handler = handler;
         this.executor = Executors.newSingleThreadScheduledExecutor();
         this.executorFuture = executor.scheduleAtFixedRate(newTriggerTask(), duration, duration, TimeUnit.MILLISECONDS);
+        this.evictionPolicy = evictionPolicy;
     }
 
     @Override
@@ -100,6 +106,13 @@ public class TimeTriggerPolicy<T> implements TriggerPolicy<T> {
             @Override
             public void run() {
                 try {
+                    /*
+                     * set the current timestamp as the reference time for the eviction policy
+                     * to evict the events
+                     */
+                    if(evictionPolicy != null) {
+                        evictionPolicy.setContext(System.currentTimeMillis());
+                    }
                     handler.onTrigger();
                 } catch (Throwable th) {
                     LOG.error("handler.onTrigger failed ", th);

@@ -23,7 +23,9 @@ package backtype.storm.windowing;
  */
 interface TriggerHandler {
     /**
-     * the code to execute when the {@link TriggerPolicy} condition is satisfied.
+     * The code to execute when the {@link TriggerPolicy} condition is satisfied.
+     *
+     * @return true if the window was evaluated with at least one event in the window, false otherwise
      */
-    void onTrigger();
+    boolean onTrigger();
 }

@@ -17,35 +17,22 @@
  */
 package backtype.storm.windowing;
 
-class EventImpl<T> implements Event<T> {
-    private final T event;
-    private long ts;
-
-    EventImpl(T event, long ts) {
-        this.event = event;
-        this.ts = ts;
-    }
-
-    @Override
-    public long getTimestamp() {
-        return ts;
-    }
-
-    @Override
-    public T get() {
-        return event;
+/**
+ * Watermark event used for tracking progress of time when
+ * processing event based ts.
+ */
+public class WaterMarkEvent<T> extends EventImpl<T> {
+    public WaterMarkEvent(long ts) {
+        super(null, ts);
     }
 
     @Override
     public boolean isWatermark() {
-        return false;
+        return true;
     }
 
     @Override
     public String toString() {
-        return "EventImpl{" +
-                "event=" + event +
-                ", ts=" + ts +
-                '}';
+        return "WaterMarkEvent{} " + super.toString();
     }
 }

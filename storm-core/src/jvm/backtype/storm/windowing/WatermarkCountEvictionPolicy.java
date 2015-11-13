@@ -18,37 +18,31 @@
 package backtype.storm.windowing;
 
 /**
- * Eviction policy that evicts events based on time duration.
+ * An eviction policy that tracks count based on watermark ts and
+ * evicts events upto the watermark based on a threshold count.
+ *
+ * @param <T> the type of event tracked by this policy.
  */
-public class TimeEvictionPolicy<T> implements EvictionPolicy<T> {
-    private final int windowLength;
-    /**
+public class WatermarkCountEvictionPolicy<T> extends CountEvictionPolicy<T> {
+    private final WindowManager<T> windowManager;
+    /*
      * The reference time in millis for window calculations and
      * expiring events. If not set it will default to System.currentTimeMillis()
      */
-    protected Long referenceTime;
+    private long referenceTime;
 
-    /**
-     * Constructs a TimeEvictionPolicy that evicts events older
-     * than the given window length in millis
-     *
-     * @param windowLength the duration in milliseconds
-     */
-    public TimeEvictionPolicy(int windowLength) {
-        this.windowLength = windowLength;
+    public WatermarkCountEvictionPolicy(int count, WindowManager<T> windowManager) {
+        super(count);
+        this.windowManager = windowManager;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public Action evict(Event<T> event) {
-        long now = referenceTime == null ? System.currentTimeMillis() : referenceTime;
-        long diff = now - event.getTimestamp();
-        if (diff >= windowLength) {
-            return Action.EXPIRE;
+        if (event.getTimestamp() <= referenceTime) {
+            return super.evict(event);
+        } else {
+            return Action.KEEP;
         }
-        return Action.PROCESS;
     }
 
     @Override
@@ -58,14 +52,14 @@ public class TimeEvictionPolicy<T> implements EvictionPolicy<T> {
 
     @Override
     public void setContext(Object context) {
-        referenceTime = ((Number) context).longValue();
+        referenceTime = (Long) context;
+        currentCount.set(windowManager.getEventCount(referenceTime));
     }
 
     @Override
     public String toString() {
-        return "TimeEvictionPolicy{" +
-                "windowLength=" + windowLength +
-                ", referenceTime=" + referenceTime +
-                '}';
+        return "WatermarkCountEvictionPolicy{" +
+                "referenceTime=" + referenceTime +
+                "} " + super.toString();
     }
 }

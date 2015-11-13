@@ -1526,18 +1526,44 @@ public class Config extends HashMap<String, Object> {
     public static final String TOPOLOGY_BOLTS_WINDOW_LENGTH_DURATION_MS = "topology.bolts.window.length.duration.ms";
 
     /*
-     * Bolt-specific configuration for windowed bolts to specifiy the sliding interval as a count of number of tuples.
+     * Bolt-specific configuration for windowed bolts to specify the sliding interval as a count of number of tuples.
      */
     @isInteger
     @isPositiveNumber
     public static final String TOPOLOGY_BOLTS_SLIDING_INTERVAL_COUNT = "topology.bolts.window.sliding.interval.count";
 
     /*
-     * Bolt-specific configuration for windowed bolts to specifiy the sliding interval in time duration.
+     * Bolt-specific configuration for windowed bolts to specify the sliding interval in time duration.
      */
     @isInteger
     @isPositiveNumber
     public static final String TOPOLOGY_BOLTS_SLIDING_INTERVAL_DURATION_MS = "topology.bolts.window.sliding.interval.duration.ms";
+
+    /*
+     * Bolt-specific configuration for windowed bolts to specify the name of the field in the tuple that holds
+     * the timestamp (e.g. the ts when the tuple was actually generated). If this config is specified and the
+     * field is not present in the incoming tuple, a java.lang.IllegalArgumentException will be thrown.
+     */
+    @isString
+    public static final String TOPOLOGY_BOLTS_TUPLE_TIMESTAMP_FIELD_NAME = "topology.bolts.tuple.timestamp.field.name";
+
+    /*
+     * Bolt-specific configuration for windowed bolts to specify the maximum time lag of the tuple timestamp
+     * in milliseconds. It means that the tuple timestamps cannot be out of order by more than this amount.
+     * This config will be effective only if the TOPOLOGY_BOLTS_TUPLE_TIMESTAMP_FIELD_NAME is also specified.
+     */
+    @isInteger
+    @isPositiveNumber
+    public static final String TOPOLOGY_BOLTS_TUPLE_TIMESTAMP_MAX_LAG_MS = "topology.bolts.tuple.timestamp.max.lag.ms";
+
+    /*
+     * Bolt-specific configuration for windowed bolts to specify the time interval for generating
+     * watermark events. Watermark event tracks the progress of time when tuple timestamp is used.
+     * This config is effective only if TOPOLOGY_BOLTS_TUPLE_TIMESTAMP_FIELD_NAME is also specified.
+     */
+    @isInteger
+    @isPositiveNumber
+    public static final String TOPOLOGY_BOLTS_WATERMARK_EVENT_INTERVAL_MS = "topology.bolts.watermark.event.interval.ms";
 
     /**
      * This config is available for TransactionalSpouts, and contains the id ( a String) for

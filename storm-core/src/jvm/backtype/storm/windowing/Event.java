@@ -38,4 +38,12 @@ interface Event<T> {
      * @return the wrapped object.
      */
     T get();
+
+    /**
+     * If this is a watermark event or not. Watermark events are used
+     * for tracking time while processing event based ts.
+     *
+     * @return true if this is a watermark event
+     */
+    boolean isWatermark();
 }

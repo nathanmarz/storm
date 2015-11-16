@@ -231,6 +231,11 @@ struct ExecutorSummary {
   7: optional ExecutorStats stats;
 }
 
+struct DebugOptions {
+  1: optional bool enable
+  2: optional double samplingpct
+}
+
 struct TopologyInfo {
   1: required string id;
   2: required string name;
@@ -248,11 +253,6 @@ struct TopologyInfo {
 524: optional double assigned_memonheap;
 525: optional double assigned_memoffheap;
 526: optional double assigned_cpu;
-}
-
-struct DebugOptions {
-  1: optional bool enable
-  2: optional double samplingpct
 }
 
 struct CommonAggregateStats {

@@ -102,7 +102,7 @@ public class ResourceAwareScheduler implements IScheduler {
                 Double[] resources = {requestedMemOnHeap, requestedMemOffHeap, requestedCpu,
                         assignedMemOnHeap, assignedMemOffHeap, assignedCpu};
                 LOG.debug("setResources for {}: requested on-heap mem, off-heap mem, cpu: {} {} {} " +
-                                "assigned on-heap mem, off-heap mem, cpu: {} {} {}",
+                        "assigned on-heap mem, off-heap mem, cpu: {} {} {}",
                         td.getId(), requestedMemOnHeap, requestedMemOffHeap, requestedCpu,
                         assignedMemOnHeap, assignedMemOffHeap, assignedCpu);
                 cluster.setResources(td.getId(), resources);
@@ -125,7 +125,7 @@ public class ResourceAwareScheduler implements IScheduler {
             Double[] resources = {totalMem, totalCpu, usedMem, usedCpu};
             supervisors_resources.put(entry.getKey(), resources);
         }
-        cluster.setSupervisorsResources(supervisors_resources);
+        cluster.setSupervisorsResourcesMap(supervisors_resources);
     }
 
     private Map<String, Double> getUserConf() {

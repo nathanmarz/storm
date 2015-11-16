@@ -146,7 +146,6 @@ $(document).ready(function() {
           $.getJSON("/api/v1/cluster/configuration", function(json){
               var displayResource = json["scheduler.display.resource"];
               if (!displayResource){
-                  $('#topology-summary td:nth-child(9),#topology-summary th:nth-child(9)').hide();
                   $('#topology-summary td:nth-child(10),#topology-summary th:nth-child(10)').hide();
               }
           });
@@ -167,7 +166,6 @@ $(document).ready(function() {
               var displayResource = json["scheduler.display.resource"];
               if (!displayResource){
                   $('#supervisor-summary td:nth-child(6),#supervisor-summary th:nth-child(6)').hide();
-                  $('#supervisor-summary td:nth-child(7),#supervisor-summary th:nth-child(7)').hide();
                   $('#supervisor-summary td:nth-child(8),#supervisor-summary th:nth-child(8)').hide();
                   $('#supervisor-summary td:nth-child(9),#supervisor-summary th:nth-child(9)').hide();
               }

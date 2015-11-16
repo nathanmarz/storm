@@ -294,7 +294,7 @@ $(document).ready(function() {
             topologySummary.append(Mustache.render($(template).filter("#topology-summary-template").html(),response));
             topologyResources.append(Mustache.render($(template).filter("#topology-resources-template").html(),response));
             $.getJSON("/api/v1/cluster/configuration", function(json){
-              var displayResource = json["scheduler.resource.display"];
+              var displayResource = json["scheduler.display.resource"];
               if (!displayResource){
                   $('#topology-resources-header').hide();
                   $('#topology-resources').hide();

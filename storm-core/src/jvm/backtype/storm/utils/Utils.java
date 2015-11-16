@@ -69,6 +69,8 @@ import java.util.HashSet;
 import java.util.HashMap;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
@@ -503,6 +505,18 @@ public class Utils {
         }
     }
 
+    public static String getString(Object o, String defaultValue) {
+        if (null == o) {
+            return defaultValue;
+        }
+
+        if (o instanceof String) {
+            return (String) o;
+        } else {
+            throw new IllegalArgumentException("Don't know how to convert " + o + " + to String");
+        }
+    }
+
     public static long secureRandomLong() {
         return UUID.randomUUID().getLeastSignificantBits();
     }
@@ -763,6 +777,30 @@ public class Utils {
 
     public static double zeroIfNaNOrInf(double x) {
         return (Double.isNaN(x) || Double.isInfinite(x)) ? 0.0 : x;
+
+    /**
+     * parses the arguments to extract jvm heap memory size.
+     * @param input
+     * @param defaultValue
+     * @return the value of the JVM heap memory setting in a java command.
+     */
+    public static Double parseWorkerChildOpts(String input, Double defaultValue) {
+        if(input != null) {
+            Pattern optsPattern = Pattern.compile("Xmx[0-9]+m");
+            Matcher m = optsPattern.matcher(input);
+            String memoryOpts = null;
+            while (m.find()) {
+                memoryOpts = m.group();
+            }
+            if(memoryOpts!=null) {
+                memoryOpts = memoryOpts.replaceAll("[a-zA-Z]", "");
+                return Double.parseDouble(memoryOpts);
+            } else {
+                return defaultValue;
+            }
+        } else {
+            return defaultValue;
+        }
     }
 }
 

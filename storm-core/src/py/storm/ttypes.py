@@ -2590,12 +2590,12 @@ class SupervisorSummary:
           iprot.skip(ftype)
       elif fid == 8:
         if ftype == TType.DOUBLE:
-          self.used_mem = iprot.readDouble();
+          self.used_mem = iprot.readDouble()
         else:
           iprot.skip(ftype)
       elif fid == 9:
         if ftype == TType.DOUBLE:
-          self.used_cpu = iprot.readDouble();
+          self.used_cpu = iprot.readDouble()
         else:
           iprot.skip(ftype)
       else:

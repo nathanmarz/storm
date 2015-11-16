@@ -583,10 +583,10 @@ public class SupervisorSummary implements org.apache.thrift.TBase<SupervisorSumm
       return get_total_resources();
 
     case USED_MEM:
-      return Double.valueOf(get_used_mem());
+      return get_used_mem();
 
     case USED_CPU:
-      return Double.valueOf(get_used_cpu());
+      return get_used_cpu();
 
     }
     throw new IllegalStateException();

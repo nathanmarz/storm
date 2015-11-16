@@ -32,7 +32,7 @@ public class TransportFactory {
         String transport_plugin_klassName = (String)storm_conf.get(Config.STORM_MESSAGING_TRANSPORT);
         LOG.info("Storm peer transport plugin:"+transport_plugin_klassName);
 
-        IContext transport = null;
+        IContext transport;
         try {
             //create a factory class
             Class klass = Class.forName(transport_plugin_klassName);

@@ -20,7 +20,6 @@ package backtype.storm.utils;
 import backtype.storm.generated.*;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 
 public class Monitor {
@@ -98,7 +97,7 @@ public class Monitor {
     }
 
     private HashSet<String> getComponents(Nimbus.Client client, String topology) throws Exception{
-        HashSet<String> components = new HashSet<String>();
+        HashSet<String> components = new HashSet<>();
         ClusterSummary clusterSummary = client.getClusterInfo();
         TopologySummary topologySummary = null;
         for (TopologySummary ts: clusterSummary.get_topologies()) {

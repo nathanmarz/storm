@@ -46,10 +46,8 @@ public class TridentEsTopology {
 
         TridentTopology topology = new TridentTopology();
         Stream stream = topology.newStream("spout", spout);
-        EsConfig esConfig = new EsConfig();
-        esConfig.setClusterName(EsConstants.clusterName);
-        esConfig.setNodes(new String[]{"localhost:9300"});
-        Fields esFields = new Fields("index", "type", "source", "id");
+        EsConfig esConfig = new EsConfig(EsConstants.clusterName, new String[]{"localhost:9300"});
+        Fields esFields = new Fields("index", "type", "source");
         EsTupleMapper tupleMapper = EsTestUtil.generateDefaultTupleMapper();
         StateFactory factory = new EsStateFactory(esConfig, tupleMapper);
         TridentState state = stream.partitionPersist(factory, esFields, new EsUpdater(), new Fields());
@@ -128,7 +126,7 @@ public class TridentEsTopology {
         }
 
         @Override
-        public Map getComponentConfiguration() {
+        public Map<String, Object> getComponentConfiguration() {
             Config conf = new Config();
             conf.setMaxTaskParallelism(1);
             return conf;

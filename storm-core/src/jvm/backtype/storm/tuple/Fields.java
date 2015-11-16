@@ -25,16 +25,19 @@ import java.util.List;
 import java.util.Map;
 import java.io.Serializable;
 
+/**
+ * Collection of unique named fields using in an ITuple
+ */
 public class Fields implements Iterable<String>, Serializable {
     private List<String> _fields;
-    private Map<String, Integer> _index = new HashMap<String, Integer>();
+    private Map<String, Integer> _index = new HashMap<>();
     
     public Fields(String... fields) {
         this(Arrays.asList(fields));
     }
     
     public Fields(List<String> fields) {
-        _fields = new ArrayList<String>(fields.size());
+        _fields = new ArrayList<>(fields.size());
         for (String field : fields) {
             if (_fields.contains(field))
                 throw new IllegalArgumentException(
@@ -46,7 +49,7 @@ public class Fields implements Iterable<String>, Serializable {
     }
     
     public List<Object> select(Fields selector, List<Object> tuple) {
-        List<Object> ret = new ArrayList<Object>(selector.size());
+        List<Object> ret = new ArrayList<>(selector.size());
         for(String s: selector) {
             ret.add(tuple.get(_index.get(s)));
         }
@@ -54,13 +57,23 @@ public class Fields implements Iterable<String>, Serializable {
     }
 
     public List<String> toList() {
-        return new ArrayList<String>(_fields);
+        return new ArrayList<>(_fields);
     }
     
+    /**
+     * Returns the number of fields in this collection.
+     */
     public int size() {
         return _fields.size();
     }
 
+    /**
+     * Gets the field at position index in the collection. 
+     *  
+     * @param index index of the field to return 
+     *  
+     * @throws IndexOutOfBoundsException - if the index is out of range (index < 0 || index >= size()) 
+     */
     public String get(int index) {
         return _fields.get(index);
     }
@@ -70,7 +83,11 @@ public class Fields implements Iterable<String>, Serializable {
     }
     
     /**
-     * Returns the position of the specified field.
+     * Returns the position of the specified named field.
+     *  
+     * @param field Named field to evaluate
+     *  
+     * @throws IllegalArgumentException - if field does not exist
      */
     public int fieldIndex(String field) {
         Integer ret = _index.get(field);
@@ -81,7 +98,7 @@ public class Fields implements Iterable<String>, Serializable {
     }
     
     /**
-     * Returns true if this contains the specified name of the field.
+     * @return true if this contains the specified name of the field.
      */
     public boolean contains(String field) {
         return _index.containsKey(field);

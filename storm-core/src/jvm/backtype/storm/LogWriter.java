@@ -41,7 +41,7 @@ public class LogWriter extends Thread {
     public void run() {
         Logger logger = this.logger;
         BufferedReader in = this.in;
-        String line = null;
+        String line;
         try {
             while ((line = in.readLine()) != null) {
                 logger.info(line);

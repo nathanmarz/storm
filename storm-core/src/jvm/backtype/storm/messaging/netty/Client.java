@@ -17,9 +17,22 @@
  */
 package backtype.storm.messaging.netty;
 
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.Iterator;
+import java.util.Collection;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.lang.InterruptedException;
+
 import backtype.storm.Config;
+import backtype.storm.grouping.Load;
 import backtype.storm.messaging.ConnectionWithStatus;
 import backtype.storm.messaging.TaskMessage;
+import backtype.storm.messaging.IConnectionCallback;
 import backtype.storm.metric.api.IStatefulObject;
 import backtype.storm.utils.StormBoundedExponentialBackoffRetry;
 import backtype.storm.utils.Utils;
@@ -34,17 +47,11 @@ import org.jboss.netty.util.TimerTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
+
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -60,7 +67,7 @@ import static com.google.common.base.Preconditions.checkState;
  *     - Note: The current implementation drops any messages that are being enqueued for sending if the connection to
  *       the remote destination is currently unavailable.
  */
-public class Client extends ConnectionWithStatus implements IStatefulObject {
+public class Client extends ConnectionWithStatus implements IStatefulObject, ISaslClient {
     private static final long PENDING_MESSAGES_FLUSH_TIMEOUT_MS = 600000L;
     private static final long PENDING_MESSAGES_FLUSH_INTERVAL_MS = 1000L;
 
@@ -73,17 +80,12 @@ public class Client extends ConnectionWithStatus implements IStatefulObject {
     private final ClientBootstrap bootstrap;
     private final InetSocketAddress dstAddress;
     protected final String dstAddressPrefixedName;
+    private volatile Map<Integer, Double> serverLoad = null;
 
     /**
      * The channel used for all write operations from this client to the remote destination.
      */
-    private final AtomicReference<Channel> channelRef = new AtomicReference<Channel>();
-
-
-    /**
-     * Maximum number of reconnection attempts we will perform after a disconnect before giving up.
-     */
-    private final int maxReconnectionAttempts;
+    private final AtomicReference<Channel> channelRef = new AtomicReference<>();
 
     /**
      * Total number of connection attempts.
@@ -110,6 +112,10 @@ public class Client extends ConnectionWithStatus implements IStatefulObject {
      */
     private final AtomicLong pendingMessages = new AtomicLong(0);
 
+    /**
+     * Whether the SASL channel is ready.
+     */
+    private final AtomicBoolean saslChannelReady = new AtomicBoolean(false);
 
     /**
      * This flag is set to true if and only if a client instance is being closed.
@@ -122,6 +128,8 @@ public class Client extends ConnectionWithStatus implements IStatefulObject {
 
     private final MessageBuffer batcher;
 
+    private final Object writeLock = new Object();
+
     @SuppressWarnings("rawtypes")
     Client(Map stormConf, ChannelFactory factory, HashedWheelTimer scheduler, String host, int port, Context context) {
         this.stormConf = stormConf;
@@ -129,28 +137,30 @@ public class Client extends ConnectionWithStatus implements IStatefulObject {
         this.scheduler = scheduler;
         this.context = context;
         int bufferSize = Utils.getInt(stormConf.get(Config.STORM_MESSAGING_NETTY_BUFFER_SIZE));
+        // if SASL authentication is disabled, saslChannelReady is initialized as true; otherwise false
+        saslChannelReady.set(!Utils.getBoolean(stormConf.get(Config.STORM_MESSAGING_NETTY_AUTHENTICATION), false));
         LOG.info("creating Netty Client, connecting to {}:{}, bufferSize: {}", host, port, bufferSize);
         int messageBatchSize = Utils.getInt(stormConf.get(Config.STORM_NETTY_MESSAGE_BATCH_SIZE), 262144);
 
-        maxReconnectionAttempts = Utils.getInt(stormConf.get(Config.STORM_MESSAGING_NETTY_MAX_RETRIES));
+        int maxReconnectionAttempts = Utils.getInt(stormConf.get(Config.STORM_MESSAGING_NETTY_MAX_RETRIES));
         int minWaitMs = Utils.getInt(stormConf.get(Config.STORM_MESSAGING_NETTY_MIN_SLEEP_MS));
         int maxWaitMs = Utils.getInt(stormConf.get(Config.STORM_MESSAGING_NETTY_MAX_SLEEP_MS));
         retryPolicy = new StormBoundedExponentialBackoffRetry(minWaitMs, maxWaitMs, maxReconnectionAttempts);
 
         // Initiate connection to remote destination
-        bootstrap = createClientBootstrap(factory, bufferSize);
+        bootstrap = createClientBootstrap(factory, bufferSize, stormConf);
         dstAddress = new InetSocketAddress(host, port);
         dstAddressPrefixedName = prefixedName(dstAddress);
         scheduleConnect(NO_DELAY_MS);
         batcher = new MessageBuffer(messageBatchSize);
     }
 
-    private ClientBootstrap createClientBootstrap(ChannelFactory factory, int bufferSize) {
+    private ClientBootstrap createClientBootstrap(ChannelFactory factory, int bufferSize, Map stormConf) {
         ClientBootstrap bootstrap = new ClientBootstrap(factory);
         bootstrap.setOption("tcpNoDelay", true);
         bootstrap.setOption("sendBufferSize", bufferSize);
         bootstrap.setOption("keepAlive", true);
-        bootstrap.setPipelineFactory(new StormClientPipelineFactory(this));
+        bootstrap.setPipelineFactory(new StormClientPipelineFactory(this, stormConf));
         return bootstrap;
     }
 
@@ -162,14 +172,14 @@ public class Client extends ConnectionWithStatus implements IStatefulObject {
     }
 
     /**
-     * We will retry connection with exponential back-off policy
+     * Enqueue a task message to be sent to server
      */
     private void scheduleConnect(long delayMs) {
         scheduler.newTimeout(new Connect(dstAddress), delayMs, TimeUnit.MILLISECONDS);
     }
 
     private boolean reconnectingAllowed() {
-        return !closing && connectionAttempts.get() <= (maxReconnectionAttempts + 1);
+        return !closing;
     }
 
     private boolean connectionEstablished(Channel channel) {
@@ -194,7 +204,11 @@ public class Client extends ConnectionWithStatus implements IStatefulObject {
         } else if (!connectionEstablished(channelRef.get())) {
             return Status.Connecting;
         } else {
-            return Status.Ready;
+            if (saslChannelReady.get()) {
+                return Status.Ready;
+            } else {
+                return Status.Connecting; // need to wait until sasl channel is also ready
+            }
         }
     }
 
@@ -204,8 +218,13 @@ public class Client extends ConnectionWithStatus implements IStatefulObject {
      * @throws java.lang.UnsupportedOperationException whenever this method is being called.
      */
     @Override
-    public Iterator<TaskMessage> recv(int flags, int clientId) {
+    public void registerRecv(IConnectionCallback cb) {
         throw new UnsupportedOperationException("Client connection should not receive any messages");
+    }
+
+    @Override
+    public void sendLoadMetrics(Map<Integer, Double> taskToLoad) {
+        throw new RuntimeException("Client connection should not send load metrics");
     }
 
     @Override
@@ -245,21 +264,24 @@ public class Client extends ConnectionWithStatus implements IStatefulObject {
             return;
         }
 
-
-        while (msgs.hasNext()) {
-            TaskMessage message = msgs.next();
-            MessageBatch full = batcher.add(message);
-            if(full != null){
-                flushMessages(channel, full);
+        synchronized (writeLock) {
+            while (msgs.hasNext()) {
+                TaskMessage message = msgs.next();
+                MessageBatch full = batcher.add(message);
+                if(full != null){
+                    flushMessages(channel, full);
+                }
             }
         }
 
         if(channel.isWritable()){
-            // Netty's internal buffer is not full and we still have message left in the buffer.
-            // We should write the unfilled MessageBatch immediately to reduce latency
-            MessageBatch batch = batcher.drain();
-            if(batch != null) {
-                flushMessages(channel, batch);
+            synchronized (writeLock) {
+                // Netty's internal buffer is not full and we still have message left in the buffer.
+                // We should write the unfilled MessageBatch immediately to reduce latency
+                MessageBatch batch = batcher.drain();
+                if(batch != null) {
+                    flushMessages(channel, batch);
+                }
             }
         } else {
             // Channel's buffer is full, meaning that we have time to wait other messages to arrive, and create a bigger
@@ -284,10 +306,13 @@ public class Client extends ConnectionWithStatus implements IStatefulObject {
         }
     }
 
+    public InetSocketAddress getDstAddress() {
+        return dstAddress;
+    }
+
     private boolean hasMessages(Iterator<TaskMessage> msgs) {
         return msgs != null && msgs.hasNext();
     }
-
 
     private void dropMessages(Iterator<TaskMessage> msgs) {
         // We consume the iterator by traversing and thus "emptying" it.
@@ -312,10 +337,10 @@ public class Client extends ConnectionWithStatus implements IStatefulObject {
      * If the write operation fails, then we will close the channel and trigger a reconnect.
      */
     private void flushMessages(Channel channel, final MessageBatch batch) {
-        if(batch.isEmpty()){
+        if (null == batch || batch.isEmpty()) {
             return;
         }
-        
+
         final int numMessages = batch.size();
         LOG.debug("writing {} messages to channel {}", batch.size(), channel.toString());
         pendingMessages.addAndGet(numMessages);
@@ -384,14 +409,12 @@ public class Client extends ConnectionWithStatus implements IStatefulObject {
                     break;
                 }
                 Thread.sleep(PENDING_MESSAGES_FLUSH_INTERVAL_MS);
-            }
-            catch (InterruptedException e) {
+            } catch (InterruptedException e) {
                 break;
             }
         }
 
     }
-
 
     private void closeChannel() {
         Channel channel = channelRef.get();
@@ -401,9 +424,29 @@ public class Client extends ConnectionWithStatus implements IStatefulObject {
         }
     }
 
+    void setLoadMetrics(Map<Integer, Double> taskToLoad) {
+        this.serverLoad = taskToLoad;
+    }
+
+    @Override
+    public Map<Integer, Load> getLoad(Collection<Integer> tasks) {
+        Map<Integer, Double> loadCache = serverLoad;
+        Map<Integer, Load> ret = new HashMap<Integer, Load>();
+        if (loadCache != null) {
+            double clientLoad = Math.min(pendingMessages.get(), 1024)/1024.0;
+            for (Integer task : tasks) {
+                Double found = loadCache.get(task);
+                if (found != null) {
+                    ret.put(task, new Load(true, found, clientLoad));
+                }
+            }
+        }
+        return ret;
+    }
+
     @Override
     public Object getState() {
-        LOG.info("Getting metrics for client connection to {}", dstAddressPrefixedName);
+        LOG.debug("Getting metrics for client connection to {}", dstAddressPrefixedName);
         HashMap<String, Object> ret = new HashMap<String, Object>();
         ret.put("reconnects", totalConnectionAttempts.getAndSet(0));
         ret.put("sent", messagesSent.getAndSet(0));
@@ -417,9 +460,27 @@ public class Client extends ConnectionWithStatus implements IStatefulObject {
         return ret;
     }
 
-    public Map getStormConf() {
+    public Map getConfig() {
         return stormConf;
     }
+
+    /** ISaslClient interface **/
+    public void channelConnected(Channel channel) {
+//        setChannel(channel);
+    }
+
+    public void channelReady() {
+        saslChannelReady.set(true);
+    }
+
+    public String name() {
+        return (String)stormConf.get(Config.TOPOLOGY_NAME);
+    }
+
+    public String secretKey() {
+        return SaslUtils.getSecretKey(stormConf);
+    }
+    /** end **/
 
     private String srcAddressName() {
         String name = null;
@@ -444,9 +505,11 @@ public class Client extends ConnectionWithStatus implements IStatefulObject {
      */
     public void notifyInterestChanged(Channel channel) {
         if(channel.isWritable()){
-            // Channel is writable again, write if there are any messages pending
-            MessageBatch pending = batcher.drain();
-            flushMessages(channel, pending);
+            synchronized (writeLock) {
+                // Channel is writable again, write if there are any messages pending
+                MessageBatch pending = batcher.drain();
+                flushMessages(channel, pending);
+            }
         }
     }
 
@@ -512,5 +575,4 @@ public class Client extends ConnectionWithStatus implements IStatefulObject {
             }
         }
     }
-
 }

@@ -18,21 +18,18 @@
 package backtype.storm.metric;
 
 import backtype.storm.Config;
-import backtype.storm.metric.api.AssignableMetric;
 import backtype.storm.metric.api.IMetric;
 import backtype.storm.task.IBolt;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Tuple;
+import backtype.storm.utils.Utils;
 import clojure.lang.AFn;
 import clojure.lang.IFn;
 import clojure.lang.RT;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.lang.management.*;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 
@@ -40,7 +37,6 @@ import java.util.Map;
 // TaskID is always -1, therefore you can only send-unanchored tuples to co-located SystemBolt.
 // This bolt was conceived to export worker stats via metrics api.
 public class SystemBolt implements IBolt {
-    private static Logger LOG = LoggerFactory.getLogger(SystemBolt.class);
     private static boolean _prepareWasCalled = false;
 
     private static class MemoryUsageMetric implements IMetric {
@@ -141,6 +137,20 @@ public class SystemBolt implements IBolt {
 
         for(GarbageCollectorMXBean b : ManagementFactory.getGarbageCollectorMXBeans()) {
             context.registerMetric("GC/" + b.getName().replaceAll("\\W", ""), new GarbageCollectorMetric(b), bucketSize);
+        }
+
+        registerMetrics(context, (Map<String,String>)stormConf.get(Config.WORKER_METRICS), bucketSize);
+        registerMetrics(context, (Map<String,String>)stormConf.get(Config.TOPOLOGY_WORKER_METRICS), bucketSize);
+    }
+
+    private void registerMetrics(TopologyContext context, Map<String, String> metrics, int bucketSize) {
+        if (metrics == null) return;
+        for (Map.Entry<String, String> metric: metrics.entrySet()) {
+            try {
+                context.registerMetric(metric.getKey(), (IMetric)Utils.newInstance(metric.getValue()), bucketSize);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 

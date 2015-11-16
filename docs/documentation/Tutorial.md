@@ -160,7 +160,7 @@ public static class ExclamationBolt implements IRichBolt {
     }
     
     @Override
-    public Map getComponentConfiguration() {
+    public Map<String, Object> getComponentConfiguration() {
         return null;
     }
 }

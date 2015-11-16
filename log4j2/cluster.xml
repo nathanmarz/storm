@@ -19,12 +19,12 @@
 <configuration monitorInterval="60">
 <properties>
     <property name="pattern">%d{yyyy-MM-dd HH:mm:ss.SSS} %c{1.} [%p] %msg%n</property>
-    <property name="patternMetris">%d %-8r %m%n</property>
+    <property name="patternMetrics">%d %-8r %m%n</property>
 </properties>
 <appenders>
     <RollingFile name="A1"
                  fileName="${sys:storm.log.dir}/${sys:logfile.name}"
-                 filePattern="${sys:storm.log.dir}/${sys:logfile.name}.%i">
+                 filePattern="${sys:storm.log.dir}/${sys:logfile.name}.%i.gz">
         <PatternLayout>
             <pattern>${pattern}</pattern>
         </PatternLayout>
@@ -33,12 +33,23 @@
         </Policies>
         <DefaultRolloverStrategy max="9"/>
     </RollingFile>
-    <RollingFile name="ACCESS"
-                 fileName="${sys:storm.log.dir}/access.log"
-                 filePattern="${sys:storm.log.dir}/access.log.%i">
+    <RollingFile name="WEB-ACCESS"
+                 fileName="${sys:storm.log.dir}/access-web-${sys:daemon.name}.log"
+                 filePattern="${sys:storm.log.dir}/access-web-${sys:daemon.name}.log.%i.gz">
         <PatternLayout>
             <pattern>${pattern}</pattern>
         </PatternLayout>
+        <Policies>
+            <SizeBasedTriggeringPolicy size="100 MB"/> <!-- Or every 100 MB -->
+        </Policies>
+        <DefaultRolloverStrategy max="9"/>
+    </RollingFile>
+    <RollingFile name="THRIFT-ACCESS"
+                 fileName="${sys:storm.log.dir}/access-${sys:logfile.name}"
+                 filePattern="${sys:storm.log.dir}/access-${sys:logfile.name}.%i.gz">
+    <PatternLayout>
+        <pattern>${pattern}</pattern>
+    </PatternLayout>
         <Policies>
             <SizeBasedTriggeringPolicy size="100 MB"/> <!-- Or every 100 MB -->
         </Policies>
@@ -46,9 +57,9 @@
     </RollingFile>
     <RollingFile name="METRICS"
                  fileName="${sys:storm.log.dir}/metrics.log"
-                 filePattern="${sys:storm.log.dir}/metrics.log.%i">
+                 filePattern="${sys:storm.log.dir}/metrics.log.%i.gz">
         <PatternLayout>
-            <pattern>${patternMetris}</pattern>
+            <pattern>${patternMetrics}</pattern>
         </PatternLayout>
         <Policies>
             <SizeBasedTriggeringPolicy size="2 MB"/> <!-- Or every 100 MB -->
@@ -62,8 +73,13 @@
 </appenders>
 <loggers>
 
-    <Logger name="backtype.storm.security.auth.authorizer" level="info">
-        <AppenderRef ref="ACCESS"/>
+    <Logger name="backtype.storm.logging.filters.AccessLoggingFilter" level="info" additivity="false">
+        <AppenderRef ref="WEB-ACCESS"/>
+        <AppenderRef ref="syslog"/>
+    </Logger>
+    <Logger name="backtype.storm.logging.ThriftAccessLogger" level="info" additivity="false">
+        <AppenderRef ref="THRIFT-ACCESS"/>
+        <AppenderRef ref="syslog"/>
     </Logger>
     <Logger name="backtype.storm.metric.LoggingMetricsConsumer" level="info">
         <AppenderRef ref="METRICS"/>

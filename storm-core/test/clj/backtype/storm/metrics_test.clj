@@ -47,7 +47,7 @@
             ))))))
 
 (defn assert-loop [afn ids]
-  (while (not (every? afn ids))
+  (while-timeout TEST-TIMEOUT-MS (not (every? afn ids))
     (Thread/sleep 1)))
 
 (defn assert-acked [tracker & ids]

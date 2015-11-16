@@ -17,16 +17,23 @@
  */
 package backtype.storm.messaging;
 
+import backtype.storm.grouping.Load;
+import java.util.Collection;
 import java.util.Iterator;
+import java.util.Map;
 
-public interface IConnection {   
-    
+public interface IConnection {
     /**
-     * receive a batch message iterator (consists taskId and payload)
-     * @param flags 0: block, 1: non-block
-     * @return
+     * Register a callback to be notified when data is ready to be processed.
+     * @param cb the callback to process the messages.
      */
-    public Iterator<TaskMessage> recv(int flags, int clientId);
+    public void registerRecv(IConnectionCallback cb);
+
+    /**
+     * Send load metrics to all downstream connections.
+     * @param taskToLoad a map from the task id to the load for that task.
+     */
+    public void sendLoadMetrics(Map<Integer, Double> taskToLoad);
     
     /**
      * send a message with taskId and payload
@@ -42,6 +49,13 @@ public interface IConnection {
 
     public void send(Iterator<TaskMessage> msgs);
     
+    /**
+     * Get the current load for the given tasks
+     * @param tasks the tasks to look for.
+     * @return a Load for each of the tasks it knows about.
+     */
+    public Map<Integer, Load> getLoad(Collection<Integer> tasks);
+
     /**
      * close this connection
      */

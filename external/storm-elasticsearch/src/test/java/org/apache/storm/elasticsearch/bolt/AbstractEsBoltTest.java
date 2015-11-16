@@ -17,11 +17,14 @@
  */
 package org.apache.storm.elasticsearch.bolt;
 
+import com.google.common.testing.NullPointerTester;
+
 import backtype.storm.Config;
 import backtype.storm.task.OutputCollector;
 import org.apache.storm.elasticsearch.common.EsConfig;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
@@ -45,14 +48,18 @@ public abstract class AbstractEsBoltTest<Bolt extends AbstractEsBolt> {
     protected abstract Bolt createBolt(EsConfig esConfig);
 
     protected EsConfig esConfig() {
-        EsConfig esConfig = new EsConfig();
-        esConfig.setClusterName("test-cluster");
-        esConfig.setNodes(new String[] {"127.0.0.1:9300"});
-        return esConfig;
+        return new EsConfig("test-cluster", new String[] {"127.0.0.1:9300"});
     }
 
     @After
     public void cleanupBolt() throws Exception {
         bolt.cleanup();
     }
+
+    @Test
+    public void constructorsThrowOnNull() throws Exception {
+        new NullPointerTester().setDefault(EsConfig.class, esConfig()).testAllPublicConstructors(getBoltClass());
+    }
+
+    protected abstract Class<Bolt> getBoltClass();
 }

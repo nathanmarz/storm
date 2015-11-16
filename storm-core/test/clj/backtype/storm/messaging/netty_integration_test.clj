@@ -54,5 +54,4 @@
                                                          ["a"] ["b"]
                                                          ]}
                                      )]
-      (is (ms= (apply concat (repeat 6 [[1] [2] [3] [4]]))
-               (read-tuples results "2"))))))
+        (is (= (* 6 4) (.size (read-tuples results "2")))))))

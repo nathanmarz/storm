@@ -1,6 +1,25 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package backtype.storm.nimbus;
 
 import backtype.storm.Config;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 import java.net.InetAddress;
@@ -8,6 +27,7 @@ import java.net.UnknownHostException;
 import java.util.Map;
 
 public class NimbusInfo implements Serializable {
+    private static final Logger LOG = LoggerFactory.getLogger(NimbusInfo.class);
     private static final String DELIM = ":";
 
     private String host;
@@ -32,6 +52,11 @@ public class NimbusInfo implements Serializable {
     public static NimbusInfo fromConf(Map conf) {
         try {
             String host = InetAddress.getLocalHost().getCanonicalHostName();
+            if (conf.containsKey(Config.STORM_LOCAL_HOSTNAME)) {
+                host = conf.get(Config.STORM_LOCAL_HOSTNAME).toString();
+                LOG.info("Overriding nimbus host to storm.local.hostname -> {}", host);
+            }
+
             int port = Integer.parseInt(conf.get(Config.NIMBUS_THRIFT_PORT).toString());
             return new NimbusInfo(host, port, false);
 
@@ -69,9 +94,7 @@ public class NimbusInfo implements Serializable {
 
         if (isLeader != that.isLeader) return false;
         if (port != that.port) return false;
-        if (!host.equals(that.host)) return false;
-
-        return true;
+        return host.equals(that.host);
     }
 
     @Override

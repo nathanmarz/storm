@@ -26,7 +26,6 @@ import java.util.Map;
 import backtype.storm.metric.api.IMetricsConsumer;
 import backtype.storm.task.IErrorReporter;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.utils.Utils;
 
 /*
  * Listens for all metrics, dumps them to log

@@ -47,10 +47,8 @@ public class EsIndexTopology {
         TopologyBuilder builder = new TopologyBuilder();
         UserDataSpout spout = new UserDataSpout();
         builder.setSpout(SPOUT_ID, spout, 1);
-        EsConfig esConfig = new EsConfig();
-        esConfig.setClusterName(EsConstants.clusterName);
-        esConfig.setNodes(new String[]{"localhost:9300"});
         EsTupleMapper tupleMapper = EsTestUtil.generateDefaultTupleMapper();
+        EsConfig esConfig = new EsConfig(EsConstants.clusterName, new String[]{"localhost:9300"});
         builder.setBolt(BOLT_ID, new EsIndexBolt(esConfig, tupleMapper), 1).shuffleGrouping(SPOUT_ID);
 
         EsTestUtil.startEsNode();

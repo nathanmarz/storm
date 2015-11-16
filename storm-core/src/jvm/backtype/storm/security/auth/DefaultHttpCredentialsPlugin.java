@@ -28,8 +28,6 @@ import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import backtype.storm.security.auth.ReqContext;
-
 public class DefaultHttpCredentialsPlugin implements IHttpCredentialsPlugin {
     private static final Logger LOG =
             LoggerFactory.getLogger(DefaultHttpCredentialsPlugin.class);
@@ -50,7 +48,7 @@ public class DefaultHttpCredentialsPlugin implements IHttpCredentialsPlugin {
      */
     @Override
     public String getUserName(HttpServletRequest req) {
-        Principal princ = null;
+        Principal princ;
         if (req != null && (princ = req.getUserPrincipal()) != null) {
             String userName = princ.getName();
             if (userName != null && !userName.isEmpty()) {
@@ -83,7 +81,7 @@ public class DefaultHttpCredentialsPlugin implements IHttpCredentialsPlugin {
             userName = doAsUser;
         }
 
-        Set<Principal> principals = new HashSet<Principal>();
+        Set<Principal> principals = new HashSet<>();
         if(userName != null) {
             Principal p = new SingleUserPrincipal(userName);
             principals.add(p);

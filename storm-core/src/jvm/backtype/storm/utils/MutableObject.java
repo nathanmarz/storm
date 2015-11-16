@@ -18,7 +18,7 @@
 package backtype.storm.utils;
 
 public class MutableObject {
-    Object o = null;
+    private Object o = null;
     
     public MutableObject() {
         
@@ -28,11 +28,11 @@ public class MutableObject {
         this.o = o;
     }
     
-    public void setObject(Object o) {
+    public synchronized void setObject(Object o) {
         this.o = o;
     }
     
-    public Object getObject() {
+    public synchronized Object getObject() {
         return o;
     }
 }

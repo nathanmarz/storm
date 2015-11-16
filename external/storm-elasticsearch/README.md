@@ -11,9 +11,7 @@ Users should make sure that ```EsTupleMapper``` can extract "source", "index", "
 "source" is a document in JSON format string that will be indexed in Elasticsearch.
 
 ```java
-EsConfig esConfig = new EsConfig();
-esConfig.setClusterName(clusterName);
-esConfig.setNodes(new String[]{"localhost:9300"});
+EsConfig esConfig = new EsConfig(clusterName, new String[]{"localhost:9300"});
 EsTupleMapper tupleMapper = new DefaultEsTupleMapper();
 EsIndexBolt indexBolt = new EsIndexBolt(esConfig, tupleMapper);
 ```
@@ -26,9 +24,7 @@ User should make sure ```EsTupleMapper``` can extract "source", "index", "type" 
 "source" is a document in JSON format string that will be sent in percolate request to Elasticsearch.
 
 ```java
-EsConfig esConfig = new EsConfig();
-esConfig.setClusterName(clusterName);
-esConfig.setNodes(new String[]{"localhost:9300"});
+EsConfig esConfig = new EsConfig(clusterName, new String[]{"localhost:9300"});
 EsTupleMapper tupleMapper = new DefaultEsTupleMapper();
 EsPercolateBolt percolateBolt = new EsPercolateBolt(esConfig, tupleMapper);
 ```
@@ -40,14 +36,12 @@ for each Percolate.Match in PercolateResponse.
 
 Elasticsearch Trident state also follows similar pattern to EsBolts. It takes in EsConfig and EsTupleMapper as an arg.
 
-```code
-   EsConfig esConfig = new EsConfig();
-   esConfig.setClusterName(clusterName);
-   esConfig.setNodes(new String[]{"localhost:9300"});
-   EsTupleMapper tupleMapper = new DefaultEsTupleMapper();
+```java
+EsConfig esConfig = new EsConfig(clusterName, new String[]{"localhost:9300"});
+EsTupleMapper tupleMapper = new DefaultEsTupleMapper();
 
-   StateFactory factory = new EsStateFactory(esConfig, tupleMapper);
-   TridentState state = stream.partitionPersist(factory, esFields, new EsUpdater(), new Fields());
+StateFactory factory = new EsStateFactory(esConfig, tupleMapper);
+TridentState state = stream.partitionPersist(factory, esFields, new EsUpdater(), new Fields());
  ```
 
 ## EsLookupBolt (org.apache.storm.elasticsearch.bolt.EsLookupBolt)
@@ -72,11 +66,17 @@ EsLookupBolt lookupBolt = new EsLookupBolt(esConfig, getRequestAdapter, output);
   
 Provided components (Bolt, State) takes in EsConfig as a constructor arg.
 
-  ```java
-   EsConfig esConfig = new EsConfig();
-   esConfig.setClusterName(clusterName);
-   esConfig.setNodes(new String[]{"localhost:9300"});
-  ```
+```java
+EsConfig esConfig = new EsConfig(clusterName, new String[]{"localhost:9300"});
+```
+
+or
+
+```java
+Map<String, String> additionalParameters = new HashMap<>();
+additionalParameters.put("client.transport.sniff", "true");
+EsConfig esConfig = new EsConfig(clusterName, new String[]{"localhost:9300"}, additionalParameters);
+```
 
 ### EsConfig params
 
@@ -84,6 +84,7 @@ Provided components (Bolt, State) takes in EsConfig as a constructor arg.
 |---	|--- |---
 |clusterName | Elasticsearch cluster name | String (required) |
 |nodes | Elasticsearch nodes in a String array, each element should follow {host}:{port} pattern | String array (required) |
+|additionalParameters | Additional Elasticsearch Transport Client configuration parameters | Map<String, String> (optional) |
 
 ## EsTupleMapper (org.apache.storm.elasticsearch.common.EsTupleMapper)
 

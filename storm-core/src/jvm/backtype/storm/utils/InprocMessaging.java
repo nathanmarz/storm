@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class InprocMessaging {
-    private static Map<Integer, LinkedBlockingQueue<Object>> _queues = new HashMap<Integer, LinkedBlockingQueue<Object>>();
+    private static Map<Integer, LinkedBlockingQueue<Object>> _queues = new HashMap<>();
     private static final Object _lock = new Object();
     private static int port = 1;
     
@@ -50,7 +50,7 @@ public class InprocMessaging {
     private static LinkedBlockingQueue<Object> getQueue(int port) {
         synchronized(_lock) {
             if(!_queues.containsKey(port)) {
-              _queues.put(port, new LinkedBlockingQueue<Object>());   
+              _queues.put(port, new LinkedBlockingQueue<>());
             }
             return _queues.get(port);
         }

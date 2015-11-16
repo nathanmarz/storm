@@ -129,4 +129,9 @@ public class EsLookupBoltIntegrationTest extends AbstractEsBoltIntegrationTest<E
             return new Fields("data");
         }
     }
+
+    @Override
+    protected Class<EsLookupBolt> getBoltClass() {
+        return EsLookupBolt.class;
+    }
 }

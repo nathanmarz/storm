@@ -129,7 +129,8 @@
         assignment3 (SchedulerAssignmentImpl. "topology3" executor->slot3)
         cluster (Cluster. (nimbus/standalone-nimbus)
                           {"supervisor1" supervisor1 "supervisor2" supervisor2}
-                          {"topology1" assignment1 "topology2" assignment2 "topology3" assignment3})]
+                          {"topology1" assignment1 "topology2" assignment2 "topology3" assignment3}
+                  nil)]
     ;; test Cluster constructor
     (is (= #{"supervisor1" "supervisor2"}
            (->> cluster

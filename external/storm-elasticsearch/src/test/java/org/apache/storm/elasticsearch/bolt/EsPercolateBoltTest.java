@@ -54,4 +54,9 @@ public class EsPercolateBoltTest extends AbstractEsBoltIntegrationTest<EsPercola
         verify(outputCollector).ack(tuple);
         verify(outputCollector).emit(new Values(source, any(PercolateResponse.Match.class)));
     }
+
+    @Override
+    protected Class<EsPercolateBolt> getBoltClass() {
+        return EsPercolateBolt.class;
+    }
 }

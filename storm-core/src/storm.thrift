@@ -146,6 +146,12 @@ struct TopologySummary {
 513: optional string sched_status;
 514: optional string owner;
 515: optional i32 replication_count;
+521: optional double requested_memonheap;
+522: optional double requested_memoffheap;
+523: optional double requested_cpu;
+524: optional double assigned_memonheap;
+525: optional double assigned_memoffheap;
+526: optional double assigned_cpu;
 }
 
 struct SupervisorSummary {
@@ -155,6 +161,7 @@ struct SupervisorSummary {
   4: required i32 num_used_workers;
   5: required string supervisor_id;
   6: optional string version = "VERSION_NOT_PROVIDED";
+  7: optional map<string, double> total_resources;
 }
 
 struct NimbusSummary {
@@ -167,6 +174,8 @@ struct NimbusSummary {
 
 struct ClusterSummary {
   1: required list<SupervisorSummary> supervisors;
+  //@deprecated, please use nimbuses.uptime_secs instead.
+  2: optional i32 nimbus_uptime_secs = 0;
   3: required list<TopologySummary> topologies;
   4: required list<NimbusSummary> nimbuses;
 }
@@ -227,9 +236,113 @@ struct TopologyInfo {
   4: required list<ExecutorSummary> executors;
   5: required string status;
   6: required map<string, list<ErrorInfo>> errors;
+  7: optional map<string, DebugOptions> component_debug;
 513: optional string sched_status;
 514: optional string owner;
 515: optional i32 replication_count;
+521: optional double requested_memonheap;
+522: optional double requested_memoffheap;
+523: optional double requested_cpu;
+524: optional double assigned_memonheap;
+525: optional double assigned_memoffheap;
+526: optional double assigned_cpu;
+}
+
+struct DebugOptions {
+  1: optional bool enable
+  2: optional double samplingpct
+}
+
+struct CommonAggregateStats {
+1: optional i32 num_executors;
+2: optional i32 num_tasks;
+3: optional i64 emitted;
+4: optional i64 transferred;
+5: optional i64 acked;
+6: optional i64 failed;
+}
+
+struct SpoutAggregateStats {
+1: optional double complete_latency_ms;
+}
+
+struct BoltAggregateStats {
+1: optional double execute_latency_ms;
+2: optional double process_latency_ms;
+3: optional i64    executed;
+4: optional double capacity;
+}
+
+union SpecificAggregateStats {
+1: BoltAggregateStats  bolt;
+2: SpoutAggregateStats spout;
+}
+
+enum ComponentType {
+  BOLT = 1,
+  SPOUT = 2
+}
+
+struct ComponentAggregateStats {
+1: optional ComponentType type;
+2: optional CommonAggregateStats common_stats;
+3: optional SpecificAggregateStats specific_stats;
+4: optional ErrorInfo last_error;
+}
+
+struct TopologyStats {
+1: optional map<string, i64> window_to_emitted;
+2: optional map<string, i64> window_to_transferred;
+3: optional map<string, double> window_to_complete_latencies_ms;
+4: optional map<string, i64> window_to_acked;
+5: optional map<string, i64> window_to_failed;
+}
+
+struct TopologyPageInfo {
+ 1: required string id;
+ 2: optional string name;
+ 3: optional i32 uptime_secs;
+ 4: optional string status;
+ 5: optional i32 num_tasks;
+ 6: optional i32 num_workers;
+ 7: optional i32 num_executors;
+ 8: optional string topology_conf;
+ 9: optional map<string,ComponentAggregateStats> id_to_spout_agg_stats;
+10: optional map<string,ComponentAggregateStats> id_to_bolt_agg_stats;
+11: optional string sched_status;
+12: optional TopologyStats topology_stats;
+13: optional string owner;
+14: optional DebugOptions debug_options;
+15: optional i32 replication_count;
+521: optional double requested_memonheap;
+522: optional double requested_memoffheap;
+523: optional double requested_cpu;
+524: optional double assigned_memonheap;
+525: optional double assigned_memoffheap;
+526: optional double assigned_cpu;
+}
+
+struct ExecutorAggregateStats {
+1: optional ExecutorSummary exec_summary;
+2: optional ComponentAggregateStats stats;
+}
+
+struct ComponentPageInfo {
+ 1: required string component_id;
+ 2: required ComponentType component_type;
+ 3: optional string topology_id;
+ 4: optional string topology_name;
+ 5: optional i32 num_executors;
+ 6: optional i32 num_tasks;
+ 7: optional map<string,ComponentAggregateStats> window_to_stats;
+ 8: optional map<GlobalStreamId,ComponentAggregateStats> gsid_to_input_stats;
+ 9: optional map<string,ComponentAggregateStats> sid_to_output_stats;
+10: optional list<ExecutorAggregateStats> exec_stats;
+11: optional list<ErrorInfo> errors;
+12: optional string eventlog_host;
+13: optional i32 eventlog_port;
+14: optional DebugOptions debug_options;
+15: optional string topology_status;
 }
 
 struct KillOptions {
@@ -264,6 +377,7 @@ struct SupervisorInfo {
     6: optional map<string, string> scheduler_meta;
     7: optional i64 uptime_secs;
     8: optional string version;
+    9: optional map<string, double> resources_map;
 }
 
 struct NodeInfo {
@@ -271,11 +385,17 @@ struct NodeInfo {
     2: required set<i64> port;
 }
 
+struct WorkerResources {
+    1: optional double mem_on_heap;
+    2: optional double mem_off_heap;
+    3: optional double cpu;
+}
 struct Assignment {
     1: required string master_code_dir;
     2: optional map<string, string> node_host = {};
     3: optional map<list<i64>, NodeInfo> executor_node_port = {};
     4: optional map<list<i64>, i64> executor_start_time_secs = {};
+    5: optional map<NodeInfo, WorkerResources> worker_resources = {};
 }
 
 enum TopologyStatus {
@@ -299,6 +419,7 @@ struct StormBase {
     6: optional string owner;
     7: optional TopologyActionOptions topology_action_options;
     8: optional TopologyStatus prev_status;//currently only used during rebalance action.
+    9: optional map<string, DebugOptions> component_debug; // topology/component level debug option.
 }
 
 struct ClusterWorkerHeartbeat {
@@ -320,6 +441,7 @@ struct LocalStateData {
 struct LocalAssignment {
   1: required string topology_id;
   2: required list<ExecutorInfo> executors;
+  3: optional WorkerResources resources;
 }
 
 struct LSSupervisorId {
@@ -341,14 +463,76 @@ struct LSWorkerHeartbeat {
    4: required i32 port;
 }
 
+struct LSTopoHistory {
+   1: required string topology_id;
+   2: required i64 time_stamp;
+   3: required list<string> users;
+   4: required list<string> groups;
+}
+
+struct LSTopoHistoryList {
+  1: required list<LSTopoHistory> topo_history;
+}
+
 enum NumErrorsChoice {
   ALL,
   NONE,
   ONE
 }
 
+enum ProfileAction {
+  JPROFILE_STOP,
+  JPROFILE_START,
+  JPROFILE_DUMP,
+  JMAP_DUMP,
+  JSTACK_DUMP,
+  JVM_RESTART
+}
+
+struct ProfileRequest {
+  1: required NodeInfo nodeInfo,
+  2: required ProfileAction action,
+  3: optional i64 time_stamp; 
+}
+
 struct GetInfoOptions {
   1: optional NumErrorsChoice num_err_choice;
+}
+
+enum LogLevelAction {
+  UNCHANGED = 1,
+  UPDATE    = 2,
+  REMOVE    = 3
+}
+
+struct LogLevel {
+  1: required LogLevelAction action;
+
+  // during this thrift call, we'll move logger to target_log_level
+  2: optional string target_log_level;
+
+  // number of seconds that target_log_level should be kept
+  // after this timeout, the loggers will be reset to reset_log_level
+  // if timeout is 0, we will not reset 
+  3: optional i32 reset_log_level_timeout_secs;
+
+  // number of seconds since unix epoch corresponding to 
+  // current time (when message gets to nimbus) + reset_log_level_timeout_se
+  // NOTE: this field gets set in Nimbus 
+  4: optional i64 reset_log_level_timeout_epoch;
+
+  // if reset timeout was set, then we would reset 
+  // to this level after timeout (or INFO by default)
+  5: optional string reset_log_level;
+}
+
+struct LogConfig { 
+  // logger name -> log level map
+  2: optional map<string, LogLevel> named_logger_level;
+}
+
+struct TopologyHistoryInfo {
+  1: list<string> topo_ids;
 }
 
 service Nimbus {
@@ -359,6 +543,23 @@ service Nimbus {
   void activate(1: string name) throws (1: NotAliveException e, 2: AuthorizationException aze);
   void deactivate(1: string name) throws (1: NotAliveException e, 2: AuthorizationException aze);
   void rebalance(1: string name, 2: RebalanceOptions options) throws (1: NotAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
+
+  // dynamic log levels
+  void setLogConfig(1: string name, 2: LogConfig config);
+  LogConfig getLogConfig(1: string name);
+
+  /**
+  * Enable/disable logging the tuples generated in topology via an internal EventLogger bolt. The component name is optional
+  * and if null or empty, the debug flag will apply to the entire topology.
+  *
+  * The 'samplingPercentage' will limit loggging to a percentage of generated tuples.
+  **/
+  void debug(1: string name, 2: string component, 3: bool enable, 4: double samplingPercentage) throws (1: NotAliveException e, 2: AuthorizationException aze);
+
+  // dynamic profile actions
+  void setWorkerProfiler(1: string id, 2: ProfileRequest  profileRequest);
+  list<ProfileRequest> getComponentPendingProfileActions(1: string id, 2: string component_id, 3: ProfileAction action);
+
   void uploadNewCredentials(1: string name, 2: Credentials creds) throws (1: NotAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
 
   // need to add functions for asking about status of storms, what nodes they're running on, looking at task logs
@@ -377,6 +578,8 @@ service Nimbus {
   ClusterSummary getClusterInfo() throws (1: AuthorizationException aze);
   TopologyInfo getTopologyInfo(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
   TopologyInfo getTopologyInfoWithOpts(1: string id, 2: GetInfoOptions options) throws (1: NotAliveException e, 2: AuthorizationException aze);
+  TopologyPageInfo getTopologyPageInfo(1: string id, 2: string window, 3: bool is_include_sys) throws (1: NotAliveException e, 2: AuthorizationException aze);
+  ComponentPageInfo getComponentPageInfo(1: string topology_id, 2: string component_id, 3: string window, 4: bool is_include_sys) throws (1: NotAliveException e, 2: AuthorizationException aze);
   //returns json
   string getTopologyConf(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
   /**
@@ -387,6 +590,7 @@ service Nimbus {
    * Returns the user specified topology as submitted originally. Compare {@link #getTopology(String id)}.
    */
   StormTopology getUserTopology(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
+  TopologyHistoryInfo getTopologyHistory(1: string user) throws (1: AuthorizationException aze);
 }
 
 struct DRPCRequest {

@@ -22,6 +22,7 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.ITuple;
 import backtype.storm.tuple.Values;
+import org.apache.commons.lang.Validate;
 import org.apache.storm.jdbc.common.Column;
 
 import java.util.ArrayList;
@@ -33,6 +34,8 @@ public class SimpleJdbcLookupMapper extends SimpleJdbcMapper implements JdbcLook
 
     public SimpleJdbcLookupMapper(Fields outputFields, List<Column> queryColumns) {
         super(queryColumns);
+
+        Validate.notEmpty(outputFields.toList());
         this.outputFields = outputFields;
     }
 

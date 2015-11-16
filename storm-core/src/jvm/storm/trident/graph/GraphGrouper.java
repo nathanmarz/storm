@@ -25,15 +25,14 @@ import storm.trident.util.IndexedEdge;
 
 
 public class GraphGrouper {
-    
-    DirectedGraph<Node, IndexedEdge> graph;
-    Set<Group> currGroups;
-    Map<Node, Group> groupIndex = new HashMap();
+    final DirectedGraph<Node, IndexedEdge> graph;
+    final Set<Group> currGroups;
+    final Map<Node, Group> groupIndex = new HashMap<>();
     
     public GraphGrouper(DirectedGraph<Node, IndexedEdge> graph, Collection<Group> initialGroups) {
         this.graph = graph;
         this.currGroups = new LinkedHashSet(initialGroups);
-        reindex();      
+        reindex();
     }
     
     public Collection<Group> getAllGroups() {
@@ -92,7 +91,7 @@ public class GraphGrouper {
     }
     
     public Collection<Group> outgoingGroups(Group g) {
-        Set<Group> ret = new HashSet();
+        Set<Group> ret = new HashSet<>();
         for(Node n: g.outgoingNodes()) {
             Group other = nodeGroup(n);
             if(other==null || !other.equals(g)) {
@@ -103,7 +102,7 @@ public class GraphGrouper {
     }
     
     public Collection<Group> incomingGroups(Group g) {
-        Set<Group> ret = new HashSet();
+        Set<Group> ret = new HashSet<>();
         for(Node n: g.incomingNodes()) {
             Group other = nodeGroup(n);
             if(other==null || !other.equals(g)) {

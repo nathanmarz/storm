@@ -89,18 +89,18 @@ import org.json.simple.JSONValue;
  * the inputs for that component.</p>
  */
 public class TopologyBuilder {
-    private Map<String, IRichBolt> _bolts = new HashMap<String, IRichBolt>();
-    private Map<String, IRichSpout> _spouts = new HashMap<String, IRichSpout>();
-    private Map<String, ComponentCommon> _commons = new HashMap<String, ComponentCommon>();
+    private Map<String, IRichBolt> _bolts = new HashMap<>();
+    private Map<String, IRichSpout> _spouts = new HashMap<>();
+    private Map<String, ComponentCommon> _commons = new HashMap<>();
 
 //    private Map<String, Map<GlobalStreamId, Grouping>> _inputs = new HashMap<String, Map<GlobalStreamId, Grouping>>();
 
-    private Map<String, StateSpoutSpec> _stateSpouts = new HashMap<String, StateSpoutSpec>();
+    private Map<String, StateSpoutSpec> _stateSpouts = new HashMap<>();
     
     
     public StormTopology createTopology() {
-        Map<String, Bolt> boltSpecs = new HashMap<String, Bolt>();
-        Map<String, SpoutSpec> spoutSpecs = new HashMap<String, SpoutSpec>();
+        Map<String, Bolt> boltSpecs = new HashMap<>();
+        Map<String, SpoutSpec> spoutSpecs = new HashMap<>();
         for(String boltId: _bolts.keySet()) {
             IRichBolt bolt = _bolts.get(boltId);
             ComponentCommon common = getComponentCommon(boltId, bolt);
@@ -123,8 +123,9 @@ public class TopologyBuilder {
      * @param id the id of this component. This id is referenced by other components that want to consume this bolt's outputs.
      * @param bolt the bolt
      * @return use the returned object to declare the inputs to this component
+     * @throws IllegalArgumentException if {@code parallelism_hint} is not positive
      */
-    public BoltDeclarer setBolt(String id, IRichBolt bolt) {
+    public BoltDeclarer setBolt(String id, IRichBolt bolt) throws IllegalArgumentException {
         return setBolt(id, bolt, null);
     }
 
@@ -135,8 +136,9 @@ public class TopologyBuilder {
      * @param bolt the bolt
      * @param parallelism_hint the number of tasks that should be assigned to execute this bolt. Each task will run on a thread in a process somewhere around the cluster.
      * @return use the returned object to declare the inputs to this component
+     * @throws IllegalArgumentException if {@code parallelism_hint} is not positive
      */
-    public BoltDeclarer setBolt(String id, IRichBolt bolt, Number parallelism_hint) {
+    public BoltDeclarer setBolt(String id, IRichBolt bolt, Number parallelism_hint) throws IllegalArgumentException {
         validateUnusedId(id);
         initCommon(id, bolt, parallelism_hint);
         _bolts.put(id, bolt);
@@ -152,8 +154,9 @@ public class TopologyBuilder {
      * @param id the id of this component. This id is referenced by other components that want to consume this bolt's outputs.
      * @param bolt the basic bolt
      * @return use the returned object to declare the inputs to this component
+     * @throws IllegalArgumentException if {@code parallelism_hint} is not positive
      */
-    public BoltDeclarer setBolt(String id, IBasicBolt bolt) {
+    public BoltDeclarer setBolt(String id, IBasicBolt bolt) throws IllegalArgumentException {
         return setBolt(id, bolt, null);
     }
 
@@ -165,10 +168,11 @@ public class TopologyBuilder {
      *
      * @param id the id of this component. This id is referenced by other components that want to consume this bolt's outputs.
      * @param bolt the basic bolt
-     * @param parallelism_hint the number of tasks that should be assigned to execute this bolt. Each task will run on a thread in a process somwehere around the cluster.
+     * @param parallelism_hint the number of tasks that should be assigned to execute this bolt. Each task will run on a thread in a process somewhere around the cluster.
      * @return use the returned object to declare the inputs to this component
+     * @throws IllegalArgumentException if {@code parallelism_hint} is not positive
      */
-    public BoltDeclarer setBolt(String id, IBasicBolt bolt, Number parallelism_hint) {
+    public BoltDeclarer setBolt(String id, IBasicBolt bolt, Number parallelism_hint) throws IllegalArgumentException {
         return setBolt(id, new BasicBoltExecutor(bolt), parallelism_hint);
     }
 
@@ -177,8 +181,9 @@ public class TopologyBuilder {
      *
      * @param id the id of this component. This id is referenced by other components that want to consume this spout's outputs.
      * @param spout the spout
+     * @throws IllegalArgumentException if {@code parallelism_hint} is not positive
      */
-    public SpoutDeclarer setSpout(String id, IRichSpout spout) {
+    public SpoutDeclarer setSpout(String id, IRichSpout spout) throws IllegalArgumentException {
         return setSpout(id, spout, null);
     }
 
@@ -188,21 +193,22 @@ public class TopologyBuilder {
      * will be allocated to this component.
      *
      * @param id the id of this component. This id is referenced by other components that want to consume this spout's outputs.
-     * @param parallelism_hint the number of tasks that should be assigned to execute this spout. Each task will run on a thread in a process somwehere around the cluster.
+     * @param parallelism_hint the number of tasks that should be assigned to execute this spout. Each task will run on a thread in a process somewhere around the cluster.
      * @param spout the spout
+     * @throws IllegalArgumentException if {@code parallelism_hint} is not positive
      */
-    public SpoutDeclarer setSpout(String id, IRichSpout spout, Number parallelism_hint) {
+    public SpoutDeclarer setSpout(String id, IRichSpout spout, Number parallelism_hint) throws IllegalArgumentException {
         validateUnusedId(id);
         initCommon(id, spout, parallelism_hint);
         _spouts.put(id, spout);
         return new SpoutGetter(id);
     }
 
-    public void setStateSpout(String id, IRichStateSpout stateSpout) {
+    public void setStateSpout(String id, IRichStateSpout stateSpout) throws IllegalArgumentException {
         setStateSpout(id, stateSpout, null);
     }
 
-    public void setStateSpout(String id, IRichStateSpout stateSpout, Number parallelism_hint) {
+    public void setStateSpout(String id, IRichStateSpout stateSpout, Number parallelism_hint) throws IllegalArgumentException {
         validateUnusedId(id);
         // TODO: finish
     }
@@ -229,10 +235,16 @@ public class TopologyBuilder {
         return ret;        
     }
     
-    private void initCommon(String id, IComponent component, Number parallelism) {
+    private void initCommon(String id, IComponent component, Number parallelism) throws IllegalArgumentException {
         ComponentCommon common = new ComponentCommon();
         common.set_inputs(new HashMap<GlobalStreamId, Grouping>());
-        if(parallelism!=null) common.set_parallelism_hint(parallelism.intValue());
+        if(parallelism!=null) {
+            int dop = parallelism.intValue();
+            if(dop < 1) {
+                throw new IllegalArgumentException("Parallelism must be positive.");
+            }
+            common.set_parallelism_hint(dop);
+        }
         Map conf = component.getComponentConfiguration();
         if(conf!=null) common.set_json_conf(JSONValue.toJSONString(conf));
         _commons.put(id, common);
@@ -246,7 +258,7 @@ public class TopologyBuilder {
         }
         
         @Override
-        public T addConfigurations(Map conf) {
+        public T addConfigurations(Map<String, Object> conf) {
             if(conf!=null && conf.containsKey(Config.TOPOLOGY_KRYO_REGISTER)) {
                 throw new IllegalArgumentException("Cannot set serializations for a component using fluent API");
             }

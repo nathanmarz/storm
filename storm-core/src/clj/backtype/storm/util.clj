@@ -18,6 +18,7 @@
   (:import [java.net InetAddress])
   (:import [java.util Map Map$Entry List ArrayList Collection Iterator HashMap])
   (:import [java.io FileReader FileNotFoundException])
+  (:import [java.nio.file Paths])
   (:import [backtype.storm Config])
   (:import [backtype.storm.utils Time Container ClojureTimerTask Utils
             MutableObject MutableInt])
@@ -25,11 +26,14 @@
   (:import [java.util.zip ZipFile])
   (:import [java.util.concurrent.locks ReentrantReadWriteLock])
   (:import [java.util.concurrent Semaphore])
+  (:import [java.nio.file Files Paths])
+  (:import [java.nio.file.attribute FileAttribute])
   (:import [java.io File FileOutputStream RandomAccessFile StringWriter
             PrintWriter BufferedReader InputStreamReader IOException])
   (:import [java.lang.management ManagementFactory])
   (:import [org.apache.commons.exec DefaultExecutor CommandLine])
   (:import [org.apache.commons.io FileUtils])
+  (:import [backtype.storm.logging ThriftAccessLogger])
   (:import [org.apache.commons.exec ExecuteException])
   (:import [org.json.simple JSONValue])
   (:import [org.yaml.snakeyaml Yaml]
@@ -57,6 +61,9 @@
 
 (def class-path-separator
   (System/getProperty "path.separator"))
+
+(defn is-absolute-path? [path]
+  (.isAbsolute (Paths/get path (into-array String []))))
 
 (defmacro defalias
   "Defines an alias for a var: a new var with the same root binding (if
@@ -510,18 +517,25 @@
     (map #(str \' (clojure.string/escape % {\' "'\"'\"'"}) \'))
       (clojure.string/join " ")))
 
+(defn script-file-path [dir]
+  (str dir file-path-separator "storm-worker-script.sh"))
+
+(defn container-file-path [dir]
+  (str dir file-path-separator "launch_container.sh"))
+
 (defnk write-script
   [dir command :environment {}]
   (let [script-src (str "#!/bin/bash\n" (clojure.string/join "" (map (fn [[k v]] (str (shell-cmd ["export" (str k "=" v)]) ";\n")) environment)) "\nexec " (shell-cmd command) ";")
-        script-path (str dir "/storm-worker-script.sh")
-        - (spit script-path script-src)]
+        script-path (script-file-path dir)
+        _ (spit script-path script-src)]
     script-path
   ))
 
 (defnk launch-process
-  [command :environment {} :log-prefix nil :exit-code-callback nil]
+  [command :environment {} :log-prefix nil :exit-code-callback nil :directory nil]
   (let [builder (ProcessBuilder. command)
         process-env (.environment builder)]
+    (when directory (.directory builder directory))
     (.redirectErrorStream builder true)
     (doseq [[k v] environment]
       (.put process-env k v))
@@ -574,6 +588,21 @@
     (when-not success?
       (throw (RuntimeException. (str "Failed to touch " path))))))
 
+(defn create-symlink!
+  "Create symlink is to the target"
+  ([path-dir target-dir file-name]
+    (create-symlink! path-dir target-dir file-name file-name))
+  ([path-dir target-dir from-file-name to-file-name]
+    (let [path (str path-dir file-path-separator from-file-name)
+          target (str target-dir file-path-separator to-file-name)
+          empty-array (make-array String 0)
+          attrs (make-array FileAttribute 0)
+          abs-path (.toAbsolutePath (Paths/get path empty-array))
+          abs-target (.toAbsolutePath (Paths/get target empty-array))]
+      (log-debug "Creating symlink [" abs-path "] to [" abs-target "]")
+      (if (not (.exists (.toFile abs-path)))
+        (Files/createSymbolicLink abs-path abs-target attrs)))))
+
 (defn read-dir-contents
   [dir]
   (if (exists-file? dir)
@@ -605,7 +634,7 @@
     (if (nil? storm-dir) 
       (current-classpath)
       (str/join class-path-separator
-                (concat (get-full-jars storm-lib-dir) (get-full-jars storm-extlib-dir) [extcp] [storm-conf-dir])))))
+                (remove nil? (concat (get-full-jars storm-lib-dir) (get-full-jars storm-extlib-dir) [extcp] [storm-conf-dir]))))))
 
 (defn add-to-classpath
   [classpath paths]
@@ -750,10 +779,6 @@
           my-elems (map first colls)
           rest-elems (apply interleave-all (map rest colls))]
       (concat my-elems rest-elems))))
-
-(defn update
-  [m k afn]
-  (assoc m k (afn (get m k))))
 
 (defn any-intersection
   [& sets]
@@ -1017,23 +1042,15 @@
   (.getCanonicalPath 
                 (clojure.java.io/file (System/getProperty "storm.home") "logs")))
 
-(defn- logs-rootname [storm-id port]
-  (str storm-id "-worker-" port))
+(defn logs-filename
+  [storm-id port]
+  (str storm-id file-path-separator port file-path-separator "worker.log"))
 
-(defn logs-filename [storm-id port]
-  (str (logs-rootname storm-id port) ".log"))
+(def worker-log-filename-pattern #"^worker.log(.*)")
 
-(defn logs-metadata-filename [storm-id port]
-  (str (logs-rootname storm-id port) ".yaml"))
-
-(def worker-log-filename-pattern #"^((.*-\d+-\d+)-worker-(\d+))\.log")
-
-(defn get-log-metadata-file
-  ([fname]
-    (if-let [[_ _ id port] (re-matches worker-log-filename-pattern fname)]
-      (get-log-metadata-file id port)))
-  ([id port]
-    (clojure.java.io/file LOG-DIR "metadata" (logs-metadata-filename id port))))
+(defn event-logs-filename
+  [storm-id port]
+  (str storm-id file-path-separator port file-path-separator "events.log"))
 
 (defn clojure-from-yaml-file [yamlFile]
   (try
@@ -1065,3 +1082,7 @@
     (assoc coll k (apply str (repeat (count (coll k)) "#")))
     coll))
 
+(defn log-thrift-access [request-id remoteAddress principal operation]
+  (doto
+    (ThriftAccessLogger.)
+    (.log (str "Request ID: " request-id " access from: " remoteAddress " principal: " principal " operation: " operation))))

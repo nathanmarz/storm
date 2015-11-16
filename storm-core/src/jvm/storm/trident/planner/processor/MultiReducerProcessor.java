@@ -49,7 +49,7 @@ public class MultiReducerProcessor implements TridentProcessor {
     public void prepare(Map conf, TopologyContext context, TridentContext tridentContext) {
         List<Factory> parents = tridentContext.getParentTupleFactories();
         _context = tridentContext;
-        _streamToIndex = new HashMap<String, Integer>();
+        _streamToIndex = new HashMap<>();
         List<String> parentStreams = tridentContext.getParentStreams();
         for(int i=0; i<parentStreams.size(); i++) {
             _streamToIndex.put(parentStreams.get(i), i);

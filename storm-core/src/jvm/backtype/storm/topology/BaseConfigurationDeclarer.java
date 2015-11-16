@@ -20,11 +20,13 @@ package backtype.storm.topology;
 import backtype.storm.Config;
 import java.util.HashMap;
 import java.util.Map;
+import backtype.storm.utils.Utils;
 
 public abstract class BaseConfigurationDeclarer<T extends ComponentConfigurationDeclarer> implements ComponentConfigurationDeclarer<T> {
+    private Map conf = Utils.readStormConfig();
     @Override
     public T addConfiguration(String config, Object value) {
-        Map configMap = new HashMap();
+        Map<String, Object> configMap = new HashMap<>();
         configMap.put(config, value);
         return addConfigurations(configMap);
     }
@@ -48,7 +50,34 @@ public abstract class BaseConfigurationDeclarer<T extends ComponentConfiguration
     
     @Override
     public T setNumTasks(Number val) {
-        if(val!=null) val = val.intValue();
+        if (val != null) val = val.intValue();
         return addConfiguration(Config.TOPOLOGY_TASKS, val);
+    }
+
+    @Override
+    public T setMemoryLoad(Number onHeap) {
+        return setMemoryLoad(onHeap, Utils.getDouble(conf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)));
+    }
+
+    @Override
+    public T setMemoryLoad(Number onHeap, Number offHeap) {
+        T ret = null;
+        if (onHeap != null) {
+            onHeap = onHeap.doubleValue();
+            ret = addConfiguration(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, onHeap);
+        }
+        if (offHeap!=null) {
+            offHeap = offHeap.doubleValue();
+            ret = addConfiguration(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, offHeap);
+        }
+        return ret;
+    }
+
+    @Override
+    public T setCPULoad(Number amount) {
+        if(amount != null) {
+            return addConfiguration(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, amount);
+        }
+        return null;
     }
 }

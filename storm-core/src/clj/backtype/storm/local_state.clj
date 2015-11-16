@@ -19,13 +19,38 @@
             InvalidTopologyException GlobalStreamId
             LSSupervisorId LSApprovedWorkers
             LSSupervisorAssignments LocalAssignment
-            ExecutorInfo LSWorkerHeartbeat])
+            ExecutorInfo LSWorkerHeartbeat
+            LSTopoHistory LSTopoHistoryList
+            WorkerResources])
   (:import [backtype.storm.utils LocalState]))
 
 (def LS-WORKER-HEARTBEAT "worker-heartbeat")
 (def LS-ID "supervisor-id")
 (def LS-LOCAL-ASSIGNMENTS "local-assignments")
 (def LS-APPROVED-WORKERS "approved-workers")
+(def LS-TOPO-HISTORY "topo-hist")
+
+(defn ->LSTopoHistory
+  [{topoid :topoid timestamp :timestamp users :users groups :groups}]
+  (LSTopoHistory. topoid timestamp users groups))
+
+(defn ->topo-history
+  [thrift-topo-hist]
+  {
+    :topoid (.get_topology_id thrift-topo-hist)
+    :timestamp (.get_time_stamp thrift-topo-hist)
+    :users (.get_users thrift-topo-hist)
+    :groups (.get_groups thrift-topo-hist)})
+
+(defn ls-topo-hist!
+  [^LocalState local-state hist-list]
+  (.put local-state LS-TOPO-HISTORY
+    (LSTopoHistoryList. (map ->LSTopoHistory hist-list))))
+
+(defn ls-topo-hist
+  [^LocalState local-state]
+  (if-let [thrift-hist-list (.get local-state LS-TOPO-HISTORY)]
+    (map ->topo-history (.get_topo_history thrift-hist-list))))
 
 (defn ls-supervisor-id!
   [^LocalState local-state ^String id]
@@ -59,18 +84,25 @@
       [(.get_task_start exec-info) (.get_task_end exec-info)])))
 
 (defn ->LocalAssignment
-  [{storm-id :storm-id executors :executors}]
-  (LocalAssignment. storm-id (->ExecutorInfo-list executors)))
+  [{storm-id :storm-id executors :executors resources :resources}]
+  (let [assignment (LocalAssignment. storm-id (->ExecutorInfo-list executors))]
+    (if resources (.set_resources assignment
+                                  (doto (WorkerResources. )
+                                    (.set_mem_on_heap (first resources))
+                                    (.set_mem_off_heap (second resources))
+                                    (.set_cpu (last resources)))))
+    assignment))
 
 (defn mk-local-assignment
-  [storm-id executors]
-  {:storm-id storm-id :executors executors})
+  [storm-id executors resources]
+  {:storm-id storm-id :executors executors :resources resources})
 
 (defn ->local-assignment
   [^LocalAssignment thrift-local-assignment]
     (mk-local-assignment
       (.get_topology_id thrift-local-assignment)
-      (->executor-list (.get_executors thrift-local-assignment))))
+      (->executor-list (.get_executors thrift-local-assignment))
+      (.get_resources thrift-local-assignment)))
 
 (defn ls-local-assignments!
   [^LocalState local-state assignments]

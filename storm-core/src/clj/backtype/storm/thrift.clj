@@ -282,3 +282,6 @@
   [StormTopology$_Fields/SPOUTS
    StormTopology$_Fields/STATE_SPOUTS])
 
+(def WORKER-HOOK-FIELD
+  [StormTopology$_Fields/WORKER_HOOKS])
+

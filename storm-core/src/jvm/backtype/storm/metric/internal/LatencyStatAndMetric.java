@@ -145,7 +145,10 @@ public class LatencyStatAndMetric implements IMetric {
         }
 
         long timeSpent = now - _bucketStart;
-        double ret = ((double)(lat + _exactExtraLat))/(count + _exactExtraCount);
+        long exactExtraCountSum = count + _exactExtraCount;
+        double ret = exactExtraCountSum > 0 ?
+                ((double)(lat + _exactExtraLat))/exactExtraCountSum :
+                0.0;
         _bucketStart = now;
         _exactExtraLat = 0;
         _exactExtraCount = 0;
@@ -227,7 +230,10 @@ public class LatencyStatAndMetric implements IMetric {
         ret.put("600", readApproximateLatAvg(lat, count, timeSpent, _tmTime, _tmLatBuckets, _tmCountBuckets, 600 * 1000));
         ret.put("10800", readApproximateLatAvg(lat, count, timeSpent, _thTime, _thLatBuckets, _thCountBuckets, 10800 * 1000));
         ret.put("86400", readApproximateLatAvg(lat, count, timeSpent, _odTime, _odLatBuckets, _odCountBuckets, 86400 * 1000));
-        ret.put(":all-time", ((double)lat + _allTimeLat)/(count + _allTimeCount));
+        long allTimeCountSum = count + _allTimeCount;
+        ret.put(":all-time", allTimeCountSum > 0 ?
+                ((double)lat + _allTimeLat)/allTimeCountSum :
+                0.0);
         return ret;
     }
 
@@ -242,7 +248,7 @@ public class LatencyStatAndMetric implements IMetric {
             totalCount += countBuckets[i];
             timeNeeded -= bucketTime[i];
         }
-        return ((double)totalLat)/totalCount;
+        return totalCount > 0 ? ((double)totalLat)/totalCount : 0.0;
     }
 
     public void close() {

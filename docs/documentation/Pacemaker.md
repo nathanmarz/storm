@@ -1,7 +1,7 @@
 # Pacemaker
 
 ### Introduction
-Pacemaker is a storm daemon designed to process heartbeats from workers. As Storm is scaled up, ZooKeeper begins to become a bottleneck due to high volumes of writes from workers doing heartbeats. Lots of writes to disk and traffic across the network is generated as ZooKeeper tries to maintain consistency.
+Pacemaker is a storm daemon designed to process heartbeats from workers. As Storm is scaled up, ZooKeeper begins to become a bottleneck due to high volumes of writes from workers doing heartbeats. Lots of writes to disk and too much traffic across the network is generated as ZooKeeper tries to maintain consistency.
 
 Because heartbeats are of an ephemeral nature, they do not need to be persisted to disk or synced across nodes; an in-memory store will do. This is the role of Pacemaker. Pacemaker functions as a simple in-memory key/value store with ZooKeeper-like, directory-style keys and byte array values.
 
@@ -44,11 +44,11 @@ Currently digest (password-based) and Kerberos security are supported. Security 
 
 #### Digest
 To configure digest authentication, set `pacemaker.auth.method: DIGEST` in the cluster config on the nodes hosting Nimbus and Pacemaker.
-The nodes must also have `java.security.auth.login.config` set to point to a jaas config file containing the following structure:
+The nodes must also have `java.security.auth.login.config` set to point to a JAAS config file containing the following structure:
 ```
 PacemakerDigest {
     username="some username"
-    password="some password"
+    password="some password";
 };
 ```
 
@@ -57,9 +57,9 @@ Worker nodes need not have these configs set, and may keep `pacemaker.auth.metho
 
 #### Kerberos
 To configure Kerberos authentication, set `pacemaker.auth.method: KERBEROS` in the cluster config on the nodes hosting Nimbus and Pacemaker.
-The nodes must also have `java.security.auth.login.config` set to point to a jaas config.
+The nodes must also have `java.security.auth.login.config` set to point to a JAAS config.
 
-The jaas config on Nimbus must look something like this:
+The JAAS config on Nimbus must look something like this:
 ```
 PacemakerClient {
     com.sun.security.auth.module.Krb5LoginModule required
@@ -73,7 +73,7 @@ PacemakerClient {
                          
 ```
 
-The jaas config on Pacemaker must look something like this:
+The JAAS config on Pacemaker must look something like this:
 ```
 PacemakerServer {
    com.sun.security.auth.module.Krb5LoginModule required

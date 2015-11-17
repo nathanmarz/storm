@@ -30,7 +30,7 @@
 
 ;; Stats Functions
 
-(def sleep-seconds 5)
+(def sleep-seconds 60)
 
 
 (defn- check-and-set-loop [stats key new & {:keys [compare new-fn]
@@ -71,12 +71,12 @@
             largest (.getAndSet (:largest-heartbeat-size stats) 0)
             average (.getAndSet (:average-heartbeat-size stats) 0)
             total-keys (.size heartbeats)]
-        (log-message "\nReceived " send-count " heartbeats totaling " received-size " bytes,\n"
-                     "Sent " get-count " heartbeats totaling " sent-size " bytes,\n"
-                     "The largest heartbeat was " largest " bytes,\n"
-                     "The average heartbeat was " average " bytes,\n"
-                     "Pacemaker contained " total-keys " total keys\n"
-                     "in the last " sleep-seconds " second(s)")
+        (log-debug "\nReceived " send-count " heartbeats totaling " received-size " bytes,\n"
+                   "Sent " get-count " heartbeats totaling " sent-size " bytes,\n"
+                   "The largest heartbeat was " largest " bytes,\n"
+                   "The average heartbeat was " average " bytes,\n"
+                   "Pacemaker contained " total-keys " total keys\n"
+                   "in the last " sleep-seconds " second(s)")
         (dosync (ref-set last-five-s
                          {:send-pulse-count send-count
                           :total-received-size received-size

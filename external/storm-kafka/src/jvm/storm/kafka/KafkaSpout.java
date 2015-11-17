@@ -23,6 +23,7 @@ import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseRichSpout;
+import com.google.common.base.Strings;
 import kafka.message.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -192,6 +193,8 @@ public class KafkaSpout extends BaseRichSpout {
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         if (_spoutConfig.topicAsStreamId) {
             declarer.declareStream(_spoutConfig.topic, _spoutConfig.scheme.getOutputFields());
+        } else if (!Strings.isNullOrEmpty(_spoutConfig.outputStreamId)) {
+            declarer.declareStream(_spoutConfig.outputStreamId, _spoutConfig.scheme.getOutputFields());
         } else {
             declarer.declare(_spoutConfig.scheme.getOutputFields());
         }

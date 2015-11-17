@@ -816,7 +816,7 @@ public class Config extends HashMap<String, Object> {
 
     /**
      * This parameter is used by the storm-deploy project to configure the
-     * jvm options for the nimbus daemon.
+     * jvm options for the pacemaker daemon.
      */
     @isString
     public static final String PACEMAKER_CHILDOPTS = "pacemaker.childopts";

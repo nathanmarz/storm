@@ -237,6 +237,10 @@ public class TopologyBuilder {
      * @param workerHook the lifecycle hook to add
      */
     public void addWorkerHook(IWorkerHook workerHook) {
+        if(null == workerHook) {
+            throw new IllegalArgumentException("WorkerHook must not be null.");
+        }
+
         _workerHooks.add(ByteBuffer.wrap(Utils.javaSerialize(workerHook)));
     }
 

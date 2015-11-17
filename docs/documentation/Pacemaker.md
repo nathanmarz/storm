@@ -53,7 +53,7 @@ PacemakerDigest {
 ```
 
 Any node with these settings configured will be able to read from Pacemaker.
-Worker nodes need not have these configs set, and may keep `pacemaker.auth.method: NONE` set, since they do not need to read from Pacemaker daemon.
+Worker nodes need not have these configs set, and may keep `pacemaker.auth.method: NONE` set, since they do not need to read from the Pacemaker daemon.
 
 #### Kerberos
 To configure Kerberos authentication, set `pacemaker.auth.method: KERBEROS` in the cluster config on the nodes hosting Nimbus and Pacemaker.
@@ -85,6 +85,5 @@ PacemakerServer {
 };
 ```
 
-The client's user principal in the `PacemakerClient` section on the Nimbus host must match the `nimbus.daemon.user` storm cluster config value.
-The client's `serviceName` value must match the server's user principal in the `PacemakerServer` section on the Pacemaker host.
-
+ - The client's user principal in the `PacemakerClient` section on the Nimbus host must match the `nimbus.daemon.user` storm cluster config value.
+ - The client's `serviceName` value must match the server's user principal in the `PacemakerServer` section on the Pacemaker host.

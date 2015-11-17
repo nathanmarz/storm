@@ -19,10 +19,13 @@ package backtype.storm.hooks;
 
 import backtype.storm.task.WorkerTopologyContext;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
-public class BaseWorkerHook implements IWorkerHook {
+public class BaseWorkerHook implements IWorkerHook, Serializable {
+    private static final long serialVersionUID = 2589466485198339529L;
+
     @Override
     public void start(Map stormConf, WorkerTopologyContext context, List taskIds) {
 

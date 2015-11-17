@@ -241,6 +241,7 @@ under the License.
 * Chuck Burgess ([@ashnazg](https://github.com/ashnazg))
 * Tom Graves ([@tgravescs](https://github.com/tgravescs))
 * Dror Weiss ([@drorweiss](https://github.com/drorweiss))
+* Victor Wong ([@victor-wong](https://github.com/victor-wong))
 
 ## Acknowledgements
 

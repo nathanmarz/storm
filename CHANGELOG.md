@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1016: Generate trident bolt ids with sorted group names
  * STORM-1190: System Load too high after recent changes
  * STORM-1098: Nimbus hook for topology actions.
  * STORM-1145: Have IConnection push tuples instead of pull them

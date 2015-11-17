@@ -19,12 +19,12 @@ The corresponding Pacemaker client is a plugin for the `ClusterState` interface,
 
 #### Example
 
-To get Pacemaker up and running, set the following option in the cluster config:
+To get Pacemaker up and running, set the following option in the cluster config on all nodes:
 ```
 storm.cluster.state.store: "org.apache.storm.pacemaker.pacemaker_state_factory"
 ```
 
-The Pacemaker host also needs to be set:
+The Pacemaker host also needs to be set on all nodes:
 ```
 pacemaker.host: somehost.mycompany.com
 ```

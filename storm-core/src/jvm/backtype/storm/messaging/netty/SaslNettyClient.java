@@ -81,9 +81,7 @@ public class SaslNettyClient {
      */
     public byte[] saslResponse(SaslMessageToken saslTokenMessage) {
         try {
-            byte[] retval = saslClient.evaluateChallenge(saslTokenMessage
-                    .getSaslToken());
-            return retval;
+            return saslClient.evaluateChallenge(saslTokenMessage.getSaslToken());
         } catch (SaslException e) {
             LOG.error(
                     "saslResponse: Failed to respond to SASL server's token:",
@@ -104,8 +102,6 @@ public class SaslNettyClient {
 
         /**
          * Set private members using topology token.
-         * 
-         * @param topologyToken
          */
         public SaslClientCallbackHandler(String topologyToken, byte[] token) {
             this.userName = SaslUtils

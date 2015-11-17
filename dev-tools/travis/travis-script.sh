@@ -28,8 +28,8 @@ TRAVIS_SCRIPT_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
 cd ${STORM_SRC_ROOT_DIR}
 
-# We should concern that Travis CI could be very slow cause it uses VM
-export STORM_TEST_TIMEOUT_MS=100000
+# We should be concerned that Travis CI could be very slow because it uses VM
+export STORM_TEST_TIMEOUT_MS=150000
 
 # We now lean on Travis CI's implicit behavior, ```mvn clean install -DskipTests``` before running script
 mvn --batch-mode install -fae -Pnative
@@ -39,6 +39,12 @@ for dir in `find . -type d -and -wholename \*/target/\*-reports`;
 do
   echo "Looking for errors in ${dir}"
   python ${TRAVIS_SCRIPT_DIR}/print-errors-from-test-reports.py "${dir}"
+done
+
+echo "Looking for unapproved licenses"
+for rat in `find . -name rat.txt`;
+do
+  python ${TRAVIS_SCRIPT_DIR}/ratprint.py "${rat}"
 done
 
 exit ${BUILD_RET_VAL}

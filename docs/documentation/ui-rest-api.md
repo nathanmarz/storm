@@ -172,6 +172,27 @@ Sample response:
 }
 ```
 
+### /api/v1/history/summary (GET)
+
+Returns a list of all running topologies' IDs submitted by the current user.
+
+Response fields:
+
+|Field  |Value | Description|
+|---	|---	|---
+|topo-history| List| List of Topologies' IDs|
+
+Sample response:
+
+```json
+{
+    "topo-history":[
+        "wc6-1-1446571009",
+        "wc8-2-1446587178"
+     ]
+}
+```
+
 ### /api/v1/topology/summary (GET)
 
 Returns summary information for all topologies.
@@ -189,6 +210,15 @@ Response fields:
 |workersTotal| Integer |Number of workers used for this topology|
 |executorsTotal| Integer |Number of executors used for this topology|
 |replicationCount| Integer |Number of nimbus hosts on which this topology code is replicated|
+|requestedMemOnHeap| Double|Requested On-Heap Memory by User (MB)
+|requestedMemOffHeap| Double|Requested Off-Heap Memory by User (MB)|
+|requestedTotalMem| Double|Requested Total Memory by User (MB)|
+|requestedCpu| Double|Requested CPU by User (%)|
+|assignedMemOnHeap| Double|Assigned On-Heap Memory by Scheduler (MB)|
+|assignedMemOffHeap| Double|Assigned Off-Heap Memory by Scheduler (MB)|
+|assignedTotalMem| Double|Assigned Total Memory by Scheduler (MB)|
+|assignedCpu| Double|Assigned CPU by Scheduler (%)|
+
 Sample response:
 
 ```json
@@ -203,9 +233,50 @@ Sample response:
             "tasksTotal": 28,
             "workersTotal": 3,
             "executorsTotal": 28,
-            "replicationCount": 1
+            "replicationCount": 1,
+            "requestedMemOnHeap": 640,
+            "requestedMemOffHeap": 128,
+            "requestedTotalMem": 768,
+            "requestedCpu": 80,
+            "assignedMemOnHeap": 640,
+            "assignedMemOffHeap": 128,
+            "assignedTotalMem": 768,
+            "assignedCpu": 80
         }
     ]
+}
+```
+
+### /api/v1/topology-workers/:id (GET)
+
+Returns the worker' information (host and port) for a topology.
+
+Response fields:
+
+|Field  |Value | Description|
+|---	|---	|---
+|hostPortList| List| Workers' information for a topology|
+|name| Integer| Logviewer Port|
+
+Sample response:
+
+```json
+{
+    "hostPortList":[
+            {
+                "host":"192.168.202.2",
+                "port":6701
+            },
+            {
+                "host":"192.168.202.2",
+                "port":6702
+            },
+            {
+                "host":"192.168.202.3",
+                "port":6700
+            }
+        ],
+    "logviewerPort":8000
 }
 ```
 
@@ -616,6 +687,201 @@ Sample response:
             "failed": 0
         }
     ]
+}
+```
+
+## Profiling and Debugging GET Operations
+
+###  /api/v1/topology/:id/profiling/start/:host-port/:timeout (GET)
+
+Request to start profiler on worker with timeout. Returns status and link to profiler artifacts for worker.
+
+|Parameter |Value   |Description  |
+|----------|--------|-------------|
+|id   	   |String (required)| Topology Id  |
+|host-port |String (required)| Worker Id |
+|timeout |String (required)| Time out for profiler to stop in minutes |
+
+Response fields:
+
+|Field  |Value |Description|
+|-----	|----- |-----------|
+|id   | String | Worker id|
+|status | String | Response Status |
+|timeout | String | Requested timeout
+|dumplink | String | Link to logviewer URL for worker profiler documents.|
+
+Examples:
+
+```no-highlight
+1. http://ui-daemon-host-name:8080/api/v1/topology/wordcount-1-1446614150/profiling/start/10.11.1.7:6701/10
+2. http://ui-daemon-host-name:8080/api/v1/topology/wordcount-1-1446614150/profiling/start/10.11.1.7:6701/5
+3. http://ui-daemon-host-name:8080/api/v1/topology/wordcount-1-1446614150/profiling/start/10.11.1.7:6701/20
+```
+
+Sample response:
+
+```json
+{
+   "status": "ok",
+   "id": "10.11.1.7:6701",
+   "timeout": "10",
+   "dumplink": "http:\/\/10.11.1.7:8000\/dumps\/wordcount-1-1446614150\/10.11.1.7%3A6701"
+}
+```
+
+###  /api/v1/topology/:id/profiling/dumpprofile/:host-port (GET)
+
+Request to dump profiler recording on worker. Returns status and worker id for the request.
+
+|Parameter |Value   |Description  |
+|----------|--------|-------------|
+|id   	   |String (required)| Topology Id  |
+|host-port |String (required)| Worker Id |
+
+Response fields:
+
+|Field  |Value |Description|
+|-----	|----- |-----------|
+|id   | String | Worker id|
+|status | String | Response Status |
+
+Examples:
+
+```no-highlight
+1. http://ui-daemon-host-name:8080/api/v1/topology/wordcount-1-1446614150/profiling/dumpprofile/10.11.1.7:6701
+```
+
+Sample response:
+
+```json
+{
+   "status": "ok",
+   "id": "10.11.1.7:6701",
+}
+```
+
+###  /api/v1/topology/:id/profiling/stop/:host-port (GET)
+
+Request to stop profiler on worker. Returns status and worker id for the request.
+
+|Parameter |Value   |Description  |
+|----------|--------|-------------|
+|id   	   |String (required)| Topology Id  |
+|host-port |String (required)| Worker Id |
+
+Response fields:
+
+|Field  |Value |Description|
+|-----	|----- |-----------|
+|id   | String | Worker id|
+|status | String | Response Status |
+
+Examples:
+
+```no-highlight
+1. http://ui-daemon-host-name:8080/api/v1/topology/wordcount-1-1446614150/profiling/stop/10.11.1.7:6701
+```
+
+Sample response:
+
+```json
+{
+   "status": "ok",
+   "id": "10.11.1.7:6701",
+}
+```
+
+###  /api/v1/topology/:id/profiling/dumpjstack/:host-port (GET)
+
+Request to dump jstack on worker. Returns status and worker id for the request.
+
+|Parameter |Value   |Description  |
+|----------|--------|-------------|
+|id   	   |String (required)| Topology Id  |
+|host-port |String (required)| Worker Id |
+
+Response fields:
+
+|Field  |Value |Description|
+|-----	|----- |-----------|
+|id   | String | Worker id|
+|status | String | Response Status |
+
+Examples:
+
+```no-highlight
+1. http://ui-daemon-host-name:8080/api/v1/topology/wordcount-1-1446614150/profiling/dumpjstack/10.11.1.7:6701
+```
+
+Sample response:
+
+```json
+{
+   "status": "ok",
+   "id": "10.11.1.7:6701",
+}
+```
+
+###  /api/v1/topology/:id/profiling/dumpheap/:host-port (GET)
+
+Request to dump heap (jmap) on worker. Returns status and worker id for the request.
+
+|Parameter |Value   |Description  |
+|----------|--------|-------------|
+|id   	   |String (required)| Topology Id  |
+|host-port |String (required)| Worker Id |
+
+Response fields:
+
+|Field  |Value |Description|
+|-----	|----- |-----------|
+|id   | String | Worker id|
+|status | String | Response Status |
+
+Examples:
+
+```no-highlight
+1. http://ui-daemon-host-name:8080/api/v1/topology/wordcount-1-1446614150/profiling/dumpheap/10.11.1.7:6701
+```
+
+Sample response:
+
+```json
+{
+   "status": "ok",
+   "id": "10.11.1.7:6701",
+}
+```
+
+###  /api/v1/topology/:id/profiling/restartworker/:host-port (GET)
+
+Request to request the worker. Returns status and worker id for the request.
+
+|Parameter |Value   |Description  |
+|----------|--------|-------------|
+|id   	   |String (required)| Topology Id  |
+|host-port |String (required)| Worker Id |
+
+Response fields:
+
+|Field  |Value |Description|
+|-----	|----- |-----------|
+|id   | String | Worker id|
+|status | String | Response Status |
+
+Examples:
+
+```no-highlight
+1. http://ui-daemon-host-name:8080/api/v1/topology/wordcount-1-1446614150/profiling/restartworker/10.11.1.7:6701
+```
+
+Sample response:
+
+```json
+{
+   "status": "ok",
+   "id": "10.11.1.7:6701",
 }
 ```
 

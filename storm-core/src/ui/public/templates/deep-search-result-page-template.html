@@ -1,0 +1,66 @@
+<!--
+ Licensed to the Apache Software Foundation (ASF) under one or more
+ contributor license agreements.  See the NOTICE file distributed with
+ this work for additional information regarding copyright ownership.
+ The ASF licenses this file to You under the Apache License, Version 2.0
+ (the "License"); you may not use this file except in compliance with
+ the License.  You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+<script id="search-result-files-template" type="text/html">
+<table id="search-result-table" class="table table-striped compact">
+  <thead><tr><th>host:port</th><th>Match</th></tr></thead>
+  <tbody>
+    {{#supervisors}}
+    <tr id="{{elemId}}">
+      <td>{{host}}</td>
+      <td>LOADING ...</td>
+    </tr>
+    {{/supervisors}}
+  </tbody>
+</table>
+</script>
+<script id="search-result-identified-template" type="text/html">
+    {{#matches}}
+    <tr>
+      <td><a href="http://{{host}}:{{logviewerPort}}/logviewer_search.html?file={{fileName}}&search={{searchString}}">{{host}}:{{port}}</a></td>
+      <td><pre>{{beforeString}}<b><a href="{{logviewerURL}}">{{matchString}}</a></b>{{afterString}}</pre></td>
+    </tr>
+    {{/matches}}
+</script>
+<script id="search-form-template" type="text/html">
+  <div id="search-form-container" class="search-box">
+    <form action="deep_search_result.html" id="search-box">
+      <div class="row"  data-toggle="tooltip" data-placement="bottom" title="The ID of the topology, can be a regex for search, i.e. '.' lists everything">
+        <div class="col-md-2">Topology Id:</div>
+        <div class="col-md-10">
+          <input class="expand-box" id="search-id" name="id" class="typeahead" type="text" placeholder="Topology-ID" value="{{id}}" number="50">
+        </div>
+      </div>
+      <div class="row" data-toggle="tooltip" data-placement="bottom" title="Exact search string to look for (NOT A REGEX)">
+        <div class="col-md-2">Search:</div>
+        <div class="col-md-10">
+          <input class="expand-box" type="text" name="search" value="{{search}}" placeholder="Search" number="50">
+        </div>
+      </div>
+      <div class="row" data-toggle="tooltip" data-placement="bottom" title="Search older logs that have rotated and may have been compressed.  This could take much longer.">
+        <div class="col-md-2">Search archived logs:</div>
+        <div class="col-md-10"><input type="checkbox" name="search-archived" {{search_archived}}></div>
+      </div>
+      <div class="row">
+        <div class="col-md-12">
+          <input type="submit" value="Search">
+        </td>
+      </div>
+      <input type="hidden" name="count" value="{{count}}">
+    </form>
+  </div>
+</script>
+

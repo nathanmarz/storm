@@ -19,7 +19,6 @@
 package backtype.storm.security.auth;
 
 import java.io.IOException;
-import java.util.Random;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;

@@ -28,15 +28,15 @@ import java.util.concurrent.Semaphore;
 public class KeyedRoundRobinQueue<V> {
     private final Object _lock = new Object();
     private Semaphore _size = new Semaphore(0);
-    private Map<Object, Queue<V>> _queues = new HashMap<Object, Queue<V>>();
-    private List<Object> _keyOrder = new ArrayList<Object>();
+    private Map<Object, Queue<V>> _queues = new HashMap<>();
+    private List<Object> _keyOrder = new ArrayList<>();
     private int _currIndex = 0;
 
     public void add(Object key, V val) {
         synchronized(_lock) {
             Queue<V> queue = _queues.get(key);
             if(queue==null) {
-                queue = new LinkedList<V>();
+                queue = new LinkedList<>();
                 _queues.put(key, queue);
                 _keyOrder.add(key);
             }

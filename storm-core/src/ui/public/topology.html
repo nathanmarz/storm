@@ -48,10 +48,20 @@
     <div id="ui-user" class="col-md-1"></div>
   </div>
   <div class="row">
+      <div class="col-md-12" id="search-form">
+      </div>
+  </div>
+  <div class="row">
     <div class="col-md-12">
       <h2>Topology summary</h2>
       <div id="topology-summary"></div>
     </div>
+  </div>
+  <div class="row">
+      <div class="col-md-12">
+          <h2>Topology resources</h2>
+          <div id="topology-resources"></div>
+      </div>
   </div>
   <div class="row">
     <div id="topology-actions" class="col-md-12"></div>
@@ -265,20 +275,24 @@ $(document).ready(function() {
         });
 
         var topologySummary = $("#topology-summary");
+        var topologyResources = $("#topology-resources");
         var topologyStats = $("#topology-stats");
         var spoutStats = $("#spout-stats");
         var boltStats = $("#bolt-stats");
         var config = $("#topology-configuration");
         var topologyActions = $("#topology-actions");
         var topologyVisualization = $("#topology-visualization")
+        var searchForm = $("#search-form")
         var formattedConfig = formatConfigData(response["configuration"]);
         var buttonJsonData = topologyActionJson(response["id"],response["encodedId"],response["name"],response["status"]
                                                 ,response["msgTimeout"],response["debug"],response["samplingPct"]);
         $.ajax ({url: "/templates/topology-page-template.html", success: function(template) {
-          toggleChangeLogLevel = function (data) {
+            toggleChangeLogLevel = function (data) {
               renderLogLevelForm (template, data);
             }
+            searchForm.append(Mustache.render($(template).filter("#search-form-template").html(),{id: topologyId}));
             topologySummary.append(Mustache.render($(template).filter("#topology-summary-template").html(),response));
+            topologyResources.append(Mustache.render($(template).filter("#topology-resources-template").html(),response));
             topologyActions.append(Mustache.render($(template).filter("#topology-actions-template").html(),buttonJsonData));
             topologyStats.append(Mustache.render($(template).filter("#topology-stats-template").html(),response));
             //window, emitted, transferred, complete latency, acked, failed

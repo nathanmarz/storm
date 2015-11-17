@@ -20,9 +20,8 @@ package backtype.storm.utils;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.lmax.disruptor.BlockingWaitStrategy;
 import com.lmax.disruptor.EventHandler;
-import com.lmax.disruptor.MultiThreadedClaimStrategy;
+import com.lmax.disruptor.dsl.ProducerType;
 import org.junit.Assert;
 import org.junit.Test;
 import junit.framework.TestCase;
@@ -30,14 +29,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DisruptorQueueBackpressureTest extends TestCase {
-
     private static final Logger LOG = LoggerFactory.getLogger(DisruptorQueueBackpressureTest.class);
 
     private final static int MESSAGES = 100;
     private final static int CAPACITY = 128;
     private final static double HIGH_WATERMARK = 0.6;
     private final static double LOW_WATERMARK = 0.2;
-
 
     @Test
     public void testBackPressureCallback() throws Exception {
@@ -53,7 +50,6 @@ public class DisruptorQueueBackpressureTest extends TestCase {
 
         DisruptorBackpressureCallbackImpl cb = new DisruptorBackpressureCallbackImpl(queue, throttleOn, consumerCursor);
         queue.registerBackpressureCallback(cb);
-        queue.consumerStarted();
 
         for (int i = 0; i < MESSAGES; i++) {
             queue.publish(String.valueOf(i));
@@ -69,9 +65,9 @@ public class DisruptorQueueBackpressureTest extends TestCase {
 
 
         Assert.assertEquals("Check the calling time of throttle on. ",
-                cb.highWaterMarkCalledPopulation, queue.getHighWaterMark());
+                queue.getHighWaterMark(), cb.highWaterMarkCalledPopulation);
         Assert.assertEquals("Checking the calling time of throttle off. ",
-                cb.lowWaterMarkCalledPopulation, queue.getLowWaterMark());
+                queue.getLowWaterMark(), cb.lowWaterMarkCalledPopulation);
     }
 
     class DisruptorBackpressureCallbackImpl implements DisruptorBackpressureCallback {
@@ -94,7 +90,7 @@ public class DisruptorQueueBackpressureTest extends TestCase {
         @Override
         public void highWaterMark() throws Exception {
             if (!throttleOn.get()) {
-                highWaterMarkCalledPopulation = queue.getMetrics().population();
+                highWaterMarkCalledPopulation = queue.getMetrics().population() + queue.getMetrics().overflow();
                 throttleOn.set(true);
             }
         }
@@ -102,14 +98,13 @@ public class DisruptorQueueBackpressureTest extends TestCase {
         @Override
         public void lowWaterMark() throws Exception {
              if (throttleOn.get()) {
-                 lowWaterMarkCalledPopulation = queue.getMetrics().writePos() - consumerCursor.get();
+                 lowWaterMarkCalledPopulation = queue.getMetrics().writePos() - consumerCursor.get() + queue.getMetrics().overflow();
                  throttleOn.set(false);
              }
         }
     }
 
     private static DisruptorQueue createQueue(String name, int queueSize) {
-        return new DisruptorQueue(name, new MultiThreadedClaimStrategy(
-                queueSize), new BlockingWaitStrategy(), 10L);
+        return new DisruptorQueue(name, ProducerType.MULTI, queueSize, 0L, 1, 1L);
     }
 }

@@ -66,12 +66,14 @@ public class Config extends HashMap<String, Object> {
      * Netty based messaging: The buffer size for send/recv buffer
      */
     @isInteger
+    @isPositiveNumber
     public static final String STORM_MESSAGING_NETTY_BUFFER_SIZE = "storm.messaging.netty.buffer_size";
 
     /**
      * Netty based messaging: Sets the backlog value to specify when the channel binds to a local address
      */
     @isInteger
+    @isPositiveNumber
     public static final String STORM_MESSAGING_NETTY_SOCKET_BACKLOG = "storm.messaging.netty.socket.backlog";
 
     /**
@@ -86,18 +88,21 @@ public class Config extends HashMap<String, Object> {
      * Netty based messaging: The min # of milliseconds that a peer will wait.
      */
     @isInteger
+    @isPositiveNumber(includeZero = true)
     public static final String STORM_MESSAGING_NETTY_MIN_SLEEP_MS = "storm.messaging.netty.min_wait_ms";
 
     /**
      * Netty based messaging: The max # of milliseconds that a peer will wait.
      */
     @isInteger
+    @isPositiveNumber(includeZero = true)
     public static final String STORM_MESSAGING_NETTY_MAX_SLEEP_MS = "storm.messaging.netty.max_wait_ms";
 
     /**
      * Netty based messaging: The # of worker threads for the server.
      */
     @isInteger
+    @isPositiveNumber(includeZero = true)
     public static final String STORM_MESSAGING_NETTY_SERVER_WORKER_THREADS = "storm.messaging.netty.server_worker_threads";
 
     /**
@@ -141,6 +146,7 @@ public class Config extends HashMap<String, Object> {
      * The port Storm will use to connect to each of the ZooKeeper servers.
      */
     @isInteger
+    @isPositiveNumber
     public static final String STORM_ZOOKEEPER_PORT = "storm.zookeeper.port";
 
     /**
@@ -160,7 +166,7 @@ public class Config extends HashMap<String, Object> {
     public static final String STORM_LOG4J2_CONF_DIR = "storm.log4j2.conf.dir";
 
     /**
-     * A global task scheduler used to assign topologies's tasks to supervisors' wokers.
+     * A global task scheduler used to assign topologies's tasks to supervisors' workers.
      *
      * If this is not set, a default system scheduler will be used.
      */
@@ -186,7 +192,7 @@ public class Config extends HashMap<String, Object> {
      * The hostname the supervisors/workers should report to nimbus. If unset, Storm will
      * get the hostname to report by calling <code>InetAddress.getLocalHost().getCanonicalHostName()</code>.
      *
-     * You should set this config when you dont have a DNS which supervisors/workers
+     * You should set this config when you don't have a DNS which supervisors/workers
      * can utilize to find each other based on hostname got from calls to
      * <code>InetAddress.getLocalHost().getCanonicalHostName()</code>.
      */
@@ -208,7 +214,7 @@ public class Config extends HashMap<String, Object> {
     /**
      * Max no.of seconds group mapping service will cache user groups
      */
-    @isNumber
+    @isInteger
     public static final String STORM_GROUP_MAPPING_SERVICE_CACHE_DURATION_SECS = "storm.group.mapping.service.cache.duration.secs";
 
     /**
@@ -231,6 +237,13 @@ public class Config extends HashMap<String, Object> {
      */
     @isString
     public static final String TOPOLOGY_TUPLE_SERIALIZER = "topology.tuple.serializer";
+
+    /**
+     * Disable load aware grouping support.
+     */
+    @isBoolean
+    @NotNull
+    public static final String TOPOLOGY_DISABLE_LOADAWARE_MESSAGING = "topology.disable.loadaware.messaging";
 
     /**
      * Try to serialize all tuples, even for local transfers.  This should only be used
@@ -323,6 +336,19 @@ public class Config extends HashMap<String, Object> {
     public static final String STORM_ID = "storm.id";
 
     /**
+     * The directory where storm's health scripts go.
+     */
+    @isString
+    public static final String STORM_HEALTH_CHECK_DIR = "storm.health.check.dir";
+
+    /**
+     * The time to allow any given healthcheck script to run before it
+     * is marked failed due to timeout
+     */
+    @isNumber
+    public static final String STORM_HEALTH_CHECK_TIMEOUT_MS = "storm.health.check.timeout.ms";
+
+    /**
      * The number of times to retry a Nimbus operation.
      */
     @isNumber
@@ -365,12 +391,14 @@ public class Config extends HashMap<String, Object> {
      * connect to this port to upload jars and submit topologies.
      */
     @isInteger
+    @isPositiveNumber
     public static final String NIMBUS_THRIFT_PORT = "nimbus.thrift.port";
 
     /**
      * The number of threads that should be used by the nimbus thrift server.
      */
-    @isNumber
+    @isInteger
+    @isPositiveNumber
     public static final String NIMBUS_THRIFT_THREADS = "nimbus.thrift.threads";
 
     /**
@@ -406,6 +434,7 @@ public class Config extends HashMap<String, Object> {
      * The maximum buffer size thrift should use when reading messages.
      */
     @isInteger
+    @isPositiveNumber
     public static final String NIMBUS_THRIFT_MAX_BUFFER_SIZE = "nimbus.thrift.max_buffer_size";
 
     /**
@@ -421,6 +450,7 @@ public class Config extends HashMap<String, Object> {
      * task dead and reassign it to another location.
      */
     @isInteger
+    @isPositiveNumber
     public static final String NIMBUS_TASK_TIMEOUT_SECS = "nimbus.task.timeout.secs";
 
 
@@ -428,16 +458,18 @@ public class Config extends HashMap<String, Object> {
      * How often nimbus should wake up to check heartbeats and do reassignments. Note
      * that if a machine ever goes down Nimbus will immediately wake up and take action.
      * This parameter is for checking for failures when there's no explicit event like that
-     * occuring.
+     * occurring.
      */
     @isInteger
+    @isPositiveNumber
     public static final String NIMBUS_MONITOR_FREQ_SECS = "nimbus.monitor.freq.secs";
 
     /**
      * How often nimbus should wake the cleanup thread to clean the inbox.
-     * @see NIMBUS_INBOX_JAR_EXPIRATION_SECS
+     * @see #NIMBUS_INBOX_JAR_EXPIRATION_SECS
      */
     @isInteger
+    @isPositiveNumber
     public static final String NIMBUS_CLEANUP_INBOX_FREQ_SECS = "nimbus.cleanup.inbox.freq.secs";
 
     /**
@@ -447,7 +479,7 @@ public class Config extends HashMap<String, Object> {
      * Note that the time it takes to delete an inbox jar file is going to be somewhat more than
      * NIMBUS_CLEANUP_INBOX_JAR_EXPIRATION_SECS (depending on how often NIMBUS_CLEANUP_FREQ_SECS
      * is set to).
-     * @see NIMBUS_CLEANUP_FREQ_SECS
+     * @see #NIMBUS_CLEANUP_INBOX_FREQ_SECS
      */
     @isInteger
     public static final String NIMBUS_INBOX_JAR_EXPIRATION_SECS = "nimbus.inbox.jar.expiration.secs";
@@ -457,6 +489,7 @@ public class Config extends HashMap<String, Object> {
      * and stops assigning new work to it.
      */
     @isInteger
+    @isPositiveNumber
     public static final String NIMBUS_SUPERVISOR_TIMEOUT_SECS = "nimbus.supervisor.timeout.secs";
 
     /**
@@ -467,14 +500,8 @@ public class Config extends HashMap<String, Object> {
      * to launching new JVM's and configuring them.</p>
      */
     @isInteger
+    @isPositiveNumber
     public static final String NIMBUS_TASK_LAUNCH_SECS = "nimbus.task.launch.secs";
-
-    /**
-     * Whether or not nimbus should reassign tasks if it detects that a task goes down.
-     * Defaults to true, and it's not recommended to change this value.
-     */
-    @isBoolean
-    public static final String NIMBUS_REASSIGN = "nimbus.reassign";
 
     /**
      * During upload/download with the master, how long an upload or download connection is idle
@@ -506,13 +533,14 @@ public class Config extends HashMap<String, Object> {
     /**
      * Impersonation user ACL config entries.
      */
-    @isImpersonationAcl
+    @isMapEntryCustom(keyValidatorClasses = {StringValidator.class}, valueValidatorClasses = {ImpersonationAclUserEntryValidator.class})
     public static final String NIMBUS_IMPERSONATION_ACL = "nimbus.impersonation.acl";
 
     /**
      * How often nimbus should wake up to renew credentials if needed.
      */
-    @isNumber
+    @isInteger
+    @isPositiveNumber
     public static final String NIMBUS_CREDENTIAL_RENEW_FREQ_SECS = "nimbus.credential.renewers.freq.secs";
 
     /**
@@ -529,6 +557,12 @@ public class Config extends HashMap<String, Object> {
     public static final String NIMBUS_AUTO_CRED_PLUGINS = "nimbus.autocredential.plugins.classes";
 
     /**
+     * FQCN of a class that implements {@code ITopologyActionNotifierPlugin} @see backtype.storm.nimbus.ITopologyActionNotifierPlugin for details.
+     */
+    @isString
+    public static final String NIMBUS_TOPOLOGY_ACTION_NOTIFIER_PLUGIN = "nimbus.topology.action.notifier.plugin.class";
+
+    /**
      * Storm UI binds to this host/interface.
      */
     @isString
@@ -538,12 +572,14 @@ public class Config extends HashMap<String, Object> {
      * Storm UI binds to this port.
      */
     @isInteger
+    @isPositiveNumber
     public static final String UI_PORT = "ui.port";
 
     /**
      * HTTP UI port for log viewer
      */
     @isInteger
+    @isPositiveNumber
     public static final String LOGVIEWER_PORT = "logviewer.port";
 
     /**
@@ -567,9 +603,22 @@ public class Config extends HashMap<String, Object> {
     public static final String LOGVIEWER_CLEANUP_AGE_MINS = "logviewer.cleanup.age.mins";
 
     /**
+     * The maximum number of bytes all worker log files can take up in MB
+     */
+    @isPositiveNumber
+    public static final String LOGVIEWER_MAX_SUM_WORKER_LOGS_SIZE_MB = "logviewer.max.sum.worker.logs.size.mb";
+
+    /**
+     * The maximum number of bytes per worker's files can take up in MB
+     */
+    @isPositiveNumber
+    public static final String LOGVIEWER_MAX_PER_WORKER_LOGS_SIZE_MB = "logviewer.max.per.worker.logs.size.mb";
+
+    /**
      * Storm Logviewer HTTPS port
      */
-    @isNumber
+    @isInteger
+    @isPositiveNumber
     public static final String LOGVIEWER_HTTPS_PORT = "logviewer.https.port";
 
     /**
@@ -592,7 +641,7 @@ public class Config extends HashMap<String, Object> {
     public static final String LOGVIEWER_HTTPS_KEYSTORE_TYPE = "logviewer.https.keystore.type";
 
     /**
-     * Password to the private key in the keystore for settting up HTTPS (SSL).
+     * Password to the private key in the keystore for setting up HTTPS (SSL).
      */
     @isString
     public static final String LOGVIEWER_HTTPS_KEY_PASSWORD = "logviewer.https.key.password";
@@ -617,7 +666,7 @@ public class Config extends HashMap<String, Object> {
     public static final String LOGVIEWER_HTTPS_TRUSTSTORE_TYPE = "logviewer.https.truststore.type";
 
     /**
-     * Password to the truststore used by Storm Logviewer settting up HTTPS (SSL).
+     * Password to the truststore used by Storm Logviewer setting up HTTPS (SSL).
      */
     @isBoolean
     public static final String LOGVIEWER_HTTPS_WANT_CLIENT_AUTH = "logviewer.https.want.client.auth";
@@ -658,19 +707,21 @@ public class Config extends HashMap<String, Object> {
     /**
      * Initialization parameters for the javax.servlet.Filter
      */
-    @isType(type=Map.class)
+    @isMapEntryType(keyType = String.class, valueType = String.class)
     public static final String UI_FILTER_PARAMS = "ui.filter.params";
 
     /**
      * The size of the header buffer for the UI in bytes
      */
-    @isNumber
+    @isInteger
+    @isPositiveNumber
     public static final String UI_HEADER_BUFFER_BYTES = "ui.header.buffer.bytes";
 
     /**
      * This port is used by Storm DRPC for receiving HTTPS (SSL) DPRC requests from clients.
      */
-    @isNumber
+    @isInteger
+    @isPositiveNumber
     public static final String UI_HTTPS_PORT = "ui.https.port";
 
     /**
@@ -693,19 +744,19 @@ public class Config extends HashMap<String, Object> {
     public static final String UI_HTTPS_KEYSTORE_TYPE = "ui.https.keystore.type";
 
     /**
-     * Password to the private key in the keystore for settting up HTTPS (SSL).
+     * Password to the private key in the keystore for setting up HTTPS (SSL).
      */
     @isString
     public static final String UI_HTTPS_KEY_PASSWORD = "ui.https.key.password";
 
     /**
-     * Path to the truststore used by Storm UI settting up HTTPS (SSL).
+     * Path to the truststore used by Storm UI setting up HTTPS (SSL).
      */
     @isString
     public static final String UI_HTTPS_TRUSTSTORE_PATH = "ui.https.truststore.path";
 
     /**
-     * Password to the truststore used by Storm UI settting up HTTPS (SSL).
+     * Password to the truststore used by Storm UI setting up HTTPS (SSL).
      */
     @isString
     public static final String UI_HTTPS_TRUSTSTORE_PASSWORD = "ui.https.truststore.password";
@@ -718,7 +769,7 @@ public class Config extends HashMap<String, Object> {
     public static final String UI_HTTPS_TRUSTSTORE_TYPE = "ui.https.truststore.type";
 
     /**
-     * Password to the truststore used by Storm DRPC settting up HTTPS (SSL).
+     * Password to the truststore used by Storm DRPC setting up HTTPS (SSL).
      */
     @isBoolean
     public static final String UI_HTTPS_WANT_CLIENT_AUTH = "ui.https.want.client.auth";
@@ -735,13 +786,13 @@ public class Config extends HashMap<String, Object> {
     /**
      * This port is used by Storm DRPC for receiving HTTP DPRC requests from clients.
      */
-    @isNumber
+    @isInteger
     public static final String DRPC_HTTP_PORT = "drpc.http.port";
 
     /**
      * This port is used by Storm DRPC for receiving HTTPS (SSL) DPRC requests from clients.
      */
-    @isNumber
+    @isInteger
     public static final String DRPC_HTTPS_PORT = "drpc.https.port";
 
     /**
@@ -764,19 +815,19 @@ public class Config extends HashMap<String, Object> {
     public static final String DRPC_HTTPS_KEYSTORE_TYPE = "drpc.https.keystore.type";
 
     /**
-     * Password to the private key in the keystore for settting up HTTPS (SSL).
+     * Password to the private key in the keystore for setting up HTTPS (SSL).
      */
     @isString
     public static final String DRPC_HTTPS_KEY_PASSWORD = "drpc.https.key.password";
 
     /**
-     * Path to the truststore used by Storm DRPC settting up HTTPS (SSL).
+     * Path to the truststore used by Storm DRPC setting up HTTPS (SSL).
      */
     @isString
     public static final String DRPC_HTTPS_TRUSTSTORE_PATH = "drpc.https.truststore.path";
 
     /**
-     * Password to the truststore used by Storm DRPC settting up HTTPS (SSL).
+     * Password to the truststore used by Storm DRPC setting up HTTPS (SSL).
      */
     @isString
     public static final String DRPC_HTTPS_TRUSTSTORE_PASSWORD = "drpc.https.truststore.password";
@@ -789,7 +840,7 @@ public class Config extends HashMap<String, Object> {
     public static final String DRPC_HTTPS_TRUSTSTORE_TYPE = "drpc.https.truststore.type";
 
     /**
-     * Password to the truststore used by Storm DRPC settting up HTTPS (SSL).
+     * Password to the truststore used by Storm DRPC setting up HTTPS (SSL).
      */
     @isBoolean
     public static final String DRPC_HTTPS_WANT_CLIENT_AUTH = "drpc.https.want.client.auth";
@@ -807,6 +858,7 @@ public class Config extends HashMap<String, Object> {
      * This port is used by Storm DRPC for receiving DPRC requests from clients.
      */
     @isInteger
+    @isPositiveNumber
     public static final String DRPC_PORT = "drpc.port";
 
     /**
@@ -817,14 +869,14 @@ public class Config extends HashMap<String, Object> {
 
     /**
      * The Access Control List for the DRPC Authorizer.
-     * @see DRPCSimpleAclAuthorizer
+     * @see backtype.storm.security.auth.authorizer.DRPCSimpleACLAuthorizer
      */
     @isType(type=Map.class)
     public static final String DRPC_AUTHORIZER_ACL = "drpc.authorizer.acl";
 
     /**
      * File name of the DRPC Authorizer ACL.
-     * @see DRPCSimpleAclAuthorizer
+     * @see backtype.storm.security.auth.authorizer.DRPCSimpleACLAuthorizer
      */
     @isString
     public static final String DRPC_AUTHORIZER_ACL_FILENAME = "drpc.authorizer.acl.filename";
@@ -836,7 +888,7 @@ public class Config extends HashMap<String, Object> {
      * permitted, which is appropriate for a development environment. When set
      * to true, explicit ACL entries are required for every DRPC function, and
      * any request for functions will be denied.
-     * @see DRPCSimpleAclAuthorizer
+     * @see backtype.storm.security.auth.authorizer.DRPCSimpleACLAuthorizer
      */
     @isBoolean
     public static final String DRPC_AUTHORIZER_ACL_STRICT = "drpc.authorizer.acl.strict";
@@ -845,18 +897,21 @@ public class Config extends HashMap<String, Object> {
      * DRPC thrift server worker threads
      */
     @isInteger
+    @isPositiveNumber
     public static final String DRPC_WORKER_THREADS = "drpc.worker.threads";
 
     /**
      * The maximum buffer size thrift should use when reading messages for DRPC.
      */
     @isNumber
+    @isPositiveNumber
     public static final String DRPC_MAX_BUFFER_SIZE = "drpc.max_buffer_size";
 
     /**
      * DRPC thrift server queue size
      */
     @isInteger
+    @isPositiveNumber
     public static final String DRPC_QUEUE_SIZE = "drpc.queue.size";
 
     /**
@@ -869,12 +924,14 @@ public class Config extends HashMap<String, Object> {
      * This port on Storm DRPC is used by DRPC topologies to receive function invocations and send results back.
      */
     @isInteger
+    @isPositiveNumber
     public static final String DRPC_INVOCATIONS_PORT = "drpc.invocations.port";
 
     /**
      * DRPC invocations thrift server worker threads
      */
-    @isNumber
+    @isInteger
+    @isPositiveNumber
     public static final String DRPC_INVOCATIONS_THREADS = "drpc.invocations.threads";
 
     /**
@@ -925,7 +982,8 @@ public class Config extends HashMap<String, Object> {
     /**
      * A number representing the maximum number of workers any single topology can acquire.
      */
-    @isNumber
+    @isInteger
+    @isPositiveNumber(includeZero = true)
     public static final String NIMBUS_SLOTS_PER_TOPOLOGY = "nimbus.slots.perTopology";
 
     /**
@@ -938,13 +996,14 @@ public class Config extends HashMap<String, Object> {
      * Initialization parameters for the javax.servlet.Filter of the DRPC HTTP
      * service
      */
-    @isType(type=Map.class)
+    @isMapEntryType(keyType = String.class, valueType = String.class)
     public static final String DRPC_HTTP_FILTER_PARAMS = "drpc.http.filter.params";
 
     /**
      * A number representing the maximum number of executors any single topology can acquire.
      */
-    @isNumber
+    @isInteger
+    @isPositiveNumber(includeZero = true)
     public static final String NIMBUS_EXECUTORS_PER_TOPOLOGY = "nimbus.executors.perTopology";
 
     /**
@@ -967,6 +1026,7 @@ public class Config extends HashMap<String, Object> {
      * How many seconds to sleep for before shutting down threads on worker
      */
     @isInteger
+    @isPositiveNumber
     public static final String SUPERVISOR_WORKER_SHUTDOWN_SLEEP_SECS = "supervisor.worker.shutdown.sleep.secs";
 
     /**
@@ -1000,6 +1060,7 @@ public class Config extends HashMap<String, Object> {
      * need to be restarted.
      */
     @isInteger
+    @isPositiveNumber
     public static final String SUPERVISOR_MONITOR_FREQUENCY_SECS = "supervisor.monitor.frequency.secs";
 
     /**
@@ -1052,6 +1113,27 @@ public class Config extends HashMap<String, Object> {
     public static final String WORKER_HEAP_MEMORY_MB = "worker.heap.memory.mb";
 
     /**
+     * The jvm profiler opts provided to workers launched by this supervisor.
+     */
+    @isStringOrStringList
+    public static final String WORKER_PROFILER_CHILDOPTS = "worker.profiler.childopts";
+
+    /**
+     * This configuration would enable or disable component page profiing and debugging for workers.
+     */
+    @isBoolean
+    public static final String WORKER_PROFILER_ENABLED = "worker.profiler.enabled";
+
+    /**
+     * The command launched supervisor with worker arguments
+     * pid, action and [target_directory]
+     * Where action is - start profile, stop profile, jstack, heapdump and kill against pid
+     *
+     */
+    @isString
+    public static final String WORKER_PROFILER_COMMAND = "worker.profiler.command";
+
+    /**
      * The jvm opts provided to workers launched by this supervisor for GC. All "%ID%" substrings are replaced
      * with an identifier for this worker.  Because the JVM complains about multiple GC opts the topology
      * can override this default value by setting topology.worker.gc.childopts.
@@ -1060,21 +1142,17 @@ public class Config extends HashMap<String, Object> {
     public static final String WORKER_GC_CHILDOPTS = "worker.gc.childopts";
 
     /**
-     * control how many worker receiver threads we need per worker
-     */
-    @isInteger
-    public static final String WORKER_RECEIVER_THREAD_COUNT = "topology.worker.receiver.thread.count";
-
-    /**
      * How often this worker should heartbeat to the supervisor.
      */
     @isInteger
+    @isPositiveNumber
     public static final String WORKER_HEARTBEAT_FREQUENCY_SECS = "worker.heartbeat.frequency.secs";
 
     /**
      * How often a task should heartbeat its status to the master.
      */
     @isInteger
+    @isPositiveNumber
     public static final String TASK_HEARTBEAT_FREQUENCY_SECS = "task.heartbeat.frequency.secs";
 
     /**
@@ -1085,6 +1163,7 @@ public class Config extends HashMap<String, Object> {
      * come through.
      */
     @isInteger
+    @isPositiveNumber
     public static final String TASK_REFRESH_POLL_SECS = "task.refresh.poll.secs";
 
     /**
@@ -1099,7 +1178,8 @@ public class Config extends HashMap<String, Object> {
     /**
      * How often a task should sync credentials, worst case.
      */
-    @isNumber
+    @isInteger
+    @isPositiveNumber
     public static final String TASK_CREDENTIALS_POLL_SECS = "task.credentials.poll.secs";
 
     /**
@@ -1166,6 +1246,7 @@ public class Config extends HashMap<String, Object> {
      * on each component in the topology to tune the performance of a topology.
      */
     @isInteger
+    @isPositiveNumber
     public static final String TOPOLOGY_WORKERS = "topology.workers";
 
     /**
@@ -1177,6 +1258,7 @@ public class Config extends HashMap<String, Object> {
      * guaranteeing that the same value goes to the same task).
      */
     @isInteger
+    @isPositiveNumber(includeZero = true)
     public static final String TOPOLOGY_TASKS = "topology.tasks";
 
     /**
@@ -1215,6 +1297,7 @@ public class Config extends HashMap<String, Object> {
      * then Storm will immediately ack tuples as soon as they come off the spout, effectively disabling reliability.</p>
      */
     @isInteger
+    @isPositiveNumber(includeZero = true)
     public static final String TOPOLOGY_ACKER_EXECUTORS = "topology.acker.executors";
 
     /**
@@ -1225,6 +1308,7 @@ public class Config extends HashMap<String, Object> {
      * event logging will be disabled.</p>
      */
     @isInteger
+    @isPositiveNumber(includeZero = true)
     public static final String TOPOLOGY_EVENTLOGGER_EXECUTORS = "topology.eventlogger.executors";
 
     /**
@@ -1285,19 +1369,19 @@ public class Config extends HashMap<String, Object> {
      * Each listed class maps 1:1 to a system bolt named __metrics_ClassName#N, and it's parallelism is configurable.
      */
 
-    @isListEntryType(type=Map.class)
+    @isListEntryCustom(entryValidatorClasses={MetricRegistryValidator.class})
     public static final String TOPOLOGY_METRICS_CONSUMER_REGISTER = "topology.metrics.consumer.register";
 
     /**
      * A map of metric name to class name implementing IMetric that will be created once per worker JVM
      */
-    @isType(type=Map.class)
+    @isMapEntryType(keyType = String.class, valueType = String.class)
     public static final String TOPOLOGY_WORKER_METRICS = "topology.worker.metrics";
 
     /**
      * A map of metric name to class name implementing IMetric that will be created once per worker JVM
      */
-    @isType(type=Map.class)
+    @isMapEntryType(keyType = String.class, valueType = String.class)
     public static final String WORKER_METRICS = "worker.metrics";
 
     /**
@@ -1305,6 +1389,7 @@ public class Config extends HashMap<String, Object> {
      * typically used in testing to limit the number of threads spawned in local mode.
      */
     @isInteger
+    @isPositiveNumber
     public static final String TOPOLOGY_MAX_TASK_PARALLELISM="topology.max.task.parallelism";
 
     /**
@@ -1316,6 +1401,7 @@ public class Config extends HashMap<String, Object> {
      * their tuples with a message id.
      */
     @isInteger
+    @isPositiveNumber
     public static final String TOPOLOGY_MAX_SPOUT_PENDING="topology.max.spout.pending";
 
     /**
@@ -1332,6 +1418,7 @@ public class Config extends HashMap<String, Object> {
      * The amount of milliseconds the SleepEmptyEmitStrategy should sleep for.
      */
     @isInteger
+    @isPositiveNumber(includeZero = true)
     public static final String TOPOLOGY_SLEEP_SPOUT_WAIT_STRATEGY_TIME_MS="topology.sleep.spout.wait.strategy.time.ms";
 
     /**
@@ -1389,7 +1476,7 @@ public class Config extends HashMap<String, Object> {
      * Topology-specific environment variables for the worker child process.
      * This is added to the existing environment (that of the supervisor)
      */
-    @isType(type=Map.class)
+    @isMapEntryType(keyType = String.class, valueType = String.class)
     public static final String TOPOLOGY_ENVIRONMENT="topology.environment";
 
     /*
@@ -1434,6 +1521,7 @@ public class Config extends HashMap<String, Object> {
      * The size of the Disruptor transfer queue for each worker.
      */
     @isInteger
+    @isPowerOf2
     public static final String TOPOLOGY_TRANSFER_BUFFER_SIZE="topology.transfer.buffer.size";
 
     /**
@@ -1443,10 +1531,12 @@ public class Config extends HashMap<String, Object> {
     @isInteger
     public static final String TOPOLOGY_TICK_TUPLE_FREQ_SECS="topology.tick.tuple.freq.secs";
 
-    /**
-     * Configure the wait strategy used for internal queuing. Can be used to tradeoff latency
-     * vs. throughput
-     */
+   /**
+    * @deprecated this is no longer supported
+    * Configure the wait strategy used for internal queuing. Can be used to tradeoff latency
+    * vs. throughput
+    */
+    @Deprecated
     @isString
     public static final String TOPOLOGY_DISRUPTOR_WAIT_STRATEGY="topology.disruptor.wait.strategy";
 
@@ -1469,12 +1559,14 @@ public class Config extends HashMap<String, Object> {
      * See doc for TOPOLOGY_ERROR_THROTTLE_INTERVAL_SECS
      */
     @isInteger
+    @isPositiveNumber
     public static final String TOPOLOGY_MAX_ERROR_REPORT_PER_INTERVAL="topology.max.error.report.per.interval";
 
     /**
      * How often a batch can be emitted in a Trident topology.
      */
     @isInteger
+    @isPositiveNumber
     public static final String TOPOLOGY_TRIDENT_BATCH_EMIT_INTERVAL_MILLIS="topology.trident.batch.emit.interval.millis";
 
     /**
@@ -1511,6 +1603,7 @@ public class Config extends HashMap<String, Object> {
      * Max pending tuples in one ShellBolt
      */
     @isInteger
+    @isPositiveNumber
     public static final String TOPOLOGY_SHELLBOLT_MAX_PENDING="topology.shellbolt.max.pending";
 
     /**
@@ -1521,7 +1614,7 @@ public class Config extends HashMap<String, Object> {
      *   S2 - Confidential
      *   S3 - Secret (default.)
      */
-    @isString
+    @isString(acceptedValues = {"S0", "S1", "S2", "S3"})
     public static final String TOPOLOGY_LOGGING_SENSITIVITY="topology.logging.sensitivity";
 
     /**
@@ -1542,6 +1635,7 @@ public class Config extends HashMap<String, Object> {
      * will use storm.zookeeper.port
      */
     @isInteger
+    @isPositiveNumber
     public static final String TRANSACTIONAL_ZOOKEEPER_PORT="transactional.zookeeper.port";
 
     /**
@@ -1553,6 +1647,7 @@ public class Config extends HashMap<String, Object> {
     /**
      * The number of threads that should be used by the zeromq context in each worker process.
      */
+    @Deprecated
     @isInteger
     public static final String ZMQ_THREADS = "zmq.threads";
 
@@ -1561,6 +1656,7 @@ public class Config extends HashMap<String, Object> {
      * the connection is closed. This is an advanced configuration and can almost
      * certainly be ignored.
      */
+    @Deprecated
     @isInteger
     public static final String ZMQ_LINGER_MILLIS = "zmq.linger.millis";
 
@@ -1568,6 +1664,7 @@ public class Config extends HashMap<String, Object> {
      * The high water for the ZeroMQ push sockets used for networking. Use this config to prevent buffer explosion
      * on the networking layer.
      */
+    @Deprecated
     @isInteger
     public static final String ZMQ_HWM = "zmq.hwm";
 
@@ -1606,7 +1703,8 @@ public class Config extends HashMap<String, Object> {
      * The number of machines that should be used by this topology to isolate it from all others. Set storm.scheduler
      * to backtype.storm.scheduler.multitenant.MultitenantScheduler
      */
-    @isNumber
+    @isInteger
+    @isPositiveNumber
     public static final String TOPOLOGY_ISOLATED_MACHINES = "topology.isolate.machines";
 
     /**
@@ -1614,9 +1712,26 @@ public class Config extends HashMap<String, Object> {
      * vs. CPU usage
      */
     @isInteger
-    @isPositiveNumber
     @NotNull
     public static final String TOPOLOGY_DISRUPTOR_WAIT_TIMEOUT_MILLIS="topology.disruptor.wait.timeout.millis";
+
+    /**
+     * The number of tuples to batch before sending to the next thread.  This number is just an initial suggestion and
+     * the code may adjust it as your topology runs.
+     */
+    @isInteger
+    @isPositiveNumber
+    @NotNull
+    public static final String TOPOLOGY_DISRUPTOR_BATCH_SIZE="topology.disruptor.batch.size";
+
+    /**
+     * The maximum age in milliseconds a batch can be before being sent to the next thread.  This number is just an
+     * initial suggestion and the code may adjust it as your topology runs.
+     */
+    @isInteger
+    @isPositiveNumber
+    @NotNull
+    public static final String TOPOLOGY_DISRUPTOR_BATCH_TIMEOUT_MILLIS="topology.disruptor.batch.timeout.millis";
 
     /**
      * Which implementation of {@link backtype.storm.codedistributor.ICodeDistributor} should be used by storm for code

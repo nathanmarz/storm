@@ -23,7 +23,8 @@ import backtype.storm.spout.RawMultiScheme;
 import java.io.Serializable;
 
 public class KafkaConfig implements Serializable {
-
+    private static final long serialVersionUID = 5276718734571623855L;
+    
     public final BrokerHosts hosts;
     public final String topic;
     public final String clientId;

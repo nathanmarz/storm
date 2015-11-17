@@ -515,6 +515,7 @@
       (startup spout))
 
     (submit-local-topology (:nimbus cluster-map) storm-name storm-conf topology)
+    (advance-cluster-time cluster-map 11)
 
     (let [storm-id (common/get-storm-id state storm-name)]
       ;;Give the topology time to come up without using it to wait for the spouts to complete
@@ -611,7 +612,7 @@
                 ;; (log-message "Transferring: " transfer-args#)
                 (increment-global! id# "transferred" 1)
                 (apply transferrer# args2#)))))]
-       (with-local-cluster [~cluster-sym ~@cluster-args]
+       (with-simulated-time-local-cluster [~cluster-sym ~@cluster-args]
                            (let [~cluster-sym (assoc-track-id ~cluster-sym id#)]
                              ~@body)))
      (RegisteredGlobalState/clearState id#)))

@@ -205,7 +205,7 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>com.googlecode.disruptor</groupId>
+            <groupId>com.lmax</groupId>
             <artifactId>disruptor</artifactId>
         </dependency>
         <dependency>
@@ -237,6 +237,14 @@
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.dropwizard.metrics</groupId>
+            <artifactId>metrics-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>metrics-clojure</groupId>
+            <artifactId>metrics-clojure</artifactId>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
@@ -438,6 +446,8 @@
                             <include>org.clojure:tools.namespace</include>
                             <include>cheshire:cheshire</include>
                             <include>org.clojure:core.incubator</include>
+                            <include>io.dropwizard.metrics:*</include>
+                            <include>metrics-clojure:*</include>
                         </includes>
                     </artifactSet>
                     <relocations>
@@ -602,6 +612,42 @@
                           <pattern>org.eclipse.jetty</pattern>
                           <shadedPattern>org.apache.storm.shade.org.eclipse.jetty</shadedPattern>
                         </relocation>
+                        <relocation>
+                            <pattern>com.codahale.metrics</pattern>
+                            <shadedPattern>org.apache.storm.shade.com.codahale.metrics</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>metrics.core</pattern>
+                            <shadedPattern>org.apache.storm.shade.metrics.core</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>metrics.counters</pattern>
+                            <shadedPattern>org.apache.storm.shade.metrics.counters</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>metrics.gauges</pattern>
+                            <shadedPattern>org.apache.storm.shade.metrics.gauges</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>metrics.histograms</pattern>
+                            <shadedPattern>org.apache.storm.shade.metrics.histograms</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>metrics.meters</pattern>
+                            <shadedPattern>org.apache.storm.shade.metrics.meters</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>metrics.reporters</pattern>
+                            <shadedPattern>org.apache.storm.shade.metrics.reporters</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>metrics.timers</pattern>
+                            <shadedPattern>org.apache.storm.shade.metrics.timers</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>metrics.utils</pattern>
+                            <shadedPattern>org.apache.storm.shade.metrics.utils</shadedPattern>
+                        </relocation>
                     </relocations>
                     <transformers>
                         <transformer implementation="org.apache.storm.maven.shade.clojure.ClojureTransformer" />
@@ -613,6 +659,7 @@
                              the majority of cases correctly.  However, the Clojure-Transformer does not shade everything correctly all the
                              time.  Instead of spending a lot of time to get the Clojure-Transformer to parse Clojure correctly we opted to remove
                              the .clj files from the uber jar. -->
+                        <filter><artifact>metrics-clojure:*</artifact><excludes><exclude>**/*.clj</exclude></excludes></filter>
                         <filter><artifact>org.clojure:core.incubator</artifact><excludes><exclude>**/*.clj</exclude></excludes></filter>
                         <filter><artifact>cheshire:cheshire</artifact><excludes><exclude>**/*.clj</exclude></excludes></filter>
                         <filter><artifact>org.clojure:tools.logging</artifact><excludes><exclude>**/*.clj</exclude></excludes></filter>

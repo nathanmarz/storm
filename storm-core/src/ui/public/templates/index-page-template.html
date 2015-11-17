@@ -115,11 +115,6 @@
           </span>
         </th>
         <th>
-          <span data-toggle="tooltip" data-placement="right" title="The unique ID given to a Topology each time it is launched.">
-            Id
-          </span>
-        </th>
-        <th>
           <span data-toggle="tooltip" data-placement="above" title="The user that submitted the Topology, if authentication is enabled.">
             Owner
           </span>
@@ -155,6 +150,16 @@
           </span>
         </th>
         <th>
+          <span data-toggle="tooltip" data-placement="above" title="Assigned Total Memory by Scheduler.">
+            Assigned Mem (MB)
+          </span>
+        </th>
+        <th>
+          <span data-toggle="tooltip" data-placement="above" title="Assigned Total CPU by Scheduler. Every 100 means 1 core.">
+            Assigned CPU (%)
+          </span>
+        </th>
+        <th>
           <span data-toggle="tooltip" data-placement="left" title="This shows information from the scheduler about the latest attempt to schedule the Topology on the cluster.">
             Scheduler Info
           </span>
@@ -165,7 +170,6 @@
       {{#topologies}}
       <tr>
         <td><a href="/topology.html?id={{encodedId}}">{{name}}</a></td>
-        <td>{{id}}</td>
         <td>{{owner}}</td>
         <td>{{status}}</td>
         <td>{{uptime}}</td>
@@ -173,6 +177,8 @@
         <td>{{executorsTotal}}</td>
         <td>{{tasksTotal}}</td>
         <td>{{replicationCount}}</td>
+        <td>{{assignedTotalMem}}</td>
+        <td>{{assignedCpu}}</td>
         <td>{{schedulerInfo}}</td>
       </tr>
       {{/topologies}}

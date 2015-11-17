@@ -43,7 +43,7 @@ public class MessageDecoder extends FrameDecoder {
             return null;
         }
 
-        List<Object> ret = new ArrayList<Object>();
+        List<Object> ret = new ArrayList<>();
 
         // Use while loop, try to decode as more messages as possible in single call
         while (available >= 2) {
@@ -100,7 +100,6 @@ public class MessageDecoder extends FrameDecoder {
             }
 
             // case 3: task Message
-            short task = code;
 
             // Make sure that we have received at least an integer (length)
             if (available < 4) {
@@ -115,7 +114,7 @@ public class MessageDecoder extends FrameDecoder {
             available -= 4;
 
             if (length <= 0) {
-                ret.add(new TaskMessage(task, null));
+                ret.add(new TaskMessage(code, null));
                 break;
             }
 
@@ -133,7 +132,7 @@ public class MessageDecoder extends FrameDecoder {
 
             // Successfully decoded a frame.
             // Return a TaskMessage object
-            ret.add(new TaskMessage(task, payload.array()));
+            ret.add(new TaskMessage(code, payload.array()));
         }
 
         if (ret.size() == 0) {

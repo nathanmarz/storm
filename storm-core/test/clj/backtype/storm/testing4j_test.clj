@@ -118,6 +118,7 @@
                           "test-acking2"
                           (Config.)
                           (.getTopology tracked))
+         (advance-cluster-time (.getState cluster) 11)
          (.feed feeder [1])
          (Testing/trackedWait tracked (int 1))
          (checker 0)

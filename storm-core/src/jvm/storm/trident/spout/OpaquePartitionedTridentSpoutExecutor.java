@@ -119,8 +119,9 @@ public class OpaquePartitionedTridentSpoutExecutor implements ICommitterTridentS
                 prevCached = new HashMap<>();
             }
             
-            for(String id: _partitionStates.keySet()) {
-                EmitterPartitionState s = _partitionStates.get(id);
+            for(Entry<String, EmitterPartitionState> e: _partitionStates.entrySet()) {
+                String id = e.getKey();
+                EmitterPartitionState s = e.getValue();
                 s.rotatingState.removeState(tx.getTransactionId());
                 Object lastMeta = prevCached.get(id);
                 if(lastMeta==null) lastMeta = s.rotatingState.getLastState();
@@ -162,9 +163,8 @@ public class OpaquePartitionedTridentSpoutExecutor implements ICommitterTridentS
             
             Long txid = attempt.getTransactionId();
             Map<String, Object> metas = _cachedMetas.remove(txid);
-            for(String partitionId: metas.keySet()) {
-                Object meta = metas.get(partitionId);
-                _partitionStates.get(partitionId).rotatingState.overrideState(txid, meta);
+            for(Entry<String, Object> entry: metas.entrySet()) {
+                _partitionStates.get(entry.getKey()).rotatingState.overrideState(txid, entry.getValue());
             }
         }
 

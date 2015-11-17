@@ -218,7 +218,7 @@ def jar(jarfile, klass, *args):
     Runs the main method of class with the specified arguments.
     The storm jars and configs in ~/.storm are put on the classpath.
     The process is configured so that StormSubmitter
-    (http://storm.incubator.apache.org/apidocs/backtype/storm/StormSubmitter.html)
+    (http://storm.apache.org/apidocs/backtype/storm/StormSubmitter.html)
     will upload the jar at topology-jar-path when the topology is submitted.
     """
     exec_storm_class(
@@ -381,6 +381,17 @@ def get_errors(*args):
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, os.path.join(STORM_DIR, "bin")])
 
+def healthcheck(*args):
+    """Syntax: [storm node-health-check]
+
+    Run health checks on the local supervisor.
+    """
+    exec_storm_class(
+        "backtype.storm.command.healthcheck",
+        args=args,
+        jvmtype="-client",
+        extrajars=[USER_CONF_DIR, os.path.join(STORM_DIR, "bin")])
+
 def kill_workers(*args):
     """Syntax: [storm kill_workers]
 
@@ -432,7 +443,7 @@ def nimbus(klass="backtype.storm.daemon.nimbus"):
     supervision with a tool like daemontools or monit.
 
     See Setting up a Storm cluster for more information.
-    (http://storm.incubator.apache.org/documentation/Setting-up-a-Storm-cluster)
+    (http://storm.apache.org/documentation/Setting-up-a-Storm-cluster)
     """
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("nimbus.childopts", cppaths)) + [
@@ -453,7 +464,7 @@ def supervisor(klass="backtype.storm.daemon.supervisor"):
     under supervision with a tool like daemontools or monit.
 
     See Setting up a Storm cluster for more information.
-    (http://storm.incubator.apache.org/documentation/Setting-up-a-Storm-cluster)
+    (http://storm.apache.org/documentation/Setting-up-a-Storm-cluster)
     """
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("supervisor.childopts", cppaths)) + [
@@ -475,7 +486,7 @@ def ui():
     should be run under supervision with a tool like daemontools or monit.
 
     See Setting up a Storm cluster for more information.
-    (http://storm.incubator.apache.org/documentation/Setting-up-a-Storm-cluster)
+    (http://storm.apache.org/documentation/Setting-up-a-Storm-cluster)
     """
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("ui.childopts", cppaths)) + [
@@ -497,7 +508,7 @@ def logviewer():
     tool like daemontools or monit.
 
     See Setting up a Storm cluster for more information.
-    (http://storm.incubator.apache.org/documentation/Setting-up-a-Storm-cluster)
+    (http://storm.apache.org/documentation/Setting-up-a-Storm-cluster)
     """
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("logviewer.childopts", cppaths)) + [
@@ -518,7 +529,7 @@ def drpc():
     with a tool like daemontools or monit.
 
     See Distributed RPC for more information.
-    (http://storm.incubator.apache.org/documentation/Distributed-RPC)
+    (http://storm.apache.org/documentation/Distributed-RPC)
     """
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("drpc.childopts", cppaths)) + [
@@ -585,7 +596,7 @@ def print_commands():
     """Print all client commands and link to documentation"""
     print("Commands:\n\t" +  "\n\t".join(sorted(COMMANDS.keys())))
     print("\nHelp: \n\thelp \n\thelp <command>")
-    print("\nDocumentation for the storm client can be found at http://storm.incubator.apache.org/documentation/Command-line-client.html\n")
+    print("\nDocumentation for the storm client can be found at http://storm.apache.org/documentation/Command-line-client.html\n")
     print("Configs can be overridden using one or more -c flags, e.g. \"storm list -c nimbus.host=nimbus.mycompany.com\"\n")
 
 def print_usage(command=None):
@@ -610,7 +621,7 @@ COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui
             "activate": activate, "deactivate": deactivate, "rebalance": rebalance, "help": print_usage,
             "list": listtopos, "dev-zookeeper": dev_zookeeper, "version": version, "monitor": monitor,
             "upload-credentials": upload_credentials, "get-errors": get_errors, "set_log_level": set_log_level,
-            "kill_workers": kill_workers }
+            "kill_workers": kill_workers, "node-health-check": healthcheck}
 
 def parse_config(config_list):
     global CONFIG_OPTS

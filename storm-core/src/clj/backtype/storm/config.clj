@@ -25,6 +25,7 @@
   (:use [backtype.storm log util]))
 
 (def RESOURCES-SUBDIR "resources")
+(def NIMBUS-DO-NOT-REASSIGN "NIMBUS-DO-NOT-REASSIGN")
 
 (defn- clojure-config-name [name]
   (.replace (.toUpperCase name) "_" "-"))
@@ -92,6 +93,13 @@
     (if path
       (if (is-absolute-path? path) path (str storm-home file-path-separator path))
       (str storm-home file-path-separator "storm-local"))))
+
+(defn absolute-healthcheck-dir [conf]
+  (let [storm-home (System/getProperty "storm.home")
+        path (conf STORM-HEALTH-CHECK-DIR)]
+    (if path
+      (if (is-absolute-path? path) path (str storm-home file-path-separator path))
+      (str storm-home file-path-separator "healthchecks"))))
 
 (defn master-local-dir
   [conf]
@@ -180,6 +188,10 @@
   [conf]
   (LocalState. (str (supervisor-local-dir conf) file-path-separator "localstate")))
 
+(defn ^LocalState nimbus-topo-history-state
+  [conf]
+  (LocalState. (str (master-local-dir conf) file-path-separator "history")))
+
 (defn read-supervisor-storm-conf
   [conf storm-id]
   (let [stormroot (supervisor-stormdist-root conf storm-id)
@@ -220,6 +232,29 @@
   (log-message "REMOVE worker-user " worker-id)
   (.delete (File. (worker-user-file conf worker-id))))
 
+(defn worker-artifacts-root
+  ([conf]
+   (str (absolute-storm-local-dir conf) file-path-separator "workers-artifacts"))
+  ([conf id]
+   (str (worker-artifacts-root conf) file-path-separator id))
+  ([conf id port]
+   (str (worker-artifacts-root conf id) file-path-separator port)))
+
+(defn worker-artifacts-pid-path
+  [conf id port]
+  (str (worker-artifacts-root conf id port) file-path-separator "worker.pid"))
+
+(defn get-log-metadata-file
+  ([fname]
+    (let [[id port & _] (str/split fname (re-pattern file-path-separator))]
+      (get-log-metadata-file (read-storm-config) id port)))
+  ([conf id port]
+    (clojure.java.io/file (str (worker-artifacts-root conf id) file-path-separator port file-path-separator) "worker.yaml")))
+
+(defn get-worker-dir-from-root
+  [log-root id port]
+  (clojure.java.io/file (str log-root file-path-separator id file-path-separator port)))
+
 (defn worker-root
   ([conf]
    (str (absolute-storm-local-dir conf) file-path-separator "workers"))
@@ -244,3 +279,17 @@
 (defn ^LocalState worker-state
   [conf id]
   (LocalState. (worker-heartbeats-root conf id)))
+
+(defn get-topo-logs-users
+  [topology-conf]
+  (sort (distinct (remove nil?
+                    (concat
+                      (topology-conf LOGS-USERS)
+                      (topology-conf TOPOLOGY-USERS))))))
+
+(defn get-topo-logs-groups
+  [topology-conf]
+  (sort (distinct (remove nil?
+                    (concat
+                      (topology-conf LOGS-GROUPS)
+                      (topology-conf TOPOLOGY-GROUPS))))))

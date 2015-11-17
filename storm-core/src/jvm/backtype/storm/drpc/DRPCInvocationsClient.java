@@ -31,9 +31,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DRPCInvocationsClient extends ThriftClient implements DistributedRPCInvocations.Iface {
-    public static Logger LOG = LoggerFactory.getLogger(DRPCInvocationsClient.class);
-    private final AtomicReference<DistributedRPCInvocations.Client> client =
-       new AtomicReference<DistributedRPCInvocations.Client>();
+    public static final Logger LOG = LoggerFactory.getLogger(DRPCInvocationsClient.class);
+    private final AtomicReference<DistributedRPCInvocations.Client> client = new AtomicReference<>();
     private String host;
     private int port;
 

@@ -365,6 +365,7 @@ object by calling the constructor that takes a single string as an argument:
     className: "storm.kafka.ZkHosts"
     constructorArgs:
       - "localhost:2181"
+      - true
 ```
 
 ####References

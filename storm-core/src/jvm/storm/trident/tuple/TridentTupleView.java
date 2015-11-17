@@ -31,7 +31,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Arrays;
 
-//extends abstractlist so that it can be emitted directly as Storm tuples
+/**
+ * Extends AbstractList so that it can be emitted directly as Storm tuples
+ */
 public class TridentTupleView extends AbstractList<Object> implements TridentTuple {
     ValuePointer[] _index;
     Map<String, ValuePointer> _fieldIndex;
@@ -46,7 +48,7 @@ public class TridentTupleView extends AbstractList<Object> implements TridentTup
             _parent = parent;
             if(projectFields==null) projectFields = new Fields();
             Map<String, ValuePointer> parentFieldIndex = parent.getFieldIndex();
-            _fieldIndex = new HashMap<String, ValuePointer>();
+            _fieldIndex = new HashMap<>();
             for(String f: projectFields) {
                 _fieldIndex.put(f, parentFieldIndex.get(f));
             }            
@@ -79,7 +81,7 @@ public class TridentTupleView extends AbstractList<Object> implements TridentTup
         ValuePointer[] _index;
 
         public FreshOutputFactory(Fields selfFields) {
-            _fieldIndex = new HashMap<String, ValuePointer>();
+            _fieldIndex = new HashMap<>();
             for(int i=0; i<selfFields.size(); i++) {
                 String field = selfFields.get(i);
                 _fieldIndex.put(field, new ValuePointer(0, i, field));
@@ -114,15 +116,15 @@ public class TridentTupleView extends AbstractList<Object> implements TridentTup
 
         public OperationOutputFactory(Factory parent, Fields selfFields) {
             _parent = parent;
-            _fieldIndex = new HashMap(parent.getFieldIndex());
+            _fieldIndex = new HashMap<>(parent.getFieldIndex());
             int myIndex = parent.numDelegates();
             for(int i=0; i<selfFields.size(); i++) {
                 String field = selfFields.get(i);
                 _fieldIndex.put(field, new ValuePointer(myIndex, i, field));
             }
-            List<String> myOrder = new ArrayList<String>(parent.getOutputFields());
+            List<String> myOrder = new ArrayList<>(parent.getOutputFields());
             
-            Set<String> parentFieldsSet = new HashSet<String>(myOrder);
+            Set<String> parentFieldsSet = new HashSet<>(myOrder);
             for(String f: selfFields) {
                 if(parentFieldsSet.contains(f)) {
                     throw new IllegalArgumentException(
@@ -192,14 +194,14 @@ public class TridentTupleView extends AbstractList<Object> implements TridentTup
     }
     
     private static List<String> indexToFieldsList(ValuePointer[] index) {
-        List<String> ret = new ArrayList<String>();
+        List<String> ret = new ArrayList<>();
         for(ValuePointer p: index) {
             ret.add(p.field);
         }
         return ret;
     }
     
-    public static TridentTupleView EMPTY_TUPLE = new TridentTupleView(null, new ValuePointer[0], new HashMap());
+    public static final TridentTupleView EMPTY_TUPLE = new TridentTupleView(null, new ValuePointer[0], new HashMap());
 
     // index and fieldIndex are precomputed, delegates built up over many operations using persistent data structures
     public TridentTupleView(IPersistentVector delegates, ValuePointer[] index, Map<String, ValuePointer> fieldIndex) {

@@ -31,13 +31,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TransactionalSpoutBatchExecutor implements IRichBolt {
-    public static Logger LOG = LoggerFactory.getLogger(TransactionalSpoutBatchExecutor.class);    
+    public static final Logger LOG = LoggerFactory.getLogger(TransactionalSpoutBatchExecutor.class);
 
     BatchOutputCollectorImpl _collector;
     ITransactionalSpout _spout;
     ITransactionalSpout.Emitter _emitter;
     
-    TreeMap<BigInteger, TransactionAttempt> _activeTransactions = new TreeMap<BigInteger, TransactionAttempt>();
+    TreeMap<BigInteger, TransactionAttempt> _activeTransactions = new TreeMap<>();
 
     public TransactionalSpoutBatchExecutor(ITransactionalSpout spout) {
         _spout = spout;

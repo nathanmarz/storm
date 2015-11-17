@@ -44,7 +44,7 @@ public class SupervisorDetails {
      */
     Set<Integer> allPorts;
     /**
-     * Map containing a manifest of resources for the node the superivsor resides
+     * Map containing a manifest of resources for the node the supervisor resides
      */
     private Map<String, Double> _total_resources;
 
@@ -58,7 +58,7 @@ public class SupervisorDetails {
         if(allPorts!=null) {
             setAllPorts(allPorts);
         } else {
-            this.allPorts = new HashSet();
+            this.allPorts = new HashSet<>();
         }
         this._total_resources = total_resources;
         LOG.debug("Creating a new supervisor ({}-{}) with resources: {}", this.host, this.id, total_resources);
@@ -86,7 +86,7 @@ public class SupervisorDetails {
     }
 
     private void setAllPorts(Collection<Number> allPorts) {
-        this.allPorts = new HashSet<Integer>();
+        this.allPorts = new HashSet<>();
         if(allPorts!=null) {
             for(Number n: allPorts) {
                 this.allPorts.add(n.intValue());

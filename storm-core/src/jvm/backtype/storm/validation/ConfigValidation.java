@@ -25,8 +25,10 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -41,7 +43,7 @@ public class ConfigValidation {
     public static abstract class Validator {
         public Validator(Map<String, Object> params) {}
         public Validator() {}
-        public abstract void validateField(String name, Object o) throws InstantiationException, IllegalAccessException;
+        public abstract void validateField(String name, Object o);
     }
 
     /**
@@ -91,9 +93,27 @@ public class ConfigValidation {
 
     public static class StringValidator extends Validator {
 
+        private HashSet<String> acceptedValues = null;
+
+        public StringValidator(){}
+
+        public StringValidator(Map<String, Object> params) {
+
+            this.acceptedValues = new HashSet<String>(Arrays.asList((String[])params.get(ConfigValidationAnnotations.ValidatorParams.ACCEPTED_VALUES)));
+
+            if(this.acceptedValues.isEmpty() || (this.acceptedValues.size() == 1 && this.acceptedValues.contains(""))) {
+                this.acceptedValues = null;
+            }
+        }
+
         @Override
         public void validateField(String name, Object o) {
             SimpleTypeValidator.validateField(name, String.class, o);
+            if(this.acceptedValues != null) {
+                if (!this.acceptedValues.contains((String) o)) {
+                    throw new IllegalArgumentException("Field " + name + " is not an accepted value. Value: " + o + " Accepted values: " + this.acceptedValues);
+                }
+            }
         }
     }
 
@@ -147,10 +167,9 @@ public class ConfigValidation {
     }
 
     /**
-     * Validates a map of Strings to a map of Strings to a list.
-     * {str -> {str -> [str,str]}
+     * Validates an entry for ImpersonationAclUser
      */
-    public static class ImpersonationAclValidator extends Validator {
+    public static class ImpersonationAclUserEntryValidator extends Validator {
 
         @Override
         public void validateField(String name, Object o) {
@@ -158,9 +177,15 @@ public class ConfigValidation {
                 return;
             }
             ConfigValidationUtils.NestableFieldValidator validator = ConfigValidationUtils.mapFv(ConfigValidationUtils.fv(String.class, false),
-                    ConfigValidationUtils.mapFv(ConfigValidationUtils.fv(String.class, false),
-                            ConfigValidationUtils.listFv(String.class, false), false), true);
+                    ConfigValidationUtils.listFv(String.class, false), false);
             validator.validateField(name, o);
+            Map<String, List<String>> mapObject = (Map<String, List<String>>) o;
+            if (!mapObject.containsKey("hosts")) {
+                throw new IllegalArgumentException(name + " should contain Map entry with key: hosts");
+            }
+            if (!mapObject.containsKey("groups")) {
+                throw new IllegalArgumentException(name + " should contain Map entry with key: groups");
+            }
         }
     }
 
@@ -293,12 +318,15 @@ public class ConfigValidation {
         }
 
         @Override
-        public void validateField(String name, Object o) throws InstantiationException, IllegalAccessException {
-
-            validateField(name, this.entryValidators, o);
+        public void validateField(String name, Object o)  {
+            try {
+                validateField(name, this.entryValidators, o);
+            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException | InstantiationException e) {
+                throw new RuntimeException(e);
+            }
         }
 
-        public static void validateField(String name, Class[] validators, Object o) throws IllegalAccessException, InstantiationException {
+        public static void validateField(String name, Class[] validators, Object o) throws IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
             if (o == null) {
                 return;
             }
@@ -306,7 +334,7 @@ public class ConfigValidation {
             SimpleTypeValidator.validateField(name, Iterable.class, o);
             for (Object entry : (Iterable) o) {
                 for (Class validator : validators) {
-                    Object v = validator.newInstance();
+                    Object v = validator.getConstructor().newInstance();
                     if (v instanceof Validator) {
                         ((Validator) v).validateField(name + " list entry", entry);
                     } else {
@@ -355,11 +383,15 @@ public class ConfigValidation {
         }
 
         @Override
-        public void validateField(String name, Object o) throws InstantiationException, IllegalAccessException {
-            validateField(name, this.keyValidators, this.valueValidators, o);
+        public void validateField(String name, Object o) {
+            try {
+                validateField(name, this.keyValidators, this.valueValidators, o);
+            } catch (IllegalAccessException | InstantiationException | NoSuchMethodException | InvocationTargetException e) {
+                throw new RuntimeException(e);
+            }
         }
 
-        public static void validateField(String name, Class[] keyValidators, Class[] valueValidators, Object o) throws IllegalAccessException, InstantiationException {
+        public static void validateField(String name, Class[] keyValidators, Class[] valueValidators, Object o) throws IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
             if (o == null) {
                 return;
             }
@@ -367,7 +399,7 @@ public class ConfigValidation {
             SimpleTypeValidator.validateField(name, Map.class, o);
             for (Map.Entry<Object, Object> entry : ((Map<Object, Object>) o).entrySet()) {
                 for (Class kv : keyValidators) {
-                    Object keyValidator = kv.newInstance();
+                    Object keyValidator = kv.getConstructor().newInstance();
                     if (keyValidator instanceof Validator) {
                         ((Validator) keyValidator).validateField(name + " Map key", entry.getKey());
                     } else {
@@ -375,7 +407,7 @@ public class ConfigValidation {
                     }
                 }
                 for (Class vv : valueValidators) {
-                    Object valueValidator = vv.newInstance();
+                    Object valueValidator = vv.getConstructor().newInstance();
                     if (valueValidator instanceof Validator) {
                         ((Validator) valueValidator).validateField(name + " Map value", entry.getValue());
                     } else {
@@ -425,6 +457,26 @@ public class ConfigValidation {
         }
     }
 
+    public static class MetricRegistryValidator extends Validator {
+
+        @Override
+        public void validateField(String name, Object o) {
+            if(o == null) {
+                return;
+            }
+            SimpleTypeValidator.validateField(name, Map.class, o);
+            if(!((Map) o).containsKey("class") ) {
+                throw new IllegalArgumentException( "Field " + name + " must have map entry with key: class");
+            }
+            if(!((Map) o).containsKey("parallelism.hint") ) {
+                throw new IllegalArgumentException("Field " + name + " must have map entry with key: parallelism.hint");
+            }
+
+            SimpleTypeValidator.validateField(name, String.class, ((Map) o).get("class"));
+            SimpleTypeValidator.validateField(name, Long.class, ((Map) o).get("parallelism.hint"));
+        }
+    }
+
     /**
      * Methods for validating confs
      */
@@ -435,7 +487,7 @@ public class ConfigValidation {
      * @param fieldName provided as a string
      * @param conf      map of confs
      */
-    public static void validateField(String fieldName, Map conf) throws NoSuchFieldException, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
+    public static void validateField(String fieldName, Map conf) {
         validateField(fieldName, conf, CONFIG_CLASS);
     }
 
@@ -446,8 +498,13 @@ public class ConfigValidation {
      * @param conf        map of confs
      * @param configClass config class
      */
-    public static void validateField(String fieldName, Map conf, Class configClass) throws NoSuchFieldException, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
-        Field field = configClass.getField(fieldName);
+    public static void validateField(String fieldName, Map conf, Class configClass) {
+        Field field = null;
+        try {
+            field = configClass.getField(fieldName);
+        } catch (NoSuchFieldException e) {
+            throw new RuntimeException(e);
+        }
         validateField(field, conf);
     }
 
@@ -458,42 +515,45 @@ public class ConfigValidation {
      * @param field field that needs to be validated
      * @param conf  map of confs
      */
-    public static void validateField(Field field, Map conf) throws NoSuchFieldException, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
+    public static void validateField(Field field, Map conf) {
         Annotation[] annotations = field.getAnnotations();
         if (annotations.length == 0) {
             LOG.warn("Field {} does not have validator annotation", field);
         }
-
-        for (Annotation annotation : annotations) {
-            String type = annotation.annotationType().getName();
-            Class validatorClass = null;
-            Class<?>[] classes = ConfigValidationAnnotations.class.getDeclaredClasses();
-            //check if annotation is one of our
-            for (Class clazz : classes) {
-                if (clazz.getName().equals(type)) {
-                    validatorClass = clazz;
-                    break;
+        try {
+            for (Annotation annotation : annotations) {
+                String type = annotation.annotationType().getName();
+                Class validatorClass = null;
+                Class<?>[] classes = ConfigValidationAnnotations.class.getDeclaredClasses();
+                //check if annotation is one of our
+                for (Class clazz : classes) {
+                    if (clazz.getName().equals(type)) {
+                        validatorClass = clazz;
+                        break;
+                    }
+                }
+                if (validatorClass != null) {
+                    Object v = validatorClass.cast(annotation);
+                    String key = (String) field.get(null);
+                    Class clazz = (Class) validatorClass
+                            .getMethod(ConfigValidationAnnotations.ValidatorParams.VALIDATOR_CLASS).invoke(v);
+                    Validator o = null;
+                    Map<String, Object> params = getParamsFromAnnotation(validatorClass, v);
+                    //two constructor signatures used to initialize validators.
+                    //One constructor takes input a Map of arguments, the other doesn't take any arguments (default constructor)
+                    //If validator has a constructor that takes a Map as an argument call that constructor
+                    if (hasConstructor(clazz, Map.class)) {
+                        o = (Validator) clazz.getConstructor(Map.class).newInstance(params);
+                    }
+                    //If not call default constructor
+                    else {
+                        o = (((Class<Validator>) clazz).newInstance());
+                    }
+                    o.validateField(field.getName(), conf.get(key));
                 }
             }
-            if (validatorClass != null) {
-                Object v = validatorClass.cast(annotation);
-                String key = (String) field.get(null);
-                Class clazz = (Class) validatorClass
-                        .getMethod(ConfigValidationAnnotations.ValidatorParams.VALIDATOR_CLASS).invoke(v);
-                Validator o = null;
-                Map<String, Object> params = getParamsFromAnnotation(validatorClass, v);
-                //two constructor signatures used to initialize validators.
-                //One constructor takes input a Map of arguments, the other doesn't take any arguments (default constructor)
-                //If validator has a constructor that takes a Map as an argument call that constructor
-                if(hasConstructor(clazz, Map.class)) {
-                    o  = (Validator) clazz.getConstructor(Map.class).newInstance(params);
-                }
-                //If not call default constructor
-                else {
-                    o  = (((Class<Validator>) clazz).newInstance());
-                }
-                o.validateField(field.getName(), conf.get(key));
-            }
+        }  catch (NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -502,7 +562,7 @@ public class ConfigValidation {
      *
      * @param conf map of configs
      */
-    public static void validateFields(Map conf) throws IllegalAccessException, InstantiationException, NoSuchFieldException, NoSuchMethodException, InvocationTargetException {
+    public static void validateFields(Map conf) {
         validateFields(conf, CONFIG_CLASS);
     }
 
@@ -512,9 +572,14 @@ public class ConfigValidation {
      * @param conf        map of configs
      * @param configClass config class
      */
-    public static void validateFields(Map conf, Class configClass) throws IllegalAccessException, InstantiationException, NoSuchFieldException, NoSuchMethodException, InvocationTargetException {
+    public static void validateFields(Map conf, Class configClass) {
         for (Field field : configClass.getFields()) {
-            Object keyObj = field.get(null);
+            Object keyObj = null;
+            try {
+                keyObj = field.get(null);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
             //make sure that defined key is string in case wrong stuff got put into Config.java
             if (keyObj instanceof String) {
                 String confKey = (String) keyObj;

@@ -543,6 +543,78 @@ public class TestConfigValidate {
         }
     }
 
+    @Test
+    public void TestAcceptedStrings() throws InvocationTargetException, NoSuchMethodException, NoSuchFieldException, InstantiationException, IllegalAccessException {
+        TestConfig config = new TestConfig();
+        String[] passCases = {"aaa", "bbb", "ccc"};
+
+        for (Object value : passCases) {
+            config.put(TestConfig.TEST_MAP_CONFIG_5, value);
+            ConfigValidation.validateFields(config, TestConfig.class);
+        }
+
+        String[] failCases = {"aa", "bb", "cc", "abc", "a", "b", "c", ""};
+        for (Object value : failCases) {
+            try {
+                config.put(TestConfig.TEST_MAP_CONFIG_5, value);
+                ConfigValidation.validateFields(config, TestConfig.class);
+                Assert.fail("Expected Exception not Thrown for value: " + value);
+            } catch (IllegalArgumentException Ex) {
+            }
+        }
+    }
+
+    @Test
+    public void TestImpersonationAclUserEntryValidator() throws InvocationTargetException, NoSuchMethodException, NoSuchFieldException, InstantiationException, IllegalAccessException {
+        TestConfig config = new TestConfig();
+        Collection<Object> passCases = new LinkedList<Object>();
+        Collection<Object> failCases = new LinkedList<Object>();
+
+        Map<String, Map<String, List<String>>> passCase1 = new HashMap<String, Map<String, List<String>>>();
+        Map<String, List<String>> passCase1_hostsAndGroups = new HashMap<String, List<String>>();
+        String[] hosts = {"host.1", "host.2", "host.3"};
+        passCase1_hostsAndGroups.put("hosts", Arrays.asList(hosts));
+        String[] groups = {"group.1", "group.2", "group.3"};
+        passCase1_hostsAndGroups.put("groups", Arrays.asList(groups));
+        passCase1.put("jerry", passCase1_hostsAndGroups);
+        passCases.add(passCase1);
+
+        for (Object value : passCases) {
+            config.put(TestConfig.TEST_MAP_CONFIG_6, value);
+            ConfigValidation.validateFields(config, TestConfig.class);
+        }
+
+        Map<String, Map<String, List<String>>> failCase1 = new HashMap<String, Map<String, List<String>>>();
+        Map<String, List<String>> failCase1_hostsAndGroups = new HashMap<String, List<String>>();
+        String[] failhosts = {"host.1", "host.2", "host.3"};
+        failCase1_hostsAndGroups.put("hosts", Arrays.asList(hosts));
+        failCase1.put("jerry", failCase1_hostsAndGroups);
+
+
+        Map<String, Map<String, List<String>>> failCase2 = new HashMap<String, Map<String, List<String>>>();
+        Map<String, List<String>> failCase2_hostsAndGroups = new HashMap<String, List<String>>();
+        String[] failgroups = {"group.1", "group.2", "group.3"};
+        failCase2_hostsAndGroups.put("groups", Arrays.asList(groups));
+        failCase2.put("jerry", failCase2_hostsAndGroups);
+
+        failCases.add(failCase1);
+        failCases.add(failCase2);
+        failCases.add("stuff");
+        failCases.add(5);
+
+        for (Object value : failCases) {
+            try {
+                config.put(TestConfig.TEST_MAP_CONFIG_6, value);
+                ConfigValidation.validateFields(config, TestConfig.class);
+                Assert.fail("Expected Exception not Thrown for value: " + value);
+            } catch (IllegalArgumentException Ex) {
+            }
+        }
+
+
+
+    }
+
     public class TestConfig extends HashMap<String, Object> {
         @isMapEntryType(keyType = String.class, valueType = Integer.class)
         public static final String TEST_MAP_CONFIG = "test.map.config";
@@ -560,5 +632,11 @@ public class TestConfigValidate {
                 entryValidatorClasses = {PositiveNumberValidator.class, NotNullValidator.class})
         @isNoDuplicateInList
         public static final String TEST_MAP_CONFIG_4 = "test.map.config.4";
+
+        @isString(acceptedValues = {"aaa", "bbb", "ccc"})
+        public static final String TEST_MAP_CONFIG_5 = "test.map.config.5";
+
+        @isMapEntryCustom(keyValidatorClasses = {StringValidator.class}, valueValidatorClasses = {ImpersonationAclUserEntryValidator.class})
+        public static final String TEST_MAP_CONFIG_6 = "test.map.config.6";
     }
 }

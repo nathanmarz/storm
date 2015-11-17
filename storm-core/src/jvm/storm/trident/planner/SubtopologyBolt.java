@@ -23,7 +23,6 @@ import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
-import backtype.storm.utils.Utils;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -49,9 +48,9 @@ import storm.trident.util.TridentUtils;
 public class SubtopologyBolt implements ITridentBatchBolt {
     DirectedGraph _graph;
     Set<Node> _nodes;
-    Map<String, InitialReceiver> _roots = new HashMap();
-    Map<Node, Factory> _outputFactories = new HashMap();
-    Map<String, List<TridentProcessor>> _myTopologicallyOrdered = new HashMap();
+    Map<String, InitialReceiver> _roots = new HashMap<>();
+    Map<Node, Factory> _outputFactories = new HashMap<>();
+    Map<String, List<TridentProcessor>> _myTopologicallyOrdered = new HashMap<>();
     Map<Node, String> _batchGroups;
     
     //given processornodes and static state nodes
@@ -71,7 +70,7 @@ public class SubtopologyBolt implements ITridentBatchBolt {
             }
         }
         DirectedSubgraph<Node, Object> subgraph = new DirectedSubgraph(_graph, _nodes, null);
-        TopologicalOrderIterator it = new TopologicalOrderIterator<Node, Object>(subgraph);
+        TopologicalOrderIterator it = new TopologicalOrderIterator<>(subgraph);
         int stateIndex = 0;
         while(it.hasNext()) {
             Node n = (Node) it.next();
@@ -82,8 +81,8 @@ public class SubtopologyBolt implements ITridentBatchBolt {
                     _myTopologicallyOrdered.put(batchGroup, new ArrayList());
                 }
                 _myTopologicallyOrdered.get(batchGroup).add(pn.processor);
-                List<String> parentStreams = new ArrayList();
-                List<Factory> parentFactories = new ArrayList();
+                List<String> parentStreams = new ArrayList<>();
+                List<Factory> parentFactories = new ArrayList<>();
                 for(Node p: TridentUtils.getParents(_graph, n)) {
                     parentStreams.add(p.streamId);
                     if(_nodes.contains(p)) {
@@ -96,7 +95,7 @@ public class SubtopologyBolt implements ITridentBatchBolt {
                         parentFactories.add(_roots.get(p.streamId).getOutputFactory());
                     }
                 }
-                List<TupleReceiver> targets = new ArrayList();
+                List<TupleReceiver> targets = new ArrayList<>();
                 boolean outgoingNode = false;
                 for(Node cn: TridentUtils.getChildren(_graph, n)) {
                     if(_nodes.contains(cn)) {
@@ -185,7 +184,7 @@ public class SubtopologyBolt implements ITridentBatchBolt {
     
     
     protected static class InitialReceiver {
-        List<TridentProcessor> _receivers = new ArrayList();
+        List<TridentProcessor> _receivers = new ArrayList<>();
         RootFactory _factory;
         ProjectionFactory _project;
         String _stream;
@@ -195,7 +194,7 @@ public class SubtopologyBolt implements ITridentBatchBolt {
             // how to distinguish "batch" streams from non-batch streams?
             _stream = stream;
             _factory = new RootFactory(allFields);
-            List<String> projected = new ArrayList(allFields.toList());
+            List<String> projected = new ArrayList<>(allFields.toList());
             projected.remove(0);
             _project = new ProjectionFactory(_factory, new Fields(projected));
         }

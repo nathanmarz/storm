@@ -17,17 +17,30 @@
  */
 package storm.kafka.trident;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+
 public class StaticBrokerReader implements IBrokerReader {
 
-    private GlobalPartitionInformation brokers = new GlobalPartitionInformation();
+    private Map<String,GlobalPartitionInformation> brokers = new TreeMap<String,GlobalPartitionInformation>();
 
-    public StaticBrokerReader(GlobalPartitionInformation partitionInformation) {
-        this.brokers = partitionInformation;
+    public StaticBrokerReader(String topic, GlobalPartitionInformation partitionInformation) {
+        this.brokers.put(topic, partitionInformation);
     }
 
     @Override
-    public GlobalPartitionInformation getCurrentBrokers() {
-        return brokers;
+    public GlobalPartitionInformation getBrokerForTopic(String topic) {
+        if (brokers.containsKey(topic)) return brokers.get(topic);
+        return null;
+    }
+
+    @Override
+    public List<GlobalPartitionInformation> getAllBrokers () {
+        List<GlobalPartitionInformation> list = new ArrayList<GlobalPartitionInformation>();
+        list.addAll(brokers.values());
+        return list;
     }
 
     @Override

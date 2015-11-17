@@ -17,7 +17,7 @@
   (:use [clojure test])
   (:import [backtype.storm Config])
   (:import [backtype.storm.topology TopologyBuilder])
-  (:import [backtype.storm.generated InvalidTopologyException SubmitOptions TopologyInitialStatus])
+  (:import [backtype.storm.generated InvalidTopologyException SubmitOptions TopologyInitialStatus RebalanceOptions])
   (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount
             TestAggregatesCounter TestConfBolt AckFailMapTracker AckTracker TestPlannerSpout])
   (:import [backtype.storm.tuple Fields])
@@ -62,13 +62,13 @@
   (with-simulated-time-local-cluster [cluster :supervisors 4]
     (let [topology (thrift/mk-topology
                     {"1" (thrift/mk-spout-spec (TestWordSpout. true))}
-                    {"2" (thrift/mk-bolt-spec {"1" :shuffle} emit-task-id
+                    {"2" (thrift/mk-bolt-spec {"1" :all} emit-task-id
                       :parallelism-hint 3
                       :conf {TOPOLOGY-TASKS 6})
                      })
           results (complete-topology cluster
                                      topology
-                                     :mock-sources {"1" [["a"] ["a"] ["a"] ["a"] ["a"] ["a"]]})]
+                                     :mock-sources {"1" [["a"]]})]
       (is (ms= [[0] [1] [2] [3] [4] [5]]
                (read-tuples results "2")))
       )))
@@ -105,6 +105,7 @@
                              "timeout-tester"
                              {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10}
                              topology)
+      (advance-cluster-time cluster 11)
       (.feed feeder ["a"] 1)
       (.feed feeder ["b"] 2)
       (.feed feeder ["c"] 3)
@@ -236,6 +237,7 @@
                              "acking-test1"
                              {}
                              (:topology tracked))
+      (advance-cluster-time cluster 11)
       (.feed feeder1 [1])
       (tracked-wait tracked 1)
       (checker1 0)
@@ -278,6 +280,7 @@
                              "test-acking2"
                              {}
                              (:topology tracked))
+      (advance-cluster-time cluster 11)
       (.feed feeder [1])
       (tracked-wait tracked 1)
       (checker 0)
@@ -323,6 +326,7 @@
         {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10}
         topology
         (SubmitOptions. TopologyInitialStatus/INACTIVE))
+      (advance-cluster-time cluster 11)
       (.feed feeder ["a"] 1)
       (advance-cluster-time cluster 9)
       (is (not @bolt-prepared?))
@@ -347,6 +351,7 @@
                              "test"
                              {}
                              (:topology tracked))
+      (advance-cluster-time cluster 11)
       (.feed feeder [1])
       (tracked-wait tracked 1)
       (checker 1)
@@ -568,6 +573,7 @@
                                               TOPOLOGY-DEBUG true
                                               }
                                              (:topology tracked))
+            _ (advance-cluster-time cluster 11)
             storm-id (get-storm-id state "test-errors")
             errors-count (fn [] (count (.errors state storm-id "2")))]
 

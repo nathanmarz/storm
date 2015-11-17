@@ -20,17 +20,11 @@ package backtype.storm.messaging.netty;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferOutputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Send and receive SASL tokens.
  */
 public class SaslMessageToken {
-    /** Class logger */
-    private static final Logger LOG = LoggerFactory
-            .getLogger(SaslMessageToken.class);
-
     /** Used for client or server's token to send or receive from each other. */
     private byte[] token;
 
@@ -88,8 +82,8 @@ public class SaslMessageToken {
         if (token != null)
             payload_len = token.length;
 
-        bout.writeShort((short) identifier);
-        bout.writeInt((int) payload_len);
+        bout.writeShort(identifier);
+        bout.writeInt(payload_len);
         if (payload_len > 0) {
             bout.write(token);
         }

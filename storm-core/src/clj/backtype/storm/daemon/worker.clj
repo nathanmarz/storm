@@ -25,12 +25,13 @@
   (:import [java.util.concurrent Executors])
   (:import [java.util ArrayList HashMap])
   (:import [backtype.storm.utils Utils TransferDrainer ThriftTopologyUtils WorkerBackpressureThread DisruptorQueue])
+  (:import [backtype.storm.grouping LoadMapping])
   (:import [backtype.storm.messaging TransportFactory])
   (:import [backtype.storm.messaging TaskMessage IContext IConnection ConnectionWithStatus ConnectionWithStatus$Status])
   (:import [backtype.storm.daemon Shutdownable])
   (:import [backtype.storm.serialization KryoTupleSerializer])
   (:import [backtype.storm.generated StormTopology])
-  (:import [backtype.storm.tuple Fields])
+  (:import [backtype.storm.tuple AddressedTuple Fields])
   (:import [backtype.storm.task WorkerTopologyContext])
   (:import [backtype.storm Constants])
   (:import [backtype.storm.security.auth AuthUtils])
@@ -102,10 +103,15 @@
         flatten
         set )))
 
+(defn get-dest
+  [^AddressedTuple addressed-tuple]
+  "get the destination for an AddressedTuple"
+  (.getDest addressed-tuple))
+
 (defn mk-transfer-local-fn [worker]
   (let [short-executor-receive-queue-map (:short-executor-receive-queue-map worker)
         task->short-executor (:task->short-executor worker)
-        task-getter (comp #(get task->short-executor %) fast-first)]
+        task-getter (comp #(get task->short-executor %) get-dest)]
     (fn [tuple-batch]
       (let [grouped (fast-group-by task-getter tuple-batch)]
         (fast-map-iter [[short-executor pairs] grouped]
@@ -159,21 +165,23 @@
 
         transfer-fn
           (fn [^KryoTupleSerializer serializer tuple-batch]
-            (let [local (ArrayList.)
-                  remoteMap (HashMap.)]
-              (fast-list-iter [[task tuple :as pair] tuple-batch]
-                (if (local-tasks task)
-                  (.add local pair)
+            (let [^ArrayList local (ArrayList.)
+                  ^HashMap remoteMap (HashMap.)]
+              (fast-list-iter [^AddressedTuple addressed-tuple tuple-batch]
+                (let [task (.getDest addressed-tuple)
+                      tuple (.getTuple addressed-tuple)]
+                  (if (local-tasks task)
+                    (.add local addressed-tuple)
 
-                  ;;Using java objects directly to avoid performance issues in java code
-                  (do
-                    (when (not (.get remoteMap task))
-                      (.put remoteMap task (ArrayList.)))
-                    (let [remote (.get remoteMap task)]
-                      (if (not-nil? task)
-                        (.add remote (TaskMessage. task (.serialize serializer tuple)))
-                        (log-warn "Can't transfer tuple - task value is nil. tuple type: " (pr-str (type tuple)) " and information: " (pr-str tuple)))
-                     ))))
+                    ;;Using java objects directly to avoid performance issues in java code
+                    (do
+                      (when (not (.get remoteMap task))
+                        (.put remoteMap task (ArrayList.)))
+                      (let [^ArrayList remote (.get remoteMap task)]
+                        (if (not-nil? task)
+                          (.add remote (TaskMessage. task ^bytes (.serialize serializer tuple)))
+                          (log-warn "Can't transfer tuple - task value is nil. tuple type: " (pr-str (type tuple)) " and information: " (pr-str tuple)))
+                       )))))
 
               (when (not (.isEmpty local)) (local-transfer local))
               (when (not (.isEmpty remoteMap)) (disruptor/publish transfer-queue remoteMap))))]
@@ -191,7 +199,8 @@
        (map (fn [e] [e (disruptor/disruptor-queue (str "receive-queue" e)
                                                   (storm-conf TOPOLOGY-EXECUTOR-RECEIVE-BUFFER-SIZE)
                                                   (storm-conf TOPOLOGY-DISRUPTOR-WAIT-TIMEOUT-MILLIS)
-                                                  :wait-strategy (storm-conf TOPOLOGY-DISRUPTOR-WAIT-STRATEGY))]))
+                                                  :batch-size (storm-conf TOPOLOGY-DISRUPTOR-BATCH-SIZE)
+                                                  :batch-timeout (storm-conf TOPOLOGY-DISRUPTOR-BATCH-TIMEOUT-MILLIS))]))
        (into {})
        ))
 
@@ -233,7 +242,8 @@
         executors (set (read-worker-executors storm-conf storm-cluster-state storm-id assignment-id port assignment-versions))
         transfer-queue (disruptor/disruptor-queue "worker-transfer-queue" (storm-conf TOPOLOGY-TRANSFER-BUFFER-SIZE)
                                                   (storm-conf TOPOLOGY-DISRUPTOR-WAIT-TIMEOUT-MILLIS)
-                                                  :wait-strategy (storm-conf TOPOLOGY-DISRUPTOR-WAIT-STRATEGY))
+                                                  :batch-size (storm-conf TOPOLOGY-DISRUPTOR-BATCH-SIZE)
+                                                  :batch-timeout (storm-conf TOPOLOGY-DISRUPTOR-BATCH-TIMEOUT-MILLIS))
         executor-receive-queue-map (mk-receive-queue-map storm-conf executors)
 
         receive-queue-map (->> executor-receive-queue-map
@@ -267,6 +277,7 @@
       :topology topology
       :system-topology (system-topology! storm-conf topology)
       :heartbeat-timer (mk-halting-timer "heartbeat-timer")
+      :refresh-load-timer (mk-halting-timer "refresh-load-timer")
       :refresh-connections-timer (mk-halting-timer "refresh-connections-timer")
       :refresh-credentials-timer (mk-halting-timer "refresh-credentials-timer")
       :reset-log-levels-timer (mk-halting-timer "reset-log-levels-timer")
@@ -291,8 +302,8 @@
       :default-shared-resources (mk-default-resources <>)
       :user-shared-resources (mk-user-resources <>)
       :transfer-local-fn (mk-transfer-local-fn <>)
-      :receiver-thread-count (get storm-conf WORKER-RECEIVER-THREAD-COUNT)
       :transfer-fn (mk-transfer-fn <>)
+      :load-mapping (LoadMapping.)
       :assignment-versions assignment-versions
       :backpressure (atom false) ;; whether this worker is going slow
       :transfer-backpressure (atom false) ;; if the transfer queue is backed-up
@@ -307,6 +318,28 @@
   (let [[port-str node] (.split s "/" 2)]
     [node (Integer/valueOf port-str)]
     ))
+
+(def LOAD-REFRESH-INTERVAL-MS 5000)
+
+(defn mk-refresh-load [worker]
+  (let [local-tasks (set (:task-ids worker))
+        remote-tasks (set/difference (worker-outbound-tasks worker) local-tasks)
+        short-executor-receive-queue-map (:short-executor-receive-queue-map worker)
+        next-update (atom 0)]
+    (fn this
+      ([]
+        (let [^LoadMapping load-mapping (:load-mapping worker)
+              local-pop (map-val (fn [queue]
+                                   (let [q-metrics (.getMetrics queue)]
+                                     (/ (double (.population q-metrics)) (.capacity q-metrics))))
+                                 short-executor-receive-queue-map)
+              remote-load (reduce merge (for [[np conn] @(:cached-node+port->socket worker)] (into {} (.getLoad conn remote-tasks))))
+              now (System/currentTimeMillis)]
+          (.setLocal load-mapping local-pop)
+          (.setRemote load-mapping remote-load)
+          (when (> now @next-update)
+            (.sendLoadMetrics (:receiver worker) local-pop)
+            (reset! next-update (+ LOAD-REFRESH-INTERVAL-MS now))))))))
 
 (defn mk-refresh-connections [worker]
   (let [outbound-tasks (worker-outbound-tasks worker)
@@ -423,16 +456,12 @@
           (schedule timer recur-secs this :check-active false)
             )))))
 
-(defn launch-receive-thread [worker]
-  (log-message "Launching receive-thread for " (:assignment-id worker) ":" (:port worker))
-  (msg-loader/launch-receive-thread!
-    (:mq-context worker)
-    (:receiver worker)
-    (:storm-id worker)
-    (:receiver-thread-count worker)
-    (:port worker)
-    (:transfer-local-fn worker)
-    :kill-fn (fn [t] (exit-process! 11))))
+(defn register-callbacks [worker]
+  (log-message "Registering IConnectionCallbacks for " (:assignment-id worker) ":" (:port worker))
+  (msg-loader/register-callback (:transfer-local-fn worker)
+                                (:receiver worker)
+                                (:storm-conf worker)
+                                (worker-context worker)))
 
 (defn- close-resources [worker]
   (let [dr (:default-shared-resources worker)]
@@ -536,7 +565,9 @@
   ;; because in local mode, its not a separate
   ;; process. supervisor will register it in this case
   (when (= :distributed (cluster-mode conf))
-    (touch (worker-pid-path conf worker-id (process-pid))))
+    (let [pid (process-pid)]
+      (touch (worker-pid-path conf worker-id pid))
+      (spit (worker-artifacts-pid-path conf storm-id port) pid)))
 
   (declare establish-log-setting-callback)
 
@@ -567,9 +598,10 @@
         _ (schedule-recurring (:heartbeat-timer worker) 0 (conf WORKER-HEARTBEAT-FREQUENCY-SECS) heartbeat-fn)
         _ (schedule-recurring (:executor-heartbeat-timer worker) 0 (conf TASK-HEARTBEAT-FREQUENCY-SECS) #(do-executor-heartbeats worker :executors @executors))
 
-        receive-thread-shutdown (launch-receive-thread worker)
+        _ (register-callbacks worker)
 
         refresh-connections (mk-refresh-connections worker)
+        refresh-load (mk-refresh-load worker)
 
         _ (refresh-connections nil)
 
@@ -605,9 +637,6 @@
                       ;; this will do best effort flushing since the linger period
                       ;; was set on creation
                       (.close socket))
-                    (log-message "Shutting down receive thread")
-                    (receive-thread-shutdown)
-                    (log-message "Shut down receive thread")
                     (log-message "Terminating messaging context")
                     (log-message "Shutting down executors")
                     (doseq [executor @executors] (.shutdown executor))
@@ -631,6 +660,7 @@
                     (cancel-timer (:refresh-active-timer worker))
                     (cancel-timer (:executor-heartbeat-timer worker))
                     (cancel-timer (:user-timer worker))
+                    (cancel-timer (:refresh-load-timer worker))
 
                     (close-resources worker)
 
@@ -651,6 +681,7 @@
                (and
                  (timer-waiting? (:heartbeat-timer worker))
                  (timer-waiting? (:refresh-connections-timer worker))
+                 (timer-waiting? (:refresh-load-timer worker))
                  (timer-waiting? (:refresh-credentials-timer worker))
                  (timer-waiting? (:refresh-active-timer worker))
                  (timer-waiting? (:executor-heartbeat-timer worker))
@@ -687,6 +718,9 @@
                           (check-credentials-changed)
                           (if ((:storm-conf worker) TOPOLOGY-BACKPRESSURE-ENABLE)
                             (check-throttle-changed))))
+    ;; The jitter allows the clients to get the data at different times, and avoids thundering herd
+    (when-not (.get conf TOPOLOGY-DISABLE-LOADAWARE-MESSAGING)
+      (schedule-recurring-with-jitter (:refresh-load-timer worker) 0 1 500 refresh-load))
     (schedule-recurring (:refresh-connections-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) refresh-connections)
     (schedule-recurring (:reset-log-levels-timer worker) 0 (conf WORKER-LOG-LEVEL-RESET-POLL-SECS) (fn [] (reset-log-levels latest-log-config)))
     (schedule-recurring (:refresh-active-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) (partial refresh-storm-active worker))

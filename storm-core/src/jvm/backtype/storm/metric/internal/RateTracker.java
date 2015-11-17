@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package backtype.storm.utils;
+package backtype.storm.metric.internal;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -35,7 +35,6 @@ public class RateTracker{
     private final AtomicLong _currentBucket;
     
     private final TimerTask _task;
-    private static Timer _timer = new Timer("rate tracker timer", true);
 
     /**
      * @param validTimeWindowInMils events that happened before validTimeWindowInMils are not considered
@@ -68,7 +67,7 @@ public class RateTracker{
         _currentBucket = new AtomicLong(0);
         if (startTime < 0) {
             _task = new Fresher();
-            _timer.scheduleAtFixedRate(_task, _bucketSizeMillis, _bucketSizeMillis);
+            MetricStatTimer._timer.scheduleAtFixedRate(_task, _bucketSizeMillis, _bucketSizeMillis);
         } else {
             _task = null;
         }

@@ -28,7 +28,7 @@ public class KerberosPrincipalToLocal implements IPrincipalToLocal {
 
     /**
      * Invoked once immediately after construction
-     * @param conf Storm configuration 
+     * @param storm_conf Storm configuration
      */
     public void prepare(Map storm_conf) {}
     

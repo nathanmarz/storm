@@ -227,6 +227,59 @@
     </tbody>
   </table>
 </script>
+<script id="profiling-template" type="text/html">
+  <h2>Profiling and Debugging</h2>
+  Use the following controls to profile and debug the components on this page.
+  <table class="table table-striped compact">
+    <thead>
+      <tr>
+        <th class="header">Component</th>
+        <th class="header">
+          <span data-original-title="The status of a running profiler or the timeout for one you're starting (in minutes)" data-toggle="tooltip">
+            Status / Timeout (Minutes)
+          </span>
+        </th>
+        <th class="header">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="profiler-table-body">
+      <tr>
+        <td>
+          <select id="selected_worker">
+            {{#hosts}}
+            <option value="{{name}}">{{name}}</option>
+            {{/hosts}}
+          </select>
+        </td>
+        <td>
+          <input id="timeout" class="timeout_input" type="text" value="" placeholder="10"/>
+        </td>
+        <td>
+          <input type="button" value="Start" name="start" onClick="start_profiling(profiler_selected_worker())" class="btn btn-secondary"/>
+          <input type="button" value="JStack" name="jstack" onClick="dump_jstack(profiler_selected_worker())" class="btn btn-secondary"/>
+          <input type="button" value="Restart Worker" name="jvmrestart" onClick="restart_worker_jvm(profiler_selected_worker())" class="btn btn-secondary"/>
+          <input type="button" value="Heap" name="heap" onClick="dump_heap(profiler_selected_worker())" class="btn btn-secondary"/>
+        </td>
+      </tr>
+      {{> profilerActive}}
+    </tbody>
+  </table>
+</script>
+<script id="profiler-active-partial" type="text/html">
+  {{#profilerActive}}
+  <tr>
+    <td>{{host}}:{{port}}</td>
+    <td>Active until {{timestamp}}</td>
+    <td>
+      <input id="stop_{{host}}:{{port}}" type="button" value="Stop" name="stop" onClick="stop_profiling('{{host}}:{{port}}')" class="btn btn-secondary"/>
+      <input id="dump_profile_{{host}}:{{port}}" type="button" value="Dump Profile" name="dumpjprofile" onClick="dump_profile('{{host}}:{{port}}')" class="btn btn-secondary"/>
+      <input id="dump_jstack_{{host}}:{{port}}" type="button" value="JStack" name="jstack" onClick="dump_jstack('{{host}}:{{port}}')" class="btn btn-secondary"/>
+      <input id="restart_worker_jvm_{{host}}:{{port}}" type="button" value="Restart Worker" name="jvmrestart" onClick="restart_worker_jvm('{{host}}:{{port}}')" class="btn btn-secondary"/>
+      <input id="dump_heap_{{host}}:{{port}}" type="button" value="Heap" name="heap" onClick="dump_heap('{{host}}:{{port}}')" class="btn btn-secondary"/> <a href="{{dumplink}}">My Dump Files</a>
+    </td>
+  </tr>
+  {{/profilerActive}}
+</script>
 <script id="bolt-stats-template" type="text/html">
   <h2>Bolt stats</h2>
   <table class="table table-striped compact" id="bolt-stats-table">

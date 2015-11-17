@@ -40,8 +40,8 @@ import backtype.storm.scheduler.WorkerSlot;
  */
 public class Node {
   private static final Logger LOG = LoggerFactory.getLogger(Node.class);
-  private Map<String, Set<WorkerSlot>> _topIdToUsedSlots = new HashMap<String,Set<WorkerSlot>>();
-  private Set<WorkerSlot> _freeSlots = new HashSet<WorkerSlot>();
+  private Map<String, Set<WorkerSlot>> _topIdToUsedSlots = new HashMap<>();
+  private Set<WorkerSlot> _freeSlots = new HashSet<>();
   private final String _nodeId;
   private boolean _isAlive;
   
@@ -143,7 +143,7 @@ public class Node {
     }
     Set<WorkerSlot> usedSlots = _topIdToUsedSlots.get(topId);
     if (usedSlots == null) {
-      usedSlots = new HashSet<WorkerSlot>();
+      usedSlots = new HashSet<>();
       _topIdToUsedSlots.put(topId, usedSlots);
     }
     usedSlots.add(ws);
@@ -164,7 +164,7 @@ public class Node {
         _freeSlots.addAll(entry.getValue());
       }
     }
-    _topIdToUsedSlots = new HashMap<String,Set<WorkerSlot>>();
+    _topIdToUsedSlots = new HashMap<>();
   }
   
   /**
@@ -242,10 +242,7 @@ public class Node {
   
   @Override
   public boolean equals(Object other) {
-    if (other instanceof Node) {
-      return _nodeId.equals(((Node)other)._nodeId);
-    }
-    return false;
+      return other instanceof Node && _nodeId.equals(((Node) other)._nodeId);
   }
   
   @Override
@@ -295,13 +292,13 @@ public class Node {
   }
   
   public static Map<String, Node> getAllNodesFrom(Cluster cluster) {
-    Map<String, Node> nodeIdToNode = new HashMap<String, Node>();
+    Map<String, Node> nodeIdToNode = new HashMap<>();
     for (SupervisorDetails sup : cluster.getSupervisors().values()) {
       //Node ID and supervisor ID are the same.
       String id = sup.getId();
       boolean isAlive = !cluster.isBlackListed(id);
       LOG.debug("Found a {} Node {} {}",
-          new Object[] {isAlive? "living":"dead", id, sup.getAllPorts()});
+              isAlive? "living":"dead", id, sup.getAllPorts());
       nodeIdToNode.put(id, new Node(id, sup.getAllPorts(), isAlive));
     }
     

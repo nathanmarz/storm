@@ -288,10 +288,11 @@
       rate)))
 
 (defn valid-number?
-  "Returns true if x is a number that is not NaN, false otherwise"
+  "Returns true if x is a number that is not NaN or Infinity, false otherwise"
   [x]
   (and (number? x)
-       (not (Double/isNaN x))))
+       (not (Double/isNaN x))
+       (not (Double/isInfinite x))))
 
 (defn apply-default
   [f defaulting-fn & args]

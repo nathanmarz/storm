@@ -19,11 +19,10 @@ package backtype.storm.metric.internal;
 
 import java.util.Map;
 import java.util.HashMap;
-import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.atomic.AtomicLong;
 
 import backtype.storm.metric.api.IMetric;
+import backtype.storm.utils.Utils;
 
 /**
  * Acts as a Latency Metric, but also keeps track of approximate latency
@@ -146,9 +145,8 @@ public class LatencyStatAndMetric implements IMetric {
 
         long timeSpent = now - _bucketStart;
         long exactExtraCountSum = count + _exactExtraCount;
-        double ret = exactExtraCountSum > 0 ?
-                ((double)(lat + _exactExtraLat))/exactExtraCountSum :
-                0.0;
+        double ret = Utils.zeroIfNaNOrInf(
+                ((double) (lat + _exactExtraLat)) / exactExtraCountSum);
         _bucketStart = now;
         _exactExtraLat = 0;
         _exactExtraCount = 0;
@@ -231,9 +229,8 @@ public class LatencyStatAndMetric implements IMetric {
         ret.put("10800", readApproximateLatAvg(lat, count, timeSpent, _thTime, _thLatBuckets, _thCountBuckets, 10800 * 1000));
         ret.put("86400", readApproximateLatAvg(lat, count, timeSpent, _odTime, _odLatBuckets, _odCountBuckets, 86400 * 1000));
         long allTimeCountSum = count + _allTimeCount;
-        ret.put(":all-time", allTimeCountSum > 0 ?
-                ((double)lat + _allTimeLat)/allTimeCountSum :
-                0.0);
+        ret.put(":all-time", Utils.zeroIfNaNOrInf(
+                (double) lat + _allTimeLat)/allTimeCountSum);
         return ret;
     }
 
@@ -248,7 +245,7 @@ public class LatencyStatAndMetric implements IMetric {
             totalCount += countBuckets[i];
             timeNeeded -= bucketTime[i];
         }
-        return totalCount > 0 ? ((double)totalLat)/totalCount : 0.0;
+        return Utils.zeroIfNaNOrInf(((double) totalLat) / totalCount);
     }
 
     public void close() {

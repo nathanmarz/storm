@@ -17,11 +17,8 @@
  */
 package storm.trident.graph;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+
 import org.jgrapht.DirectedGraph;
 import storm.trident.planner.Node;
 import storm.trident.util.IndexedEdge;
@@ -34,8 +31,8 @@ public class GraphGrouper {
     
     public GraphGrouper(DirectedGraph<Node, IndexedEdge> graph, Collection<Group> initialGroups) {
         this.graph = graph;
-        this.currGroups = new HashSet<>(initialGroups);
-        reindex();      
+        this.currGroups = new LinkedHashSet<>(initialGroups);
+        reindex();
     }
     
     public Collection<Group> getAllGroups() {

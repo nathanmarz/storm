@@ -1,5 +1,4 @@
 # Pacemaker
-------
 
 ### Intro
 Pacemaker is a storm daemon designed to process heartbeats from workers. As Storm is scaled up, ZooKeeper begins to become a bottleneck due to high volumes of writes from workers doing heartbeats. Lots of writes to disk and traffic across the network is generated as ZooKeeper tries to maintain consistency.
@@ -8,6 +7,7 @@ Because heartbeats are of an ephemeral nature, they do not need to be persisted 
 
 The corresponding Pacemaker client is a plugin for the `ClusterState` interface, `org.apache.storm.pacemaker.pacemaker_state_factory`. Heartbeat calls are funneled by the `ClusterState` produced by `pacemaker_state_factory` into the Pacemaker daemon, while other set/get operations are forwarded to ZooKeeper.
 
+------
 
 ### Configuration
 

@@ -31,7 +31,7 @@ public class GraphGrouper {
     
     public GraphGrouper(DirectedGraph<Node, IndexedEdge> graph, Collection<Group> initialGroups) {
         this.graph = graph;
-        this.currGroups = new LinkedHashSet(initialGroups);
+        this.currGroups = new LinkedHashSet<>(initialGroups);
         reindex();
     }
     

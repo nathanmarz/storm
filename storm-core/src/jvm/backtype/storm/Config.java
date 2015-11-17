@@ -180,7 +180,7 @@ public class Config extends HashMap<String, Object> {
      * If this is not set, we will not display resource capacity and usage on the UI.
      */
     @isBoolean
-    public static final String SCHEDULER_RESOURCE_DISPLAY = "scheduler.display.resource";
+    public static final String SCHEDULER_DISPLAY_RESOURCE = "scheduler.display.resource";
 
     /**
      * The mode this Storm cluster is running in. Either "distributed" or "local".

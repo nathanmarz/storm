@@ -746,7 +746,7 @@
         ;; the new assignments for all the topologies are in the cluster object.
         _ (.schedule (:scheduler nimbus) topologies cluster)
         _ (.setResourcesMap cluster @(:id->resources nimbus))
-        _ (if-not (conf SCHEDULER-RESOURCE-DISPLAY) (.updateAssignedMemoryForTopologyAndSupervisor cluster topologies))
+        _ (if-not (conf SCHEDULER-DISPLAY-RESOURCE) (.updateAssignedMemoryForTopologyAndSupervisor cluster topologies))
         _ (reset! (:id->sched-status nimbus) (.getStatusMap cluster))
         _ (reset! (:node-id->resources nimbus) (.getSupervisorsResourcesMap cluster))
         _ (reset! (:id->resources nimbus) (.getResourcesMap cluster))]

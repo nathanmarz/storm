@@ -35,15 +35,15 @@ import java.util.TreeSet;
 public class User {
     private String userId;
     //Topologies yet to be scheduled sorted by priority for each user
-    private Set<TopologyDetails> pendingQueue = new TreeSet<TopologyDetails>(new PQsortByPriorityAndSubmittionTime());
+    private TreeSet<TopologyDetails> pendingQueue = new TreeSet<TopologyDetails>(new PQsortByPriorityAndSubmittionTime());
 
     //Topologies yet to be scheduled sorted by priority for each user
-    private Set<TopologyDetails> runningQueue = new TreeSet<TopologyDetails>(new PQsortByPriorityAndSubmittionTime());
+    private TreeSet<TopologyDetails> runningQueue = new TreeSet<TopologyDetails>(new PQsortByPriorityAndSubmittionTime());
 
     //Topologies that was attempted to be scheduled but wasn't successull
-    private Set<TopologyDetails> attemptedQueue = new TreeSet<TopologyDetails>(new PQsortByPriorityAndSubmittionTime());
+    private TreeSet<TopologyDetails> attemptedQueue = new TreeSet<TopologyDetails>(new PQsortByPriorityAndSubmittionTime());
 
-    private Set<TopologyDetails> invalidQueue = new TreeSet<TopologyDetails>(new PQsortByPriorityAndSubmittionTime());
+    private TreeSet<TopologyDetails> invalidQueue = new TreeSet<TopologyDetails>(new PQsortByPriorityAndSubmittionTime());
 
     private Map<String, Double> resourcePool = new HashMap<String, Double>();
 
@@ -58,6 +58,23 @@ public class User {
         if (resourcePool != null) {
             this.resourcePool.putAll(resourcePool);
         }
+    }
+
+    public User getCopy() {
+        User newUser = new User(this.userId, this.resourcePool);
+        for(TopologyDetails topo :  this.pendingQueue) {
+            newUser.addTopologyToPendingQueue(topo);
+        }
+        for(TopologyDetails topo :  this.runningQueue) {
+            newUser.addTopologyToRunningQueue(topo);
+        }
+        for(TopologyDetails topo :  this.attemptedQueue) {
+            newUser.addTopologyToAttemptedQueue(topo);
+        }
+        for(TopologyDetails topo :  this.invalidQueue) {
+            newUser.addTopologyToInvalidQueue(topo);
+        }
+        return newUser;
     }
 
     public String getId() {
@@ -92,6 +109,14 @@ public class User {
         return ret;
     }
 
+    public void addTopologyToAttemptedQueue(TopologyDetails topo) {
+        this.attemptedQueue.add(topo);
+    }
+
+    public void addTopologyToInvalidQueue(TopologyDetails topo) {
+        this.invalidQueue.add(topo);
+    }
+
     public Set<TopologyDetails> getTopologiesRunning() {
         TreeSet<TopologyDetails> ret = new TreeSet<TopologyDetails>(new PQsortByPriorityAndSubmittionTime());
         ret.addAll(this.runningQueue);
@@ -104,6 +129,11 @@ public class User {
         return ret;
     }
 
+    public Set<TopologyDetails> getTopologiesInvalid() {
+        TreeSet<TopologyDetails> ret = new TreeSet<TopologyDetails>(new PQsortByPriorityAndSubmittionTime());
+        ret.addAll(this.invalidQueue);
+        return ret;
+    }
     public Map<String, Number> getResourcePool() {
         if (this.resourcePool != null) {
             return new HashMap<String, Number>(this.resourcePool);
@@ -160,17 +190,12 @@ public class User {
 
 
     private void moveTopology(TopologyDetails topo, Set<TopologyDetails> src, String srcName, Set<TopologyDetails> dest, String destName) {
-        LOG.info("{} queue: {}", srcName, src);
-        LOG.info("{} queue: {}", destName, dest);
+        LOG.info("For User {} Moving topo {} from {} to {}", this.userId, topo.getName(), srcName, destName);
         if (topo == null) {
             return;
         }
         if (!src.contains(topo)) {
             LOG.warn("Topo {} not in User: {} {} queue!", topo.getName(), this.userId, srcName);
-            LOG.info("topo {}-{}-{}", topo.getName(), topo.getId(), topo.hashCode());
-            for (TopologyDetails t : src) {
-                LOG.info("queue entry: {}-{}-{}", t.getName(), t.getId(), t.hashCode());
-            }
             return;
         }
         if (dest.contains(topo)) {
@@ -179,6 +204,8 @@ public class User {
         }
         src.remove(topo);
         dest.add(topo);
+        LOG.info("SRC: {}", src);
+        LOG.info("DEST: {}", dest);
     }
 
 
@@ -244,14 +271,15 @@ public class User {
     }
 
     public boolean hasTopologyNeedSchedule() {
-        return (!this.pendingQueue.isEmpty() && (this.pendingQueue.size() - this.attemptedQueue.size()) > 0);
+        //return (!this.pendingQueue.isEmpty() && (this.pendingQueue.size() - this.attemptedQueue.size()) > 0);
+        return (!this.pendingQueue.isEmpty());
     }
 
     public TopologyDetails getRunningTopologyWithLowestPriority() {
         if (this.runningQueue.isEmpty()) {
             return null;
         }
-        return this.runningQueue.iterator().next();
+        return this.runningQueue.last();
     }
 
     @Override

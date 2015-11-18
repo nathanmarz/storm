@@ -68,6 +68,10 @@ public class Topologies {
         return _allComponents;
     }
 
+    public Topologies getCopy() {
+        return new Topologies(this.topologies);
+    }
+
     @Override
     public String toString() {
         String ret = "Topologies:\n";

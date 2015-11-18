@@ -56,7 +56,7 @@ public class RAS_Nodes {
             LOG.debug("Found a {} Node {} {}",
                     isAlive ? "living" : "dead", id, sup.getAllPorts());
             LOG.debug("resources_mem: {}, resources_CPU: {}", sup.getTotalMemory(), sup.getTotalCPU());
-            nodeIdToNode.put(sup.getId(), new RAS_Node(id, sup.getAllPorts(), isAlive, sup, cluster));
+            nodeIdToNode.put(sup.getId(), new RAS_Node(id, sup.getAllPorts(), isAlive, sup, cluster, topologies));
         }
         for (Map.Entry<String, SchedulerAssignment> entry : cluster.getAssignments().entrySet()) {
             String topId = entry.getValue().getTopologyId();
@@ -66,7 +66,7 @@ public class RAS_Nodes {
                 if (node == null) {
                     LOG.info("Found an assigned slot on a dead supervisor {} with executors {}",
                             workerSlot, RAS_Node.getExecutors(workerSlot, cluster));
-                    node = new RAS_Node(id, null, false, null, cluster);
+                    node = new RAS_Node(id, null, false, null, cluster, topologies);
                     nodeIdToNode.put(id, node);
                 }
                 if (!node.isAlive()) {
@@ -86,8 +86,9 @@ public class RAS_Nodes {
     /**
      * updates the available resources for every node in a cluster
      * by recalculating memory requirements.
-     * @param cluster the cluster used in this calculation
-     * @param topologies container of all topologies
+     *
+     * @param cluster      the cluster used in this calculation
+     * @param topologies   container of all topologies
      * @param nodeIdToNode a map between node id and node
      */
     private static void updateAvailableResources(Cluster cluster,
@@ -138,12 +139,26 @@ public class RAS_Nodes {
     }
 
     public void freeSlots(Collection<WorkerSlot> workerSlots) {
-        for(RAS_Node node : nodeMap.values()) {
-            for(WorkerSlot ws : node.getUsedSlots()) {
-                if(workerSlots.contains(ws)) {
+        for (RAS_Node node : nodeMap.values()) {
+            for (WorkerSlot ws : node.getUsedSlots()) {
+                if (workerSlots.contains(ws)) {
+                    LOG.info("freeing ws {} on node {}", ws, node);
                     node.free(ws);
                 }
             }
         }
+    }
+
+    public Collection<RAS_Node> getNodes() {
+        return this.nodeMap.values();
+    }
+
+    @Override
+    public String toString() {
+        String ret = "";
+        for (RAS_Node node : this.nodeMap.values()) {
+            ret += node.toString() + "\n";
+        }
+        return ret;
     }
 }

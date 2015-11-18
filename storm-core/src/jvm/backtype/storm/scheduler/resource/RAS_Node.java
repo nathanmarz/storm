@@ -55,9 +55,10 @@ public class RAS_Node {
     private Double _availCPU;
     private List<WorkerSlot> _slots;
     private Cluster _cluster;
+    private Topologies _topologies;
 
     public RAS_Node(String nodeId, Set<Integer> allPorts, boolean isAlive,
-                    SupervisorDetails sup, Cluster cluster) {
+                    SupervisorDetails sup, Cluster cluster, Topologies topologies) {
         _slots = new ArrayList<WorkerSlot>();
         _nodeId = nodeId;
         _isAlive = isAlive;
@@ -72,6 +73,7 @@ public class RAS_Node {
             _slots.addAll(_freeSlots);
         }
         this._cluster = cluster;
+        this._topologies = topologies;
     }
 
     public String getId() {
@@ -185,6 +187,8 @@ public class RAS_Node {
         }
         for (Entry<String, Set<WorkerSlot>> entry : _topIdToUsedSlots.entrySet()) {
             _cluster.freeSlots(entry.getValue());
+            _availCPU = this.getTotalCpuResources();
+            _availMemory = this.getAvailableMemoryResources();
             if (_isAlive) {
                 _freeSlots.addAll(entry.getValue());
             }
@@ -197,14 +201,19 @@ public class RAS_Node {
      * @param ws the slot to free
      */
     public void free(WorkerSlot ws) {
+        LOG.info("freeing ws {} on node {}", ws, _hostname);
         if (_freeSlots.contains(ws)) return;
         for (Entry<String, Set<WorkerSlot>> entry : _topIdToUsedSlots.entrySet()) {
             Set<WorkerSlot> slots = entry.getValue();
+            double memUsed = this.getMemoryUsedByWorker(ws);
+            double cpuUsed = this.getCpuUsedByWorker(ws);
             if (slots.remove(ws)) {
                 _cluster.freeSlot(ws);
                 if (_isAlive) {
                     _freeSlots.add(ws);
                 }
+                this.freeMemory(memUsed);
+                this.freeCPU(cpuUsed);
                 return;
             }
         }
@@ -223,11 +232,73 @@ public class RAS_Node {
         }
         for (WorkerSlot ws : slots) {
             _cluster.freeSlot(ws);
+            this.freeMemory(this.getMemoryUsedByWorker(ws));
+            this.freeCPU(this.getCpuUsedByWorker(ws));
             if (_isAlive) {
                 _freeSlots.add(ws);
             }
         }
         _topIdToUsedSlots.remove(topId);
+    }
+
+    public void freeMemory(double amount) {
+        _availMemory += amount;
+        LOG.info("freeing {} memory...avail mem: {}", amount, _availMemory);
+        if(_availMemory > this.getTotalMemoryResources()) {
+            LOG.warn("Freeing more memory than there exists!");
+        }
+    }
+
+    public void freeCPU(double amount) {
+        _availCPU += amount;
+        LOG.info("freeing {} CPU...avail CPU: {}", amount, _availCPU);
+        if(_availCPU > this.getAvailableCpuResources()) {
+            LOG.warn("Freeing more memory than there exists!");
+        }
+    }
+
+    public double getMemoryUsedByWorker(WorkerSlot ws) {
+        TopologyDetails topo = this.findTopologyUsingWorker(ws);
+        LOG.info("Topology {} using worker {}", topo, ws);
+        if(topo == null) {
+            return 0.0;
+        }
+        Collection<ExecutorDetails> execs = this.getExecutors(ws, this._cluster);
+        LOG.info("Worker {} has execs: {}", ws, execs);
+        double totalMemoryUsed = 0.0;
+        for(ExecutorDetails exec : execs) {
+            totalMemoryUsed += topo.getTotalMemReqTask(exec);
+        }
+        return totalMemoryUsed;
+    }
+
+    public double getCpuUsedByWorker(WorkerSlot ws) {
+        TopologyDetails topo = this.findTopologyUsingWorker(ws);
+        LOG.info("Topology {} using worker {}", topo, ws);
+        if(topo == null) {
+            return 0.0;
+        }
+        Collection<ExecutorDetails> execs = this.getExecutors(ws, this._cluster);
+        LOG.info("Worker {} has execs: {}", ws, execs);
+        double totalCpuUsed = 0.0;
+        for(ExecutorDetails exec : execs) {
+            totalCpuUsed += topo.getTotalCpuReqTask(exec);
+        }
+        return totalCpuUsed;
+    }
+
+    public TopologyDetails findTopologyUsingWorker(WorkerSlot ws) {
+        for(Entry<String, Set<WorkerSlot>> entry : _topIdToUsedSlots.entrySet()) {
+            LOG.info("topoId: {} workers: {}", entry.getKey(), entry.getValue());
+            String topoId = entry.getKey();
+            Set<WorkerSlot> workers = entry.getValue();
+            for (WorkerSlot worker : workers) {
+                if(worker.getNodeId().equals(ws.getNodeId()) && worker.getPort() == ws.getPort()) {
+                    return _topologies.getById(topoId);
+                }
+            }
+        }
+        return null;
     }
 
     /**
@@ -456,5 +527,9 @@ public class RAS_Node {
         Double taskCpuReq = topo.getTotalCpuReqTask(exec);
         this.consumeCPU(taskCpuReq);
         this.consumeMemory(taskMemReq);
+    }
+
+    public Map<String, Set<WorkerSlot>> getTopoIdTousedSlots() {
+        return _topIdToUsedSlots;
     }
 }

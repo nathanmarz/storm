@@ -90,6 +90,14 @@ public class Cluster {
         }
         this.conf = storm_conf;
     }
+
+    public Cluster getCopy() {
+        Cluster copy = new Cluster(this.inimbus, this.supervisors, this.assignments, this.conf);
+        for(Map.Entry<String, String> entry : this.status.entrySet()) {
+            copy.setStatus(entry.getKey(), entry.getValue());
+        }
+        return copy;
+    }
     
     public void setBlacklistedHosts(Set<String> hosts) {
         blackListedHosts = hosts;

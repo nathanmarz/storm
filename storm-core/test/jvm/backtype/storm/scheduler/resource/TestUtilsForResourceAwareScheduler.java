@@ -22,6 +22,7 @@ import backtype.storm.Config;
 import backtype.storm.generated.Bolt;
 import backtype.storm.generated.SpoutSpec;
 import backtype.storm.generated.StormTopology;
+import backtype.storm.generated.TopologySummary;
 import backtype.storm.scheduler.ExecutorDetails;
 import backtype.storm.scheduler.INimbus;
 import backtype.storm.scheduler.IScheduler;
@@ -53,6 +54,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class TestUtilsForResourceAwareScheduler {
     private static final Logger LOG = LoggerFactory.getLogger(TestUtilsForResourceAwareScheduler.class);
@@ -131,6 +137,7 @@ public class TestUtilsForResourceAwareScheduler {
         conf.putAll(config);
         conf.put(Config.TOPOLOGY_PRIORITY, priority);
         conf.put(Config.TOPOLOGY_NAME, name);
+        conf.put(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB, Double.MAX_VALUE);
         StormTopology topology = buildTopology(numSpout,numBolt, spoutParallelism, boltParallelism);
         TopologyDetails topo = new TopologyDetails(name + "-" + launchTime, conf, topology,
                 0,
@@ -261,5 +268,26 @@ public class TestUtilsForResourceAwareScheduler {
         public IScheduler getForcedScheduler() {
             return null;
         }
+    }
+
+    private static boolean isContain(String source, String subItem){
+        String pattern = "\\b"+subItem+"\\b";
+        Pattern p=Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
+        Matcher m=p.matcher(source);
+        return m.find();
+    }
+
+    public static boolean assertStatusSuccess(String status) {
+        return isContain(status, "fully") && isContain(status, "scheduled") && !isContain(status, "unsuccessful");
+    }
+
+    public static TopologyDetails findTopologyInSetFromName(String topoName, Set<TopologyDetails> set) {
+        TopologyDetails ret = null;
+        for(TopologyDetails entry : set) {
+            if(entry.getName().equals(topoName)) {
+                ret = entry;
+            }
+        }
+        return ret;
     }
 }

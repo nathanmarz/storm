@@ -45,6 +45,27 @@ public class ResourceAwareScheduler implements IScheduler {
     private Topologies topologies;
     private RAS_Nodes nodes;
 
+    private class SchedulingState {
+        private Map<String, User> userMap = new HashMap<String, User>();
+        private Cluster cluster;
+        private Topologies topologies;
+        private RAS_Nodes nodes;
+        private Map conf = new Config();
+
+        public SchedulingState(Map<String, User> userMap, Cluster cluster, Topologies topologies, RAS_Nodes nodes, Map conf) {
+            for(Map.Entry<String, User> userMapEntry : userMap.entrySet()) {
+                String userId = userMapEntry.getKey();
+                User user = userMapEntry.getValue();
+                this.userMap.put(userId, user.getCopy());
+            }
+            this.cluster = cluster.getCopy();
+            this.topologies = topologies.getCopy();
+            this.nodes = new RAS_Nodes(this.cluster, this.topologies);
+            this.conf.putAll(conf);
+
+        }
+    }
+
 
     @SuppressWarnings("rawtypes")
     private Map conf;
@@ -67,27 +88,35 @@ public class ResourceAwareScheduler implements IScheduler {
         this.initialize(topologies, cluster);
 
         LOG.info("UserMap:\n{}", this.userMap);
-        for(User user : this.getUserMap().values()) {
+        for (User user : this.getUserMap().values()) {
             LOG.info(user.getDetailedInfo());
         }
 
-        for(TopologyDetails topo : topologies.getTopologies()) {
+        for (TopologyDetails topo : topologies.getTopologies()) {
             LOG.info("topo {} status: {}", topo, cluster.getStatusMap().get(topo.getId()));
         }
 
+        LOG.info("Nodes:\n{}", this.nodes);
+
         LOG.info("getNextUser: {}", this.getNextUser());
 
-        while(true) {
+        while (true) {
+            LOG.info("/*********** next scheduling iteration **************/");
+
             User nextUser = this.getNextUser();
-            if(nextUser == null){
+            if (nextUser == null) {
                 break;
             }
             TopologyDetails td = nextUser.getNextTopologyToSchedule();
             scheduleTopology(td);
         }
+        //since scheduling state might have been restored thus need to set the cluster and topologies.
+        cluster = this.cluster;
+        topologies = this.topologies;
     }
 
     private boolean makeSpaceForTopo(TopologyDetails td) {
+        LOG.info("attempting to make space for topo {} from user {}", td.getName(), td.getTopologySubmitter());
         User submitter = this.userMap.get(td.getTopologySubmitter());
         if (submitter.getCPUResourceGuaranteed() == null || submitter.getMemoryResourceGuaranteed() == null) {
             return false;
@@ -97,7 +126,7 @@ public class ResourceAwareScheduler implements IScheduler {
         double memoryNeeded = (td.getTotalRequestedMemOffHeap() + td.getTotalRequestedMemOnHeap()) / submitter.getMemoryResourceGuaranteed();
 
         //user has enough resource under his or her resource guarantee to schedule topology
-        if ((1.0 - submitter.getCPUResourcePoolUtilization()) > cpuNeeded && (1.0 - submitter.getMemoryResourcePoolUtilization()) > memoryNeeded) {
+        if ((1.0 - submitter.getCPUResourcePoolUtilization()) >= cpuNeeded && (1.0 - submitter.getMemoryResourcePoolUtilization()) >= memoryNeeded) {
             User evictUser = this.findUserWithMostResourcesAboveGuarantee();
             if (evictUser == null) {
                 LOG.info("Cannot make space for topology {} from user {}", td.getName(), submitter.getId());
@@ -108,6 +137,8 @@ public class ResourceAwareScheduler implements IScheduler {
             TopologyDetails topologyEvict = evictUser.getRunningTopologyWithLowestPriority();
             LOG.info("topology to evict: {}", topologyEvict);
             evictTopology(topologyEvict);
+
+            LOG.info("Resources After eviction:\n{}", this.nodes);
 
             return true;
         } else {
@@ -129,6 +160,7 @@ public class ResourceAwareScheduler implements IScheduler {
         User submitter = this.userMap.get(topologyEvict.getTopologySubmitter());
 
         LOG.info("Evicting Topology {} with workers: {}", topologyEvict.getName(), workersToEvict);
+        LOG.debug("From Nodes:\n{}", ResourceUtils.printScheduling(this.nodes));
         this.nodes.freeSlots(workersToEvict);
         submitter.moveTopoFromRunningToPending(topologyEvict, this.cluster);
         LOG.info("check if topology unassigned: {}", this.cluster.getUsedSlotsByTopologyId(topologyEvict.getId()));
@@ -137,9 +169,9 @@ public class ResourceAwareScheduler implements IScheduler {
     private User findUserWithMostResourcesAboveGuarantee() {
         double most = 0.0;
         User mostOverUser = null;
-        for(User user : this.userMap.values()) {
-            double over = user.getResourcePoolAverageUtilization() -1.0;
-            if((over > most) && (!user.getTopologiesRunning().isEmpty())) {
+        for (User user : this.userMap.values()) {
+            double over = user.getResourcePoolAverageUtilization() - 1.0;
+            if ((over > most) && (!user.getTopologiesRunning().isEmpty())) {
                 most = over;
                 mostOverUser = user;
             }
@@ -147,63 +179,74 @@ public class ResourceAwareScheduler implements IScheduler {
         return mostOverUser;
     }
 
-    public void resetAssignments(Map<String, SchedulerAssignment> assignmentCheckpoint) {
-        this.cluster.setAssignments(assignmentCheckpoint);
-    }
-
     public void scheduleTopology(TopologyDetails td) {
-        ResourceAwareStrategy RAStrategy = new ResourceAwareStrategy(this.cluster, this.topologies);
         User topologySubmitter = this.userMap.get(td.getTopologySubmitter());
         if (cluster.getUnassignedExecutors(td).size() > 0) {
             LOG.info("/********Scheduling topology {} from User {}************/", td.getName(), topologySubmitter);
             LOG.info("{}", this.userMap.get(td.getTopologySubmitter()).getDetailedInfo());
             LOG.info("{}", User.getResourcePoolAverageUtilizationForUsers(this.userMap.values()));
+            LOG.info("Nodes:\n{}", this.nodes);
+            LOG.debug("From cluster:\n{}", ResourceUtils.printScheduling(this.cluster, this.topologies));
+            LOG.debug("From Nodes:\n{}", ResourceUtils.printScheduling(this.nodes));
 
-            Map<String, SchedulerAssignment> assignmentCheckpoint = this.cluster.getAssignments();
-
+            SchedulingState schedulingState = this.checkpointSchedulingState();
             while (true) {
+                //Need to reinitialize ResourceAwareStrategy with cluster and topologies in case scheduling state was restored
+                ResourceAwareStrategy RAStrategy = new ResourceAwareStrategy(this.cluster, this.topologies);
                 SchedulingResult result = RAStrategy.schedule(td);
                 LOG.info("scheduling result: {}", result);
                 if (result.isValid()) {
                     if (result.isSuccess()) {
                         try {
-                            if(mkAssignment(td, result.getSchedulingResultMap())) {
+                            if (mkAssignment(td, result.getSchedulingResultMap())) {
                                 topologySubmitter.moveTopoFromPendingToRunning(td, this.cluster);
                             } else {
-                                resetAssignments(assignmentCheckpoint);
+                                //resetAssignments(assignmentCheckpoint);
+                                this.restoreCheckpointSchedulingState(schedulingState);
+                                topologySubmitter = this.userMap.get(td.getTopologySubmitter());
                                 topologySubmitter.moveTopoFromPendingToAttempted(td, this.cluster);
                             }
                         } catch (IllegalStateException ex) {
                             LOG.error(ex.toString());
-                            LOG.error("Unsuccessful in scheduling", td.getId());
+                            LOG.error("Unsuccessful in scheduling: IllegalStateException thrown!", td.getId());
                             this.cluster.setStatus(td.getId(), "Unsuccessful in scheduling");
-                            resetAssignments(assignmentCheckpoint);
+                            this.restoreCheckpointSchedulingState(schedulingState);
+                            //since state is restored need the update User topologySubmitter to the new User object in userMap
+                            topologySubmitter = this.userMap.get(td.getTopologySubmitter());
                             topologySubmitter.moveTopoFromPendingToAttempted(td, this.cluster);
                         }
                         break;
                     } else {
                         if (result.getStatus() == SchedulingStatus.FAIL_NOT_ENOUGH_RESOURCES) {
-                            if(!this.makeSpaceForTopo(td)) {
-                                topologySubmitter.moveTopoFromPendingToAttempted(td);
+                            if (!this.makeSpaceForTopo(td)) {
                                 this.cluster.setStatus(td.getId(), result.getErrorMessage());
-                                resetAssignments(assignmentCheckpoint);
+                                this.restoreCheckpointSchedulingState(schedulingState);
+                                //since state is restored need the update User topologySubmitter to the new User object in userMap
+                                topologySubmitter = this.userMap.get(td.getTopologySubmitter());
+                                topologySubmitter.moveTopoFromPendingToAttempted(td);
                                 break;
                             }
                             continue;
                         } else if (result.getStatus() == SchedulingStatus.FAIL_INVALID_TOPOLOGY) {
+                            this.restoreCheckpointSchedulingState(schedulingState);
+                            //since state is restored need the update User topologySubmitter to the new User object in userMap
+                            topologySubmitter = this.userMap.get(td.getTopologySubmitter());
                             topologySubmitter.moveTopoFromPendingToInvalid(td, this.cluster);
-                            resetAssignments(assignmentCheckpoint);
                             break;
                         } else {
+                            this.restoreCheckpointSchedulingState(schedulingState);
+                            //since state is restored need the update User topologySubmitter to the new User object in userMap
+                            topologySubmitter = this.userMap.get(td.getTopologySubmitter());
                             topologySubmitter.moveTopoFromPendingToAttempted(td, this.cluster);
-                            resetAssignments(assignmentCheckpoint);
                             break;
                         }
                     }
                 } else {
                     LOG.warn("Scheduling results returned from topology {} is not vaild! Topology with be ignored.", td.getName());
+                    this.restoreCheckpointSchedulingState(schedulingState);
+                    //since state is restored need the update User topologySubmitter to the new User object in userMap
+                    topologySubmitter = this.userMap.get(td.getTopologySubmitter());
                     topologySubmitter.moveTopoFromPendingToInvalid(td, this.cluster);
-                    resetAssignments(assignmentCheckpoint);
                     break;
                 }
             }
@@ -215,6 +258,7 @@ public class ResourceAwareScheduler implements IScheduler {
     }
 
     private boolean mkAssignment(TopologyDetails td, Map<WorkerSlot, Collection<ExecutorDetails>> schedulerAssignmentMap) {
+        LOG.info("making assignments for topology {}", td);
         if (schedulerAssignmentMap != null) {
             double requestedMemOnHeap = td.getTotalRequestedMemOnHeap();
             double requestedMemOffHeap = td.getTotalRequestedMemOffHeap();
@@ -272,69 +316,6 @@ public class ResourceAwareScheduler implements IScheduler {
         cluster.setSupervisorsResourcesMap(supervisors_resources);
     }
 
-
-//    private void scheduleTopology(TopologyDetails td) {
-//        ResourceAwareStrategy RAStrategy = new ResourceAwareStrategy(this.cluster, this.topologies);
-//        if (cluster.needsScheduling(td) && cluster.getUnassignedExecutors(td).size() > 0) {
-//            LOG.info("/********Scheduling topology {} from User {}************/", td.getName(), td.getTopologySubmitter());
-//            LOG.info("{}", this.userMap.get(td.getTopologySubmitter()).getDetailedInfo());
-//            LOG.info("{}", User.getResourcePoolAverageUtilizationForUsers(this.userMap.values()));
-//
-//            Map<WorkerSlot, Collection<ExecutorDetails>> schedulerAssignmentMap = RAStrategy.schedule(td);
-//
-//            double requestedMemOnHeap = td.getTotalRequestedMemOnHeap();
-//            double requestedMemOffHeap = td.getTotalRequestedMemOffHeap();
-//            double requestedCpu = td.getTotalRequestedCpu();
-//            double assignedMemOnHeap = 0.0;
-//            double assignedMemOffHeap = 0.0;
-//            double assignedCpu = 0.0;
-//
-//            if (schedulerAssignmentMap != null) {
-//                try {
-//                    Set<String> nodesUsed = new HashSet<String>();
-//                    int assignedWorkers = schedulerAssignmentMap.keySet().size();
-//                    for (Map.Entry<WorkerSlot, Collection<ExecutorDetails>> workerToTasksEntry : schedulerAssignmentMap.entrySet()) {
-//                        WorkerSlot targetSlot = workerToTasksEntry.getKey();
-//                        Collection<ExecutorDetails> execsNeedScheduling = workerToTasksEntry.getValue();
-//                        RAS_Node targetNode = RAStrategy.idToNode(targetSlot.getNodeId());
-//                        targetNode.assign(targetSlot, td, execsNeedScheduling, this.cluster);
-//                        LOG.debug("ASSIGNMENT    TOPOLOGY: {}  TASKS: {} To Node: {} on Slot: {}",
-//                                td.getName(), execsNeedScheduling, targetNode.getHostname(), targetSlot.getPort());
-//                        if (!nodesUsed.contains(targetNode.getId())) {
-//                            nodesUsed.add(targetNode.getId());
-//                        }
-//                        assignedMemOnHeap += targetSlot.getAllocatedMemOnHeap();
-//                        assignedMemOffHeap += targetSlot.getAllocatedMemOffHeap();
-//                        assignedCpu += targetSlot.getAllocatedCpu();
-//                    }
-//                    LOG.debug("Topology: {} assigned to {} nodes on {} workers", td.getId(), nodesUsed.size(), assignedWorkers);
-//                    this.cluster.setStatus(td.getId(), "Fully Scheduled");
-//                    this.getUser(td.getTopologySubmitter()).moveTopoFromPendingToRunning(td);
-//                    LOG.info("getNextUser: {}", this.getNextUser());
-//                } catch (IllegalStateException ex) {
-//                    LOG.error(ex.toString());
-//                    LOG.error("Unsuccessful in scheduling", td.getId());
-//                    this.cluster.setStatus(td.getId(), "Unsuccessful in scheduling");
-//                    this.getUser(td.getTopologySubmitter()).moveTopoFromPendingToAttempted(td);
-//                }
-//            } else {
-//                LOG.error("Unsuccessful in scheduling {}", td.getId());
-//                this.cluster.setStatus(td.getId(), "Unsuccessful in scheduling");
-//              //  this.evictTopology(td);
-//               // this.getUser(td.getTopologySubmitter()).moveTopoFromPendingToAttempted(td);
-//            }
-//            Double[] resources = {requestedMemOnHeap, requestedMemOffHeap, requestedCpu,
-//                    assignedMemOnHeap, assignedMemOffHeap, assignedCpu};
-//            LOG.debug("setResources for {}: requested on-heap mem, off-heap mem, cpu: {} {} {} " +
-//                            "assigned on-heap mem, off-heap mem, cpu: {} {} {}",
-//                    td.getId(), requestedMemOnHeap, requestedMemOffHeap, requestedCpu,
-//                    assignedMemOnHeap, assignedMemOffHeap, assignedCpu);
-//            this.cluster.setResources(td.getId(), resources);
-//        } else {
-//            LOG.warn("Topology {} already scheduled!", td.getName());
-//            this.cluster.setStatus(td.getId(), "Fully Scheduled");
-//        }
-//    }
     public User getUser(String user) {
         return this.userMap.get(user);
     }
@@ -346,23 +327,30 @@ public class ResourceAwareScheduler implements IScheduler {
     public User getNextUser() {
         Double least = Double.POSITIVE_INFINITY;
         User ret = null;
-        for(User user : this.userMap.values()) {
-            LOG.info("{}", user.getDetailedInfo());
+        for (User user : this.userMap.values()) {
+            LOG.info("getNextUser {}", user.getDetailedInfo());
             LOG.info("hasTopologyNeedSchedule: {}", user.hasTopologyNeedSchedule());
-            if(user.hasTopologyNeedSchedule()) {
+            if (user.hasTopologyNeedSchedule()) {
                 Double userResourcePoolAverageUtilization = user.getResourcePoolAverageUtilization();
+                if(ret!=null) {
+                    LOG.info("current: {}-{} compareUser: {}-{}", ret.getId(), least, user.getId(), userResourcePoolAverageUtilization);
+                    LOG.info("{} == {}: {}", least, userResourcePoolAverageUtilization, least == userResourcePoolAverageUtilization);
+                    LOG.info("{} == {}: {}", least, userResourcePoolAverageUtilization, (Math.abs(least - userResourcePoolAverageUtilization) < 0.0001));
+
+                }
                 if (least > userResourcePoolAverageUtilization) {
                     ret = user;
                     least = userResourcePoolAverageUtilization;
-                } else if (least == userResourcePoolAverageUtilization) {
-                    double currentCpuPercentage = ret.getCPUResourceGuaranteed()/this.cluster.getClusterTotalCPUResource();
-                    double currentMemoryPercentage = ret.getMemoryResourceGuaranteed()/this.cluster.getClusterTotalMemoryResource();
+                } else if (Math.abs(least - userResourcePoolAverageUtilization) < 0.0001) {
+                    double currentCpuPercentage = ret.getCPUResourceGuaranteed() / this.cluster.getClusterTotalCPUResource();
+                    double currentMemoryPercentage = ret.getMemoryResourceGuaranteed() / this.cluster.getClusterTotalMemoryResource();
                     double currentAvgPercentage = (currentCpuPercentage + currentMemoryPercentage) / 2.0;
 
-                    double userCpuPercentage = user.getCPUResourceGuaranteed()/this.cluster.getClusterTotalCPUResource();
-                    double userMemoryPercentage = user.getMemoryResourceGuaranteed()/this.cluster.getClusterTotalMemoryResource();
+                    double userCpuPercentage = user.getCPUResourceGuaranteed() / this.cluster.getClusterTotalCPUResource();
+                    double userMemoryPercentage = user.getMemoryResourceGuaranteed() / this.cluster.getClusterTotalMemoryResource();
                     double userAvgPercentage = (userCpuPercentage + userMemoryPercentage) / 2.0;
-                    if(userAvgPercentage > currentAvgPercentage) {
+                    LOG.info("current: {}-{} compareUser: {}-{}", ret.getId(), currentAvgPercentage, user.getId(), userAvgPercentage);
+                    if (userAvgPercentage > currentAvgPercentage) {
                         ret = user;
                         least = userResourcePoolAverageUtilization;
                     }
@@ -374,6 +362,7 @@ public class ResourceAwareScheduler implements IScheduler {
 
     /**
      * Intialize scheduling and running queues
+     *
      * @param topologies
      * @param cluster
      */
@@ -384,18 +373,16 @@ public class ResourceAwareScheduler implements IScheduler {
         LOG.info("userResourcePools: {}", userResourcePools);
 
         for (TopologyDetails td : topologies.getTopologies()) {
-            LOG.info("topology: {} from {}", td.getName(), td.getTopologySubmitter());
             String topologySubmitter = td.getTopologySubmitter();
-            if(topologySubmitter == null) {
+            if (topologySubmitter == null) {
                 LOG.warn("Topology {} submitted by anonymous user", td.getName());
                 topologySubmitter = "anonymous";
             }
-            if(!this.userMap.containsKey(topologySubmitter)) {
+            if (!this.userMap.containsKey(topologySubmitter)) {
                 this.userMap.put(topologySubmitter, new User(topologySubmitter, userResourcePools.get(topologySubmitter)));
             }
-            if(cluster.getUnassignedExecutors(td).size() >= td.getExecutors().size()) {
+            if (cluster.getUnassignedExecutors(td).size() >= td.getExecutors().size()) {
                 this.userMap.get(topologySubmitter).addTopologyToPendingQueue(td, cluster);
-                LOG.info(this.userMap.get(topologySubmitter).getDetailedInfo());
             } else {
                 this.userMap.get(topologySubmitter).addTopologyToRunningQueue(td, cluster);
             }
@@ -411,35 +398,62 @@ public class ResourceAwareScheduler implements IScheduler {
 
     /**
      * Get resource guarantee configs
+     *
      * @return
      */
     private Map<String, Map<String, Double>> getUserResourcePools() {
         Object raw = this.conf.get(Config.RESOURCE_AWARE_SCHEDULER_USER_POOLS);
-        Map<String, Map<String, Double>> ret =  (Map<String, Map<String, Double>>)this.conf.get(Config.RESOURCE_AWARE_SCHEDULER_USER_POOLS);
+        Map<String, Map<String, Double>> ret = new HashMap<String, Map<String, Double>>();
 
-        if (raw == null) {
-            ret = new HashMap<String, Map<String, Double>>();
-        } else {
-            for(Map.Entry<String, Map<String, Number>> UserPoolEntry : ((Map<String, Map<String, Number>>) raw).entrySet()) {
+        if (raw != null) {
+            for (Map.Entry<String, Map<String, Number>> UserPoolEntry : ((Map<String, Map<String, Number>>) raw).entrySet()) {
                 String user = UserPoolEntry.getKey();
                 ret.put(user, new HashMap<String, Double>());
-                for(Map.Entry<String, Number> resourceEntry : UserPoolEntry.getValue().entrySet()) {
+                for (Map.Entry<String, Number> resourceEntry : UserPoolEntry.getValue().entrySet()) {
                     ret.get(user).put(resourceEntry.getKey(), resourceEntry.getValue().doubleValue());
                 }
             }
         }
 
         Map fromFile = Utils.findAndReadConfigFile("user-resource-pools.yaml", false);
-        Map<String, Map<String, Number>>tmp = (Map<String, Map<String, Number>>)fromFile.get(Config.RESOURCE_AWARE_SCHEDULER_USER_POOLS);
+        Map<String, Map<String, Number>> tmp = (Map<String, Map<String, Number>>) fromFile.get(Config.RESOURCE_AWARE_SCHEDULER_USER_POOLS);
         if (tmp != null) {
-            for(Map.Entry<String, Map<String, Number>> UserPoolEntry : tmp.entrySet()) {
+            for (Map.Entry<String, Map<String, Number>> UserPoolEntry : tmp.entrySet()) {
                 String user = UserPoolEntry.getKey();
                 ret.put(user, new HashMap<String, Double>());
-                for(Map.Entry<String, Number> resourceEntry : UserPoolEntry.getValue().entrySet()) {
+                for (Map.Entry<String, Number> resourceEntry : UserPoolEntry.getValue().entrySet()) {
                     ret.get(user).put(resourceEntry.getKey(), resourceEntry.getValue().doubleValue());
                 }
             }
         }
         return ret;
+    }
+
+    private SchedulingState checkpointSchedulingState() {
+        LOG.info("checkpointing scheduling state...");
+        LOG.info("/*********Checkpoint************/");
+        for (User user : this.getUserMap().values()) {
+            LOG.info(user.getDetailedInfo());
+        }
+        LOG.info("/*********End************/");
+        return new SchedulingState(this.userMap, this.cluster, this.topologies, this.nodes, this.conf);
+    }
+
+    private void restoreCheckpointSchedulingState(SchedulingState schedulingState) {
+        LOG.info("restoring scheduling state...");
+        LOG.info("/*********Before************/");
+        for (User user : this.getUserMap().values()) {
+            LOG.info(user.getDetailedInfo());
+        }
+        this.cluster = schedulingState.cluster;
+        this.topologies = schedulingState.topologies;
+        this.conf = schedulingState.conf;
+        this.userMap = schedulingState.userMap;
+        this.nodes = schedulingState.nodes;
+        LOG.info("/*********After************/");
+        for (User user : this.getUserMap().values()) {
+            LOG.info(user.getDetailedInfo());
+        }
+        LOG.info("/*********End************/");
     }
 }

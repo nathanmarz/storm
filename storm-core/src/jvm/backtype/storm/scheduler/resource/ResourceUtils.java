@@ -181,4 +181,13 @@ public class ResourceUtils {
         }
         return str.toString();
     }
+
+    public static String printScheduling(RAS_Nodes nodes) {
+        String ret="";
+        for (RAS_Node node : nodes.getNodes()) {
+            ret += "Node: " + node.getHostname() + "\n";
+            ret += "-> " + node.getTopoIdTousedSlots() + "\n";
+        }
+        return ret;
+    }
 }

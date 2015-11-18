@@ -23,7 +23,24 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * An IWorkerHook represents a topology component that can be executed
+ * when a worker starts, and when a worker shuts down. It can be useful
+ * when you want to execute operations before topology processing starts,
+ * or cleanup operations before your workers shut down.
+ */
 public interface IWorkerHook extends Serializable {
-    void start(Map stormConf, WorkerTopologyContext context, List taskIds);
+    /**
+     * This method is called when a worker is started
+     *
+     * @param stormConf The Storm configuration for this worker
+     * @param context This object can be used to get information about this worker's place within the topology
+     * @param taskIds A list of Integers denoting the task IDs assigned to this worker
+     */
+    void start(Map stormConf, WorkerTopologyContext context, List<Integer> taskIds);
+
+    /**
+     * This method is called right before a worker shuts down
+     */
     void shutdown();
 }

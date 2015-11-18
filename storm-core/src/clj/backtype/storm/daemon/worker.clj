@@ -680,7 +680,6 @@
 
                     (close-resources worker)
 
-                    ;; TODO: here need to invoke the "shutdown" method of WorkerHook
                     (log-message "Trigger any worker shutdown hooks")
                     (run-worker-shutdown-hooks worker)
 

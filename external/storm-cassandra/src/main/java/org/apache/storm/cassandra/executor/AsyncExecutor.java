@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Service to asynchronously executes cassandra statements.
@@ -47,7 +48,7 @@ public class AsyncExecutor<T> implements Serializable {
 
     protected AsyncResultHandler<T> handler;
 
-    private Map<SettableFuture<T>, Boolean> pending = new ConcurrentHashMap<>( );
+    private AtomicInteger pending = new AtomicInteger();
 
     /**
      * Creates a new {@link AsyncExecutor} instance.
@@ -73,8 +74,8 @@ public class AsyncExecutor<T> implements Serializable {
     }
 
     /**
-     * Asynchronously executes all statements associated to the specified input. The input will be passed to
-     * the {@link #handler} once all queries succeed or failed.
+     * Asynchronously executes all statements associated to the specified input.
+     * The input will be passed to handler#onSuccess once all queries succeed or to handler#onFailure if any one of them fails.
      */
     public List<SettableFuture<T>> execAsync(List<Statement> statements, final T input) {
 
@@ -111,11 +112,11 @@ public class AsyncExecutor<T> implements Serializable {
      */
     public SettableFuture<T> execAsync(final Statement statement, final T inputs, final AsyncResultHandler<T> handler) {
         final SettableFuture<T> settableFuture = SettableFuture.create();
-        pending.put(settableFuture, true);
+        pending.incrementAndGet();
         ResultSetFuture future = session.executeAsync(statement);
         Futures.addCallback(future, new FutureCallback<ResultSet>() {
             public void release() {
-                pending.remove(settableFuture);
+                pending.decrementAndGet();
             }
 
             @Override
@@ -139,8 +140,8 @@ public class AsyncExecutor<T> implements Serializable {
     /**
      * Returns the number of currently executed tasks which are not yet completed.
      */
-    public int getPendingExec( ) {
-        return this.pending.size();
+    public int getPendingTasksSize() {
+        return this.pending.intValue();
     }
 
     public void shutdown( ) {

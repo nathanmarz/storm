@@ -42,13 +42,13 @@ public class BatchCassandraWriterBolt extends BaseCassandraBolt<List<Tuple>> {
 
     public static final int DEFAULT_EMIT_FREQUENCY = 2;
 
-    private static final int QUEUE_MAX_SIZE = 1000;
-
     private LinkedBlockingQueue<Tuple> queue;
     
     private int tickFrequencyInSeconds;
     
     private long lastModifiedTimesMillis;
+
+    private int batchMaxSize = 1000;
 
     private String componentID;
 
@@ -79,7 +79,7 @@ public class BatchCassandraWriterBolt extends BaseCassandraBolt<List<Tuple>> {
     public void prepare(Map stormConfig, TopologyContext topologyContext, OutputCollector outputCollector) {
         super.prepare(stormConfig, topologyContext, outputCollector);
         this.componentID = topologyContext.getThisComponentId();
-        this.queue = new LinkedBlockingQueue<>(QUEUE_MAX_SIZE);
+        this.queue = new LinkedBlockingQueue<>(batchMaxSize);
         this.lastModifiedTimesMillis = now();
     }
 
@@ -106,7 +106,7 @@ public class BatchCassandraWriterBolt extends BaseCassandraBolt<List<Tuple>> {
      * {@inheritDoc}
      */
     @Override
-    protected void tick() {
+    protected void onTickTuple() {
         prepareAndExecuteStatement();
     }
 
@@ -119,7 +119,7 @@ public class BatchCassandraWriterBolt extends BaseCassandraBolt<List<Tuple>> {
                 List<PairStatementTuple> psl = buildStatement(inputs);
 
                 int sinceLastModified = updateAndGetSecondsSinceLastModified();
-                LOG.debug(logPrefix() + String.format("Execute cql batches with %s statements after %s seconds", size, sinceLastModified));
+                LOG.debug(logPrefix() + "Execute cql batches with {} statements after {} seconds", size, sinceLastModified);
 
                 checkTimeElapsedSinceLastExec(sinceLastModified);
 
@@ -127,14 +127,14 @@ public class BatchCassandraWriterBolt extends BaseCassandraBolt<List<Tuple>> {
 
                 int batchSize = 0;
                 for (PairBatchStatementTuples batch : batchBuilder) {
-                    LOG.debug(logPrefix() + String.format("Writing data to %s in batches of %s rows.", cassandraConfConfig.getKeyspace(), batch.getInputs().size()));
+                    LOG.debug(logPrefix() + "Writing data to {} in batches of {} rows.", cassandraConfConfig.getKeyspace(), batch.getInputs().size());
                     getAsyncExecutor().execAsync(batch.getStatement(), batch.getInputs());
                     batchSize++;
                 }
 
-                int pending = getAsyncExecutor().getPendingExec();
+                int pending = getAsyncExecutor().getPendingTasksSize();
                 if (pending > batchSize) {
-                    LOG.warn( logPrefix() + String.format("Currently pending tasks is superior to the number of submit batches(%s) : %s", batchSize, pending));
+                    LOG.warn( logPrefix() + "Currently pending tasks is superior to the number of submit batches({}) : {}", batchSize, pending);
                 }
                 
             } catch (Throwable r) {
@@ -157,7 +157,7 @@ public class BatchCassandraWriterBolt extends BaseCassandraBolt<List<Tuple>> {
 
     private void checkTimeElapsedSinceLastExec(int sinceLastModified) {
         if(sinceLastModified > tickFrequencyInSeconds)
-            LOG.warn( logPrefix() + String.format("The time elapsed since last execution exceeded tick tuple frequency - %d > %d seconds", sinceLastModified, tickFrequencyInSeconds));
+            LOG.warn( logPrefix() + "The time elapsed since last execution exceeded tick tuple frequency - {} > {} seconds", sinceLastModified, tickFrequencyInSeconds);
     }
 
     private String logPrefix() {
@@ -169,6 +169,15 @@ public class BatchCassandraWriterBolt extends BaseCassandraBolt<List<Tuple>> {
         return this;
     }
 
+    /**
+     * Maximum number of tuple kept in memory before inserting batches to cassandra.
+     * @param size the max queue size.
+     * @return <code>this</code>
+     */
+    public BatchCassandraWriterBolt withQueueSize(int size) {
+        this.batchMaxSize = size;
+        return this;
+    }
     /**
      * {@inheritDoc}
      */

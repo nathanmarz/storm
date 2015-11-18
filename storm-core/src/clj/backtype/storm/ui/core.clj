@@ -438,7 +438,8 @@
        "totalCpu" (get (.get_total_resources s) Config/SUPERVISOR_CPU_CAPACITY)
        "usedMem" (.get_used_mem s)
        "usedCpu" (.get_used_cpu s)
-       "version" (.get_version s)})}))
+       "version" (.get_version s)})
+    "schedulerDisplayResource" (*STORM-CONF* Config/SCHEDULER_DISPLAY_RESOURCE)}))
 
 (defn all-topologies-summary
   ([]
@@ -469,7 +470,8 @@
        "assignedMemOnHeap" (.get_assigned_memonheap t)
        "assignedMemOffHeap" (.get_assigned_memoffheap t)
        "assignedTotalMem" (+ (.get_assigned_memonheap t) (.get_assigned_memoffheap t))
-       "assignedCpu" (.get_assigned_cpu t)})}))
+       "assignedCpu" (.get_assigned_cpu t)})
+    "schedulerDisplayResource" (*STORM-CONF* Config/SCHEDULER_DISPLAY_RESOURCE)}))
 
 (defn topology-stats [window stats]
   (let [times (stats-times (:emitted stats))
@@ -633,7 +635,8 @@
         "windowHint" window-hint
         "msgTimeout" msg-timeout
         "configuration" topology-conf
-        "visualizationTable" []}))))
+        "visualizationTable" []
+        "schedulerDisplayResource" (*STORM-CONF* Config/SCHEDULER_DISPLAY_RESOURCE)}))))
 
 (defn component-errors
   [errors-list topology-id secure?]

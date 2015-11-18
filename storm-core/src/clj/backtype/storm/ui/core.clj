@@ -921,7 +921,9 @@
     (populate-context! servlet-request)
     (assert-authorized-user "getClusterInfo")
     (let [user (get-user-name servlet-request)]
-      (json-response (cluster-summary user) (:callback m))))
+      (json-response (assoc (cluster-summary user)
+                          "bugtracker-url" (*STORM-CONF* UI-PROJECT-BUGTRACKER-URL)
+                          "central-log-url" (*STORM-CONF* UI-CENTRAL-LOGGING-URL)) (:callback m))))
   (GET "/api/v1/nimbus/summary" [:as {:keys [cookies servlet-request]} & m]
     (mark! ui:num-nimbus-summary-http-requests)
     (populate-context! servlet-request)

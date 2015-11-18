@@ -553,12 +553,11 @@
   (let [topology (:topology worker)
         topo-conf (:conf worker)
         worker-topology-context (worker-context worker)
-        task-ids (:task_ids worker)
         hooks (.get_worker_hooks topology)]
     (dofor [hook hooks]
       (let [hook-bytes (Utils/toByteArray hook)
             deser-hook (Utils/javaDeserialize hook-bytes BaseWorkerHook)]
-        (.start deser-hook topo-conf worker-topology-context task-ids)))))
+        (.start deser-hook topo-conf worker-topology-context)))))
 
 (defn run-worker-shutdown-hooks [worker]
   (let [topology (:topology worker)

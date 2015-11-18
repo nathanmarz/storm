@@ -77,14 +77,14 @@ public class DefaultClient implements SimpleClient, Closeable, Serializable {
     @Override
     public synchronized Session connect() throws NoHostAvailableException {
         if( isDisconnected() ) {
-            LOG.info(String.format("Connected to cluster: %s", cluster.getClusterName()));
+            LOG.info("Connected to cluster: {}", cluster.getClusterName());
             for ( Host host : getAllHosts())
-                LOG.info(String.format("Datacenter: %s; Host: %s; Rack: %s", host.getDatacenter(), host.getAddress(), host.getRack()));
+                LOG.info("Datacenter: {}; Host: {}; Rack: {}", host.getDatacenter(), host.getAddress(), host.getRack());
 
-            LOG.info(String.format("Connect to cluster using keyspace %s", keyspace));
+            LOG.info("Connect to cluster using keyspace %s", keyspace);
             session = cluster.connect(keyspace);
         } else {
-            LOG.warn(String.format("%s - Already connected to cluster: %s", getExecutorName(), cluster.getClusterName()));
+            LOG.warn("{} - Already connected to cluster: {}", getExecutorName(), cluster.getClusterName());
         }
 
         if( session.isClosed() ) {
@@ -107,7 +107,7 @@ public class DefaultClient implements SimpleClient, Closeable, Serializable {
     @Override
     public void close( ) {
         if( cluster != null && !cluster.isClosed() ) {
-            LOG.info(String.format("Try to close connection to cluster: %s", cluster.getClusterName()));
+            LOG.info("Try to close connection to cluster: {}", cluster.getClusterName());
             session.close();
             cluster.close();
         }

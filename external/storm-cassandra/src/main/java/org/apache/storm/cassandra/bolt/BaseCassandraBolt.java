@@ -26,6 +26,7 @@ import backtype.storm.topology.base.BaseRichBolt;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.utils.TupleUtils;
+import backtype.storm.utils.Utils;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import org.apache.storm.cassandra.BaseExecutionResultHandler;
@@ -105,7 +106,7 @@ public abstract class BaseCassandraBolt<T> extends BaseRichBolt {
     }
 
     public BaseCassandraBolt withOutputFields(Fields fields) {
-        this.outputsFields.put(null, fields);
+        this.outputsFields.put(Utils.DEFAULT_STREAM_ID, fields);
         return this;
     }
 
@@ -139,7 +140,7 @@ public abstract class BaseCassandraBolt<T> extends BaseRichBolt {
     public final void execute(Tuple input) {
         getAsyncHandler().flush(outputCollector);
         if (TupleUtils.isTick(input)) {
-            tick();
+            onTickTuple();
             outputCollector.ack(input);
         } else {
             process(input);
@@ -156,14 +157,14 @@ public abstract class BaseCassandraBolt<T> extends BaseRichBolt {
     /**
      * Calls by an input tick tuple.
      */
-    abstract protected void tick();
+    abstract protected void onTickTuple();
 
     /**
      * {@inheritDoc}
      */
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        Fields fields = this.outputsFields.remove(null);
+        Fields fields = this.outputsFields.remove(Utils.DEFAULT_STREAM_ID);
         if( fields != null) declarer.declare(fields);
         for(Map.Entry<String, Fields> entry : this.outputsFields.entrySet()) {
             declarer.declareStream(entry.getKey(), entry.getValue());

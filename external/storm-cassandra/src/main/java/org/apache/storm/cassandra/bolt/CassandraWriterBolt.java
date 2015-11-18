@@ -63,7 +63,7 @@ public class CassandraWriterBolt extends BaseCassandraBolt<Tuple> {
      * {@inheritDoc}
      */
     @Override
-    protected void tick() {
+    protected void onTickTuple() {
         /** do nothing **/
     }
 }

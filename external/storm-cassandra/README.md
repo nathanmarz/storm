@@ -12,15 +12,18 @@ Provides simple DSL to map storm *Tuple* to Cassandra Query Language *Statement*
 ### Configuration
 The following properties may be passed to storm configuration.
 
-| **Property name**                     | **Description** | **Default**  |
-| ------------------------------------- | ----------------| -------------|
-| **cassandra.keyspace**                | -               |              |
-| **cassandra.nodes**                   | -               | {"localhost"}|
-| **cassandra.username**                | -               | -            |
-| **cassandra.password**                | -               | -            |
-| **cassandra.port**                    | -               | 9092         |
-| **cassandra.output.consistencyLevel** | -               | ONE          |
-| **cassandra.batch.size.rows**         | -               | 100          |
+| **Property name**                            | **Description** | **Default**         |
+| ---------------------------------------------| ----------------| --------------------|
+| **cassandra.keyspace**                       | -               |                     |
+| **cassandra.nodes**                          | -               | {"localhost"}       |
+| **cassandra.username**                       | -               | -                   |
+| **cassandra.password**                       | -               | -                   |
+| **cassandra.port**                           | -               | 9092                |
+| **cassandra.output.consistencyLevel**        | -               | ONE                 |
+| **cassandra.batch.size.rows**                | -               | 100                 |
+| **cassandra.retryPolicy**                    | -               | DefaultRetryPolicy  |
+| **cassandra.reconnectionPolicy.baseDelayMs** | -               | 100 (ms)            |
+| **cassandra.reconnectionPolicy.maxDelayMs**  | -               | 60000 (ms)          |
 
 ### CassandraWriterBolt
 
@@ -158,6 +161,21 @@ For instance, this may be used to remit a new tuple on error, or to chain querie
             collector.ack(tuple);
         }
     }
+```
+
+### Murmur3FieldGrouping
+
+[Murmur3StreamGrouping](https://github.com/apache/storm/tree/master/external/storm-cassandra/blob/master/src/main/java/org/apache/storm/cassandra/Murmur3StreamGrouping.java)  can be used to optimise cassandra writes.
+The stream is partitioned among the bolt's tasks based on the specified row partition keys.
+
+```java
+CassandraWriterBolt bolt = new CassandraWriterBolt(
+    insertInto("album")
+        .values(
+            with(fields("title", "year", "performer", "genre", "tracks")
+            ).build());
+builder.setBolt("BOLT_WRITER", bolt, 4)
+        .customGrouping("spout", new Murmur3StreamGrouping("title"))
 ```
 
 ## License

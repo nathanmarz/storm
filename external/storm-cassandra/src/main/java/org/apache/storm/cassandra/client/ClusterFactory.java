@@ -50,8 +50,10 @@ public class ClusterFactory extends BaseBeanFactory<Cluster> {
                 .withoutMetrics()
                 .addContactPoints(cassandraConf.getNodes())
                 .withPort(cassandraConf.getPort())
-                .withRetryPolicy(DowngradingConsistencyRetryPolicy.INSTANCE)
-                .withReconnectionPolicy(new ExponentialReconnectionPolicy(100L, TimeUnit.MINUTES.toMillis(1)))
+                .withRetryPolicy(cassandraConf.getRetryPolicy())
+                .withReconnectionPolicy(new ExponentialReconnectionPolicy(
+                        cassandraConf.getReconnectionPolicyBaseMs(),
+                        cassandraConf.getReconnectionPolicyMaxMs()))
                 .withLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
 
         final String username = cassandraConf.getUsername();

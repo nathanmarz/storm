@@ -22,13 +22,18 @@ import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.grouping.CustomStreamGrouping;
 import backtype.storm.task.WorkerTopologyContext;
 import backtype.storm.topology.FailedException;
+import backtype.storm.tuple.Fields;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.hash.Hashing;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -41,12 +46,43 @@ public class Murmur3StreamGrouping implements CustomStreamGrouping {
 
     private List<Integer> targetTasks;
 
+    private List<Integer> partitionKeyIndexes;
+
+    /**
+     * A list of partition key. The order of specified keys will be used to generate the partition key hash.
+     * It should respect the column order defined into the targeted CQL table.
+     */
+    private List<String> partitionKeyNames;
+
+    /**
+     * Creates a new {@link Murmur3StreamGrouping} instance.
+     * @param partitionKeyNames {@link org.apache.storm.cassandra.Murmur3StreamGrouping#partitionKeyNames}.
+     */
+    public Murmur3StreamGrouping(String...partitionKeyNames) {
+        this( Arrays.asList(partitionKeyNames));
+    }
+
+    /**
+     * Creates a new {@link Murmur3StreamGrouping} instance.
+     * @param partitionKeyNames {@link org.apache.storm.cassandra.Murmur3StreamGrouping#partitionKeyNames}.
+     */
+    public Murmur3StreamGrouping(List<String> partitionKeyNames) {
+        this.partitionKeyNames = partitionKeyNames;
+    }
+
+
     /**
      * {@inheritDoc}
      */
     @Override
     public void prepare(WorkerTopologyContext context, GlobalStreamId stream, List<Integer> targetTasks) {
         this.targetTasks = targetTasks;
+
+        this.partitionKeyIndexes = new ArrayList<>();
+        Fields componentOutputFields = context.getComponentOutputFields(stream);
+        for (String partitionKeyName : partitionKeyNames) {
+            partitionKeyIndexes.add(componentOutputFields.fieldIndex(partitionKeyName));
+        }
     }
 
     /**
@@ -55,11 +91,19 @@ public class Murmur3StreamGrouping implements CustomStreamGrouping {
     @Override
     public List<Integer> chooseTasks(int taskId, List<Object> values) {
         try {
-            int n = Math.abs( (int) hashes(values) % targetTasks.size() );
+            int n = Math.abs( (int) hashes(getKeyValues(values)) % targetTasks.size() );
             return Lists.newArrayList(targetTasks.get(n));
         } catch (IOException e) {
             throw new FailedException(e);
         }
+    }
+
+    private List<Object> getKeyValues(List<Object> values) {
+        List<Object> keys = new ArrayList<>();
+        for(Integer idx : partitionKeyIndexes) {
+            keys.add(values.get(idx));
+        }
+        return keys;
     }
 
     /**

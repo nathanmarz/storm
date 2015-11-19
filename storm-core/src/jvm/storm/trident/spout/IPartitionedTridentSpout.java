@@ -30,7 +30,7 @@ import storm.trident.topology.TransactionAttempt;
  * brokers. It automates the storing of metadata for each partition to ensure that the same batch
  * is always emitted for the same transaction id. The partition metadata is stored in Zookeeper.
  */
-public interface IPartitionedTridentSpout<Partitions, Partition extends ISpoutPartition, T> extends Serializable {
+public interface IPartitionedTridentSpout<Partitions, Partition extends ISpoutPartition, T> extends ITridentDataSource {
     public interface Coordinator<Partitions> {
         /**
          * Return the partitions currently in the source of data. The idea is

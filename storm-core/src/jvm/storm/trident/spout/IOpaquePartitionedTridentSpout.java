@@ -30,7 +30,8 @@ import storm.trident.topology.TransactionAttempt;
  * replay the same batch every time it emits a batch for a transaction id.
  * 
  */
-public interface IOpaquePartitionedTridentSpout<Partitions, Partition extends ISpoutPartition, M> extends Serializable {
+public interface IOpaquePartitionedTridentSpout<Partitions, Partition extends ISpoutPartition, M>
+    extends ITridentDataSource {
     public interface Coordinator<Partitions> {
         boolean isReady(long txid);
         Partitions getPartitionsForBatch();

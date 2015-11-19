@@ -63,6 +63,7 @@ import storm.trident.spout.BatchSpoutExecutor;
 import storm.trident.spout.IBatchSpout;
 import storm.trident.spout.IOpaquePartitionedTridentSpout;
 import storm.trident.spout.IPartitionedTridentSpout;
+import storm.trident.spout.ITridentDataSource;
 import storm.trident.spout.ITridentSpout;
 import storm.trident.spout.OpaquePartitionedTridentSpoutExecutor;
 import storm.trident.spout.PartitionedTridentSpoutExecutor;
@@ -127,7 +128,21 @@ public class TridentTopology {
     public Stream newStream(String txId, IOpaquePartitionedTridentSpout spout) {
         return newStream(txId, new OpaquePartitionedTridentSpoutExecutor(spout));
     }
-    
+
+    public Stream newStream(String txId, ITridentDataSource dataSource) {
+        if (dataSource instanceof IBatchSpout) {
+            return newStream(txId, (IBatchSpout) dataSource);
+        } else if (dataSource instanceof ITridentSpout) {
+            return newStream(txId, (ITridentSpout) dataSource);
+        } else if (dataSource instanceof IPartitionedTridentSpout) {
+            return newStream(txId, (IPartitionedTridentSpout) dataSource);
+        } else if (dataSource instanceof IOpaquePartitionedTridentSpout) {
+            return newStream(txId, (IOpaquePartitionedTridentSpout) dataSource);
+        } else {
+            throw new UnsupportedOperationException("Unsupported stream");
+        }
+    }
+
     public Stream newDRPCStream(String function) {
         return newDRPCStream(new DRPCSpout(function));
     }

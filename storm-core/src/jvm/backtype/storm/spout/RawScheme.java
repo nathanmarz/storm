@@ -18,12 +18,17 @@
 package backtype.storm.spout;
 
 import backtype.storm.tuple.Fields;
+import backtype.storm.utils.Utils;
+
+import java.nio.ByteBuffer;
 import java.util.List;
 import static backtype.storm.utils.Utils.tuple;
 
 public class RawScheme implements Scheme {
-    public List<Object> deserialize(byte[] ser) {
-        return tuple(ser);
+    public List<Object> deserialize(ByteBuffer ser) {
+        // Maintain backward compatibility for 0.10
+        byte[] b = Utils.toByteArray(ser);
+        return tuple(new Object[]{b});
     }
 
     public Fields getOutputFields() {

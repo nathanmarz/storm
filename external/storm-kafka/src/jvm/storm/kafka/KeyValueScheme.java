@@ -19,10 +19,9 @@ package storm.kafka;
 
 import backtype.storm.spout.Scheme;
 
+import java.nio.ByteBuffer;
 import java.util.List;
 
 public interface KeyValueScheme extends Scheme {
-
-    public List<Object> deserializeKeyAndValue(byte[] key, byte[] value);
-
+    List<Object> deserializeKeyAndValue(ByteBuffer key, ByteBuffer value);
 }

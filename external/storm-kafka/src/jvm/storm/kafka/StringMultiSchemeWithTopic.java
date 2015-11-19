@@ -18,13 +18,12 @@
 package storm.kafka;
 
 import backtype.storm.spout.MultiScheme;
-import backtype.storm.spout.Scheme;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
-import java.io.UnsupportedEncodingException;
-import java.util.Arrays;
+import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.List;
 
 public class StringMultiSchemeWithTopic
@@ -34,24 +33,16 @@ public class StringMultiSchemeWithTopic
     public static final String TOPIC_KEY = "topic";
 
     @Override
-    public Iterable<List<Object>> deserialize(byte[] bytes) {
+    public Iterable<List<Object>> deserialize(ByteBuffer bytes) {
         throw new NotImplementedException();
     }
 
-    public Iterable<List<Object>> deserializeWithTopic(String topic, byte[] bytes) {
-        List<Object> items = new Values(deserializeString(bytes), topic);
-        return Arrays.asList(items);
+    public Iterable<List<Object>> deserializeWithTopic(String topic, ByteBuffer bytes) {
+        List<Object> items = new Values(StringScheme.deserializeString(bytes), topic);
+        return Collections.singletonList(items);
     }
 
     public Fields getOutputFields() {
         return new Fields(STRING_SCHEME_KEY, TOPIC_KEY);
-    }
-
-    public static String deserializeString(byte[] string) {
-        try {
-            return new String(string, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-        }
     }
 }

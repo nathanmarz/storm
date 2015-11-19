@@ -17,6 +17,7 @@
  */
 package backtype.storm.spout;
 
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 
@@ -29,7 +30,7 @@ public class SchemeAsMultiScheme implements MultiScheme {
     this.scheme = scheme;
   }
 
-  @Override public Iterable<List<Object>> deserialize(final byte[] ser) {
+  @Override public Iterable<List<Object>> deserialize(final ByteBuffer ser) {
     List<Object> o = scheme.deserialize(ser);
     if(o == null) return null;
     else return Arrays.asList(o);

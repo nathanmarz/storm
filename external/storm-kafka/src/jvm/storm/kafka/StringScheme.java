@@ -20,23 +20,27 @@ package storm.kafka;
 import backtype.storm.spout.Scheme;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
+import backtype.storm.utils.Utils;
 
-import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 public class StringScheme implements Scheme {
-
+    private static final Charset UTF8_CHARSET = StandardCharsets.UTF_8;
     public static final String STRING_SCHEME_KEY = "str";
 
-    public List<Object> deserialize(byte[] bytes) {
+    public List<Object> deserialize(ByteBuffer bytes) {
         return new Values(deserializeString(bytes));
     }
 
-    public static String deserializeString(byte[] string) {
-        try {
-            return new String(string, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
+    public static String deserializeString(ByteBuffer string) {
+        if (string.hasArray()) {
+            int base = string.arrayOffset();
+            return new String(string.array(), base + string.position(), string.remaining());
+        } else {
+            return new String(Utils.toByteArray(string), UTF8_CHARSET);
         }
     }
 

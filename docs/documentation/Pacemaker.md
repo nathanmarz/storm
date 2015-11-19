@@ -91,9 +91,9 @@ PacemakerServer {
 
 ### Fault Tolerance
 
-Pacemaker runs as a single daemon instance currently. This makes it a potential Single Point of Failure.
+Pacemaker runs as a single daemon instance, making it a potential Single Point of Failure.
 
-If Pacemaker becomes unreachable by Nimbus, through crash or partition, the workers will continue to run and Nimbus will repeatedly attempt to reconnect. Nimbus functionality will be disrupted, but the topologies themselves will continue to run.
+If Pacemaker becomes unreachable by Nimbus, through crash or network partition, the workers will continue to run, and Nimbus will repeatedly attempt to reconnect. Nimbus functionality will be disrupted, but the topologies themselves will continue to run.
 In case of partition of the cluster where Nimbus and Pacemaker are on the same side of the partition, the workers that are on the other side of the partition will not be able to heartbeat, and Nimbus will reschedule the tasks elsewhere. This is probably what we want to happen anyway.
 
 

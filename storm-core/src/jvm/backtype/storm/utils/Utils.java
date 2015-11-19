@@ -777,6 +777,7 @@ public class Utils {
 
     public static double zeroIfNaNOrInf(double x) {
         return (Double.isNaN(x) || Double.isInfinite(x)) ? 0.0 : x;
+    }
 
     /**
      * parses the arguments to extract jvm heap memory size.
@@ -785,14 +786,14 @@ public class Utils {
      * @return the value of the JVM heap memory setting in a java command.
      */
     public static Double parseWorkerChildOpts(String input, Double defaultValue) {
-        if(input != null) {
+        if (input != null) {
             Pattern optsPattern = Pattern.compile("Xmx[0-9]+m");
             Matcher m = optsPattern.matcher(input);
             String memoryOpts = null;
             while (m.find()) {
                 memoryOpts = m.group();
             }
-            if(memoryOpts!=null) {
+            if(memoryOpts != null) {
                 memoryOpts = memoryOpts.replaceAll("[a-zA-Z]", "");
                 return Double.parseDouble(memoryOpts);
             } else {

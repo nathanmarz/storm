@@ -48,6 +48,11 @@ import java.util.TimerTask;
 public abstract class AbstractHdfsBolt extends BaseRichBolt {
     private static final Logger LOG = LoggerFactory.getLogger(AbstractHdfsBolt.class);
     private static final Integer DEFAULT_RETRY_COUNT = 3;
+    /**
+     * A low default value so that tuples are flushed and acked as soon as possible to avoid
+     * replay and spouts can continue emitting without hitting TOPOLOGY_MAX_SPOUT_PENDING.
+     */
+    private static final int DEFAULT_TICK_TUPLE_INTERVAL_SECS = 1;
 
     protected ArrayList<RotationAction> rotationActions = new ArrayList<RotationAction>();
     private Path currentFile;
@@ -64,7 +69,7 @@ public abstract class AbstractHdfsBolt extends BaseRichBolt {
     private List<Tuple> tupleBatch = new LinkedList<>();
     protected long offset = 0;
     protected Integer fileRetryCount = DEFAULT_RETRY_COUNT;
-    protected Integer tickTupleInterval = 0;
+    protected Integer tickTupleInterval = DEFAULT_TICK_TUPLE_INTERVAL_SECS;
 
     protected transient Configuration hdfsConfig;
 
@@ -108,14 +113,6 @@ public abstract class AbstractHdfsBolt extends BaseRichBolt {
             for(String key : map.keySet()){
                 this.hdfsConfig.set(key, String.valueOf(map.get(key)));
             }
-        }
-
-        // If interval is non-zero then it has already been explicitly set and we should not default it
-        if (conf.containsKey("topology.message.timeout.secs") && tickTupleInterval == 0)
-        {
-            Integer topologyTimeout = Utils.getInt(conf.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS));
-            tickTupleInterval = (int)(Math.floor(topologyTimeout / 2));
-            LOG.debug("Setting tick tuple interval to [{}] based on topology timeout", tickTupleInterval);
         }
 
         try{

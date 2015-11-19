@@ -94,14 +94,6 @@ public class HiveBolt extends  BaseRichBolt {
             heartBeatTimer = new Timer();
             setupHeartBeatTimer();
 
-            // If interval is non-zero then it has already been explicitly set and we should not default it
-            if (conf.containsKey("topology.message.timeout.secs") && options.getTickTupleInterval() == 0)
-            {
-                Integer topologyTimeout = Integer.parseInt(conf.get("topology.message.timeout.secs").toString());
-                int tickTupleInterval = (int) (Math.floor(topologyTimeout / 2));
-                options.withTickTupleInterval(tickTupleInterval);
-                LOG.debug("Setting tick tuple interval to [" + tickTupleInterval + "] based on topology timeout");
-            }
         } catch(Exception e) {
             LOG.warn("unable to make connection to hive ", e);
         }

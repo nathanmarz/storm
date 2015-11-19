@@ -23,12 +23,14 @@ import backtype.storm.ILocalCluster;
  * This is the core interface for the storm java testing, usually
  * we put our java unit testing logic in the run method. A sample
  * code will be:
- * <code>
+ *
+ * ```java
  * Testing.withSimulatedTimeLocalCluster(new TestJob() {
  *     public void run(Cluster cluster) {
  *         // your testing logic here.
  *     }
  * });
+ * ```
  */
 public interface TestJob {
 	/**

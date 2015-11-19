@@ -173,6 +173,8 @@ public class StormSubmitter {
     }
 
     /**
+     * Submits a topology to run on the cluster as a particular user. A topology runs forever or until
+     * explicitly killed.
      *
      * @param name
      * @param stormConf

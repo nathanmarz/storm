@@ -25,7 +25,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.RetentionPolicy;
 
 /**
- * Note: every annotation interface must have method validatorClass()
+ * Note: every annotation interface must have method `validatorClass()`
  * For every annotation there must validator class to do the validation
  * To add another annotation for config validation, add another annotation @interface class.  Implement the corresponding
  * validator logic in a class in ConfigValidation.  Make sure validateField method in ConfigValidation knows how to use the validator

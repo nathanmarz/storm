@@ -42,12 +42,12 @@ import org.apache.commons.lang.NotImplementedException;
 import org.json.simple.JSONValue;
 
 /**
- * A TopologyContext is given to bolts and spouts in their "prepare" and "open"
+ * A `TopologyContext` is given to bolts and spouts in their `prepare()` and `open()`
  * methods, respectively. This object provides information about the component's
  * place within the topology, such as task ids, inputs and outputs, etc.
  *
- * <p>The TopologyContext is also used to declare ISubscribedState objects to
- * synchronize state with StateSpouts this object is subscribed to.</p>
+ * The `TopologyContext` is also used to declare `ISubscribedState` objects to
+ * synchronize state with StateSpouts this object is subscribed to.
  */
 public class TopologyContext extends WorkerTopologyContext implements IMetricsContext {
     private Integer _taskId;
@@ -78,12 +78,13 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
      * All state from all subscribed state spouts streams will be synced with
      * the provided object.
      *
-     * <p>It is recommended that your ISubscribedState object is kept as an instance
-     * variable of this object. The recommended usage of this method is as follows:</p>
+     * It is recommended that your ISubscribedState object is kept as an instance
+     * variable of this object. The recommended usage of this method is as follows:
      *
-     * <p>
+     * ```java
      * _myState = context.setAllSubscribedState(new MyState());
-     * </p>
+     * ```
+     *
      * @param obj Provided ISubscribedState implementation
      * @return Returns the ISubscribedState object provided
      */
@@ -98,10 +99,11 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
      * Synchronizes the default stream from the specified state spout component
      * id with the provided ISubscribedState object.
      *
-     * <p>The recommended usage of this method is as follows:</p>
-     * <p>
+     * The recommended usage of this method is as follows:
+     *
+     * ```java
      * _myState = context.setSubscribedState(componentId, new MyState());
-     * </p>
+     * ```
      *
      * @param componentId the id of the StateSpout component to subscribe to
      * @param obj Provided ISubscribedState implementation
@@ -115,10 +117,11 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
      * Synchronizes the specified stream from the specified state spout component
      * id with the provided ISubscribedState object.
      *
-     * <p>The recommended usage of this method is as follows:</p>
-     * <p>
+     * The recommended usage of this method is as follows:
+     *
+     * ```java
      * _myState = context.setSubscribedState(componentId, streamId, new MyState());
-     * </p>
+     * ```
      *
      * @param componentId the id of the StateSpout component to subscribe to
      * @param streamId the stream to subscribe to
@@ -301,9 +304,11 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
 
     /*
      * Register a IMetric instance.
-     * Storm will then call getValueAndReset on the metric every timeBucketSizeInSecs
+     *
+     * Storm will then call `getValueAndReset()` on the metric every `timeBucketSizeInSecs`
      * and the returned value is sent to all metrics consumers.
-     * You must call this during IBolt::prepare or ISpout::open.
+     *
+     * You must call this during `IBolt.prepare()` or `ISpout.open()`.
      * @return The IMetric argument unchanged.
      */
     public <T extends IMetric> T registerMetric(String name, T metric, int timeBucketSizeInSecs) {

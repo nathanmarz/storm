@@ -33,14 +33,19 @@ import backtype.storm.task.TopologyContext;
  * Listens for all metrics, dumps them as text to a configured host:port
  *
  * To use, add this to your topology's configuration:
+ *
+ * ```java
  *   conf.registerMetricsConsumer(backtype.storm.testing.ForwardingMetricsConsumer.class, "<HOST>:<PORT>", 1);
+ * ```
  *
  * Or edit the storm.yaml config file:
  *
+ * ```yaml
  *   topology.metrics.consumer.register:
  *     - class: "backtype.storm.testing.ForwardingMetricsConsumer"
  *     - argument: "example.com:9999"
  *       parallelism.hint: 1
+ * ```
  *
  */
 public class ForwardingMetricsConsumer implements IMetricsConsumer {

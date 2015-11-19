@@ -46,7 +46,7 @@ public class ConfigValidation {
         public abstract void validateField(String name, Object o);
     }
 
-    /**
+    /*
      * Validator definitions
      */
 

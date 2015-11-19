@@ -20,7 +20,7 @@ package backtype.storm.testing;
 import java.util.Map;
 
 /**
- * The param arg for <code>Testing.withSimulatedTimeCluster</code> and <code>Testing.withTrackedCluster</code>
+ * The param arg for `Testing.withSimulatedTimeCluster` and `Testing.withTrackedCluster`
  */
 public class MkClusterParam {
 	/**

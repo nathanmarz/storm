@@ -42,7 +42,7 @@ import org.json.simple.JSONValue;
  * is so verbose, TopologyBuilder greatly eases the process of creating topologies.
  * The template for creating and submitting a topology looks something like:
  *
- * <pre>
+ * ```java
  * TopologyBuilder builder = new TopologyBuilder();
  *
  * builder.setSpout("1", new TestWordSpout(true), 5);
@@ -57,13 +57,13 @@ import org.json.simple.JSONValue;
  * conf.put(Config.TOPOLOGY_WORKERS, 4);
  * 
  * StormSubmitter.submitTopology("mytopology", conf, builder.createTopology());
- * </pre>
+ * ```
  *
  * Running the exact same topology in local mode (in process), and configuring it to log all tuples
  * emitted, looks like the following. Note that it lets the topology run for 10 seconds
  * before shutting down the local cluster.
  *
- * <pre>
+ * ```java
  * TopologyBuilder builder = new TopologyBuilder();
  *
  * builder.setSpout("1", new TestWordSpout(true), 5);
@@ -82,11 +82,11 @@ import org.json.simple.JSONValue;
  * cluster.submitTopology("mytopology", conf, builder.createTopology());
  * Utils.sleep(10000);
  * cluster.shutdown();
- * </pre>
+ * ```
  *
- * <p>The pattern for TopologyBuilder is to map component ids to components using the setSpout
+ * The pattern for `TopologyBuilder` is to map component ids to components using the setSpout
  * and setBolt methods. Those methods return objects that are then used to declare
- * the inputs for that component.</p>
+ * the inputs for that component.
  */
 public class TopologyBuilder {
     private Map<String, IRichBolt> _bolts = new HashMap<>();

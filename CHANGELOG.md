@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1215: Use Async Loggers to avoid locking  and logging overhead
  * STORM-1204: Logviewer should graceful report page-not-found instead of 500 for bad topo-id etc
  * STORM-831: Add BugTracker and Central Logging URL to UI
  * STORM-1208: UI: NPE seen when aggregating bolt streams stats

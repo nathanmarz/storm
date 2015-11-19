@@ -39,5 +39,6 @@
     <modules>
         <module>storm-sql-core</module>
         <module>storm-sql-runtime</module>
+        <module>storm-sql-kafka</module>
     </modules>
 </project>

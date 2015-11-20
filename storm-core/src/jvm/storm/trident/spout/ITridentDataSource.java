@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,17 +17,10 @@
  */
 package storm.trident.spout;
 
-import backtype.storm.task.TopologyContext;
-import backtype.storm.tuple.Fields;
 import java.io.Serializable;
-import java.util.Map;
-import storm.trident.operation.TridentCollector;
 
-public interface IBatchSpout extends ITridentDataSource {
-    void open(Map conf, TopologyContext context);
-    void emitBatch(long batchId, TridentCollector collector);
-    void ack(long batchId);
-    void close();
-    Map<String, Object> getComponentConfiguration();
-    Fields getOutputFields();
+/**
+ * ITridentDataSource marks all spouts that provide data into Trident.
+ */
+public interface ITridentDataSource extends Serializable {
 }

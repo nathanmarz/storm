@@ -509,9 +509,15 @@ public class Utils {
         if (null == o) {
             return defaultValue;
         }
-
         if (o instanceof String) {
             return (String) o;
+        } else if (o instanceof List) {
+            StringBuilder sb = new StringBuilder();
+            for (String s : (List<String>) o) {
+                sb.append(s);
+                sb.append(" ");
+            }
+            return sb.toString();
         } else {
             throw new IllegalArgumentException("Don't know how to convert " + o + " + to String");
         }
@@ -780,22 +786,31 @@ public class Utils {
     }
 
     /**
-     * parses the arguments to extract jvm heap memory size.
+     * parses the arguments to extract jvm heap memory size in MB.
      * @param input
      * @param defaultValue
-     * @return the value of the JVM heap memory setting in a java command.
+     * @return the value of the JVM heap memory setting (in MB) in a java command.
      */
-    public static Double parseWorkerChildOpts(String input, Double defaultValue) {
+    public static Double parseJvmHeapMemByChildOpts(String input, Double defaultValue) {
         if (input != null) {
-            Pattern optsPattern = Pattern.compile("Xmx[0-9]+m");
+            Pattern optsPattern = Pattern.compile("Xmx[0-9]+[mkgMKG]");
             Matcher m = optsPattern.matcher(input);
             String memoryOpts = null;
             while (m.find()) {
                 memoryOpts = m.group();
             }
-            if(memoryOpts != null) {
+            if (memoryOpts != null) {
+                int unit = 1;
+                if (memoryOpts.toLowerCase().endsWith("k")) {
+                    unit = 1024;
+                } else if (memoryOpts.toLowerCase().endsWith("m")) {
+                    unit = 1024 * 1024;
+                } else if (memoryOpts.toLowerCase().endsWith("g")) {
+                    unit = 1024 * 1024 * 1024;
+                }
                 memoryOpts = memoryOpts.replaceAll("[a-zA-Z]", "");
-                return Double.parseDouble(memoryOpts);
+                Double result =  Double.parseDouble(memoryOpts) * unit / 1024.0 / 1024.0;
+                return (result < 1.0) ? 1.0 : result;
             } else {
                 return defaultValue;
             }

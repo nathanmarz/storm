@@ -89,7 +89,7 @@ public interface ClusterState {
      * @param acls The acls to apply to the path. May be null.
      * @return path
      */
-    void set_ephemeral_node(String path, byte[] data, List<ACL> acls);
+    String set_ephemeral_node(String path, byte[] data, List<ACL> acls);
 
     /**
      * Gets the 'version' of the node at a path. Optionally sets a watch
@@ -203,7 +203,7 @@ public interface ClusterState {
     /**
      * Force consistency on a path. Any writes committed on the path before
      * this call will be completely propagated when it returns.
-     * @param The path to synchronize.
+     * @param path The path to synchronize.
      */
     void sync_path(String path);
 }

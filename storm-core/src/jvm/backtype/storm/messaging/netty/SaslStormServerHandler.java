@@ -147,7 +147,7 @@ public class SaslStormServerHandler extends SimpleChannelUpstreamHandler {
             token = secretKey.getBytes();
         }
 
-        LOG.debug("SASL credentials for storm topology " + topologyName
-                  + " is " + secretKey);
+        LOG.debug("SASL credentials for storm topology {} is {}",
+                  topologyName, secretKey);
     }
 }

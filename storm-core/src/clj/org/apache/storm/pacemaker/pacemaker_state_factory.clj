@@ -23,8 +23,8 @@
              [log :refer :all]
              [util :as util]])
   (:import [backtype.storm.generated
-            HBExecutionException HBNodes HBRecords
-            HBServerMessageType HBMessage HBMessageData HBPulse]
+            HBExecutionException HBServerMessageType HBMessage
+            HBMessageData HBPulse]
            [backtype.storm.cluster_state zookeeper_state_factory]
            [backtype.storm.cluster ClusterState]
            [org.apache.storm.pacemaker PacemakerClient])

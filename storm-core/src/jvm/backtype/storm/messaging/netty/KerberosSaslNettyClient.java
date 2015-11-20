@@ -113,7 +113,6 @@ public class KerberosSaslNettyClient {
         try {
             Principal principal = (Principal)subject.getPrincipals().toArray()[0];
             final String fPrincipalName = principal.getName();
-            KerberosName kerbName = new KerberosName(principal.getName());
             final String fHost = (String)storm_conf.get(Config.PACEMAKER_HOST);
             final String fServiceName = serviceName;
             final CallbackHandler fch = ch;

@@ -22,6 +22,7 @@ import javax.security.auth.login.Configuration;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.Subject;
 import java.security.URIParameter;
+import java.security.MessageDigest;
 
 import backtype.storm.security.INimbusCredentialPlugin;
 import org.slf4j.Logger;
@@ -32,10 +33,10 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.Set;
 import java.util.HashSet;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.lang.StringBuilder;
 
 public class AuthUtils {
     private static final Logger LOG = LoggerFactory.getLogger(AuthUtils.class);
@@ -75,10 +76,9 @@ public class AuthUtils {
 
     /**
      * Pull a set of keys out of a Configuration.
-     * @param configs_to_pull A set of config keys that you want the values of.
      * @param conf The config to pull the key/value pairs out of.
      * @param conf_entry The app configuration entry name to get stuff from.
-     * @return Return a map of the configs in configs_to_pull to their values.
+     * @return Return a map of the configs in conf.
      */
     public static SortedMap<String, ?> PullConfig(Configuration conf,
                                             String conf_entry) throws IOException {
@@ -93,7 +93,6 @@ public class AuthUtils {
         }
 
         TreeMap<String, Object> results = new TreeMap<>();
-        
 
         for(AppConfigurationEntry entry: configurationEntries) {
             Map<String, ?> options = entry.getOptions();
@@ -333,6 +332,19 @@ public class AuthUtils {
             return null;
         }
 
-        return username + ":" + password;
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-512");
+            byte[] output = digest.digest((username + ":" + password).getBytes());
+
+            StringBuilder builder = new StringBuilder();
+            for(byte b : output) {
+            builder.append(String.format("%02x", b));
+            }
+            return builder.toString();
+        }
+        catch(java.security.NoSuchAlgorithmException e) {
+            LOG.error("Cant run SHA-512 digest. Algorithm not available.", e);
+            throw new RuntimeException(e);
+        }
     }
 }

@@ -17,7 +17,6 @@
  */
 package backtype.storm.messaging.netty;
 
-import backtype.storm.Config;
 import backtype.storm.security.auth.AuthUtils;
 import backtype.storm.security.auth.KerberosPrincipalToLocal;
 import java.io.IOException;
@@ -53,7 +52,6 @@ class KerberosSaslNettyServer {
 
     private SaslServer saslServer;
     private Subject subject;
-    private String jaas_section;
     private List<String> authorizedUsers;
 
     KerberosSaslNettyServer(Map storm_conf, String jaas_section, List<String> authorizedUsers) {
@@ -70,7 +68,7 @@ class KerberosSaslNettyServer {
 
         LOG.debug("KerberosSaslNettyServer: authmethod {}", SaslUtils.KERBEROS);
 
-        KerberosSaslCallbackHandler ch = new KerberosSaslNettyServer.KerberosSaslCallbackHandler(storm_conf, authorizedUsers);
+        KerberosSaslCallbackHandler ch = new KerberosSaslNettyServer.KerberosSaslCallbackHandler(authorizedUsers);
 
         //login our principal
         subject = null;
@@ -138,25 +136,14 @@ class KerberosSaslNettyServer {
         return saslServer.getAuthorizationID();
     }
 
-    private String getPrincipal(Subject subject) {
-        Set<Principal> principals = (Set<Principal>)subject.getPrincipals();
-        if (principals==null || principals.size()<1) {
-            LOG.info("No principal found in login subject");
-            return null;
-        }
-        return ((Principal)(principals.toArray()[0])).getName();
-    }
-
     /** CallbackHandler for SASL DIGEST-MD5 mechanism */
     public static class KerberosSaslCallbackHandler implements CallbackHandler {
 
         /** Used to authenticate the clients */
-        private Map config;
         private List<String> authorizedUsers;
 
-        public KerberosSaslCallbackHandler(Map config, List<String> authorizedUsers) {
+        public KerberosSaslCallbackHandler(List<String> authorizedUsers) {
             LOG.debug("KerberosSaslCallback: Creating KerberosSaslCallback handler.");
-            this.config = config;
             this.authorizedUsers = authorizedUsers;
         }
 

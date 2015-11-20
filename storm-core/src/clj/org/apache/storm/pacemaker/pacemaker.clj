@@ -16,11 +16,9 @@
 
 (ns org.apache.storm.pacemaker.pacemaker
   (:import [org.apache.storm.pacemaker PacemakerServer IServerMessageHandler]
-           [java.util.concurrent ConcurrentHashMap ThreadPoolExecutor TimeUnit LinkedBlockingDeque]
+           [java.util.concurrent ConcurrentHashMap]
            [java.util.concurrent.atomic AtomicInteger]
-           [java.util Date]
-           [backtype.storm.generated
-            HBAuthorizationException HBExecutionException HBNodes HBRecords
+           [backtype.storm.generated HBNodes
             HBServerMessageType HBMessage HBMessageData HBPulse])
   (:use [clojure.string :only [replace-first split]]
         [backtype.storm log config util])
@@ -64,41 +62,41 @@
 
 (defn- report-stats [heartbeats stats last-five-s]
   (loop []
-      (let [send-count (.getAndSet (:send-pulse-count stats) 0)
-            received-size (.getAndSet (:total-received-size stats) 0)
-            get-count (.getAndSet (:get-pulse-count stats) 0)
-            sent-size (.getAndSet (:total-sent-size stats) 0)
-            largest (.getAndSet (:largest-heartbeat-size stats) 0)
-            average (.getAndSet (:average-heartbeat-size stats) 0)
-            total-keys (.size heartbeats)]
-        (log-debug "\nReceived " send-count " heartbeats totaling " received-size " bytes,\n"
-                   "Sent " get-count " heartbeats totaling " sent-size " bytes,\n"
-                   "The largest heartbeat was " largest " bytes,\n"
-                   "The average heartbeat was " average " bytes,\n"
-                   "Pacemaker contained " total-keys " total keys\n"
-                   "in the last " sleep-seconds " second(s)")
-        (dosync (ref-set last-five-s
-                         {:send-pulse-count send-count
-                          :total-received-size received-size
-                          :get-pulse-count get-count
-                          :total-sent-size sent-size
-                          :largest-heartbeat-size largest
-                          :average-heartbeat-size average
-                          :total-keys total-keys})))
-      (Thread/sleep (* 1000 sleep-seconds))
-      (recur)))
+    (let [send-count (.getAndSet (:send-pulse-count stats) 0)
+          received-size (.getAndSet (:total-received-size stats) 0)
+          get-count (.getAndSet (:get-pulse-count stats) 0)
+          sent-size (.getAndSet (:total-sent-size stats) 0)
+          largest (.getAndSet (:largest-heartbeat-size stats) 0)
+          average (.getAndSet (:average-heartbeat-size stats) 0)
+          total-keys (.size heartbeats)]
+      (log-debug "\nReceived " send-count " heartbeats totaling " received-size " bytes,\n"
+                 "Sent " get-count " heartbeats totaling " sent-size " bytes,\n"
+                 "The largest heartbeat was " largest " bytes,\n"
+                 "The average heartbeat was " average " bytes,\n"
+                 "Pacemaker contained " total-keys " total keys\n"
+                 "in the last " sleep-seconds " second(s)")
+      (dosync (ref-set last-five-s
+                       {:send-pulse-count send-count
+                        :total-received-size received-size
+                        :get-pulse-count get-count
+                        :total-sent-size sent-size
+                        :largest-heartbeat-size largest
+                        :average-heartbeat-size average
+                        :total-keys total-keys})))
+    (Thread/sleep (* 1000 sleep-seconds))
+    (recur)))
 
 ;; JMX stuff
 (defn register [last-five-s]
   (jmx/register-mbean
-   (jmx/create-bean
-    last-five-s)
-   "org.apache.storm.pacemaker.pacemaker:stats=Stats_Last_5_Seconds"))
+    (jmx/create-bean
+      last-five-s)
+    "org.apache.storm.pacemaker.pacemaker:stats=Stats_Last_5_Seconds"))
 
 
 ;; Pacemaker Functions
 
-(defn hb-data [conf]
+(defn hb-data []
   (ConcurrentHashMap.))
 
 (defn create-path [^String path heartbeats]
@@ -168,7 +166,7 @@
   (HBMessage. HBServerMessageType/NOT_AUTHORIZED nil))
 
 (defn mk-handler [conf]
-  (let [heartbeats ^ConcurrentHashMap (hb-data conf)
+  (let [heartbeats ^ConcurrentHashMap (hb-data)
         pacemaker-stats {:send-pulse-count (AtomicInteger.)
                          :total-received-size (AtomicInteger.)
                          :get-pulse-count (AtomicInteger.)

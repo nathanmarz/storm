@@ -72,17 +72,16 @@ public class SaslMessageToken implements INettySerializable {
         this.token = token;
     }
 
-
     public int encodeLength() {
         return 2 + 4 + token.length;
     }
 
     /**
      * encode the current SaslToken Message into a channel buffer
-     * SaslTokenMessageRequest is encoded as: identifier .... short(2) always it
-     * is -500 payload length .... int payload .... byte[]
+     * SaslTokenMessageRequest is encoded as: identifier .... short(2)
+     * payload length .... int payload .... byte[]
      * 
-     * @throws Exception
+     * @throws IOException
      */
     public ChannelBuffer buffer() throws IOException {
         ChannelBufferOutputStream bout = new ChannelBufferOutputStream(
@@ -92,7 +91,7 @@ public class SaslMessageToken implements INettySerializable {
             payload_len = token.length;
 
         bout.writeShort(IDENTIFIER);
-        bout.writeInt((int) payload_len);
+        bout.writeInt(payload_len);
 
         if (payload_len > 0) {
             bout.write(token);
@@ -105,7 +104,7 @@ public class SaslMessageToken implements INettySerializable {
         ChannelBuffer sm_buffer = ChannelBuffers.copiedBuffer(serial);
         short identifier = sm_buffer.readShort();
         int payload_len = sm_buffer.readInt();
-        if(identifier != -500) {
+        if(identifier != IDENTIFIER) {
             return null;
         }
         byte token[] = new byte[payload_len];

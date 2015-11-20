@@ -16,8 +16,8 @@
 
 (ns backtype.storm.cluster-state.zookeeper-state-factory
   (:import [org.apache.curator.framework.state ConnectionStateListener])
-  (:import [org.apache.zookeeper KeeperException KeeperException$NoNodeException ZooDefs ZooDefs$Ids ZooDefs$Perms]
-           [backtype.storm.cluster ClusterState ClusterStateContext DaemonType])
+  (:import [org.apache.zookeeper KeeperException$NoNodeException]
+           [backtype.storm.cluster ClusterState DaemonType])
   (:use [backtype.storm cluster config log util])
   (:require [backtype.storm [zookeeper :as zk]])
   (:gen-class

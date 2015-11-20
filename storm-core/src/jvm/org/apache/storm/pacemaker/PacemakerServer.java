@@ -61,7 +61,9 @@ class PacemakerServer implements ISaslServer {
         this.topo_name = "pacemaker_server";
 
         String auth = (String)config.get(Config.PACEMAKER_AUTH_METHOD);
-        if(auth.equals("DIGEST")) {
+        switch(auth) {
+
+        case "DIGEST":
             Configuration login_conf = AuthUtils.GetConfiguration(config);
             authMethod = ThriftNettyServerCodec.AuthMethod.DIGEST;
             this.secret = AuthUtils.makeDigestPayload(login_conf, AuthUtils.LOGIN_CONTEXT_PACEMAKER_DIGEST);
@@ -69,14 +71,17 @@ class PacemakerServer implements ISaslServer {
                 LOG.error("Can't start pacemaker server without digest secret.");
                 throw new RuntimeException("Can't start pacemaker server without digest secret.");
             }
-        }
-        else if(auth.equals("KERBEROS")) {
+            break;
+
+        case "KERBEROS":
             authMethod = ThriftNettyServerCodec.AuthMethod.KERBEROS;
-        }
-        else if(auth.equals("NONE")) {
+            break;
+
+        case "NONE":
             authMethod = ThriftNettyServerCodec.AuthMethod.NONE;
-        }
-        else {
+            break;
+
+        default:
             LOG.error("Can't start pacemaker server without proper PACEMAKER_AUTH_METHOD.");
             throw new RuntimeException("Can't start pacemaker server without proper PACEMAKER_AUTH_METHOD.");
         }
@@ -115,7 +120,7 @@ class PacemakerServer implements ISaslServer {
 
     public void cleanPipeline(Channel channel) {
         boolean authenticated = authenticated_channels.contains(channel);
-        if(!authenticated) {       
+        if(!authenticated) {
             if(channel.getPipeline().get(ThriftNettyServerCodec.SASL_HANDLER) != null) {
                 channel.getPipeline().remove(ThriftNettyServerCodec.SASL_HANDLER);
             }
@@ -124,10 +129,10 @@ class PacemakerServer implements ISaslServer {
             }
         }
     }
-    
+
     public void received(Object mesg, String remote, Channel channel) throws InterruptedException {
         cleanPipeline(channel);
-        
+
         boolean authenticated = (authMethod == ThriftNettyServerCodec.AuthMethod.NONE) || authenticated_channels.contains(channel);
         HBMessage m = (HBMessage)mesg;
         LOG.debug("received message. Passing to handler. {} : {} : {}",

@@ -243,7 +243,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
         if (closing) {
             int numMessages = iteratorSize(msgs);
             LOG.error("discarding {} messages because the Netty client to {} is being closed", numMessages,
-                      dstAddressPrefixedName);
+                    dstAddressPrefixedName);
             return;
         }
 
@@ -347,20 +347,20 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
 
         ChannelFuture future = channel.write(batch);
         future.addListener(new ChannelFutureListener() {
-                public void operationComplete(ChannelFuture future) throws Exception {
-                    pendingMessages.addAndGet(0 - numMessages);
-                    if (future.isSuccess()) {
-                        LOG.debug("sent {} messages to {}", numMessages, dstAddressPrefixedName);
-                        messagesSent.getAndAdd(batch.size());
-                    } else {
-                        LOG.error("failed to send {} messages to {}: {}", numMessages, dstAddressPrefixedName,
-                                  future.getCause());
-                        closeChannelAndReconnect(future.getChannel());
-                        messagesLost.getAndAdd(numMessages);
-                    }
+            public void operationComplete(ChannelFuture future) throws Exception {
+                pendingMessages.addAndGet(0 - numMessages);
+                if (future.isSuccess()) {
+                    LOG.debug("sent {} messages to {}", numMessages, dstAddressPrefixedName);
+                    messagesSent.getAndAdd(batch.size());
+                } else {
+                    LOG.error("failed to send {} messages to {}: {}", numMessages, dstAddressPrefixedName,
+                            future.getCause());
+                    closeChannelAndReconnect(future.getChannel());
+                    messagesLost.getAndAdd(numMessages);
                 }
+            }
 
-            });
+        });
     }
 
     /**
@@ -397,7 +397,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
 
     private void waitForPendingMessagesToBeSent() {
         LOG.info("waiting up to {} ms to send {} pending messages to {}",
-                 PENDING_MESSAGES_FLUSH_TIMEOUT_MS, pendingMessages.get(), dstAddressPrefixedName);
+                PENDING_MESSAGES_FLUSH_TIMEOUT_MS, pendingMessages.get(), dstAddressPrefixedName);
         long totalPendingMsgs = pendingMessages.get();
         long startMs = System.currentTimeMillis();
         while (pendingMessages.get() != 0) {
@@ -405,7 +405,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
                 long deltaMs = System.currentTimeMillis() - startMs;
                 if (deltaMs > PENDING_MESSAGES_FLUSH_TIMEOUT_MS) {
                     LOG.error("failed to send all pending messages to {} within timeout, {} of {} messages were not " +
-                              "sent", dstAddressPrefixedName, pendingMessages.get(), totalPendingMsgs);
+                            "sent", dstAddressPrefixedName, pendingMessages.get(), totalPendingMsgs);
                     break;
                 }
                 Thread.sleep(PENDING_MESSAGES_FLUSH_INTERVAL_MS);
@@ -528,7 +528,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
 
         private void reschedule(Throwable t) {
             String baseMsg = String.format("connection attempt %s to %s failed", connectionAttempts,
-                                           dstAddressPrefixedName);
+                    dstAddressPrefixedName);
             String failureMsg = (t == null) ? baseMsg : baseMsg + ": " + t.toString();
             LOG.error(failureMsg);
             long nextDelayMs = retryPolicy.getSleepTimeMs(connectionAttempts.get(), 0);
@@ -545,32 +545,32 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
                 LOG.debug("connecting to {} [attempt {}]", address.toString(), connectionAttempt);
                 ChannelFuture future = bootstrap.connect(address);
                 future.addListener(new ChannelFutureListener() {
-                        @Override
-                        public void operationComplete(ChannelFuture future) throws Exception {
-                            // This call returns immediately
-                            Channel newChannel = future.getChannel();
+                    @Override
+                    public void operationComplete(ChannelFuture future) throws Exception {
+                        // This call returns immediately
+                        Channel newChannel = future.getChannel();
 
-                            if (future.isSuccess() && connectionEstablished(newChannel)) {
-                                boolean setChannel = channelRef.compareAndSet(null, newChannel);
-                                checkState(setChannel);
-                                LOG.debug("successfully connected to {}, {} [attempt {}]", address.toString(), newChannel.toString(),
-                                          connectionAttempt);
-                                if (messagesLost.get() > 0) {
-                                    LOG.warn("Re-connection to {} was successful but {} messages has been lost so far", address.toString(), messagesLost.get());
-                                }
-                            } else {
-                                Throwable cause = future.getCause();
-                                reschedule(cause);
-                                if (newChannel != null) {
-                                    newChannel.close();
-                                }
+                        if (future.isSuccess() && connectionEstablished(newChannel)) {
+                            boolean setChannel = channelRef.compareAndSet(null, newChannel);
+                            checkState(setChannel);
+                            LOG.debug("successfully connected to {}, {} [attempt {}]", address.toString(), newChannel.toString(),
+                                    connectionAttempt);
+                            if (messagesLost.get() > 0) {
+                                LOG.warn("Re-connection to {} was successful but {} messages has been lost so far", address.toString(), messagesLost.get());
+                            }
+                        } else {
+                            Throwable cause = future.getCause();
+                            reschedule(cause);
+                            if (newChannel != null) {
+                                newChannel.close();
                             }
                         }
-                    });
+                    }
+                });
             } else {
                 close();
                 throw new RuntimeException("Giving up to scheduleConnect to " + dstAddressPrefixedName + " after " +
-                                           connectionAttempts + " failed attempts. " + messagesLost.get() + " messages were lost");
+                        connectionAttempts + " failed attempts. " + messagesLost.get() + " messages were lost");
 
             }
         }

@@ -266,7 +266,8 @@ def upload_credentials(*args):
 def heartbeats(*args):
     """Syntax: [storm heartbeats [cmd]]
 
-    list [KEY...] - lists heartbeats nodes under KEY currently in pacemaker.
+    list PATH - lists heartbeats nodes under PATH currently in the ClusterState.
+    get  PATH - Get the heartbeat data at PATH
     """
     exec_storm_class(
         "backtype.storm.command.heartbeats",

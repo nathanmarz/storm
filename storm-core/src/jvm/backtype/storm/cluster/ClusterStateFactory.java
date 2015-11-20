@@ -23,6 +23,6 @@ import org.apache.zookeeper.data.ACL;
 
 public interface ClusterStateFactory {
     
-    public ClusterState mkState(APersistentMap config, APersistentMap auth_conf, List<ACL> acls, ClusterStateContext context);
+    ClusterState mkState(APersistentMap config, APersistentMap auth_conf, List<ACL> acls, ClusterStateContext context);
 
 }

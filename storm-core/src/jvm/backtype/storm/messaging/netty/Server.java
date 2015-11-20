@@ -19,10 +19,24 @@ package backtype.storm.messaging.netty;
 
 import backtype.storm.Config;
 import backtype.storm.grouping.Load;
+import backtype.storm.messaging.ConnectionWithStatus;
+import backtype.storm.messaging.IConnectionCallback;
 import backtype.storm.messaging.TaskMessage;
 import backtype.storm.metric.api.IStatefulObject;
 import backtype.storm.serialization.KryoValuesSerializer;
 import backtype.storm.utils.Utils;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFactory;
@@ -31,30 +45,6 @@ import org.jboss.netty.channel.group.DefaultChannelGroup;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Collection;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadFactory;
-import java.io.IOException;
-
-
-import backtype.storm.messaging.ConnectionWithStatus;
-import backtype.storm.messaging.IConnection;
-import backtype.storm.messaging.IConnectionCallback;
-import backtype.storm.messaging.TaskMessage;
-import backtype.storm.metric.api.IStatefulObject;
-import backtype.storm.serialization.KryoValuesSerializer;
-import backtype.storm.utils.Utils;
 
 class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServer {
 

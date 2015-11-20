@@ -35,7 +35,6 @@ import org.slf4j.LoggerFactory;
 
 class SaslNettyServer {
 
-
     private static final Logger LOG = LoggerFactory
         .getLogger(SaslNettyServer.class);
 

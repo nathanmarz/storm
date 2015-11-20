@@ -66,7 +66,9 @@ public class ThriftEncoder extends OneToOneEncoder {
 
     @Override
     protected Object encode(ChannelHandlerContext ctx, Channel channel, Object msg) {
-        if(msg == null) return null;
+        if(msg == null) {
+            return null;
+        }
 
         LOG.debug("Trying to encode: " + msg.getClass().toString() + " : " + msg.toString());
 
@@ -92,7 +94,7 @@ public class ThriftEncoder extends OneToOneEncoder {
         }
 
         try {
-            byte serialized[] = Utils.thriftSerialize((TBase)m);
+            byte serialized[] = Utils.thriftSerialize(m);
             ChannelBuffer ret = ChannelBuffers.directBuffer(serialized.length + 4);
 
             ret.writeInt(serialized.length);

@@ -55,7 +55,7 @@ public enum ControlMessage implements INettySerializable {
     
     /**
      * encode the current Control Message into a channel buffer
-     * @throws Exception
+     * @throws IOException
      */
     public ChannelBuffer buffer() throws IOException {
         ChannelBufferOutputStream bout = new ChannelBufferOutputStream(ChannelBuffers.directBuffer(encodeLength()));      

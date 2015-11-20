@@ -43,8 +43,8 @@ public class StormServerHandler extends SimpleChannelUpstreamHandler  {
     public void channelConnected(ChannelHandlerContext ctx, ChannelStateEvent e) {
         server.channelConnected(e.getChannel());
         if(channel != null) {
-            LOG.debug("Replacing channel with new channel: "
-                      + channel.toString() + " -> " + e.getChannel().toString());
+            LOG.debug("Replacing channel with new channel: {} -> ",
+                      channel, e.getChannel());
         }
         channel = e.getChannel();
         server.channelConnected(channel);

@@ -75,7 +75,7 @@ public class StormClientHandler extends SimpleChannelUpstreamHandler  {
                                        + message + " (" + client.getDstAddress() + ")");
         }
     }
-        
+
     @Override
     public void channelInterestChanged(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
         client.notifyInterestChanged(e.getChannel());

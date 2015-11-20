@@ -18,8 +18,8 @@
             [org.apache.storm.pacemaker [pacemaker :as pacemaker]]
             [conjure.core :as conjure])
   (:import [backtype.storm.generated
-            HBExecutionException HBNodes HBRecords
-            HBServerMessageType HBMessage HBMessageData HBPulse]))
+            HBExecutionException HBServerMessageType
+            HBMessage HBMessageData HBPulse]))
 
 (defn- message-with-rand-id [type data]
   (let [mid (rand-int 1000)

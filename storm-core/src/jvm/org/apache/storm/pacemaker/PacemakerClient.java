@@ -19,7 +19,6 @@ package org.apache.storm.pacemaker;
 
 import backtype.storm.Config;
 import backtype.storm.generated.HBMessage;
-import backtype.storm.messaging.netty.Client;
 import backtype.storm.messaging.netty.ISaslClient;
 import backtype.storm.messaging.netty.NettyRenameThreadFactory;
 import backtype.storm.security.auth.AuthUtils;
@@ -60,7 +59,7 @@ public class PacemakerClient implements ISaslClient {
 
     private StormBoundedExponentialBackoffRetry backoff = new StormBoundedExponentialBackoffRetry(100, 5000, 20);
     private int retryTimes = 0;
-    
+
     public PacemakerClient(Map config) {
 
         String host = (String)config.get(Config.PACEMAKER_HOST);
@@ -73,8 +72,9 @@ public class PacemakerClient implements ISaslClient {
         String auth = (String)config.get(Config.PACEMAKER_AUTH_METHOD);
         ThriftNettyClientCodec.AuthMethod authMethod;
 
-        if(auth.equals("DIGEST")) {
+        switch(auth) {
 
+        case "DIGEST":
             Configuration login_conf = AuthUtils.GetConfiguration(config);
             authMethod = ThriftNettyClientCodec.AuthMethod.DIGEST;
             secret = AuthUtils.makeDigestPayload(login_conf, AuthUtils.LOGIN_CONTEXT_PACEMAKER_DIGEST);
@@ -82,17 +82,20 @@ public class PacemakerClient implements ISaslClient {
                 LOG.error("Can't start pacemaker server without digest secret.");
                 throw new RuntimeException("Can't start pacemaker server without digest secret.");
             }
+            break;
 
-        }
-        else if(auth.equals("KERBEROS")) {
+        case "KERBEROS":
             authMethod = ThriftNettyClientCodec.AuthMethod.KERBEROS;
-        }
-        else {
-            if(!auth.equals("NONE")) {
-                LOG.warn("Invalid auth scheme: '{}'. Falling back to 'NONE'", auth);
-            }
-            
+            break;
+
+        case "NONE":
             authMethod = ThriftNettyClientCodec.AuthMethod.NONE;
+            break;
+
+        default:
+            authMethod = ThriftNettyClientCodec.AuthMethod.NONE;
+            LOG.warn("Invalid auth scheme: '{}'. Falling back to 'NONE'", auth);
+            break;
         }
 
         closing = new AtomicBoolean(false);
@@ -199,10 +202,10 @@ public class PacemakerClient implements ISaslClient {
     public void gotMessage(HBMessage m) {
         int message_id = m.get_message_id();
         if(message_id >=0 && message_id < maxPending) {
-            
-            LOG.debug("Pacemaker Client got message: {}", m.toString());
+
+            LOG.debug("Pacemaker client got message: {}", m.toString());
             HBMessage request = messages[message_id];
-            
+
             if(request == null) {
                 LOG.debug("No message for slot: {}", Integer.toString(message_id));
             }

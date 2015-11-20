@@ -1064,16 +1064,16 @@
 
 (defn retry-on-exception
   "Retries specific function on exception based on retries count"
-  [tries task-description f & args]
+  [retries task-description f & args]
   (let [res (try {:value (apply f args)}
               (catch Exception e
-                (if (= 0 tries)
+                (if (= 0 retries)
                   (throw e)
                   {:exception e})))]
     (if (:exception res)
       (do 
-        (log-error (:exception res) (str "Failed to " task-description ". Will make [" tries "] more attempts."))
-        (recur (dec tries) task-description f args))
+        (log-error (:exception res) (str "Failed to " task-description ". Will make [" retries "] more attempts."))
+        (recur (dec retries) task-description f args))
       (do 
         (log-debug (str "Successful " task-description "."))
         (:value res)))))

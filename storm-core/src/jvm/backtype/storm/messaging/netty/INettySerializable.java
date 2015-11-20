@@ -21,6 +21,6 @@ import java.io.IOException;
 import org.jboss.netty.buffer.ChannelBuffer;
 
 public interface INettySerializable {
-    public ChannelBuffer buffer() throws IOException;
-    public int encodeLength();
+    ChannelBuffer buffer() throws IOException;
+    int encodeLength();
 }

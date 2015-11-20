@@ -51,8 +51,9 @@ public class KerberosSaslServerHandler extends SimpleChannelUpstreamHandler {
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent e)
         throws Exception {
         Object msg = e.getMessage();
-        if (msg == null)
+        if (msg == null) {
             return;
+        }
 
         Channel channel = ctx.getChannel();
 
@@ -70,14 +71,13 @@ public class KerberosSaslServerHandler extends SimpleChannelUpstreamHandler {
                     LOG.debug("No saslNettyServer for {}  yet; creating now, with topology token: ", channel);
                     try {
                         saslNettyServer = new KerberosSaslNettyServer(storm_conf, jaas_section, authorizedUsers);
+                        KerberosSaslNettyServerState.getKerberosSaslNettyServer.set(channel,
+                                                                                    saslNettyServer);
                     } catch (RuntimeException ioe) {
                         LOG.error("Error occurred while creating saslNettyServer on server {} for client {}",
                                   channel.getLocalAddress(), channel.getRemoteAddress());
-                        saslNettyServer = null;
+                        throw ioe;
                     }
-
-                    KerberosSaslNettyServerState.getKerberosSaslNettyServer.set(channel,
-                                                                                saslNettyServer);
                 } else {
                     LOG.debug("Found existing saslNettyServer on server: {} for client {}",
                               channel.getLocalAddress(), channel.getRemoteAddress());
@@ -125,7 +125,9 @@ public class KerberosSaslServerHandler extends SimpleChannelUpstreamHandler {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) {
-        if(server != null) server.closeChannel(e.getChannel());
+        if(server != null) {
+            server.closeChannel(e.getChannel());
+        }
     }
 
 }

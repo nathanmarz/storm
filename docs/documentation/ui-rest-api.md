@@ -142,7 +142,7 @@ Sample response:
             "usedMem": 1280,
             "usedCPU": 160
         }
-    ]
+    ],
     "schedulerDisplayResource": true
 }
 ```

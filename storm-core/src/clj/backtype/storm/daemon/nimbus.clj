@@ -163,7 +163,8 @@
      :leader-elector (zk-leader-elector conf)
      :code-distributor (mk-code-distributor conf)
      :id->sched-status (atom {})
-     :id->resources (atom {})
+     :node-id->resources (atom {}) ;;resources of supervisors
+     :id->resources (atom {}) ;;resources of topologies
      :cred-renewers (AuthUtils/GetCredentialRenewers conf)
      :topology-history-lock (Object.)
      :topo-history-state (nimbus-topo-history-state conf)
@@ -744,8 +745,11 @@
         ;; call scheduler.schedule to schedule all the topologies
         ;; the new assignments for all the topologies are in the cluster object.
         _ (.schedule (:scheduler nimbus) topologies cluster)
+        _ (.setResourcesMap cluster @(:id->resources nimbus))
+        _ (if-not (conf SCHEDULER-DISPLAY-RESOURCE) (.updateAssignedMemoryForTopologyAndSupervisor cluster topologies))
         _ (reset! (:id->sched-status nimbus) (.getStatusMap cluster))
-        _ (reset! (:id->resources nimbus) (merge @(:id->resources nimbus) (.getResourcesMap cluster)))]
+        _ (reset! (:node-id->resources nimbus) (.getSupervisorsResourcesMap cluster))
+        _ (reset! (:id->resources nimbus) (.getResourcesMap cluster))]
     (.getAssignments cluster)))
 
 (defn changed-executors [executor->node+port new-executor->node+port]
@@ -1646,6 +1650,9 @@
                                                      (count (:used-ports info))
                                                      id) ]
                                        (.set_total_resources sup-sum (map-val double (:resources-map info)))
+                                       (when-let [[total-mem total-cpu used-mem used-cpu] (.get @(:node-id->resources nimbus) id)]
+                                         (.set_used_mem sup-sum used-mem)
+                                         (.set_used_cpu sup-sum used-cpu))
                                        (when-let [version (:version info)] (.set_version sup-sum version))
                                        sup-sum))
               nimbus-uptime ((:uptime nimbus))

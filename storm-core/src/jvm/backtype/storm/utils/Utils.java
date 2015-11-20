@@ -511,13 +511,6 @@ public class Utils {
         }
         if (o instanceof String) {
             return (String) o;
-        } else if (o instanceof List) {
-            StringBuilder sb = new StringBuilder();
-            for (String s : (List<String>) o) {
-                sb.append(s);
-                sb.append(" ");
-            }
-            return sb.toString();
         } else {
             throw new IllegalArgumentException("Don't know how to convert " + o + " + to String");
         }

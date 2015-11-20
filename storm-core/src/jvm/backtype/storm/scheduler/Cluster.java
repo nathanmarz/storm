@@ -466,15 +466,35 @@ public class Cluster {
         return networkTopography;
     }
 
+    private String getStringFromStringList(Object o) {
+        StringBuilder sb = new StringBuilder();
+        for (String s : (List<String>) o) {
+            sb.append(s);
+            sb.append(" ");
+        }
+        return sb.toString();
+    }
+
     /*
     * Get heap memory usage for a worker's main process and logwriter process
     * */
     private Double getAssignedMemoryForSlot(Map topConf) {
         Double totalWorkerMemory = 0.0;
 
-        String topologyWorkerChildopts = Utils.getString(topConf.get(Config.TOPOLOGY_WORKER_CHILDOPTS), null);
-        String workerChildopts = Utils.getString(topConf.get(Config.WORKER_CHILDOPTS), null);
+        String topologyWorkerChildopts = null;
+        if (topConf.get(Config.TOPOLOGY_WORKER_CHILDOPTS) instanceof List) {
+            topologyWorkerChildopts = getStringFromStringList(topConf.get(Config.TOPOLOGY_WORKER_CHILDOPTS));
+        } else {
+            topologyWorkerChildopts = Utils.getString(topConf.get(Config.TOPOLOGY_WORKER_CHILDOPTS), null);
+        }
         Double memTopologyWorkerChildopts = Utils.parseJvmHeapMemByChildOpts(topologyWorkerChildopts, null);
+
+        String workerChildopts = null;
+        if (topConf.get(Config.WORKER_CHILDOPTS) instanceof List) {
+            workerChildopts = getStringFromStringList(topConf.get(Config.WORKER_CHILDOPTS));
+        } else {
+            workerChildopts = Utils.getString(topConf.get(Config.WORKER_CHILDOPTS), null);
+        }
         Double memWorkerChildopts = Utils.parseJvmHeapMemByChildOpts(workerChildopts, null);
 
         if (memTopologyWorkerChildopts != null) {
@@ -485,7 +505,12 @@ public class Cluster {
             totalWorkerMemory += Utils.getInt(topConf.get(Config.WORKER_HEAP_MEMORY_MB));
         }
 
-        String topoWorkerLwChildopts = Utils.getString(topConf.get(Config.TOPOLOGY_WORKER_LOGWRITER_CHILDOPTS), null);
+        String topoWorkerLwChildopts = null;
+        if (topConf.get(Config.TOPOLOGY_WORKER_LOGWRITER_CHILDOPTS) instanceof List) {
+            topoWorkerLwChildopts = getStringFromStringList(topConf.get(Config.TOPOLOGY_WORKER_LOGWRITER_CHILDOPTS);
+        } else {
+            topoWorkerLwChildopts = Utils.getString(topConf.get(Config.TOPOLOGY_WORKER_LOGWRITER_CHILDOPTS), null);
+        }
         if (topoWorkerLwChildopts != null) {
             totalWorkerMemory += Utils.parseJvmHeapMemByChildOpts(topoWorkerLwChildopts, 0.0);
         }

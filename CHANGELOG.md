@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1221: Create a common interface for all Trident spout.
  * STORM-1198: Web UI to show resource usages and Total Resources on all supervisors
  * STORM-1167: Add windowing support for storm core.
  * STORM-1215: Use Async Loggers to avoid locking  and logging overhead

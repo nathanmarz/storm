@@ -87,9 +87,8 @@ public interface ClusterState {
      * @param path The path where a node will be created.
      * @param data The data to be written at the node.
      * @param acls The acls to apply to the path. May be null.
-     * @return path
      */
-    String set_ephemeral_node(String path, byte[] data, List<ACL> acls);
+    void set_ephemeral_node(String path, byte[] data, List<ACL> acls);
 
     /**
      * Gets the 'version' of the node at a path. Optionally sets a watch

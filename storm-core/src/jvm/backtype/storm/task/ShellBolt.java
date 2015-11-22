@@ -385,10 +385,6 @@ public class ShellBolt implements IBolt {
                         write = _pendingWrites.poll();
                         _process.writeBoltMsg(write);
                     }
-                    /*
-                } catch (InterruptedException e) {
-                    // NOOP
-                    */
                 } catch (Throwable t) {
                     die(t);
                 }

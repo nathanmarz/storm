@@ -814,6 +814,7 @@
                         <exclude>**/target/**</exclude>
                         <!-- exclude intellij projects -->
                         <exclude>**/*.iml</exclude>
+                        <exclude>**/.idea/**</exclude>
                         <!-- module specific testing artifacts -->
                         <exclude>**/metastore_db/**</exclude>
 

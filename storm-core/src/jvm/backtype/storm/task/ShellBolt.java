@@ -37,8 +37,6 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
-
 /**
  * A bolt that shells out to another process to process tuples. ShellBolt
  * communicates with that process over stdio using a special protocol. An ~100
@@ -77,7 +75,8 @@ public class ShellBolt implements IBolt {
     private ShellProcess _process;
     private volatile boolean _running = true;
     private volatile Throwable _exception;
-    private LinkedBlockingQueue _pendingWrites = new LinkedBlockingQueue();
+    private LinkedBlockingQueue<BoltMsg> _pendingWrites = new LinkedBlockingQueue<>();
+    private LinkedBlockingQueue<List<Integer>> _pendingTaskIds = new LinkedBlockingQueue<>();
     private Random _rand;
 
     private Thread _readerThread;
@@ -107,7 +106,7 @@ public class ShellBolt implements IBolt {
                         final OutputCollector collector) {
         Object maxPending = stormConf.get(Config.TOPOLOGY_SHELLBOLT_MAX_PENDING);
         if (maxPending != null) {
-           this._pendingWrites = new LinkedBlockingQueue(((Number)maxPending).intValue());
+           this._pendingWrites = new LinkedBlockingQueue<>(((Number)maxPending).intValue());
         }
         _rand = new Random();
         _collector = collector;
@@ -212,7 +211,7 @@ public class ShellBolt implements IBolt {
         if(shellMsg.getTask() == 0) {
             List<Integer> outtasks = _collector.emit(shellMsg.getStream(), anchors, shellMsg.getTuple());
             if (shellMsg.areTaskIdsNeeded()) {
-                _pendingWrites.put(outtasks);
+                _pendingTaskIds.put(outtasks);
             }
         } else {
             _collector.emitDirect((int) shellMsg.getTask(),
@@ -318,8 +317,6 @@ public class ShellBolt implements IBolt {
 
             sendHeartbeatFlag.compareAndSet(false, true);
         }
-
-
     }
 
     private class BoltReaderRunnable implements Runnable {
@@ -376,15 +373,22 @@ public class ShellBolt implements IBolt {
                         sendHeartbeatFlag.compareAndSet(true, false);
                     }
 
-                    Object write = _pendingWrites.poll(1, SECONDS);
-                    if (write instanceof BoltMsg) {
-                        _process.writeBoltMsg((BoltMsg) write);
-                    } else if (write instanceof List<?>) {
-                        _process.writeTaskIds((List<Integer>)write);
-                    } else if (write != null) {
-                        throw new RuntimeException("Unknown class type to write: " + write.getClass().getName());
+                    List<Integer> taskIds = _pendingTaskIds.peek();
+                    if (taskIds != null) {
+                        taskIds = _pendingTaskIds.poll();
+                        _process.writeTaskIds(taskIds);
+                        continue;
                     }
+
+                    BoltMsg write = _pendingWrites.peek();
+                    if (write != null) {
+                        write = _pendingWrites.poll();
+                        _process.writeBoltMsg(write);
+                    }
+                    /*
                 } catch (InterruptedException e) {
+                    // NOOP
+                    */
                 } catch (Throwable t) {
                     die(t);
                 }

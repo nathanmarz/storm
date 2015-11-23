@@ -829,7 +829,7 @@ public class Config extends HashMap<String, Object> {
      * DIGEST or KERBEROS, the client can only write to the server (no reads).
      * This is intended to provide a primitive form of access-control.
      */
-    @isString
+    @CustomValidator(validatorClass=PacemakerAuthTypeValidator.class)
     public static final String PACEMAKER_AUTH_METHOD = "pacemaker.auth.method";
     
     /**

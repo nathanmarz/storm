@@ -41,6 +41,24 @@ public class TestConfigValidate {
     private static final Logger LOG = LoggerFactory.getLogger(TestConfigValidate.class);
 
     @Test
+    public void validPacemakerAuthTest() throws InstantiationException, IllegalAccessException, NoSuchFieldException, NoSuchMethodException, InvocationTargetException {
+        Map<String, Object> conf = new HashMap<String, Object>();
+        conf.put(Config.PACEMAKER_AUTH_METHOD, "NONE");
+        ConfigValidation.validateFields(conf);
+        conf.put(Config.PACEMAKER_AUTH_METHOD, "DIGEST");
+        ConfigValidation.validateFields(conf);
+        conf.put(Config.PACEMAKER_AUTH_METHOD, "KERBEROS");
+        ConfigValidation.validateFields(conf);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void invalidPacemakerAuthTest() throws InstantiationException, IllegalAccessException, NoSuchFieldException, NoSuchMethodException, InvocationTargetException {
+        Map<String, Object> conf = new HashMap<String, Object>();
+        conf.put(Config.PACEMAKER_AUTH_METHOD, "invalid");
+        ConfigValidation.validateFields(conf);
+    }
+    
+    @Test
     public void validConfigTest() throws InstantiationException, IllegalAccessException, NoSuchFieldException, NoSuchMethodException, InvocationTargetException {
 
 

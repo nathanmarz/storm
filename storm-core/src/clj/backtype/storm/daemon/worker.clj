@@ -551,7 +551,7 @@
 
 (defn run-worker-start-hooks [worker]
   (let [topology (:topology worker)
-        topo-conf (:conf worker)
+        topo-conf (:storm-conf worker)
         worker-topology-context (worker-context worker)
         hooks (.get_worker_hooks topology)]
     (dofor [hook hooks]

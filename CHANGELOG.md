@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1213: Remove sigar binaries from source tree
  * STORM-885:  Heartbeat Server (Pacemaker)
  * STORM-1221: Create a common interface for all Trident spout.
  * STORM-1198: Web UI to show resource usages and Total Resources on all supervisors

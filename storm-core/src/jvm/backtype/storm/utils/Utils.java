@@ -76,9 +76,15 @@ import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+import org.apache.thrift.TBase;
+import org.apache.thrift.TDeserializer;
+import org.apache.thrift.TSerializer;
+
 public class Utils {
     private static final Logger LOG = LoggerFactory.getLogger(Utils.class);
     public static final String DEFAULT_STREAM_ID = "default";
+    private static ThreadLocal<TSerializer> threadSer = new ThreadLocal<TSerializer>();
+    private static ThreadLocal<TDeserializer> threadDes = new ThreadLocal<TDeserializer>();
 
     private static SerializationDelegate serializationDelegate;
 
@@ -104,6 +110,51 @@ public class Utils {
         return serializationDelegate.deserialize(serialized, clazz);
     }
 
+    public static byte[] thriftSerialize(TBase t) {
+        try {
+            TSerializer ser = threadSer.get();
+            if (ser == null) {
+                ser = new TSerializer();
+                threadSer.set(ser);
+            } 
+            return ser.serialize(t);
+        } catch (TException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static TDeserializer getDes() {
+        TDeserializer des = threadDes.get();
+        if(des == null) {
+            des = new TDeserializer();
+            threadDes.set(des);
+        }
+        return des;
+    }
+
+    public static <T> T thriftDeserialize(Class c, byte[] b, int offset, int length) {
+        try {
+            T ret = (T) c.newInstance();
+            TDeserializer des = getDes();
+            des.deserialize((TBase)ret, b, offset, length);
+            return ret;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static <T> T thriftDeserialize(Class c, byte[] b) {
+        try {
+            T ret = (T) c.newInstance();
+            TDeserializer des = getDes();
+            des.deserialize((TBase) ret, b);
+            return ret;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+    
     public static byte[] javaSerialize(Object obj) {
         try {
             ByteArrayOutputStream bos = new ByteArrayOutputStream();

@@ -263,6 +263,18 @@ def upload_credentials(*args):
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
 
+def heartbeats(*args):
+    """Syntax: [storm heartbeats [cmd]]
+
+    list PATH - lists heartbeats nodes under PATH currently in the ClusterState.
+    get  PATH - Get the heartbeat data at PATH
+    """
+    exec_storm_class(
+        "backtype.storm.command.heartbeats",
+        args=args,
+        jvmtype="-client",
+        extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
+    
 def activate(*args):
     """Syntax: [storm activate topology-name]
 
@@ -458,6 +470,27 @@ def nimbus(klass="backtype.storm.daemon.nimbus"):
         extrajars=cppaths,
         jvmopts=jvmopts)
 
+def pacemaker(klass="org.apache.storm.pacemaker.pacemaker"):
+    """Syntax: [storm pacemaker]
+
+    Launches the Pacemaker daemon. This command should be run under
+    supervision with a tool like daemontools or monit.
+
+    See Setting up a Storm cluster for more information.
+    (http://storm.apache.org/documentation/Setting-up-a-Storm-cluster)
+    """
+    cppaths = [CLUSTER_CONF_DIR]
+    jvmopts = parse_args(confvalue("pacemaker.childopts", cppaths)) + [
+        "-Dlogfile.name=pacemaker.log",
+        "-Dlog4j.configurationFile=" + os.path.join(get_log4j2_conf_dir(), "cluster.xml"),
+    ]
+    exec_storm_class(
+        klass,
+        jvmtype="-server",
+        daemonName="pacemaker",
+        extrajars=cppaths,
+        jvmopts=jvmopts)
+
 def supervisor(klass="backtype.storm.daemon.supervisor"):
     """Syntax: [storm supervisor]
 
@@ -625,8 +658,9 @@ COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui
             "remoteconfvalue": print_remoteconfvalue, "repl": repl, "classpath": print_classpath,
             "activate": activate, "deactivate": deactivate, "rebalance": rebalance, "help": print_usage,
             "list": listtopos, "dev-zookeeper": dev_zookeeper, "version": version, "monitor": monitor,
-            "upload-credentials": upload_credentials, "get-errors": get_errors, "set_log_level": set_log_level,
-            "kill_workers": kill_workers, "node-health-check": healthcheck}
+            "upload-credentials": upload_credentials, "pacemaker": pacemaker, "heartbeats": heartbeats,
+            "get-errors": get_errors, "set_log_level": set_log_level, "kill_workers": kill_workers,
+            "node-health-check": healthcheck}
 
 def parse_config(config_list):
     global CONFIG_OPTS

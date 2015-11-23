@@ -17,40 +17,34 @@
  */
 package backtype.storm.messaging.netty;
 
+import backtype.storm.Config;
+import backtype.storm.grouping.Load;
+import backtype.storm.messaging.ConnectionWithStatus;
+import backtype.storm.messaging.IConnectionCallback;
+import backtype.storm.messaging.TaskMessage;
+import backtype.storm.metric.api.IStatefulObject;
+import backtype.storm.serialization.KryoValuesSerializer;
+import backtype.storm.utils.Utils;
+import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Collection;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
-import java.io.IOException;
-
+import java.util.concurrent.atomic.AtomicInteger;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFactory;
 import org.jboss.netty.channel.group.ChannelGroup;
 import org.jboss.netty.channel.group.DefaultChannelGroup;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import backtype.storm.Config;
-import backtype.storm.grouping.Load;
-import backtype.storm.messaging.ConnectionWithStatus;
-import backtype.storm.messaging.IConnection;
-import backtype.storm.messaging.IConnectionCallback;
-import backtype.storm.messaging.TaskMessage;
-import backtype.storm.metric.api.IStatefulObject;
-import backtype.storm.serialization.KryoValuesSerializer;
-import backtype.storm.utils.Utils;
 
 class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServer {
 
@@ -83,17 +77,17 @@ class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServe
 
         ThreadFactory bossFactory = new NettyRenameThreadFactory(netty_name() + "-boss");
         ThreadFactory workerFactory = new NettyRenameThreadFactory(netty_name() + "-worker");
-        
+
         if (maxWorkers > 0) {
-            factory = new NioServerSocketChannelFactory(Executors.newCachedThreadPool(bossFactory), 
+            factory = new NioServerSocketChannelFactory(Executors.newCachedThreadPool(bossFactory),
                 Executors.newCachedThreadPool(workerFactory), maxWorkers);
         } else {
-            factory = new NioServerSocketChannelFactory(Executors.newCachedThreadPool(bossFactory), 
+            factory = new NioServerSocketChannelFactory(Executors.newCachedThreadPool(bossFactory),
                 Executors.newCachedThreadPool(workerFactory));
         }
-        
+
         LOG.info("Create Netty Server " + netty_name() + ", buffer_size: " + buffer_size + ", maxWorkers: " + maxWorkers);
-        
+
         bootstrap = new ServerBootstrap(factory);
         bootstrap.setOption("child.tcpNoDelay", true);
         bootstrap.setOption("child.receiveBufferSize", buffer_size);
@@ -107,7 +101,7 @@ class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServe
         Channel channel = bootstrap.bind(new InetSocketAddress(port));
         allChannels.add(channel);
     }
- 
+    
     private void addReceiveCount(String from, int amount) {
         //This is possibly lossy in the case where a value is deleted
         // because it has received no messages over the metrics collection
@@ -127,7 +121,7 @@ class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServe
     }
 
     /**
-     * enqueue a received message 
+     * enqueue a received message
      * @throws InterruptedException
      */
     protected void enqueue(List<TaskMessage> msgs, String from) throws InterruptedException {
@@ -144,7 +138,7 @@ class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServe
     public void registerRecv(IConnectionCallback cb) {
         _cb = cb;
     }
-   
+
     /**
      * register a newly created channel
      * @param channel newly created channel
@@ -152,7 +146,7 @@ class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServe
     protected void addChannel(Channel channel) {
         allChannels.add(channel);
     }
-    
+
     /**
      * @param channel channel to close
      */
@@ -192,12 +186,12 @@ class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServe
     public void send(int task, byte[] message) {
         throw new UnsupportedOperationException("Server connection should not send any messages");
     }
-    
+
     @Override
     public void send(Iterator<TaskMessage> msgs) {
       throw new UnsupportedOperationException("Server connection should not send any messages");
     }
-	
+
     public String netty_name() {
       return "Netty-server-localhost-" + port;
     }

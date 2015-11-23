@@ -1067,7 +1067,7 @@
   [retries task-description f & args]
   (let [res (try {:value (apply f args)}
               (catch Exception e
-                (if (= 0 retries)
+                (if (<= 0 retries)
                   (throw e)
                   {:exception e})))]
     (if (:exception res)

@@ -323,8 +323,7 @@ public class AuthUtils {
             Map<String, ?> results = AuthUtils.PullConfig(login_config, config_section);
             username = (String)results.get(USERNAME);
             password = (String)results.get(PASSWORD);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             LOG.error("Failed to pull username/password out of jaas conf", e);
         }
 
@@ -338,11 +337,10 @@ public class AuthUtils {
 
             StringBuilder builder = new StringBuilder();
             for(byte b : output) {
-            builder.append(String.format("%02x", b));
+                builder.append(String.format("%02x", b));
             }
             return builder.toString();
-        }
-        catch(java.security.NoSuchAlgorithmException e) {
+        } catch (java.security.NoSuchAlgorithmException e) {
             LOG.error("Cant run SHA-512 digest. Algorithm not available.", e);
             throw new RuntimeException(e);
         }

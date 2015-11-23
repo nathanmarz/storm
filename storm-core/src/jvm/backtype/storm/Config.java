@@ -174,6 +174,15 @@ public class Config extends HashMap<String, Object> {
     public static final String STORM_SCHEDULER = "storm.scheduler";
 
     /**
+     * Whether we want to display all the resource capacity and scheduled usage on the UI page.
+     * We suggest to have this variable set if you are using any kind of resource-related scheduler.
+     *
+     * If this is not set, we will not display resource capacity and usage on the UI.
+     */
+    @isBoolean
+    public static final String SCHEDULER_DISPLAY_RESOURCE = "scheduler.display.resource";
+
+    /**
      * The mode this Storm cluster is running in. Either "distributed" or "local".
      */
     @isString
@@ -336,6 +345,19 @@ public class Config extends HashMap<String, Object> {
     public static final String STORM_ID = "storm.id";
 
     /**
+     * The directory where storm's health scripts go.
+     */
+    @isString
+    public static final String STORM_HEALTH_CHECK_DIR = "storm.health.check.dir";
+
+    /**
+     * The time to allow any given healthcheck script to run before it
+     * is marked failed due to timeout
+     */
+    @isNumber
+    public static final String STORM_HEALTH_CHECK_TIMEOUT_MS = "storm.health.check.timeout.ms";
+
+    /**
      * The number of times to retry a Nimbus operation.
      */
     @isNumber
@@ -352,6 +374,13 @@ public class Config extends HashMap<String, Object> {
      */
     @isNumber
     public static final String STORM_NIMBUS_RETRY_INTERVAL_CEILING="storm.nimbus.retry.intervalceiling.millis";
+
+    /**
+     * The ClusterState factory that worker will use to create a ClusterState
+     * to store state in. Defaults to ZooKeeper.
+     */
+    @isString
+    public static final String STORM_CLUSTER_STATE_STORE = "storm.cluster.state.store";
 
     /**
      * The Nimbus transport plug-in for Thrift client/server communication
@@ -416,6 +445,13 @@ public class Config extends HashMap<String, Object> {
      */
     @isStringList
     public static final String NIMBUS_SUPERVISOR_USERS = "nimbus.supervisor.users";
+
+    /**
+     * This is the user that the Nimbus daemon process is running as. May be used when security
+     * is enabled to authorize actions in the cluster.
+     */
+    @isString
+    public static final String NIMBUS_DAEMON_USER = "nimbus.daemon.user";
 
     /**
      * The maximum buffer size thrift should use when reading messages.
@@ -544,6 +580,12 @@ public class Config extends HashMap<String, Object> {
     public static final String NIMBUS_AUTO_CRED_PLUGINS = "nimbus.autocredential.plugins.classes";
 
     /**
+     * FQCN of a class that implements {@code ITopologyActionNotifierPlugin} @see backtype.storm.nimbus.ITopologyActionNotifierPlugin for details.
+     */
+    @isString
+    public static final String NIMBUS_TOPOLOGY_ACTION_NOTIFIER_PLUGIN = "nimbus.topology.action.notifier.plugin.class";
+
+    /**
      * Storm UI binds to this host/interface.
      */
     @isString
@@ -555,6 +597,18 @@ public class Config extends HashMap<String, Object> {
     @isInteger
     @isPositiveNumber
     public static final String UI_PORT = "ui.port";
+
+    /**
+     * Storm UI Project BUGTRACKER Link for reporting issue.
+     */
+    @isString
+    public static final String UI_PROJECT_BUGTRACKER_URL = "ui.project.bugtracker.url";
+
+    /**
+     * Storm UI Central Logging URL.
+     */
+    @isString
+    public static final String UI_CENTRAL_LOGGING_URL = "ui.central.logging.url";
 
     /**
      * HTTP UI port for log viewer
@@ -758,6 +812,47 @@ public class Config extends HashMap<String, Object> {
     @isBoolean
     public static final String UI_HTTPS_NEED_CLIENT_AUTH = "ui.https.need.client.auth";
 
+    /**
+     * The host that Pacemaker is running on.
+     */
+    @isString
+    public static final String PACEMAKER_HOST = "pacemaker.host";
+
+    /**
+     * The port Pacemaker should run on. Clients should
+     * connect to this port to submit or read heartbeats.
+     */
+    @isNumber
+    @isPositiveNumber
+    public static final String PACEMAKER_PORT = "pacemaker.port";
+
+    /**
+     * The maximum number of threads that should be used by the Pacemaker.
+     * When Pacemaker gets loaded it will spawn new threads, up to 
+     * this many total, to handle the load.
+     */
+    @isNumber
+    @isPositiveNumber
+    public static final String PACEMAKER_MAX_THREADS = "pacemaker.max.threads";
+
+    /**
+     * This parameter is used by the storm-deploy project to configure the
+     * jvm options for the pacemaker daemon.
+     */
+    @isString
+    public static final String PACEMAKER_CHILDOPTS = "pacemaker.childopts";
+
+    /**
+     * This should be one of "DIGEST", "KERBEROS", or "NONE"
+     * Determines the mode of authentication the pacemaker server and client use.
+     * The client must either match the server, or be NONE. In the case of NONE,
+     * no authentication is performed for the client, and if the server is running with
+     * DIGEST or KERBEROS, the client can only write to the server (no reads).
+     * This is intended to provide a primitive form of access-control.
+     */
+    @CustomValidator(validatorClass=PacemakerAuthTypeValidator.class)
+    public static final String PACEMAKER_AUTH_METHOD = "pacemaker.auth.method";
+    
     /**
      * List of DRPC servers so that the DRPCSpout knows who to talk to.
      */
@@ -1123,13 +1218,6 @@ public class Config extends HashMap<String, Object> {
     public static final String WORKER_GC_CHILDOPTS = "worker.gc.childopts";
 
     /**
-     * control how many worker receiver threads we need per worker
-     */
-    @isInteger
-    @isPositiveNumber
-    public static final String WORKER_RECEIVER_THREAD_COUNT = "topology.worker.receiver.thread.count";
-
-    /**
      * How often this worker should heartbeat to the supervisor.
      */
     @isInteger
@@ -1476,6 +1564,35 @@ public class Config extends HashMap<String, Object> {
      */
     @isBoolean
     public static final String TOPOLOGY_BOLTS_OUTGOING_OVERFLOW_BUFFER_ENABLE="topology.bolts.outgoing.overflow.buffer.enable";
+
+    /*
+     * Bolt-specific configuration for windowed bolts to specify the window length as a count of number of tuples
+     * in the window.
+     */
+    @isInteger
+    @isPositiveNumber
+    public static final String TOPOLOGY_BOLTS_WINDOW_LENGTH_COUNT = "topology.bolts.window.length.count";
+
+    /*
+     * Bolt-specific configuration for windowed bolts to specify the window length in time duration.
+     */
+    @isInteger
+    @isPositiveNumber
+    public static final String TOPOLOGY_BOLTS_WINDOW_LENGTH_DURATION_MS = "topology.bolts.window.length.duration.ms";
+
+    /*
+     * Bolt-specific configuration for windowed bolts to specifiy the sliding interval as a count of number of tuples.
+     */
+    @isInteger
+    @isPositiveNumber
+    public static final String TOPOLOGY_BOLTS_SLIDING_INTERVAL_COUNT = "topology.bolts.window.sliding.interval.count";
+
+    /*
+     * Bolt-specific configuration for windowed bolts to specifiy the sliding interval in time duration.
+     */
+    @isInteger
+    @isPositiveNumber
+    public static final String TOPOLOGY_BOLTS_SLIDING_INTERVAL_DURATION_MS = "topology.bolts.window.sliding.interval.duration.ms";
 
     /**
      * This config is available for TransactionalSpouts, and contains the id ( a String) for

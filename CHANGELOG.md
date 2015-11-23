@@ -1,4 +1,20 @@
 ## 0.11.0
+ * STORM-885:  Heartbeat Server (Pacemaker)
+ * STORM-1221: Create a common interface for all Trident spout.
+ * STORM-1198: Web UI to show resource usages and Total Resources on all supervisors
+ * STORM-1167: Add windowing support for storm core.
+ * STORM-1215: Use Async Loggers to avoid locking  and logging overhead
+ * STORM-1204: Logviewer should graceful report page-not-found instead of 500 for bad topo-id etc
+ * STORM-831: Add BugTracker and Central Logging URL to UI
+ * STORM-1208: UI: NPE seen when aggregating bolt streams stats
+ * STORM-1016: Generate trident bolt ids with sorted group names
+ * STORM-1190: System Load too high after recent changes
+ * STORM-1098: Nimbus hook for topology actions.
+ * STORM-1145: Have IConnection push tuples instead of pull them
+ * STORM-1191: bump timeout by 50% due to intermittent travis build failures
+ * STORM-794: Modify Spout async loop to treat activate/deactivate ASAP
+ * STORM-1196: Upgrade to thrift 0.9.3
+ * STORM-1155: Supervisor recurring health checks
  * STORM-1189: Maintain wire compatability with 0.10.x versions of storm.
  * STORM-1185: replace nimbus.host with nimbus.seeds
  * STORM-1164: Code cleanup for typos, warnings and conciseness.

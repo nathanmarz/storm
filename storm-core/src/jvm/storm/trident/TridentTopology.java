@@ -30,15 +30,8 @@ import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
+
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.UndirectedGraph;
 import org.jgrapht.alg.ConnectivityInspector;
@@ -70,6 +63,7 @@ import storm.trident.spout.BatchSpoutExecutor;
 import storm.trident.spout.IBatchSpout;
 import storm.trident.spout.IOpaquePartitionedTridentSpout;
 import storm.trident.spout.IPartitionedTridentSpout;
+import storm.trident.spout.ITridentDataSource;
 import storm.trident.spout.ITridentSpout;
 import storm.trident.spout.OpaquePartitionedTridentSpoutExecutor;
 import storm.trident.spout.PartitionedTridentSpoutExecutor;
@@ -93,10 +87,10 @@ public class TridentTopology {
     final DefaultDirectedGraph<Node, IndexedEdge> _graph;
     final Map<String, List<Node>> _colocate;
     final UniqueIdGen _gen;
-    
+
     public TridentTopology() {
         this(new DefaultDirectedGraph<Node, IndexedEdge>(new ErrorEdgeFactory()),
-                new HashMap<String, List<Node>>(),
+                new LinkedHashMap<String, List<Node>>(),
                 new UniqueIdGen());
     }
     
@@ -134,7 +128,21 @@ public class TridentTopology {
     public Stream newStream(String txId, IOpaquePartitionedTridentSpout spout) {
         return newStream(txId, new OpaquePartitionedTridentSpoutExecutor(spout));
     }
-    
+
+    public Stream newStream(String txId, ITridentDataSource dataSource) {
+        if (dataSource instanceof IBatchSpout) {
+            return newStream(txId, (IBatchSpout) dataSource);
+        } else if (dataSource instanceof ITridentSpout) {
+            return newStream(txId, (ITridentSpout) dataSource);
+        } else if (dataSource instanceof IPartitionedTridentSpout) {
+            return newStream(txId, (IPartitionedTridentSpout) dataSource);
+        } else if (dataSource instanceof IOpaquePartitionedTridentSpout) {
+            return newStream(txId, (IOpaquePartitionedTridentSpout) dataSource);
+        } else {
+            throw new UnsupportedOperationException("Unsupported stream");
+        }
+    }
+
     public Stream newDRPCStream(String function) {
         return newDRPCStream(new DRPCSpout(function));
     }
@@ -274,7 +282,7 @@ public class TridentTopology {
         List<SpoutNode> spoutNodes = new ArrayList<>();
         
         // can be regular nodes (static state) or processor nodes
-        Set<Node> boltNodes = new HashSet<>();
+        Set<Node> boltNodes = new LinkedHashSet<>();
         for(Node n: graph.vertexSet()) {
             if(n instanceof SpoutNode) {
                 spoutNodes.add((SpoutNode) n);
@@ -284,7 +292,7 @@ public class TridentTopology {
         }
         
         
-        Set<Group> initialGroups = new HashSet<>();
+        Set<Group> initialGroups = new LinkedHashSet<>();
         for(List<Node> colocate: _colocate.values()) {
             Group g = new Group(graph, colocate);
             boltNodes.removeAll(colocate);

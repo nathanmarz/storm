@@ -22,7 +22,7 @@
     <property name="patternMetrics">%d %-8r %m%n</property>
 </properties>
 <appenders>
-    <RollingFile name="A1"
+    <RollingFile name="A1" immediateFlush="false"
                  fileName="${sys:storm.log.dir}/${sys:logfile.name}"
                  filePattern="${sys:storm.log.dir}/${sys:logfile.name}.%i.gz">
         <PatternLayout>
@@ -33,7 +33,7 @@
         </Policies>
         <DefaultRolloverStrategy max="9"/>
     </RollingFile>
-    <RollingFile name="WEB-ACCESS"
+    <RollingFile name="WEB-ACCESS" immediateFlush="false"
                  fileName="${sys:storm.log.dir}/access-web-${sys:daemon.name}.log"
                  filePattern="${sys:storm.log.dir}/access-web-${sys:daemon.name}.log.%i.gz">
         <PatternLayout>
@@ -44,7 +44,7 @@
         </Policies>
         <DefaultRolloverStrategy max="9"/>
     </RollingFile>
-    <RollingFile name="THRIFT-ACCESS"
+    <RollingFile name="THRIFT-ACCESS" immediateFlush="false"
                  fileName="${sys:storm.log.dir}/access-${sys:logfile.name}"
                  filePattern="${sys:storm.log.dir}/access-${sys:logfile.name}.%i.gz">
     <PatternLayout>
@@ -55,7 +55,7 @@
         </Policies>
         <DefaultRolloverStrategy max="9"/>
     </RollingFile>
-    <RollingFile name="METRICS"
+    <RollingFile name="METRICS" immediateFlush="false"
                  fileName="${sys:storm.log.dir}/metrics.log"
                  filePattern="${sys:storm.log.dir}/metrics.log.%i.gz">
         <PatternLayout>
@@ -66,10 +66,10 @@
         </Policies>
         <DefaultRolloverStrategy max="9"/>
     </RollingFile>
-    <Syslog name="syslog" format="RFC5424" host="localhost" port="514"
+    <Syslog name="syslog" format="RFC5424" charset="UTF-8" host="localhost" port="514"
             protocol="UDP" appName="[${sys:daemon.name}]" mdcId="mdc" includeMDC="true"
             facility="LOCAL5" enterpriseNumber="18060" newLine="true" exceptionPattern="%rEx{full}"
-            messageId="[${sys:user.name}:S0]" id="storm"/>
+            messageId="[${sys:user.name}:S0]" id="storm" immediateFlush="false" immediateFail="true"/>
 </appenders>
 <loggers>
 

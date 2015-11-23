@@ -23,7 +23,7 @@ import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferOutputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
 
-enum ControlMessage {
+public enum ControlMessage implements INettySerializable {
     CLOSE_MESSAGE((short)-100),
     EOB_MESSAGE((short)-201),
     OK_RESPONSE((short)-200),
@@ -42,29 +42,34 @@ enum ControlMessage {
      * @param encoded status code
      * @return a control message per an encoded status code
      */
-    static ControlMessage mkMessage(short encoded) {
+    public static ControlMessage mkMessage(short encoded) {
         for(ControlMessage cm: ControlMessage.values()) {
           if(encoded == cm.code) return cm;
         }
         return null;
     }
 
-    int encodeLength() {
+    public int encodeLength() {
         return 2; //short
     }
     
     /**
      * encode the current Control Message into a channel buffer
-     * @throws Exception
+     * @throws IOException
      */
-    ChannelBuffer buffer() throws IOException {
+    public ChannelBuffer buffer() throws IOException {
         ChannelBufferOutputStream bout = new ChannelBufferOutputStream(ChannelBuffers.directBuffer(encodeLength()));      
         write(bout);
         bout.close();
         return bout.buffer();
     }
 
-    void write(ChannelBufferOutputStream bout) throws IOException {
+    public static ControlMessage read(byte[] serial) {
+        ChannelBuffer cm_buffer = ChannelBuffers.copiedBuffer(serial);
+        return mkMessage(cm_buffer.getShort(0));
+    }
+    
+    public void write(ChannelBufferOutputStream bout) throws IOException {
         bout.writeShort(code);        
     } 
 }

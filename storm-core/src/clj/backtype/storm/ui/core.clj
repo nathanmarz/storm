@@ -42,6 +42,7 @@
   (:import [backtype.storm.generated AuthorizationException ProfileRequest ProfileAction NodeInfo])
   (:import [backtype.storm.security.auth AuthUtils])
   (:import [backtype.storm.utils VersionInfo])
+  (:import [backtype.storm Config])
   (:import [java.io File])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]
@@ -433,7 +434,12 @@
        "uptimeSeconds" (.get_uptime_secs s)
        "slotsTotal" (.get_num_workers s)
        "slotsUsed" (.get_num_used_workers s)
-       "version" (.get_version s)})}))
+       "totalMem" (get (.get_total_resources s) Config/SUPERVISOR_MEMORY_CAPACITY_MB)
+       "totalCpu" (get (.get_total_resources s) Config/SUPERVISOR_CPU_CAPACITY)
+       "usedMem" (.get_used_mem s)
+       "usedCpu" (.get_used_cpu s)
+       "version" (.get_version s)})
+    "schedulerDisplayResource" (*STORM-CONF* Config/SCHEDULER_DISPLAY_RESOURCE)}))
 
 (defn all-topologies-summary
   ([]
@@ -459,12 +465,13 @@
        "schedulerInfo" (.get_sched_status t)
        "requestedMemOnHeap" (.get_requested_memonheap t)
        "requestedMemOffHeap" (.get_requested_memoffheap t)
-       "requestedMem" (+ (.get_requested_memonheap t) (.get_requested_memoffheap t))
+       "requestedTotalMem" (+ (.get_requested_memonheap t) (.get_requested_memoffheap t))
        "requestedCpu" (.get_requested_cpu t)
        "assignedMemOnHeap" (.get_assigned_memonheap t)
        "assignedMemOffHeap" (.get_assigned_memoffheap t)
        "assignedTotalMem" (+ (.get_assigned_memonheap t) (.get_assigned_memoffheap t))
-       "assignedCpu" (.get_assigned_cpu t)})}))
+       "assignedCpu" (.get_assigned_cpu t)})
+    "schedulerDisplayResource" (*STORM-CONF* Config/SCHEDULER_DISPLAY_RESOURCE)}))
 
 (defn topology-stats [window stats]
   (let [times (stats-times (:emitted stats))
@@ -587,6 +594,7 @@
      "requestedCpu" (.get_requested_cpu topo-info)
      "assignedMemOnHeap" (.get_assigned_memonheap topo-info)
      "assignedMemOffHeap" (.get_assigned_memoffheap topo-info)
+     "assignedTotalMem" (+ (.get_assigned_memonheap topo-info) (.get_assigned_memoffheap topo-info))
      "assignedCpu" (.get_assigned_cpu topo-info)
      "topologyStats" topo-stats
      "spouts" (map (partial comp-agg-stats-json id secure?)
@@ -627,7 +635,8 @@
         "windowHint" window-hint
         "msgTimeout" msg-timeout
         "configuration" topology-conf
-        "visualizationTable" []}))))
+        "visualizationTable" []
+        "schedulerDisplayResource" (*STORM-CONF* Config/SCHEDULER_DISPLAY_RESOURCE)}))))
 
 (defn component-errors
   [errors-list topology-id secure?]
@@ -921,7 +930,9 @@
     (populate-context! servlet-request)
     (assert-authorized-user "getClusterInfo")
     (let [user (get-user-name servlet-request)]
-      (json-response (cluster-summary user) (:callback m))))
+      (json-response (assoc (cluster-summary user)
+                          "bugtracker-url" (*STORM-CONF* UI-PROJECT-BUGTRACKER-URL)
+                          "central-log-url" (*STORM-CONF* UI-CENTRAL-LOGGING-URL)) (:callback m))))
   (GET "/api/v1/nimbus/summary" [:as {:keys [cookies servlet-request]} & m]
     (mark! ui:num-nimbus-summary-http-requests)
     (populate-context! servlet-request)

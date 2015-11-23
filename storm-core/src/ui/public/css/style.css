@@ -104,3 +104,11 @@ PRE.jsonFormatter-codeContainer {
   padding: 0px;
   background-color: transparent;
 }
+
+.image_pre_format {
+  border: none;
+  padding: 0px;
+  height: 1em;
+  width: 1em;
+}
+

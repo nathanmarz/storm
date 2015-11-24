@@ -58,7 +58,7 @@ public class ResourceAwareScheduler implements IScheduler {
         for (TopologyDetails td : topologies.getTopologies()) {
             String topId = td.getId();
             Map<WorkerSlot, Collection<ExecutorDetails>> schedulerAssignmentMap;
-            if (cluster.needsScheduling(td) && cluster.getUnassignedExecutors(td).size() > 0) {
+            if (cluster.getUnassignedExecutors(td).size() > 0) {
                 LOG.debug("/********Scheduling topology {} ************/", topId);
 
                 schedulerAssignmentMap = RAStrategy.schedule(td);

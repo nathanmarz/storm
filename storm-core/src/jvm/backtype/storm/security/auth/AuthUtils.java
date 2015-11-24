@@ -22,6 +22,7 @@ import javax.security.auth.login.Configuration;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.Subject;
 import java.security.URIParameter;
+import java.security.MessageDigest;
 
 import backtype.storm.security.INimbusCredentialPlugin;
 import org.slf4j.Logger;
@@ -33,11 +34,17 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.lang.StringBuilder;
 
 public class AuthUtils {
     private static final Logger LOG = LoggerFactory.getLogger(AuthUtils.class);
     public static final String LOGIN_CONTEXT_SERVER = "StormServer";
     public static final String LOGIN_CONTEXT_CLIENT = "StormClient";
+    public static final String LOGIN_CONTEXT_PACEMAKER_DIGEST = "PacemakerDigest";
+    public static final String LOGIN_CONTEXT_PACEMAKER_SERVER = "PacemakerServer";
+    public static final String LOGIN_CONTEXT_PACEMAKER_CLIENT = "PacemakerClient";
     public static final String SERVICE = "storm_thrift_server";
 
     /**
@@ -65,6 +72,35 @@ public class AuthUtils {
         }
 
         return login_conf;
+    }
+
+    /**
+     * Pull a set of keys out of a Configuration.
+     * @param conf The config to pull the key/value pairs out of.
+     * @param conf_entry The app configuration entry name to get stuff from.
+     * @return Return a map of the configs in conf.
+     */
+    public static SortedMap<String, ?> PullConfig(Configuration conf,
+                                            String conf_entry) throws IOException {
+        if(conf == null) {
+            return null;
+        }
+        AppConfigurationEntry configurationEntries[] = conf.getAppConfigurationEntry(conf_entry);
+        if(configurationEntries == null) {
+            String errorMessage = "Could not find a '" + conf_entry
+                + "' entry in this configuration: Client cannot start.";
+            throw new IOException(errorMessage);
+        }
+
+        TreeMap<String, Object> results = new TreeMap<>();
+
+        for(AppConfigurationEntry entry: configurationEntries) {
+            Map<String, ?> options = entry.getOptions();
+            for(String key : options.keySet()) {
+                results.put(key, options.get(key));
+            }
+        }
+        return results;
     }
 
     /**
@@ -275,5 +311,38 @@ public class AuthUtils {
                 return (String)val;
         }
         return null;
+    }
+
+    private static final String USERNAME = "username";
+    private static final String PASSWORD = "password";
+
+    public static String makeDigestPayload(Configuration login_config, String config_section) {
+        String username = null;
+        String password = null;
+        try {
+            Map<String, ?> results = AuthUtils.PullConfig(login_config, config_section);
+            username = (String)results.get(USERNAME);
+            password = (String)results.get(PASSWORD);
+        } catch (Exception e) {
+            LOG.error("Failed to pull username/password out of jaas conf", e);
+        }
+
+        if(username == null || password == null) {
+            return null;
+        }
+
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-512");
+            byte[] output = digest.digest((username + ":" + password).getBytes());
+
+            StringBuilder builder = new StringBuilder();
+            for(byte b : output) {
+                builder.append(String.format("%02x", b));
+            }
+            return builder.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            LOG.error("Cant run SHA-512 digest. Algorithm not available.", e);
+            throw new RuntimeException(e);
+        }
     }
 }

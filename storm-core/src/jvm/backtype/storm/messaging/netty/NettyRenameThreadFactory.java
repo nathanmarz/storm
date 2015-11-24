@@ -33,8 +33,9 @@ public class NettyRenameThreadFactory  implements ThreadFactory {
     final ThreadGroup group;
     final AtomicInteger index = new AtomicInteger(1);
     final String name;
+    static final NettyUncaughtExceptionHandler uncaughtExceptionHandler = new NettyUncaughtExceptionHandler();
 
-    NettyRenameThreadFactory(String name) {
+    public NettyRenameThreadFactory(String name) {
         SecurityManager s = System.getSecurityManager();
         group = (s != null)? s.getThreadGroup() :
                              Thread.currentThread().getThreadGroup();
@@ -43,10 +44,13 @@ public class NettyRenameThreadFactory  implements ThreadFactory {
 
     public Thread newThread(Runnable r) {
         Thread t = new Thread(group, r, name + "-" + index.getAndIncrement(), 0);
-        if (t.isDaemon())
+        if (t.isDaemon()) {
             t.setDaemon(false);
-        if (t.getPriority() != Thread.NORM_PRIORITY)
+        }
+        if (t.getPriority() != Thread.NORM_PRIORITY) {
             t.setPriority(Thread.NORM_PRIORITY);
+        }
+        t.setUncaughtExceptionHandler(uncaughtExceptionHandler);
         return t;
     }
 }

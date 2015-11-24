@@ -117,6 +117,7 @@ struct StormTopology {
   1: required map<string, SpoutSpec> spouts;
   2: required map<string, Bolt> bolts;
   3: required map<string, StateSpoutSpec> state_spouts;
+  4: optional list<binary> worker_hooks;
 }
 
 exception AlreadyAliveException {
@@ -162,6 +163,8 @@ struct SupervisorSummary {
   5: required string supervisor_id;
   6: optional string version = "VERSION_NOT_PROVIDED";
   7: optional map<string, double> total_resources;
+  8: optional double used_mem;
+  9: optional double used_cpu;
 }
 
 struct NimbusSummary {
@@ -229,6 +232,11 @@ struct ExecutorSummary {
   7: optional ExecutorStats stats;
 }
 
+struct DebugOptions {
+  1: optional bool enable
+  2: optional double samplingpct
+}
+
 struct TopologyInfo {
   1: required string id;
   2: required string name;
@@ -246,11 +254,6 @@ struct TopologyInfo {
 524: optional double assigned_memonheap;
 525: optional double assigned_memoffheap;
 526: optional double assigned_cpu;
-}
-
-struct DebugOptions {
-  1: optional bool enable
-  2: optional double samplingpct
 }
 
 struct CommonAggregateStats {
@@ -610,4 +613,63 @@ service DistributedRPCInvocations {
   void result(1: string id, 2: string result) throws (1: AuthorizationException aze);
   DRPCRequest fetchRequest(1: string functionName) throws (1: AuthorizationException aze);
   void failRequest(1: string id) throws (1: AuthorizationException aze);  
+}
+
+enum HBServerMessageType {
+  CREATE_PATH,
+  CREATE_PATH_RESPONSE,
+  EXISTS,
+  EXISTS_RESPONSE,
+  SEND_PULSE,
+  SEND_PULSE_RESPONSE,
+  GET_ALL_PULSE_FOR_PATH,
+  GET_ALL_PULSE_FOR_PATH_RESPONSE,
+  GET_ALL_NODES_FOR_PATH,
+  GET_ALL_NODES_FOR_PATH_RESPONSE,
+  GET_PULSE,
+  GET_PULSE_RESPONSE,
+  DELETE_PATH,
+  DELETE_PATH_RESPONSE,
+  DELETE_PULSE_ID,
+  DELETE_PULSE_ID_RESPONSE,
+  CONTROL_MESSAGE,
+  SASL_MESSAGE_TOKEN,
+  NOT_AUTHORIZED
+}
+
+union HBMessageData {
+  1: string path,
+  2: HBPulse pulse,
+  3: bool boolval,
+  4: HBRecords records,
+  5: HBNodes nodes,
+  7: optional binary message_blob;
+}
+
+struct HBMessage {
+  1: HBServerMessageType type,
+  2: HBMessageData data,
+  3: optional i32 message_id = -1,
+}
+
+
+exception HBAuthorizationException {
+  1: required string msg;
+}
+
+exception HBExecutionException {
+  1: required string msg;
+}
+
+struct HBPulse {
+  1: required string id;
+  2: binary details;
+}
+
+struct HBRecords {
+  1: list<HBPulse> pulses;
+}
+
+struct HBNodes {
+  1: list<string> pulseIds;
 }

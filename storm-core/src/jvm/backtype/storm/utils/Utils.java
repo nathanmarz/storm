@@ -69,14 +69,22 @@ import java.util.HashSet;
 import java.util.HashMap;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+import org.apache.thrift.TBase;
+import org.apache.thrift.TDeserializer;
+import org.apache.thrift.TSerializer;
+
 public class Utils {
     private static final Logger LOG = LoggerFactory.getLogger(Utils.class);
     public static final String DEFAULT_STREAM_ID = "default";
+    private static ThreadLocal<TSerializer> threadSer = new ThreadLocal<TSerializer>();
+    private static ThreadLocal<TDeserializer> threadDes = new ThreadLocal<TDeserializer>();
 
     private static SerializationDelegate serializationDelegate;
 
@@ -102,6 +110,51 @@ public class Utils {
         return serializationDelegate.deserialize(serialized, clazz);
     }
 
+    public static byte[] thriftSerialize(TBase t) {
+        try {
+            TSerializer ser = threadSer.get();
+            if (ser == null) {
+                ser = new TSerializer();
+                threadSer.set(ser);
+            } 
+            return ser.serialize(t);
+        } catch (TException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static TDeserializer getDes() {
+        TDeserializer des = threadDes.get();
+        if(des == null) {
+            des = new TDeserializer();
+            threadDes.set(des);
+        }
+        return des;
+    }
+
+    public static <T> T thriftDeserialize(Class c, byte[] b, int offset, int length) {
+        try {
+            T ret = (T) c.newInstance();
+            TDeserializer des = getDes();
+            des.deserialize((TBase)ret, b, offset, length);
+            return ret;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static <T> T thriftDeserialize(Class c, byte[] b) {
+        try {
+            T ret = (T) c.newInstance();
+            TDeserializer des = getDes();
+            des.deserialize((TBase) ret, b);
+            return ret;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+    
     public static byte[] javaSerialize(Object obj) {
         try {
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -503,6 +556,17 @@ public class Utils {
         }
     }
 
+    public static String getString(Object o, String defaultValue) {
+        if (null == o) {
+            return defaultValue;
+        }
+        if (o instanceof String) {
+            return (String) o;
+        } else {
+            throw new IllegalArgumentException("Don't know how to convert " + o + " + to String");
+        }
+    }
+
     public static long secureRandomLong() {
         return UUID.randomUUID().getLeastSignificantBits();
     }
@@ -759,6 +823,44 @@ public class Utils {
         long val = (b1 << 24) | (b2 << 16) + (b3 << 8) + b4;
         raf.close();
         return val;
+    }
+
+    public static double zeroIfNaNOrInf(double x) {
+        return (Double.isNaN(x) || Double.isInfinite(x)) ? 0.0 : x;
+    }
+
+    /**
+     * parses the arguments to extract jvm heap memory size in MB.
+     * @param input
+     * @param defaultValue
+     * @return the value of the JVM heap memory setting (in MB) in a java command.
+     */
+    public static Double parseJvmHeapMemByChildOpts(String input, Double defaultValue) {
+        if (input != null) {
+            Pattern optsPattern = Pattern.compile("Xmx[0-9]+[mkgMKG]");
+            Matcher m = optsPattern.matcher(input);
+            String memoryOpts = null;
+            while (m.find()) {
+                memoryOpts = m.group();
+            }
+            if (memoryOpts != null) {
+                int unit = 1;
+                if (memoryOpts.toLowerCase().endsWith("k")) {
+                    unit = 1024;
+                } else if (memoryOpts.toLowerCase().endsWith("m")) {
+                    unit = 1024 * 1024;
+                } else if (memoryOpts.toLowerCase().endsWith("g")) {
+                    unit = 1024 * 1024 * 1024;
+                }
+                memoryOpts = memoryOpts.replaceAll("[a-zA-Z]", "");
+                Double result =  Double.parseDouble(memoryOpts) * unit / 1024.0 / 1024.0;
+                return (result < 1.0) ? 1.0 : result;
+            } else {
+                return defaultValue;
+            }
+        } else {
+            return defaultValue;
+        }
     }
 }
 

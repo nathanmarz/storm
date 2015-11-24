@@ -41,6 +41,7 @@ bolts:
       - name: "withFoo"
         args:
           - "foo"
+      - name: "withNone"
       - name: "withBar"
         args:
           - "bar"

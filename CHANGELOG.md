@@ -1,4 +1,17 @@
-## 0.11.0
++## 0.11.0
+ * STORM-1126: Allow a configMethod that takes no arguments (Flux)
+ * STORM-1203: worker metadata file creation doesn't use storm.log.dir config
+ * STORM-1349: [Flux] Allow constructorArgs to take Maps as arguments
+ * STORM-126: Add Lifecycle support API for worker nodes
+ * STORM-1213: Remove sigar binaries from source tree
+ * STORM-885:  Heartbeat Server (Pacemaker)
+ * STORM-1221: Create a common interface for all Trident spout.
+ * STORM-1198: Web UI to show resource usages and Total Resources on all supervisors
+ * STORM-1167: Add windowing support for storm core.
+ * STORM-1215: Use Async Loggers to avoid locking  and logging overhead
+ * STORM-1204: Logviewer should graceful report page-not-found instead of 500 for bad topo-id etc
+ * STORM-831: Add BugTracker and Central Logging URL to UI
+ * STORM-1208: UI: NPE seen when aggregating bolt streams stats
  * STORM-1016: Generate trident bolt ids with sorted group names
  * STORM-1190: System Load too high after recent changes
  * STORM-1098: Nimbus hook for topology actions.

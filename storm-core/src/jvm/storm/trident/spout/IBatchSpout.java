@@ -23,7 +23,7 @@ import java.io.Serializable;
 import java.util.Map;
 import storm.trident.operation.TridentCollector;
 
-public interface IBatchSpout extends Serializable {
+public interface IBatchSpout extends ITridentDataSource {
     void open(Map conf, TopologyContext context);
     void emitBatch(long batchId, TridentCollector collector);
     void ack(long batchId);

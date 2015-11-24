@@ -115,7 +115,7 @@ public class OutputCollector implements IOutputCollector {
      * @param tuple the new output tuple from this bolt
      */
     public void emitDirect(int taskId, String streamId, Tuple anchor, List<Object> tuple) {
-        emitDirect(taskId, streamId, Arrays.asList(anchor), tuple);
+        emitDirect(taskId, streamId, anchor == null ? (List) null : Arrays.asList(anchor), tuple);
     }
 
     /**

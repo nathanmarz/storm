@@ -1039,8 +1039,9 @@
   ([x form & more] `(-<> (-<> ~x ~form) ~@more)))
 
 (def LOG-DIR
-  (.getCanonicalPath 
-                (clojure.java.io/file (System/getProperty "storm.home") "logs")))
+  (.getCanonicalPath
+    (clojure.java.io/file (or (System/getProperty "storm.log.dir") (str (System/getProperty "storm.home") "logs")))))
+
 
 (defn logs-filename
   [storm-id port]
@@ -1061,6 +1062,22 @@
 
 (defn hashmap-to-persistent [^HashMap m]
   (zipmap (.keySet m) (.values m)))
+
+(defn retry-on-exception
+  "Retries specific function on exception based on retries count"
+  [retries task-description f & args]
+  (let [res (try {:value (apply f args)}
+              (catch Exception e
+                (if (<= 0 retries)
+                  (throw e)
+                  {:exception e})))]
+    (if (:exception res)
+      (do 
+        (log-error (:exception res) (str "Failed to " task-description ". Will make [" retries "] more attempts."))
+        (recur (dec retries) task-description f args))
+      (do 
+        (log-debug (str "Successful " task-description "."))
+        (:value res)))))
 
 (defn setup-default-uncaught-exception-handler
   "Set a default uncaught exception handler to handle exceptions not caught in other threads."

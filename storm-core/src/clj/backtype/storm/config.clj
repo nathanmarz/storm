@@ -280,6 +280,11 @@
   [conf id]
   (LocalState. (worker-heartbeats-root conf id)))
 
+(defn override-login-config-with-system-property [conf]
+  (if-let [login_conf_file (System/getProperty "java.security.auth.login.config")]
+    (assoc conf "java.security.auth.login.config" login_conf_file)
+    conf))
+
 (defn get-topo-logs-users
   [topology-conf]
   (sort (distinct (remove nil?
@@ -293,3 +298,4 @@
                     (concat
                       (topology-conf LOGS-GROUPS)
                       (topology-conf TOPOLOGY-GROUPS))))))
+

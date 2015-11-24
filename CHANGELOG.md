@@ -151,6 +151,7 @@
  * STORM-1142: Some config validators for positive ints need to allow 0
  * STORM-901: Worker Artifacts Directory
  * STORM-1144: Display requested and assigned cpu/mem resources for schedulers in UI
+ * STORM-1217: making small fixes in RAS
 
 ## 0.10.0-beta2
  * STORM-1108: Fix NPE in simulated time

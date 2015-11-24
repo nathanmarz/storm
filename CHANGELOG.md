@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-126: Add Lifecycle support API for worker nodes
  * STORM-1213: Remove sigar binaries from source tree
  * STORM-885:  Heartbeat Server (Pacemaker)
  * STORM-1221: Create a common interface for all Trident spout.

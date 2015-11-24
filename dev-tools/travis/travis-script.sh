@@ -32,7 +32,7 @@ cd ${STORM_SRC_ROOT_DIR}
 export STORM_TEST_TIMEOUT_MS=150000
 
 # We now lean on Travis CI's implicit behavior, ```mvn clean install -DskipTests``` before running script
-mvn --batch-mode install -fae -Pnative
+mvn --batch-mode test -fae -Pnative -pl $2
 BUILD_RET_VAL=$?
 
 for dir in `find . -type d -and -wholename \*/target/\*-reports`;

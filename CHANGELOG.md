@@ -1,4 +1,5 @@
-## 0.11.0
++## 0.11.0
+ * STORM-1349: [Flux] Allow constructorArgs to take Maps as arguments
  * STORM-126: Add Lifecycle support API for worker nodes
  * STORM-1213: Remove sigar binaries from source tree
  * STORM-885:  Heartbeat Server (Pacemaker)

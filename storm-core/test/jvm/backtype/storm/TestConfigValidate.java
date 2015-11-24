@@ -688,6 +688,31 @@ public class TestConfigValidate {
         }
     }
 
+    @Test
+    public void TestImplementsClassValidator() {
+        TestConfig config = new TestConfig();
+        Collection<Object> passCases = new LinkedList<Object>();
+        Collection<Object> failCases = new LinkedList<Object>();
+
+        passCases.add("backtype.storm.networktopography.DefaultRackDNSToSwitchMapping");
+
+        for (Object value : passCases) {
+            config.put(TestConfig.TEST_MAP_CONFIG_8, value);
+            ConfigValidation.validateFields(config, TestConfig.class);
+        }
+
+        failCases.add("backtype.storm.nimbus.NimbusInfo");
+        failCases.add(null);
+        for (Object value : failCases) {
+            try {
+                config.put(TestConfig.TEST_MAP_CONFIG_8, value);
+                ConfigValidation.validateFields(config, TestConfig.class);
+                Assert.fail("Expected Exception not Thrown for value: " + value);
+            } catch (IllegalArgumentException Ex) {
+            }
+        }
+    }
+
     public class TestConfig extends HashMap<String, Object> {
         @isMapEntryType(keyType = String.class, valueType = Integer.class)
         public static final String TEST_MAP_CONFIG = "test.map.config";
@@ -714,5 +739,9 @@ public class TestConfigValidate {
 
         @isMapEntryCustom(keyValidatorClasses = {StringValidator.class}, valueValidatorClasses = {UserResourcePoolEntryValidator.class})
         public static final String TEST_MAP_CONFIG_7 = "test.map.config.7";
+
+        @isImplementationOfClass(implementsClass = backtype.storm.networktopography.DNSToSwitchMapping.class)
+        @NotNull
+        public static final String TEST_MAP_CONFIG_8 = "test.map.config.8";
     }
 }

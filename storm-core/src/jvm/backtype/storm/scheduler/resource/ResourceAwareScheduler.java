@@ -19,7 +19,9 @@
 package backtype.storm.scheduler.resource;
 
 import backtype.storm.Config;
-import backtype.storm.scheduler.SchedulerAssignment;
+import backtype.storm.scheduler.resource.strategies.eviction.IEvictionStrategy;
+import backtype.storm.scheduler.resource.strategies.priority.ISchedulingPriorityStrategy;
+import backtype.storm.scheduler.resource.strategies.scheduling.IStrategy;
 import backtype.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +32,7 @@ import backtype.storm.scheduler.IScheduler;
 import backtype.storm.scheduler.Topologies;
 import backtype.storm.scheduler.TopologyDetails;
 import backtype.storm.scheduler.WorkerSlot;
-import backtype.storm.scheduler.resource.strategies.ResourceAwareStrategy;
+import backtype.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -98,85 +100,34 @@ public class ResourceAwareScheduler implements IScheduler {
 
         LOG.info("Nodes:\n{}", this.nodes);
 
-        LOG.info("getNextUser: {}", this.getNextUser());
+        //LOG.info("getNextUser: {}", this.getNextUser());
 
+        ISchedulingPriorityStrategy schedulingPrioritystrategy = null;
         while (true) {
             LOG.info("/*********** next scheduling iteration **************/");
 
-            User nextUser = this.getNextUser();
-            if (nextUser == null) {
+            if(schedulingPrioritystrategy == null) {
+                try {
+                    schedulingPrioritystrategy = (ISchedulingPriorityStrategy) Utils.newInstance((String) this.conf.get(Config.RESOURCE_AWARE_SCHEDULER_PRIORITY_STRATEGY));
+                } catch (RuntimeException e) {
+                    LOG.error("failed to create instance of priority strategy: {} with error: {}! No topology eviction will be done.",
+                            this.conf.get(Config.RESOURCE_AWARE_SCHEDULER_PRIORITY_STRATEGY), e.getMessage());
+                    break;
+                }
+            }
+            //need to re prepare since scheduling state might have been restored
+            schedulingPrioritystrategy.prepare(this.topologies, this.cluster, this.userMap, this.nodes);
+            //Call scheduling priority strategy
+            TopologyDetails td = schedulingPrioritystrategy.getNextTopologyToSchedule();
+            if(td == null) {
                 break;
             }
-            TopologyDetails td = nextUser.getNextTopologyToSchedule();
             scheduleTopology(td);
         }
+
         //since scheduling state might have been restored thus need to set the cluster and topologies.
         cluster = this.cluster;
         topologies = this.topologies;
-    }
-
-    private boolean makeSpaceForTopo(TopologyDetails td) {
-        LOG.info("attempting to make space for topo {} from user {}", td.getName(), td.getTopologySubmitter());
-        User submitter = this.userMap.get(td.getTopologySubmitter());
-        if (submitter.getCPUResourceGuaranteed() == null || submitter.getMemoryResourceGuaranteed() == null) {
-            return false;
-        }
-
-        double cpuNeeded = td.getTotalRequestedCpu() / submitter.getCPUResourceGuaranteed();
-        double memoryNeeded = (td.getTotalRequestedMemOffHeap() + td.getTotalRequestedMemOnHeap()) / submitter.getMemoryResourceGuaranteed();
-
-        //user has enough resource under his or her resource guarantee to schedule topology
-        if ((1.0 - submitter.getCPUResourcePoolUtilization()) >= cpuNeeded && (1.0 - submitter.getMemoryResourcePoolUtilization()) >= memoryNeeded) {
-            User evictUser = this.findUserWithMostResourcesAboveGuarantee();
-            if (evictUser == null) {
-                LOG.info("Cannot make space for topology {} from user {}", td.getName(), submitter.getId());
-                submitter.moveTopoFromPendingToAttempted(td, this.cluster);
-
-                return false;
-            }
-            TopologyDetails topologyEvict = evictUser.getRunningTopologyWithLowestPriority();
-            LOG.info("topology to evict: {}", topologyEvict);
-            evictTopology(topologyEvict);
-
-            LOG.info("Resources After eviction:\n{}", this.nodes);
-
-            return true;
-        } else {
-
-            if ((1.0 - submitter.getCPUResourcePoolUtilization()) < cpuNeeded) {
-
-            }
-
-            if ((1.0 - submitter.getMemoryResourcePoolUtilization()) < memoryNeeded) {
-
-            }
-            return false;
-
-        }
-    }
-
-    private void evictTopology(TopologyDetails topologyEvict) {
-        Collection<WorkerSlot> workersToEvict = this.cluster.getUsedSlotsByTopologyId(topologyEvict.getId());
-        User submitter = this.userMap.get(topologyEvict.getTopologySubmitter());
-
-        LOG.info("Evicting Topology {} with workers: {}", topologyEvict.getName(), workersToEvict);
-        LOG.debug("From Nodes:\n{}", ResourceUtils.printScheduling(this.nodes));
-        this.nodes.freeSlots(workersToEvict);
-        submitter.moveTopoFromRunningToPending(topologyEvict, this.cluster);
-        LOG.info("check if topology unassigned: {}", this.cluster.getUsedSlotsByTopologyId(topologyEvict.getId()));
-    }
-
-    private User findUserWithMostResourcesAboveGuarantee() {
-        double most = 0.0;
-        User mostOverUser = null;
-        for (User user : this.userMap.values()) {
-            double over = user.getResourcePoolAverageUtilization() - 1.0;
-            if ((over > most) && (!user.getTopologiesRunning().isEmpty())) {
-                most = over;
-                mostOverUser = user;
-            }
-        }
-        return mostOverUser;
     }
 
     public void scheduleTopology(TopologyDetails td) {
@@ -190,9 +141,19 @@ public class ResourceAwareScheduler implements IScheduler {
             LOG.debug("From Nodes:\n{}", ResourceUtils.printScheduling(this.nodes));
 
             SchedulingState schedulingState = this.checkpointSchedulingState();
+            IStrategy RAStrategy = null;
+            try {
+                RAStrategy = (IStrategy) Utils.newInstance((String) td.getConf().get(Config.TOPOLOGY_SCHEDULER_STRATEGY));
+            } catch (RuntimeException e) {
+                LOG.error("failed to create instance of IStrategy: {} with error: {}! Topology {} will not be scheduled.",
+                        td.getName(), td.getConf().get(Config.TOPOLOGY_SCHEDULER_STRATEGY), e.getMessage());
+                topologySubmitter.moveTopoFromPendingToInvalid(td, this.cluster);
+                return;
+            }
+            IEvictionStrategy evictionStrategy = null;
             while (true) {
-                //Need to reinitialize ResourceAwareStrategy with cluster and topologies in case scheduling state was restored
-                ResourceAwareStrategy RAStrategy = new ResourceAwareStrategy(this.cluster, this.topologies);
+                //Need to re prepare scheduling strategy with cluster and topologies in case scheduling state was restored
+                RAStrategy.prepare(this.topologies, this.cluster, this.userMap, this.nodes);
                 SchedulingResult result = RAStrategy.schedule(td);
                 LOG.info("scheduling result: {}", result);
                 if (result.isValid()) {
@@ -201,8 +162,8 @@ public class ResourceAwareScheduler implements IScheduler {
                             if (mkAssignment(td, result.getSchedulingResultMap())) {
                                 topologySubmitter.moveTopoFromPendingToRunning(td, this.cluster);
                             } else {
-                                //resetAssignments(assignmentCheckpoint);
                                 this.restoreCheckpointSchedulingState(schedulingState);
+                                //since state is restored need the update User topologySubmitter to the new User object in userMap
                                 topologySubmitter = this.userMap.get(td.getTopologySubmitter());
                                 topologySubmitter.moveTopoFromPendingToAttempted(td, this.cluster);
                             }
@@ -218,7 +179,19 @@ public class ResourceAwareScheduler implements IScheduler {
                         break;
                     } else {
                         if (result.getStatus() == SchedulingStatus.FAIL_NOT_ENOUGH_RESOURCES) {
-                            if (!this.makeSpaceForTopo(td)) {
+                            if(evictionStrategy == null) {
+                                try {
+                                    evictionStrategy = (IEvictionStrategy) Utils.newInstance((String) this.conf.get(Config.RESOURCE_AWARE_SCHEDULER_EVICTION_STRATEGY));
+                                } catch (RuntimeException e) {
+                                    LOG.error("failed to create instance of eviction strategy: {} with error: {}! No topology eviction will be done.",
+                                            this.conf.get(Config.RESOURCE_AWARE_SCHEDULER_EVICTION_STRATEGY), e.getMessage());
+                                    topologySubmitter.moveTopoFromPendingToAttempted(td);
+                                    break;
+                                }
+                            }
+                            //need to re prepare since scheduling state might have been restored
+                            evictionStrategy.prepare(this.topologies, this.cluster, this.userMap, this.nodes);
+                            if (!evictionStrategy.makeSpaceForTopo(td)) {
                                 this.cluster.setStatus(td.getId(), result.getErrorMessage());
                                 this.restoreCheckpointSchedulingState(schedulingState);
                                 //since state is restored need the update User topologySubmitter to the new User object in userMap
@@ -324,41 +297,41 @@ public class ResourceAwareScheduler implements IScheduler {
         return this.userMap;
     }
 
-    public User getNextUser() {
-        Double least = Double.POSITIVE_INFINITY;
-        User ret = null;
-        for (User user : this.userMap.values()) {
-            LOG.info("getNextUser {}", user.getDetailedInfo());
-            LOG.info("hasTopologyNeedSchedule: {}", user.hasTopologyNeedSchedule());
-            if (user.hasTopologyNeedSchedule()) {
-                Double userResourcePoolAverageUtilization = user.getResourcePoolAverageUtilization();
-                if(ret!=null) {
-                    LOG.info("current: {}-{} compareUser: {}-{}", ret.getId(), least, user.getId(), userResourcePoolAverageUtilization);
-                    LOG.info("{} == {}: {}", least, userResourcePoolAverageUtilization, least == userResourcePoolAverageUtilization);
-                    LOG.info("{} == {}: {}", least, userResourcePoolAverageUtilization, (Math.abs(least - userResourcePoolAverageUtilization) < 0.0001));
-
-                }
-                if (least > userResourcePoolAverageUtilization) {
-                    ret = user;
-                    least = userResourcePoolAverageUtilization;
-                } else if (Math.abs(least - userResourcePoolAverageUtilization) < 0.0001) {
-                    double currentCpuPercentage = ret.getCPUResourceGuaranteed() / this.cluster.getClusterTotalCPUResource();
-                    double currentMemoryPercentage = ret.getMemoryResourceGuaranteed() / this.cluster.getClusterTotalMemoryResource();
-                    double currentAvgPercentage = (currentCpuPercentage + currentMemoryPercentage) / 2.0;
-
-                    double userCpuPercentage = user.getCPUResourceGuaranteed() / this.cluster.getClusterTotalCPUResource();
-                    double userMemoryPercentage = user.getMemoryResourceGuaranteed() / this.cluster.getClusterTotalMemoryResource();
-                    double userAvgPercentage = (userCpuPercentage + userMemoryPercentage) / 2.0;
-                    LOG.info("current: {}-{} compareUser: {}-{}", ret.getId(), currentAvgPercentage, user.getId(), userAvgPercentage);
-                    if (userAvgPercentage > currentAvgPercentage) {
-                        ret = user;
-                        least = userResourcePoolAverageUtilization;
-                    }
-                }
-            }
-        }
-        return ret;
-    }
+//    public User getNextUser() {
+//        Double least = Double.POSITIVE_INFINITY;
+//        User ret = null;
+//        for (User user : this.userMap.values()) {
+//            LOG.info("getNextUser {}", user.getDetailedInfo());
+//            LOG.info("hasTopologyNeedSchedule: {}", user.hasTopologyNeedSchedule());
+//            if (user.hasTopologyNeedSchedule()) {
+//                Double userResourcePoolAverageUtilization = user.getResourcePoolAverageUtilization();
+//                if(ret!=null) {
+//                    LOG.info("current: {}-{} compareUser: {}-{}", ret.getId(), least, user.getId(), userResourcePoolAverageUtilization);
+//                    LOG.info("{} == {}: {}", least, userResourcePoolAverageUtilization, least == userResourcePoolAverageUtilization);
+//                    LOG.info("{} == {}: {}", least, userResourcePoolAverageUtilization, (Math.abs(least - userResourcePoolAverageUtilization) < 0.0001));
+//
+//                }
+//                if (least > userResourcePoolAverageUtilization) {
+//                    ret = user;
+//                    least = userResourcePoolAverageUtilization;
+//                } else if (Math.abs(least - userResourcePoolAverageUtilization) < 0.0001) {
+//                    double currentCpuPercentage = ret.getCPUResourceGuaranteed() / this.cluster.getClusterTotalCPUResource();
+//                    double currentMemoryPercentage = ret.getMemoryResourceGuaranteed() / this.cluster.getClusterTotalMemoryResource();
+//                    double currentAvgPercentage = (currentCpuPercentage + currentMemoryPercentage) / 2.0;
+//
+//                    double userCpuPercentage = user.getCPUResourceGuaranteed() / this.cluster.getClusterTotalCPUResource();
+//                    double userMemoryPercentage = user.getMemoryResourceGuaranteed() / this.cluster.getClusterTotalMemoryResource();
+//                    double userAvgPercentage = (userCpuPercentage + userMemoryPercentage) / 2.0;
+//                    LOG.info("current: {}-{} compareUser: {}-{}", ret.getId(), currentAvgPercentage, user.getId(), userAvgPercentage);
+//                    if (userAvgPercentage > currentAvgPercentage) {
+//                        ret = user;
+//                        least = userResourcePoolAverageUtilization;
+//                    }
+//                }
+//            }
+//        }
+//        return ret;
+//    }
 
     /**
      * Intialize scheduling and running queues

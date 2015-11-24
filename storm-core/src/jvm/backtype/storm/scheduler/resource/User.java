@@ -314,25 +314,6 @@ public class User {
         return ret;
     }
 
-    public static int cTo(TopologyDetails topo1, TopologyDetails topo2) {
-        if (topo1.getId().compareTo(topo2.getId()) == 0) {
-            return 0;
-        }
-        if (topo1.getTopologyPriority() > topo2.getTopologyPriority()) {
-            return 1;
-        } else if (topo1.getTopologyPriority() < topo2.getTopologyPriority()) {
-            return -1;
-        } else {
-            if (topo1.getUpTime() > topo2.getUpTime()) {
-                return -1;
-            } else if (topo1.getUpTime() < topo2.getUpTime()) {
-                return 1;
-            } else {
-                return topo1.getId().compareTo(topo2.getId());
-            }
-        }
-    }
-
     /**
      * Comparator that sorts topologies by priority and then by submission time
      */

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package backtype.storm.scheduler.resource.strategies;
+package backtype.storm.scheduler.resource.strategies.scheduling;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -33,6 +33,7 @@ import java.util.Iterator;
 import backtype.storm.scheduler.resource.RAS_Nodes;
 import backtype.storm.scheduler.resource.SchedulingResult;
 import backtype.storm.scheduler.resource.SchedulingStatus;
+import backtype.storm.scheduler.resource.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,8 +45,8 @@ import backtype.storm.scheduler.WorkerSlot;
 import backtype.storm.scheduler.resource.Component;
 import backtype.storm.scheduler.resource.RAS_Node;
 
-public class ResourceAwareStrategy implements IStrategy {
-    private static final Logger LOG = LoggerFactory.getLogger(ResourceAwareStrategy.class);
+public class DefaultResourceAwareStrategy implements IStrategy {
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultResourceAwareStrategy.class);
     private Topologies _topologies;
     private Cluster _cluster;
     //Map key is the supervisor id and the value is the corresponding RAS_Node Object 
@@ -61,7 +62,7 @@ public class ResourceAwareStrategy implements IStrategy {
     private final double MEM_WEIGHT = 1.0;
     private final double NETWORK_WEIGHT = 1.0;
 
-    public ResourceAwareStrategy(Cluster cluster, Topologies topologies) {
+    public void prepare (Topologies topologies, Cluster cluster, Map<String, User> userMap, RAS_Nodes nodes) {
         _topologies = topologies;
         _cluster = cluster;
         _nodes = RAS_Nodes.getAllNodesFrom(cluster, _topologies);

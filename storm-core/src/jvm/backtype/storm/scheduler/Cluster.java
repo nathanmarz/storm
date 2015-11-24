@@ -34,7 +34,11 @@ public class Cluster {
     /**
      * key: supervisor id, value: supervisor details
      */
-    private Map<String, SupervisorDetails>   supervisors;
+    private Map<String, SupervisorDetails> supervisors;
+    /**
+     * key: supervisor id, value: supervisor's total and used resources
+     */
+    private Map<String, Double[]> supervisorsResources;
 
     /**
      * key: rack, value: nodes in that rack
@@ -73,6 +77,7 @@ public class Cluster {
         this.assignments.putAll(assignments);
         this.status = new HashMap<String, String>();
         this.resources = new HashMap<String, Double[]>();
+        this.supervisorsResources = new HashMap<String, Double[]>();
         this.hostToId = new HashMap<String, List<String>>();
         for (Map.Entry<String, SupervisorDetails> entry : supervisors.entrySet()) {
             String nodeId = entry.getKey();
@@ -420,7 +425,7 @@ public class Cluster {
         for (String topologyId : this.assignments.keySet()) {
             ret.put(topologyId, this.assignments.get(topologyId));
         }
-        
+
         return ret;
     }
 
@@ -461,6 +466,100 @@ public class Cluster {
         return networkTopography;
     }
 
+    private String getStringFromStringList(Object o) {
+        StringBuilder sb = new StringBuilder();
+        for (String s : (List<String>) o) {
+            sb.append(s);
+            sb.append(" ");
+        }
+        return sb.toString();
+    }
+
+    /*
+    * Get heap memory usage for a worker's main process and logwriter process
+    * */
+    private Double getAssignedMemoryForSlot(Map topConf) {
+        Double totalWorkerMemory = 0.0;
+
+        String topologyWorkerChildopts = null;
+        if (topConf.get(Config.TOPOLOGY_WORKER_CHILDOPTS) instanceof List) {
+            topologyWorkerChildopts = getStringFromStringList(topConf.get(Config.TOPOLOGY_WORKER_CHILDOPTS));
+        } else {
+            topologyWorkerChildopts = Utils.getString(topConf.get(Config.TOPOLOGY_WORKER_CHILDOPTS), null);
+        }
+        Double memTopologyWorkerChildopts = Utils.parseJvmHeapMemByChildOpts(topologyWorkerChildopts, null);
+
+        String workerChildopts = null;
+        if (topConf.get(Config.WORKER_CHILDOPTS) instanceof List) {
+            workerChildopts = getStringFromStringList(topConf.get(Config.WORKER_CHILDOPTS));
+        } else {
+            workerChildopts = Utils.getString(topConf.get(Config.WORKER_CHILDOPTS), null);
+        }
+        Double memWorkerChildopts = Utils.parseJvmHeapMemByChildOpts(workerChildopts, null);
+
+        if (memTopologyWorkerChildopts != null) {
+            totalWorkerMemory += memTopologyWorkerChildopts;
+        } else if (memWorkerChildopts != null) {
+            totalWorkerMemory += memWorkerChildopts;
+        } else {
+            totalWorkerMemory += Utils.getInt(topConf.get(Config.WORKER_HEAP_MEMORY_MB));
+        }
+
+        String topoWorkerLwChildopts = null;
+        if (topConf.get(Config.TOPOLOGY_WORKER_LOGWRITER_CHILDOPTS) instanceof List) {
+            topoWorkerLwChildopts = getStringFromStringList(topConf.get(Config.TOPOLOGY_WORKER_LOGWRITER_CHILDOPTS));
+        } else {
+            topoWorkerLwChildopts = Utils.getString(topConf.get(Config.TOPOLOGY_WORKER_LOGWRITER_CHILDOPTS), null);
+        }
+        if (topoWorkerLwChildopts != null) {
+            totalWorkerMemory += Utils.parseJvmHeapMemByChildOpts(topoWorkerLwChildopts, 0.0);
+        }
+        return totalWorkerMemory;
+    }
+
+    /*
+    * Update memory usage for each topology and each supervisor node after every round of scheduling
+    * */
+    public void updateAssignedMemoryForTopologyAndSupervisor(Topologies topologies) {
+        Map<String, Double> supervisorToAssignedMem = new HashMap<String, Double>();
+
+        for (Map.Entry<String, SchedulerAssignment> entry : this.getAssignments().entrySet()) {
+            String topId = entry.getValue().getTopologyId();
+            Map topConf = topologies.getById(topId).getConf();
+            Double assignedMemForTopology = 0.0;
+            Double assignedMemPerSlot = getAssignedMemoryForSlot(topConf);
+            for (WorkerSlot ws: entry.getValue().getSlots()) {
+                assignedMemForTopology += assignedMemPerSlot;
+                String nodeId = ws.getNodeId();
+                if (supervisorToAssignedMem.containsKey(nodeId)) {
+                    supervisorToAssignedMem.put(nodeId, supervisorToAssignedMem.get(nodeId) + assignedMemPerSlot);
+                } else {
+                    supervisorToAssignedMem.put(nodeId, assignedMemPerSlot);
+                }
+            }
+            if (this.getResourcesMap().containsKey(topId)) {
+                Double[] topo_resources = getResourcesMap().get(topId);
+                topo_resources[3] = assignedMemForTopology;
+            } else {
+                Double[] topo_resources = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+                topo_resources[3] = assignedMemForTopology;
+                this.setResources(topId, topo_resources);
+            }
+        }
+
+        for (Map.Entry<String, Double> entry : supervisorToAssignedMem.entrySet()) {
+            String nodeId = entry.getKey();
+            if (this.supervisorsResources.containsKey(nodeId)) {
+                Double[] supervisor_resources = supervisorsResources.get(nodeId);
+                supervisor_resources[2] = entry.getValue();
+            } else {
+                Double[] supervisor_resources = {0.0, 0.0, 0.0, 0.0};
+                supervisor_resources[2] = entry.getValue();
+                this.supervisorsResources.put(nodeId, supervisor_resources);
+            }
+        }
+    }
+
     public void setStatus(String topologyId, String status) {
         this.status.put(topologyId, status);
     }
@@ -473,7 +572,19 @@ public class Cluster {
         this.resources.put(topologyId, resources);
     }
 
+    public void setResourcesMap(Map<String, Double[]> topologies_resources) {
+        this.resources.putAll(topologies_resources);
+    }
+
     public Map<String, Double[]> getResourcesMap() {
         return this.resources;
+    }
+
+    public void setSupervisorsResourcesMap(Map<String, Double[]> supervisors_resources) {
+        this.supervisorsResources.putAll(supervisors_resources);
+    }
+
+    public Map<String, Double[]> getSupervisorsResourcesMap() {
+        return this.supervisorsResources;
     }
 }

@@ -23,6 +23,7 @@
   (:import [org.mockito.exceptions.base MockitoAssertionError])
   (:import [org.apache.curator.framework CuratorFramework CuratorFrameworkFactory CuratorFrameworkFactory$Builder])
   (:import [backtype.storm.utils Utils TestUtils ZookeeperAuthInfo])
+  (:import [backtype.storm.cluster ClusterState])
   (:require [backtype.storm [zookeeper :as zk]])
   (:require [conjure.core])
   (:use [conjure core])
@@ -312,9 +313,9 @@
       (mk-distributed-cluster-state {})
       (verify-call-times-for zk/mkdirs 1)
       (verify-first-call-args-for-indices zk/mkdirs [2] nil))
-    (stubbing [mk-distributed-cluster-state nil
-               register nil
-               mkdirs nil]
+    (stubbing [mk-distributed-cluster-state (reify ClusterState
+                                              (register [this callback] nil)
+                                              (mkdirs [this path acls] nil))]
       (mk-storm-cluster-state {})
       (verify-call-times-for mk-distributed-cluster-state 1)
       (verify-first-call-args-for-indices mk-distributed-cluster-state [4] nil))))

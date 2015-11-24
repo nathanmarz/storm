@@ -35,127 +35,123 @@ import org.slf4j.LoggerFactory;
 
 class SaslNettyServer {
 
-	private static final Logger LOG = LoggerFactory
-			.getLogger(SaslNettyServer.class);
+    private static final Logger LOG = LoggerFactory
+        .getLogger(SaslNettyServer.class);
 
-	private SaslServer saslServer;
+        private SaslServer saslServer;
 
-	SaslNettyServer(String topologyName, byte[] token) throws IOException {
-		LOG.debug("SaslNettyServer: Topology token is: " + topologyName
-				+ " with authmethod " + SaslUtils.AUTH_DIGEST_MD5);
+    SaslNettyServer(String topologyName, byte[] token) throws IOException {
+        LOG.debug("SaslNettyServer: Topology token is: {} with authmethod {}",
+                  topologyName, SaslUtils.AUTH_DIGEST_MD5);
 
-		try {
+        try {
+            SaslDigestCallbackHandler ch = new SaslNettyServer.SaslDigestCallbackHandler(
+                topologyName, token);
 
-			SaslDigestCallbackHandler ch = new SaslNettyServer.SaslDigestCallbackHandler(
-					topologyName, token);
+            saslServer = Sasl.createSaslServer(SaslUtils.AUTH_DIGEST_MD5, null,
+                                               SaslUtils.DEFAULT_REALM,
+                                               SaslUtils.getSaslProps(), ch);
+        } catch (SaslException e) {
+            LOG.error("SaslNettyServer: Could not create SaslServer: ", e);
+        }
+    }
 
-			saslServer = Sasl.createSaslServer(SaslUtils.AUTH_DIGEST_MD5, null,
-					SaslUtils.DEFAULT_REALM, SaslUtils.getSaslProps(), ch);
+    public boolean isComplete() {
+        return saslServer.isComplete();
+    }
 
-		} catch (SaslException e) {
-			LOG.error("SaslNettyServer: Could not create SaslServer: " + e);
-		}
+    public String getUserName() {
+        return saslServer.getAuthorizationID();
+    }
 
-	}
+    /** CallbackHandler for SASL DIGEST-MD5 mechanism */
+    public static class SaslDigestCallbackHandler implements CallbackHandler {
 
-	public boolean isComplete() {
-		return saslServer.isComplete();
-	}
+        /** Used to authenticate the clients */
+        private byte[] userPassword;
+        private String userName;
 
-	public String getUserName() {
-		return saslServer.getAuthorizationID();
-	}
+        public SaslDigestCallbackHandler(String topologyName, byte[] token) {
+            LOG.debug("SaslDigestCallback: Creating SaslDigestCallback handler with topology token: {}", topologyName);
+            this.userName = topologyName;
+            this.userPassword = token;
+        }
 
-	/** CallbackHandler for SASL DIGEST-MD5 mechanism */
-	public static class SaslDigestCallbackHandler implements CallbackHandler {
+        @Override
+        public void handle(Callback[] callbacks) throws IOException,
+            UnsupportedCallbackException {
+            NameCallback nc = null;
+            PasswordCallback pc = null;
+            AuthorizeCallback ac = null;
 
-		/** Used to authenticate the clients */
-		private byte[] userPassword;
-		private String userName;
+            for (Callback callback : callbacks) {
+                if (callback instanceof AuthorizeCallback) {
+                    ac = (AuthorizeCallback) callback;
+                } else if (callback instanceof NameCallback) {
+                    nc = (NameCallback) callback;
+                } else if (callback instanceof PasswordCallback) {
+                    pc = (PasswordCallback) callback;
+                } else if (callback instanceof RealmCallback) {
+                    continue; // realm is ignored
+                } else {
+                    throw new UnsupportedCallbackException(callback,
+                                                           "handle: Unrecognized SASL DIGEST-MD5 Callback");
+                }
+            }
 
-		public SaslDigestCallbackHandler(String topologyName, byte[] token) {
-			LOG.debug("SaslDigestCallback: Creating SaslDigestCallback handler "
-					+ "with topology token: " + topologyName);
-			this.userName = topologyName;
-			this.userPassword = token;
-		}
+            if (nc != null) {
+                LOG.debug("handle: SASL server DIGEST-MD5 callback: setting username for client: {}",
+                          userName);
+                nc.setName(userName);
+            }
 
-		@Override
-		public void handle(Callback[] callbacks) throws IOException,
-				UnsupportedCallbackException {
-			NameCallback nc = null;
-			PasswordCallback pc = null;
-			AuthorizeCallback ac = null;
+            if (pc != null) {
+                char[] password = SaslUtils.encodePassword(userPassword);
 
-			for (Callback callback : callbacks) {
-				if (callback instanceof AuthorizeCallback) {
-					ac = (AuthorizeCallback) callback;
-				} else if (callback instanceof NameCallback) {
-					nc = (NameCallback) callback;
-				} else if (callback instanceof PasswordCallback) {
-					pc = (PasswordCallback) callback;
-				} else if (callback instanceof RealmCallback) {
-					continue; // realm is ignored
-				} else {
-					throw new UnsupportedCallbackException(callback,
-							"handle: Unrecognized SASL DIGEST-MD5 Callback");
-				}
-			}
+                LOG.debug("handle: SASL server DIGEST-MD5 callback: setting password for client: ",
+                          userPassword);
 
-			if (nc != null) {
-				LOG.debug("handle: SASL server DIGEST-MD5 callback: setting "
-						+ "username for client: " + userName);
+                pc.setPassword(password);
+            }
+            if (ac != null) {
 
-				nc.setName(userName);
-			}
+                String authid = ac.getAuthenticationID();
+                String authzid = ac.getAuthorizationID();
 
-			if (pc != null) {
-				char[] password = SaslUtils.encodePassword(userPassword);
+                if (authid.equals(authzid)) {
+                    ac.setAuthorized(true);
+                } else {
+                    ac.setAuthorized(false);
+                }
 
-				LOG.debug("handle: SASL server DIGEST-MD5 callback: setting "
-						+ "password for client: " + userPassword);
+                if (ac.isAuthorized()) {
+                    LOG.debug("handle: SASL server DIGEST-MD5 callback: setting canonicalized client ID: ",
+                              userName);
+                    ac.setAuthorizedID(authzid);
+                }
+            }
+        }
+    }
 
-				pc.setPassword(password);
-			}
-			if (ac != null) {
-
-				String authid = ac.getAuthenticationID();
-				String authzid = ac.getAuthorizationID();
-
-				if (authid.equals(authzid)) {
-					ac.setAuthorized(true);
-				} else {
-					ac.setAuthorized(false);
-				}
-
-				if (ac.isAuthorized()) {
-					LOG.debug("handle: SASL server DIGEST-MD5 callback: setting "
-							+ "canonicalized client ID: " + userName);
-					ac.setAuthorizedID(authzid);
-				}
-			}
-		}
-	}
-
-	/**
-	 * Used by SaslTokenMessage::processToken() to respond to server SASL
-	 * tokens.
-	 * 
-	 * @param token
-	 *            Server's SASL token
-	 * @return token to send back to the server.
-	 */
-	public byte[] response(byte[] token) {
-		try {
-			LOG.debug("response: Responding to input token of length: "
-					+ token.length);
-			byte[] retval = saslServer.evaluateResponse(token);
-			LOG.debug("response: Response token length: " + retval.length);
-			return retval;
-		} catch (SaslException e) {
-			LOG.error("response: Failed to evaluate client token of length: "
-					+ token.length + " : " + e);
-			return null;
-		}
-	}
+    /**
+     * Used by SaslTokenMessage::processToken() to respond to server SASL
+     * tokens.
+     *
+     * @param token
+     *            Server's SASL token
+     * @return token to send back to the server.
+     */
+    public byte[] response(byte[] token) {
+        try {
+            LOG.debug("response: Responding to input token of length: {}",
+                      token.length);
+            byte[] retval = saslServer.evaluateResponse(token);
+            LOG.debug("response: Response token length: {}", retval.length);
+            return retval;
+        } catch (SaslException e) {
+            LOG.error("response: Failed to evaluate client token of length: {} : {}",
+                      token.length, e);
+            return null;
+        }
+    }
 }

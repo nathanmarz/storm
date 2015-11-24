@@ -27,30 +27,38 @@ import java.util.Map;
 import java.util.Set;
 
 public class ThriftTopologyUtils {
+    public static boolean isWorkerHook(StormTopology._Fields f) {
+        return f.equals(StormTopology._Fields.WORKER_HOOKS);
+    }
+
     public static Set<String> getComponentIds(StormTopology topology) {
         Set<String> ret = new HashSet<String>();
         for(StormTopology._Fields f: StormTopology.metaDataMap.keySet()) {
-            Map<String, Object> componentMap = (Map<String, Object>) topology.getFieldValue(f);
-            ret.addAll(componentMap.keySet());
+            if(StormTopology.metaDataMap.get(f).valueMetaData.type == org.apache.thrift.protocol.TType.MAP) {
+                Map<String, Object> componentMap = (Map<String, Object>) topology.getFieldValue(f);
+                ret.addAll(componentMap.keySet());
+            }
         }
         return ret;
     }
 
     public static ComponentCommon getComponentCommon(StormTopology topology, String componentId) {
         for(StormTopology._Fields f: StormTopology.metaDataMap.keySet()) {
-            Map<String, Object> componentMap = (Map<String, Object>) topology.getFieldValue(f);
-            if(componentMap.containsKey(componentId)) {
-                Object component = componentMap.get(componentId);
-                if(component instanceof Bolt) {
-                    return ((Bolt) component).get_common();
+            if(StormTopology.metaDataMap.get(f).valueMetaData.type == org.apache.thrift.protocol.TType.MAP) {
+                Map<String, Object> componentMap = (Map<String, Object>) topology.getFieldValue(f);
+                if(componentMap.containsKey(componentId)) {
+                    Object component = componentMap.get(componentId);
+                    if(component instanceof Bolt) {
+                        return ((Bolt) component).get_common();
+                    }
+                    if(component instanceof SpoutSpec) {
+                        return ((SpoutSpec) component).get_common();
+                    }
+                    if(component instanceof StateSpoutSpec) {
+                        return ((StateSpoutSpec) component).get_common();
+                    }
+                    throw new RuntimeException("Unreachable code! No get_common conversion for component " + component);
                 }
-                if(component instanceof SpoutSpec) {
-                    return ((SpoutSpec) component).get_common();
-                }
-                if(component instanceof StateSpoutSpec) {
-                    return ((StateSpoutSpec) component).get_common();
-                }
-                throw new RuntimeException("Unreachable code! No get_common conversion for component " + component);
             }
         }
         throw new IllegalArgumentException("Could not find component common for " + componentId);

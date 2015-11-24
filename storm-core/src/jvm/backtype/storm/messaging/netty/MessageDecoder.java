@@ -70,7 +70,7 @@ public class MessageDecoder extends FrameDecoder {
             }
             
             //case 2: SaslTokenMessageRequest
-            if(code==-500) {
+            if(code == SaslMessageToken.IDENTIFIER) {
             	// Make sure that we have received at least an integer (length) 
                 if (buf.readableBytes() < 4) {
                     //need more data

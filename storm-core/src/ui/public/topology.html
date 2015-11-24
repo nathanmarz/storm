@@ -59,7 +59,7 @@
   </div>
   <div class="row">
       <div class="col-md-12">
-          <h2>Topology resources</h2>
+          <h2 id="topology-resources-header">Topology resources</h2>
           <div id="topology-resources"></div>
       </div>
   </div>
@@ -293,6 +293,11 @@ $(document).ready(function() {
             searchForm.append(Mustache.render($(template).filter("#search-form-template").html(),{id: topologyId}));
             topologySummary.append(Mustache.render($(template).filter("#topology-summary-template").html(),response));
             topologyResources.append(Mustache.render($(template).filter("#topology-resources-template").html(),response));
+            var displayResource = response["schedulerDisplayResource"];
+            if (!displayResource){
+                $('#topology-resources-header').hide();
+                $('#topology-resources').hide();
+            }
             topologyActions.append(Mustache.render($(template).filter("#topology-actions-template").html(),buttonJsonData));
             topologyStats.append(Mustache.render($(template).filter("#topology-stats-template").html(),response));
             //window, emitted, transferred, complete latency, acked, failed

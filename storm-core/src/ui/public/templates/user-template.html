@@ -15,14 +15,24 @@
  limitations under the License.
 -->
 <script id="user-template" type="text/html">
-    <div class="ui-user">
-        <span data-toggle="tooltip" data-placement="bottom" data-original-title="Search through all logs for any topology.">
-                <a href="/deep_search_result.html" target="_blank"><image src="/images/search.png" class="image_pre_format"/></a>
+ <div class="ui-user">
+     {{#central-log-url}}
+        <span data-toggle="tooltip" data-placement="bottom" data-original-title="Link to Central Logging">
+                <a href="{{central-log-url}}" target="_blank"><image src="/images/statistic.png" class="image_pre_format"/></a>
         </span>
-        {{#user}}
+      {{/central-log-url}}
+     {{#bugtracker-url}}
+        <span data-toggle="tooltip" data-placement="bottom" data-original-title="Submit BUG for Help and tracking the issue.">
+                <a href="{{bugtracker-url}}" target="_blank"><image src="/images/bug.png" class="image_pre_format"/></a>
+        </span>
+     {{/bugtracker-url}}
+     <span data-toggle="tooltip" data-placement="bottom" data-original-title="Search through all logs for any topology.">
+             <a href="/deep_search_result.html" target="_blank"><image src="/images/search.png" class="image_pre_format"/></a>
+     </span>
+     {{#user}}
         <span data-toggle="tooltip" data-placement="bottom" data-original-title="This should be you.">
                 User: {{user}}
         </span>
-        {{/user}}
-    </div>
+     {{/user}}
+ </div>
 </script>

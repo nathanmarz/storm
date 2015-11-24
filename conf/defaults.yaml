@@ -49,6 +49,7 @@ storm.auth.simple-white-list.users: []
 storm.auth.simple-acl.users: []
 storm.auth.simple-acl.users.commands: []
 storm.auth.simple-acl.admins: []
+storm.cluster.state.store: "backtype.storm.cluster_state.zookeeper_state_factory"
 storm.meta.serialization.delegate: "backtype.storm.serialization.GzipThriftSerializationDelegate"
 storm.codedistributor.class: "backtype.storm.codedistributor.LocalFileSystemCodeDistributor"
 storm.health.check.dir: "healthchecks"
@@ -73,6 +74,8 @@ topology.min.replication.count: 1
 topology.max.replication.wait.time.sec: 60
 nimbus.credential.renewers.freq.secs: 600
 nimbus.impersonation.authorizer: "backtype.storm.security.auth.authorizer.ImpersonationAuthorizer"
+
+scheduler.display.resource: false
 
 ### ui.* configs are for the master
 ui.host: 0.0.0.0
@@ -240,3 +243,12 @@ topology.component.cpu.pcore.percent: 10.0
 topology.worker.max.heap.size.mb: 768.0
 
 dev.zookeeper.path: "/tmp/dev-storm-zookeeper"
+
+pacemaker.host: "localhost"
+pacemaker.port: 6699
+pacemaker.base.threads: 10
+pacemaker.max.threads: 50
+pacemaker.thread.timeout: 10
+pacemaker.childopts: "-Xmx1024m"
+pacemaker.auth.method: "NONE"
+pacemaker.kerberos.users: []

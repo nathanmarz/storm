@@ -154,11 +154,13 @@
             Assigned Mem (MB)
           </span>
         </th>
+        {{#schedulerDisplayResource}}
         <th>
           <span data-toggle="tooltip" data-placement="above" title="Assigned Total CPU by Scheduler. Every 100 means 1 core.">
             Assigned CPU (%)
           </span>
         </th>
+        {{/schedulerDisplayResource}}
         <th>
           <span data-toggle="tooltip" data-placement="left" title="This shows information from the scheduler about the latest attempt to schedule the Topology on the cluster.">
             Scheduler Info
@@ -178,7 +180,9 @@
         <td>{{tasksTotal}}</td>
         <td>{{replicationCount}}</td>
         <td>{{assignedTotalMem}}</td>
+        {{#schedulerDisplayResource}}
         <td>{{assignedCpu}}</td>
+        {{/schedulerDisplayResource}}
         <td>{{schedulerInfo}}</td>
       </tr>
       {{/topologies}}
@@ -214,6 +218,30 @@
           Used slots
         </span>
       </th>
+      {{#schedulerDisplayResource}}
+      <th>
+        <span data-toggle="tooltip" data-placement="above" title="Memory capacity of a supervisor.">
+          Total Mem (MB)
+        </span>
+      </th>
+      {{/schedulerDisplayResource}}
+      <th>
+        <span data-toggle="tooltip" data-placement="left" title="Memory that has been allocated.">
+          Used Mem (MB)
+        </span>
+      </th>
+      {{#schedulerDisplayResource}}
+      <th>
+        <span data-toggle="tooltip" data-placement="above" title="CPU capacity of a supervisor. Every 100 means one core.">
+          Total CPU (%)
+        </span>
+      </th>
+      <th>
+        <span data-toggle="tooltip" data-placement="left" title="CPU that has been allocated. Every 100 means one core">
+          Used CPU (%)
+        </span>
+      </th>
+      {{/schedulerDisplayResource}}
       <th>
         <span data-toggle="tooltip" data-placement="left" title="Version">
           Version
@@ -229,6 +257,14 @@
       <td>{{uptime}}</td>
       <td>{{slotsTotal}}</td>
       <td>{{slotsUsed}}</td>
+      {{#schedulerDisplayResource}}
+      <td>{{totalMem}}</td>
+      {{/schedulerDisplayResource}}
+      <td>{{usedMem}}</td>
+      {{#schedulerDisplayResource}}
+      <td>{{totalCpu}}</td>
+      <td>{{usedCpu}}</td>
+      {{/schedulerDisplayResource}}
       <td>{{version}}</td>
     </tr>
     {{/supervisors}}

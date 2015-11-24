@@ -167,6 +167,10 @@
                         TOPOLOGY-TICK-TUPLE-FREQ-SECS
                         TOPOLOGY-SLEEP-SPOUT-WAIT-STRATEGY-TIME-MS
                         TOPOLOGY-SPOUT-WAIT-STRATEGY
+                        TOPOLOGY-BOLTS-WINDOW-LENGTH-COUNT
+                        TOPOLOGY-BOLTS-WINDOW-LENGTH-DURATION-MS
+                        TOPOLOGY-BOLTS-SLIDING-INTERVAL-COUNT
+                        TOPOLOGY-BOLTS-SLIDING-INTERVAL-DURATION-MS
                         )
         spec-conf (-> general-context
                       (.getComponentCommon component-id)

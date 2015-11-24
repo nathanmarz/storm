@@ -477,6 +477,24 @@ public class ConfigValidation {
         }
     }
 
+    public static class PacemakerAuthTypeValidator extends Validator {
+
+        @Override
+        public void validateField(String name, Object o) {
+            if(o == null) {
+                throw new IllegalArgumentException( "Field " + name + " must be set.");
+            }
+
+            if(o instanceof String &&
+               (((String)o).equals("NONE") ||
+                ((String)o).equals("DIGEST") ||
+                ((String)o).equals("KERBEROS"))) {
+                return;
+            }
+            throw new IllegalArgumentException( "Field " + name + " must be one of \"NONE\", \"DIGEST\", or \"KERBEROS\"");
+        }
+    }
+
     /**
      * Methods for validating confs
      */

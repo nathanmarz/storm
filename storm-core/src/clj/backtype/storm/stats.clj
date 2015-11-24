@@ -287,18 +287,43 @@
       specific-stats
       rate)))
 
+(defn valid-number?
+  "Returns true if x is a number that is not NaN or Infinity, false otherwise"
+  [x]
+  (and (number? x)
+       (not (Double/isNaN x))
+       (not (Double/isInfinite x))))
+
+(defn apply-default
+  [f defaulting-fn & args]
+  (apply f (map defaulting-fn args)))
+
+(defn apply-or-0
+  [f & args]
+  (apply apply-default
+         f
+         #(if (valid-number? %) % 0)
+         args))
+
+(defn sum-or-0
+  [& args]
+  (apply apply-or-0 + args))
+
+(defn product-or-0
+  [& args]
+  (apply apply-or-0 * args))
+
+(defn max-or-0
+  [& args]
+  (apply apply-or-0 max args))
+
 (defn- agg-bolt-lat-and-count
   "Aggregates number executed, process latency, and execute latency across all
   streams."
   [idk->exec-avg idk->proc-avg idk->num-executed]
-  {:pre (apply = (map #(set (keys %))
-                      [idk->exec-avg
-                       idk->proc-avg
-                       idk->num-executed]))}
-  (letfn [(weight-avg [[id avg]] (let [num-e (get idk->num-executed id)]
-                                   (if (and avg num-e)
-                                     (* avg num-e)
-                                     0)))]
+  (letfn [(weight-avg [[id avg]]
+            (let [num-e (get idk->num-executed id)]
+              (product-or-0 avg num-e)))]
     {:executeLatencyTotal (sum (map weight-avg idk->exec-avg))
      :processLatencyTotal (sum (map weight-avg idk->proc-avg))
      :executed (sum (vals idk->num-executed))}))
@@ -306,10 +331,8 @@
 (defn- agg-spout-lat-and-count
   "Aggregates number acked and complete latencies across all streams."
   [sid->comp-avg sid->num-acked]
-  {:pre (apply = (map #(set (keys %))
-                      [sid->comp-avg
-                       sid->num-acked]))}
-  (letfn [(weight-avg [[id avg]] (* avg (get sid->num-acked id)))]
+  (letfn [(weight-avg [[id avg]]
+            (product-or-0 avg (get sid->num-acked id)))]
     {:completeLatencyTotal (sum (map weight-avg sid->comp-avg))
      :acked (sum (vals sid->num-acked))}))
 
@@ -335,30 +358,21 @@
 (defn- agg-bolt-streams-lat-and-count
   "Aggregates number executed and process & execute latencies."
   [idk->exec-avg idk->proc-avg idk->executed]
-  {:pre (apply = (map #(set (keys %))
-                      [idk->exec-avg
-                       idk->proc-avg
-                       idk->executed]))}
-  (letfn [(weight-avg [id avg] (let [num-e (idk->executed id)]
-                                   (if (and avg num-e)
-                                     (* avg num-e)
-                                     0)))]
+  (letfn [(weight-avg [id avg]
+            (let [num-e (idk->executed id)]
+              (product-or-0 avg num-e)))]
     (into {}
       (for [k (keys idk->exec-avg)]
-        [k {:executeLatencyTotal (weight-avg k (idk->exec-avg k))
-            :processLatencyTotal (weight-avg k (idk->proc-avg k))
+        [k {:executeLatencyTotal (weight-avg k (get idk->exec-avg k))
+            :processLatencyTotal (weight-avg k (get idk->proc-avg k))
             :executed (idk->executed k)}]))))
 
 (defn- agg-spout-streams-lat-and-count
   "Aggregates number acked and complete latencies."
   [idk->comp-avg idk->acked]
-  {:pre (apply = (map #(set (keys %))
-                      [idk->comp-avg
-                       idk->acked]))}
-  (letfn [(weight-avg [id avg] (let [num-e (get idk->acked id)]
-                                   (if (and avg num-e)
-                                     (* avg num-e)
-                                     0)))]
+  (letfn [(weight-avg [id avg]
+            (let [num-e (get idk->acked id)]
+              (product-or-0 avg num-e)))]
     (into {}
       (for [k (keys idk->comp-avg)]
         [k {:completeLatencyTotal (weight-avg k (get idk->comp-avg k))
@@ -595,22 +609,6 @@
                     (get window)
                     vals
                     sum)})}))
-
-(defn apply-default
-  [f defaulting-fn & args]
-  (apply f (map defaulting-fn args)))
-
-(defn apply-or-0
-  [f & args]
-  (apply apply-default f #(or % 0) args))
-
-(defn sum-or-0
-  [& args]
-  (apply apply-or-0 + args))
-
-(defn max-or-0
-  [& args]
-  (apply apply-or-0 max args))
 
 (defn merge-agg-comp-stats-comp-page-bolt
   [{acc-in :cid+sid->input-stats

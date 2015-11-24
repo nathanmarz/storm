@@ -1,4 +1,5 @@
 +## 0.11.0
+ * STORM-1126: Allow a configMethod that takes no arguments (Flux)
  * STORM-1203: worker metadata file creation doesn't use storm.log.dir config
  * STORM-1349: [Flux] Allow constructorArgs to take Maps as arguments
  * STORM-126: Add Lifecycle support API for worker nodes

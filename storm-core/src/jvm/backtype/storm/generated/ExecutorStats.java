@@ -660,40 +660,8 @@ public class ExecutorStats implements org.apache.thrift.TBase<ExecutorStats, Exe
           case 1: // EMITTED
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map268 = iprot.readMapBegin();
-                struct.emitted = new HashMap<String,Map<String,Long>>(2*_map268.size);
-                String _key269;
-                Map<String,Long> _val270;
-                for (int _i271 = 0; _i271 < _map268.size; ++_i271)
-                {
-                  _key269 = iprot.readString();
-                  {
-                    org.apache.thrift.protocol.TMap _map272 = iprot.readMapBegin();
-                    _val270 = new HashMap<String,Long>(2*_map272.size);
-                    String _key273;
-                    long _val274;
-                    for (int _i275 = 0; _i275 < _map272.size; ++_i275)
-                    {
-                      _key273 = iprot.readString();
-                      _val274 = iprot.readI64();
-                      _val270.put(_key273, _val274);
-                    }
-                    iprot.readMapEnd();
-                  }
-                  struct.emitted.put(_key269, _val270);
-                }
-                iprot.readMapEnd();
-              }
-              struct.set_emitted_isSet(true);
-            } else { 
-              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-            }
-            break;
-          case 2: // TRANSFERRED
-            if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
-              {
                 org.apache.thrift.protocol.TMap _map276 = iprot.readMapBegin();
-                struct.transferred = new HashMap<String,Map<String,Long>>(2*_map276.size);
+                struct.emitted = new HashMap<String,Map<String,Long>>(2*_map276.size);
                 String _key277;
                 Map<String,Long> _val278;
                 for (int _i279 = 0; _i279 < _map276.size; ++_i279)
@@ -712,7 +680,39 @@ public class ExecutorStats implements org.apache.thrift.TBase<ExecutorStats, Exe
                     }
                     iprot.readMapEnd();
                   }
-                  struct.transferred.put(_key277, _val278);
+                  struct.emitted.put(_key277, _val278);
+                }
+                iprot.readMapEnd();
+              }
+              struct.set_emitted_isSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
+          case 2: // TRANSFERRED
+            if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
+              {
+                org.apache.thrift.protocol.TMap _map284 = iprot.readMapBegin();
+                struct.transferred = new HashMap<String,Map<String,Long>>(2*_map284.size);
+                String _key285;
+                Map<String,Long> _val286;
+                for (int _i287 = 0; _i287 < _map284.size; ++_i287)
+                {
+                  _key285 = iprot.readString();
+                  {
+                    org.apache.thrift.protocol.TMap _map288 = iprot.readMapBegin();
+                    _val286 = new HashMap<String,Long>(2*_map288.size);
+                    String _key289;
+                    long _val290;
+                    for (int _i291 = 0; _i291 < _map288.size; ++_i291)
+                    {
+                      _key289 = iprot.readString();
+                      _val290 = iprot.readI64();
+                      _val286.put(_key289, _val290);
+                    }
+                    iprot.readMapEnd();
+                  }
+                  struct.transferred.put(_key285, _val286);
                 }
                 iprot.readMapEnd();
               }
@@ -755,15 +755,15 @@ public class ExecutorStats implements org.apache.thrift.TBase<ExecutorStats, Exe
         oprot.writeFieldBegin(EMITTED_FIELD_DESC);
         {
           oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.MAP, struct.emitted.size()));
-          for (Map.Entry<String, Map<String,Long>> _iter284 : struct.emitted.entrySet())
+          for (Map.Entry<String, Map<String,Long>> _iter292 : struct.emitted.entrySet())
           {
-            oprot.writeString(_iter284.getKey());
+            oprot.writeString(_iter292.getKey());
             {
-              oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.I64, _iter284.getValue().size()));
-              for (Map.Entry<String, Long> _iter285 : _iter284.getValue().entrySet())
+              oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.I64, _iter292.getValue().size()));
+              for (Map.Entry<String, Long> _iter293 : _iter292.getValue().entrySet())
               {
-                oprot.writeString(_iter285.getKey());
-                oprot.writeI64(_iter285.getValue());
+                oprot.writeString(_iter293.getKey());
+                oprot.writeI64(_iter293.getValue());
               }
               oprot.writeMapEnd();
             }
@@ -776,15 +776,15 @@ public class ExecutorStats implements org.apache.thrift.TBase<ExecutorStats, Exe
         oprot.writeFieldBegin(TRANSFERRED_FIELD_DESC);
         {
           oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.MAP, struct.transferred.size()));
-          for (Map.Entry<String, Map<String,Long>> _iter286 : struct.transferred.entrySet())
+          for (Map.Entry<String, Map<String,Long>> _iter294 : struct.transferred.entrySet())
           {
-            oprot.writeString(_iter286.getKey());
+            oprot.writeString(_iter294.getKey());
             {
-              oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.I64, _iter286.getValue().size()));
-              for (Map.Entry<String, Long> _iter287 : _iter286.getValue().entrySet())
+              oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.I64, _iter294.getValue().size()));
+              for (Map.Entry<String, Long> _iter295 : _iter294.getValue().entrySet())
               {
-                oprot.writeString(_iter287.getKey());
-                oprot.writeI64(_iter287.getValue());
+                oprot.writeString(_iter295.getKey());
+                oprot.writeI64(_iter295.getValue());
               }
               oprot.writeMapEnd();
             }
@@ -820,30 +820,30 @@ public class ExecutorStats implements org.apache.thrift.TBase<ExecutorStats, Exe
       TTupleProtocol oprot = (TTupleProtocol) prot;
       {
         oprot.writeI32(struct.emitted.size());
-        for (Map.Entry<String, Map<String,Long>> _iter288 : struct.emitted.entrySet())
+        for (Map.Entry<String, Map<String,Long>> _iter296 : struct.emitted.entrySet())
         {
-          oprot.writeString(_iter288.getKey());
+          oprot.writeString(_iter296.getKey());
           {
-            oprot.writeI32(_iter288.getValue().size());
-            for (Map.Entry<String, Long> _iter289 : _iter288.getValue().entrySet())
+            oprot.writeI32(_iter296.getValue().size());
+            for (Map.Entry<String, Long> _iter297 : _iter296.getValue().entrySet())
             {
-              oprot.writeString(_iter289.getKey());
-              oprot.writeI64(_iter289.getValue());
+              oprot.writeString(_iter297.getKey());
+              oprot.writeI64(_iter297.getValue());
             }
           }
         }
       }
       {
         oprot.writeI32(struct.transferred.size());
-        for (Map.Entry<String, Map<String,Long>> _iter290 : struct.transferred.entrySet())
+        for (Map.Entry<String, Map<String,Long>> _iter298 : struct.transferred.entrySet())
         {
-          oprot.writeString(_iter290.getKey());
+          oprot.writeString(_iter298.getKey());
           {
-            oprot.writeI32(_iter290.getValue().size());
-            for (Map.Entry<String, Long> _iter291 : _iter290.getValue().entrySet())
+            oprot.writeI32(_iter298.getValue().size());
+            for (Map.Entry<String, Long> _iter299 : _iter298.getValue().entrySet())
             {
-              oprot.writeString(_iter291.getKey());
-              oprot.writeI64(_iter291.getValue());
+              oprot.writeString(_iter299.getKey());
+              oprot.writeI64(_iter299.getValue());
             }
           }
         }
@@ -856,32 +856,8 @@ public class ExecutorStats implements org.apache.thrift.TBase<ExecutorStats, Exe
     public void read(org.apache.thrift.protocol.TProtocol prot, ExecutorStats struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
       {
-        org.apache.thrift.protocol.TMap _map292 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.MAP, iprot.readI32());
-        struct.emitted = new HashMap<String,Map<String,Long>>(2*_map292.size);
-        String _key293;
-        Map<String,Long> _val294;
-        for (int _i295 = 0; _i295 < _map292.size; ++_i295)
-        {
-          _key293 = iprot.readString();
-          {
-            org.apache.thrift.protocol.TMap _map296 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.I64, iprot.readI32());
-            _val294 = new HashMap<String,Long>(2*_map296.size);
-            String _key297;
-            long _val298;
-            for (int _i299 = 0; _i299 < _map296.size; ++_i299)
-            {
-              _key297 = iprot.readString();
-              _val298 = iprot.readI64();
-              _val294.put(_key297, _val298);
-            }
-          }
-          struct.emitted.put(_key293, _val294);
-        }
-      }
-      struct.set_emitted_isSet(true);
-      {
         org.apache.thrift.protocol.TMap _map300 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.MAP, iprot.readI32());
-        struct.transferred = new HashMap<String,Map<String,Long>>(2*_map300.size);
+        struct.emitted = new HashMap<String,Map<String,Long>>(2*_map300.size);
         String _key301;
         Map<String,Long> _val302;
         for (int _i303 = 0; _i303 < _map300.size; ++_i303)
@@ -899,7 +875,31 @@ public class ExecutorStats implements org.apache.thrift.TBase<ExecutorStats, Exe
               _val302.put(_key305, _val306);
             }
           }
-          struct.transferred.put(_key301, _val302);
+          struct.emitted.put(_key301, _val302);
+        }
+      }
+      struct.set_emitted_isSet(true);
+      {
+        org.apache.thrift.protocol.TMap _map308 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.MAP, iprot.readI32());
+        struct.transferred = new HashMap<String,Map<String,Long>>(2*_map308.size);
+        String _key309;
+        Map<String,Long> _val310;
+        for (int _i311 = 0; _i311 < _map308.size; ++_i311)
+        {
+          _key309 = iprot.readString();
+          {
+            org.apache.thrift.protocol.TMap _map312 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.I64, iprot.readI32());
+            _val310 = new HashMap<String,Long>(2*_map312.size);
+            String _key313;
+            long _val314;
+            for (int _i315 = 0; _i315 < _map312.size; ++_i315)
+            {
+              _key313 = iprot.readString();
+              _val314 = iprot.readI64();
+              _val310.put(_key313, _val314);
+            }
+          }
+          struct.transferred.put(_key309, _val310);
         }
       }
       struct.set_transferred_isSet(true);

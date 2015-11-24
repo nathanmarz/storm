@@ -18,25 +18,20 @@
 package backtype.storm.topology;
 
 import backtype.storm.Config;
-import backtype.storm.generated.Bolt;
-import backtype.storm.generated.ComponentCommon;
-import backtype.storm.generated.ComponentObject;
-import backtype.storm.generated.GlobalStreamId;
-import backtype.storm.generated.Grouping;
-import backtype.storm.generated.NullStruct;
-import backtype.storm.generated.SpoutSpec;
-import backtype.storm.generated.StateSpoutSpec;
-import backtype.storm.generated.StormTopology;
+import backtype.storm.generated.*;
 import backtype.storm.grouping.CustomStreamGrouping;
 import backtype.storm.grouping.PartialKeyGrouping;
+import backtype.storm.hooks.IWorkerHook;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
+import org.json.simple.JSONValue;
+
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-
 import backtype.storm.windowing.TupleWindow;
-import org.json.simple.JSONValue;
 
 /**
  * TopologyBuilder exposes the Java API for specifying a topology for Storm
@@ -98,11 +93,13 @@ public class TopologyBuilder {
 //    private Map<String, Map<GlobalStreamId, Grouping>> _inputs = new HashMap<String, Map<GlobalStreamId, Grouping>>();
 
     private Map<String, StateSpoutSpec> _stateSpouts = new HashMap<>();
-    
-    
+    private List<ByteBuffer> _workerHooks = new ArrayList<>();
+
+
     public StormTopology createTopology() {
         Map<String, Bolt> boltSpecs = new HashMap<>();
         Map<String, SpoutSpec> spoutSpecs = new HashMap<>();
+
         for(String boltId: _bolts.keySet()) {
             IRichBolt bolt = _bolts.get(boltId);
             ComponentCommon common = getComponentCommon(boltId, bolt);
@@ -112,11 +109,15 @@ public class TopologyBuilder {
             IRichSpout spout = _spouts.get(spoutId);
             ComponentCommon common = getComponentCommon(spoutId, spout);
             spoutSpecs.put(spoutId, new SpoutSpec(ComponentObject.serialized_java(Utils.javaSerialize(spout)), common));
-            
         }
-        return new StormTopology(spoutSpecs,
-                                 boltSpecs,
-                                 new HashMap<String, StateSpoutSpec>());
+
+        StormTopology stormTopology = new StormTopology(spoutSpecs,
+                boltSpecs,
+                new HashMap<String, StateSpoutSpec>());
+
+        stormTopology.set_worker_hooks(_workerHooks);
+
+        return stormTopology;
     }
 
     /**
@@ -230,6 +231,18 @@ public class TopologyBuilder {
         // TODO: finish
     }
 
+    /**
+     * Add a new worker lifecycle hook
+     *
+     * @param workerHook the lifecycle hook to add
+     */
+    public void addWorkerHook(IWorkerHook workerHook) {
+        if(null == workerHook) {
+            throw new IllegalArgumentException("WorkerHook must not be null.");
+        }
+
+        _workerHooks.add(ByteBuffer.wrap(Utils.javaSerialize(workerHook)));
+    }
 
     private void validateUnusedId(String id) {
         if(_bolts.containsKey(id)) {

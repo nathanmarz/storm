@@ -82,7 +82,7 @@ public class ResourceAwareExampleTopology {
      * Use to limit the maximum amount of memory (in MB) allocated to one worker process.
      * Can be used to spread executors to to multiple workers
      */
-    conf.setTopologyWorkerMaxHeapSize(512.0);
+    conf.setTopologyWorkerMaxHeapSize(1024.0);
 
     if (args != null && args.length > 0) {
       conf.setNumWorkers(3);

@@ -84,6 +84,12 @@ public class ResourceAwareExampleTopology {
      */
     conf.setTopologyWorkerMaxHeapSize(1024.0);
 
+    // Set topology priority 0-30 with 0 being the highest priority and 30 being the lowest priority.
+    conf.setTopologyPriority(30);
+
+    //Set strategy to schedule topology. If not specified, default to backtype.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy
+    conf.setTopologyStrategy(backtype.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy.class);
+
     if (args != null && args.length > 0) {
       conf.setNumWorkers(3);
 

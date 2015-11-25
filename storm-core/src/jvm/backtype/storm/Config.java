@@ -2228,11 +2228,10 @@ public class Config extends HashMap<String, Object> {
     }
 
     /**
-     * Takes as input the scheduler class name.
-     * Currently only the Multitenant Scheduler and Resource Aware Scheduler are supported
+     * Takes as input the strategy class name. Strategy must implement the IStrategy interface
      */
     public void setTopologyStrategy(Class<? extends IStrategy> clazz) {
-        if(clazz != null) {
+        if (clazz != null) {
             this.put(Config.TOPOLOGY_SCHEDULER_STRATEGY, clazz.getName());
         }
     }

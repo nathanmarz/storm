@@ -170,10 +170,10 @@ public class DefaultResourceAwareStrategy implements IStrategy {
             LOG.error("Not all executors successfully scheduled: {}",
                     executorsNotScheduled);
             schedulerAssignmentMap = null;
-            result = SchedulingResult.failure(SchedulingStatus.FAIL_NOT_ENOUGH_RESOURCES, "Not all executors successfully scheduled: " + executorsNotScheduled);
+            result = SchedulingResult.failure(SchedulingStatus.FAIL_NOT_ENOUGH_RESOURCES, (td.getExecutors().size() - unassignedExecutors.size()) + "/" + td.getExecutors().size() + " executors scheduled");
         } else {
             LOG.debug("All resources successfully scheduled!");
-            result = SchedulingResult.success(schedulerAssignmentMap);
+            result = SchedulingResult.successWithMsg(schedulerAssignmentMap, "Fully Scheduled by DefaultResourceAwareStrategy");
         }
         if (schedulerAssignmentMap == null) {
             LOG.error("Topology {} not successfully scheduled!", td.getId());

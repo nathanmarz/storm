@@ -507,14 +507,14 @@ public class ConfigValidation {
 
         @Override
         public void validateField(String name, Object o) {
-            if(o == null) {
+            if (o == null) {
                 return;
             }
             SimpleTypeValidator.validateField(name, Map.class, o);
-            if(!((Map) o).containsKey("cpu") ) {
-                throw new IllegalArgumentException( "Field " + name + " must have map entry with key: cpu");
+            if (!((Map) o).containsKey("cpu")) {
+                throw new IllegalArgumentException("Field " + name + " must have map entry with key: cpu");
             }
-            if(!((Map) o).containsKey("memory") ) {
+            if (!((Map) o).containsKey("memory")) {
                 throw new IllegalArgumentException("Field " + name + " must have map entry with key: memory");
             }
 
@@ -533,13 +533,13 @@ public class ConfigValidation {
 
         @Override
         public void validateField(String name, Object o) {
-            if(o == null) {
+            if (o == null) {
                 return;
             }
             SimpleTypeValidator.validateField(name, String.class, o);
             try {
                 Class objectClass = Class.forName((String) o);
-                if(!this.classImplements.isAssignableFrom(objectClass)) {
+                if (!this.classImplements.isAssignableFrom(objectClass)) {
                     throw new IllegalArgumentException("Field " + name + " with value " + o + " does not implement " + this.classImplements.getName());
                 }
             } catch (ClassNotFoundException e) {

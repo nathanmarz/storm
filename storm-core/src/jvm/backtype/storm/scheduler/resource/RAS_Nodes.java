@@ -35,16 +35,11 @@ import java.util.Map;
 public class RAS_Nodes {
 
     private Map<String, RAS_Node> nodeMap;
-    private Cluster cluster;
-    private Topologies topologies;
 
     private static final Logger LOG = LoggerFactory.getLogger(RAS_Nodes.class);
 
-
     public RAS_Nodes(Cluster cluster, Topologies topologies) {
         this.nodeMap = getAllNodesFrom(cluster, topologies);
-        this.cluster = cluster;
-        this.topologies = topologies;
     }
 
     public static Map<String, RAS_Node> getAllNodesFrom(Cluster cluster, Topologies topologies) {
@@ -142,7 +137,7 @@ public class RAS_Nodes {
         for (RAS_Node node : nodeMap.values()) {
             for (WorkerSlot ws : node.getUsedSlots()) {
                 if (workerSlots.contains(ws)) {
-                    LOG.info("freeing ws {} on node {}", ws, node);
+                    LOG.debug("freeing ws {} on node {}", ws, node);
                     node.free(ws);
                 }
             }

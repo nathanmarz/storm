@@ -28,6 +28,8 @@ import java.util.Set;
 import backtype.storm.Config;
 import backtype.storm.networktopography.DNSToSwitchMapping;
 import backtype.storm.utils.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Cluster {
 
@@ -91,9 +93,18 @@ public class Cluster {
         this.conf = storm_conf;
     }
 
+    /**
+     * Get a copy of this cluster object
+     */
     public Cluster getCopy() {
-        Cluster copy = new Cluster(this.inimbus, this.supervisors, this.assignments, this.conf);
-        for(Map.Entry<String, String> entry : this.status.entrySet()) {
+        HashMap<String, SchedulerAssignmentImpl> newAssignments = new HashMap<String, SchedulerAssignmentImpl>();
+        for (Map.Entry<String, SchedulerAssignmentImpl> entry : this.assignments.entrySet()) {
+            newAssignments.put(entry.getKey(), new SchedulerAssignmentImpl(entry.getValue().getTopologyId(), entry.getValue().getExecutorToSlot()));
+        }
+        Map newConf = new HashMap<String, Object>();
+        newConf.putAll(this.conf);
+        Cluster copy = new Cluster(this.inimbus, this.supervisors, newAssignments, newConf);
+        for (Map.Entry<String, String> entry : this.status.entrySet()) {
             copy.setStatus(entry.getKey(), entry.getValue());
         }
         return copy;
@@ -447,9 +458,12 @@ public class Cluster {
         return ret;
     }
 
-    public void setAssignments(Map<String, SchedulerAssignment> assignments) {
+    /**
+     * set assignments for cluster
+     */
+    public void setAssignments(Map<String, SchedulerAssignment> newAssignments) {
         this.assignments = new HashMap<String, SchedulerAssignmentImpl>();
-        for(Map.Entry<String, SchedulerAssignmentImpl> entry : this.assignments.entrySet()) {
+        for (Map.Entry<String, SchedulerAssignment> entry : newAssignments.entrySet()) {
             this.assignments.put(entry.getKey(), new SchedulerAssignmentImpl(entry.getValue().getTopologyId(), entry.getValue().getExecutorToSlot()));
         }
     }
@@ -466,7 +480,7 @@ public class Cluster {
      */
     public double getClusterTotalCPUResource() {
         double sum = 0.0;
-        for(SupervisorDetails sup: this.supervisors.values()) {
+        for (SupervisorDetails sup : this.supervisors.values()) {
             sum += sup.getTotalCPU();
         }
         return sum;
@@ -477,7 +491,7 @@ public class Cluster {
      */
     public double getClusterTotalMemoryResource() {
         double sum = 0.0;
-        for(SupervisorDetails sup: this.supervisors.values()) {
+        for (SupervisorDetails sup : this.supervisors.values()) {
             sum += sup.getTotalMemory();
         }
         return sum;
@@ -607,12 +621,27 @@ public class Cluster {
         }
     }
 
+    /**
+     * set scheduler status for a topology
+     */
+    private static final Logger LOG = LoggerFactory
+            .getLogger(Cluster.class);
     public void setStatus(String topologyId, String status) {
         this.status.put(topologyId, status);
     }
 
+    /**
+     * Get all schedule statuses
+     */
     public Map<String, String> getStatusMap() {
         return this.status;
+    }
+
+    /**
+     * set scheduler status map
+     */
+    public void setStatusMap(Map<String, String> statusMap) {
+        this.status.putAll(statusMap);
     }
 
     public void setResources(String topologyId, Double[] resources) {

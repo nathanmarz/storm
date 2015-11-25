@@ -58,20 +58,26 @@ public class User {
         if (resourcePool != null) {
             this.resourcePool.putAll(resourcePool);
         }
+        if (this.resourcePool.get("cpu") == null) {
+            this.resourcePool.put("cpu", 0.0);
+        }
+        if (this.resourcePool.get("memory") == null) {
+            this.resourcePool.put("memory", 0.0);
+        }
     }
 
     public User getCopy() {
         User newUser = new User(this.userId, this.resourcePool);
-        for(TopologyDetails topo :  this.pendingQueue) {
+        for (TopologyDetails topo : this.pendingQueue) {
             newUser.addTopologyToPendingQueue(topo);
         }
-        for(TopologyDetails topo :  this.runningQueue) {
+        for (TopologyDetails topo : this.runningQueue) {
             newUser.addTopologyToRunningQueue(topo);
         }
-        for(TopologyDetails topo :  this.attemptedQueue) {
+        for (TopologyDetails topo : this.attemptedQueue) {
             newUser.addTopologyToAttemptedQueue(topo);
         }
-        for(TopologyDetails topo :  this.invalidQueue) {
+        for (TopologyDetails topo : this.invalidQueue) {
             newUser.addTopologyToInvalidQueue(topo);
         }
         return newUser;
@@ -134,6 +140,7 @@ public class User {
         ret.addAll(this.invalidQueue);
         return ret;
     }
+
     public Map<String, Number> getResourcePool() {
         if (this.resourcePool != null) {
             return new HashMap<String, Number>(this.resourcePool);
@@ -190,7 +197,7 @@ public class User {
 
 
     private void moveTopology(TopologyDetails topo, Set<TopologyDetails> src, String srcName, Set<TopologyDetails> dest, String destName) {
-        LOG.info("For User {} Moving topo {} from {} to {}", this.userId, topo.getName(), srcName, destName);
+        LOG.debug("For User {} Moving topo {} from {} to {}", this.userId, topo.getName(), srcName, destName);
         if (topo == null) {
             return;
         }
@@ -204,49 +211,49 @@ public class User {
         }
         src.remove(topo);
         dest.add(topo);
-        LOG.info("SRC: {}", src);
-        LOG.info("DEST: {}", dest);
     }
 
 
-    public Double getResourcePoolAverageUtilization() {
-        List<Double> resourceUilitzationList = new LinkedList<Double>();
+    public double getResourcePoolAverageUtilization() {
         Double cpuResourcePoolUtilization = this.getCPUResourcePoolUtilization();
         Double memoryResourcePoolUtilization = this.getMemoryResourcePoolUtilization();
 
         if (cpuResourcePoolUtilization != null && memoryResourcePoolUtilization != null) {
-            return (cpuResourcePoolUtilization + memoryResourcePoolUtilization) / 2.0;
+            //cannot be (cpuResourcePoolUtilization + memoryResourcePoolUtilization)/2
+            //since memoryResourcePoolUtilization or cpuResourcePoolUtilization can be Double.MAX_VALUE
+            //Should not return infinity in that case
+            return ((cpuResourcePoolUtilization) / 2.0) + ((memoryResourcePoolUtilization) / 2.0);
         }
         return Double.MAX_VALUE;
     }
 
-    public Double getCPUResourcePoolUtilization() {
+    public double getCPUResourcePoolUtilization() {
         Double cpuGuarantee = this.resourcePool.get("cpu");
-        if (cpuGuarantee != null) {
-            return this.getCPUResourceUsedByUser() / cpuGuarantee;
+        if (cpuGuarantee == null || cpuGuarantee == 0.0) {
+            return Double.MAX_VALUE;
         }
-        return null;
+        return this.getCPUResourceUsedByUser() / cpuGuarantee;
     }
 
-    public Double getMemoryResourcePoolUtilization() {
+    public double getMemoryResourcePoolUtilization() {
         Double memoryGuarantee = this.resourcePool.get("memory");
-        if (memoryGuarantee != null) {
-            return this.getMemoryResourceUsedByUser() / memoryGuarantee;
+        if (memoryGuarantee == null || memoryGuarantee == 0.0) {
+            return Double.MAX_VALUE;
         }
-        return null;
+        return this.getMemoryResourceUsedByUser() / memoryGuarantee;
     }
 
 
-    public Double getCPUResourceUsedByUser() {
-        Double sum = 0.0;
+    public double getCPUResourceUsedByUser() {
+        double sum = 0.0;
         for (TopologyDetails topo : this.runningQueue) {
             sum += topo.getTotalRequestedCpu();
         }
         return sum;
     }
 
-    public Double getMemoryResourceUsedByUser() {
-        Double sum = 0.0;
+    public double getMemoryResourceUsedByUser() {
+        double sum = 0.0;
         for (TopologyDetails topo : this.runningQueue) {
             sum += topo.getTotalRequestedMemOnHeap() + topo.getTotalRequestedMemOffHeap();
         }
@@ -271,7 +278,6 @@ public class User {
     }
 
     public boolean hasTopologyNeedSchedule() {
-        //return (!this.pendingQueue.isEmpty() && (this.pendingQueue.size() - this.attemptedQueue.size()) > 0);
         return (!this.pendingQueue.isEmpty());
     }
 

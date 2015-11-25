@@ -34,7 +34,7 @@ public interface ISchedulingPriorityStrategy {
     public void prepare(Topologies topologies, Cluster cluster, Map<String, User> userMap, RAS_Nodes nodes);
 
     /**
-     *
+     * Gets the next topology to schedule
      * @return return the next topology to schedule.  If there is no topologies left to schedule, return null
      */
     public TopologyDetails getNextTopologyToSchedule();

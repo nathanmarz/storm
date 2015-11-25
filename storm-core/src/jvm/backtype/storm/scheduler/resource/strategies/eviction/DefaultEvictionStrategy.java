@@ -50,54 +50,50 @@ public class DefaultEvictionStrategy implements IEvictionStrategy {
 
     @Override
     public boolean makeSpaceForTopo(TopologyDetails td) {
-        LOG.info("attempting to make space for topo {} from user {}", td.getName(), td.getTopologySubmitter());
+        LOG.debug("attempting to make space for topo {} from user {}", td.getName(), td.getTopologySubmitter());
         User submitter = this.userMap.get(td.getTopologySubmitter());
         if (submitter.getCPUResourceGuaranteed() == null || submitter.getMemoryResourceGuaranteed() == null) {
             return false;
         }
-
         double cpuNeeded = td.getTotalRequestedCpu() / submitter.getCPUResourceGuaranteed();
         double memoryNeeded = (td.getTotalRequestedMemOffHeap() + td.getTotalRequestedMemOnHeap()) / submitter.getMemoryResourceGuaranteed();
 
+        User evictUser = this.findUserWithMostResourcesAboveGuarantee();
         //user has enough resource under his or her resource guarantee to schedule topology
         if ((1.0 - submitter.getCPUResourcePoolUtilization()) >= cpuNeeded && (1.0 - submitter.getMemoryResourcePoolUtilization()) >= memoryNeeded) {
-            User evictUser = this.findUserWithMostResourcesAboveGuarantee();
-            if (evictUser == null) {
-                LOG.info("Cannot make space for topology {} from user {}", td.getName(), submitter.getId());
-                submitter.moveTopoFromPendingToAttempted(td, this.cluster);
+            if (evictUser != null) {
 
-                return false;
+                TopologyDetails topologyEvict = evictUser.getRunningTopologyWithLowestPriority();
+                evictTopology(topologyEvict);
+                return true;
             }
-            TopologyDetails topologyEvict = evictUser.getRunningTopologyWithLowestPriority();
-            LOG.info("topology to evict: {}", topologyEvict);
-            evictTopology(topologyEvict);
-
-            LOG.info("Resources After eviction:\n{}", this.nodes);
-
-            return true;
         } else {
-
-            if ((1.0 - submitter.getCPUResourcePoolUtilization()) < cpuNeeded) {
-
+            if (evictUser != null) {
+                if ((evictUser.getResourcePoolAverageUtilization() - 1.0) > (cpuNeeded + (submitter.getResourcePoolAverageUtilization() - 1.0))) {
+                    TopologyDetails topologyEvict = evictUser.getRunningTopologyWithLowestPriority();
+                    evictTopology(topologyEvict);
+                    return true;
+                }
             }
-
-            if ((1.0 - submitter.getMemoryResourcePoolUtilization()) < memoryNeeded) {
-
-            }
-            return false;
-
         }
+        //See if there is a lower priority topology that can be evicted from the current user
+        for (TopologyDetails topo : submitter.getTopologiesRunning()) {
+            //check to if there is a topology with a lower priority we can evict
+            if (topo.getTopologyPriority() > td.getTopologyPriority()) {
+                evictTopology(topo);
+                return true;
+            }
+        }
+        return false;
     }
 
     private void evictTopology(TopologyDetails topologyEvict) {
         Collection<WorkerSlot> workersToEvict = this.cluster.getUsedSlotsByTopologyId(topologyEvict.getId());
         User submitter = this.userMap.get(topologyEvict.getTopologySubmitter());
 
-        LOG.info("Evicting Topology {} with workers: {}", topologyEvict.getName(), workersToEvict);
-        LOG.debug("From Nodes:\n{}", ResourceUtils.printScheduling(this.nodes));
+        LOG.info("Evicting Topology {} with workers: {} from user {}", topologyEvict.getName(), workersToEvict, topologyEvict.getTopologySubmitter());
         this.nodes.freeSlots(workersToEvict);
         submitter.moveTopoFromRunningToPending(topologyEvict, this.cluster);
-        LOG.info("check if topology unassigned: {}", this.cluster.getUsedSlotsByTopologyId(topologyEvict.getId()));
     }
 
     private User findUserWithMostResourcesAboveGuarantee() {

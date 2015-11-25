@@ -37,7 +37,18 @@ import backtype.storm.scheduler.resource.User;
  */
 public interface IStrategy {
 
+    /**
+     * initialize prior to scheduling
+     */
     public void prepare(Topologies topologies, Cluster cluster, Map<String, User> userMap, RAS_Nodes nodes);
 
+    /**
+     * This method is invoked to calcuate a scheduling for topology td
+     * @param td
+     * @return returns a SchedulingResult object containing SchedulingStatus object to indicate whether scheduling is successful
+     * The strategy must calculate a scheduling in the format of Map<WorkerSlot, Collection<ExecutorDetails>> where the key of
+     * this map is the worker slot that the value (collection of executors) should be assigned to. if a scheduling is calculated successfully,
+     * put the scheduling map in the SchedulingResult object.
+     */
     public SchedulingResult schedule(TopologyDetails td);
 }

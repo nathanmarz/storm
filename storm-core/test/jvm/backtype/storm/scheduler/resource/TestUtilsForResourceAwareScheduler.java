@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -97,31 +97,31 @@ public class TestUtilsForResourceAwareScheduler {
 
     public static Map<String, SupervisorDetails> genSupervisors(int numSup, int numPorts, Map resourceMap) {
         Map<String, SupervisorDetails> retList = new HashMap<String, SupervisorDetails>();
-        for(int i=0; i<numSup; i++) {
+        for (int i = 0; i < numSup; i++) {
             List<Number> ports = new LinkedList<Number>();
-            for(int j = 0; j<numPorts; j++) {
+            for (int j = 0; j < numPorts; j++) {
                 ports.add(j);
             }
-            SupervisorDetails sup = new SupervisorDetails("sup-"+i, "host-"+i, null, ports, resourceMap);
+            SupervisorDetails sup = new SupervisorDetails("sup-" + i, "host-" + i, null, ports, resourceMap);
             retList.put(sup.getId(), sup);
         }
         return retList;
     }
 
     public static Map<ExecutorDetails, String> genExecsAndComps(StormTopology topology, int spoutParallelism, int boltParallelism) {
-        Map<ExecutorDetails, String> retMap = new HashMap<ExecutorDetails, String> ();
-        int startTask=0;
-        int endTask=1;
-        for(Map.Entry<String, SpoutSpec> entry : topology.get_spouts().entrySet()) {
-            for(int i=0; i<spoutParallelism; i++) {
+        Map<ExecutorDetails, String> retMap = new HashMap<ExecutorDetails, String>();
+        int startTask = 0;
+        int endTask = 1;
+        for (Map.Entry<String, SpoutSpec> entry : topology.get_spouts().entrySet()) {
+            for (int i = 0; i < spoutParallelism; i++) {
                 retMap.put(new ExecutorDetails(startTask, endTask), entry.getKey());
                 startTask++;
                 endTask++;
             }
         }
 
-        for(Map.Entry<String, Bolt> entry : topology.get_bolts().entrySet()) {
-            for(int i=0; i<boltParallelism; i++) {
+        for (Map.Entry<String, Bolt> entry : topology.get_bolts().entrySet()) {
+            for (int i = 0; i < boltParallelism; i++) {
                 retMap.put(new ExecutorDetails(startTask, endTask), entry.getKey());
                 startTask++;
                 endTask++;
@@ -131,14 +131,14 @@ public class TestUtilsForResourceAwareScheduler {
     }
 
     public static TopologyDetails getTopology(String name, Map config, int numSpout, int numBolt,
-                                       int spoutParallelism, int boltParallelism, int launchTime, int priority) {
+                                              int spoutParallelism, int boltParallelism, int launchTime, int priority) {
 
         Config conf = new Config();
         conf.putAll(config);
         conf.put(Config.TOPOLOGY_PRIORITY, priority);
         conf.put(Config.TOPOLOGY_NAME, name);
         conf.put(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB, Double.MAX_VALUE);
-        StormTopology topology = buildTopology(numSpout,numBolt, spoutParallelism, boltParallelism);
+        StormTopology topology = buildTopology(numSpout, numBolt, spoutParallelism, boltParallelism);
         TopologyDetails topo = new TopologyDetails(name + "-" + launchTime, conf, topology,
                 0,
                 genExecsAndComps(topology, spoutParallelism, boltParallelism), launchTime);
@@ -258,7 +258,7 @@ public class TestUtilsForResourceAwareScheduler {
 
         @Override
         public String getHostName(Map<String, SupervisorDetails> existingSupervisors, String nodeId) {
-            if(existingSupervisors.containsKey(nodeId)) {
+            if (existingSupervisors.containsKey(nodeId)) {
                 return existingSupervisors.get(nodeId).getHost();
             }
             return null;
@@ -270,10 +270,10 @@ public class TestUtilsForResourceAwareScheduler {
         }
     }
 
-    private static boolean isContain(String source, String subItem){
-        String pattern = "\\b"+subItem+"\\b";
-        Pattern p=Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
-        Matcher m=p.matcher(source);
+    private static boolean isContain(String source, String subItem) {
+        String pattern = "\\b" + subItem + "\\b";
+        Pattern p = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
+        Matcher m = p.matcher(source);
         return m.find();
     }
 
@@ -283,8 +283,8 @@ public class TestUtilsForResourceAwareScheduler {
 
     public static TopologyDetails findTopologyInSetFromName(String topoName, Set<TopologyDetails> set) {
         TopologyDetails ret = null;
-        for(TopologyDetails entry : set) {
-            if(entry.getName().equals(topoName)) {
+        for (TopologyDetails entry : set) {
+            if (entry.getName().equals(topoName)) {
                 ret = entry;
             }
         }

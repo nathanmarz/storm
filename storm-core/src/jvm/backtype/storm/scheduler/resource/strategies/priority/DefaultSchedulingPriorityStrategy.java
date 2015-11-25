@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
-public class DefaultSchedulingPriorityStrategy implements  ISchedulingPriorityStrategy{
+public class DefaultSchedulingPriorityStrategy implements ISchedulingPriorityStrategy {
     private static final Logger LOG = LoggerFactory
             .getLogger(DefaultSchedulingPriorityStrategy.class);
 
@@ -58,20 +58,15 @@ public class DefaultSchedulingPriorityStrategy implements  ISchedulingPrioritySt
         Double least = Double.POSITIVE_INFINITY;
         User ret = null;
         for (User user : this.userMap.values()) {
-            LOG.info("getNextUser {}", user.getDetailedInfo());
-            LOG.info("hasTopologyNeedSchedule: {}", user.hasTopologyNeedSchedule());
             if (user.hasTopologyNeedSchedule()) {
                 Double userResourcePoolAverageUtilization = user.getResourcePoolAverageUtilization();
-                if(ret!=null) {
-                    LOG.info("current: {}-{} compareUser: {}-{}", ret.getId(), least, user.getId(), userResourcePoolAverageUtilization);
-                    LOG.info("{} == {}: {}", least, userResourcePoolAverageUtilization, least == userResourcePoolAverageUtilization);
-                    LOG.info("{} == {}: {}", least, userResourcePoolAverageUtilization, (Math.abs(least - userResourcePoolAverageUtilization) < 0.0001));
 
-                }
                 if (least > userResourcePoolAverageUtilization) {
                     ret = user;
                     least = userResourcePoolAverageUtilization;
-                } else if (Math.abs(least - userResourcePoolAverageUtilization) < 0.0001) {
+                }
+                // if ResourcePoolAverageUtilization is equal to the user that is being compared
+                else if (Math.abs(least - userResourcePoolAverageUtilization) < 0.0001) {
                     double currentCpuPercentage = ret.getCPUResourceGuaranteed() / this.cluster.getClusterTotalCPUResource();
                     double currentMemoryPercentage = ret.getMemoryResourceGuaranteed() / this.cluster.getClusterTotalMemoryResource();
                     double currentAvgPercentage = (currentCpuPercentage + currentMemoryPercentage) / 2.0;
@@ -79,7 +74,6 @@ public class DefaultSchedulingPriorityStrategy implements  ISchedulingPrioritySt
                     double userCpuPercentage = user.getCPUResourceGuaranteed() / this.cluster.getClusterTotalCPUResource();
                     double userMemoryPercentage = user.getMemoryResourceGuaranteed() / this.cluster.getClusterTotalMemoryResource();
                     double userAvgPercentage = (userCpuPercentage + userMemoryPercentage) / 2.0;
-                    LOG.info("current: {}-{} compareUser: {}-{}", ret.getId(), currentAvgPercentage, user.getId(), userAvgPercentage);
                     if (userAvgPercentage > currentAvgPercentage) {
                         ret = user;
                         least = userResourcePoolAverageUtilization;

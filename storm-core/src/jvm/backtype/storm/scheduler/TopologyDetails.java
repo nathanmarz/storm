@@ -39,18 +39,18 @@ import org.slf4j.LoggerFactory;
 
 
 public class TopologyDetails {
-    String topologyId;
-    Map topologyConf;
-    StormTopology topology;
-    Map<ExecutorDetails, String> executorToComponent;
-    int numWorkers;
+    private String topologyId;
+    private Map topologyConf;
+    private StormTopology topology;
+    private Map<ExecutorDetails, String> executorToComponent;
+    private int numWorkers;
     //<ExecutorDetails - Task, Map<String - Type of resource, Map<String - type of that resource, Double - amount>>>
     private Map<ExecutorDetails, Map<String, Double>> _resourceList;
     //Max heap size for a worker used by topology
     private Double topologyWorkerMaxHeapSize;
-
+    //topology priority
     private Integer topologyPriority;
-
+    //when topology was launched
     private int launchTime;
 
     private static final Logger LOG = LoggerFactory.getLogger(TopologyDetails.class);
@@ -415,17 +415,16 @@ public class TopologyDetails {
      * Add default resource requirements for a executor
      */
     public void addDefaultResforExec(ExecutorDetails exec) {
-
         Double topologyComponentCpuPcorePercent = Utils.getDouble(topologyConf.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT), null);
-        if(topologyComponentCpuPcorePercent == null) {
+        if (topologyComponentCpuPcorePercent == null) {
             LOG.warn("default value for topology.component.cpu.pcore.percent needs to be set!");
         }
-        Double topologyComponentResourcesOffheapMemoryMb =  Utils.getDouble(topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB), null);
-        if(topologyComponentResourcesOffheapMemoryMb == null) {
+        Double topologyComponentResourcesOffheapMemoryMb = Utils.getDouble(topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB), null);
+        if (topologyComponentResourcesOffheapMemoryMb == null) {
             LOG.warn("default value for topology.component.resources.offheap.memory.mb needs to be set!");
         }
         Double topologyComponentResourcesOnheapMemoryMb = Utils.getDouble(topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB), null);
-        if(topologyComponentResourcesOnheapMemoryMb == null) {
+        if (topologyComponentResourcesOnheapMemoryMb == null) {
             LOG.warn("default value for topology.component.resources.onheap.memory.mb needs to be set!");
         }
 
@@ -446,11 +445,11 @@ public class TopologyDetails {
      */
     private void initConfigs() {
         this.topologyWorkerMaxHeapSize = Utils.getDouble(this.topologyConf.get(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB), null);
-        if(this.topologyWorkerMaxHeapSize == null) {
+        if (this.topologyWorkerMaxHeapSize == null) {
             LOG.warn("default value for topology.worker.max.heap.size.mb needs to be set!");
         }
         this.topologyPriority = Utils.getInt(this.topologyConf.get(Config.TOPOLOGY_PRIORITY), null);
-        if(this.topologyPriority == null) {
+        if (this.topologyPriority == null) {
             LOG.warn("default value for topology.priority needs to be set!");
         }
     }
@@ -463,17 +462,35 @@ public class TopologyDetails {
         return this.topologyWorkerMaxHeapSize;
     }
 
+    /**
+     * Get the user that submitted this topology
+     */
     public String getTopologySubmitter() {
-       return (String)this.topologyConf.get(Config.TOPOLOGY_SUBMITTER_USER);
+        String user = (String) this.topologyConf.get(Config.TOPOLOGY_SUBMITTER_USER);
+        if (user == null || user.equals("")) {
+            LOG.debug("Topology {} submitted by anonymous user", this.getName());
+            user = "anonymous";
+        }
+        return user;
     }
 
+    /**
+     * get teh priority of this topology
+     */
     public int getTopologyPriority() {
        return this.topologyPriority;
     }
+
+    /**
+     * Get the timestamp of when this topology was launched
+     */
     public int getLaunchTime() {
         return this.launchTime;
     }
 
+    /**
+     * Get how long this topology has been executing
+     */
     public int getUpTime() {
         return Time.currentTimeSecs() - this.launchTime;
     }

@@ -90,7 +90,7 @@ public class RAS_Node {
 
     public Collection<WorkerSlot> getUsedSlots() {
         Collection<WorkerSlot> ret = new LinkedList<WorkerSlot>();
-        for(Collection<WorkerSlot> workers : _topIdToUsedSlots.values()) {
+        for (Collection<WorkerSlot> workers : _topIdToUsedSlots.values()) {
             ret.addAll(workers);
         }
         return ret;
@@ -243,30 +243,28 @@ public class RAS_Node {
 
     public void freeMemory(double amount) {
         _availMemory += amount;
-        LOG.info("freeing {} memory...avail mem: {}", amount, _availMemory);
-        if(_availMemory > this.getTotalMemoryResources()) {
+        LOG.debug("freeing {} memory on node {}...avail mem: {}", amount, this.getHostname(), _availMemory);
+        if (_availMemory > this.getTotalMemoryResources()) {
             LOG.warn("Freeing more memory than there exists!");
         }
     }
 
     public void freeCPU(double amount) {
         _availCPU += amount;
-        LOG.info("freeing {} CPU...avail CPU: {}", amount, _availCPU);
-        if(_availCPU > this.getAvailableCpuResources()) {
+        LOG.debug("freeing {} CPU on node...avail CPU: {}", amount, this.getHostname(), _availCPU);
+        if (_availCPU > this.getAvailableCpuResources()) {
             LOG.warn("Freeing more memory than there exists!");
         }
     }
 
     public double getMemoryUsedByWorker(WorkerSlot ws) {
         TopologyDetails topo = this.findTopologyUsingWorker(ws);
-        LOG.info("Topology {} using worker {}", topo, ws);
-        if(topo == null) {
+        if (topo == null) {
             return 0.0;
         }
         Collection<ExecutorDetails> execs = this.getExecutors(ws, this._cluster);
-        LOG.info("Worker {} has execs: {}", ws, execs);
         double totalMemoryUsed = 0.0;
-        for(ExecutorDetails exec : execs) {
+        for (ExecutorDetails exec : execs) {
             totalMemoryUsed += topo.getTotalMemReqTask(exec);
         }
         return totalMemoryUsed;
@@ -274,26 +272,23 @@ public class RAS_Node {
 
     public double getCpuUsedByWorker(WorkerSlot ws) {
         TopologyDetails topo = this.findTopologyUsingWorker(ws);
-        LOG.info("Topology {} using worker {}", topo, ws);
-        if(topo == null) {
+        if (topo == null) {
             return 0.0;
         }
         Collection<ExecutorDetails> execs = this.getExecutors(ws, this._cluster);
-        LOG.info("Worker {} has execs: {}", ws, execs);
         double totalCpuUsed = 0.0;
-        for(ExecutorDetails exec : execs) {
+        for (ExecutorDetails exec : execs) {
             totalCpuUsed += topo.getTotalCpuReqTask(exec);
         }
         return totalCpuUsed;
     }
 
     public TopologyDetails findTopologyUsingWorker(WorkerSlot ws) {
-        for(Entry<String, Set<WorkerSlot>> entry : _topIdToUsedSlots.entrySet()) {
-            LOG.info("topoId: {} workers: {}", entry.getKey(), entry.getValue());
+        for (Entry<String, Set<WorkerSlot>> entry : _topIdToUsedSlots.entrySet()) {
             String topoId = entry.getKey();
             Set<WorkerSlot> workers = entry.getValue();
             for (WorkerSlot worker : workers) {
-                if(worker.getNodeId().equals(ws.getNodeId()) && worker.getPort() == ws.getPort()) {
+                if (worker.getNodeId().equals(ws.getNodeId()) && worker.getPort() == ws.getPort()) {
                     return _topologies.getById(topoId);
                 }
             }
@@ -376,7 +371,9 @@ public class RAS_Node {
 
     @Override
     public String toString() {
-        return "{Node: " + _sup.getHost() + ", AvailMem: " + _availMemory.toString() + ", AvailCPU: " + _availCPU.toString() + "}";
+        return "{Node: " + ((_sup == null) ? "null (possibly down)" : _sup.getHost())
+                + ", AvailMem: " + ((_availMemory == null) ? "N/A" : _availMemory.toString())
+                + ", AvailCPU: " + ((_availCPU == null) ? "N/A" : _availCPU.toString()) + "}";
     }
 
     public static int countSlotsUsed(String topId, Collection<RAS_Node> nodes) {
@@ -415,7 +412,6 @@ public class RAS_Node {
         return total;
     }
 
-    //This function is only used for logging information
     public static Collection<ExecutorDetails> getExecutors(WorkerSlot ws, Cluster cluster) {
         Collection<ExecutorDetails> retList = new ArrayList<ExecutorDetails>();
         for (Entry<String, SchedulerAssignment> entry : cluster.getAssignments()

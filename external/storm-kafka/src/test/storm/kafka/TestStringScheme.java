@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,27 +17,24 @@
  */
 package storm.kafka;
 
-import backtype.storm.tuple.Fields;
-import backtype.storm.tuple.Values;
+import org.junit.Test;
 
 import java.nio.ByteBuffer;
-import java.util.List;
+import java.nio.charset.StandardCharsets;
 
-public class StringMessageAndMetadataScheme extends StringScheme implements MessageMetadataScheme {
-    private static final long serialVersionUID = -5441841920447947374L;
+import static org.junit.Assert.assertEquals;
 
-    public static final String STRING_SCHEME_PARTITION_KEY = "partition";
-    public static final String STRING_SCHEME_OFFSET = "offset";
-
-    @Override
-    public List<Object> deserializeMessageWithMetadata(ByteBuffer message, Partition partition, long offset) {
-        String stringMessage = StringScheme.deserializeString(message);
-        return new Values(stringMessage, partition.partition, offset);
-    }
-
-    @Override
-    public Fields getOutputFields() {
-        return new Fields(STRING_SCHEME_KEY, STRING_SCHEME_PARTITION_KEY, STRING_SCHEME_OFFSET);
-    }
-
+public class TestStringScheme {
+  @Test
+  public void testDeserializeString() {
+    String s = "foo";
+    byte[] bytes = s.getBytes(StandardCharsets.UTF_8);
+    ByteBuffer direct = ByteBuffer.allocateDirect(bytes.length);
+    direct.put(bytes);
+    direct.flip();
+    String s1 = StringScheme.deserializeString(ByteBuffer.wrap(bytes));
+    String s2 = StringScheme.deserializeString(direct);
+    assertEquals(s, s1);
+    assertEquals(s, s2);
+  }
 }

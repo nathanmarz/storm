@@ -17,9 +17,11 @@
  */
 package storm.kafka;
 
-import java.util.List;
 import backtype.storm.spout.Scheme;
 
+import java.nio.ByteBuffer;
+import java.util.List;
+
 public interface MessageMetadataScheme extends Scheme {
-    public List<Object> deserializeMessageWithMetadata(byte[] message, Partition partition, long offset);
+    List<Object> deserializeMessageWithMetadata(ByteBuffer message, Partition partition, long offset);
 }

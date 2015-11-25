@@ -1,4 +1,5 @@
 +## 0.11.0
+ * STORM-1220: Avoid double copying in the Kafka spout.
  * STORM-1340: Use Travis-CI build matrix to improve test execution times
  * STORM-1126: Allow a configMethod that takes no arguments (Flux)
  * STORM-1203: worker metadata file creation doesn't use storm.log.dir config

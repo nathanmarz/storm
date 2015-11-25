@@ -57,7 +57,6 @@ public class KafkaBolt<K, V> extends BaseRichBolt {
     private static final Logger LOG = LoggerFactory.getLogger(KafkaBolt.class);
 
     public static final String TOPIC = "topic";
-    public static final String KAFKA_BROKER_PROPERTIES = "kafka.broker.properties";
 
     private KafkaProducer<K, V> producer;
     private OutputCollector collector;
@@ -73,8 +72,7 @@ public class KafkaBolt<K, V> extends BaseRichBolt {
     private boolean fireAndForget = false;
     private boolean async = true;
 
-    public KafkaBolt() {
-    }
+    public KafkaBolt() {}
 
     public KafkaBolt<K,V> withTupleToKafkaMapper(TupleToKafkaMapper<K,V> mapper) {
         this.mapper = mapper;
@@ -103,14 +101,7 @@ public class KafkaBolt<K, V> extends BaseRichBolt {
             this.topicSelector = new DefaultTopicSelector((String) stormConf.get(TOPIC));
         }
 
-        Map configMap = (Map) stormConf.get(KAFKA_BROKER_PROPERTIES);
-        Properties properties = new Properties();
-        if(configMap!= null)
-            properties.putAll(configMap);
-        if(boltSpecfiedProperties != null)
-            properties.putAll(boltSpecfiedProperties);
-
-        producer = new KafkaProducer<K, V>(properties);
+        producer = new KafkaProducer<>(boltSpecfiedProperties);
         this.collector = collector;
     }
 

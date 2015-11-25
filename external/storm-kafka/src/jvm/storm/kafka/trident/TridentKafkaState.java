@@ -32,15 +32,12 @@ import storm.trident.state.State;
 import storm.trident.tuple.TridentTuple;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 public class TridentKafkaState implements State {
     private static final Logger LOG = LoggerFactory.getLogger(TridentKafkaState.class);
-
-    public static final String KAFKA_BROKER_PROPERTIES = "kafka.broker.properties";
 
     private KafkaProducer producer;
     private OutputCollector collector;
@@ -68,13 +65,10 @@ public class TridentKafkaState implements State {
         LOG.debug("commit is Noop.");
     }
 
-    public void prepare(Map stormConf) {
+    public void prepare(Properties options) {
         Validate.notNull(mapper, "mapper can not be null");
         Validate.notNull(topicSelector, "topicSelector can not be null");
-        Map configMap = (Map) stormConf.get(KAFKA_BROKER_PROPERTIES);
-        Properties properties = new Properties();
-        properties.putAll(configMap);
-        producer = new KafkaProducer(properties);
+        producer = new KafkaProducer(options);
     }
 
     public void updateState(List<TridentTuple> tuples, TridentCollector collector) {

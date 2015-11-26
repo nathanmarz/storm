@@ -46,7 +46,7 @@ bolts:
         args: [ref: "windowLength", ref: "slidingInterval"]
     parallelism: 1
   - id: "bolt-2"
-    className: "storm.starter.bolt.PrinterBolt"
+    className: "org.apache.storm.flux.examples.TestPrintBolt"
     parallelism: 1
 
 

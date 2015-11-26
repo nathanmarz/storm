@@ -1712,6 +1712,14 @@ public class Config extends HashMap<String, Object> {
     public static final String TOPOLOGY_SHELLBOLT_MAX_PENDING="topology.shellbolt.max.pending";
 
     /**
+     * How long a subprocess can go without heartbeating before the ShellSpout/ShellBolt tries to
+     * suicide itself.
+     */
+    @isInteger
+    @isPositiveNumber
+    public static final String TOPOLOGY_SUBPROCESS_TIMEOUT_SECS = "topology.subprocess.timeout.secs";
+
+    /**
      * Topology central logging sensitivity to determine who has access to logs in central logging system.
      * The possible values are:
      *   S0 - Public (open to all users on grid)

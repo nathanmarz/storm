@@ -1,4 +1,5 @@
-+## 0.11.0
+## 0.11.0
+ * STORM-1207: Added flux support for IWindowedBolt
  * STORM-1352: Trident should support writing to multiple Kafka clusters.
  * STORM-1220: Avoid double copying in the Kafka spout.
  * STORM-1340: Use Travis-CI build matrix to improve test execution times

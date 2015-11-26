@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1341: Let topology have own heartbeat timeout for multilang subprocess
  * STORM-1207: Added flux support for IWindowedBolt
  * STORM-1352: Trident should support writing to multiple Kafka clusters.
  * STORM-1220: Avoid double copying in the Kafka spout.

@@ -107,6 +107,18 @@
     (FileUtils/forceMkdir (File. ret))
     ret))
 
+(defn master-stormjar-key
+  [topology-id]
+  (str topology-id "-stormjar.jar"))
+
+(defn master-stormcode-key
+  [topology-id]
+  (str topology-id "-stormcode.ser"))
+
+(defn master-stormconf-key
+  [topology-id]
+  (str topology-id "-stormconf.ser"))
+
 (defn master-stormdist-root
   ([conf]
    (str (master-local-dir conf) file-path-separator "stormdist"))
@@ -118,6 +130,10 @@
   (let [ret (str (master-local-dir conf) file-path-separator "tmp")]
     (FileUtils/forceMkdir (File. ret))
     ret ))
+
+(defn read-supervisor-storm-conf-given-path
+  [conf stormconf-path]
+  (merge conf (clojurify-structure (Utils/fromCompressedJsonConf (FileUtils/readFileToByteArray (File. stormconf-path))))))
 
 (defn master-storm-metafile-path [stormroot ]
   (str stormroot file-path-separator "storm-code-distributor.meta"))
@@ -197,7 +213,7 @@
   (let [stormroot (supervisor-stormdist-root conf storm-id)
         conf-path (supervisor-stormconf-path stormroot)
         topology-path (supervisor-stormcode-path stormroot)]
-    (merge conf (clojurify-structure (Utils/fromCompressedJsonConf (FileUtils/readFileToByteArray (File. conf-path)))))))
+    (read-supervisor-storm-conf-given-path conf conf-path)))
 
 (defn read-supervisor-topology
   [conf storm-id]
@@ -221,7 +237,11 @@
     nil
     )))
 
-  
+(defn get-id-from-blob-key
+  [key]
+  (if-let [groups (re-find #"^(.*)((-stormjar\.jar)|(-stormcode\.ser)|(-stormconf\.ser))$" key)]
+    (nth groups 1)))
+
 (defn set-worker-user! [conf worker-id user]
   (log-message "SET worker-user " worker-id " " user)
   (let [file (worker-user-file conf worker-id)]

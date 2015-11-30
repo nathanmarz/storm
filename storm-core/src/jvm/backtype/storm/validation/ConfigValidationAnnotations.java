@@ -51,7 +51,6 @@ public class ConfigValidationAnnotations {
     /**
      * Validators with fields: validatorClass and type
      */
-
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.FIELD)
     public @interface isType {
@@ -82,7 +81,6 @@ public class ConfigValidationAnnotations {
     /**
      * Validators with fields: validatorClass
      */
-
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.FIELD)
     public @interface isString {
@@ -109,7 +107,7 @@ public class ConfigValidationAnnotations {
     }
 
     /**
-     * validates on object is not null
+     * Validates on object is not null
      */
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.FIELD)
@@ -118,7 +116,7 @@ public class ConfigValidationAnnotations {
     }
 
     /**
-     * validates that there are no duplicates in a list
+     * Validates that there are no duplicates in a list
      */
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.FIELD)
@@ -142,7 +140,6 @@ public class ConfigValidationAnnotations {
      * Validates the type of each key and value in a map
      * Validator with fields: validatorClass, keyValidatorClass, valueValidatorClass
      */
-
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.FIELD)
     public @interface isMapEntryType {
@@ -168,7 +165,7 @@ public class ConfigValidationAnnotations {
     }
 
     /**
-     * checks if a number is positive and whether zero inclusive
+     * Checks if a number is positive and whether zero inclusive
      * Validator with fields: validatorClass, includeZero
      */
     @Retention(RetentionPolicy.RUNTIME)
@@ -182,7 +179,6 @@ public class ConfigValidationAnnotations {
     /**
      * Complex/custom type validators
      */
-
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.FIELD)
     public @interface isStringOrStringList {
@@ -204,7 +200,6 @@ public class ConfigValidationAnnotations {
     /**
      * For custom validators
      */
-
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.FIELD)
     public @interface CustomValidator {

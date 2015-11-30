@@ -114,6 +114,7 @@
       (try-cause  (.. zk (delete) (deletingChildrenIfNeeded) (forPath (normalize-path path)))
                   (catch KeeperException$NoNodeException e
                     ;; do nothing
+                    (log-message "exception" e)
                   )
                   (catch Exception e (throw (wrap-in-runtime e)))))))
 
@@ -128,7 +129,6 @@
           ;; this can happen when multiple clients doing mkdir at same time
           ))
       )))
-
 
 (defn sync-path
   [^CuratorFramework zk ^String path]
@@ -186,6 +186,19 @@
       (.. zk (getChildren) (forPath (normalize-path path))))
     (catch Exception e (throw (wrap-in-runtime e)))))
 
+(defn delete-node-blobstore
+  "Deletes the state inside the zookeeper for a key, for which the
+   contents of the key starts with nimbus host port information"
+  [^CuratorFramework zk ^String parent-path ^String host-port-info]
+  (let [parent-path (normalize-path parent-path)
+        child-path-list (if (exists-node? zk parent-path false)
+                          (into [] (get-children zk parent-path false))
+                          [])]
+    (doseq [child child-path-list]
+      (when (.startsWith child host-port-info)
+        (log-debug "delete-node " "child" child)
+        (delete-node zk (str parent-path "/" child))))))
+
 (defn set-data
   [^CuratorFramework zk ^String path ^bytes data]
   (try
@@ -232,22 +245,10 @@
 (defn leader-latch-listener-impl
   "Leader latch listener that will be invoked when we either gain or lose leadership"
   [conf zk leader-latch]
-  (let [hostname (.getCanonicalHostName (InetAddress/getLocalHost))
-        STORMS-ROOT (str (conf STORM-ZOOKEEPER-ROOT) "/storms")]
+  (let [hostname (.getCanonicalHostName (InetAddress/getLocalHost))]
     (reify LeaderLatchListener
       (^void isLeader[this]
-        (log-message (str hostname " gained leadership, checking if it has all the topology code locally."))
-        (let [active-topology-ids (set (get-children zk STORMS-ROOT false))
-              local-topology-ids (set (.list (File. (master-stormdist-root conf))))
-              diff-topology (first (set-delta active-topology-ids local-topology-ids))]
-        (log-message "active-topology-ids [" (clojure.string/join "," active-topology-ids)
-                          "] local-topology-ids [" (clojure.string/join "," local-topology-ids)
-                          "] diff-topology [" (clojure.string/join "," diff-topology) "]")
-        (if (empty? diff-topology)
-          (log-message "Accepting leadership, all active topology found localy.")
-          (do
-            (log-message "code for all active topologies not available locally, giving up leadership.")
-            (.close leader-latch)))))
+        (log-message (str hostname " gained leadership")))
       (^void notLeader[this]
         (log-message (str hostname " lost leadership."))))))
 

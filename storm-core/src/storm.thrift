@@ -136,6 +136,14 @@ exception InvalidTopologyException {
   1: required string msg;
 }
 
+exception KeyNotFoundException {
+  1: required string msg;
+}
+
+exception KeyAlreadyExistsException {
+  1: required string msg;
+}
+
 struct TopologySummary {
   1: required string id;
   2: required string name;
@@ -371,6 +379,42 @@ struct SubmitOptions {
   2: optional Credentials creds;
 }
 
+enum AccessControlType {
+  OTHER = 1,
+  USER = 2
+  //eventually ,GROUP=3
+}
+
+struct AccessControl {
+  1: required AccessControlType type;
+  2: optional string name; //Name of user or group in ACL
+  3: required i32 access; //bitmasks READ=0x1, WRITE=0x2, ADMIN=0x4
+}
+
+struct SettableBlobMeta {
+  1: required list<AccessControl> acl;
+  2: optional i32 replication_factor
+}
+
+struct ReadableBlobMeta {
+  1: required SettableBlobMeta settable;
+  //This is some indication of a version of a BLOB.  The only guarantee is
+  // if the data changed in the blob the version will be different.
+  2: required i64 version;
+}
+
+struct ListBlobsResult {
+  1: required list<string> keys;
+  2: required string session;
+}
+
+struct BeginDownloadResult {
+  //Same version as in ReadableBlobMeta
+  1: required i64 version;
+  2: required string session;
+  3: optional i64 data_size;
+}
+
 struct SupervisorInfo {
     1: required i64 time_secs;
     2: required string hostname;
@@ -564,6 +608,21 @@ service Nimbus {
   list<ProfileRequest> getComponentPendingProfileActions(1: string id, 2: string component_id, 3: ProfileAction action);
 
   void uploadNewCredentials(1: string name, 2: Credentials creds) throws (1: NotAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
+
+  string beginCreateBlob(1: string key, 2: SettableBlobMeta meta) throws (1: AuthorizationException aze, 2: KeyAlreadyExistsException kae);
+  string beginUpdateBlob(1: string key) throws (1: AuthorizationException aze, 2: KeyNotFoundException knf);
+  void uploadBlobChunk(1: string session, 2: binary chunk) throws (1: AuthorizationException aze);
+  void finishBlobUpload(1: string session) throws (1: AuthorizationException aze);
+  void cancelBlobUpload(1: string session) throws (1: AuthorizationException aze);
+  ReadableBlobMeta getBlobMeta(1: string key) throws (1: AuthorizationException aze, 2: KeyNotFoundException knf);
+  void setBlobMeta(1: string key, 2: SettableBlobMeta meta) throws (1: AuthorizationException aze, 2: KeyNotFoundException knf);
+  BeginDownloadResult beginBlobDownload(1: string key) throws (1: AuthorizationException aze, 2: KeyNotFoundException knf);
+  binary downloadBlobChunk(1: string session) throws (1: AuthorizationException aze);
+  void deleteBlob(1: string key) throws (1: AuthorizationException aze, 2: KeyNotFoundException knf);
+  ListBlobsResult listBlobs(1: string session); //empty string "" means start at the beginning
+  i32 getBlobReplication(1: string key) throws (1: AuthorizationException aze, 2: KeyNotFoundException knf);
+  i32 updateBlobReplication(1: string key, 2: i32 replication) throws (1: AuthorizationException aze, 2: KeyNotFoundException knf);
+  void createStateInZookeeper(1: string key); // creates state in zookeeper when blob is uploaded through command line
 
   // need to add functions for asking about status of storms, what nodes they're running on, looking at task logs
 

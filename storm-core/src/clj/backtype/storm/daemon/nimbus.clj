@@ -205,17 +205,15 @@
 (defn inbox [nimbus]
   (master-inbox (:conf nimbus)))
 
-(defn- get-subject []
+(defn- get-subject
+  []
   (let [req (ReqContext/context)]
     (.subject req)))
-
-(def user-subject
-  (get-subject))
 
 (defn- read-storm-conf [conf storm-id blob-store]
   (clojurify-structure
     (Utils/fromCompressedJsonConf
-      (.readBlob blob-store (master-stormconf-key storm-id) user-subject))))
+      (.readBlob blob-store (master-stormconf-key storm-id) (get-subject)))))
 
 (declare delay-event)
 (declare mk-assignments)
@@ -456,7 +454,7 @@
     (iterator-seq key-iter)))
 
 (defn- setup-storm-code [nimbus conf storm-id tmp-jar-location storm-conf topology]
-  (let [subject user-subject
+  (let [subject (get-subject)
         storm-cluster-state (:storm-cluster-state nimbus)
         blob-store (:blob-store nimbus)
         jar-key (master-stormjar-key storm-id)
@@ -476,7 +474,7 @@
 
 (defn- read-storm-topology [storm-id blob-store]
   (Utils/deserialize
-    (.readBlob blob-store (master-stormcode-key storm-id) user-subject) StormTopology))
+    (.readBlob blob-store (master-stormcode-key storm-id) (get-subject)) StormTopology))
 
 (defn get-blob-replication-count
   [blob-key nimbus]
@@ -1916,14 +1914,14 @@
         (let [session-id (uuid)]
           (.put (:blob-uploaders nimbus)
             session-id
-            (.createBlob (:blob-store nimbus) blob-key blob-meta user-subject))
+            (.createBlob (:blob-store nimbus) blob-key blob-meta (get-subject)))
           (log-message "Created blob for " blob-key
             " with session id " session-id)
           (str session-id)))
 
       (^String beginUpdateBlob [this ^String blob-key]
         (let [^AtomicOutputStream os (.updateBlob (:blob-store nimbus)
-                                       blob-key user-subject)]
+                                       blob-key (get-subject))]
           (let [session-id (uuid)]
             (.put (:blob-uploaders nimbus) session-id os)
             (log-message "Created upload session for " blob-key
@@ -1978,7 +1976,7 @@
 
       (^ReadableBlobMeta getBlobMeta [this ^String blob-key]
         (let [^ReadableBlobMeta ret (.getBlobMeta (:blob-store nimbus)
-                                      blob-key user-subject)]
+                                      blob-key (get-subject))]
           ret))
 
       (^void setBlobMeta [this ^String blob-key ^SettableBlobMeta blob-meta]
@@ -1988,7 +1986,7 @@
 
       (^BeginDownloadResult beginBlobDownload [this ^String blob-key]
         (let [^InputStreamWithMeta is (.getBlob (:blob-store nimbus)
-                                        blob-key user-subject)]
+                                        blob-key (get-subject))]
           (let [session-id (uuid)
                 ret (BeginDownloadResult. (.getVersion is) (str session-id))]
             (.set_data_size ret (.getFileLength is))

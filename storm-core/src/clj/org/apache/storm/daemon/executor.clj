@@ -174,6 +174,8 @@
                         TOPOLOGY-BOLTS-SLIDING-INTERVAL-DURATION-MS
                         TOPOLOGY-BOLTS-TUPLE-TIMESTAMP-FIELD-NAME
                         TOPOLOGY-BOLTS-TUPLE-TIMESTAMP-MAX-LAG-MS
+                        TOPOLOGY-STATE-PROVIDER
+                        TOPOLOGY-STATE-PROVIDER-CONFIG
                         )
         spec-conf (-> general-context
                       (.getComponentCommon component-id)

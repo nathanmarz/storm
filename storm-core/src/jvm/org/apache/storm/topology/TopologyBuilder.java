@@ -22,7 +22,12 @@ import org.apache.storm.generated.*;
 import org.apache.storm.grouping.CustomStreamGrouping;
 import org.apache.storm.grouping.PartialKeyGrouping;
 import org.apache.storm.hooks.IWorkerHook;
+import org.apache.storm.spout.CheckpointSpout;
+import org.apache.storm.state.State;
+import org.apache.storm.task.OutputCollector;
+import org.apache.storm.task.TopologyContext;
 import org.apache.storm.tuple.Fields;
+import org.apache.storm.tuple.Tuple;
 import org.apache.storm.utils.Utils;
 import org.json.simple.JSONValue;
 
@@ -33,6 +38,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.storm.windowing.TupleWindow;
+import org.json.simple.JSONValue;
+import static org.apache.storm.spout.CheckpointSpout.CHECKPOINT_COMPONENT_ID;
+import static org.apache.storm.spout.CheckpointSpout.CHECKPOINT_STREAM_ID;
 
 /**
  * TopologyBuilder exposes the Java API for specifying a topology for Storm
@@ -90,6 +98,7 @@ public class TopologyBuilder {
     private Map<String, IRichBolt> _bolts = new HashMap<>();
     private Map<String, IRichSpout> _spouts = new HashMap<>();
     private Map<String, ComponentCommon> _commons = new HashMap<>();
+    private boolean hasStatefulBolt = false;
 
 //    private Map<String, Map<GlobalStreamId, Grouping>> _inputs = new HashMap<String, Map<GlobalStreamId, Grouping>>();
 
@@ -100,11 +109,13 @@ public class TopologyBuilder {
     public StormTopology createTopology() {
         Map<String, Bolt> boltSpecs = new HashMap<>();
         Map<String, SpoutSpec> spoutSpecs = new HashMap<>();
-
+        maybeAddCheckpointSpout();
         for(String boltId: _bolts.keySet()) {
             IRichBolt bolt = _bolts.get(boltId);
+            bolt = maybeAddCheckpointTupleForwarder(bolt);
             ComponentCommon common = getComponentCommon(boltId, bolt);
             try{
+                maybeAddCheckpointInputs(common);
                 boltSpecs.put(boltId, new Bolt(ComponentObject.serialized_java(Utils.javaSerialize(bolt)), common));
             }catch(RuntimeException wrapperCause){
                 if (wrapperCause.getCause() != null && NotSerializableException.class.equals(wrapperCause.getCause().getClass())){
@@ -216,6 +227,23 @@ public class TopologyBuilder {
     }
 
     /**
+     * Define a new bolt in this topology. This defines a stateful bolt, that requires its
+     * state (of computation) to be saved. When this bolt is initialized, the {@link IStatefulBolt#initState(State)} method
+     * is invoked after {@link IStatefulBolt#prepare(Map, TopologyContext, OutputCollector)} but before {@link IStatefulBolt#execute(Tuple)}
+     * with its previously saved state.
+     *
+     * @param id the id of this component. This id is referenced by other components that want to consume this bolt's outputs.
+     * @param bolt the stateful bolt
+     * @param parallelism_hint the number of tasks that should be assigned to execute this bolt. Each task will run on a thread in a process somwehere around the cluster.
+     * @return use the returned object to declare the inputs to this component
+     * @throws IllegalArgumentException if {@code parallelism_hint} is not positive
+     */
+    public <T extends State> BoltDeclarer setBolt(String id, IStatefulBolt<T> bolt, Number parallelism_hint) throws IllegalArgumentException {
+        hasStatefulBolt = true;
+        return setBolt(id, new StatefulBoltExecutor<T>(bolt), parallelism_hint);
+    }
+
+    /**
      * Define a new spout in this topology.
      *
      * @param id the id of this component. This id is referenced by other components that want to consume this spout's outputs.
@@ -277,15 +305,60 @@ public class TopologyBuilder {
         }
     }
 
+    /**
+     * If the topology has at least one stateful bolt
+     * add a {@link CheckpointSpout} component to the topology.
+     */
+    private void maybeAddCheckpointSpout() {
+        if (hasStatefulBolt) {
+            setSpout(CHECKPOINT_COMPONENT_ID, new CheckpointSpout(), 1);
+        }
+    }
+
+    private void maybeAddCheckpointInputs(ComponentCommon common) {
+        if (hasStatefulBolt) {
+            addCheckPointInputs(common);
+        }
+    }
+
+    /**
+     * If the topology has at least one stateful bolt all the non-stateful bolts
+     * are wrapped in {@link CheckpointTupleForwarder} so that the checkpoint
+     * tuples can flow through the topology.
+     */
+    private IRichBolt maybeAddCheckpointTupleForwarder(IRichBolt bolt) {
+        if (hasStatefulBolt && !(bolt instanceof StatefulBoltExecutor)) {
+            bolt = new CheckpointTupleForwarder(bolt);
+        }
+        return bolt;
+    }
+
+    /**
+     * For bolts that has incoming streams from spouts (the root bolts),
+     * add checkpoint stream from checkpoint spout to its input. For other bolts,
+     * add checkpoint stream from the previous bolt to its input.
+     */
+    private void addCheckPointInputs(ComponentCommon component) {
+        for (GlobalStreamId inputStream : component.get_inputs().keySet()) {
+            String sourceId = inputStream.get_componentId();
+            if (_spouts.containsKey(sourceId)) {
+                GlobalStreamId checkPointStream = new GlobalStreamId(CHECKPOINT_COMPONENT_ID, CHECKPOINT_STREAM_ID);
+                component.put_to_inputs(checkPointStream, Grouping.all(new NullStruct()));
+            } else {
+                GlobalStreamId checkPointStream = new GlobalStreamId(sourceId, CHECKPOINT_STREAM_ID);
+                component.put_to_inputs(checkPointStream, Grouping.all(new NullStruct()));
+            }
+        }
+    }
+
     private ComponentCommon getComponentCommon(String id, IComponent component) {
         ComponentCommon ret = new ComponentCommon(_commons.get(id));
-        
         OutputFieldsGetter getter = new OutputFieldsGetter();
         component.declareOutputFields(getter);
         ret.set_streams(getter.getFieldsDeclaration());
-        return ret;        
+        return ret;
     }
-    
+
     private void initCommon(String id, IComponent component, Number parallelism) throws IllegalArgumentException {
         ComponentCommon common = new ComponentCommon();
         common.set_inputs(new HashMap<GlobalStreamId, Grouping>());

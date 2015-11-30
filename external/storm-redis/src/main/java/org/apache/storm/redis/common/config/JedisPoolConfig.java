@@ -33,6 +33,9 @@ public class JedisPoolConfig implements Serializable {
     private int database;
     private String password;
 
+    // for serialization
+    public JedisPoolConfig() {
+    }
     /**
      * Constructor
      * <p/>
@@ -159,5 +162,16 @@ public class JedisPoolConfig implements Serializable {
         public JedisPoolConfig build() {
             return new JedisPoolConfig(host, port, timeout, password, database);
         }
+    }
+
+    @Override
+    public String toString() {
+        return "JedisPoolConfig{" +
+                "host='" + host + '\'' +
+                ", port=" + port +
+                ", timeout=" + timeout +
+                ", database=" + database +
+                ", password='" + password + '\'' +
+                '}';
     }
 }

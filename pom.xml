@@ -237,6 +237,7 @@
         <module>external/storm-elasticsearch</module>
         <module>external/storm-solr</module>
         <module>external/storm-metrics</module>
+        <module>external/storm-cassandra</module>
         <module>examples/storm-starter</module>
     </modules>
 

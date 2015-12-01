@@ -65,7 +65,7 @@ import static backtype.storm.blobstore.BlobStoreAclHandler.WRITE;
  * 1. The USER interacts with nimbus to upload and access blobs through NimbusBlobStore Client API. Here, unlike
  * local blob store which stores the blobs locally, the nimbus talks to HDFS to upload the blobs.
  * 2. The USER sets the ACLs, and the blob access is validated against these ACLs.
- * 3. The SUPERVISOR interacts with nimbus thorugh HdfsClientBlobStore to download the blobs. Here, unlike local
+ * 3. The SUPERVISOR interacts with nimbus through HdfsClientBlobStore to download the blobs. Here, unlike local
  * blob store the supervisor interacts with HDFS directly to download the blobs. The call to HdfsBlobStore is made as a "null"
  * subject. The blobstore gets the hadoop user and validates permissions for the supervisor.
  */

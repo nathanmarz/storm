@@ -869,8 +869,7 @@
         localresources (blobstore-map-to-localresources blobstore-map)]
     (when localresources
       (when-not (.exists user-dir)
-        (FileUtils/forceMkdir user-dir)
-        (setup-blob-permission conf storm-conf (.toString user-dir)))
+        (FileUtils/forceMkdir user-dir))
       (try
         (let [localized-resources (.getBlobs localizer localresources user topo-name user-dir)]
           (setup-blob-permission conf storm-conf (.toString user-dir))

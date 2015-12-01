@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1075: Storm Cassandra connector.
  * STORM-1341: Let topology have own heartbeat timeout for multilang subprocess
  * STORM-1207: Added flux support for IWindowedBolt
  * STORM-1352: Trident should support writing to multiple Kafka clusters.

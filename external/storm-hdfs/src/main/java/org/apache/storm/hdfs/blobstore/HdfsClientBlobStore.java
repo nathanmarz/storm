@@ -35,6 +35,11 @@ import java.util.Map;
 /**
  *  Client to access the HDFS blobStore. At this point, this is meant to only be used by the
  *  supervisor.  Don't trust who the client says they are so pass null for all Subjects.
+ *
+ *  The HdfsBlobStore implementation takes care of the null Subjects. It assigns Subjects
+ *  based on what hadoop says who the users are. These users must be configured accordingly
+ *  in the SUPERVISOR_ADMINS for ACL validation and for the supervisors to download the blobs.
+ *  This API is only used by the supervisor in order to talk directly to HDFS.
  */
 public class HdfsClientBlobStore extends ClientBlobStore {
     private static final Logger LOG = LoggerFactory.getLogger(HdfsClientBlobStore.class);

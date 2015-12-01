@@ -37,6 +37,14 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
+/**
+ * NimbusBlobStore is a USER facing client API to perform
+ * basic operations such as create, update, delete and read
+ * for local and hdfs blob store.
+ *
+ * For local blob store it is also the client facing API for
+ * supervisor in order to download blobs from nimbus.
+ */
 public class NimbusBlobStore extends ClientBlobStore {
     private static final Logger LOG = LoggerFactory.getLogger(NimbusBlobStore.class);
 

@@ -48,6 +48,21 @@ import static backtype.storm.blobstore.BlobStoreAclHandler.WRITE;
 
 /**
  * Provides a local file system backed blob store implementation for Nimbus.
+ *
+ * For a local blob store the user and the supervisor use NimbusBlobStore Client API in order to talk to nimbus through thrift.
+ * The authentication and authorization here is based on the subject.
+ * We currently have NIMBUS_ADMINS and SUPERVISOR_ADMINS configuration. NIMBUS_ADMINS are given READ, WRITE and ADMIN
+ * access whereas the SUPERVISOR_ADMINS are given READ access in order to read and download the blobs form the nimbus.
+ *
+ * The ACLs for the blob store are validated against whether the subject is a NIMBUS_ADMIN, SUPERVISOR_ADMIN or USER
+ * who has read, write or admin privileges in order to perform respective operations on the blob.
+ *
+ * For local blob store
+ * 1. The USER interacts with nimbus to upload and access blobs through NimbusBlobStore Client API.
+ * 2. The USER sets the ACLs, and the blob access is validated against these ACLs.
+ * 3. The SUPERVISOR interacts with nimbus through the NimbusBlobStore Client API to download the blobs.
+ * The supervisors principal should match the set of users configured into SUPERVISOR_ADMINS.
+ * Here, the PrincipalToLocalPlugin takes care of mapping the principal to user name before the ACL validation.
  */
 public class LocalFsBlobStore extends BlobStore {
     public static final Logger LOG = LoggerFactory.getLogger(LocalFsBlobStore.class);

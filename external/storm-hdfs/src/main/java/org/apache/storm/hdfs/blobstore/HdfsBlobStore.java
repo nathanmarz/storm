@@ -54,6 +54,20 @@ import static backtype.storm.blobstore.BlobStoreAclHandler.WRITE;
  * Provides a HDFS file system backed blob store implementation.
  * Note that this provides an api for having HDFS be the backing store for the blobstore,
  * it is not a service/daemon.
+ *
+ * We currently have NIMBUS_ADMINS and SUPERVISOR_ADMINS configuration. NIMBUS_ADMINS are given READ, WRITE and ADMIN
+ * access whereas the SUPERVISOR_ADMINS are given READ access in order to read and download the blobs form the nimbus.
+ *
+ * The ACLs for the blob store are validated against whether the subject is a NIMBUS_ADMIN, SUPERVISOR_ADMIN or USER
+ * who has read, write or admin privileges in order to perform respective operations on the blob.
+ *
+ * For hdfs blob store
+ * 1. The USER interacts with nimbus to upload and access blobs through NimbusBlobStore Client API. Here, unlike
+ * local blob store which stores the blobs locally, the nimbus talks to HDFS to upload the blobs.
+ * 2. The USER sets the ACLs, and the blob access is validated against these ACLs.
+ * 3. The SUPERVISOR interacts with nimbus thorugh HdfsClientBlobStore to download the blobs. Here, unlike local
+ * blob store the supervisor interacts with HDFS directly to download the blobs. The call to HdfsBlobStore is made as a "null"
+ * subject. The blobstore gets the hadoop user and validates permissions for the supervisor.
  */
 public class HdfsBlobStore extends BlobStore {
     public static final Logger LOG = LoggerFactory.getLogger(HdfsBlobStore.class);

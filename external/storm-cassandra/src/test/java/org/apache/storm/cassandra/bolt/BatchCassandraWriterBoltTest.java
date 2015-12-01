@@ -23,6 +23,7 @@ import com.datastax.driver.core.ResultSet;
 import org.apache.storm.cassandra.WeatherSpout;
 import org.apache.storm.cassandra.query.SimpleCQLStatementTupleMapper;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.storm.cassandra.DynamicStatementBuilder.*;
@@ -36,7 +37,7 @@ public class BatchCassandraWriterBoltTest extends BaseTopologyTest {
     public static final String SPOUT_MOCK  = "spout-mock";
     public static final String BOLT_WRITER = "writer";
 
-    @Test
+    @Test @Ignore("The sleep method should be used in tests")
     public void shouldBatchInsertGivenStaticTableNameAndDynamicQueryBuildFromAllTupleFields() {
         executeAndAssertWith(100000, new BatchCassandraWriterBolt(getInsertInto()));
     }

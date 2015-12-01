@@ -20,14 +20,12 @@ package org.apache.storm.sql.kafka;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Preconditions;
-import org.apache.commons.io.Charsets;
-import org.apache.commons.lang.CharSet;
 import org.apache.storm.sql.runtime.IOutputSerializer;
 
 import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 class JsonSerializer implements IOutputSerializer {
@@ -53,6 +51,6 @@ class JsonSerializer implements IOutputSerializer {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-    return ByteBuffer.wrap(sw.toString().getBytes(Charsets.UTF_8));
+    return ByteBuffer.wrap(sw.toString().getBytes(StandardCharsets.UTF_8));
   }
 }

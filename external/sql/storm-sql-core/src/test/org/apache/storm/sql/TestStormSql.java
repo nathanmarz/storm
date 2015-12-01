@@ -44,7 +44,7 @@ public class TestStormSql {
 
     @Override
     public ISqlTridentDataSource constructTrident(URI uri, String inputFormatClass, String outputFormatClass,
-         List<FieldInfo> fields) {
+                                                  String properties, List<FieldInfo> fields) {
       throw new UnsupportedOperationException();
     }
   }

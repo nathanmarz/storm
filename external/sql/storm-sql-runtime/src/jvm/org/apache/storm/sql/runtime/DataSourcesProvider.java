@@ -22,7 +22,6 @@ package org.apache.storm.sql.runtime;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Map;
 
 public interface DataSourcesProvider {
   /**
@@ -46,5 +45,5 @@ public interface DataSourcesProvider {
 
   ISqlTridentDataSource constructTrident(
       URI uri, String inputFormatClass, String outputFormatClass,
-      List<FieldInfo> fields);
+      String properties, List<FieldInfo> fields);
 }

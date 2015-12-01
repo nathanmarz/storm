@@ -18,6 +18,7 @@
 package org.apache.storm.sql.kafka;
 
 import backtype.storm.spout.SchemeAsMultiScheme;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import org.apache.storm.sql.runtime.*;
 import storm.kafka.ZkHosts;
@@ -33,13 +34,15 @@ import storm.trident.operation.TridentOperationContext;
 import storm.trident.spout.ITridentDataSource;
 import storm.trident.tuple.TridentTuple;
 
+import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.*;
 
 /**
- * Create a Kafka spout based on the URI. The URI has the format of
- * kafka://zkhost:port/broker_path?topic=topic.
+ * Create a Kafka spout/sink based on the URI and properties. The URI has the format of
+ * kafka://zkhost:port/broker_path?topic=topic. The properties are in JSON format which specifies the producer config
+ * of the Kafka broker.
  */
 public class KafkaDataSourcesProvider implements DataSourcesProvider {
   private static final int DEFAULT_ZK_PORT = 2181;
@@ -80,11 +83,14 @@ public class KafkaDataSourcesProvider implements DataSourcesProvider {
     private transient TridentKafkaState state;
     private final String topic;
     private final int primaryKeyIndex;
+    private final Properties producerProperties;
     private final List<String> fieldNames;
 
-    private KafkaTridentSink(String topic, int primaryKeyIndex, List<String> fieldNames) {
+    private KafkaTridentSink(String topic, int primaryKeyIndex, Properties producerProperties,
+                             List<String> fieldNames) {
       this.topic = topic;
       this.primaryKeyIndex = primaryKeyIndex;
+      this.producerProperties = producerProperties;
       this.fieldNames = fieldNames;
     }
 
@@ -100,6 +106,7 @@ public class KafkaDataSourcesProvider implements DataSourcesProvider {
       state = new TridentKafkaState()
           .withKafkaTopicSelector(new StaticTopicSelector(topic))
           .withTridentTupleToKafkaMapper(m);
+      state.prepare(producerProperties);
     }
 
     @Override
@@ -113,11 +120,13 @@ public class KafkaDataSourcesProvider implements DataSourcesProvider {
     private final String topic;
     private final int primaryKeyIndex;
     private final List<String> fields;
+    private final Properties producerProperties;
     private KafkaTridentDataSource(TridentKafkaConfig conf, String topic, int primaryKeyIndex,
-                                   List<String> fields) {
+                                   Properties producerProperties, List<String> fields) {
       this.conf = conf;
       this.topic = topic;
       this.primaryKeyIndex = primaryKeyIndex;
+      this.producerProperties = producerProperties;
       this.fields = fields;
     }
 
@@ -128,7 +137,7 @@ public class KafkaDataSourcesProvider implements DataSourcesProvider {
 
     @Override
     public Function getConsumer() {
-      return new KafkaTridentSink(topic, primaryKeyIndex, fields);
+      return new KafkaTridentSink(topic, primaryKeyIndex, producerProperties, fields);
     }
   }
 
@@ -145,7 +154,7 @@ public class KafkaDataSourcesProvider implements DataSourcesProvider {
 
   @Override
   public ISqlTridentDataSource constructTrident(URI uri, String inputFormatClass, String outputFormatClass,
-                                                List<FieldInfo> fields) {
+                                                String properties, List<FieldInfo> fields) {
     int port = uri.getPort() != -1 ? uri.getPort() : DEFAULT_ZK_PORT;
     ZkHosts zk = new ZkHosts(uri.getHost() + ":" + port, uri.getPath());
     Map<String, String> values = parseURIParams(uri.getQuery());
@@ -163,7 +172,19 @@ public class KafkaDataSourcesProvider implements DataSourcesProvider {
     }
     Preconditions.checkState(primaryIndex != -1, "Kafka stream table must have a primary key");
     conf.scheme = new SchemeAsMultiScheme(new JsonScheme(fieldNames));
-    return new KafkaTridentDataSource(conf, topic, primaryIndex, fieldNames);
+    ObjectMapper mapper = new ObjectMapper();
+    Properties producerProp = new Properties();
+    try {
+      @SuppressWarnings("unchecked")
+      HashMap<String, Object> map = mapper.readValue(properties, HashMap.class);
+      @SuppressWarnings("unchecked")
+      HashMap<String, Object> producerConfig = (HashMap<String, Object>) map.get("producer");
+      Preconditions.checkNotNull(producerConfig, "Kafka Table must contain producer config");
+      producerProp.putAll(producerConfig);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+    return new KafkaTridentDataSource(conf, topic, primaryIndex, producerProp, fieldNames);
   }
 
   private static Map<String, String> parseURIParams(String query) {

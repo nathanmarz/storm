@@ -113,13 +113,19 @@ public class SqlCreateTable extends SqlCall {
   }
 
   public String inputFormatClass() {
-    return inputFormatClass == null ? null : SqlLiteral.stringValue(
-        inputFormatClass);
+    return getString(inputFormatClass);
   }
 
   public String outputFormatClass() {
-    return outputFormatClass == null ? null : SqlLiteral.stringValue
-        (outputFormatClass);
+    return getString(outputFormatClass);
+  }
+
+  public String properties() {
+    return getString(properties);
+  }
+
+  private String getString(SqlNode n) {
+    return n == null ? null : SqlLiteral.stringValue(n);
   }
 
   @SuppressWarnings("unchecked")

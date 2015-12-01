@@ -17,10 +17,11 @@
  */
 package org.apache.storm.sql.kafka;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import kafka.javaapi.producer.Producer;
-import kafka.producer.KeyedMessage;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.storm.sql.kafka.KafkaDataSourcesProvider.KafkaTridentSink;
 import org.apache.storm.sql.runtime.DataSourcesRegistry;
 import org.apache.storm.sql.runtime.FieldInfo;
@@ -46,12 +47,20 @@ public class TestKafkaDataSourcesProvider {
       new FieldInfo("val", String.class, false));
   private static final List<String> FIELD_NAMES = ImmutableList.of("ID", "val");
   private static final JsonSerializer SERIALIZER = new JsonSerializer(FIELD_NAMES);
-
+  private static final String TBL_PROPERTIES = Joiner.on('\n').join(
+      "{\"producer\": {",
+      "\"bootstrap.servers\": \"localhost:9092\",",
+      "\"acks\": \"1\",",
+      "\"key.serializer\": \"org.apache.kafka.common.serialization.StringSerializer\",",
+      "\"value.serializer\": \"org.apache.kafka.common.serialization.StringSerializer\"",
+      "}",
+      "}"
+  );
   @SuppressWarnings("unchecked")
   @Test
   public void testKafkaSink() {
     ISqlTridentDataSource ds = DataSourcesRegistry.constructTridentDataSource(
-        URI.create("kafka://mock?topic=foo"), null, null, FIELDS);
+        URI.create("kafka://mock?topic=foo"), null, null, TBL_PROPERTIES, FIELDS);
     Assert.assertNotNull(ds);
     KafkaTridentSink sink = (KafkaTridentSink) ds.getConsumer();
     sink.prepare(null, null);

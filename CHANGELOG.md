@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-756: Handle taskids response as soon as possible
  * STORM-1218: Use markdown for JavaDoc.
  * STORM-1075: Storm Cassandra connector.
  * STORM-1341: Let topology have own heartbeat timeout for multilang subprocess

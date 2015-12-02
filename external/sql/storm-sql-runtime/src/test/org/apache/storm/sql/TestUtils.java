@@ -19,6 +19,8 @@
  */
 package org.apache.storm.sql;
 
+import backtype.storm.ILocalCluster;
+import backtype.storm.LocalCluster;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
@@ -153,5 +155,9 @@ public class TestUtils {
   public static long monotonicNow() {
     final long NANOSECONDS_PER_MILLISECOND = 1000000;
     return System.nanoTime() / NANOSECONDS_PER_MILLISECOND;
+  }
+
+  public static ILocalCluster newLocalCluster() {
+    return new LocalCluster();
   }
 }

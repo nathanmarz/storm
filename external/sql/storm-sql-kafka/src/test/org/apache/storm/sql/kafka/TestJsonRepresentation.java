@@ -34,7 +34,7 @@ public class TestJsonRepresentation {
     final List<String> fields = Lists.newArrayList("ID", "val");
     final String s = "{\"ID\": 1, \"val\": \"2\"}";
     JsonScheme scheme = new JsonScheme(fields);
-    List<Object> o = scheme.deserialize(s.getBytes(Charset.defaultCharset()));
+    List<Object> o = scheme.deserialize(ByteBuffer.wrap(s.getBytes(Charset.defaultCharset())));
     assertArrayEquals(new Object[] {1, "2"}, o.toArray());
   }
 

@@ -17,6 +17,11 @@
  */
 package org.apache.storm.sql;
 
+import backtype.storm.Config;
+import backtype.storm.ILocalCluster;
+import backtype.storm.StormSubmitter;
+import backtype.storm.generated.SubmitOptions;
+import backtype.storm.generated.TopologyInitialStatus;
 import backtype.storm.tuple.Values;
 import org.apache.storm.sql.runtime.*;
 import org.junit.AfterClass;
@@ -26,6 +31,8 @@ import org.junit.Test;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 
 public class TestStormSql {
@@ -45,7 +52,7 @@ public class TestStormSql {
     @Override
     public ISqlTridentDataSource constructTrident(URI uri, String inputFormatClass, String outputFormatClass,
                                                   String properties, List<FieldInfo> fields) {
-      throw new UnsupportedOperationException();
+      return new TestUtils.MockSqlTridentDataSource();
     }
   }
 
@@ -72,5 +79,4 @@ public class TestStormSql {
     Assert.assertEquals(4, values.get(0).get(0));
     Assert.assertEquals(5, values.get(1).get(0));
   }
-
 }

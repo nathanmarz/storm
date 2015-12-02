@@ -20,7 +20,6 @@
 
 package org.apache.storm.sql.runtime;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,7 +72,6 @@ public class DataSourcesRegistry {
   /**
    * Allow unit tests to inject data sources.
    */
-  @VisibleForTesting
   public static Map<String, DataSourcesProvider> providerMap() {
     return providers;
   }

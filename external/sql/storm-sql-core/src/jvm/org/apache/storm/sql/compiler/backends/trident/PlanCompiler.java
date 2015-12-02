@@ -35,6 +35,8 @@ import org.apache.storm.sql.runtime.trident.AbstractTridentProcessor;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.net.URL;
+import java.net.URLClassLoader;
 
 public class PlanCompiler {
   private static final Joiner NEW_LINE_JOINER = Joiner.on("\n");
@@ -65,6 +67,7 @@ public class PlanCompiler {
   );
 
   private final JavaTypeFactory typeFactory;
+  private CompilingClassLoader compilingClassLoader;
   public PlanCompiler(JavaTypeFactory typeFactory) {
     this.typeFactory = typeFactory;
   }
@@ -177,10 +180,14 @@ public class PlanCompiler {
 
   public AbstractTridentProcessor compile(RelNode plan) throws Exception {
     String javaCode = generateJavaSource(plan);
-    ClassLoader cl = new CompilingClassLoader(getClass().getClassLoader(),
-                                              PACKAGE_NAME + ".TridentProcessor",
-                                              javaCode, null);
-    return (AbstractTridentProcessor) cl.loadClass(PACKAGE_NAME + ".TridentProcessor").newInstance();
+    compilingClassLoader = new CompilingClassLoader(getClass().getClassLoader(),
+        PACKAGE_NAME + ".TridentProcessor",
+        javaCode, null);
+    return (AbstractTridentProcessor) compilingClassLoader.loadClass(PACKAGE_NAME + ".TridentProcessor").newInstance();
+  }
+
+  public CompilingClassLoader getCompilingClassLoader() {
+    return compilingClassLoader;
   }
 
   private static void printEpilogue(

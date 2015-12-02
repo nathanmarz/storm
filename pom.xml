@@ -897,6 +897,10 @@
                         <exclude>**/.git/**</exclude>
                         <exclude>**/derby.log</exclude>
                         <exclude>**/src/dev/**</exclude>
+
+                        <!-- StormSQL -->
+                        <exclude>**/src/codegen/config.fmpp</exclude>
+                        <exclude>**/src/codegen/data/Parser.tdd</exclude>
                     </excludes>
                 </configuration>
             </plugin>

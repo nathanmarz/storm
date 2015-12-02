@@ -118,6 +118,10 @@ public class CompilingClassLoader extends ClassLoader {
     }
   }
 
+  public Map<String, ByteArrayOutputStream> getClasses() {
+    return byteCodeForClasses;
+  }
+
   /**
    * Override ClassLoader's class resolving method. Don't call this directly, instead use
    * {@link ClassLoader#loadClass(String)}.

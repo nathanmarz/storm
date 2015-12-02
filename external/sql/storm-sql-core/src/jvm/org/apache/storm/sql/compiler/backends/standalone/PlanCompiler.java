@@ -27,6 +27,7 @@ import org.apache.storm.sql.runtime.AbstractValuesProcessor;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.net.URLClassLoader;
 import java.util.ArrayDeque;
 import java.util.HashSet;
 import java.util.Queue;

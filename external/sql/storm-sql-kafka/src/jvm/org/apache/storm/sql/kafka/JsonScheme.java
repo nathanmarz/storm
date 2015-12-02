@@ -19,9 +19,11 @@ package org.apache.storm.sql.kafka;
 
 import backtype.storm.spout.Scheme;
 import backtype.storm.tuple.Fields;
+import backtype.storm.utils.Utils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -34,11 +36,11 @@ public class JsonScheme implements Scheme {
   }
 
   @Override
-  public List<Object> deserialize(byte[] ser) {
+  public List<Object> deserialize(ByteBuffer ser) {
     ObjectMapper mapper = new ObjectMapper();
     try {
       @SuppressWarnings("unchecked")
-      HashMap<String, Object> map = mapper.readValue(ser, HashMap.class);
+      HashMap<String, Object> map = mapper.readValue(Utils.toByteArray(ser), HashMap.class);
       ArrayList<Object> list = new ArrayList<>();
       for (String f : fields) {
         list.add(map.get(f));

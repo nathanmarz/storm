@@ -17,19 +17,35 @@
  */
 package org.apache.storm.sql;
 
+import backtype.storm.StormSubmitter;
+import backtype.storm.generated.SubmitOptions;
 import org.apache.storm.sql.runtime.ChannelHandler;
+
+import java.util.Map;
 
 /**
  * The StormSql class provides standalone, interactive interfaces to execute
  * SQL statements over streaming data.
- *
+ * <p>
  * The StormSql class is stateless. The user needs to submit the data
  * definition language (DDL) statements and the query statements in the same
  * batch.
  */
 public abstract class StormSql {
+  /**
+   * Execute the SQL statements in stand-alone mode. The user can retrieve the result by passing in an instance
+   * of {@see ChannelHandler}.
+   */
   public abstract void execute(Iterable<String> statements,
-      ChannelHandler handler) throws Exception;
+                               ChannelHandler handler) throws Exception;
+
+  /**
+   * Submit the SQL statements to Nimbus and run it as a topology.
+   */
+  public abstract void submit(
+      String name, Iterable<String> statements, Map<String, ?> stormConf, SubmitOptions opts,
+      StormSubmitter.ProgressListener progressListener, String asUser)
+      throws Exception;
 
   public static StormSql construct() {
     return new StormSqlImpl();

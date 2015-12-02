@@ -243,6 +243,7 @@ under the License.
 * Dror Weiss ([@drorweiss](https://github.com/drorweiss))
 * Victor Wong ([@victor-wong](https://github.com/victor-wong))
 * David Wimsey ([@dwimsey](https://github.com/dwimsey))
+* Florian Hussonnois ([@fhussonnois](https://github.com/fhussonnois))
 
 ## Acknowledgements
 

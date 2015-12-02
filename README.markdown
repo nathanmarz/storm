@@ -85,6 +85,7 @@ under the License.
 * Kyle Nusbaum ([@knusbaum](https://github.com/knusbaum))
 * Parth Brahmbhatt ([@Parth-Brahmbhatt](https://github.com/Parth-Brahmbhatt))
 * Jungtaek Lim ([@HeartSaVioR](https://github.com/HeartSaVioR))
+* Aaron Dossett ([@dossett](https://github.com/dossett))
 
 ## Contributors
 
@@ -206,7 +207,6 @@ under the License.
 * Reza Farivar ([@rfarivar](https://github.com/rfarivar))
 * Hugo Louro ([@hmcl](https://github.com/hmcl))
 * Xin Wang ([@vesense](https://github.com/vesense))
-* Aaron Dossett ([@dossett](https://github.com/dossett))
 * Charles Chan ([@charleswhchan](https://github.com/charleswhchan))
 * Chuanlei Ni ([@chuanlei](https://github.com/chuanlei))
 * Xingyu Su ([@errordaiwa](https://github.com/errordaiwa))

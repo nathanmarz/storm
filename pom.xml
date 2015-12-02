@@ -147,6 +147,15 @@
             </roles>
             <timezone>+1</timezone>
         </developer>
+        <developer>
+            <id>dossett</id>
+            <name>Aaron Dossett</name>
+            <email>dossett@apache.org</email>
+            <roles>
+                <role>Committer</role>
+            </roles>
+            <timezone>-6</timezone>
+        </developer>
     </developers>
 
 

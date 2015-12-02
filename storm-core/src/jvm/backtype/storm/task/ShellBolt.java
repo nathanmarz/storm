@@ -45,16 +45,16 @@ import static java.util.concurrent.TimeUnit.SECONDS;
  * line library is required to implement that protocol, and adapter libraries
  * currently exist for Ruby and Python.
  *
- * <p>To run a ShellBolt on a cluster, the scripts that are shelled out to must be
+ * To run a ShellBolt on a cluster, the scripts that are shelled out to must be
  * in the resources directory within the jar submitted to the master.
  * During development/testing on a local machine, that resources directory just
- * needs to be on the classpath.</p>
+ * needs to be on the classpath.
  *
- * <p>When creating topologies using the Java API, subclass this bolt and implement
+ * When creating topologies using the Java API, subclass this bolt and implement
  * the IRichBolt interface to create components for the topology that use other languages. For example:
- * </p>
  *
- * <pre>
+ *
+ * ```java
  * public class MyBolt extends ShellBolt implements IRichBolt {
  *      public MyBolt() {
  *          super("python", "mybolt.py");
@@ -64,7 +64,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
  *          declarer.declare(new Fields("field1", "field2"));
  *      }
  * }
- * </pre>
+ * ```
  */
 public class ShellBolt implements IBolt {
     public static final String HEARTBEAT_STREAM_ID = "__heartbeat";

@@ -23,11 +23,12 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * This is a base class for DNS to Switch mappings. <p/> It is not mandatory to
+ * This is a base class for DNS to Switch mappings.
+ *
+ * It is not mandatory to
  * derive {@link DNSToSwitchMapping} implementations from it, but it is strongly
  * recommended, as it makes it easy for the developers to add new methods
  * to this base class that are automatically picked up by all implementations.
- * <p/>
  *
  */
 public abstract class AbstractDNSToSwitchMapping
@@ -45,7 +46,6 @@ public abstract class AbstractDNSToSwitchMapping
      * multi-rack. Subclasses may override this with methods that are more aware
      * of their topologies.
      *
-     * <p/>
      *
      *
      * @return true if the mapping thinks that it is on a single switch
@@ -66,6 +66,7 @@ public abstract class AbstractDNSToSwitchMapping
      * Generate a string listing the switch mapping implementation,
      * the mapping for every known node and the number of nodes and
      * unique switches known about -each entry to a separate line.
+     *
      * @return a string that can be presented to the ops team or used in
      * debug messages.
      */

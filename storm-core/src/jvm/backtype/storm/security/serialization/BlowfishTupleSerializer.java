@@ -41,7 +41,9 @@ import backtype.storm.Config;
 public class BlowfishTupleSerializer extends Serializer<ListDelegate> {
     /**
      * The secret key (if any) for data encryption by blowfish payload serialization factory (BlowfishSerializationFactory). 
-     * You should use in via "storm -c topology.tuple.serializer.blowfish.key=YOURKEY -c topology.tuple.serializer=backtype.storm.security.serialization.BlowfishTupleSerializer jar ...".
+     * You should use in via:
+     *
+     * ```storm -c topology.tuple.serializer.blowfish.key=YOURKEY -c topology.tuple.serializer=backtype.storm.security.serialization.BlowfishTupleSerializer jar ...```
      */
     public static final String SECRET_KEY = "topology.tuple.serializer.blowfish.key";
     private static final Logger LOG = LoggerFactory.getLogger(BlowfishTupleSerializer.class);

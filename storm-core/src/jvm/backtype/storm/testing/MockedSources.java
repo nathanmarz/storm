@@ -36,7 +36,7 @@ public class MockedSources {
      * 
      * @param spoutId the spout to be mocked
      * @param streamId the stream of the spout to be mocked
-     * @param objects the mocked data
+     * @param valueses the mocked data
      */
     public void addMockData(String spoutId, String streamId, Values... valueses) {
         if (!data.containsKey(spoutId)) {

@@ -34,13 +34,18 @@ import backtype.storm.task.TopologyContext;
  * Listens for all metrics and POSTs them serialized to a configured URL
  *
  * To use, add this to your topology's configuration:
- *   conf.registerMetricsConsumer(backtype.storm.metrics.HttpForwardingMetricsConsumer.class, "http://example.com:8080/metrics/my-topology/", 1);
  *
- * The body of the post is data serialized using backtype.storm.serialization.KryoValuesSerializer, with the data passed in
- * as a list of [TaskInfo, Collection<DataPoint>].  More things may be appended to the end of the list in the future.
+ * ```java
+ *   conf.registerMetricsConsumer(backtype.storm.metrics.HttpForwardingMetricsConsumer.class, "http://example.com:8080/metrics/my-topology/", 1);
+ * ```
+ *
+ * The body of the post is data serialized using {@link backtype.storm.serialization.KryoValuesSerializer}, with the data passed in
+ * as a list of `[TaskInfo, Collection<DataPoint>]`.  More things may be appended to the end of the list in the future.
  *
  * The values can be deserialized using the backtype.storm.serialization.KryoValuesDeserializer, and a 
- * correct config + classpath. 
+ * correct config + classpath.
+ *
+ * @see backtype.storm.serialization.KryoValuesSerializer
  */
 public class HttpForwardingMetricsConsumer implements IMetricsConsumer {
     private transient URL _url; 

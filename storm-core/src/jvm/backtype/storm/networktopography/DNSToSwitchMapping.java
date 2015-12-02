@@ -36,7 +36,6 @@ public interface DNSToSwitchMapping {
      * Note the hostname/ip-address is not part of the returned path.
      * The network topology of the cluster would determine the number of
      * components in the network path.
-     * <p/>
      *
      * If a name cannot be resolved to a rack, the implementation
      * should return {DEFAULT_RACK}. This

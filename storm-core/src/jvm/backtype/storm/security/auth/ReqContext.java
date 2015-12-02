@@ -29,10 +29,11 @@ import java.security.Principal;
 import javax.security.auth.Subject;
 
 /**
- * context request context includes info about 
- *      	   (1) remote address, 
- *             (2) remote subject and primary principal
- *             (3) request ID 
+ * context request context includes info about:
+ *
+ *   1. remote address,
+ *   2. remote subject and primary principal
+ *   3. request ID
  */
 public class ReqContext {
     private static final AtomicInteger uniqueId = new AtomicInteger(0);

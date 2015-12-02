@@ -3,6 +3,7 @@
  * STORM-756: Handle taskids response as soon as possible
  * STORM-1218: Use markdown for JavaDoc.
  * STORM-1075: Storm Cassandra connector.
+ * STORM-965: excessive logging in storm when non-kerberos client tries to connect
  * STORM-1341: Let topology have own heartbeat timeout for multilang subprocess
  * STORM-1207: Added flux support for IWindowedBolt
  * STORM-1352: Trident should support writing to multiple Kafka clusters.
@@ -162,6 +163,7 @@
  * STORM-1217: making small fixes in RAS
 
 ## 0.10.0-beta2
+ * STORM-581: Add rebalance params to Storm REST API
  * STORM-1108: Fix NPE in simulated time
  * STORM-1099: Fix worker childopts as arraylist of strings
  * STORM-1094: advance kafka offset when deserializer yields no object

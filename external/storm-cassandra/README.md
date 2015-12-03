@@ -178,6 +178,34 @@ builder.setBolt("BOLT_WRITER", bolt, 4)
         .customGrouping("spout", new Murmur3StreamGrouping("title"))
 ```
 
+### Trident API support
+storm-cassandra support Trident `state` API for `inserting` data into Cassandra. 
+```java
+        CassandraState.Options options = new CassandraState.Options(new CassandraContext());
+        CQLStatementTupleMapper insertTemperatureValues = boundQuery(
+                "INSERT INTO weather.temperature(weather_station_id, weather_station_name, event_time, temperature) VALUES(?, ?, ?, ?)")
+                .bind(with(field("weather_station_id"), field("name").as("weather_station_name"), field("event_time").now(), field("temperature")));
+        options.withCQLStatementTupleMapper(insertTemperatureValues);
+        CassandraStateFactory insertValuesStateFactory =  new CassandraStateFactory(options);
+        TridentState selectState = topology.newStaticState(selectWeatherStationStateFactory);
+        stream = stream.stateQuery(selectState, new Fields("weather_station_id"), new CassandraQuery(), new Fields("name"));
+        stream = stream.each(new Fields("name"), new PrintFunction(), new Fields("name_x"));
+        stream.partitionPersist(insertValuesStateFactory, new Fields("weather_station_id", "name", "event_time", "temperature"), new CassandraStateUpdater(), new Fields());
+```
+
+Below `state` API for `querying` data from Cassandra.
+```java
+        CassandraState.Options options = new CassandraState.Options(new CassandraContext());
+        CQLStatementTupleMapper insertTemperatureValues = boundQuery("SELECT name FROM weather.station WHERE id = ?")
+                 .bind(with(field("weather_station_id").as("id")));
+        options.withCQLStatementTupleMapper(insertTemperatureValues);
+        options.withCQLResultSetValuesMapper(new TridentResultSetValuesMapper(new Fields("name")));
+        CassandraStateFactory selectWeatherStationStateFactory =  new CassandraStateFactory(options);
+        CassandraStateFactory selectWeatherStationStateFactory = getSelectWeatherStationStateFactory();
+        TridentState selectState = topology.newStaticState(selectWeatherStationStateFactory);
+        stream = stream.stateQuery(selectState, new Fields("weather_station_id"), new CassandraQuery(), new Fields("name"));         
+```
+
 ## License
 
 Licensed to the Apache Software Foundation (ASF) under one

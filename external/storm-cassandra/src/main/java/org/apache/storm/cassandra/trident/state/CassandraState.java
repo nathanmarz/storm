@@ -18,7 +18,6 @@
  */
 package org.apache.storm.cassandra.trident.state;
 
-import backtype.storm.task.IMetricsContext;
 import backtype.storm.topology.FailedException;
 import backtype.storm.tuple.Values;
 import com.datastax.driver.core.BatchStatement;
@@ -53,7 +52,7 @@ public class CassandraState implements State {
     private Session session;
     private SimpleClient client;
 
-    public CassandraState(Map conf, IMetricsContext metrics, int partitionIndex, int numPartitions, Options options) {
+    protected CassandraState(Map conf, Options options) {
         this.conf = conf;
         this.options = options;
     }
@@ -62,8 +61,7 @@ public class CassandraState implements State {
         private final SimpleClientProvider clientProvider;
         private CQLStatementTupleMapper cqlStatementTupleMapper;
         private CQLResultSetValuesMapper cqlResultSetValuesMapper;
-        private BatchStatement.Type batchingType = BatchStatement.Type.LOGGED;
-
+        private BatchStatement.Type batchingType;
 
         public Options(SimpleClientProvider clientProvider) {
             this.clientProvider = clientProvider;
@@ -88,36 +86,48 @@ public class CassandraState implements State {
 
     @Override
     public void beginCommit(Long txid) {
-        LOG.debug("beginCommit is noop");
+        LOG.debug("beginCommit is no operation");
     }
 
     @Override
     public void commit(Long txid) {
-        LOG.debug("commit is noop");
+        LOG.debug("commit is no operation");
     }
 
     public void prepare() {
+        Preconditions.checkNotNull(options.cqlStatementTupleMapper, "CassandraState.Options should have cqlStatementTupleMapper");
+
         client = options.clientProvider.getClient(conf);
         session = client.connect();
     }
 
     public void cleanup() {
-        session.close();
-        client.close();
+        try {
+            session.close();
+        } catch (Exception e) {
+            LOG.warn("Error occurred while closing Session", e);
+        } finally {
+            client.close();
+        }
     }
 
     public void updateState(List<TridentTuple> tuples, final TridentCollector collector) {
-        Preconditions.checkNotNull(options.cqlStatementTupleMapper, "CassandraState.Options should have cqlStatementTupleMapper");
 
         List<Statement> statements = new ArrayList<>();
         for (TridentTuple tuple : tuples) {
             statements.addAll(options.cqlStatementTupleMapper.map(conf, session, tuple));
         }
-        BatchStatement batchStatement = new BatchStatement(options.batchingType);
-        batchStatement.addAll(statements);
 
         try {
-            session.execute(batchStatement);
+            if (options.batchingType != null) {
+                BatchStatement batchStatement = new BatchStatement(options.batchingType);
+                batchStatement.addAll(statements);
+                session.execute(batchStatement);
+            } else {
+                for (Statement statement : statements) {
+                    session.execute(statement);
+                }
+            }
         } catch (Exception e) {
             LOG.warn("Batch write operation is failed.");
             collector.reportError(e);
@@ -127,7 +137,6 @@ public class CassandraState implements State {
     }
 
     public List<List<Values>> batchRetrieve(List<TridentTuple> tridentTuples) {
-        Preconditions.checkNotNull(options.cqlStatementTupleMapper, "CassandraState.Options should have cqlStatementTupleMapper");
         Preconditions.checkNotNull(options.cqlResultSetValuesMapper, "CassandraState.Options should have cqlResultSetValuesMapper");
 
         List<List<Values>> batchRetrieveResult = new ArrayList<>();

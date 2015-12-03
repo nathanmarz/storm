@@ -43,7 +43,7 @@ public class CassandraStateFactory implements StateFactory {
 
     @Override
     public State makeState(Map conf, IMetricsContext metrics, int partitionIndex, int numPartitions) {
-        CassandraState cassandraState = new CassandraState(conf, metrics, partitionIndex, numPartitions, options);
+        CassandraState cassandraState = new CassandraState(conf, options);
         cassandraState.prepare();
 
         return cassandraState;

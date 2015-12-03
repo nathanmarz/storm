@@ -50,9 +50,10 @@ public class ShellBoltMessageQueueTest extends TestCase {
         long start = System.currentTimeMillis();
         Object msg = queue.poll(1, TimeUnit.SECONDS);
         long finish = System.currentTimeMillis();
+        long waitDuration = finish - start;
 
         assertNull(msg);
-        assertTrue(finish - start > 1000);
+        assertTrue("wait duration should be equal or greater than 1000, current: " + waitDuration, waitDuration >= 1000);
     }
 
     @Test

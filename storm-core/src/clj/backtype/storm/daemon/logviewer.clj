@@ -20,7 +20,7 @@
   (:use [hiccup core page-helpers form-helpers])
   (:use [backtype.storm config util log timer])
   (:use [backtype.storm.ui helpers])
-  (:import [backtype.storm.utils Utils])
+  (:import [backtype.storm.utils Utils VersionInfo])
   (:import [org.slf4j LoggerFactory])
   (:import [java.util Arrays])
   (:import [java.util.zip GZIPInputStream])
@@ -46,6 +46,7 @@
   (:gen-class))
 
 (def ^:dynamic *STORM-CONF* (read-storm-config))
+(def STORM-VERSION (VersionInfo/getVersion))
 
 (defmeter logviewer:num-log-page-http-requests)
 (defmeter logviewer:num-daemonlog-page-http-requests)
@@ -1182,5 +1183,8 @@
         daemonlog-root (log-root-dir (conf LOGVIEWER-APPENDER-NAME))]
     (setup-default-uncaught-exception-handler)
     (start-log-cleaner! conf log-root)
+    (log-message "Starting logviewer server for storm version '"
+                 STORM-VERSION
+                 "'")
     (start-logviewer! conf log-root daemonlog-root)
     (start-metrics-reporters)))

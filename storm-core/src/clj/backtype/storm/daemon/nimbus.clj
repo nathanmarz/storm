@@ -85,6 +85,8 @@
 (defmeter nimbus:num-getComponentPageInfo-calls)
 (defmeter nimbus:num-shutdown-calls)
 
+(def STORM-VERSION (VersionInfo/getVersion))
+
 (defn file-cache-map [conf]
   (TimeCacheMap.
    (int (conf NIMBUS-FILE-COPY-EXPIRATION-SECS))
@@ -1260,7 +1262,7 @@
         (.getPort (:nimbus-host-port-info nimbus))
         (current-time-secs)
         false ;is-leader
-        (str (VersionInfo/getVersion))))
+        STORM-VERSION))
 
     (.addToLeaderLockQueue (:leader-elector nimbus))
     (cleanup-corrupt-topologies! nimbus)
@@ -1951,7 +1953,9 @@
     (add-shutdown-hook-with-force-kill-in-1-sec (fn []
                                                   (.shutdown service-handler)
                                                   (.stop server)))
-    (log-message "Starting Nimbus server...")
+    (log-message "Starting nimbus server for storm version '"
+                 STORM-VERSION
+                 "'")
     (.serve server)
     service-handler))
 

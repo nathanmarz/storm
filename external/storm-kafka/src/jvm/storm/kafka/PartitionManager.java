@@ -150,11 +150,7 @@ public class PartitionManager {
             }
             
             if ((tups != null) && tups.iterator().hasNext()) {
-                if(_spoutConfig.topicAsStreamId) {
-                    for (List<Object> tup : tups) {
-                        collector.emit(_spoutConfig.topic, tup, new KafkaMessageId(_partition, toEmit.offset));
-                    }
-                } else if (!Strings.isNullOrEmpty(_spoutConfig.outputStreamId)) {
+               if (!Strings.isNullOrEmpty(_spoutConfig.outputStreamId)) {
                     for (List<Object> tup : tups) {
                         collector.emit(_spoutConfig.outputStreamId, tup, new KafkaMessageId(_partition, toEmit.offset));
                     }

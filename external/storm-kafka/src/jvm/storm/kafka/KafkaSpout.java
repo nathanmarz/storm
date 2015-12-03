@@ -191,9 +191,7 @@ public class KafkaSpout extends BaseRichSpout {
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        if (_spoutConfig.topicAsStreamId) {
-            declarer.declareStream(_spoutConfig.topic, _spoutConfig.scheme.getOutputFields());
-        } else if (!Strings.isNullOrEmpty(_spoutConfig.outputStreamId)) {
+       if (!Strings.isNullOrEmpty(_spoutConfig.outputStreamId)) {
             declarer.declareStream(_spoutConfig.outputStreamId, _spoutConfig.scheme.getOutputFields());
         } else {
             declarer.declare(_spoutConfig.scheme.getOutputFields());

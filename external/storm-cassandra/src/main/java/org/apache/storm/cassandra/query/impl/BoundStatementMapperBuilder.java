@@ -32,7 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.storm.cassandra.query.ContextQuery.*;
+import static org.apache.storm.cassandra.query.ContextQuery.StaticContextQuery;
 
 
 public class BoundStatementMapperBuilder implements Serializable {
@@ -64,6 +64,7 @@ public class BoundStatementMapperBuilder implements Serializable {
 
         private final CQLValuesTupleMapper mapper;
 
+        // should be a lru-map or weakhashmap else this may lead to memory leaks.
         private Map<String, PreparedStatement> cache = new HashMap<>();
 
         /**
@@ -86,7 +87,8 @@ public class BoundStatementMapperBuilder implements Serializable {
             final String query = contextQuery.resolves(config, tuple);
             Object[] objects = values.values().toArray(new Object[values.size()]);
             PreparedStatement statement = getPreparedStatement(session, query);
-            return Arrays.asList((Statement)statement.bind(objects));
+            // todo bind objects in the same sequence as the statement expects.
+            return Arrays.asList((Statement) statement.bind(objects));
         }
 
         /**
@@ -97,7 +99,7 @@ public class BoundStatementMapperBuilder implements Serializable {
          */
         private PreparedStatement getPreparedStatement(Session session, String query) {
             PreparedStatement statement = cache.get(query);
-            if( statement == null) {
+            if (statement == null) {
                 statement = session.prepare(query);
                 cache.put(query, statement);
             }

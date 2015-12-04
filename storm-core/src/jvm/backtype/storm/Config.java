@@ -2229,6 +2229,7 @@ public class Config extends HashMap<String, Object> {
 
     /**
      * Takes as input the strategy class name. Strategy must implement the IStrategy interface
+     * @param clazz class of the strategy to use
      */
     public void setTopologyStrategy(Class<? extends IStrategy> clazz) {
         if (clazz != null) {

@@ -131,9 +131,9 @@ public class ResourceAwareScheduler implements IScheduler {
             LOG.debug("/********Scheduling topology {} from User {}************/", td.getName(), topologySubmitter);
 
             SchedulingState schedulingState = this.checkpointSchedulingState();
-            IStrategy RAStrategy = null;
+            IStrategy rasStrategy = null;
             try {
-                RAStrategy = (IStrategy) Utils.newInstance((String) td.getConf().get(Config.TOPOLOGY_SCHEDULER_STRATEGY));
+                rasStrategy = (IStrategy) Utils.newInstance((String) td.getConf().get(Config.TOPOLOGY_SCHEDULER_STRATEGY));
             } catch (RuntimeException e) {
                 LOG.error("failed to create instance of IStrategy: {} with error: {}! Topology {} will not be scheduled.",
                         td.getName(), td.getConf().get(Config.TOPOLOGY_SCHEDULER_STRATEGY), e.getMessage());
@@ -150,17 +150,17 @@ public class ResourceAwareScheduler implements IScheduler {
                 SchedulingResult result = null;
                 try {
                     //Need to re prepare scheduling strategy with cluster and topologies in case scheduling state was restored
-                    RAStrategy.prepare(this.topologies, this.cluster, this.userMap, this.nodes);
-                    result = RAStrategy.schedule(td);
+                    rasStrategy.prepare(this.topologies, this.cluster, this.userMap, this.nodes);
+                    result = rasStrategy.schedule(td);
                 } catch (Exception e) {
                     LOG.error("Exception thrown when running strategy {} to schedule topology {}. Topology will not be scheduled! Error: {} StackTrack: {}"
-                            , RAStrategy.getClass().getName(), td.getName(), e.getMessage(), Arrays.toString(e.getStackTrace()));
+                            , rasStrategy.getClass().getName(), td.getName(), e.getMessage(), Arrays.toString(e.getStackTrace()));
                     this.restoreCheckpointSchedulingState(schedulingState);
                     //since state is restored need the update User topologySubmitter to the new User object in userMap
                     topologySubmitter = this.userMap.get(td.getTopologySubmitter());
                     topologySubmitter.moveTopoFromPendingToInvalid(td);
                     this.cluster.setStatus(td.getId(), "Unsuccessful in scheduling - Exception thrown when running strategy {}"
-                            + RAStrategy.getClass().getName() + ". Please check logs for details");
+                            + rasStrategy.getClass().getName() + ". Please check logs for details");
                 }
                 LOG.debug("scheduling result: {}", result);
                 if (result != null && result.isValid()) {

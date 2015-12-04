@@ -144,7 +144,7 @@ public class RAS_Node {
         }
     }
 
-     void addOrphanedSlot(WorkerSlot ws) {
+    void addOrphanedSlot(WorkerSlot ws) {
         if (_isAlive) {
             throw new IllegalArgumentException("Orphaned Slots " +
                     "only are allowed on dead nodes.");
@@ -241,7 +241,7 @@ public class RAS_Node {
         _topIdToUsedSlots.remove(topId);
     }
 
-    public void freeMemory(double amount) {
+    private void freeMemory(double amount) {
         _availMemory += amount;
         LOG.debug("freeing {} memory on node {}...avail mem: {}", amount, this.getHostname(), _availMemory);
         if (_availMemory > this.getTotalMemoryResources()) {
@@ -249,7 +249,7 @@ public class RAS_Node {
         }
     }
 
-    public void freeCPU(double amount) {
+    private void freeCPU(double amount) {
         _availCPU += amount;
         LOG.debug("freeing {} CPU on node...avail CPU: {}", amount, this.getHostname(), _availCPU);
         if (_availCPU > this.getAvailableCpuResources()) {

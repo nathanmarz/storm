@@ -23,7 +23,6 @@ import backtype.storm.scheduler.Topologies;
 import backtype.storm.scheduler.TopologyDetails;
 import backtype.storm.scheduler.WorkerSlot;
 import backtype.storm.scheduler.resource.RAS_Nodes;
-import backtype.storm.scheduler.resource.ResourceUtils;
 import backtype.storm.scheduler.resource.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,7 +57,7 @@ public class DefaultEvictionStrategy implements IEvictionStrategy {
         double cpuNeeded = td.getTotalRequestedCpu() / submitter.getCPUResourceGuaranteed();
         double memoryNeeded = (td.getTotalRequestedMemOffHeap() + td.getTotalRequestedMemOnHeap()) / submitter.getMemoryResourceGuaranteed();
 
-        User evictUser = this.findUserWithMostResourcesAboveGuarantee();
+        User evictUser = this.findUserWithHighestAverageResourceUtilAboveGuarantee();
         //user has enough resource under his or her resource guarantee to schedule topology
         if ((1.0 - submitter.getCPUResourcePoolUtilization()) >= cpuNeeded && (1.0 - submitter.getMemoryResourcePoolUtilization()) >= memoryNeeded) {
             if (evictUser != null) {
@@ -96,7 +95,7 @@ public class DefaultEvictionStrategy implements IEvictionStrategy {
         submitter.moveTopoFromRunningToPending(topologyEvict, this.cluster);
     }
 
-    private User findUserWithMostResourcesAboveGuarantee() {
+    private User findUserWithHighestAverageResourceUtilAboveGuarantee() {
         double most = 0.0;
         User mostOverUser = null;
         for (User user : this.userMap.values()) {

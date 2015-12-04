@@ -469,7 +469,7 @@ public class TopologyDetails {
         String user = (String) this.topologyConf.get(Config.TOPOLOGY_SUBMITTER_USER);
         if (user == null || user.equals("")) {
             LOG.debug("Topology {} submitted by anonymous user", this.getName());
-            user = "anonymous";
+            user = System.getProperty("user.name");
         }
         return user;
     }
@@ -505,5 +505,13 @@ public class TopologyDetails {
     @Override
     public int hashCode() {
         return this.topologyId.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof TopologyDetails)) {
+            return false;
+        }
+        return (this.topologyId.equals(((TopologyDetails) o).getId()));
     }
 }

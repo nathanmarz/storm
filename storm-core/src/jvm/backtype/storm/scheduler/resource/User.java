@@ -159,7 +159,6 @@ public class User {
         this.moveTopoFromPendingToRunning(topo, null);
     }
 
-
     public void moveTopoFromPendingToAttempted(TopologyDetails topo, Cluster cluster) {
         moveTopology(topo, this.pendingQueue, "pending", this.attemptedQueue, "attempted");
         if (cluster != null) {
@@ -170,7 +169,6 @@ public class User {
     public void moveTopoFromPendingToAttempted(TopologyDetails topo) {
         this.moveTopoFromPendingToAttempted(topo, null);
     }
-
 
     public void moveTopoFromPendingToInvalid(TopologyDetails topo, Cluster cluster) {
         moveTopology(topo, this.pendingQueue, "pending", this.invalidQueue, "invalid");
@@ -183,7 +181,6 @@ public class User {
         this.moveTopoFromPendingToInvalid(topo, null);
     }
 
-
     public void moveTopoFromRunningToPending(TopologyDetails topo, Cluster cluster) {
         moveTopology(topo, this.runningQueue, "running", this.pendingQueue, "pending");
         if (cluster != null) {
@@ -194,7 +191,6 @@ public class User {
     public void moveTopoFromRunningToPending(TopologyDetails topo) {
         this.moveTopoFromRunningToPending(topo, null);
     }
-
 
     private void moveTopology(TopologyDetails topo, Set<TopologyDetails> src, String srcName, Set<TopologyDetails> dest, String destName) {
         LOG.debug("For User {} Moving topo {} from {} to {}", this.userId, topo.getName(), srcName, destName);
@@ -212,7 +208,6 @@ public class User {
         src.remove(topo);
         dest.add(topo);
     }
-
 
     public double getResourcePoolAverageUtilization() {
         Double cpuResourcePoolUtilization = this.getCPUResourcePoolUtilization();
@@ -242,7 +237,6 @@ public class User {
         }
         return this.getMemoryResourceUsedByUser() / memoryGuarantee;
     }
-
 
     public double getCPUResourceUsedByUser() {
         double sum = 0.0;
@@ -291,6 +285,14 @@ public class User {
     @Override
     public int hashCode() {
         return this.userId.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof User)) {
+            return false;
+        }
+        return this.getId().equals(((User) o).getId());
     }
 
     @Override

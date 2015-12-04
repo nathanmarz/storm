@@ -74,10 +74,11 @@ public class Topologies {
 
     @Override
     public String toString() {
-        String ret = "Topologies:\n";
+        StringBuilder ret = new StringBuilder();
+        ret.append("Topologies:\n");
         for (TopologyDetails td : this.getTopologies()) {
-            ret += td.toString() + "\n";
+            ret.append(td.toString()).append("\n");
         }
-        return ret;
+        return ret.toString();
     }
 }

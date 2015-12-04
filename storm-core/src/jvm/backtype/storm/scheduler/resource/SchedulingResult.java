@@ -26,21 +26,26 @@ import org.slf4j.LoggerFactory;
 import java.util.Collection;
 import java.util.Map;
 
+/**
+ * This class serves as a mechanism to return results and messages from a scheduling strategy to the Resource Aware Scheduler
+ */
 public class SchedulingResult {
 
     //contains the result for the attempted scheduling
     private Map<WorkerSlot, Collection<ExecutorDetails>> schedulingResultMap = null;
 
+    //status of scheduling the topology e.g. success or fail?
     private SchedulingStatus status = null;
 
+    //arbitrary message to be returned when scheduling is done
     private String message = null;
 
+    //error message returned is something went wrong
     private String errorMessage = null;
 
     private static final Logger LOG = LoggerFactory.getLogger(SchedulingResult.class);
 
-
-    public SchedulingResult(SchedulingStatus status, Map<WorkerSlot, Collection<ExecutorDetails>> schedulingResultMap, String message, String errorMessage) {
+    private SchedulingResult(SchedulingStatus status, Map<WorkerSlot, Collection<ExecutorDetails>> schedulingResultMap, String message, String errorMessage) {
         this.status = status;
         this.schedulingResultMap = schedulingResultMap;
         this.message = message;
@@ -100,11 +105,11 @@ public class SchedulingResult {
 
     @Override
     public String toString() {
-        String ret = "";
+        String ret = null;
         if(this.isSuccess()) {
-            ret += "Status: " + this.getStatus() + " message: " + this.getMessage() + " scheduling: " + this.getSchedulingResultMap().toString();
+            ret = "Status: " + this.getStatus() + " message: " + this.getMessage() + " scheduling: " + this.getSchedulingResultMap();
         } else {
-            ret += "Status: " + this.getStatus() + " error message: " + this.getErrorMessage();
+            ret = "Status: " + this.getStatus() + " error message: " + this.getErrorMessage();
         }
         return ret;
     }

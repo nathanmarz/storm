@@ -54,8 +54,6 @@ public class ResourceAwareExampleTopology {
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
       declarer.declare(new Fields("word"));
     }
-
-
   }
 
   public static void main(String[] args) throws Exception {
@@ -87,7 +85,7 @@ public class ResourceAwareExampleTopology {
     // Set topology priority 0-30 with 0 being the highest priority and 30 being the lowest priority.
     conf.setTopologyPriority(30);
 
-    //Set strategy to schedule topology. If not specified, default to backtype.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy
+    // Set strategy to schedule topology. If not specified, default to backtype.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy
     conf.setTopologyStrategy(backtype.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy.class);
 
     if (args != null && args.length > 0) {

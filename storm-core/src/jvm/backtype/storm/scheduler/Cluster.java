@@ -104,9 +104,7 @@ public class Cluster {
         Map newConf = new HashMap<String, Object>();
         newConf.putAll(this.conf);
         Cluster copy = new Cluster(this.inimbus, this.supervisors, newAssignments, newConf);
-        for (Map.Entry<String, String> entry : this.status.entrySet()) {
-            copy.setStatus(entry.getKey(), entry.getValue());
-        }
+        copy.status = new HashMap<>(this.status);
         return copy;
     }
     

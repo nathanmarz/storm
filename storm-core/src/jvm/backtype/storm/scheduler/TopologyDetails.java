@@ -48,6 +48,10 @@ public class TopologyDetails {
     //Max heap size for a worker used by topology
     private Double topologyWorkerMaxHeapSize;
 
+    private Integer topologyPriority;
+
+    private int launchTime;
+
     private static final Logger LOG = LoggerFactory.getLogger(TopologyDetails.class);
 
     public TopologyDetails(String topologyId, Map topologyConf, StormTopology topology, int numWorkers) {
@@ -57,12 +61,14 @@ public class TopologyDetails {
         this.numWorkers = numWorkers;
     }
 
-    public TopologyDetails(String topologyId, Map topologyConf, StormTopology topology, int numWorkers, Map<ExecutorDetails, String> executorToComponents) {
+    public TopologyDetails(String topologyId, Map topologyConf, StormTopology topology,
+                           int numWorkers, Map<ExecutorDetails, String> executorToComponents, int launchTime) {
         this(topologyId, topologyConf, topology, numWorkers);
         this.executorToComponent = new HashMap<>(0);
         if (executorToComponents != null) {
             this.executorToComponent.putAll(executorToComponents);
         }
+        this.launchTime = launchTime;
         this.initResourceList();
         this.initConfigs();
     }
@@ -424,6 +430,7 @@ public class TopologyDetails {
      */
     private void initConfigs() {
         this.topologyWorkerMaxHeapSize = Utils.getDouble(this.topologyConf.get(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB), null);
+        this.topologyPriority = Utils.getInt(this.topologyConf.get(Config.TOPOLOGY_PRIORITY), null);
     }
 
     /**
@@ -432,5 +439,32 @@ public class TopologyDetails {
      */
     public Double getTopologyWorkerMaxHeapSize() {
         return this.topologyWorkerMaxHeapSize;
+    }
+
+    public String getTopologySubmitter() {
+       return (String)this.topologyConf.get(Config.TOPOLOGY_SUBMITTER_USER);
+    }
+
+    public int getTopologyPriority() {
+       return this.topologyPriority;
+    }
+    public int getLaunchTime() {
+        return this.launchTime;
+    }
+
+    public int getUpTime() {
+        return Time.currentTimeSecs() - this.launchTime;
+    }
+
+    @Override
+    public String toString() {
+        return "Name: " + this.getName() + " Priority: " + this.getTopologyPriority()
+                + " Uptime: " + this.getUpTime() + " CPU: " + this.getTotalRequestedCpu()
+                + " Memory: " + (this.getTotalRequestedMemOffHeap() + this.getTotalRequestedMemOnHeap());
+    }
+
+    @Override
+    public int hashCode() {
+        return this.topologyId.hashCode();
     }
 }

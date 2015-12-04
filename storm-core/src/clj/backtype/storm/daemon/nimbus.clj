@@ -540,12 +540,16 @@
         topology (read-storm-topology-as-nimbus storm-id blob-store)
         executor->component (->> (compute-executor->component nimbus storm-id)
                                  (map-key (fn [[start-task end-task]]
-                                            (ExecutorDetails. (int start-task) (int end-task)))))]
+                                            (ExecutorDetails. (int start-task) (int end-task)))))
+        launch-time-secs (if storm-base (:launch-time-secs storm-base)
+                           (throw
+                             (NotAliveException. (str storm-id))))]
     (TopologyDetails. storm-id
                       topology-conf
                       topology
                       (:num-workers storm-base)
                       executor->component
+                      launch-time-secs
                       )))
 
 ;; Does not assume that clocks are synchronized. Executor heartbeat is only used so that

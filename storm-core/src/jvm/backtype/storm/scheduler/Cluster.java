@@ -436,6 +436,28 @@ public class Cluster {
         return this.supervisors;
     }
 
+    /**
+     * Get the total amount of CPU resources in cluster
+     */
+    public double getClusterTotalCPUResource() {
+        double sum = 0.0;
+        for(SupervisorDetails sup: this.supervisors.values()) {
+            sum += sup.getTotalCPU();
+        }
+        return sum;
+    }
+
+    /**
+     * Get the total amount of memory resources in cluster
+     */
+    public double getClusterTotalMemoryResource() {
+        double sum = 0.0;
+        for(SupervisorDetails sup: this.supervisors.values()) {
+            sum += sup.getTotalMemory();
+        }
+        return sum;
+    }
+
     /*
     * Note: Make sure the proper conf was passed into the Cluster constructor before calling this function
     * It tries to load the proper network topography detection plugin specified in the config.

@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-876: Blobstore/DistCache Support
  * STORM-1361: Apache License missing from two Cassandra files
  * STORM-1218: Use markdown for JavaDoc.
  * STORM-1075: Storm Cassandra connector.

@@ -29,7 +29,7 @@
             LogConfig LogLevel LogLevelAction])
   (:import [java.util HashMap])
   (:import [java.io File])
-  (:import [backtype.storm.utils Time])
+  (:import [backtype.storm.utils Time Utils])
   (:import [org.apache.commons.io FileUtils])
   (:use [backtype.storm testing MockAutoCred util config log timer zookeeper])
   (:use [backtype.storm.daemon common])
@@ -939,40 +939,14 @@
          (bind storm-id1 (get-storm-id cluster-state "t1"))
          (bind storm-id2 (get-storm-id cluster-state "t2"))
          (.shutdown nimbus)
-         (rmr (master-stormdist-root conf storm-id1))
+         (let [blob-store (Utils/getNimbusBlobStore conf nil)]
+           (nimbus/blob-rm-topology-keys storm-id1 blob-store cluster-state)
+           (.shutdown blob-store))
          (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
          (is ( = #{storm-id2} (set (.active-storms cluster-state))))
          (.shutdown nimbus)
          (.disconnect cluster-state)
          )))))
-
-
-(deftest test-cleans-corrupt
-  (with-inprocess-zookeeper zk-port
-    (with-local-tmp [nimbus-dir]
-      (stubbing [zk-leader-elector (mock-leader-elector)]
-        (letlocals
-          (bind conf (merge (read-storm-config)
-                       {STORM-ZOOKEEPER-SERVERS ["localhost"]
-                        STORM-CLUSTER-MODE "local"
-                        STORM-ZOOKEEPER-PORT zk-port
-                        STORM-LOCAL-DIR nimbus-dir}))
-          (bind cluster-state (cluster/mk-storm-cluster-state conf))
-          (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
-          (bind topology (thrift/mk-topology
-                           {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
-                           {}))
-          (submit-local-topology nimbus "t1" {} topology)
-          (submit-local-topology nimbus "t2" {} topology)
-          (bind storm-id1 (get-storm-id cluster-state "t1"))
-          (bind storm-id2 (get-storm-id cluster-state "t2"))
-          (.shutdown nimbus)
-          (rmr (master-stormdist-root conf storm-id1))
-          (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
-          (is ( = #{storm-id2} (set (.active-storms cluster-state))))
-          (.shutdown nimbus)
-          (.disconnect cluster-state)
-          )))))
 
 ;(deftest test-no-overlapping-slots
 ;  ;; test that same node+port never appears across 2 assignments
@@ -1173,7 +1147,7 @@
                     nimbus/check-authorization!
                       [1 2 3] expected-name expected-conf expected-operation)
                   (verify-first-call-args-for-indices
-                    nimbus/try-read-storm-topology [0] expected-conf))))))))))
+                    nimbus/try-read-storm-topology [0] "fake-id"))))))))))
 
 (deftest test-nimbus-iface-getTopology-methods-throw-correctly
   (with-local-cluster [cluster]
@@ -1230,7 +1204,8 @@
                         :status {:type bogus-type}}
                 }
         ]
-      (stubbing [topology-bases bogus-bases]
+      (stubbing [topology-bases bogus-bases
+                 nimbus/get-blob-replication-count 1]
         (let [topos (.get_topologies (.getClusterInfo nimbus))]
           ; The number of topologies in the summary is correct.
           (is (= (count
@@ -1265,6 +1240,7 @@
           digest "storm:thisisapoorpassword"
           auth-conf {STORM-ZOOKEEPER-AUTH-SCHEME scheme
                      STORM-ZOOKEEPER-AUTH-PAYLOAD digest
+                     STORM-PRINCIPAL-TO-LOCAL-PLUGIN "backtype.storm.security.auth.DefaultPrincipalToLocal"
                      NIMBUS-THRIFT-PORT 6666}
           expected-acls nimbus/NIMBUS-ZK-ACLS
           fake-inimbus (reify INimbus (getForcedScheduler [this] nil))]
@@ -1272,10 +1248,11 @@
                  mk-authorization-handler nil
                  cluster/mk-storm-cluster-state nil
                  nimbus/file-cache-map nil
+                 nimbus/mk-blob-cache-map nil
+                 nimbus/mk-bloblist-cache-map nil
                  uptime-computer nil
                  new-instance nil
                  mk-timer nil
-                 nimbus/mk-code-distributor nil
                  zk-leader-elector nil
                  nimbus/mk-scheduler nil]
         (nimbus/nimbus-data auth-conf fake-inimbus)

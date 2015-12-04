@@ -208,14 +208,15 @@
       (.set-credentials! state "storm1" {"b" "b"} {})
       (is (= {"b" "b"} (.credentials state "storm1" nil)))
 
-      (is (= [] (.code-distributor state nil)))
-      (.setup-code-distributor! state "storm1" nimbusInfo1)
-      (is (= ["storm1"] (.code-distributor state nil)))
-      (is (= [nimbusInfo1] (.code-distributor-info state "storm1")))
-      (.setup-code-distributor! state "storm1" nimbusInfo2)
-      (is (= #{nimbusInfo1 nimbusInfo2} (set (.code-distributor-info state "storm1"))))
-      (.remove-storm! state "storm1")
-      (is (= [] (.code-distributor state nil)))
+      (is (= [] (.blobstore-info state nil)))
+      (.setup-blobstore! state "key1" nimbusInfo1 "1")
+      (is (= ["key1"] (.blobstore-info state nil)))
+      (is (= [(str (.toHostPortString nimbusInfo1) "-1")] (.blobstore-info state "key1")))
+      (.setup-blobstore! state "key1" nimbusInfo2 "1")
+      (is (= #{(str (.toHostPortString nimbusInfo1) "-1")
+               (str (.toHostPortString nimbusInfo2) "-1")} (set (.blobstore-info state "key1"))))
+      (.remove-blobstore-key! state "key1")
+      (is (= [] (.blobstore-info state nil)))
 
       (is (= [] (.nimbuses state)))
       (.add-nimbus-host! state "nimbus1:port" nimbusSummary1)
@@ -266,8 +267,7 @@
     (let [state1 (mk-storm-state zk-port)
           state2 (mk-storm-state zk-port)
           supervisor-info1 (SupervisorInfo. 10 "hostname-1" "id1" [1 2] [] {} 1000 "0.9.2" nil)
-          supervisor-info2 (SupervisorInfo. 10 "hostname-2" "id2" [1 2] [] {} 1000 "0.9.2" nil)
-          ]
+          supervisor-info2 (SupervisorInfo. 10 "hostname-2" "id2" [1 2] [] {} 1000 "0.9.2" nil)]
       (is (= [] (.supervisors state1 nil)))
       (.supervisor-heartbeat! state2 "2" supervisor-info2)
       (.supervisor-heartbeat! state1 "1" supervisor-info1)

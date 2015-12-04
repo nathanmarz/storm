@@ -149,6 +149,10 @@
        [this path]
        (zk/sync-path zk-writer path))
 
+      (delete-node-blobstore
+        [this path nimbus-host-port-info]
+        (zk/delete-node-blobstore zk-writer path nimbus-host-port-info))
+
      (close
        [this]
        (reset! active false)

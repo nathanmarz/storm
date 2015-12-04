@@ -477,8 +477,16 @@ public class ConfigValidation {
         }
     }
 
-    public static class PacemakerAuthTypeValidator extends Validator {
+    public static class MapOfStringToMapOfStringToObjectValidator extends Validator {
+      @Override
+      public  void validateField(String name, Object o) {
+        ConfigValidationUtils.NestableFieldValidator validator = ConfigValidationUtils.mapFv(ConfigValidationUtils.fv(String.class, false),
+                ConfigValidationUtils.mapFv(String.class, Object.class,true), true);
+        validator.validateField(name, o);
+      }
+    }
 
+    public static class PacemakerAuthTypeValidator extends Validator {
         @Override
         public void validateField(String name, Object o) {
             if(o == null) {
@@ -486,9 +494,9 @@ public class ConfigValidation {
             }
 
             if(o instanceof String &&
-               (((String)o).equals("NONE") ||
-                ((String)o).equals("DIGEST") ||
-                ((String)o).equals("KERBEROS"))) {
+                    (((String)o).equals("NONE") ||
+                            ((String)o).equals("DIGEST") ||
+                            ((String)o).equals("KERBEROS"))) {
                 return;
             }
             throw new IllegalArgumentException( "Field " + name + " must be one of \"NONE\", \"DIGEST\", or \"KERBEROS\"");

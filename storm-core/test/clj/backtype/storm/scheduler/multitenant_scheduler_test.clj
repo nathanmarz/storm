@@ -132,7 +132,7 @@
        executor1 (ed 1)
        executor2 (ed 2)
        executor3 (ed 3)
-       topology1 (TopologyDetails. "topology1" 
+       topology1 (TopologyDetails. "topology1"
                    {TOPOLOGY-NAME "topology-name-1"}
                    (StormTopology.)
                    2
@@ -169,7 +169,7 @@
        executor1 (ed 1)
        executor2 (ed 2)
        executor3 (ed 3)
-       topology1 (TopologyDetails. "topology1" 
+       topology1 (TopologyDetails. "topology1"
                    {TOPOLOGY-NAME "topology-name-1"}
                    (StormTopology.)
                    5
@@ -208,7 +208,7 @@
        executor3 (ed 3)
        executor4 (ed 4)
        executor5 (ed 5)
-       topology1 (TopologyDetails. "topology1" 
+       topology1 (TopologyDetails. "topology1"
                    {TOPOLOGY-NAME "topology-name-1"}
                    (StormTopology.)
                    5
@@ -247,7 +247,7 @@
        executor3 (ed 3)
        executor4 (ed 4)
        executor5 (ed 5)
-       topology1 (TopologyDetails. "topology1" 
+       topology1 (TopologyDetails. "topology1"
                    {TOPOLOGY-NAME "topology-name-1"}
                    (StormTopology.)
                    5
@@ -296,7 +296,7 @@
        executor12 (ed 12)
        executor13 (ed 13)
        executor14 (ed 14)
-       topology1 (TopologyDetails. "topology1" 
+       topology1 (TopologyDetails. "topology1"
                    {TOPOLOGY-NAME "topology-name-1"}
                    (StormTopology.)
                    2
@@ -375,7 +375,7 @@
        executor2 (ed 2)
        executor3 (ed 3)
        executor4 (ed 4)
-       topology1 (TopologyDetails. "topology1" 
+       topology1 (TopologyDetails. "topology1"
                    {TOPOLOGY-NAME "topology-name-1"
                     TOPOLOGY-ISOLATED-MACHINES 4}
                    (StormTopology.)
@@ -419,7 +419,7 @@
        executor2 (ed 2)
        executor3 (ed 3)
        executor4 (ed 4)
-       topology1 (TopologyDetails. "topology1" 
+       topology1 (TopologyDetails. "topology1"
                    {TOPOLOGY-NAME "topology-name-1"
                     TOPOLOGY-ISOLATED-MACHINES 4}
                    (StormTopology.)
@@ -467,7 +467,7 @@
        executor12 (ed 12)
        executor13 (ed 13)
        executor14 (ed 14)
-       topology1 (TopologyDetails. "topology1" 
+       topology1 (TopologyDetails. "topology1"
                    {TOPOLOGY-NAME "topology-name-1"}
                    (StormTopology.)
                    4
@@ -572,7 +572,7 @@
        executor12 (ed 12)
        executor13 (ed 13)
        executor14 (ed 14)
-       topology1 (TopologyDetails. "topology1" 
+       topology1 (TopologyDetails. "topology1"
                    {TOPOLOGY-NAME "topology-name-1"}
                    (StormTopology.)
                    4
@@ -628,7 +628,7 @@
 
 (deftest test-multitenant-scheduler
   (let [supers (gen-supervisors 10)
-       topology1 (TopologyDetails. "topology1" 
+       topology1 (TopologyDetails. "topology1"
                    {TOPOLOGY-NAME "topology-name-1"
                     TOPOLOGY-SUBMITTER-USER "userC"}
                    (StormTopology.)
@@ -729,8 +729,8 @@
                        TOPOLOGY-ISOLATED-MACHINES 2
                        TOPOLOGY-SUBMITTER-USER "userA"}
                       (StormTopology.)
-                      1
-                      (mk-ed-map [["spout11" 1 2]]))
+                      2
+                      (mk-ed-map [["spout11" 1 2]["bolt11" 3 4]]))
           topology3 (TopologyDetails. "topology3"
                       {TOPOLOGY-NAME "topology-name-3"
                        TOPOLOGY-ISOLATED-MACHINES 1
@@ -829,3 +829,31 @@
         (is (= 2 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
         (is (= 2 (.size executors))))
       (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology2"))))))
+
+
+(deftest test-isolated-pool-scheduling-with-nodes-with-different-number-of-slots
+  (let [super1 (SupervisorDetails. "super1" "host2" (list ) (map int (list 1 2 3 4 5)))
+        super2 (SupervisorDetails. "super2" "host2" (list ) (map int (list 1 2 )))
+        supers {"super1" super1 "super2" super2}
+        topology1 (TopologyDetails. "topology1"
+                    {TOPOLOGY-NAME "topology-name-1"
+                     TOPOLOGY-SUBMITTER-USER "userA"
+                     TOPOLOGY-ISOLATED-MACHINES 1}
+                    (StormTopology.)
+                    7
+                    (mk-ed-map [["spout21" 0 7]]))
+        existing-assignments {"topology1"
+                              (SchedulerAssignmentImpl. "topology1"
+                                {(ExecutorDetails. 0 0) (WorkerSlot. "super1" 1)
+                                 (ExecutorDetails. 1 1) (WorkerSlot. "super1" 2)
+                                 (ExecutorDetails. 2 2) (WorkerSlot. "super1" 3)
+                                 (ExecutorDetails. 3 3) (WorkerSlot. "super1" 4)
+                                 (ExecutorDetails. 4 4) (WorkerSlot. "super2" 1)
+                                 (ExecutorDetails. 5 5) (WorkerSlot. "super2" 2)})}
+        cluster (Cluster. (nimbus/standalone-nimbus) supers existing-assignments nil)
+        topologies (Topologies. (to-top-map [topology1]))
+        conf {MULTITENANT-SCHEDULER-USER-POOLS {"userA" 2}}
+        scheduler (MultitenantScheduler.)]
+    (.prepare scheduler conf)
+    (.schedule scheduler topologies cluster)
+    (is (= "Scheduled Isolated on 2 Nodes" (.get (.getStatusMap cluster) "topology1")))))

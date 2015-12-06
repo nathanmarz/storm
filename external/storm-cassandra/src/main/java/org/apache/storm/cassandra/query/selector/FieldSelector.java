@@ -20,6 +20,7 @@ package org.apache.storm.cassandra.query.selector;
 
 import backtype.storm.tuple.ITuple;
 import com.datastax.driver.core.utils.UUIDs;
+import org.apache.storm.cassandra.query.Column;
 
 import java.io.Serializable;
 import java.util.Map;
@@ -41,9 +42,8 @@ public class FieldSelector implements Serializable {
         this.field = field;
     }
 
-    public void selectAndPut(ITuple t, Map<String, Object> values) {
-        values.put(as != null ? as : field, isNow ? UUIDs.timeBased() : t.getValueByField(field));
-
+    public Column select(ITuple t) {
+        return new Column<>(as != null ? as : field, isNow ? UUIDs.timeBased() : t.getValueByField(field));
     }
 
     /**

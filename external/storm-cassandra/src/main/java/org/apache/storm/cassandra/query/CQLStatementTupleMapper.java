@@ -38,10 +38,6 @@ import static com.datastax.driver.core.querybuilder.QueryBuilder.insertInto;
  */
 public interface CQLStatementTupleMapper extends Serializable {
 
-    public static final String FIELD_KEYSPACE =  "keyspace";
-    public static final String FIELD_TABLE    =  "table";
-    public static final String FIELD_VALUES   =  "value";
-
     /**
      * Maps a given tuple to one or multiple CQL statements.
      *
@@ -51,21 +47,6 @@ public interface CQLStatementTupleMapper extends Serializable {
      * @return a list of {@link com.datastax.driver.core.Statement}.
      */
     List<Statement> map(Map conf, Session session, ITuple tuple);
-
-    public static class InsertCQLStatementTupleMapper implements CQLStatementTupleMapper {
-        @Override
-        public List<Statement> map(Map conf, Session session, ITuple tuple) {
-            Optional<String> ks = Optional.fromNullable(tuple.contains(FIELD_KEYSPACE) ? tuple.getStringByField(FIELD_KEYSPACE) : null);
-            String table = tuple.getStringByField(FIELD_TABLE);
-            Map<String, Object> values = (Map<String, Object>) tuple.getValueByField(FIELD_VALUES);
-
-            final Insert stmt = (ks.isPresent()) ? insertInto(ks.get(), table) : insertInto(table);
-            for(Map.Entry<String, Object> v : values.entrySet())
-                stmt.value(v.getKey(), v.getValue());
-
-            return Arrays.asList((Statement)stmt);
-        }
-    }
 
     public static class DynamicCQLStatementTupleMapper implements CQLStatementTupleMapper {
         private List<CQLStatementBuilder> builders;

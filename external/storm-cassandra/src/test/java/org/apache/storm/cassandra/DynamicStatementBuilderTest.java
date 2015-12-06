@@ -21,9 +21,15 @@ package org.apache.storm.cassandra;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import com.datastax.driver.core.BatchStatement;
+import com.datastax.driver.core.ProtocolVersion;
+import com.datastax.driver.core.SimpleStatement;
 import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.querybuilder.Insert;
+import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.google.common.collect.Maps;
 import org.apache.storm.cassandra.query.CQLStatementTupleMapper;
+import org.apache.storm.cassandra.query.impl.BatchCQLStatementTupleMapper;
+import org.apache.storm.cassandra.query.impl.SimpleCQLStatementMapper;
 import org.cassandraunit.CassandraCQLUnit;
 import org.cassandraunit.dataset.cql.ClassPathCQLDataSet;
 import org.junit.Assert;
@@ -31,20 +37,18 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
+import static org.apache.storm.cassandra.DynamicStatementBuilder.simpleQuery;
 import static org.apache.storm.cassandra.DynamicStatementBuilder.all;
 import static org.apache.storm.cassandra.DynamicStatementBuilder.async;
 import static org.apache.storm.cassandra.DynamicStatementBuilder.boundQuery;
 import static org.apache.storm.cassandra.DynamicStatementBuilder.field;
 import static org.apache.storm.cassandra.DynamicStatementBuilder.fields;
-import static org.apache.storm.cassandra.DynamicStatementBuilder.insertInto;
 import static org.apache.storm.cassandra.DynamicStatementBuilder.loggedBatch;
 import static org.apache.storm.cassandra.DynamicStatementBuilder.unLoggedBatch;
-import static org.apache.storm.cassandra.DynamicStatementBuilder.with;
 import static org.mockito.Mockito.when;
 
 public class DynamicStatementBuilderTest {
@@ -64,78 +68,92 @@ public class DynamicStatementBuilderTest {
         when(mockTuple.getFields()).thenReturn(new Fields("weather_station_id", "event_time", "temperature"));
     }
 
+    public static final String QUERY_STRING = "INSERT INTO weather.temperature(weather_station_id,event_time,temperature) VALUES (?,?,?);";
+
     @Test
     public void shouldBuildMultipleStaticInsertStatementGivenKeyspaceAndAllMapper() {
-        executeStatementAndAssert(
-                async(
-                        insertInto("weather", "temperature").values(all()),
-                        insertInto("weather", "temperature").values(all())
-                ),
-                "INSERT INTO weather.temperature(weather_station_id,event_time,temperature) VALUES ('1'," + NOW.getTime() + ",'0°C');",
-                "INSERT INTO weather.temperature(weather_station_id,event_time,temperature) VALUES ('1'," + NOW.getTime() + ",'0°C');"
+        CQLStatementTupleMapper mapper = async(
+                simpleQuery(QUERY_STRING).with(all()),
+                simpleQuery(QUERY_STRING).with(all())
         );
+        List<Statement> stmts = mapper.map(Maps.newHashMap(), cassandraCQLUnit.session, mockTuple);
+        Assert.assertEquals(2, stmts.size());
+        makeAssertSimpleStatement(QUERY_STRING, stmts.get(0));
+        makeAssertSimpleStatement(QUERY_STRING, stmts.get(1));
     }
 
     @Test
     public void shouldBuildStaticInsertStatementGivenKeyspaceAndAllMapper() {
-        executeStatementAndAssert(insertInto("weather", "temperature").values(all()).build(),
-                "INSERT INTO weather.temperature(weather_station_id,event_time,temperature) VALUES ('1'," + NOW.getTime() + ",'0°C');");
+        SimpleCQLStatementMapper mapper = simpleQuery(QUERY_STRING).with(all()).build();
+        List<Statement> stmts = mapper.map(Maps.newHashMap(), cassandraCQLUnit.session, mockTuple);
+        Assert.assertEquals(1, stmts.size());
+        makeAssertSimpleStatement(QUERY_STRING, stmts.get(0));
+    }
+
+    @Test
+    public void shouldBuildStaticInsertStatementUsingBuilderGivenKeyspaceAndAllMapper() {
+        Insert insert = QueryBuilder.insertInto("weather", "temperature")
+                .value("weather_station_id", "?")
+                .value("event_time", "?")
+                .value("temperature", "?");
+        SimpleCQLStatementMapper mapper = simpleQuery(insert).with(all()).build();
+        List<Statement> stmts = mapper.map(Maps.newHashMap(), cassandraCQLUnit.session, mockTuple);
+        Assert.assertEquals(1, stmts.size());
+        makeAssertSimpleStatement(QUERY_STRING, stmts.get(0));
     }
 
     @Test
     public void shouldBuildStaticInsertStatementGivenNoKeyspaceAllMapper() {
-        executeStatementAndAssert(insertInto("temperature").values(all()).build(),
-                "INSERT INTO temperature(weather_station_id,event_time,temperature) VALUES ('1'," + NOW.getTime() + ",'0°C');");
+        SimpleCQLStatementMapper mapper = simpleQuery(QUERY_STRING).with(all()).build();
+        List<Statement> stmts = mapper.map(Maps.newHashMap(), cassandraCQLUnit.session, mockTuple);
+        Assert.assertEquals(1, stmts.size());
+        makeAssertSimpleStatement(QUERY_STRING, stmts.get(0));
     }
 
     @Test
     public void shouldBuildStaticInsertStatementGivenNoKeyspaceAndWithFieldsMapper() {
-        executeStatementAndAssert(insertInto("temperature").values(with(fields("weather_station_id", "event_time", "temperature"))).build(),
-                "INSERT INTO temperature(weather_station_id,event_time,temperature) VALUES ('1'," + NOW.getTime() + ",'0°C');");
+        SimpleCQLStatementMapper mapper = simpleQuery(QUERY_STRING).with(fields("weather_station_id", "event_time", "temperature")).build();
+        List<Statement> stmts = mapper.map(Maps.newHashMap(), cassandraCQLUnit.session, mockTuple);
+        Assert.assertEquals(1, stmts.size());
+        makeAssertSimpleStatement(QUERY_STRING, stmts.get(0));
     }
 
     @Test
     public void shouldBuildStaticLoggedBatchStatementGivenNoKeyspaceAndWithFieldsMapper() {
-        executeBatchStatementAndAssert(loggedBatch(
-                insertInto("temperature").values(with(fields("weather_station_id", "event_time", "temperature")))
-        ), "INSERT INTO temperature(weather_station_id,event_time,temperature) VALUES ('1'," + NOW.getTime() + ",'0°C');");
+        BatchCQLStatementTupleMapper mapper = loggedBatch(simpleQuery(QUERY_STRING).with(fields("weather_station_id", "event_time", "temperature")));
+        List<Statement> stmts = mapper.map(Maps.newHashMap(), cassandraCQLUnit.session, mockTuple);
+        Assert.assertEquals(1, stmts.size());
+        makeAssertBatchStatement(QUERY_STRING, stmts.get(0));
     }
 
     @Test
     public void shouldBuildStaticUnloggedBatchStatementGivenNoKeyspaceAndWithFieldsMapper() {
-        executeBatchStatementAndAssert(unLoggedBatch(
-                insertInto("temperature").values(with(fields("weather_station_id", "event_time", "temperature")))
-        ), "INSERT INTO temperature(weather_station_id,event_time,temperature) VALUES ('1'," + NOW.getTime() + ",'0°C');");
-    }
-
-    private void executeBatchStatementAndAssert(CQLStatementTupleMapper mapper, String... results) {
-        List<Statement> map = mapper.map(Maps.newHashMap(), cassandraCQLUnit.session, mockTuple);
-
-        BatchStatement statement = (BatchStatement) map.get(0);
-        Collection<Statement> statements = statement.getStatements();
-        Assert.assertEquals(results.length, statements.size());
-
-        for (Statement s : statements)
-            Assert.assertTrue(Arrays.asList(results).contains(s.toString()));
-    }
-
-
-    private void executeStatementAndAssert(CQLStatementTupleMapper mapper, String... expected) {
-        List<Statement> map = mapper.map(Maps.newHashMap(), cassandraCQLUnit.session, mockTuple);
-
-        List<String> listExpected = Arrays.asList(expected);
-        for (int i = 0; i < map.size(); i++) {
-            Assert.assertEquals(listExpected.get(i), map.get(i).toString());
-        }
+        BatchCQLStatementTupleMapper mapper = unLoggedBatch(simpleQuery(QUERY_STRING).with(fields("weather_station_id", "event_time", "temperature")));
+        List<Statement> stmts = mapper.map(Maps.newHashMap(), cassandraCQLUnit.session, mockTuple);
+        Assert.assertEquals(1, stmts.size());
+        makeAssertBatchStatement(QUERY_STRING, stmts.get(0));
     }
 
     @Test
     public void shouldBuildStaticBoundStatement() {
-        CQLStatementTupleMapper mapper = boundQuery("INSERT INTO weather.temperature(weather_station_id, event_time, temperature) VALUES(?, ?, ?)")
-                .bind(with(field("weather_station_id"), field("event_time").now(), field("temperature")));
+        CQLStatementTupleMapper mapper = async(boundQuery(QUERY_STRING).bind(field("weather_station_id"), field("event_time").now(), field("temperature")));
         List<Statement> map = mapper.map(Maps.newHashMap(), cassandraCQLUnit.session, mockTuple);
         Statement statement = map.get(0);
         Assert.assertNotNull(statement);
     }
 
+    public void makeAssertSimpleStatement(String expected, Statement actual) {
+        Assert.assertTrue(actual instanceof SimpleStatement);
+        Assert.assertEquals(expected, actual.toString());
+        Assert.assertEquals(3, ((SimpleStatement)actual).getValues(ProtocolVersion.V3).length);
+    }
+
+    public void makeAssertBatchStatement(String expected, Statement actual) {
+        Assert.assertTrue(actual instanceof BatchStatement);
+        Collection<Statement> statements = ((BatchStatement) actual).getStatements();
+        for(Statement s : statements) {
+            Assert.assertEquals(expected, s.toString());
+            Assert.assertEquals(3, ((SimpleStatement)s).getValues(ProtocolVersion.V3).length);
+        }
+    }
 }

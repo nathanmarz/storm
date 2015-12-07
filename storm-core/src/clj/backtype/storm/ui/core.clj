@@ -57,6 +57,7 @@
 (def ^:dynamic *UI-ACL-HANDLER* (mk-authorization-handler (*STORM-CONF* NIMBUS-AUTHORIZER) *STORM-CONF*))
 (def ^:dynamic *UI-IMPERSONATION-HANDLER* (mk-authorization-handler (*STORM-CONF* NIMBUS-IMPERSONATION-AUTHORIZER) *STORM-CONF*))
 (def http-creds-handler (AuthUtils/GetUiHttpCredentialsPlugin *STORM-CONF*))
+(def STORM-VERSION (VersionInfo/getVersion))
 
 (defmeter ui:num-cluster-configuration-http-requests)
 (defmeter ui:num-cluster-summary-http-requests)
@@ -376,7 +377,7 @@
                                 (map #(.get_num_executors ^TopologySummary %))
                                 (reduce +))]
        {"user" user
-        "stormVersion" (str (VersionInfo/getVersion))
+        "stormVersion" STORM-VERSION
         "supervisors" (count sups)
         "topologies" topologies
         "slotsTotal" total-slots
@@ -1285,4 +1286,7 @@
    (catch Exception ex
      (log-error ex))))
 
-(defn -main [] (start-server!))
+(defn -main
+  []
+  (log-message "Starting ui server for storm version '" STORM-VERSION "'")
+  (start-server!))

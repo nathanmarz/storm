@@ -244,6 +244,7 @@ under the License.
 * Victor Wong ([@victor-wong](https://github.com/victor-wong))
 * David Wimsey ([@dwimsey](https://github.com/dwimsey))
 * Florian Hussonnois ([@fhussonnois](https://github.com/fhussonnois))
+* Ilya Ostrovskiy ([@iostat](https://github.com/iostat))
 
 ## Acknowledgements
 

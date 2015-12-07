@@ -24,7 +24,8 @@
             ThreadPoolExecutor ArrayBlockingQueue TimeUnit])
   (:import [backtype.storm.daemon Shutdownable])
   (:import [java.net InetAddress])
-  (:import [backtype.storm.generated AuthorizationException])
+  (:import [backtype.storm.generated AuthorizationException]
+           [backtype.storm.utils VersionInfo])
   (:use [backtype.storm config log util])
   (:use [backtype.storm.daemon common])
   (:use [backtype.storm.ui helpers])
@@ -40,6 +41,8 @@
 (defmeter drpc:num-failRequest-calls)
 (defmeter drpc:num-fetchRequest-calls)
 (defmeter drpc:num-shutdown-calls)
+
+(def STORM-VERSION (VersionInfo/getVersion))
 
 (defn timeout-check-secs [] 5)
 
@@ -205,6 +208,7 @@
 
 (defn launch-server!
   ([]
+    (log-message "Starting drpc server for storm version '" STORM-VERSION "'")
     (let [conf (read-storm-config)
           worker-threads (int (conf DRPC-WORKER-THREADS))
           queue-size (int (conf DRPC-QUEUE-SIZE))

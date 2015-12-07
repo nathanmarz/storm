@@ -19,12 +19,14 @@
            [java.util.concurrent ConcurrentHashMap]
            [java.util.concurrent.atomic AtomicInteger]
            [backtype.storm.generated HBNodes
-            HBServerMessageType HBMessage HBMessageData HBPulse])
+                                     HBServerMessageType HBMessage HBMessageData HBPulse]
+           [backtype.storm.utils VersionInfo])
   (:use [clojure.string :only [replace-first split]]
         [backtype.storm log config util])
   (:require [clojure.java.jmx :as jmx])
   (:gen-class))
 
+(def STORM-VERSION (VersionInfo/getVersion))
 
 ;; Stats Functions
 
@@ -228,7 +230,9 @@
           response)))))
 
 (defn launch-server! []
-  (log-message "Starting Server.")
+  (log-message "Starting pacemaker server for storm version '"
+               STORM-VERSION
+               "'")
   (let [conf (override-login-config-with-system-property (read-storm-config))]
     (PacemakerServer. (mk-handler conf) conf)))
 

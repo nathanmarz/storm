@@ -50,7 +50,8 @@ public class WaterMarkEventGeneratorTest {
                 eventList.add(event);
             }
         };
-        waterMarkEventGenerator = new WaterMarkEventGenerator<>(windowManager, 50, 5,
+        // set watermark interval to a high value and trigger manually to fix timing issues
+        waterMarkEventGenerator = new WaterMarkEventGenerator<>(windowManager, 100000, 5,
                                                                 Collections.singleton(streamId("s1")));
     }
 
@@ -58,7 +59,7 @@ public class WaterMarkEventGeneratorTest {
     public void testTrackSingleStream() throws Exception {
         waterMarkEventGenerator.track(streamId("s1"), 100);
         waterMarkEventGenerator.track(streamId("s1"), 110);
-        Thread.sleep(60);
+        waterMarkEventGenerator.run();
         assertTrue(eventList.get(0).isWatermark());
         assertEquals(105, eventList.get(0).getTimestamp());
     }
@@ -68,7 +69,7 @@ public class WaterMarkEventGeneratorTest {
         waterMarkEventGenerator.track(streamId("s1"), 100);
         waterMarkEventGenerator.track(streamId("s1"), 110);
         waterMarkEventGenerator.track(streamId("s1"), 104);
-        Thread.sleep(60);
+        waterMarkEventGenerator.run();
         assertTrue(eventList.get(0).isWatermark());
         assertEquals(105, eventList.get(0).getTimestamp());
     }
@@ -82,18 +83,18 @@ public class WaterMarkEventGeneratorTest {
 
         waterMarkEventGenerator.track(streamId("s1"), 100);
         waterMarkEventGenerator.track(streamId("s1"), 110);
-        Thread.sleep(60);
+        waterMarkEventGenerator.run();
         assertTrue(eventList.isEmpty());
         waterMarkEventGenerator.track(streamId("s2"), 95);
         waterMarkEventGenerator.track(streamId("s2"), 98);
-        Thread.sleep(60);
+        waterMarkEventGenerator.run();
         assertTrue(eventList.get(0).isWatermark());
         assertEquals(93, eventList.get(0).getTimestamp());
     }
 
     @Test
     public void testNoEvents() throws Exception {
-        Thread.sleep(60);
+        waterMarkEventGenerator.run();
         assertTrue(eventList.isEmpty());
     }
 }

@@ -59,7 +59,8 @@ public class WindowedBoltExecutor implements IRichBolt {
     private transient WindowManager<Tuple> windowManager;
     private transient int maxLagMs;
     private transient String tupleTsFieldName;
-    private transient WaterMarkEventGenerator<Tuple> waterMarkEventGenerator;
+    // package level for unit tests
+    transient WaterMarkEventGenerator<Tuple> waterMarkEventGenerator;
 
     public WindowedBoltExecutor(IWindowedBolt bolt) {
         this.bolt = bolt;

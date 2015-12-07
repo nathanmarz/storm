@@ -29,6 +29,7 @@ import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.TupleImpl;
 import backtype.storm.tuple.Values;
 import backtype.storm.windowing.TupleWindow;
+import backtype.storm.windowing.WaterMarkEvent;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -104,7 +105,8 @@ public class WindowedBoltExecutorTest {
         conf.put(Config.TOPOLOGY_BOLTS_SLIDING_INTERVAL_DURATION_MS, 10);
         conf.put(Config.TOPOLOGY_BOLTS_TUPLE_TIMESTAMP_FIELD_NAME, "ts");
         conf.put(Config.TOPOLOGY_BOLTS_TUPLE_TIMESTAMP_MAX_LAG_MS, 5);
-        conf.put(Config.TOPOLOGY_BOLTS_WATERMARK_EVENT_INTERVAL_MS, 100);
+        // trigger manually to avoid timing issues
+        conf.put(Config.TOPOLOGY_BOLTS_WATERMARK_EVENT_INTERVAL_MS, 100000);
         executor.prepare(conf, getTopologyContext(), getOutputCollector());
     }
 
@@ -119,7 +121,8 @@ public class WindowedBoltExecutorTest {
         for (long ts : timstamps) {
             executor.execute(getTuple("s1", new Fields("ts"), new Values(ts)));
         }
-        Thread.sleep(120);
+        //Thread.sleep(120);
+        executor.waterMarkEventGenerator.run();
         //System.out.println(testWindowedBolt.tupleWindows);
         assertEquals(3, testWindowedBolt.tupleWindows.size());
         TupleWindow first = testWindowedBolt.tupleWindows.get(0);

@@ -45,8 +45,8 @@ public class BatchCassandraWriterBoltTest extends BaseTopologyTest {
     }
 
     private SimpleCQLStatementMapper getInsertInto() {
-        return simpleQuery("INSERT INTO weather.temperature(weatherstation_id,event_time,temperature) VALUES (?, ?, ?);")
-                .with(field("weatherstation_id"), field("event_time").now(), field("temperature")).build();
+        return simpleQuery("INSERT INTO weather.temperature(weather_station_id,event_time,temperature) VALUES (?, ?, ?);")
+                .with(field("weather_station_id"), field("event_time").now(), field("temperature")).build();
     }
 
     protected void executeAndAssertWith(final int maxQueries, final BaseCassandraBolt bolt) {

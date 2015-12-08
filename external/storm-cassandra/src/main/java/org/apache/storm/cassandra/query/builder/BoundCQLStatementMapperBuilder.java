@@ -18,14 +18,17 @@
  */
 package org.apache.storm.cassandra.query.builder;
 
-import org.apache.storm.cassandra.query.*;
+import org.apache.storm.cassandra.query.CQLStatementBuilder;
+import org.apache.storm.cassandra.query.ContextQuery;
+import org.apache.storm.cassandra.query.CqlMapper;
 import org.apache.storm.cassandra.query.impl.BoundCQLStatementTupleMapper;
 import org.apache.storm.cassandra.query.impl.PreparedStatementBinder;
 import org.apache.storm.cassandra.query.impl.RoutingKeyGenerator;
 import org.apache.storm.cassandra.query.selector.FieldSelector;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
 
 import static org.apache.storm.cassandra.query.ContextQuery.*;
 

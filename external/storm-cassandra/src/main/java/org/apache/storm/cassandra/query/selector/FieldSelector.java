@@ -23,8 +23,6 @@ import com.datastax.driver.core.utils.UUIDs;
 import org.apache.storm.cassandra.query.Column;
 
 import java.io.Serializable;
-import java.util.Map;
-
 
 public class FieldSelector implements Serializable {
 

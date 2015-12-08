@@ -18,7 +18,10 @@
  */
 package org.apache.storm.cassandra.query.impl;
 
-import com.datastax.driver.core.*;
+import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.TupleValue;
+import com.datastax.driver.core.UDTValue;
 import org.apache.storm.cassandra.query.Column;
 
 import java.io.Serializable;
@@ -26,7 +29,11 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  *

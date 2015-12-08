@@ -20,14 +20,19 @@ package org.apache.storm.cassandra;
 
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.querybuilder.BuiltStatement;
-import org.apache.storm.cassandra.query.*;
+import org.apache.storm.cassandra.query.CQLStatementBuilder;
+import org.apache.storm.cassandra.query.CQLStatementTupleMapper;
+import org.apache.storm.cassandra.query.ContextQuery;
+import org.apache.storm.cassandra.query.CqlMapper;
 import org.apache.storm.cassandra.query.impl.BatchCQLStatementTupleMapper;
 import org.apache.storm.cassandra.query.builder.BoundCQLStatementMapperBuilder;
 import org.apache.storm.cassandra.query.builder.SimpleCQLStatementMapperBuilder;
 import org.apache.storm.cassandra.query.selector.FieldSelector;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class DynamicStatementBuilder implements Serializable {
 

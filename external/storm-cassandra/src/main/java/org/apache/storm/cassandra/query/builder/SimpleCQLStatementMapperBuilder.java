@@ -19,7 +19,8 @@
 package org.apache.storm.cassandra.query.builder;
 
 import com.datastax.driver.core.querybuilder.BuiltStatement;
-import org.apache.storm.cassandra.query.*;
+import org.apache.storm.cassandra.query.CQLStatementBuilder;
+import org.apache.storm.cassandra.query.CqlMapper;
 import org.apache.storm.cassandra.query.impl.RoutingKeyGenerator;
 import org.apache.storm.cassandra.query.impl.SimpleCQLStatementMapper;
 import org.apache.storm.cassandra.query.selector.FieldSelector;

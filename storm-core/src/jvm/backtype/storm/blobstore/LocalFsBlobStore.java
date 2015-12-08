@@ -268,7 +268,6 @@ public class LocalFsBlobStore extends BlobStore {
         SettableBlobMeta meta = getStoredBlobMeta(key);
         _aclHandler.hasPermissions(meta.get_acl(), READ, who, key);
         if (zkClient.checkExists().forPath(BLOBSTORE_SUBTREE + key) == null) {
-            zkClient.close();
             return 0;
         }
         replicationCount = zkClient.getChildren().forPath(BLOBSTORE_SUBTREE + key).size();

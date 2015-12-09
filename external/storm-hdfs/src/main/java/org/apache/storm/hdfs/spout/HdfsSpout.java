@@ -69,6 +69,7 @@ public class HdfsSpout extends BaseRichSpout {
   LinkedBlockingQueue<HdfsUtils.Pair<MessageId, List<Object>>> retryList = new LinkedBlockingQueue<>();
 
   private String inprogress_suffix = ".inprogress";
+  private String ignoreSuffix = ".ignore";
 
   private Configuration hdfsConfig;
   private String readerType;
@@ -342,6 +343,11 @@ public class HdfsSpout extends BaseRichSpout {
       throw new RuntimeException(e.getMessage(), e);
     }
 
+    // -- ignore filename suffix
+    if ( conf.containsKey(Configs.IGNORE_SUFFIX) ) {
+      this.ignoreSuffix = conf.get(Configs.IGNORE_SUFFIX).toString();
+    }
+
     // -- lock dir config
     String lockDir = !conf.containsKey(Configs.LOCK_DIR) ? getDefaultLockDir(sourceDirPath) : conf.get(Configs.LOCK_DIR).toString() ;
     this.lockDirPath = new Path(lockDir);
@@ -457,8 +463,11 @@ public class HdfsSpout extends BaseRichSpout {
       Collection<Path> listing = HdfsUtils.listFilesByModificationTime(hdfs, sourceDirPath, 0);
 
       for (Path file : listing) {
-        if( file.getName().contains(inprogress_suffix) )
+        if( file.getName().endsWith(inprogress_suffix) )
           continue;
+        if( file.getName().endsWith(ignoreSuffix) )
+          continue;
+
         LOG.info("Processing : {} ", file);
         lock = FileLock.tryLock(hdfs, file, lockDirPath, spoutId);
         if( lock==null ) {

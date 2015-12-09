@@ -76,7 +76,7 @@ public class TestDirLock {
     fs.delete(lockDir, true);
   }
 
-  @Test
+//  @Test
   public void testConcurrentLocking() throws Exception {
 //    -Dlog4j.configuration=config
     Logger.getRootLogger().setLevel(Level.ERROR);

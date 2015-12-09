@@ -31,6 +31,7 @@ import backtype.storm.generated.SettableBlobMeta;
 import backtype.storm.utils.Utils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import com.google.common.base.Joiner;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -125,17 +126,20 @@ public class LocalizerTest {
     FileUtils.deleteDirectory(baseDir);
   }
 
+  protected String joinPath(String... pathList) {
+      return Joiner.on(File.separator).join(pathList);
+  }
+
   public String constructUserCacheDir(String base, String user) {
-    return base + File.separator + Localizer.USERCACHE + File.separator + user;
+    return joinPath(base, Localizer.USERCACHE, user);
   }
 
   public String constructExpectedFilesDir(String base, String user) {
-    return constructUserCacheDir(base, user) + File.separator + Localizer.FILECACHE + File.separator + Localizer.FILESDIR;
+    return joinPath(constructUserCacheDir(base, user), Localizer.FILECACHE, Localizer.FILESDIR);
   }
 
   public String constructExpectedArchivesDir(String base, String user) {
-    return constructUserCacheDir(base, user) + File.separator + Localizer.FILECACHE + File.separator + Localizer
-        .ARCHIVESDIR;
+    return joinPath(constructUserCacheDir(base, user), Localizer.FILECACHE, Localizer.ARCHIVESDIR);
   }
 
   @Test
@@ -147,7 +151,7 @@ public class LocalizerTest {
     assertEquals("get local user dir doesn't return right value",
         expectedDir, localizer.getLocalUserDir(user1).toString());
 
-    String expectedFileDir = expectedDir + File.separator + Localizer.FILECACHE;
+    String expectedFileDir = joinPath(expectedDir, Localizer.FILECACHE);
     assertEquals("get local user file dir doesn't return right value",
         expectedFileDir, localizer.getLocalUserFileCacheDir(user1).toString());
   }
@@ -287,8 +291,8 @@ public class LocalizerTest {
         user1Dir);
     long timeAfter = System.nanoTime();
 
-    String expectedUserDir = baseDir + File.separator + Localizer.USERCACHE + File.separator + user1;
-    String expectedFileDir = expectedUserDir + File.separator + Localizer.FILECACHE + File.separator + Localizer.ARCHIVESDIR;
+    String expectedUserDir = joinPath(baseDir.toString(), Localizer.USERCACHE, user1);
+    String expectedFileDir = joinPath(expectedUserDir, Localizer.FILECACHE, Localizer.ARCHIVESDIR);
     assertTrue("user filecache dir not created", new File(expectedFileDir).exists());
     File keyFile = new File(expectedFileDir, key1 + ".0");
     assertTrue("blob not created", keyFile.exists());
@@ -364,8 +368,8 @@ public class LocalizerTest {
         user1Dir);
     long timeAfter = System.nanoTime();
 
-    String expectedUserDir = baseDir + File.separator + Localizer.USERCACHE + File.separator + user1;
-    String expectedFileDir = expectedUserDir + File.separator + Localizer.FILECACHE + File.separator + Localizer.FILESDIR;
+    String expectedUserDir = joinPath(baseDir.toString(), Localizer.USERCACHE, user1);
+    String expectedFileDir = joinPath(expectedUserDir, Localizer.FILECACHE, Localizer.FILESDIR);
     assertTrue("user filecache dir not created", new File(expectedFileDir).exists());
     File keyFile = new File(expectedFileDir, key1);
     File keyFileCurrentSymlink = new File(expectedFileDir, key1 + Utils.DEFAULT_CURRENT_BLOB_SUFFIX);
@@ -437,8 +441,8 @@ public class LocalizerTest {
     LocalizedResource lrsrc2 = lrsrcs.get(1);
     LocalizedResource lrsrc3 = lrsrcs.get(2);
 
-    String expectedFileDir = baseDir + File.separator + Localizer.USERCACHE + File.separator + user1 +
-            File.separator + Localizer.FILECACHE + File.separator + Localizer.FILESDIR;
+    String expectedFileDir = joinPath(baseDir.toString(), Localizer.USERCACHE, user1,
+        Localizer.FILECACHE, Localizer.FILESDIR);
     assertTrue("user filecache dir not created", new File(expectedFileDir).exists());
     File keyFile = new File(expectedFileDir, key1 + Utils.DEFAULT_CURRENT_BLOB_SUFFIX);
     File keyFile2 = new File(expectedFileDir, key2 + Utils.DEFAULT_CURRENT_BLOB_SUFFIX);
@@ -570,13 +574,12 @@ public class LocalizerTest {
     LocalizedResource lrsrc1_user3 = localizer.getBlob(new LocalResource(key1, false), user3,
         topo3, user3Dir);
 
-    String expectedUserDir1 = baseDir + File.separator + Localizer.USERCACHE + File.separator + user1;
-    String expectedFileDirUser1 = expectedUserDir1 + File.separator + Localizer.FILECACHE + File.separator +
-        Localizer.FILESDIR;
-    String expectedFileDirUser2 = baseDir + File.separator + Localizer.USERCACHE + File.separator + user2 +
-            File.separator + Localizer.FILECACHE + File.separator + Localizer.FILESDIR;
-    String expectedFileDirUser3 = baseDir + File.separator + Localizer.USERCACHE + File.separator + user3 +
-            File.separator + Localizer.FILECACHE + File.separator + Localizer.FILESDIR;
+    String expectedUserDir1 = joinPath(baseDir.toString(), Localizer.USERCACHE, user1);
+    String expectedFileDirUser1 = joinPath(expectedUserDir1, Localizer.FILECACHE, Localizer.FILESDIR);
+    String expectedFileDirUser2 = joinPath(baseDir.toString(), Localizer.USERCACHE, user2,
+        Localizer.FILECACHE, Localizer.FILESDIR);
+    String expectedFileDirUser3 = joinPath(baseDir.toString(), Localizer.USERCACHE, user3,
+        Localizer.FILECACHE, Localizer.FILESDIR);
     assertTrue("user filecache dir user1 not created", new File(expectedFileDirUser1).exists());
     assertTrue("user filecache dir user2 not created", new File(expectedFileDirUser2).exists());
     assertTrue("user filecache dir user3 not created", new File(expectedFileDirUser3).exists());
@@ -637,8 +640,8 @@ public class LocalizerTest {
     LocalizedResource lrsrc = localizer.getBlob(new LocalResource(key1, false), user1, topo1,
         user1Dir);
 
-    String expectedUserDir = baseDir + File.separator + Localizer.USERCACHE + File.separator + user1;
-    String expectedFileDir = expectedUserDir + File.separator + Localizer.FILECACHE + File.separator + Localizer.FILESDIR;
+    String expectedUserDir = joinPath(baseDir.toString(), Localizer.USERCACHE, user1);
+    String expectedFileDir = joinPath(expectedUserDir, Localizer.FILECACHE, Localizer.FILESDIR);
     assertTrue("user filecache dir not created", new File(expectedFileDir).exists());
     File keyFile = new File(expectedFileDir, key1);
     File keyFileCurrentSymlink = new File(expectedFileDir, key1 + Utils.DEFAULT_CURRENT_BLOB_SUFFIX);

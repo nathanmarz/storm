@@ -47,7 +47,7 @@
                "test"
                {TOPOLOGY-WORKERS 20 TOPOLOGY-MESSAGE-TIMEOUT-SECS 3 TOPOLOGY-DEBUG true}
                topology)
-       (Thread/sleep 11000)
+       (Thread/sleep 31000)
        (.killTopology nimbus "test")
        (Thread/sleep 11000)
        )))

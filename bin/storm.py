@@ -229,6 +229,18 @@ def jar(jarfile, klass, *args):
         daemon=False,
         jvmopts=JAR_JVM_OPTS + ["-Dstorm.jar=" + jarfile])
 
+def sql(sql_file, topo_nam):
+    """Syntax: [storm sql sql-file topology]
+
+    Compiles the SQL statements into a Trident topology and submits it to Storm.
+    """
+    exec_storm_class(
+        "org.apache.storm.sql.StormSqlRunner",
+        jvmtype="-client",
+        extrajars=[USER_CONF_DIR, STORM_BIN_DIR],
+        args=[sql_file, topo_name],
+        daemon=False)
+
 def kill(*args):
     """Syntax: [storm kill topology-name [-w wait-time-secs]]
 
@@ -300,7 +312,7 @@ def heartbeats(*args):
         args=args,
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
-    
+
 def activate(*args):
     """Syntax: [storm activate topology-name]
 
@@ -686,7 +698,7 @@ COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui
             "list": listtopos, "dev-zookeeper": dev_zookeeper, "version": version, "monitor": monitor,
             "upload-credentials": upload_credentials, "pacemaker": pacemaker, "heartbeats": heartbeats, "blobstore": blobstore,
             "get-errors": get_errors, "set_log_level": set_log_level, "kill_workers": kill_workers,
-            "node-health-check": healthcheck}
+            "node-health-check": healthcheck, "sql": sql}
 
 def parse_config(config_list):
     global CONFIG_OPTS

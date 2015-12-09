@@ -1,6 +1,10 @@
 ## 0.11.0
+ * STORM-1040: SQL support for Storm.
+ * STORM-1364: Log storm version on daemon start
+ * STORM-1375: Blobstore broke Pacemaker
  * STORM-876: Blobstore/DistCache Support
  * STORM-1361: Apache License missing from two Cassandra files
+ * STORM-756: Handle taskids response as soon as possible
  * STORM-1218: Use markdown for JavaDoc.
  * STORM-1075: Storm Cassandra connector.
  * STORM-965: excessive logging in storm when non-kerberos client tries to connect

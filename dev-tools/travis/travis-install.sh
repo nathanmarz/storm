@@ -11,16 +11,8 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-PYTHON_VERSION_TO_FILE=`python -V > /tmp/python_version 2>&1`
-PYTHON_VERSION=`cat /tmp/python_version`
-RUBY_VERSION=`ruby -v`
-NODEJS_VERSION=`node -v`
-MVN_VERSION=`mvn -v`
-
-echo "Python version : $PYTHON_VERSION"
-echo "Ruby version : $RUBY_VERSION"
-echo "NodeJs version : $NODEJS_VERSION"
-echo "mvn version : $MVN_VERSION"
+echo "Python version :  " `python -V 2>&1`
+echo "Maven version  :  " `mvn -v`
 
 STORM_SRC_ROOT_DIR=$1
 

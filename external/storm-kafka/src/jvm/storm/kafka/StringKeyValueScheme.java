@@ -20,12 +20,13 @@ package storm.kafka;
 import backtype.storm.tuple.Values;
 import com.google.common.collect.ImmutableMap;
 
+import java.nio.ByteBuffer;
 import java.util.List;
 
 public class StringKeyValueScheme extends StringScheme implements KeyValueScheme {
 
     @Override
-    public List<Object> deserializeKeyAndValue(byte[] key, byte[] value) {
+    public List<Object> deserializeKeyAndValue(ByteBuffer key, ByteBuffer value) {
         if ( key == null ) {
             return deserialize(value);
         }

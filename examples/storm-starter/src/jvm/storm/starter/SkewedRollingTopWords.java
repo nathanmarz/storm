@@ -89,8 +89,7 @@ public class SkewedRollingTopWords {
    *
    * Examples:
    *
-   * <pre>
-   * {@code
+   * ```
    *
    * # Runs in local mode (LocalCluster), with topology name "slidingWindowCounts"
    * $ storm jar storm-starter-jar-with-dependencies.jar storm.starter.RollingTopWords
@@ -103,8 +102,7 @@ public class SkewedRollingTopWords {
    *
    * # Runs in remote/cluster mode, with topology name "production-topology"
    * $ storm jar storm-starter-jar-with-dependencies.jar storm.starter.RollingTopWords production-topology remote
-   * }
-   * </pre>
+   * ```
    *
    * @param args First positional argument (optional) is topology name, second positional argument (optional) defines
    *             whether to run the topology locally ("local") or remotely, i.e. on a real cluster ("remote").

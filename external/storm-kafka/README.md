@@ -226,9 +226,8 @@ You can return a null and the message will be ignored. If you have one static to
 DefaultTopicSelector.java and set the name of the topic in the constructor.
 
 ### Specifying Kafka producer properties
-You can provide all the produce properties , see http://kafka.apache.org/documentation.html#newproducerconfigs
-section "Important configuration properties for the producer", in your Storm topology config by setting the properties
-map with key kafka.broker.properties.
+You can provide all the produce properties in your Storm topology by calling `KafkaBolt.withProducerProperties()` and `TridentKafkaStateFactory.withProducerProperties()`. Please see  http://kafka.apache.org/documentation.html#newproducerconfigs
+Section "Important configuration properties for the producer" for more details.
 
 ###Using wildcard kafka topic match
 You can do a wildcard topic match by adding the following config
@@ -238,7 +237,7 @@ You can do a wildcard topic match by adding the following config
 
 ```
 
-After this you can specifiy a wildcard topic for matching e.g. clickstream.*.log.  This will match all streams matching clickstream.my.log, clickstream.cart.log etc
+After this you can specify a wildcard topic for matching e.g. clickstream.*.log.  This will match all streams matching clickstream.my.log, clickstream.cart.log etc
 
 
 ###Putting it all together
@@ -256,19 +255,20 @@ For the bolt :
         );
         spout.setCycle(true);
         builder.setSpout("spout", spout, 5);
-        KafkaBolt bolt = new KafkaBolt()
-                .withTopicSelector(new DefaultTopicSelector("test"))
-                .withTupleToKafkaMapper(new FieldNameBasedTupleToKafkaMapper());
-        builder.setBolt("forwardToKafka", bolt, 8).shuffleGrouping("spout");
-
-        Config conf = new Config();
         //set producer properties.
         Properties props = new Properties();
         props.put("bootstrap.servers", "localhost:9092");
         props.put("acks", "1");
         props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-        conf.put(KafkaBolt.KAFKA_BROKER_PROPERTIES, props);
+
+        KafkaBolt bolt = new KafkaBolt()
+                .withProducerProperties(props)
+                .withTopicSelector(new DefaultTopicSelector("test"))
+                .withTupleToKafkaMapper(new FieldNameBasedTupleToKafkaMapper());
+        builder.setBolt("forwardToKafka", bolt, 8).shuffleGrouping("spout");
+
+        Config conf = new Config();
 
         StormSubmitter.submitTopology("kafkaboltTest", conf, builder.createTopology());
 ```
@@ -288,19 +288,20 @@ For Trident:
         TridentTopology topology = new TridentTopology();
         Stream stream = topology.newStream("spout1", spout);
 
-        TridentKafkaStateFactory stateFactory = new TridentKafkaStateFactory()
-                .withKafkaTopicSelector(new DefaultTopicSelector("test"))
-                .withTridentTupleToKafkaMapper(new FieldNameBasedTupleToKafkaMapper("word", "count"));
-        stream.partitionPersist(stateFactory, fields, new TridentKafkaUpdater(), new Fields());
-
-        Config conf = new Config();
         //set producer properties.
         Properties props = new Properties();
         props.put("bootstrap.servers", "localhost:9092");
         props.put("acks", "1");
         props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-        conf.put(TridentKafkaState.KAFKA_BROKER_PROPERTIES, props);
+
+        TridentKafkaStateFactory stateFactory = new TridentKafkaStateFactory()
+                .withProducerProperties(props)
+                .withKafkaTopicSelector(new DefaultTopicSelector("test"))
+                .withTridentTupleToKafkaMapper(new FieldNameBasedTupleToKafkaMapper("word", "count"));
+        stream.partitionPersist(stateFactory, fields, new TridentKafkaUpdater(), new Fields());
+
+        Config conf = new Config();
         StormSubmitter.submitTopology("kafkaTridentTest", conf, topology.build());
 ```
 

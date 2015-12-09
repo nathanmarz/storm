@@ -36,6 +36,17 @@
     </properties>
 
     <dependencies>
+        <!--Hadoop Mini Cluster cannot use log4j2 bridge,
+            Surefire has a way to exclude the conflicting log4j API jar
+            from the classpath, classpathDependencyExcludes, but it didn't work in practice.
+            This is here as a work around to place it at the beginning of the classpath
+            even though maven does not officially support ordering of the classpath.-->
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.17</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>com.esotericsoftware.kryo</groupId>
             <artifactId>kryo</artifactId>
@@ -126,12 +137,21 @@
             <artifactId>data.codec</artifactId>
             <scope>test</scope>
         </dependency>
-
+        <dependency>
+          <groupId>org.clojure</groupId>
+          <artifactId>java.jmx</artifactId>
+          <version>${java_jmx.version}</version>
+        </dependency>
+        
         <!--java-->
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
             <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-compress</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -173,7 +193,6 @@
                 </exclusion>
             </exclusions>
         </dependency>
-
         <dependency>
             <groupId>org.apache.curator</groupId>
             <artifactId>curator-recipes</artifactId>
@@ -188,7 +207,20 @@
                 </exclusion>
             </exclusions>
         </dependency>
-
+        <dependency>
+            <groupId>org.apache.curator</groupId>
+            <artifactId>curator-test</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
         <dependency>
             <groupId>com.googlecode.json-simple</groupId>
             <artifactId>json-simple</artifactId>
@@ -428,6 +460,7 @@
                             <include>org.yaml:snakeyaml</include>
                             <include>org.jgrapht:jgrapht-core</include>
                             <include>org.apache.commons:commons-exec</include>
+                            <include>org.apache.commons:commons-compress</include>
                             <include>commons-io:commons-io</include>
                             <include>commons-codec:commons-codec</include>
                             <include>commons-fileupload:commons-fileupload</include>
@@ -567,6 +600,10 @@
                         <relocation>
                           <pattern>org.apache.commons.io</pattern>
                           <shadedPattern>org.apache.storm.shade.org.apache.commons.io</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>org.apache.commons.compress</pattern>
+                            <shadedPattern>org.apache.storm.shade.org.apache.commons.compress</shadedPattern>
                         </relocation>
                         <relocation>
                           <pattern>org.apache.commons.codec</pattern>

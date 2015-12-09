@@ -49,6 +49,7 @@ storm.auth.simple-white-list.users: []
 storm.auth.simple-acl.users: []
 storm.auth.simple-acl.users.commands: []
 storm.auth.simple-acl.admins: []
+storm.cluster.state.store: "backtype.storm.cluster_state.zookeeper_state_factory"
 storm.meta.serialization.delegate: "backtype.storm.serialization.GzipThriftSerializationDelegate"
 storm.codedistributor.class: "backtype.storm.codedistributor.LocalFileSystemCodeDistributor"
 storm.health.check.dir: "healthchecks"
@@ -65,7 +66,7 @@ nimbus.supervisor.timeout.secs: 60
 nimbus.monitor.freq.secs: 10
 nimbus.cleanup.inbox.freq.secs: 600
 nimbus.inbox.jar.expiration.secs: 3600
-nimbus.code.sync.freq.secs: 300
+nimbus.code.sync.freq.secs: 120
 nimbus.task.launch.secs: 120
 nimbus.file.copy.expiration.secs: 600
 nimbus.topology.validator: "backtype.storm.nimbus.DefaultTopologyValidator"
@@ -115,6 +116,20 @@ drpc.authorizer.acl.strict: false
 transactional.zookeeper.root: "/transactional"
 transactional.zookeeper.servers: null
 transactional.zookeeper.port: null
+
+## blobstore configs
+supervisor.blobstore.class: "backtype.storm.blobstore.NimbusBlobStore"
+supervisor.blobstore.download.thread.count: 5
+supervisor.blobstore.download.max_retries: 3
+supervisor.localizer.cache.target.size.mb: 10240
+supervisor.localizer.cleanup.interval.ms: 600000
+
+nimbus.blobstore.class: "backtype.storm.blobstore.LocalFsBlobStore"
+nimbus.blobstore.expiration.secs: 600
+
+storm.blobstore.inputstream.buffer.size.bytes: 65536
+client.blobstore.class: "backtype.storm.blobstore.NimbusBlobStore"
+storm.blobstore.replication.factor: 3
 
 ### supervisor.* configs are for node supervisors
 # Define the amount of workers that can be run on this machine. Each worker is assigned a port to use for communication
@@ -205,6 +220,7 @@ topology.tasks: null
 # maximum amount of time a message has to complete before it's considered failed
 topology.message.timeout.secs: 30
 topology.multilang.serializer: "backtype.storm.multilang.JsonSerializer"
+topology.shellbolt.max.pending: 100
 topology.skip.missing.kryo.registrations: false
 topology.max.task.parallelism: null
 topology.max.spout.pending: null
@@ -242,3 +258,12 @@ topology.component.cpu.pcore.percent: 10.0
 topology.worker.max.heap.size.mb: 768.0
 
 dev.zookeeper.path: "/tmp/dev-storm-zookeeper"
+
+pacemaker.host: "localhost"
+pacemaker.port: 6699
+pacemaker.base.threads: 10
+pacemaker.max.threads: 50
+pacemaker.thread.timeout: 10
+pacemaker.childopts: "-Xmx1024m"
+pacemaker.auth.method: "NONE"
+pacemaker.kerberos.users: []

@@ -107,8 +107,8 @@ public class SpoutOutputCollector implements ISpoutOutputCollector {
      * use a direct grouping on this stream to receive the message. The emitted values must be 
      * immutable.
      *
-     * <p> Because no message id is specified, Storm will not track this message
-     * so ack and fail will never be called for this tuple.</p>
+     * Because no message id is specified, Storm will not track this message
+     * so ack and fail will never be called for this tuple.
      */
     public void emitDirect(int taskId, String streamId, List<Object> tuple) {
         emitDirect(taskId, streamId, tuple, null);
@@ -120,8 +120,8 @@ public class SpoutOutputCollector implements ISpoutOutputCollector {
      * use a direct grouping on this stream to receive the message. The emitted values must be 
      * immutable.
      *
-     * <p> Because no message id is specified, Storm will not track this message
-     * so ack and fail will never be called for this tuple.</p>
+     * Because no message id is specified, Storm will not track this message
+     * so ack and fail will never be called for this tuple.
      */
     public void emitDirect(int taskId, List<Object> tuple) {
         emitDirect(taskId, tuple, null);

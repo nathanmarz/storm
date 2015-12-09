@@ -73,17 +73,13 @@ public class TestUtils {
         return new StaticHosts(globalPartitionInformation);
     }
 
-    public static Config getConfig(String brokerConnectionString) {
-        Config config = new Config();
+    public static Properties getProducerProperties(String brokerConnectionString) {
         Properties props = new Properties();
         props.put("bootstrap.servers", brokerConnectionString);
         props.put("acks", "1");
         props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-        config.put(KafkaBolt.KAFKA_BROKER_PROPERTIES, props);
-        config.put(KafkaBolt.TOPIC, TOPIC);
-
-        return config;
+        return props;
     }
 
     public static boolean verifyMessage(String key, String message, KafkaTestBroker broker, SimpleConsumer simpleConsumer) {

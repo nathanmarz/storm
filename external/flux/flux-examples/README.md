@@ -64,3 +64,12 @@ To run the `simple_hbase.yaml` example, copy the `hbase_bolt.properties` file to
 ```bash
 storm jar ./target/flux-examples-*.jar org.apache.storm.flux.Flux --local ./src/main/resources/simple_hbase.yaml --filter my_hbase_bolt.properties
 ```
+### [simple_windowing.yaml](src/main/resources/simple_windowing.yaml)
+
+This example illustrates how to use Flux to set up a storm topology that contains windowing operations.
+
+To run,
+
+```bash
+storm jar ./target/flux-examples-*.jar org.apache.storm.flux.Flux --local ./src/main/resources/simple_windowing.yaml
+```

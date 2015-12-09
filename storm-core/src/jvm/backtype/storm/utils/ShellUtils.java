@@ -102,6 +102,13 @@ abstract public class ShellUtils {
         this(interval, false);
     }
 
+    /** get the exit code
+     * @return the exit code of the process
+     */
+    public int getExitCode() {
+      return exitCode;
+    }
+
     /**
      * @param interval the minimum duration to wait before re-executing the
      *        command.

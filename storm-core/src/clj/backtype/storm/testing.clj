@@ -126,7 +126,8 @@
                             ZMQ-LINGER-MILLIS 0
                             TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS false
                             TOPOLOGY-TRIDENT-BATCH-EMIT-INTERVAL-MILLIS 50
-                            STORM-CLUSTER-MODE "local"}
+                            STORM-CLUSTER-MODE "local"
+                            BLOBSTORE-SUPERUSER (System/getProperty "user.name")}
                            (if-not (contains? daemon-conf STORM-ZOOKEEPER-SERVERS)
                              {STORM-ZOOKEEPER-PORT zk-port
                               STORM-ZOOKEEPER-SERVERS ["localhost"]})
@@ -628,7 +629,7 @@
           track-id (-> tracked-topology :cluster ::track-id)
           waiting? (fn []
                      (or (not= target (global-amt track-id "spout-emitted"))
-                         (not= (global-amt track-id "transferred")                                 
+                         (not= (global-amt track-id "transferred")
                                (global-amt track-id "processed"))))]
       (while-timeout timeout-ms (waiting?)
                      ;; (println "Spout emitted: " (global-amt track-id "spout-emitted"))

@@ -46,7 +46,7 @@ public class ConfigValidation {
         public abstract void validateField(String name, Object o);
     }
 
-    /**
+    /*
      * Validator definitions
      */
 
@@ -474,6 +474,32 @@ public class ConfigValidation {
 
             SimpleTypeValidator.validateField(name, String.class, ((Map) o).get("class"));
             SimpleTypeValidator.validateField(name, Long.class, ((Map) o).get("parallelism.hint"));
+        }
+    }
+
+    public static class MapOfStringToMapOfStringToObjectValidator extends Validator {
+      @Override
+      public  void validateField(String name, Object o) {
+        ConfigValidationUtils.NestableFieldValidator validator = ConfigValidationUtils.mapFv(ConfigValidationUtils.fv(String.class, false),
+                ConfigValidationUtils.mapFv(String.class, Object.class,true), true);
+        validator.validateField(name, o);
+      }
+    }
+
+    public static class PacemakerAuthTypeValidator extends Validator {
+        @Override
+        public void validateField(String name, Object o) {
+            if(o == null) {
+                throw new IllegalArgumentException( "Field " + name + " must be set.");
+            }
+
+            if(o instanceof String &&
+                    (((String)o).equals("NONE") ||
+                            ((String)o).equals("DIGEST") ||
+                            ((String)o).equals("KERBEROS"))) {
+                return;
+            }
+            throw new IllegalArgumentException( "Field " + name + " must be one of \"NONE\", \"DIGEST\", or \"KERBEROS\"");
         }
     }
 

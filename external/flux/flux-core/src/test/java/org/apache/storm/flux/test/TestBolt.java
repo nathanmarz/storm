@@ -31,6 +31,7 @@ public class TestBolt extends BaseBasicBolt {
     private String foo;
     private String bar;
     private String fooBar;
+    private String none;
 
     public static enum TestEnum {
         FOO,
@@ -62,6 +63,9 @@ public class TestBolt extends BaseBasicBolt {
     // config methods
     public void withFoo(String foo){
         this.foo = foo;
+    }
+    public void withNone(){
+        this.none = "hit";
     }
     public void withBar(String bar){
         this.bar = bar;

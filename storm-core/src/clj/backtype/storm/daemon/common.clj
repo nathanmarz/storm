@@ -16,7 +16,8 @@
 (ns backtype.storm.daemon.common
   (:use [backtype.storm log config util])
   (:import [backtype.storm.generated StormTopology
-            InvalidTopologyException GlobalStreamId])
+            InvalidTopologyException GlobalStreamId]
+           [backtype.storm.utils ThriftTopologyUtils])
   (:import [backtype.storm.utils Utils])
   (:import [backtype.storm.task WorkerTopologyContext])
   (:import [backtype.storm Constants])
@@ -113,22 +114,23 @@
               (str "Duplicate component ids: " offending))))
     (doseq [f thrift/STORM-TOPOLOGY-FIELDS
             :let [obj-map (.getFieldValue topology f)]]
-      (doseq [id (keys obj-map)]
-        (if (Utils/isSystemId id)
-          (throw (InvalidTopologyException.
-                  (str id " is not a valid component id")))))
-      (doseq [obj (vals obj-map)
-              id (-> obj .get_common .get_streams keys)]
-        (if (Utils/isSystemId id)
-          (throw (InvalidTopologyException.
-                  (str id " is not a valid stream id"))))))
-    ))
+      (if-not (ThriftTopologyUtils/isWorkerHook f)
+        (do
+          (doseq [id (keys obj-map)]
+            (if (Utils/isSystemId id)
+              (throw (InvalidTopologyException.
+                       (str id " is not a valid component id")))))
+          (doseq [obj (vals obj-map)
+                  id (-> obj .get_common .get_streams keys)]
+            (if (Utils/isSystemId id)
+              (throw (InvalidTopologyException.
+                       (str id " is not a valid stream id"))))))))))
 
 (defn all-components [^StormTopology topology]
   (apply merge {}
-         (for [f thrift/STORM-TOPOLOGY-FIELDS]
-           (.getFieldValue topology f)
-           )))
+    (for [f thrift/STORM-TOPOLOGY-FIELDS]
+      (if-not (ThriftTopologyUtils/isWorkerHook f)
+        (.getFieldValue topology f)))))
 
 (defn component-conf [component]
   (->> component

@@ -17,10 +17,11 @@
  */
 package storm.kafka;
 
-import java.util.List;
-
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
+
+import java.nio.ByteBuffer;
+import java.util.List;
 
 public class StringMessageAndMetadataScheme extends StringScheme implements MessageMetadataScheme {
     private static final long serialVersionUID = -5441841920447947374L;
@@ -29,7 +30,7 @@ public class StringMessageAndMetadataScheme extends StringScheme implements Mess
     public static final String STRING_SCHEME_OFFSET = "offset";
 
     @Override
-    public List<Object> deserializeMessageWithMetadata(byte[] message, Partition partition, long offset) {
+    public List<Object> deserializeMessageWithMetadata(ByteBuffer message, Partition partition, long offset) {
         String stringMessage = StringScheme.deserializeString(message);
         return new Values(stringMessage, partition.partition, offset);
     }

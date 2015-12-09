@@ -34,15 +34,15 @@ import java.util.Map;
  * all the configs that can be set. It also makes it easier to do things like add
  * serializations.
  *
- * <p>This class also provides constants for all the configurations possible on
+ * This class also provides constants for all the configurations possible on
  * a Storm cluster and Storm topology. Each constant is paired with an annotation
  * that defines the validity criterion of the corresponding field. Default
- * values for these configs can be found in defaults.yaml.</p>
+ * values for these configs can be found in defaults.yaml.
  *
- * <p>Note that you may put other configurations in any of the configs. Storm
+ * Note that you may put other configurations in any of the configs. Storm
  * will ignore anything it doesn't recognize, but your topologies are free to make
  * use of them by reading them in the prepare method of Bolts or the open method of
- * Spouts.</p>
+ * Spouts.
  */
 public class Config extends HashMap<String, Object> {
 
@@ -376,6 +376,13 @@ public class Config extends HashMap<String, Object> {
     public static final String STORM_NIMBUS_RETRY_INTERVAL_CEILING="storm.nimbus.retry.intervalceiling.millis";
 
     /**
+     * The ClusterState factory that worker will use to create a ClusterState
+     * to store state in. Defaults to ZooKeeper.
+     */
+    @isString
+    public static final String STORM_CLUSTER_STATE_STORE = "storm.cluster.state.store";
+
+    /**
      * The Nimbus transport plug-in for Thrift client/server communication
      */
     @isString
@@ -438,6 +445,13 @@ public class Config extends HashMap<String, Object> {
      */
     @isStringList
     public static final String NIMBUS_SUPERVISOR_USERS = "nimbus.supervisor.users";
+
+    /**
+     * This is the user that the Nimbus daemon process is running as. May be used when security
+     * is enabled to authorize actions in the cluster.
+     */
+    @isString
+    public static final String NIMBUS_DAEMON_USER = "nimbus.daemon.user";
 
     /**
      * The maximum buffer size thrift should use when reading messages.
@@ -799,6 +813,47 @@ public class Config extends HashMap<String, Object> {
     public static final String UI_HTTPS_NEED_CLIENT_AUTH = "ui.https.need.client.auth";
 
     /**
+     * The host that Pacemaker is running on.
+     */
+    @isString
+    public static final String PACEMAKER_HOST = "pacemaker.host";
+
+    /**
+     * The port Pacemaker should run on. Clients should
+     * connect to this port to submit or read heartbeats.
+     */
+    @isNumber
+    @isPositiveNumber
+    public static final String PACEMAKER_PORT = "pacemaker.port";
+
+    /**
+     * The maximum number of threads that should be used by the Pacemaker.
+     * When Pacemaker gets loaded it will spawn new threads, up to 
+     * this many total, to handle the load.
+     */
+    @isNumber
+    @isPositiveNumber
+    public static final String PACEMAKER_MAX_THREADS = "pacemaker.max.threads";
+
+    /**
+     * This parameter is used by the storm-deploy project to configure the
+     * jvm options for the pacemaker daemon.
+     */
+    @isString
+    public static final String PACEMAKER_CHILDOPTS = "pacemaker.childopts";
+
+    /**
+     * This should be one of "DIGEST", "KERBEROS", or "NONE"
+     * Determines the mode of authentication the pacemaker server and client use.
+     * The client must either match the server, or be NONE. In the case of NONE,
+     * no authentication is performed for the client, and if the server is running with
+     * DIGEST or KERBEROS, the client can only write to the server (no reads).
+     * This is intended to provide a primitive form of access-control.
+     */
+    @CustomValidator(validatorClass=PacemakerAuthTypeValidator.class)
+    public static final String PACEMAKER_AUTH_METHOD = "pacemaker.auth.method";
+    
+    /**
      * List of DRPC servers so that the DRPCSpout knows who to talk to.
      */
     @isStringList
@@ -999,6 +1054,122 @@ public class Config extends HashMap<String, Object> {
     @NotNull
     @isListEntryCustom(entryValidatorClasses={IntegerValidator.class,PositiveNumberValidator.class})
     public static final String SUPERVISOR_SLOTS_PORTS = "supervisor.slots.ports";
+
+    /**
+     * What blobstore implementation the supervisor should use.
+     */
+    @isString
+    public static final String SUPERVISOR_BLOBSTORE = "supervisor.blobstore.class";
+
+    /**
+     * The distributed cache target size in MB. This is a soft limit to the size of the distributed
+     * cache contents.
+     */
+    @isPositiveNumber
+    @isInteger
+    public static final String SUPERVISOR_LOCALIZER_CACHE_TARGET_SIZE_MB = "supervisor.localizer.cache.target.size.mb";
+
+    /**
+     * The distributed cache cleanup interval. Controls how often it scans to attempt to cleanup
+     * anything over the cache target size.
+     */
+    @isPositiveNumber
+    @isInteger
+    public static final String SUPERVISOR_LOCALIZER_CACHE_CLEANUP_INTERVAL_MS = "supervisor.localizer.cleanup.interval.ms";
+
+    /**
+     * What blobstore implementation the storm client should use.
+     */
+    @isString
+    public static final String CLIENT_BLOBSTORE = "client.blobstore.class";
+
+    /**
+     * What blobstore download parallelism the supervisor should use.
+     */
+    @isPositiveNumber
+    @isInteger
+    public static final String SUPERVISOR_BLOBSTORE_DOWNLOAD_THREAD_COUNT = "supervisor.blobstore.download.thread.count";
+
+    /**
+     * Maximum number of retries a supervisor is allowed to make for downloading a blob.
+     */
+    @isPositiveNumber
+    @isInteger
+    public static final String SUPERVISOR_BLOBSTORE_DOWNLOAD_MAX_RETRIES = "supervisor.blobstore.download.max_retries";
+
+    /**
+     * The blobstore super user has all read/write/admin permissions to all blobs - user running
+     * the blobstore.
+     */
+    @isString
+    public static final String BLOBSTORE_SUPERUSER = "blobstore.superuser";
+
+    /**
+     * What directory to use for the blobstore. The directory is expected to be an
+     * absolute path when using HDFS blobstore, for LocalFsBlobStore it could be either
+     * absolute or relative.
+     */
+    @isString
+    public static final String BLOBSTORE_DIR = "blobstore.dir";
+
+    /**
+     * What buffer size to use for the blobstore uploads.
+     */
+    @isPositiveNumber
+    @isInteger
+    public static final String STORM_BLOBSTORE_INPUTSTREAM_BUFFER_SIZE_BYTES = "storm.blobstore.inputstream.buffer.size.bytes";
+
+    /**
+     * Enable the blobstore cleaner. Certain blobstores may only want to run the cleaner
+     * on one daemon. Currently Nimbus handles setting this.
+     */
+    @isBoolean
+    public static final String BLOBSTORE_CLEANUP_ENABLE = "blobstore.cleanup.enable";
+
+    /**
+     * principal for nimbus/supervisor to use to access secure hdfs for the blobstore.
+     */
+    @isString
+    public static final String BLOBSTORE_HDFS_PRINCIPAL = "blobstore.hdfs.principal";
+
+    /**
+     * keytab for nimbus/supervisor to use to access secure hdfs for the blobstore.
+     */
+    @isString
+    public static final String BLOBSTORE_HDFS_KEYTAB = "blobstore.hdfs.keytab";
+
+    /**
+     *  Set replication factor for a blob in HDFS Blobstore Implementation
+     */
+    @isPositiveNumber
+    @isInteger
+    public static final String STORM_BLOBSTORE_REPLICATION_FACTOR = "storm.blobstore.replication.factor";
+
+    /**
+     * What blobstore implementation nimbus should use.
+     */
+    @isString
+    public static final String NIMBUS_BLOBSTORE = "nimbus.blobstore.class";
+
+    /**
+     * During operations with the blob store, via master, how long a connection
+     * is idle before nimbus considers it dead and drops the session and any
+     * associated connections.
+     */
+    @isPositiveNumber
+    @isInteger
+    public static final String NIMBUS_BLOBSTORE_EXPIRATION_SECS = "nimbus.blobstore.expiration.secs";
+
+    /**
+     * A map with blobstore keys mapped to each filename the worker will have access to in the
+     * launch directory to the blob by local file name and uncompress flag. Both localname and
+     * uncompress flag are optional. It uses the key is localname is not specified. Each topology
+     * will have different map of blobs.  Example: topology.blobstore.map: {"blobstorekey" :
+     * {"localname": "myblob", "uncompress": false}, "blobstorearchivekey" :
+     * {"localname": "myarchive", "uncompress": true}}
+     */
+    @CustomValidator(validatorClass = MapOfStringToMapOfStringToObjectValidator.class)
+    public static final String TOPOLOGY_BLOBSTORE_MAP = "topology.blobstore.map";
 
     /**
      * A number representing the maximum number of workers any single topology can acquire.
@@ -1678,9 +1849,18 @@ public class Config extends HashMap<String, Object> {
     /**
      * Max pending tuples in one ShellBolt
      */
+    @NotNull
     @isInteger
     @isPositiveNumber
     public static final String TOPOLOGY_SHELLBOLT_MAX_PENDING="topology.shellbolt.max.pending";
+
+    /**
+     * How long a subprocess can go without heartbeating before the ShellSpout/ShellBolt tries to
+     * suicide itself.
+     */
+    @isInteger
+    @isPositiveNumber
+    public static final String TOPOLOGY_SUBPROCESS_TIMEOUT_SECS = "topology.subprocess.timeout.secs";
 
     /**
      * Topology central logging sensitivity to determine who has access to logs in central logging system.
@@ -1808,13 +1988,6 @@ public class Config extends HashMap<String, Object> {
     @isPositiveNumber
     @NotNull
     public static final String TOPOLOGY_DISRUPTOR_BATCH_TIMEOUT_MILLIS="topology.disruptor.batch.timeout.millis";
-
-    /**
-     * Which implementation of {@link backtype.storm.codedistributor.ICodeDistributor} should be used by storm for code
-     * distribution.
-     */
-    @isString
-    public static final String STORM_CODE_DISTRIBUTOR_CLASS = "storm.codedistributor.class";
 
     /**
      * Minimum number of nimbus hosts where the code must be replicated before leader nimbus

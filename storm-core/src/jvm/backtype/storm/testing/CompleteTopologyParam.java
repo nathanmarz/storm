@@ -20,7 +20,7 @@ package backtype.storm.testing;
 import backtype.storm.Config;
 
 /**
- * The param class for the <code>Testing.completeTopology</code>.
+ * The param class for the `Testing.completeTopology`.
  */
 public class CompleteTopologyParam {
 	/**

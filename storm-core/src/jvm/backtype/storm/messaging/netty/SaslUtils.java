@@ -28,6 +28,7 @@ import org.apache.commons.io.Charsets;
 import backtype.storm.Config;
 
 class SaslUtils {
+    public static final String KERBEROS = "GSSAPI";
     public static final String AUTH_DIGEST_MD5 = "DIGEST-MD5";
     public static final String DEFAULT_REALM = "default";
 

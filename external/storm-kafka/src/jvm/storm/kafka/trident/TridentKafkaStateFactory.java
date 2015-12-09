@@ -26,6 +26,7 @@ import storm.trident.state.State;
 import storm.trident.state.StateFactory;
 
 import java.util.Map;
+import java.util.Properties;
 
 public class TridentKafkaStateFactory implements StateFactory {
 
@@ -33,7 +34,7 @@ public class TridentKafkaStateFactory implements StateFactory {
 
     private TridentTupleToKafkaMapper mapper;
     private KafkaTopicSelector topicSelector;
-
+    private Properties producerProperties = new Properties();
 
     public TridentKafkaStateFactory withTridentTupleToKafkaMapper(TridentTupleToKafkaMapper mapper) {
         this.mapper = mapper;
@@ -45,13 +46,18 @@ public class TridentKafkaStateFactory implements StateFactory {
         return this;
     }
 
+    public TridentKafkaStateFactory withProducerProperties(Properties props) {
+        this.producerProperties = props;
+        return this;
+    }
+
     @Override
     public State makeState(Map conf, IMetricsContext metrics, int partitionIndex, int numPartitions) {
         LOG.info("makeState(partitonIndex={}, numpartitions={}", partitionIndex, numPartitions);
         TridentKafkaState state = new TridentKafkaState()
                 .withKafkaTopicSelector(this.topicSelector)
                 .withTridentTupleToKafkaMapper(this.mapper);
-        state.prepare(conf);
+        state.prepare(producerProperties);
         return state;
     }
 }

@@ -26,6 +26,7 @@ import backtype.storm.multilang.BoltMsg;
 import backtype.storm.multilang.ShellMsg;
 import backtype.storm.topology.ReportedFailedException;
 import backtype.storm.tuple.Tuple;
+import backtype.storm.utils.ShellBoltMessageQueue;
 import backtype.storm.utils.ShellProcess;
 import clojure.lang.RT;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -45,16 +46,16 @@ import static java.util.concurrent.TimeUnit.SECONDS;
  * line library is required to implement that protocol, and adapter libraries
  * currently exist for Ruby and Python.
  *
- * <p>To run a ShellBolt on a cluster, the scripts that are shelled out to must be
+ * To run a ShellBolt on a cluster, the scripts that are shelled out to must be
  * in the resources directory within the jar submitted to the master.
  * During development/testing on a local machine, that resources directory just
- * needs to be on the classpath.</p>
+ * needs to be on the classpath.
  *
- * <p>When creating topologies using the Java API, subclass this bolt and implement
+ * When creating topologies using the Java API, subclass this bolt and implement
  * the IRichBolt interface to create components for the topology that use other languages. For example:
- * </p>
  *
- * <pre>
+ *
+ * ```java
  * public class MyBolt extends ShellBolt implements IRichBolt {
  *      public MyBolt() {
  *          super("python", "mybolt.py");
@@ -64,7 +65,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
  *          declarer.declare(new Fields("field1", "field2"));
  *      }
  * }
- * </pre>
+ * ```
  */
 public class ShellBolt implements IBolt {
     public static final String HEARTBEAT_STREAM_ID = "__heartbeat";
@@ -77,7 +78,7 @@ public class ShellBolt implements IBolt {
     private ShellProcess _process;
     private volatile boolean _running = true;
     private volatile Throwable _exception;
-    private LinkedBlockingQueue _pendingWrites = new LinkedBlockingQueue();
+    private ShellBoltMessageQueue _pendingWrites = new ShellBoltMessageQueue();
     private Random _rand;
 
     private Thread _readerThread;
@@ -107,14 +108,19 @@ public class ShellBolt implements IBolt {
                         final OutputCollector collector) {
         Object maxPending = stormConf.get(Config.TOPOLOGY_SHELLBOLT_MAX_PENDING);
         if (maxPending != null) {
-           this._pendingWrites = new LinkedBlockingQueue(((Number)maxPending).intValue());
+            this._pendingWrites = new ShellBoltMessageQueue(((Number)maxPending).intValue());
         }
+
         _rand = new Random();
         _collector = collector;
 
         _context = context;
 
-        workerTimeoutMills = 1000 * RT.intCast(stormConf.get(Config.SUPERVISOR_WORKER_TIMEOUT_SECS));
+        if (stormConf.containsKey(Config.TOPOLOGY_SUBPROCESS_TIMEOUT_SECS)) {
+            workerTimeoutMills = 1000 * RT.intCast(stormConf.get(Config.TOPOLOGY_SUBPROCESS_TIMEOUT_SECS));
+        } else {
+            workerTimeoutMills = 1000 * RT.intCast(stormConf.get(Config.SUPERVISOR_WORKER_TIMEOUT_SECS));
+        }
 
         _process = new ShellProcess(_command);
         if (!env.isEmpty()) {
@@ -150,7 +156,7 @@ public class ShellBolt implements IBolt {
         try {
             BoltMsg boltMsg = createBoltMessage(input, genId);
 
-            _pendingWrites.put(boltMsg);
+            _pendingWrites.putBoltMsg(boltMsg);
         } catch(InterruptedException e) {
             String processInfo = _process.getProcessInfoString() + _process.getProcessTerminationInfoString();
             throw new RuntimeException("Error during multilang processing " + processInfo, e);
@@ -212,7 +218,7 @@ public class ShellBolt implements IBolt {
         if(shellMsg.getTask() == 0) {
             List<Integer> outtasks = _collector.emit(shellMsg.getStream(), anchors, shellMsg.getTuple());
             if (shellMsg.areTaskIdsNeeded()) {
-                _pendingWrites.put(outtasks);
+                _pendingWrites.putTaskIds(outtasks);
             }
         } else {
             _collector.emitDirect((int) shellMsg.getTask(),
@@ -318,8 +324,6 @@ public class ShellBolt implements IBolt {
 
             sendHeartbeatFlag.compareAndSet(false, true);
         }
-
-
     }
 
     private class BoltReaderRunnable implements Runnable {
@@ -384,7 +388,6 @@ public class ShellBolt implements IBolt {
                     } else if (write != null) {
                         throw new RuntimeException("Unknown class type to write: " + write.getClass().getName());
                     }
-                } catch (InterruptedException e) {
                 } catch (Throwable t) {
                     die(t);
                 }

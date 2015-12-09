@@ -27,17 +27,22 @@ import backtype.storm.metric.api.IMetricsConsumer;
 import backtype.storm.task.IErrorReporter;
 import backtype.storm.task.TopologyContext;
 
-/*
+/**
  * Listens for all metrics, dumps them to log
  *
  * To use, add this to your topology's configuration:
+ *
+ * ```java
  *   conf.registerMetricsConsumer(backtype.storm.metrics.LoggingMetricsConsumer.class, 1);
+ * ```
  *
  * Or edit the storm.yaml config file:
  *
+ * ```yaml
  *   topology.metrics.consumer.register:
  *     - class: "backtype.storm.metrics.LoggingMetricsConsumer"
  *       parallelism.hint: 1
+ * ```
  *
  */
 public class LoggingMetricsConsumer implements IMetricsConsumer {

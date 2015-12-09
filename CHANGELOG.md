@@ -1,4 +1,25 @@
 ## 0.11.0
+ * STORM-1374: fix random failure on WindowManagerTest
+ * STORM-1040: SQL support for Storm.
+ * STORM-1364: Log storm version on daemon start
+ * STORM-1375: Blobstore broke Pacemaker
+ * STORM-876: Blobstore/DistCache Support
+ * STORM-1361: Apache License missing from two Cassandra files
+ * STORM-756: Handle taskids response as soon as possible
+ * STORM-1218: Use markdown for JavaDoc.
+ * STORM-1075: Storm Cassandra connector.
+ * STORM-965: excessive logging in storm when non-kerberos client tries to connect
+ * STORM-1341: Let topology have own heartbeat timeout for multilang subprocess
+ * STORM-1207: Added flux support for IWindowedBolt
+ * STORM-1352: Trident should support writing to multiple Kafka clusters.
+ * STORM-1220: Avoid double copying in the Kafka spout.
+ * STORM-1340: Use Travis-CI build matrix to improve test execution times
+ * STORM-1126: Allow a configMethod that takes no arguments (Flux)
+ * STORM-1203: worker metadata file creation doesn't use storm.log.dir config
+ * STORM-1349: [Flux] Allow constructorArgs to take Maps as arguments
+ * STORM-126: Add Lifecycle support API for worker nodes
+ * STORM-1213: Remove sigar binaries from source tree
+ * STORM-885:  Heartbeat Server (Pacemaker)
  * STORM-1221: Create a common interface for all Trident spout.
  * STORM-1198: Web UI to show resource usages and Total Resources on all supervisors
  * STORM-1167: Add windowing support for storm core.
@@ -144,8 +165,10 @@
  * STORM-1142: Some config validators for positive ints need to allow 0
  * STORM-901: Worker Artifacts Directory
  * STORM-1144: Display requested and assigned cpu/mem resources for schedulers in UI
+ * STORM-1217: making small fixes in RAS
 
 ## 0.10.0-beta2
+ * STORM-581: Add rebalance params to Storm REST API
  * STORM-1108: Fix NPE in simulated time
  * STORM-1099: Fix worker childopts as arraylist of strings
  * STORM-1094: advance kafka offset when deserializer yields no object

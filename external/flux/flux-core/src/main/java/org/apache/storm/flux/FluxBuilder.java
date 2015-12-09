@@ -167,6 +167,14 @@ public class FluxBuilder {
                             topologyDef.parallelismForBolt(stream.getTo()));
                     declarers.put(stream.getTo(), declarer);
                 }
+            } else if (boltObj instanceof IWindowedBolt) {
+                if(declarer == null) {
+                    declarer = builder.setBolt(
+                            stream.getTo(),
+                            (IWindowedBolt) boltObj,
+                            topologyDef.parallelismForBolt(stream.getTo()));
+                    declarers.put(stream.getTo(), declarer);
+                }
             } else {
                 throw new IllegalArgumentException("Class does not appear to be a bolt: " +
                         boltObj.getClass().getName());
@@ -417,6 +425,9 @@ public class FluxBuilder {
         Class clazz = instance.getClass();
         for(ConfigMethodDef methodDef : methodDefs){
             List<Object> args = methodDef.getArgs();
+            if (args == null){
+                args = new ArrayList();
+            }
             if(methodDef.hasReferences()){
                 args = resolveReferences(args, context);
             }
@@ -444,7 +455,13 @@ public class FluxBuilder {
             Class[] paramClasses = method.getParameterTypes();
             if (paramClasses.length == args.size() && method.getName().equals(methodName)) {
                 LOG.debug("found constructor with same number of args..");
-                boolean invokable = canInvokeWithArgs(args, method.getParameterTypes());
+                boolean invokable = false;
+                if (args.size() == 0){
+                    // it's a method with zero args
+                    invokable = true;
+                } else {
+                    invokable = canInvokeWithArgs(args, method.getParameterTypes());
+                }
                 if (invokable) {
                     retval = method;
                     eligibleCount++;
@@ -569,32 +586,23 @@ public class FluxBuilder {
                     paramType, objectType);
             if (paramType.equals(objectType)) {
                 LOG.debug("Yes, they are the same class.");
-                return true;
-            }
-            if (paramType.isAssignableFrom(objectType)) {
+            } else if (paramType.isAssignableFrom(objectType)) {
                 LOG.debug("Yes, assignment is possible.");
-                return true;
-            }
-            if (isPrimitiveBoolean(paramType) && Boolean.class.isAssignableFrom(objectType)){
-                return true;
-            }
-            if(isPrimitiveNumber(paramType) && Number.class.isAssignableFrom(objectType)){
-                return true;
-            }
-            if(paramType.isEnum() && objectType.equals(String.class)){
+            } else if (isPrimitiveBoolean(paramType) && Boolean.class.isAssignableFrom(objectType)){
+                LOG.debug("Yes, assignment is possible.");
+            } else if(isPrimitiveNumber(paramType) && Number.class.isAssignableFrom(objectType)){
+                LOG.debug("Yes, assignment is possible.");
+            } else if(paramType.isEnum() && objectType.equals(String.class)){
                 LOG.debug("Yes, will convert a String to enum");
-                return true;
-            }
-            if (paramType.isArray() && List.class.isAssignableFrom(objectType)) {
+            } else if (paramType.isArray() && List.class.isAssignableFrom(objectType)) {
                 // TODO more collection content type checking
                 LOG.debug("Assignment is possible if we convert a List to an array.");
                 LOG.debug("Array Type: {}, List type: {}", paramType.getComponentType(), ((List) obj).get(0).getClass());
-
-                return true;
+            } else {
+                return false;
             }
-            return false;
         }
-        return false;
+        return true;
     }
 
     public static boolean isPrimitiveNumber(Class clazz){

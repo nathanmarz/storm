@@ -149,14 +149,14 @@ public class TridentKafkaWordCount {
      *
      * @return the storm topology
      */
-    public StormTopology buildProducerTopology() {
+    public StormTopology buildProducerTopology(Properties prop) {
         TopologyBuilder builder = new TopologyBuilder();
         builder.setSpout("spout", new RandomSentenceSpout(), 2);
         /**
          * The output field of the RandomSentenceSpout ("word") is provided as the boltMessageField
          * so that this gets written out as the message in the kafka topic.
          */
-        KafkaBolt bolt = new KafkaBolt()
+        KafkaBolt bolt = new KafkaBolt().withProducerProperties(prop)
                 .withTopicSelector(new DefaultTopicSelector("test"))
                 .withTupleToKafkaMapper(new FieldNameBasedTupleToKafkaMapper("key", "word"));
         builder.setBolt("forwardToKafka", bolt, 1).shuffleGrouping("spout");
@@ -169,16 +169,13 @@ public class TridentKafkaWordCount {
      *
      * @return the topology config
      */
-    public Config getProducerConfig() {
-        Config conf = new Config();
-        conf.setMaxSpoutPending(20);
+    public Properties getProducerConfig() {
         Properties props = new Properties();
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, brokerUrl);
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
         props.put(ProducerConfig.CLIENT_ID_CONFIG, "storm-kafka-producer");
-        conf.put(KafkaBolt.KAFKA_BROKER_PROPERTIES, props);
-        return conf;
+        return props;
     }
 
     /**
@@ -214,8 +211,10 @@ public class TridentKafkaWordCount {
         // submit the consumer topology.
         cluster.submitTopology("wordCounter", wordCount.getConsumerConfig(), wordCount.buildConsumerTopology(drpc));
 
+        Config conf = new Config();
+        conf.setMaxSpoutPending(20);
         // submit the producer topology.
-        cluster.submitTopology("kafkaBolt", wordCount.getProducerConfig(), wordCount.buildProducerTopology());
+        cluster.submitTopology("kafkaBolt", conf, wordCount.buildProducerTopology(wordCount.getProducerConfig()));
 
         // keep querying the word counts for a minute.
         for (int i = 0; i < 60; i++) {

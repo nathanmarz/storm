@@ -123,7 +123,9 @@ public class LocalizerTest {
 
   @After
   public void tearDown() throws Exception {
-    FileUtils.deleteDirectory(baseDir);
+    try {
+      FileUtils.deleteDirectory(baseDir);
+    } catch (IOException ignore) {}
   }
 
   protected String joinPath(String... pathList) {

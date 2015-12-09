@@ -237,35 +237,30 @@ public class LocalizerTest {
 
   @Test
   public void testArchivesTgz() throws Exception {
-    testArchives("test/jvm/backtype/storm/localizer/localtestwithsymlink.tgz", true,
-        21344);
+    testArchives(joinPath("test", "jvm", "backtype", "storm", "localizer", "localtestwithsymlink.tgz"), true, 21344);
   }
 
   @Test
   public void testArchivesZip() throws Exception {
-    testArchives("test/jvm/backtype/storm/localizer/localtest.zip", false,
-        21348);
+    testArchives(joinPath("test", "jvm", "backtype", "storm", "localizer", "localtest.zip"), false, 21348);
   }
 
   @Test
   public void testArchivesTarGz() throws Exception {
-    testArchives("test/jvm/backtype/storm/localizer/localtestwithsymlink.tar.gz",
-        true, 21344);
+    testArchives(joinPath("test", "jvm", "backtype", "storm", "localizer", "localtestwithsymlink.tar.gz"), true, 21344);
   }
 
   @Test
   public void testArchivesTar() throws Exception {
-    testArchives("test/jvm/backtype/storm/localizer/localtestwithsymlink.tar", true,
-        21344);
+    testArchives(joinPath("test", "jvm", "backtype", "storm", "localizer", "localtestwithsymlink.tar"), true, 21344);
   }
 
   @Test
   public void testArchivesJar() throws Exception {
-    testArchives("test/jvm/backtype/storm/localizer/localtestwithsymlink.jar", false,
-        21416);
+    testArchives(joinPath("test", "jvm", "backtype", "storm", "localizer", "localtestwithsymlink.jar"), false, 21416);
   }
 
-  // archive passed in must contain symlink named tmptestsymlink is not a zip file
+  // archive passed in must contain symlink named tmptestsymlink if not a zip file
   public void testArchives(String archivePath, boolean supportSymlinks, int size) throws Exception {
     Map conf = new HashMap();
     // set clean time really high so doesn't kick in

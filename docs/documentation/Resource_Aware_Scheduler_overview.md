@@ -21,9 +21,9 @@ API to set component memory requirement:
 
 Parameters:
 * Number onHeap – The amount of on heap memory an instance of this component will consume in megabytes
-* Number OffHeap – The amount of off heap memory an instance of this component will consume in megabytes
+* Number offHeap – The amount of off heap memory an instance of this component will consume in megabytes
 
-The user also have to option to just specify the on heap memory requirement if the component does not have an off heap memory need.
+The user also has to option to just specify the on heap memory requirement if the component does not have an off heap memory need.
 
     public T setMemoryLoad(Number onHeap)
 
@@ -98,7 +98,7 @@ Example of Usage:
     supervisor.cpu.capacity: 100.0
 
 
-2.5.	Other Configurations
+### Other Configurations
 
 The user can set some default configurations for the Resource Aware Scheduler in *conf/storm.yaml*:
 
@@ -143,8 +143,8 @@ An example of what *user-resource-pools.yaml* can look like:
 Please note that the specified amount of Guaranteed CPU and Memory can be either a integer or double
 
 ## API Overview
-### Specifying topology priority
-The range of topology priorities can range form 0-30.  The topologies priorities will be partitioned into several priority levels that may contain a range of priorities. 
+### Specifying Topology Priority
+The range of topology priorities can range form 0-29.  The topologies priorities will be partitioned into several priority levels that may contain a range of priorities. 
 For example we can create a priority level mapping:
 
     PRODUCTION => 0 – 9
@@ -154,6 +154,7 @@ For example we can create a priority level mapping:
 Thus, each priority level contains 10 sub priorities. Users can set the priority level of a topology by using the following API
 
     conf.setTopologyPriority(int priority)
+    
 Parameters:
 * priority – an integer representing the priority of the topology
 
@@ -167,6 +168,7 @@ Parameters:
 * clazz – The strategy class that implements the IStrategy interface
 
 Example Usage:
+
     conf.setTopologyStrategy(backtype.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy.class);
 
 A default scheduling is provided.  The DefaultResourceAwareStrategy is implemented based off the scheduling algorithm in the original paper describing resource aware scheduling in Storm:
@@ -179,11 +181,11 @@ The order of scheduling is a pluggable interface in which a user could define a 
 
     resource.aware.scheduler.priority.strategy: "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
     
-    A default strategy will be provided.  The following explains how the default scheduling priority strategy works.
+A default strategy will be provided.  The following explains how the default scheduling priority strategy works.
 
 **DefaultSchedulingPriorityStrategy**
 
-The order of scheduling should be based on how far is a user’s current resource allocation to his or her guaranteed allocation.  We should prioritize the users who are the furthest away from their resource guarantee. The difficulty of this problem is that a user may have multiple resource guarantees and another user can have another set resource guarantees, so how can we compare them in a fair manner?  Lets use the average percentage of resource guarantees satisfied as a method of comparison.
+The order of scheduling should be based on the distance a user’s current resource allocation to his or her guaranteed allocation.  We should prioritize the users who are the furthest away from their resource guarantee. The difficulty of this problem is that a user may have multiple resource guarantees, and another user can have another set resource guarantees, so how can we compare them in a fair manner?  Let's use the average percentage of resource guarantees satisfied as a method of comparison.
 
 For example:
 
@@ -213,10 +215,10 @@ A default eviction strategy is provided.  The following explains how the default
 
 **DefaultEvictionStrategy**
 
-If the cluster is full, we need a mechanism to evict topologies so that user resource guarantees can be met and resources additional resource guarantees can be shared fairly among users
+If the cluster is full, we need a mechanism to evict topologies so that user resource guarantees can be met and additional resource can be shared fairly among users
 
 To determine if topology eviction should occur we should take into account the priority of the topology that we are trying to schedule and whether the resource guarantees for the owner of the topology have been met.  
 
 We should never evict a topology from a user that does not have his or her resource guarantees satisfied.  The following flow chart should describe the logic for the eviction process.
 
-![Viewing metrics with VisualVM](images/resource_aware_scheduler_default_eviction_strategy.png)
+![Viewing metrics with VisualVM](images/resource_aware_scheduler_default_eviction_strategy.svg)

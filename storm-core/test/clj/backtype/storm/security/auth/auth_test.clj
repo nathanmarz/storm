@@ -47,7 +47,7 @@
 (defn mk-subject [name]
   (Subject. true #{(mk-principal name)} #{} #{}))
 
-(def nimbus-timeout (Integer. 120))
+(def nimbus-timeout (Integer. (* 3 1000)))
 
 (defn nimbus-data [storm-conf inimbus]
   (let [forced-scheduler (.getForcedScheduler inimbus)]

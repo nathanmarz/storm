@@ -31,7 +31,7 @@
   (:require [conjure.core])
   (:use [conjure core]))
 
-(def nimbus-timeout (Integer. 30))
+(def nimbus-timeout (Integer. (* 3 1000)))
 
 (defn launch-test-cluster [nimbus-port login-cfg aznClass transportPluginClass] 
   (let [conf {NIMBUS-AUTHORIZER aznClass 

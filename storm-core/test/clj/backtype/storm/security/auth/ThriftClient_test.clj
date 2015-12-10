@@ -20,26 +20,26 @@
   (:import [org.apache.thrift.transport TTransportException])
 )
 
+(def TIMEOUT (Integer. (* 3 1000)))
+
 (deftest test-ctor-throws-if-port-invalid
   (let [conf (merge
               (read-default-config)
-              {STORM-NIMBUS-RETRY-TIMES 0})
-        timeout (Integer. 30)]
+              {STORM-NIMBUS-RETRY-TIMES 0})]
     (is (thrown-cause? java.lang.IllegalArgumentException
-      (ThriftClient. conf ThriftConnectionType/DRPC "bogushost" (int -1) timeout)))
+      (ThriftClient. conf ThriftConnectionType/DRPC "bogushost" (int -1) TIMEOUT)))
     (is (thrown-cause? java.lang.IllegalArgumentException
-        (ThriftClient. conf ThriftConnectionType/DRPC "bogushost" (int 0) timeout)))
+        (ThriftClient. conf ThriftConnectionType/DRPC "bogushost" (int 0) TIMEOUT)))
   )
 )
 
 (deftest test-ctor-throws-if-host-not-set
   (let [conf (merge
               (read-default-config)
-              {STORM-NIMBUS-RETRY-TIMES 0})
-        timeout (Integer. 60)]
+              {STORM-NIMBUS-RETRY-TIMES 0})]
     (is (thrown-cause? TTransportException
-         (ThriftClient. conf ThriftConnectionType/DRPC "" (int 4242) timeout)))
+         (ThriftClient. conf ThriftConnectionType/DRPC "" (int 4242) TIMEOUT)))
     (is (thrown-cause? IllegalArgumentException
-        (ThriftClient. conf ThriftConnectionType/DRPC nil (int 4242) timeout)))
+        (ThriftClient. conf ThriftConnectionType/DRPC nil (int 4242) TIMEOUT)))
   )
 )

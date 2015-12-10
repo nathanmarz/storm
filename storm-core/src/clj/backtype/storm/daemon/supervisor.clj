@@ -47,6 +47,8 @@
 (defmulti download-storm-code cluster-mode)
 (defmulti launch-worker (fn [supervisor & _] (cluster-mode (:conf supervisor))))
 
+(def STORM-VERSION (VersionInfo/getVersion))
+
 (defprotocol SupervisorDaemon
   (get-id [this])
   (get-conf [this])
@@ -309,7 +311,7 @@
    :isupervisor isupervisor
    :active (atom true)
    :uptime (uptime-computer)
-   :version (str (VersionInfo/getVersion))
+   :version STORM-VERSION
    :worker-thread-pids-atom (atom {})
    :storm-cluster-state (cluster/mk-storm-cluster-state conf :acls (when
                                                                      (Utils/isZkAuthenticationConfiguredStormServer
@@ -1161,7 +1163,9 @@
       (swap! (:worker-thread-pids-atom supervisor) assoc worker-id pid)
       ))
 
-(defn -launch [supervisor]
+(defn -launch
+  [supervisor]
+  (log-message "Starting supervisor for storm version '" STORM-VERSION "'")
   (let [conf (read-storm-config)]
     (validate-distributed-mode! conf)
     (let [supervisor (mk-supervisor conf nil supervisor)]

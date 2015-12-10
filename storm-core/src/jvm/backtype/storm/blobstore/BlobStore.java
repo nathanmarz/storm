@@ -298,7 +298,9 @@ public abstract class BlobStore implements Shutdownable {
     public byte[] readBlob(String key, Subject who) throws IOException, KeyNotFoundException, AuthorizationException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         readBlobTo(key, out, who);
-        return out.toByteArray();
+        byte[] bytes = out.toByteArray();
+        out.close();
+        return bytes;
     }
 
     /**

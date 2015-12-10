@@ -38,10 +38,13 @@ public class HdfsUtils {
     RemoteIterator<LocatedFileStatus> itr = fs.listFiles(directory, false);
     while( itr.hasNext() ) {
       LocatedFileStatus fileStatus = itr.next();
-      if(olderThan>0 && fileStatus.getModificationTime()<olderThan )
+      if(olderThan>0) {
+        if( fileStatus.getModificationTime()<olderThan )
+          fstats.add(fileStatus);
+      }
+      else {
         fstats.add(fileStatus);
-      else
-        fstats.add(fileStatus);
+      }
     }
     Collections.sort(fstats, new CmpFilesByModificationTime() );
 

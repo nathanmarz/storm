@@ -412,6 +412,11 @@
                             <testScript>test/resources/test_runner.clj</testScript>
                             <!-- argLine is set by JaCoCo for code coverage -->
                             <vmargs>${argLine} ${test.extra.args}</vmargs>
+                            <!-- Run clojure unit tests or all tests (including integration tests) depending on the profile enabled -->
+                            <testNamespaces>
+                                <testNamespace>${clojure.test.set}</testNamespace>
+                            </testNamespaces>
+                            <testDeclaredNamespaceOnly>${clojure.test.declared.namespace.only}</testDeclaredNamespaceOnly>
                         </configuration>
                     </execution>
                 </executions>
@@ -423,6 +428,13 @@
                     <reportsDirectories>
                         <file>${project.build.directory}/test-reports</file>
                     </reportsDirectories>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <reportsDirectory>${project.build.directory}/test-reports</reportsDirectory>
                 </configuration>
             </plugin>
             <plugin>

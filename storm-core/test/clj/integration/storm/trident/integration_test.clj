@@ -13,7 +13,7 @@
 ;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
-(ns storm.trident.integration-test
+(ns integration.storm.trident.integration-test
   (:use [clojure test])
   (:require [backtype.storm [testing :as t]])
   (:import [storm.trident.testing Split CountAsAggregator StringLength TrueFilter

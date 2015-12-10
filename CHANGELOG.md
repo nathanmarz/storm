@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1370: Bug fixes for MultitenantScheduler
  * STORM-1374: fix random failure on WindowManagerTest
  * STORM-1040: SQL support for Storm.
  * STORM-1364: Log storm version on daemon start

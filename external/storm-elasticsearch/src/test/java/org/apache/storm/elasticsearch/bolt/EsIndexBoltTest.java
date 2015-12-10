@@ -17,6 +17,7 @@
  */
 package org.apache.storm.elasticsearch.bolt;
 
+import backtype.storm.testing.IntegrationTest;
 import backtype.storm.tuple.Tuple;
 import org.apache.storm.elasticsearch.common.EsConfig;
 import org.apache.storm.elasticsearch.common.EsTestUtil;
@@ -25,9 +26,11 @@ import org.elasticsearch.action.count.CountResponse;
 import org.elasticsearch.index.query.TermQueryBuilder;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import static org.mockito.Mockito.verify;
 
+@Category(IntegrationTest.class)
 public class EsIndexBoltTest extends AbstractEsBoltIntegrationTest<EsIndexBolt> {
 
     @Test

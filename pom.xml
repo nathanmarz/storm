@@ -156,6 +156,15 @@
             </roles>
             <timezone>-6</timezone>
         </developer>
+        <developer>
+            <id>dossett</id>
+            <name>Boyang Jerry Peng</name>
+            <email>jerrypeng@apache.org</email>
+            <roles>
+                <role>Committer</role>
+            </roles>
+            <timezone>-6</timezone>
+        </developer>
     </developers>
 
 

@@ -254,11 +254,12 @@
 
 (defn worker-artifacts-root
   ([conf]
-    (let [workers-artifacts-dir (conf STORM-WORKERS-ARTIFACTS-DIR)]
-      (if workers-artifacts-dir
-        (if (is-absolute-path? workers-artifacts-dir)
-          workers-artifacts-dir
-          (str backtype.storm.util/LOG-DIR file-path-separator workers-artifacts-dir)))))
+   (let [workers-artifacts-dir (conf STORM-WORKERS-ARTIFACTS-DIR)]
+     (if workers-artifacts-dir
+       (if (is-absolute-path? workers-artifacts-dir)
+         workers-artifacts-dir
+         (str backtype.storm.util/LOG-DIR file-path-separator workers-artifacts-dir))
+       (str backtype.storm.util/LOG-DIR file-path-separator "workers-artifacts"))))
   ([conf id]
    (str (worker-artifacts-root conf) file-path-separator id))
   ([conf id port]

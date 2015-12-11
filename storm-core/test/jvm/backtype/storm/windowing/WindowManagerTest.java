@@ -137,7 +137,10 @@ public class WindowManagerTest {
     @Test
     public void testTimeBasedWindow() throws Exception {
         windowManager.setWindowLength(new Duration(1, TimeUnit.SECONDS));
-        windowManager.setSlidingInterval(new Duration(100, TimeUnit.MILLISECONDS));
+        // don't rely on TimeTriggerPolicy since that easily lead timing-issue test failure
+        // set this to never triggered, and trigger manually
+        windowManager.setSlidingInterval(new Duration(1, TimeUnit.DAYS));
+
         long now = System.currentTimeMillis();
 
         // add with past ts
@@ -156,8 +159,8 @@ public class WindowManagerTest {
         for (int i : seq(WindowManager.EXPIRE_EVENTS_THRESHOLD + 1, WindowManager.EXPIRE_EVENTS_THRESHOLD + 100)) {
             windowManager.add(i, now - 1000);
         }
-        // wait for time trigger
-        Thread.sleep(120);
+
+        windowManager.onTrigger();
 
         // 100 events with past ts should expire
         assertEquals(100, listener.onExpiryEvents.size());
@@ -178,8 +181,9 @@ public class WindowManagerTest {
             windowManager.add(i, now);
         }
         activationsEvents.addAll(newEvents);
-        // wait for time trigger
-        Thread.sleep(120);
+
+        windowManager.onTrigger();
+
         assertTrue(listener.onExpiryEvents.isEmpty());
         assertEquals(activationsEvents, listener.onActivationEvents);
         assertEquals(newEvents, listener.onActivationNewEvents);
@@ -190,21 +194,27 @@ public class WindowManagerTest {
     @Test
     public void testTimeBasedWindowExpiry() throws Exception {
         windowManager.setWindowLength(new Duration(100, TimeUnit.MILLISECONDS));
-        windowManager.setSlidingInterval(new Duration(60, TimeUnit.MILLISECONDS));
+        // don't rely on TimeTriggerPolicy since that easily lead timing-issue test failure
+        // set this to never triggered, and trigger manually
+        windowManager.setSlidingInterval(new Duration(1, TimeUnit.DAYS));
+
         // add 10 events
         for (int i : seq(1, 10)) {
             windowManager.add(i);
         }
         Thread.sleep(70);
+        windowManager.onTrigger();
         assertEquals(seq(1, 10), listener.onActivationEvents);
         assertTrue(listener.onActivationExpiredEvents.isEmpty());
         listener.clear();
         // wait so all events expire
         Thread.sleep(70);
+        windowManager.onTrigger();
         assertEquals(seq(1, 10), listener.onActivationExpiredEvents);
         assertTrue(listener.onActivationEvents.isEmpty());
         listener.clear();
         Thread.sleep(70);
+        windowManager.onTrigger();
         assertTrue(listener.onActivationExpiredEvents.isEmpty());
         assertTrue(listener.onActivationEvents.isEmpty());
 

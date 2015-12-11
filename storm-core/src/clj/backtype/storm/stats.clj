@@ -1333,7 +1333,7 @@
 
 (defn- val-avg
   [[t c]]
-  (if (= t 0) 0
+  (if (= c 0) 0
     (double (/ t c))))
 
 (defn aggregate-averages

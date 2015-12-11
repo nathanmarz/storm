@@ -51,6 +51,15 @@
                 <role>developer</role>
             </roles>
         </developer>
+        <developer>
+            <id>satishd</id>
+            <name>Satish Duggana</name>
+            <email>satish.duggana@gmail.com</email>
+            <url>https://github.com/satishd</url>
+            <roles>
+                <role>developer</role>
+            </roles>
+        </developer>
     </developers>
 
     <build>

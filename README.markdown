@@ -86,6 +86,8 @@ under the License.
 * Parth Brahmbhatt ([@Parth-Brahmbhatt](https://github.com/Parth-Brahmbhatt))
 * Jungtaek Lim ([@HeartSaVioR](https://github.com/HeartSaVioR))
 * Aaron Dossett ([@dossett](https://github.com/dossett))
+* Matthias J. Sax ([@mjsax](https://github.com/mjsax))
+* Arun Mahadevan ([@arunmahadevan](https://github.com/arunmahadevan))
 * Boyang Jerry Peng ([@jerrypeng](https://github.com/jerrypeng))
 
 ## Contributors
@@ -214,7 +216,6 @@ under the License.
 * Adrian Seungjin Lee ([@sweetest](https://github.com/sweetest))
 * Randy Gelhausen ([@randerzander](https://github.com/randerzander))
 * Gabor Liptak ([@gliptak](https://github.com/glibtak))
-* Arun Mahadevan ([@arunmahadevan](https://github.com/arunmahadevan))
 * Yvonne Ironberg ([@YvonneIronberg](https://github.com/YvonneIronberg))
 * Li Wang ([@wangli1426](https://github.com/wangli1426))
 * Rohan Agarwal ([@rohanag12](https://github.com/rohanag12))
@@ -229,7 +230,6 @@ under the License.
 * Abhishek Agarwal ([@abhishekagarwal87](https://github.com/abhishekagarwal87))
 * chenyuzhao ([@danny0405](https://github.com/danny0405))
 * Michael Schonfeld ([@schonfeld](https://github.com/schonfeld))
-* Matthias J. Sax ([@mjsax](https://github.com/mjsax))
 * Erik Weathers ([@erikdw](https://github.com/erikdw))
 * Bryan Shell ([@shellbj](https://github.com/shellbj))
 * Dmytro Dragan ([@3Dragan](https://github.com/3Dragan))
@@ -244,6 +244,7 @@ under the License.
 * Victor Wong ([@victor-wong](https://github.com/victor-wong))
 * David Wimsey ([@dwimsey](https://github.com/dwimsey))
 * Florian Hussonnois ([@fhussonnois](https://github.com/fhussonnois))
+* Ilya Ostrovskiy ([@iostat](https://github.com/iostat))
 
 ## Acknowledgements
 

@@ -52,7 +52,7 @@ public class WeatherSpout extends BaseRichSpout {
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer outputFieldsDeclarer) {
-        outputFieldsDeclarer.declare(new Fields("weatherstation_id", "temperature"));
+        outputFieldsDeclarer.declare(new Fields("weather_station_id", "temperature"));
     }
 
     @Override
@@ -77,7 +77,7 @@ public class WeatherSpout extends BaseRichSpout {
 
     @Override
     public void nextTuple() {
-        if(  emit.get() < maxQueries.get() ) {
+        if (emit.get() < maxQueries.get()) {
             spoutOutputCollector.emit(new Values(stationID, "38°C"), emit.incrementAndGet());
         }
     }

@@ -253,8 +253,29 @@
             </includes>
         </fileSet>
         <fileSet>
-            <directory>${project.basedir}/../../external/storm-cassandra</directory>
-            <outputDirectory>external/storm-cassandra</outputDirectory>
+            <directory>${project.basedir}/../../external/sql/storm-sql-core/target</directory>
+            <outputDirectory>external/sql/storm-sql-core</outputDirectory>
+            <includes>
+                <include>storm*jar</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/sql/storm-sql-kafka/target</directory>
+            <outputDirectory>external/sql/storm-sql-kafka</outputDirectory>
+            <includes>
+                <include>storm*jar</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/sql/storm-sql-runtime/target</directory>
+            <outputDirectory>external/sql/storm-sql-runtime</outputDirectory>
+            <includes>
+                <include>storm*jar</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/sql</directory>
+            <outputDirectory>external/sql</outputDirectory>
             <includes>
                 <include>README.*</include>
             </includes>

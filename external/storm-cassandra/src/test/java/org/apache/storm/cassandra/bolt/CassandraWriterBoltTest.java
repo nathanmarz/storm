@@ -26,23 +26,26 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import static org.apache.storm.cassandra.DynamicStatementBuilder.*;
+import static org.apache.storm.cassandra.DynamicStatementBuilder.field;
+import static org.apache.storm.cassandra.DynamicStatementBuilder.insertInto;
+import static org.apache.storm.cassandra.DynamicStatementBuilder.with;
 
 /**
  *
  */
 public class CassandraWriterBoltTest extends BaseTopologyTest {
 
-    public static final String SPOUT_MOCK  = "spout-mock";
+    public static final String SPOUT_MOCK = "spout-mock";
     public static final String BOLT_WRITER = "writer";
 
-    @Test @Ignore("The sleep method should be used in tests")
+    @Test
+    @Ignore("The sleep method should be used in tests")
     public void shouldAsyncInsertGivenStaticTableNameAndDynamicQueryBuildFromAllTupleFields() {
         executeAndAssertWith(100000, new CassandraWriterBolt((getInsertInto())));
     }
 
     private SimpleCQLStatementTupleMapper getInsertInto() {
-        return insertInto("weather", "temperature").values(with(field("weatherstation_id"), field("event_time").now(), field("temperature"))).build();
+        return insertInto("weather", "temperature").values(with(field("weather_station_id"), field("event_time").now(), field("temperature"))).build();
     }
 
     protected void executeAndAssertWith(final int maxQueries, final BaseCassandraBolt bolt) {
@@ -56,7 +59,7 @@ public class CassandraWriterBoltTest extends BaseTopologyTest {
 
         runLocalTopologyAndWait(builder);
 
-        ResultSet rows = cassandraCQLUnit.session.execute("SELECT * FROM weather.temperature WHERE weatherstation_id='test'");
+        ResultSet rows = cassandraCQLUnit.session.execute("SELECT * FROM weather.temperature WHERE weather_station_id='test'");
         Assert.assertEquals(maxQueries, rows.all().size());
     }
 

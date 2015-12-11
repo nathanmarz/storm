@@ -92,16 +92,23 @@ public class IsolatedPool extends NodePool {
   public void scheduleAsNeeded(NodePool ... lesserPools) {
     for (String topId : _topologyIdToNodes.keySet()) {
       TopologyDetails td = _tds.get(topId);
-      if (_cluster.needsScheduling(td)) {
-        LOG.debug("Scheduling topology {}",topId);
-        Set<Node> allNodes = _topologyIdToNodes.get(topId);
-        Number nodesRequested = (Number) td.getConf().get(Config.TOPOLOGY_ISOLATED_MACHINES);
-        int slotsToUse;
-        if (nodesRequested == null) {
+      Set<Node> allNodes = _topologyIdToNodes.get(topId);
+      Number nodesRequested = (Number) td.getConf().get(Config.TOPOLOGY_ISOLATED_MACHINES);
+      Integer effectiveNodesRequested = null;
+      if (nodesRequested != null) {
+        effectiveNodesRequested = Math.min(td.getExecutors().size(),
+                +nodesRequested.intValue());
+      }
+      if (_cluster.needsScheduling(td) ||
+              (effectiveNodesRequested != null &&
+                      allNodes.size() != effectiveNodesRequested)) {
+        LOG.debug("Scheduling topology {}", topId);
+        int slotsToUse = 0;
+        if (effectiveNodesRequested == null) {
           slotsToUse = getNodesForNotIsolatedTop(td, allNodes, lesserPools);
         } else {
-          slotsToUse = getNodesForIsolatedTop(td, allNodes, lesserPools, 
-              nodesRequested.intValue());
+          slotsToUse = getNodesForIsolatedTop(td, allNodes, lesserPools,
+                  effectiveNodesRequested);
         }
         //No slots to schedule for some reason, so skip it.
         if (slotsToUse <= 0) {
@@ -110,26 +117,16 @@ public class IsolatedPool extends NodePool {
         
         RoundRobinSlotScheduler slotSched = 
           new RoundRobinSlotScheduler(td, slotsToUse, _cluster);
-        
-        LinkedList<Node> sortedNodes = new LinkedList<>(allNodes);
-        Collections.sort(sortedNodes, Node.FREE_NODE_COMPARATOR_DEC);
 
-        LOG.debug("Nodes sorted by free space {}", sortedNodes);
+        LOG.debug("Nodes sorted by free space {}", allNodes);
         while (true) {
-          Node n = sortedNodes.remove();
-          if (!slotSched.assignSlotTo(n)) {
+          Node n = findBestNode(allNodes);
+          if (n == null) {
+            LOG.error("No nodes to use to assign topology {}", td.getName());
             break;
           }
-          int freeSlots = n.totalSlotsFree();
-          for (int i = 0; i < sortedNodes.size(); i++) {
-            if (freeSlots >= sortedNodes.get(i).totalSlotsFree()) {
-              sortedNodes.add(i, n);
-              n = null;
-              break;
-            }
-          }
-          if (n != null) {
-            sortedNodes.add(n);
+          if (!slotSched.assignSlotTo(n)) {
+            break;
           }
         }
       }
@@ -137,6 +134,28 @@ public class IsolatedPool extends NodePool {
       int nc = found == null ? 0 : found.size();
       _cluster.setStatus(topId,"Scheduled Isolated on "+nc+" Nodes");
     }
+  }
+
+  private Node findBestNode(Collection<Node> nodes) {
+    Node ret = null;
+    for(Node node : nodes) {
+      if(ret == null ) {
+        if(node.totalSlotsFree() > 0) {
+          ret = node;
+        }
+      } else {
+        if (node.totalSlotsFree() > 0) {
+          if (node.totalSlotsUsed() < ret.totalSlotsUsed()) {
+            ret = node;
+          } else if (node.totalSlotsUsed() == ret.totalSlotsUsed()) {
+            if(node.totalSlotsFree() > ret.totalSlotsFree()) {
+              ret = node;
+            }
+          }
+        }
+      }
+    }
+    return ret;
   }
   
   /**

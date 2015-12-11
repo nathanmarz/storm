@@ -21,14 +21,16 @@ package org.apache.storm.hdfs.spout;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hdfs.protocol.AlreadyBeingCreatedException;
-import org.apache.hadoop.ipc.RemoteException;
+import org.apache.storm.hdfs.common.HdfsUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import org.apache.hadoop.fs.FileAlreadyExistsException;
 
+/**
+ * Facility to sychronize access to HDFS directory. The lock itself is represented
+ * as a file in the same directory. Relies on atomic file creation.
+ */
 public class DirLock {
   private FileSystem fs;
   private final Path lockFile;
@@ -41,7 +43,7 @@ public class DirLock {
     this.lockFile = lockFile;
   }
 
-  /** Returns null if somebody else has a lock
+  /** Get a lock on file if not already locked
    *
    * @param fs
    * @param dir  the dir on which to get a lock
@@ -50,29 +52,26 @@ public class DirLock {
    */
   public static DirLock tryLock(FileSystem fs, Path dir) throws IOException {
     Path lockFile = new Path(dir.toString() + Path.SEPARATOR_CHAR + DIR_LOCK_FILE );
+
     try {
-      FSDataOutputStream os = fs.create(lockFile, false);
-      if (log.isInfoEnabled()) {
+      FSDataOutputStream ostream = HdfsUtils.tryCreateFile(fs, lockFile);
+      if (ostream!=null) {
         log.info("Thread ({}) acquired lock on dir {}", threadInfo(), dir);
-      }
-      os.close();
-      return new DirLock(fs, lockFile);
-    } catch (FileAlreadyExistsException e) {
-      log.info("Thread ({}) cannot lock dir {} as its already locked.", threadInfo(), dir);
-      return null;
-    } catch (RemoteException e) {
-      if( e.getClassName().contentEquals(AlreadyBeingCreatedException.class.getName()) ) {
+        ostream.close();
+        return new DirLock(fs, lockFile);
+      } else {
         log.info("Thread ({}) cannot lock dir {} as its already locked.", threadInfo(), dir);
         return null;
-      } else { // unexpected error
+      }
+    } catch (IOException e) {
         log.error("Error when acquiring lock on dir " + dir, e);
         throw e;
-      }
     }
   }
 
   private static String threadInfo () {
-    return "ThdId=" + Thread.currentThread().getId() + ", ThdName=" + Thread.currentThread().getName();
+    return "ThdId=" + Thread.currentThread().getId() + ", ThdName="
+            + Thread.currentThread().getName();
   }
 
   /** Release lock on dir by deleting the lock file */

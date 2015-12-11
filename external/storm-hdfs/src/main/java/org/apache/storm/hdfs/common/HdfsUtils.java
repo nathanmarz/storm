@@ -18,10 +18,15 @@
 
 package org.apache.storm.hdfs.common;
 
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileAlreadyExistsException;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RemoteIterator;
+import org.apache.hadoop.hdfs.protocol.AlreadyBeingCreatedException;
+import org.apache.hadoop.ipc.RemoteException;
+import org.apache.storm.hdfs.spout.DirLock;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -54,6 +59,25 @@ public class HdfsUtils {
     }
     return result;
   }
+
+  /**
+   * Returns true if succeeded. False if file already exists. throws if there was unexpected problem
+   */
+  public static FSDataOutputStream tryCreateFile(FileSystem fs, Path file) throws IOException {
+    try {
+      FSDataOutputStream os = fs.create(file, false);
+      return os;
+    } catch (FileAlreadyExistsException e) {
+      return null;
+    } catch (RemoteException e) {
+      if( e.getClassName().contentEquals(AlreadyBeingCreatedException.class.getName()) ) {
+        return null;
+      } else { // unexpected error
+        throw e;
+      }
+    }
+  }
+
 
   public static class Pair<K,V> {
     private K key;

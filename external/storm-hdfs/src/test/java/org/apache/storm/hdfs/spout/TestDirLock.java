@@ -40,18 +40,13 @@ import java.io.IOException;
 
 public class TestDirLock {
 
-
   static MiniDFSCluster.Builder builder;
   static MiniDFSCluster hdfsCluster;
   static FileSystem fs;
   static String hdfsURI;
   static HdfsConfiguration conf = new  HdfsConfiguration();
 
-
-  @Rule
-  public TemporaryFolder tempFolder = new TemporaryFolder();
   private Path lockDir = new Path("/tmp/lockdir");
-
 
   @BeforeClass
   public static void setupClass() throws IOException {

@@ -28,26 +28,32 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Collection;
 
+/**
+ * Facility to synchronize access to HDFS files. Thread gains exclusive access to a file by acquiring
+ * a FileLock object. The lock itself is represented as file on HDFS. Relies on atomic file creation.
+ * Owning thread must heartbeat periodically on the lock to prevent the lock from being deemed as
+ * stale (i.e. lock whose owning thread have died).
+ */
 public class FileLock {
 
   private final FileSystem fs;
   private final String componentID;
   private final Path lockFile;
-  private final FSDataOutputStream stream;
+  private final DataOutputStream lockFileStream;
   private LogEntry lastEntry;
 
   private static final Logger log = LoggerFactory.getLogger(DirLock.class);
 
-  private FileLock(FileSystem fs, Path fileToLock, Path lockDirPath, String spoutId)
+  private FileLock(FileSystem fs, Path lockFile, DataOutputStream lockFileStream, String spoutId)
           throws IOException {
     this.fs = fs;
-    String lockFileName = lockDirPath.toString() + Path.SEPARATOR_CHAR + fileToLock.getName();
-    this.lockFile = new Path(lockFileName);
-    this.stream =  fs.create(lockFile);
+    this.lockFile = lockFile;
+    this.lockFileStream = lockFileStream;
     this.componentID = spoutId;
     logProgress("0", false);
   }
@@ -56,7 +62,7 @@ public class FileLock {
           throws IOException {
     this.fs = fs;
     this.lockFile = lockFile;
-    this.stream =  fs.append(lockFile);
+    this.lockFileStream =  fs.append(lockFile);
     this.componentID = spoutId;
     log.debug("Acquired abandoned lockFile {}", lockFile);
     logProgress(entry.fileOffset, true);
@@ -74,22 +80,37 @@ public class FileLock {
     LogEntry entry = new LogEntry(now, componentID, fileOffset);
     String line = entry.toString();
     if(prefixNewLine)
-      stream.writeBytes(System.lineSeparator() + line);
+      lockFileStream.writeBytes(System.lineSeparator() + line);
     else
-      stream.writeBytes(line);
-    stream.flush();
+      lockFileStream.writeBytes(line);
+    lockFileStream.flush();
     lastEntry = entry; // update this only after writing to hdfs
   }
 
   public void release() throws IOException {
-    stream.close();
+    lockFileStream.close();
     fs.delete(lockFile, false);
   }
 
-  // throws exception immediately if not able to acquire lock
-  public static FileLock tryLock(FileSystem hdfs, Path fileToLock, Path lockDirPath, String spoutId)
+  /** returns lock on file or null if file is already locked. throws if unexpected problem */
+  public static FileLock tryLock(FileSystem fs, Path fileToLock, Path lockDirPath, String spoutId)
           throws IOException {
-    return new FileLock(hdfs, fileToLock, lockDirPath, spoutId);
+    String lockFileName = lockDirPath.toString() + Path.SEPARATOR_CHAR + fileToLock.getName();
+    Path lockFile = new Path(lockFileName);
+
+    try {
+      FSDataOutputStream ostream = HdfsUtils.tryCreateFile(fs, lockFile);
+      if (ostream != null) {
+        log.info("Acquired lock on file {}. LockFile=", fileToLock, lockFile);
+        return new FileLock(fs, lockFile, ostream, spoutId);
+      } else {
+        log.info("Cannot lock file {} as its already locked.", fileToLock);
+        return null;
+      }
+    } catch (IOException e) {
+      log.error("Error when acquiring lock on file " + fileToLock, e);
+      throw e;
+    }
   }
 
   /**
@@ -105,7 +126,7 @@ public class FileLock {
   public static LogEntry getLastEntryIfStale(FileSystem fs, Path lockFile, long olderThan)
           throws IOException {
     if( fs.getFileStatus(lockFile).getModificationTime() >= olderThan ) {
-      // HDFS timestamp may not reflect recent updates, so we double check the
+      //Impt: HDFS timestamp may not reflect recent appends, so we double check the
       // timestamp in last line of file to see when the last update was made
       LogEntry lastEntry =  getLastEntry(fs, lockFile);
       if(lastEntry==null) {
@@ -136,7 +157,6 @@ public class FileLock {
   }
 
   // takes ownership of the lock file
-
   /**
    * Takes ownership of the lock file.
    * @param lockFile

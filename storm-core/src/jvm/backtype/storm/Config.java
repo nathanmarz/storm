@@ -345,6 +345,14 @@ public class Config extends HashMap<String, Object> {
     public static final String STORM_ID = "storm.id";
 
     /**
+     * The workers-artifacts directory (where we place all workers' logs), can be either absolute or relative.
+     * By default, ${storm.log.dir}/workers-artifacts is where worker logs go.
+     * If the setting is a relative directory, it is relative to storm.log.dir.
+     */
+    @isString
+    public static final String STORM_WORKERS_ARTIFACTS_DIR = "storm.workers.artifacts.dir";
+
+    /**
      * The directory where storm's health scripts go.
      */
     @isString

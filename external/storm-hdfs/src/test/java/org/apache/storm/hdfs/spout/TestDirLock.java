@@ -20,6 +20,7 @@ package org.apache.storm.hdfs.spout;
 
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.HdfsConfiguration;
@@ -44,7 +45,7 @@ public class TestDirLock {
   static MiniDFSCluster hdfsCluster;
   static FileSystem fs;
   static String hdfsURI;
-  static Configuration conf = new  HdfsConfiguration();
+  static HdfsConfiguration conf = new  HdfsConfiguration();
 
 
   @Rule
@@ -54,6 +55,7 @@ public class TestDirLock {
 
   @BeforeClass
   public static void setupClass() throws IOException {
+    conf.set(CommonConfigurationKeys.IPC_PING_INTERVAL_KEY,"5000");
     builder = new MiniDFSCluster.Builder(new Configuration());
     hdfsCluster = builder.build();
     fs  = hdfsCluster.getFileSystem();
@@ -76,19 +78,36 @@ public class TestDirLock {
     fs.delete(lockDir, true);
   }
 
-//  @Test
+
+  @Test
+  public void testBasicLocking() throws Exception {
+    // 1 grab lock
+    DirLock lock = DirLock.tryLock(fs, lockDir);
+    Assert.assertTrue(fs.exists(lock.getLockFile()));
+
+    // 2 try to grab another lock while dir is locked
+    DirLock lock2 = DirLock.tryLock(fs, lockDir); // should fail
+    Assert.assertNull(lock2);
+
+    // 3 let go first lock
+    lock.release();
+    Assert.assertFalse(fs.exists(lock.getLockFile()));
+
+    // 4 try locking again
+    lock2  = DirLock.tryLock(fs, lockDir);
+    Assert.assertTrue(fs.exists(lock2.getLockFile()));
+    lock2.release();
+    Assert.assertFalse(fs.exists(lock.getLockFile()));
+    lock2.release();  // should be throw
+  }
+
+
+  @Test
   public void testConcurrentLocking() throws Exception {
-//    -Dlog4j.configuration=config
-    Logger.getRootLogger().setLevel(Level.ERROR);
-    DirLockingThread[] thds = startThreads(10, lockDir );
+    DirLockingThread[] thds = startThreads(100, lockDir );
     for (DirLockingThread thd : thds) {
-      thd.start();
-    }
-    System.err.println("Thread creation complete");
-    Thread.sleep(5000);
-    for (DirLockingThread thd : thds) {
-      thd.join(1000);
-      if(thd.isAlive() && thd.cleanExit)
+      thd.join();
+      if( !thd.cleanExit)
         System.err.println(thd.getName() + " did not exit cleanly");
       Assert.assertTrue(thd.cleanExit);
     }
@@ -97,13 +116,15 @@ public class TestDirLock {
     Assert.assertFalse(fs.exists(lockFile));
   }
 
-
-
   private DirLockingThread[] startThreads(int thdCount, Path dir)
           throws IOException {
     DirLockingThread[] result = new DirLockingThread[thdCount];
     for (int i = 0; i < thdCount; i++) {
       result[i] = new DirLockingThread(i, fs, dir);
+    }
+
+    for (DirLockingThread thd : result) {
+      thd.start();
     }
     return result;
   }
@@ -123,20 +144,31 @@ public class TestDirLock {
 
     @Override
     public void run() {
+      DirLock lock = null;
       try {
-        DirLock lock;
         do {
+          System.err.println("Trying lock " + getName());
           lock = DirLock.tryLock(fs, dir);
+          System.err.println("Acquired lock " + getName());
           if(lock==null) {
             System.out.println("Retrying lock - " + Thread.currentThread().getId());
           }
         } while (lock==null);
-        lock.release();
         cleanExit= true;
-      } catch (IOException e) {
+      } catch (Exception e) {
         e.printStackTrace();
       }
-
+      finally {
+          try {
+            if(lock!=null) {
+              lock.release();
+              System.err.println("Released lock " + getName());
+            }
+          } catch (IOException e) {
+            e.printStackTrace(System.err);
+          }
+      }
+      System.err.println("Thread exiting " + getName());
     }
 
   }

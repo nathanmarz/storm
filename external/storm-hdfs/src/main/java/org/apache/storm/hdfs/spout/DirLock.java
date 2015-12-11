@@ -19,13 +19,15 @@
 package org.apache.storm.hdfs.spout;
 
 import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileAlreadyExistsException;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hdfs.protocol.AlreadyBeingCreatedException;
+import org.apache.hadoop.ipc.RemoteException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import org.apache.hadoop.fs.FileAlreadyExistsException;
 
 public class DirLock {
   private FileSystem fs;
@@ -43,26 +45,37 @@ public class DirLock {
    *
    * @param fs
    * @param dir  the dir on which to get a lock
-   * @return lock object
+   * @return The lock object if it the lock was acquired. Returns null if the dir is already locked.
    * @throws IOException if there were errors
    */
   public static DirLock tryLock(FileSystem fs, Path dir) throws IOException {
     Path lockFile = new Path(dir.toString() + Path.SEPARATOR_CHAR + DIR_LOCK_FILE );
     try {
       FSDataOutputStream os = fs.create(lockFile, false);
-      if(log.isInfoEnabled()) {
-        log.info("Thread acquired dir lock  " + threadInfo() + " - lockfile " + lockFile);
+      if (log.isInfoEnabled()) {
+        log.info("Thread ({}) acquired lock on dir {}", threadInfo(), dir);
       }
       os.close();
       return new DirLock(fs, lockFile);
     } catch (FileAlreadyExistsException e) {
+      log.info("Thread ({}) cannot lock dir {} as its already locked.", threadInfo(), dir);
       return null;
+    } catch (RemoteException e) {
+      if( e.getClassName().contentEquals(AlreadyBeingCreatedException.class.getName()) ) {
+        log.info("Thread ({}) cannot lock dir {} as its already locked.", threadInfo(), dir);
+        return null;
+      } else { // unexpected error
+        log.error("Error when acquiring lock on dir " + dir, e);
+        throw e;
+      }
     }
   }
 
   private static String threadInfo () {
     return "ThdId=" + Thread.currentThread().getId() + ", ThdName=" + Thread.currentThread().getName();
   }
+
+  /** Release lock on dir by deleting the lock file */
   public void release() throws IOException {
     fs.delete(lockFile, false);
     log.info("Thread {} released dir lock {} ", threadInfo(), lockFile);

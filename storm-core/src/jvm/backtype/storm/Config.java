@@ -1515,7 +1515,7 @@ public class Config extends HashMap<String, Object> {
     public static final String TOPOLOGY_MESSAGE_TIMEOUT_SECS = "topology.message.timeout.secs";
 
     /**
-     * A list of serialization registrations for Kryo ( http://code.google.com/p/kryo/ ),
+     * A list of serialization registrations for Kryo ( https://github.com/EsotericSoftware/kryo ),
      * the underlying serialization framework for Storm. A serialization can either
      * be the name of a class (in which case Kryo will automatically create a serializer for the class
      * that saves all the object's fields), or an implementation of com.esotericsoftware.kryo.Serializer.

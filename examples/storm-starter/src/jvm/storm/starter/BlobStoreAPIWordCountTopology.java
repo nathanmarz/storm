@@ -42,6 +42,7 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.TopologyBuilder;
 import backtype.storm.topology.base.BaseBasicBolt;
 import backtype.storm.topology.base.BaseRichSpout;
+import backtype.storm.blobstore.BlobStoreAclHandler;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
@@ -62,14 +63,11 @@ public class BlobStoreAPIWordCountTopology {
     private static NimbusBlobStore store = new NimbusBlobStore(); // Client API to invoke blob store API functionality
     private static String key = "key1";
     private static final Logger LOG = LoggerFactory.getLogger(BlobStoreAPIWordCountTopology.class);
-    private static final int READ = 0x01;
-    private static final int WRITE = 0x02;
-    private static final int ADMIN = 0x04;
-    private static final List<AccessControl> WORLD_EVERYTHING =
-            Arrays.asList(new AccessControl(AccessControlType.OTHER, READ | WRITE | ADMIN));
+    private static final List<AccessControl> WORLD_EVERYTHING = Arrays.asList(new AccessControl(AccessControlType.OTHER,
+            BlobStoreAclHandler.READ | BlobStoreAclHandler.WRITE | BlobStoreAclHandler.ADMIN));
 
     // Spout implementation
-    public static class RandomSentenceSpout extends BaseRichSpout {
+    public static class BlobStoreSpout extends BaseRichSpout {
         SpoutOutputCollector _collector;
         BlobStoreAPIWordCountTopology wc;
         String key;
@@ -105,7 +103,7 @@ public class BlobStoreAPIWordCountTopology {
 
         @Override
         public void declareOutputFields(OutputFieldsDeclarer declarer) {
-            declarer.declare(new Fields("word"));
+            declarer.declare(new Fields("sentence"));
         }
 
     }
@@ -152,7 +150,7 @@ public class BlobStoreAPIWordCountTopology {
 
         TopologyBuilder builder = new TopologyBuilder();
 
-        builder.setSpout("spout", new RandomSentenceSpout(), 5);
+        builder.setSpout("spout", new BlobStoreSpout(), 5);
 
         builder.setBolt("split", new SplitSentence(), 8).shuffleGrouping("spout");
         builder.setBolt("count", new WordCount(), 12).fieldsGrouping("split", new Fields("word"));
@@ -238,7 +236,7 @@ public class BlobStoreAPIWordCountTopology {
                 Utils.sleep(100);
             }
         } catch (KeyAlreadyExistsException kae) {
-            // Do nothing
+            LOG.info("Key already exists {}", kae);
         } catch (AuthorizationException | KeyNotFoundException | IOException exp) {
             throw new RuntimeException(exp);
         }

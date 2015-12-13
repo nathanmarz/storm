@@ -130,7 +130,7 @@ public class KeySequenceNumber {
         this.nimbusInfo = nimbusInfo;
     }
 
-    public int getKeySequenceNumber(Map conf) {
+    public synchronized int getKeySequenceNumber(Map conf) {
         TreeSet<Integer> sequenceNumbers = new TreeSet<Integer>();
         CuratorFramework zkClient = BlobStoreUtils.createZKClient(conf);
         try {

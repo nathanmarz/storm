@@ -281,7 +281,7 @@ public class LocalFsBlobStore extends BlobStore {
     }
 
     //This additional check and download is for nimbus high availability in case you have more than one nimbus
-    public boolean checkForBlobOrDownload(String key) {
+    public synchronized boolean checkForBlobOrDownload(String key) {
         boolean checkBlobDownload = false;
         try {
             List<String> keyList = BlobStoreUtils.getKeyListFromBlobStore(this);
@@ -301,7 +301,7 @@ public class LocalFsBlobStore extends BlobStore {
         return checkBlobDownload;
     }
 
-    public void checkForBlobUpdate(String key) {
+    public synchronized void checkForBlobUpdate(String key) {
         BlobStoreUtils.updateKeyForBlobStore(conf, this, zkClient, key, nimbusInfo);
     }
 

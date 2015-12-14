@@ -24,7 +24,7 @@
            [org.apache.commons.io FileUtils])
   (:use [backtype.storm config util log timer local-state])
   (:import [backtype.storm.generated AuthorizationException KeyNotFoundException WorkerResources])
-  (:import [backtype.storm.utils VersionInfo])
+  (:import [backtype.storm.utils NimbusLeaderNotFoundException VersionInfo])
   (:import [java.nio.file Files StandardCopyOption])
   (:import [backtype.storm Config])
   (:import [backtype.storm.generated WorkerResources ProfileAction])
@@ -34,6 +34,7 @@
   (:require [backtype.storm.daemon [worker :as worker]]
             [backtype.storm [process-simulator :as psim] [cluster :as cluster] [event :as event]]
             [clojure.set :as set])
+  (:import [org.apache.thrift.transport TTransportException])
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
   (:import [org.yaml.snakeyaml Yaml]
            [org.yaml.snakeyaml.constructor SafeConstructor])
@@ -564,7 +565,13 @@
         (when (and (not (downloaded-storm-ids storm-id))
                    (assigned-storm-ids storm-id))
           (log-message "Downloading code for storm id " storm-id)
-          (download-storm-code conf storm-id master-code-dir localizer)
+          (try-cause
+            (download-storm-code conf storm-id master-code-dir localizer)
+
+            (catch NimbusLeaderNotFoundException e
+              (log-warn-error e "Nimbus leader was not available."))
+            (catch TTransportException e
+              (log-warn-error e "There was a connection problem with nimbus.")))
           (log-message "Finished downloading code for storm id " storm-id)))
 
       (log-debug "Writing new assignment "
@@ -617,7 +624,7 @@
   by a timer, created elsewhere."
   [supervisor]
   (fn []
-    (try
+    (try-cause
       (let [conf (:conf supervisor)
             downloaded-storm-ids (set (read-downloaded-storm-ids conf))
             new-assignment @(:curr-assignment supervisor)
@@ -627,8 +634,14 @@
             (when (assigned-storm-ids topology-id)
               (log-debug "Checking Blob updates for storm topology id " topology-id " With target_dir: " storm-root)
               (update-blobs-for-topology! conf topology-id (:localizer supervisor))))))
-      (catch Exception e
-        (log-error e "Error updating blobs, will retry again later")))))
+      (catch TTransportException e
+        (log-error
+          e
+          "Network error while updating blobs, will retry again later"))
+      (catch NimbusLeaderNotFoundException e
+        (log-error
+          e
+          "Nimbus unavailable to update blobs, will retry again later")))))
 
 (defn jvm-cmd [cmd]
   (let [java-home (.get (System/getenv) "JAVA_HOME")]

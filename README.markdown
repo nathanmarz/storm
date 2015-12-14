@@ -88,6 +88,7 @@ under the License.
 * Aaron Dossett ([@dossett](https://github.com/dossett))
 * Matthias J. Sax ([@mjsax](https://github.com/mjsax))
 * Arun Mahadevan ([@arunmahadevan](https://github.com/arunmahadevan))
+* Boyang Jerry Peng ([@jerrypeng](https://github.com/jerrypeng))
 
 ## Contributors
 
@@ -216,7 +217,6 @@ under the License.
 * Randy Gelhausen ([@randerzander](https://github.com/randerzander))
 * Gabor Liptak ([@gliptak](https://github.com/glibtak))
 * Yvonne Ironberg ([@YvonneIronberg](https://github.com/YvonneIronberg))
-* Boyang Jerry Peng ([@jerrypeng](https://github.com/jerrypeng))
 * Li Wang ([@wangli1426](https://github.com/wangli1426))
 * Rohan Agarwal ([@rohanag12](https://github.com/rohanag12))
 * Alex Panov ([@alexpanov](https://github.com/alexpanov))

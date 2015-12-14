@@ -461,6 +461,7 @@
                 _ (.mkdirs (io/file storm-local "workers" mock-worker-id))
                 mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed
                                         STORM-LOCAL-DIR storm-local
+                                        STORM-WORKERS-ARTIFACTS-DIR (str storm-local "/workers-artifacts")
                                         SUPERVISOR-RUN-WORKER-AS-USER true
                                         WORKER-CHILDOPTS string-opts}}]
             (stubbing [read-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
@@ -491,6 +492,7 @@
                 exp-script (exp-script-fn list-opts topo-list-opts)
                 mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed
                                         STORM-LOCAL-DIR storm-local
+                                        STORM-WORKERS-ARTIFACTS-DIR (str storm-local "/workers-artifacts")
                                         SUPERVISOR-RUN-WORKER-AS-USER true
                                         WORKER-CHILDOPTS list-opts}}]
             (stubbing [read-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS

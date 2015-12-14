@@ -82,7 +82,7 @@
             <roles>
                 <role>Committer</role>
             </roles>
-            <timezone />
+            <timezone/>
         </developer>
         <developer>
             <id>afeng</id>
@@ -109,7 +109,7 @@
             <roles>
                 <role>Committer</role>
             </roles>
-            <timezone />
+            <timezone/>
         </developer>
         <developer>
             <id>jjackson</id>
@@ -249,6 +249,8 @@
         <calcite.version>1.4.0-incubating</calcite.version>
         <jackson.version>2.6.3</jackson.version>
         <maven-surefire.version>2.18.1</maven-surefire.version>
+        <kafka.version>0.9.0.1</kafka.version>
+        <kafka.artifact.id>kafka_2.11</kafka.artifact.id>
 
         <!-- Java and clojure build lifecycle test properties are defined here to avoid having to create a default profile -->
         <java.unit.test.exclude>org.apache.storm.testing.IntegrationTest</java.unit.test.exclude>
@@ -282,6 +284,7 @@
         <module>external/storm-mongodb</module>
         <module>examples/storm-starter</module>
         <module>storm-clojure</module>
+        <module>external/storm-kafka-client</module>
     </modules>
 
     <dependencies>
@@ -673,14 +676,14 @@
                 <version>${ring-json.version}</version>
             </dependency>
             <dependency>
-	      <groupId>org.eclipse.jetty</groupId>
-	      <artifactId>jetty-servlet</artifactId>
-	      <version>${jetty.version}</version>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-servlet</artifactId>
+                <version>${jetty.version}</version>
             </dependency>
             <dependency>
-	      <groupId>org.eclipse.jetty</groupId>
-	      <artifactId>jetty-servlets</artifactId>
-	      <version>${jetty.version}</version>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-servlets</artifactId>
+                <version>${jetty.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.jetty</groupId>
@@ -831,7 +834,7 @@
                 <version>${thrift.version}</version>
                 <scope>compile</scope>
             </dependency>
-			<!-- used by examples/storm-starter -->
+            <!-- used by examples/storm-starter -->
             <dependency>
                 <groupId>junit</groupId>
                 <artifactId>junit</artifactId>
@@ -839,14 +842,38 @@
                 <scope>test</scope>
             </dependency>
             <dependency>
-              <groupId>org.apache.calcite</groupId>
-              <artifactId>calcite-core</artifactId>
-              <version>${calcite.version}</version>
+                <groupId>org.apache.calcite</groupId>
+                <artifactId>calcite-core</artifactId>
+                <version>${calcite.version}</version>
             </dependency>
             <dependency>
-              <groupId>com.fasterxml.jackson.core</groupId>
-              <artifactId>jackson-databind</artifactId>
-              <version>${jackson.version}</version>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>${kafka.artifact.id}</artifactId>
+                <version>${kafka.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.apache.zookeeper</groupId>
+                        <artifactId>zookeeper</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>log4j</groupId>
+                        <artifactId>log4j</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-log4j12</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-clients</artifactId>
+                <version>${kafka.version}</version>
             </dependency>
             <dependency>
                 <groupId>uk.org.lidalia</groupId>

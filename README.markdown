@@ -89,6 +89,7 @@ under the License.
 * Matthias J. Sax ([@mjsax](https://github.com/mjsax))
 * Arun Mahadevan ([@arunmahadevan](https://github.com/arunmahadevan))
 * Boyang Jerry Peng ([@jerrypeng](https://github.com/jerrypeng))
+* Zhuo Liu ([@zhuoliu](https://github.com/zhuoliu))
 
 ## Contributors
 
@@ -200,7 +201,6 @@ under the License.
 * iBuddha ([@iBuddha](https://github.com/iBuddha))
 * Dave Katten ([@dkatten](https://github.com/dkatten))
 * Mark Davis ([@markdav](https://github.com/markdav))
-* Zhuo Liu ([@zhuoliu](https://github.com/zhuoliu))
 * jangie ([@jangie](https://github.com/jangie))
 * Hailei Zhang ([@Hailei](https://github.com/Hailei))
 * Nikhil Singh ([@snikhil5](https://github.com/snikhil5))

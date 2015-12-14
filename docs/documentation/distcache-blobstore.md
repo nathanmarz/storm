@@ -36,7 +36,7 @@ The current BlobStore interface has the following two implementations
 * LocalFsBlobStore
 * HdfsBlobStore
 
-Appendix A contains the interface for blob store implementation.
+Appendix A contains the interface for blobstore implementation.
 
 ## LocalFsBlobStore
 ![LocalFsBlobStore](images/local_blobstore.png)
@@ -48,7 +48,11 @@ The main stages can be depicted as follows
 
 ### Blob Creation Command
 Blobs in the blobstore can be created through command line using the following command.
+
+```
 storm blobstore create --file README.txt --acl o::rwa --repl-fctr 4 key1
+```
+
 The above command creates a blob with a key name “key1” corresponding to the file README.txt. 
 The access given to all users being read, write and admin with a replication factor of 4.
 
@@ -66,7 +70,7 @@ storm.starter.clj.word_count test_topo -c topology.blobstore.map='{"key1":{"loca
 The creation of the blob takes place through the interface “ClientBlobStore”. Appendix B contains the “ClientBlobStore” interface. 
 The concrete implementation of this interface is the  “NimbusBlobStore”. In the case of local file system the client makes a 
 call to the nimbus to create the blobs within the local file system. The nimbus uses the local file system implementation to create these blobs. 
-When a user submits a topology, the jar, configuration and code files are uploaded as blobs with the help of blob store. 
+When a user submits a topology, the jar, configuration and code files are uploaded as blobs with the help of blobstore. 
 Also, all the other blobs specified by the topology are mapped to it with the help of topology.blobstore.map configuration.
 
 ### Blob Download by the Supervisor
@@ -81,10 +85,10 @@ the topologies.
 ![HdfsBlobStore](images/hdfs_blobstore.png)
 
 The HdfsBlobStore functionality has a similar implementation and blob creation and download procedure barring how the replication 
-is handled in the two blob store implementations. The replication in HDFS blob store is obvious as HDFS is equipped to handle replication 
+is handled in the two blobstore implementations. The replication in HDFS blobstore is obvious as HDFS is equipped to handle replication 
 and it requires no state to be stored inside the zookeeper. On the other hand, the local file system blobstore requires the state to be 
 stored on the zookeeper in order for it to work with nimbus HA. Nimbus HA allows the local filesystem to implement the replication feature 
-seamlessly by storing the state in the zookeeper about the running topologies and syncing the blobs on various nimbodes. On the supervisor’s 
+seamlessly by storing the state in the zookeeper about the running topologies and syncing the blobs on various nimbuses. On the supervisor’s 
 end, the supervisor and localizer talks to HdfsBlobStore through “HdfsClientBlobStore” implementation.
 
 ## Additional Features and Documentation
@@ -94,9 +98,9 @@ storm jar /home/y/lib/storm-starter/current/storm-starter-jar-with-dependencies.
 ```
  
 ### Compression
-The blob store allows the user to specify the “uncompress” configuration to true or false. This configuration can be specified 
+The blobstore allows the user to specify the “uncompress” configuration to true or false. This configuration can be specified 
 in the topology.blobstore.map mentioned in the above command. This allows the user to upload a compressed file like a tarball/zip. 
-In local file system blob store, the compressed blobs are stored on the nimbus node. The localizer code takes the responsibility to 
+In local file system blobstore, the compressed blobs are stored on the nimbus node. The localizer code takes the responsibility to 
 uncompress the blob and store it on the supervisor node. Symbolic links to the blobs on the supervisor node are created within the worker 
 before the execution starts.
 
@@ -104,12 +108,12 @@ before the execution starts.
 Apart from compression the blobstore helps to give the blob a name that can be used by the workers. The localizer takes 
 the responsibility of mapping the blob to a local name on the supervisor node.
 
-## Additional Blob Store Implementation Details
-Blob store uses a hashing function to create the blobs based on the key. The blobs are generally stored inside the directory specified by 
+## Additional blobstore Implementation Details
+blobstore uses a hashing function to create the blobs based on the key. The blobs are generally stored inside the directory specified by 
 the blobstore.dir configuration. By default, it is stored under “storm.local.dir/nimbus/blobs” for local file system and a similar path on 
 hdfs file system.
 
-Once a file is submitted, the blob store reads the configs and creates a metadata for the blob with all the access control details. The metadata 
+Once a file is submitted, the blobstore reads the configs and creates a metadata for the blob with all the access control details. The metadata 
 is generally used for authorization while accessing the blobs. The blob key and version contribute to the hash code and there by the directory 
 under “storm.local.dir/nimbus/blobs/data” where the data is placed. The blobs are generally placed in a positive number directory like 193,822 etc.
 
@@ -121,14 +125,14 @@ This allows updating the blobs on the fly and thereby making it a very useful fe
 For a local file system, the distributed cache on the supervisor node is set to 10240 MB as a soft limit and the clean up code attempts 
 to clean anything over the soft limit every 600 seconds based on LRU policy.
 
-The HDFS blob store implementation handles load better by removing the burden on the nimbus to store the blobs, which avoids it becoming a bottleneck. Moreover, it provides seamless replication of blobs. On the other hand, the local file system blob store is not very efficient in 
-replicating the blobs and is limited by the number of nimbuses. Moreover, the supervisor talks to the HDFS blob store directly without the 
+The HDFS blobstore implementation handles load better by removing the burden on the nimbus to store the blobs, which avoids it becoming a bottleneck. Moreover, it provides seamless replication of blobs. On the other hand, the local file system blobstore is not very efficient in 
+replicating the blobs and is limited by the number of nimbuses. Moreover, the supervisor talks to the HDFS blobstore directly without the 
 involvement of the nimbus and thereby reduces the load and dependency on nimbus.
 
 ## Highly Available Nimbus
 ### Problem Statement:
 Currently the storm master aka nimbus, is a process that runs on a single machine under supervision. In most cases the 
-nimbus failure is transient and it is restarted by the supervisor. However sometimes when disks fail and networks 
+nimbus failure is transient and it is restarted by the process that does supervision. However sometimes when disks fail and networks 
 partitions occur, nimbus goes down. Under these circumstances the topologies run normally but no new topologies can be 
 submitted, no existing topologies can be killed/deactivated/activated and if a supervisor node fails then the 
 reassignments are not performed resulting in performance degradation or topology failures. With this project we intend 
@@ -183,7 +187,7 @@ If the topology code, jar or config blobs are missing, it would download the blo
 
 The first implementation will be Zookeeper based. If the zookeeper connection is lost/reset resulting in loss of lock
 or the spot in queue the implementation will take care of updating the state such that isLeader() will reflect the 
-current status.The leader like actions must finish in less than minimumOf(connectionTimeout, SessionTimeout) to ensure
+current status. The leader like actions must finish in less than minimumOf(connectionTimeout, SessionTimeout) to ensure
 the lock was held by nimbus for the entire duration of the action (Not sure if we want to just state this expectation 
 and ensure that zk configurations are set high enough which will result in higher failover time or we actually want to 
 create some sort of rollback mechanism for all actions, the second option needs a lot of code). If a nimbus that is not 
@@ -194,7 +198,7 @@ leader receives a request that only a leader can perform it will throw a RunTime
 To achieve fail over from primary to backup servers nimbus state/data needs to be replicated across all nimbus hosts or 
 needs to be stored in a distributed storage. Replicating the data correctly involves state management, consistency checks
 and it is hard to test for correctness. However many storm users do not want to take extra dependency on another replicated
-storage system like HDFS and still need high availability. The blob store implementation along with the state storage helps
+storage system like HDFS and still need high availability. The blobstore implementation along with the state storage helps
 to overcome the failover scenarios in case a leader nimbus goes down.
 
 To support replication we will allow the user to define a code replication factor which would reflect number of nimbus 
@@ -206,11 +210,11 @@ tries to download them as and when they are needed. With this current architectu
 required for a topology for a nimbus to accept leadership. This helps us in case the blobs are very large and avoid causing any 
 inadvertant delays in electing a leader.
 
-The state for every blob is relevant for the local blob store implementation. For HDFS blob store the replication
-is taken care by the HDFS. For handling the fail over scenarios for a local blob store we need to store the state of the leader and
-non-leader nimbodes within the zookeeper.
+The state for every blob is relevant for the local blobstore implementation. For HDFS blobstore the replication
+is taken care by the HDFS. For handling the fail over scenarios for a local blobstore we need to store the state of the leader and
+non-leader nimbuses within the zookeeper.
 
-The state is stored under /storm/blobstore/key/nimbusHostPort:SequenceNumber for the blob store to work to make nimbus highly available. 
+The state is stored under /storm/blobstore/key/nimbusHostPort:SequenceNumber for the blobstore to work to make nimbus highly available. 
 This state is used in the local file system blobstore to support replication. The HDFS blobstore does not have to store the state inside the 
 zookeeper.
 
@@ -223,9 +227,9 @@ stored under /storm/blobstoremaxsequencenumber/key. For more details about how t
 
 ![Nimbus High Availability - BlobStore](images/nimbus_ha_blobstore.png)
 
-The sequence diagram proposes how the blob store works and the state storage inside the zookeeper makes the nimbus highly available.
+The sequence diagram proposes how the blobstore works and the state storage inside the zookeeper makes the nimbus highly available.
 Currently, the thread to sync the blobs on a non-leader is within the nimbus. In the future, it will be nice to move the thread around
-to the blob store to make the blobstore coordinate the state change and blob download as per the sequence diagram.
+to the blobstore to make the blobstore coordinate the state change and blob download as per the sequence diagram.
 
 ## Thrift and Rest API 
 In order to avoid workers/supervisors/ui talking to zookeeper for getting master nimbus address we are going to modify the 
@@ -256,7 +260,7 @@ be rare in general case.
 
 Note: All nimbus hosts have watchers on zookeeper to be notified immediately as soon as a new blobs is available for download, the callback may or may not download
 the code. Therefore, a background thread is triggered to download the respective blobs to run the topologies. The replication is achieved when the blobs are downloaded
-onto non-leader nimbodes. So you should expect your topology submission time to be somewhere between 0 to (2 * nimbus.code.sync.freq.secs) for any 
+onto non-leader nimbuses. So you should expect your topology submission time to be somewhere between 0 to (2 * nimbus.code.sync.freq.secs) for any 
 nimbus.min.replication.count > 1.
 
 ## Configuration
@@ -265,8 +269,8 @@ nimbus.min.replication.count > 1.
 blobstore.dir: The directory where all blobs are stored. For local file system it represents the directory on the nimbus 
 node and for HDFS file system it represents the hdfs file system path.
 
-supervisor.blobstore.class: This configuration is meant to set the client for  the supervisor  in order to talk to the blob store. 
-For a local file system blob store it is set to “backtype.storm.blobstore.NimbusBlobStore” and for the HDFS blob store it is set 
+supervisor.blobstore.class: This configuration is meant to set the client for  the supervisor  in order to talk to the blobstore. 
+For a local file system blobstore it is set to “backtype.storm.blobstore.NimbusBlobStore” and for the HDFS blobstore it is set 
 to “backtype.storm.blobstore.HdfsClientBlobStore”.
 
 supervisor.blobstore.download.thread.count: This configuration spawns multiple threads for from the supervisor in order download 
@@ -285,15 +289,15 @@ cleanup anything over the cache target size. By default it is set to 600000 mill
 
 nimbus.blobstore.class:  Sets the blobstore implementation nimbus uses. It is set to "backtype.storm.blobstore.LocalFsBlobStore"
 
-nimbus.blobstore.expiration.secs: During operations with the blob store, via master, how long a connection is idle before nimbus 
+nimbus.blobstore.expiration.secs: During operations with the blobstore, via master, how long a connection is idle before nimbus 
 considers it dead and drops the session and any associated connections. The default is set to 600.
 
-storm.blobstore.inputstream.buffer.size.bytes: The buffer size it uses for blob store upload. It is set to 65536 bytes.
+storm.blobstore.inputstream.buffer.size.bytes: The buffer size it uses for blobstore upload. It is set to 65536 bytes.
 
-client.blobstore.class: The blob store implementation the storm client uses. The current implementation uses the default 
+client.blobstore.class: The blobstore implementation the storm client uses. The current implementation uses the default 
 config "backtype.storm.blobstore.NimbusBlobStore".
 
-blobstore.replication.factor: It sets the replication for each blob within the blob store. The “topology.min.replication.count” 
+blobstore.replication.factor: It sets the replication for each blob within the blobstore. The “topology.min.replication.count” 
 ensures the minimum replication the topology specific blobs are set before launching the topology. You might want to set the 
 “topology.min.replication.count <= blobstore.replication”. The default is set to 3.
 
@@ -438,13 +442,13 @@ a file requires write access.
 storm blobstore delete [KEYSTRING]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-### Listing Blobs currently in the distributed cache blob store
+### Listing Blobs currently in the distributed cache blobstore
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 storm blobstore list [KEY...]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-lists blobs currently in the blob store
+lists blobs currently in the blobstore
 
 ### Reading the contents of a blob
 

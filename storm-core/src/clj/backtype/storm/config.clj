@@ -94,6 +94,12 @@
       (if (is-absolute-path? path) path (str storm-home file-path-separator path))
       (str storm-home file-path-separator "storm-local"))))
 
+(def LOG-DIR
+  (.getCanonicalPath
+    (clojure.java.io/file (or (System/getProperty "storm.log.dir")
+                              (get (read-storm-config) "storm.log.dir")
+                              (str (System/getProperty "storm.home") file-path-separator "logs")))))
+
 (defn absolute-healthcheck-dir [conf]
   (let [storm-home (System/getProperty "storm.home")
         path (conf STORM-HEALTH-CHECK-DIR)]
@@ -258,8 +264,8 @@
      (if workers-artifacts-dir
        (if (is-absolute-path? workers-artifacts-dir)
          workers-artifacts-dir
-         (str backtype.storm.util/LOG-DIR file-path-separator workers-artifacts-dir))
-       (str backtype.storm.util/LOG-DIR file-path-separator "workers-artifacts"))))
+         (str backtype.storm.config/LOG-DIR file-path-separator workers-artifacts-dir))
+       (str backtype.storm.config/LOG-DIR file-path-separator "workers-artifacts"))))
   ([conf id]
    (str (worker-artifacts-root conf) file-path-separator id))
   ([conf id port]

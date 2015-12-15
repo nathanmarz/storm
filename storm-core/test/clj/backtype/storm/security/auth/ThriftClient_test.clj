@@ -16,20 +16,27 @@
 (ns backtype.storm.security.auth.ThriftClient-test
   (:use [backtype.storm config util])
   (:use [clojure test])
+  (:require [backtype.storm.security.auth [auth-test :refer [nimbus-timeout]]])
   (:import [backtype.storm.security.auth ThriftClient ThriftConnectionType])
   (:import [org.apache.thrift.transport TTransportException])
 )
-
-(def TIMEOUT (Integer. (* 3 1000)))
 
 (deftest test-ctor-throws-if-port-invalid
   (let [conf (merge
               (read-default-config)
               {STORM-NIMBUS-RETRY-TIMES 0})]
     (is (thrown-cause? java.lang.IllegalArgumentException
-      (ThriftClient. conf ThriftConnectionType/DRPC "bogushost" (int -1) TIMEOUT)))
+      (ThriftClient. conf
+                     ThriftConnectionType/DRPC
+                     "bogushost"
+                     (int -1)
+                     nimbus-timeout)))
     (is (thrown-cause? java.lang.IllegalArgumentException
-        (ThriftClient. conf ThriftConnectionType/DRPC "bogushost" (int 0) TIMEOUT)))
+        (ThriftClient. conf
+                       ThriftConnectionType/DRPC
+                       "bogushost"
+                       (int 0)
+                       nimbus-timeout)))
   )
 )
 
@@ -38,8 +45,16 @@
               (read-default-config)
               {STORM-NIMBUS-RETRY-TIMES 0})]
     (is (thrown-cause? TTransportException
-         (ThriftClient. conf ThriftConnectionType/DRPC "" (int 4242) TIMEOUT)))
+         (ThriftClient. conf
+                        ThriftConnectionType/DRPC
+                        ""
+                        (int 4242)
+                        nimbus-timeout)))
     (is (thrown-cause? IllegalArgumentException
-        (ThriftClient. conf ThriftConnectionType/DRPC nil (int 4242) TIMEOUT)))
+        (ThriftClient. conf
+                       ThriftConnectionType/DRPC
+                       nil
+                       (int 4242)
+                       nimbus-timeout)))
   )
 )

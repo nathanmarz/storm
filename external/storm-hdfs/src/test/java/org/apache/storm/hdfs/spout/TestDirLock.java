@@ -127,18 +127,21 @@ public class TestDirLock {
 
   class DirLockingThread extends Thread {
 
+    private int thdNum;
     private final FileSystem fs;
     private final Path dir;
     public boolean cleanExit = false;
 
-    public DirLockingThread(int thdNum,FileSystem fs, Path dir) throws IOException {
+    public DirLockingThread(int thdNum,FileSystem fs, Path dir)
+            throws IOException {
+      this.thdNum = thdNum;
       this.fs = fs;
       this.dir = dir;
-      Thread.currentThread().setName("DirLockingThread-" + thdNum);
     }
 
     @Override
     public void run() {
+      Thread.currentThread().setName("DirLockingThread-" + thdNum);
       DirLock lock = null;
       try {
         do {
@@ -146,7 +149,7 @@ public class TestDirLock {
           lock = DirLock.tryLock(fs, dir);
           System.err.println("Acquired lock " + getName());
           if(lock==null) {
-            System.out.println("Retrying lock - " + Thread.currentThread().getId());
+            System.out.println("Retrying lock - " + getName());
           }
         } while (lock==null);
         cleanExit= true;
@@ -164,7 +167,7 @@ public class TestDirLock {
           }
       }
       System.err.println("Thread exiting " + getName());
-    }
+    } // run()
 
-  }
+  } // class DirLockingThread
 }

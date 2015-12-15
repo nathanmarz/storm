@@ -175,17 +175,17 @@ public class TestHdfsSpout {
     ArrayList<String> result = new ArrayList<>();
 
     for (Path seqFile : seqFiles) {
-      FSDataInputStream istream = fs.open(seqFile);
+      Path file = new Path(fs.getUri().toString() + seqFile.toString());
+      SequenceFile.Reader reader = new SequenceFile.Reader(conf, SequenceFile.Reader.file(file));
       try {
-        SequenceFile.Reader reader = new SequenceFile.Reader(conf, SequenceFile.Reader.file(seqFile));
         Writable key = (Writable) ReflectionUtils.newInstance(reader.getKeyClass(), conf);
         Writable value = (Writable) ReflectionUtils.newInstance(reader.getValueClass(), conf);
-        while (reader.next(key, value) ) {
-          String keyValStr = Arrays.asList(key,value).toString();
+        while (reader.next(key, value)) {
+          String keyValStr = Arrays.asList(key, value).toString();
           result.add(keyValStr);
         }
       } finally {
-        istream.close();
+        reader.close();
       }
     }// for
     return result;
@@ -235,7 +235,7 @@ public class TestHdfsSpout {
       System.err.println(re);
     }
 
-    listDir(source);
+    listDir(archive);
 
 
     Path f1 = new Path(archive + "/file1.seq");

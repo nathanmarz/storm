@@ -23,12 +23,13 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hdfs.protocol.AlreadyBeingCreatedException;
+import org.apache.hadoop.ipc.RemoteException;
 import org.apache.storm.hdfs.common.HdfsUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Collection;
@@ -44,12 +45,12 @@ public class FileLock {
   private final FileSystem fs;
   private final String componentID;
   private final Path lockFile;
-  private final DataOutputStream lockFileStream;
+  private final FSDataOutputStream lockFileStream;
   private LogEntry lastEntry;
 
   private static final Logger log = LoggerFactory.getLogger(DirLock.class);
 
-  private FileLock(FileSystem fs, Path lockFile, DataOutputStream lockFileStream, String spoutId)
+  private FileLock(FileSystem fs, Path lockFile, FSDataOutputStream lockFileStream, String spoutId)
           throws IOException {
     this.fs = fs;
     this.lockFile = lockFile;
@@ -83,7 +84,8 @@ public class FileLock {
       lockFileStream.writeBytes(System.lineSeparator() + line);
     else
       lockFileStream.writeBytes(line);
-    lockFileStream.flush();
+    lockFileStream.hflush();
+
     lastEntry = entry; // update this only after writing to hdfs
   }
 
@@ -125,7 +127,8 @@ public class FileLock {
    */
   public static LogEntry getLastEntryIfStale(FileSystem fs, Path lockFile, long olderThan)
           throws IOException {
-    if( fs.getFileStatus(lockFile).getModificationTime() >= olderThan ) {
+    long modifiedTime = fs.getFileStatus(lockFile).getModificationTime();
+    if( modifiedTime <= olderThan ) { // look
       //Impt: HDFS timestamp may not reflect recent appends, so we double check the
       // timestamp in last line of file to see when the last update was made
       LogEntry lastEntry =  getLastEntry(fs, lockFile);
@@ -158,18 +161,28 @@ public class FileLock {
 
   // takes ownership of the lock file
   /**
-   * Takes ownership of the lock file.
+   * Takes ownership of the lock file if possible.
    * @param lockFile
    * @param lastEntry   last entry in the lock file. this param is an optimization.
    *                    we dont scan the lock file again to find its last entry here since
    *                    its already been done once by the logic used to check if the lock
    *                    file is stale. so this value comes from that earlier scan.
    * @param spoutId     spout id
-   * @return
+   * @throws IOException if unable to acquire
+   * @return null if lock File is being used by another thread
    */
   public static FileLock takeOwnership(FileSystem fs, Path lockFile, LogEntry lastEntry, String spoutId)
           throws IOException {
-    return new FileLock(fs, lockFile, spoutId, lastEntry);
+    try {
+      return new FileLock(fs, lockFile, spoutId, lastEntry);
+    } catch (RemoteException e) {
+      if (e.getClassName().contentEquals(AlreadyBeingCreatedException.class.getName())) {
+        log.info("Lock file {} is currently open. cannot transfer ownership on.", lockFile);
+        return null;
+      } else { // unexpected error
+        throw e;
+      }
+    }
   }
 
   /**
@@ -188,15 +201,19 @@ public class FileLock {
     long olderThan = System.currentTimeMillis() - (locktimeoutSec*1000);
     Collection<Path> listing = HdfsUtils.listFilesByModificationTime(fs, lockFilesDir, olderThan);
 
-    // locate oldest expired lock file (if any) and take ownership
+    // locate expired lock files (if any). Try to take ownership (oldest lock first)
     for (Path file : listing) {
       if(file.getName().equalsIgnoreCase( DirLock.DIR_LOCK_FILE) )
         continue;
       LogEntry lastEntry = getLastEntryIfStale(fs, file, olderThan);
-      if(lastEntry!=null)
-        return FileLock.takeOwnership(fs, file, lastEntry, spoutId);
+      if(lastEntry!=null) {
+        FileLock lock = FileLock.takeOwnership(fs, file, lastEntry, spoutId);
+        if(lock!=null)
+          return lock;
+      }
     }
-    log.info("No abandoned files found");
+    if(listing.isEmpty())
+      log.info("No abandoned files to be refound");
     return null;
   }
 
@@ -209,14 +226,14 @@ public class FileLock {
    * @param fs
    * @param lockFilesDir
    * @param locktimeoutSec
-   * @param spoutId
    * @return a Pair<lock file path, last entry in lock file> .. if expired lock file found
    * @throws IOException
    */
-  public static HdfsUtils.Pair<Path,LogEntry> locateOldestExpiredLock(FileSystem fs, Path lockFilesDir, int locktimeoutSec, String spoutId)
+  public static HdfsUtils.Pair<Path,LogEntry> locateOldestExpiredLock(FileSystem fs, Path lockFilesDir, int locktimeoutSec)
           throws IOException {
     // list files
-    long olderThan = System.currentTimeMillis() - (locktimeoutSec*1000);
+    long now =  System.currentTimeMillis();
+    long olderThan = now - (locktimeoutSec*1000);
     Collection<Path> listing = HdfsUtils.listFilesByModificationTime(fs, lockFilesDir, olderThan);
 
     // locate oldest expired lock file (if any) and take ownership

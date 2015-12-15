@@ -504,7 +504,7 @@ public class HdfsSpout extends BaseRichSpout {
       // 3 - if clocks are not in sync ..
       if( lastExpiredLock == null ) {
         // just make a note of the oldest expired lock now and check if its still unmodified after lockTimeoutSec
-        lastExpiredLock = FileLock.locateOldestExpiredLock(hdfs, lockDirPath, lockTimeoutSec, spoutId);
+        lastExpiredLock = FileLock.locateOldestExpiredLock(hdfs, lockDirPath, lockTimeoutSec);
         lastExpiredLockTime = System.currentTimeMillis();
         return null;
       }

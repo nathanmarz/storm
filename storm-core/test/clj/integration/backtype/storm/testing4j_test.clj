@@ -13,10 +13,10 @@
 ;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
-(ns backtype.storm.testing4j-test
+(ns integration.backtype.storm.testing4j-test
   (:use [clojure.test])
   (:use [backtype.storm config clojure testing util])
-  (:require [backtype.storm.integration-test :as it])
+  (:require [integration.backtype.storm.integration-test :as it])
   (:require [backtype.storm.thrift :as thrift])
   (:import [backtype.storm Testing Config ILocalCluster])
   (:import [backtype.storm.tuple Values Tuple])

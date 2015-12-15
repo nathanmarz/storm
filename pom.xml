@@ -238,6 +238,13 @@
         <hdrhistogram.version>2.1.7</hdrhistogram.version>
         <calcite.version>1.4.0-incubating</calcite.version>
         <jackson.version>2.6.3</jackson.version>
+        <maven-surefire.version>2.18.1</maven-surefire.version>
+
+        <!-- Java and clojure build lifecycle test properties are defined here to avoid having to create a default profile -->
+        <java.unit.test.exclude>backtype.storm.testing.IntegrationTest</java.unit.test.exclude>
+        <java.unit.test.include>**/Test*.java, **/*Test.java, **/*TestCase.java</java.unit.test.include>    <!--maven surefire plugin default test list-->
+        <!-- by default the clojure test set are all clojure tests that are not integration tests. This property is overridden in the profiles -->
+        <clojure.test.set>!integration.*</clojure.test.set>
     </properties>
 
     <modules>
@@ -262,7 +269,6 @@
         <module>external/storm-cassandra</module>
         <module>examples/storm-starter</module>
     </modules>
-
 
     <profiles>
         <profile>
@@ -343,7 +349,26 @@
                 </plugins>
             </build>
         </profile>
-
+        <profile>
+            <id>all-tests</id>
+            <properties>
+                <java.integration.test.include>**/*.java</java.integration.test.include>
+                <java.integration.test.group>backtype.storm.testing.IntegrationTest</java.integration.test.group>
+                <clojure.test.set>*.*</clojure.test.set>
+            </properties>
+        </profile>
+        <profile>
+            <id>integration-tests-only</id>
+            <properties>
+                <!--Java-->
+                <java.unit.test.include>no.unit.tests</java.unit.test.include>
+                <java.integration.test.include>**/*.java</java.integration.test.include>
+                <java.integration.test.group>backtype.storm.testing.IntegrationTest</java.integration.test.group>
+                <!--Clojure-->
+                <clojure.test.set>integration.*</clojure.test.set>
+                <clojure.test.declared.namespace.only>true</clojure.test.declared.namespace.only>
+            </properties>
+        </profile>
     </profiles>
 
     <distributionManagement>
@@ -736,16 +761,38 @@
     </repositories>
 
     <build>
-
         <pluginManagement>
             <plugins>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
-                    <version>2.18.1</version>
+                    <version>${maven-surefire.version}</version>
                     <configuration>
-                      <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                        <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                        <excludedGroups>${java.unit.test.exclude}</excludedGroups>
+                        <includes>
+                            <include>${java.unit.test.include}</include>
+                        </includes>
                     </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>${maven-surefire.version}</version>
+                    <configuration>
+                        <includes>
+                            <include>${java.integration.test.include}</include>
+                        </includes>
+                        <groups>${java.integration.test.group}</groups>  <!--set in integration-test the profile-->
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>integration-test</goal>
+                                <goal>verify</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>

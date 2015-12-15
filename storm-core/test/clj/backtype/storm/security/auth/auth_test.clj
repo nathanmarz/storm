@@ -47,6 +47,8 @@
 (defn mk-subject [name]
   (Subject. true #{(mk-principal name)} #{} #{}))
 
+;; 3 seconds in milliseconds
+;; This is plenty of time for a thrift client to respond.
 (def nimbus-timeout (Integer. (* 3 1000)))
 
 (defn nimbus-data [storm-conf inimbus]

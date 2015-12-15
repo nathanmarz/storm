@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1179: Create Maven Profiles for Integration Tests.
  * STORM-1387: workers-artifacts directory configurable, and default to be under storm.log.dir.
  * STORM-1211: Add trident state and query support for cassandra connector
  * STORM-1359: Change kryo links from google code to github

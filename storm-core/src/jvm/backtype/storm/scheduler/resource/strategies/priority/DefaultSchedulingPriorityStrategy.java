@@ -60,7 +60,6 @@ public class DefaultSchedulingPriorityStrategy implements ISchedulingPriorityStr
         for (User user : this.userMap.values()) {
             if (user.hasTopologyNeedSchedule()) {
                 Double userResourcePoolAverageUtilization = user.getResourcePoolAverageUtilization();
-
                 if (least > userResourcePoolAverageUtilization) {
                     ret = user;
                     least = userResourcePoolAverageUtilization;

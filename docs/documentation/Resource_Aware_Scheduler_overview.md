@@ -61,6 +61,8 @@ Example of Usage:
     s1.setCPULoad(15.0);
     builder.setBolt("exclaim1", new ExclamationBolt(), 3)
                 .shuffleGrouping("word").setCPULoad(10.0);
+    builder.setBolt("exclaim2", new HeavyBolt(), 1)
+                    .shuffleGrouping("exclaim1").setCPULoad(450.0);
 
 ###	Limiting the Heap Size per Worker (JVM) Process
 
@@ -70,7 +72,7 @@ Example of Usage:
 Parameters:
 * Number size – The memory limit a worker process will be allocated in megabytes
 
-The user can limit the amount of memory resources the resource aware scheduler that is allocated to a single worker on a per topology basis by using the above API.  This API is in place so that the users can spread executors to multiple workers.  However, spreading workers to multiple workers may increase the communication latency since executors will not be able to use Disruptor Queue for intra-process communication.
+The user can limit the amount of memory resources the resource aware scheduler allocates to a single worker on a per topology basis by using the above API.  This API is in place so that the users can spread executors to multiple workers.  However, spreading executors to multiple workers may increase the communication latency since executors will not be able to use Disruptor Queue for intra-process communication.
 
 Example of Usage:
 
@@ -116,7 +118,7 @@ The user can set some default configurations for the Resource Aware Scheduler in
 
 # Topology Priorities and Per User Resource 
 
-The next step for the Resource Aware Scheduler or RAS is to enable it to have multitenant capabilities since many Storm users typically share a Storm cluster.  Resource Aware Scheduler needs to be able to allocate resources on a per user basis.  Each user can be guaranteed a certain amount of resources to run his or her topologies and the Resource Aware Scheduler should meet those guarantees when possible.  When the Storm cluster has extra free resources, Resource Aware Scheduler needs to be able allocate additional resources to user in a fair manner. The importance of topologies can also vary.  Topologies can be used for actual production or just experimentation, thus Resource Aware Scheduler should take into account the importance of a topology when determining the order in which to schedule topologies or when to evict topologies
+The Resource Aware Scheduler or RAS also has multitenant capabilities since many Storm users typically share a Storm cluster.  Resource Aware Scheduler can allocate resources on a per user basis.  Each user can be guaranteed a certain amount of resources to run his or her topologies and the Resource Aware Scheduler will meet those guarantees when possible.  When the Storm cluster has extra free resources, Resource Aware Scheduler will to be able allocate additional resources to user in a fair manner. The importance of topologies can also vary.  Topologies can be used for actual production or just experimentation, thus Resource Aware Scheduler will take into account the importance of a topology when determining the order in which to schedule topologies or when to evict topologies
 
 ## Setup
 
@@ -158,9 +160,11 @@ Thus, each priority level contains 10 sub priorities. Users can set the priority
 Parameters:
 * priority – an integer representing the priority of the topology
 
+Please note that the 0-29 range is not a hard limit.  Thus, a user can set a priority number that is higher than 29. However, the property of higher the priority number, lower the importance still holds
+
 ### Specifying Scheduling Strategy:
 
-A user can specify on a per topology basis what scheduling strategy to use.  Users can implement the IStrategy interface and define a new strategies to schedule specific topologies.  This pluggable interface was created since we realize different topologies might have different scheduling needs.  A user can set the topology strategy within the topology definition by using the API:
+A user can specify on a per topology basis what scheduling strategy to use.  Users can implement the IStrategy interface and define new strategies to schedule specific topologies.  This pluggable interface was created since we realize different topologies might have different scheduling needs.  A user can set the topology strategy within the topology definition by using the API:
 
     public void setTopologyStrategy(Class<? extends IStrategy> clazz)
     
@@ -185,7 +189,7 @@ A default strategy will be provided.  The following explains how the default sch
 
 **DefaultSchedulingPriorityStrategy**
 
-The order of scheduling should be based on the distance a user’s current resource allocation to his or her guaranteed allocation.  We should prioritize the users who are the furthest away from their resource guarantee. The difficulty of this problem is that a user may have multiple resource guarantees, and another user can have another set resource guarantees, so how can we compare them in a fair manner?  Let's use the average percentage of resource guarantees satisfied as a method of comparison.
+The order of scheduling should be based on the distance between a user’s current resource allocation and his or her guaranteed allocation.  We should prioritize the users who are the furthest away from their resource guarantee. The difficulty of this problem is that a user may have multiple resource guarantees, and another user can have another set of resource guarantees, so how can we compare them in a fair manner?  Let's use the average percentage of resource guarantees satisfied as a method of comparison.
 
 For example:
 
@@ -204,10 +208,10 @@ User B’s average percentage satisfied of resource guarantee:
 
 Thus, in this example User A has a smaller average percentage of his or her resource guarantee satisfied than User B.  Thus, User A should get priority to be allocated more resource, i.e., schedule a topology submitted by User A.
 
-When scheduling, RAS sort users by the average percentage satisfied of resource guarantee and schedule topologies from users based on that ordering starting from the users with the lowest average percentage satisfied of resource guarantee.  When a user’s resource guarantee is completely satisfied, the user’s average percentage satisfied of resource guarantee will be greater than or equal to 1.
+When scheduling, RAS sorts users by the average percentage satisfied of resource guarantee and schedule topologies from users based on that ordering starting from the users with the lowest average percentage satisfied of resource guarantee.  When a user’s resource guarantee is completely satisfied, the user’s average percentage satisfied of resource guarantee will be greater than or equal to 1.
 
 ### Specifying Eviction Strategy
-The strategy for evicting topologies is also a pluggable interface in which the user can implement his or her own topology eviction strategy.  For a user to implement his or her own eviction strategy, he or she needs to implement the IEvictionStrategy Interface and set *Config.RESOURCE_AWARE_SCHEDULER_EVICTION_STRATEGY* to point to the implemented strategy class. For instance:
+The eviction strategy is used when there are not enough free resources in the cluster to schedule new topologies. If the cluster is full, we need a mechanism to evict topologies so that user resource guarantees can be met and additional resource can be shared fairly among users. The strategy for evicting topologies is also a pluggable interface in which the user can implement his or her own topology eviction strategy.  For a user to implement his or her own eviction strategy, he or she needs to implement the IEvictionStrategy Interface and set *Config.RESOURCE_AWARE_SCHEDULER_EVICTION_STRATEGY* to point to the implemented strategy class. For instance:
 
     resource.aware.scheduler.eviction.strategy: "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
 
@@ -215,7 +219,6 @@ A default eviction strategy is provided.  The following explains how the default
 
 **DefaultEvictionStrategy**
 
-If the cluster is full, we need a mechanism to evict topologies so that user resource guarantees can be met and additional resource can be shared fairly among users
 
 To determine if topology eviction should occur we should take into account the priority of the topology that we are trying to schedule and whether the resource guarantees for the owner of the topology have been met.  
 

@@ -540,7 +540,8 @@ public class ConfigValidation {
             try {
                 Class objectClass = Class.forName((String) o);
                 if (!this.classImplements.isAssignableFrom(objectClass)) {
-                    throw new IllegalArgumentException("Field " + name + " with value " + o + " does not implement " + this.classImplements.getName());
+                    throw new IllegalArgumentException("Field " + name + " with value " + o
+                            + " does not implement " + this.classImplements.getName());
                 }
             } catch (ClassNotFoundException e) {
                 throw new RuntimeException(e);

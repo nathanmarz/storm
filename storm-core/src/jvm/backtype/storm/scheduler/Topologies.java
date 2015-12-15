@@ -68,8 +68,8 @@ public class Topologies {
         return _allComponents;
     }
 
-    public Topologies getCopy() {
-        return new Topologies(this.topologies);
+    public static Topologies getCopy(Topologies topologies) {
+        return new Topologies(topologies.topologies);
     }
 
     @Override

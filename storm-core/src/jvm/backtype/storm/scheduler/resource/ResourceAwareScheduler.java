@@ -60,14 +60,12 @@ public class ResourceAwareScheduler implements IScheduler {
                 User user = userMapEntry.getValue();
                 this.userMap.put(userId, user.getCopy());
             }
-            this.cluster = cluster.getCopy();
-            this.topologies = topologies.getCopy();
+            this.cluster = Cluster.getCopy(cluster);
+            this.topologies = topologies.getCopy(topologies);
             this.nodes = new RAS_Nodes(this.cluster, this.topologies);
             this.conf.putAll(conf);
-
         }
     }
-
 
     @SuppressWarnings("rawtypes")
     private Map conf;
@@ -83,7 +81,7 @@ public class ResourceAwareScheduler implements IScheduler {
 
     @Override
     public void schedule(Topologies topologies, Cluster cluster) {
-        LOG.info("\n\n\nRerunning ResourceAwareScheduler...");
+        LOG.debug("\n\n\nRerunning ResourceAwareScheduler...");
         //initialize data structures
         this.initialize(topologies, cluster);
         //logs everything that is currently scheduled and the location at which they are scheduled
@@ -114,7 +112,7 @@ public class ResourceAwareScheduler implements IScheduler {
                 //Call scheduling priority strategy
                 td = schedulingPrioritystrategy.getNextTopologyToSchedule();
             } catch (Exception e) {
-                LOG.error("Exception thrown when running priority strategy {}. No topologies will be scheduled! Error: {} StackTrack: {}"
+                LOG.error("Exception thrown when running priority strategy {}. No topologies will be scheduled! Error: {} StackTrace: {}"
                         , schedulingPrioritystrategy.getClass().getName(), e.getMessage(), Arrays.toString(e.getStackTrace()));
                 break;
             }
@@ -153,7 +151,7 @@ public class ResourceAwareScheduler implements IScheduler {
                     rasStrategy.prepare(this.topologies, this.cluster, this.userMap, this.nodes);
                     result = rasStrategy.schedule(td);
                 } catch (Exception e) {
-                    LOG.error("Exception thrown when running strategy {} to schedule topology {}. Topology will not be scheduled! Error: {} StackTrack: {}"
+                    LOG.error("Exception thrown when running strategy {} to schedule topology {}. Topology will not be scheduled! Error: {} StackTrace: {}"
                             , rasStrategy.getClass().getName(), td.getName(), e.getMessage(), Arrays.toString(e.getStackTrace()));
                     this.restoreCheckpointSchedulingState(schedulingState);
                     //since state is restored need the update User topologySubmitter to the new User object in userMap
@@ -205,7 +203,7 @@ public class ResourceAwareScheduler implements IScheduler {
                                 evictionStrategy.prepare(this.topologies, this.cluster, this.userMap, this.nodes);
                                 madeSpace = evictionStrategy.makeSpaceForTopo(td);
                             } catch (Exception e) {
-                                LOG.error("Exception thrown when running eviction strategy {} to schedule topology {}. No evictions will be done! Error: {} StackTrack: {}"
+                                LOG.error("Exception thrown when running eviction strategy {} to schedule topology {}. No evictions will be done! Error: {} StackTrace: {}"
                                         , evictionStrategy.getClass().getName(), td.getName(), e.getClass().getName(), Arrays.toString(e.getStackTrace()));
                                 this.restoreCheckpointSchedulingState(schedulingState);
                                 //since state is restored need the update User topologySubmitter to the new User object in userMap

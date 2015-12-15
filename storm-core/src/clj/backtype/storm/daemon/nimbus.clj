@@ -533,24 +533,21 @@
       (.readBlob blob-store (master-stormconf-key storm-id) nimbus-subject))))
 
 (defn read-topology-details [nimbus storm-id]
-  (let [conf (:conf nimbus)
-        blob-store (:blob-store nimbus)
-        storm-base (.storm-base (:storm-cluster-state nimbus) storm-id nil)
+  (let [blob-store (:blob-store nimbus)
+        storm-base (or
+                     (.storm-base (:storm-cluster-state nimbus) storm-id nil)
+                     (throw (NotAliveException. storm-id)))
         topology-conf (read-storm-conf-as-nimbus storm-id blob-store)
         topology (read-storm-topology-as-nimbus storm-id blob-store)
         executor->component (->> (compute-executor->component nimbus storm-id)
                                  (map-key (fn [[start-task end-task]]
-                                            (ExecutorDetails. (int start-task) (int end-task)))))
-        launch-time-secs (if storm-base (:launch-time-secs storm-base)
-                           (throw
-                             (NotAliveException. (str storm-id))))]
+                                            (ExecutorDetails. (int start-task) (int end-task)))))]
     (TopologyDetails. storm-id
                       topology-conf
                       topology
                       (:num-workers storm-base)
                       executor->component
-                      launch-time-secs
-                      )))
+                      (:launch-time-secs storm-base))))
 
 ;; Does not assume that clocks are synchronized. Executor heartbeat is only used so that
 ;; nimbus knows when it's received a new heartbeat. All timing is done by nimbus and

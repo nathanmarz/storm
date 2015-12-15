@@ -1861,7 +1861,7 @@ public class Config extends HashMap<String, Object> {
      * Sets the priority for a topology
      */
     @isInteger
-    @isPositiveNumber
+    @isPositiveNumber(includeZero = true)
     public static final String TOPOLOGY_PRIORITY = "topology.priority";
 
     /**

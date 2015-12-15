@@ -22,13 +22,11 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
 import java.util.ArrayList;
 
-import backtype.storm.Config;
 import backtype.storm.scheduler.Topologies;
 import backtype.storm.scheduler.TopologyDetails;
 import org.slf4j.Logger;
@@ -45,79 +43,76 @@ import backtype.storm.scheduler.WorkerSlot;
  */
 public class RAS_Node {
     private static final Logger LOG = LoggerFactory.getLogger(RAS_Node.class);
-    private Map<String, Set<WorkerSlot>> _topIdToUsedSlots = new HashMap<String, Set<WorkerSlot>>();
-    private Set<WorkerSlot> _freeSlots = new HashSet<WorkerSlot>();
-    private final String _nodeId;
-    private String _hostname;
-    private boolean _isAlive;
-    private SupervisorDetails _sup;
-    private Double _availMemory;
-    private Double _availCPU;
-    private List<WorkerSlot> _slots;
-    private Cluster _cluster;
-    private Topologies _topologies;
+    private Map<String, Set<WorkerSlot>> topIdToUsedSlots = new HashMap<String, Set<WorkerSlot>>();
+    private Set<WorkerSlot> freeSlots = new HashSet<WorkerSlot>();
+    private final String nodeId;
+    private String hostname;
+    private boolean isAlive;
+    private SupervisorDetails sup;
+    private Double availMemory;
+    private Double availCPU;
+    private Cluster cluster;
+    private Topologies topologies;
 
     public RAS_Node(String nodeId, Set<Integer> allPorts, boolean isAlive,
                     SupervisorDetails sup, Cluster cluster, Topologies topologies) {
-        _slots = new ArrayList<WorkerSlot>();
-        _nodeId = nodeId;
-        _isAlive = isAlive;
-        if (_isAlive && allPorts != null) {
+        this.nodeId = nodeId;
+        this.isAlive = isAlive;
+        if (this.isAlive && allPorts != null) {
             for (int port : allPorts) {
-                _freeSlots.add(new WorkerSlot(_nodeId, port));
+                this.freeSlots.add(new WorkerSlot(this.nodeId, port));
             }
-            _sup = sup;
-            _hostname = sup.getHost();
-            _availMemory = this.getTotalMemoryResources();
-            _availCPU = this.getTotalCpuResources();
-            _slots.addAll(_freeSlots);
+            this.sup = sup;
+            this.hostname = sup.getHost();
+            this.availMemory = getTotalMemoryResources();
+            this.availCPU = getTotalCpuResources();
         }
-        this._cluster = cluster;
-        this._topologies = topologies;
+        this.cluster = cluster;
+        this.topologies = topologies;
     }
 
     public String getId() {
-        return _nodeId;
+        return this.nodeId;
     }
 
     public String getHostname() {
-        return _hostname;
+        return this.hostname;
     }
 
     public Collection<WorkerSlot> getFreeSlots() {
-        return _freeSlots;
+        return this.freeSlots;
     }
 
     public Collection<WorkerSlot> getUsedSlots() {
         Collection<WorkerSlot> ret = new LinkedList<WorkerSlot>();
-        for (Collection<WorkerSlot> workers : _topIdToUsedSlots.values()) {
+        for (Collection<WorkerSlot> workers : this.topIdToUsedSlots.values()) {
             ret.addAll(workers);
         }
         return ret;
     }
 
     public boolean isAlive() {
-        return _isAlive;
+        return this.isAlive;
     }
 
     /**
      * @return a collection of the topology ids currently running on this node
      */
     public Collection<String> getRunningTopologies() {
-        return _topIdToUsedSlots.keySet();
+        return this.topIdToUsedSlots.keySet();
     }
 
     public boolean isTotallyFree() {
-        return _topIdToUsedSlots.isEmpty();
+        return this.topIdToUsedSlots.isEmpty();
     }
 
     public int totalSlotsFree() {
-        return _freeSlots.size();
+        return this.freeSlots.size();
     }
 
     public int totalSlotsUsed() {
         int total = 0;
-        for (Set<WorkerSlot> slots : _topIdToUsedSlots.values()) {
+        for (Set<WorkerSlot> slots : this.topIdToUsedSlots.values()) {
             total += slots.size();
         }
         return total;
@@ -129,7 +124,7 @@ public class RAS_Node {
 
     public int totalSlotsUsed(String topId) {
         int total = 0;
-        Set<WorkerSlot> slots = _topIdToUsedSlots.get(topId);
+        Set<WorkerSlot> slots = this.topIdToUsedSlots.get(topId);
         if (slots != null) {
             total = slots.size();
         }
@@ -137,42 +132,42 @@ public class RAS_Node {
     }
 
     private void validateSlot(WorkerSlot ws) {
-        if (!_nodeId.equals(ws.getNodeId())) {
+        if (!this.nodeId.equals(ws.getNodeId())) {
             throw new IllegalArgumentException(
                     "Trying to add a slot to the wrong node " + ws +
-                            " is not a part of " + _nodeId);
+                            " is not a part of " + this.nodeId);
         }
     }
 
     void addOrphanedSlot(WorkerSlot ws) {
-        if (_isAlive) {
+        if (this.isAlive) {
             throw new IllegalArgumentException("Orphaned Slots " +
                     "only are allowed on dead nodes.");
         }
         validateSlot(ws);
-        if (_freeSlots.contains(ws)) {
+        if (this.freeSlots.contains(ws)) {
             return;
         }
-        for (Set<WorkerSlot> used : _topIdToUsedSlots.values()) {
+        for (Set<WorkerSlot> used : this.topIdToUsedSlots.values()) {
             if (used.contains(ws)) {
                 return;
             }
         }
-        _freeSlots.add(ws);
+        this.freeSlots.add(ws);
     }
 
     boolean assignInternal(WorkerSlot ws, String topId, boolean dontThrow) {
         validateSlot(ws);
-        if (!_freeSlots.remove(ws)) {
+        if (!this.freeSlots.remove(ws)) {
             if (dontThrow) {
                 return true;
             }
             throw new IllegalStateException("Assigning a slot that was not free " + ws);
         }
-        Set<WorkerSlot> usedSlots = _topIdToUsedSlots.get(topId);
+        Set<WorkerSlot> usedSlots = this.topIdToUsedSlots.get(topId);
         if (usedSlots == null) {
             usedSlots = new HashSet<WorkerSlot>();
-            _topIdToUsedSlots.put(topId, usedSlots);
+            this.topIdToUsedSlots.put(topId, usedSlots);
         }
         usedSlots.add(ws);
         return false;
@@ -182,18 +177,18 @@ public class RAS_Node {
      * Free all slots on this node.  This will update the Cluster too.
      */
     public void freeAllSlots() {
-        if (!_isAlive) {
-            LOG.warn("Freeing all slots on a dead node {} ", _nodeId);
+        if (!this.isAlive) {
+            LOG.warn("Freeing all slots on a dead node {} ", this.nodeId);
         }
-        for (Entry<String, Set<WorkerSlot>> entry : _topIdToUsedSlots.entrySet()) {
-            _cluster.freeSlots(entry.getValue());
-            _availCPU = this.getTotalCpuResources();
-            _availMemory = this.getAvailableMemoryResources();
-            if (_isAlive) {
-                _freeSlots.addAll(entry.getValue());
+        for (Entry<String, Set<WorkerSlot>> entry : this.topIdToUsedSlots.entrySet()) {
+            this.cluster.freeSlots(entry.getValue());
+            this.availCPU = this.getTotalCpuResources();
+            this.availMemory = this.getAvailableMemoryResources();
+            if (this.isAlive) {
+                this.freeSlots.addAll(entry.getValue());
             }
         }
-        _topIdToUsedSlots = new HashMap<String, Set<WorkerSlot>>();
+        this.topIdToUsedSlots = new HashMap<String, Set<WorkerSlot>>();
     }
 
     /**
@@ -201,16 +196,16 @@ public class RAS_Node {
      * @param ws the slot to free
      */
     public void free(WorkerSlot ws) {
-        LOG.info("freeing ws {} on node {}", ws, _hostname);
-        if (_freeSlots.contains(ws)) return;
-        for (Entry<String, Set<WorkerSlot>> entry : _topIdToUsedSlots.entrySet()) {
+        LOG.info("freeing ws {} on node {}", ws, this.hostname);
+        if (this.freeSlots.contains(ws)) return;
+        for (Entry<String, Set<WorkerSlot>> entry : this.topIdToUsedSlots.entrySet()) {
             Set<WorkerSlot> slots = entry.getValue();
             double memUsed = this.getMemoryUsedByWorker(ws);
             double cpuUsed = this.getCpuUsedByWorker(ws);
             if (slots.remove(ws)) {
-                _cluster.freeSlot(ws);
-                if (_isAlive) {
-                    _freeSlots.add(ws);
+                this.cluster.freeSlot(ws);
+                if (this.isAlive) {
+                    this.freeSlots.add(ws);
                 }
                 this.freeMemory(memUsed);
                 this.freeCPU(cpuUsed);
@@ -218,7 +213,7 @@ public class RAS_Node {
             }
         }
         throw new IllegalArgumentException("Tried to free a slot that was not" +
-                " part of this node " + _nodeId);
+                " part of this node " + this.nodeId);
     }
 
     /**
@@ -226,35 +221,37 @@ public class RAS_Node {
      * @param topId the topology to free slots for
      */
     public void freeTopology(String topId) {
-        Set<WorkerSlot> slots = _topIdToUsedSlots.get(topId);
+        Set<WorkerSlot> slots = this.topIdToUsedSlots.get(topId);
         if (slots == null || slots.isEmpty()) {
             return;
         }
         for (WorkerSlot ws : slots) {
-            _cluster.freeSlot(ws);
+            this.cluster.freeSlot(ws);
             this.freeMemory(this.getMemoryUsedByWorker(ws));
             this.freeCPU(this.getCpuUsedByWorker(ws));
-            if (_isAlive) {
-                _freeSlots.add(ws);
+            if (this.isAlive) {
+                this.freeSlots.add(ws);
             }
         }
-        _topIdToUsedSlots.remove(topId);
+        this.topIdToUsedSlots.remove(topId);
     }
 
     private void freeMemory(double amount) {
-        _availMemory += amount;
-        LOG.debug("freeing {} memory on node {}...avail mem: {}", amount, this.getHostname(), _availMemory);
-        if (_availMemory > this.getTotalMemoryResources()) {
+        LOG.debug("freeing {} memory on node {}...avail mem: {}", amount, this.getHostname(), this.availMemory);
+        if((this.availMemory + amount) > this.getTotalCpuResources()) {
             LOG.warn("Freeing more memory than there exists!");
+            return;
         }
+        this.availMemory += amount;
     }
 
     private void freeCPU(double amount) {
-        _availCPU += amount;
-        LOG.debug("freeing {} CPU on node...avail CPU: {}", amount, this.getHostname(), _availCPU);
-        if (_availCPU > this.getAvailableCpuResources()) {
-            LOG.warn("Freeing more memory than there exists!");
+        LOG.debug("freeing {} CPU on node...avail CPU: {}", amount, this.getHostname(), this.availCPU);
+        if ((this.availCPU + amount) > this.getAvailableCpuResources()) {
+            LOG.warn("Freeing more CPU than there exists!");
+            return;
         }
+        this.availCPU += amount;
     }
 
     public double getMemoryUsedByWorker(WorkerSlot ws) {
@@ -262,7 +259,7 @@ public class RAS_Node {
         if (topo == null) {
             return 0.0;
         }
-        Collection<ExecutorDetails> execs = this.getExecutors(ws, this._cluster);
+        Collection<ExecutorDetails> execs = this.getExecutors(ws, this.cluster);
         double totalMemoryUsed = 0.0;
         for (ExecutorDetails exec : execs) {
             totalMemoryUsed += topo.getTotalMemReqTask(exec);
@@ -275,7 +272,7 @@ public class RAS_Node {
         if (topo == null) {
             return 0.0;
         }
-        Collection<ExecutorDetails> execs = this.getExecutors(ws, this._cluster);
+        Collection<ExecutorDetails> execs = this.getExecutors(ws, this.cluster);
         double totalCpuUsed = 0.0;
         for (ExecutorDetails exec : execs) {
             totalCpuUsed += topo.getTotalCpuReqTask(exec);
@@ -284,12 +281,12 @@ public class RAS_Node {
     }
 
     public TopologyDetails findTopologyUsingWorker(WorkerSlot ws) {
-        for (Entry<String, Set<WorkerSlot>> entry : _topIdToUsedSlots.entrySet()) {
+        for (Entry<String, Set<WorkerSlot>> entry : this.topIdToUsedSlots.entrySet()) {
             String topoId = entry.getKey();
             Set<WorkerSlot> workers = entry.getValue();
             for (WorkerSlot worker : workers) {
                 if (worker.getNodeId().equals(ws.getNodeId()) && worker.getPort() == ws.getPort()) {
-                    return _topologies.getById(topoId);
+                    return this.topologies.getById(topoId);
                 }
             }
         }
@@ -324,24 +321,24 @@ public class RAS_Node {
     }
 
     public void assign(WorkerSlot target, TopologyDetails td, Collection<ExecutorDetails> executors) {
-        if (!_isAlive) {
-            throw new IllegalStateException("Trying to adding to a dead node " + _nodeId);
+        if (!this.isAlive) {
+            throw new IllegalStateException("Trying to adding to a dead node " + this.nodeId);
         }
-        if (_freeSlots.isEmpty()) {
-            throw new IllegalStateException("Trying to assign to a full node " + _nodeId);
+        if (this.freeSlots.isEmpty()) {
+            throw new IllegalStateException("Trying to assign to a full node " + this.nodeId);
         }
         if (executors.size() == 0) {
-            LOG.warn("Trying to assign nothing from " + td.getId() + " to " + _nodeId + " (Ignored)");
+            LOG.warn("Trying to assign nothing from " + td.getId() + " to " + this.nodeId + " (Ignored)");
         }
 
         if (target == null) {
-            target = _freeSlots.iterator().next();
+            target = this.freeSlots.iterator().next();
         }
-        if (!_freeSlots.contains(target)) {
-            throw new IllegalStateException("Trying to assign already used slot" + target.getPort() + "on node " + _nodeId);
+        if (!this.freeSlots.contains(target)) {
+            throw new IllegalStateException("Trying to assign already used slot" + target.getPort() + "on node " + this.nodeId);
         } else {
             allocateResourceToSlot(td, executors, target);
-            _cluster.assign(target, td.getId(), executors);
+            this.cluster.assign(target, td.getId(), executors);
             assignInternal(target, td.getId(), false);
         }
     }
@@ -359,21 +356,21 @@ public class RAS_Node {
     @Override
     public boolean equals(Object other) {
         if (other instanceof RAS_Node) {
-            return _nodeId.equals(((RAS_Node) other)._nodeId);
+            return this.nodeId.equals(((RAS_Node) other).nodeId);
         }
         return false;
     }
 
     @Override
     public int hashCode() {
-        return _nodeId.hashCode();
+        return this.nodeId.hashCode();
     }
 
     @Override
     public String toString() {
-        return "{Node: " + ((_sup == null) ? "null (possibly down)" : _sup.getHost())
-                + ", AvailMem: " + ((_availMemory == null) ? "N/A" : _availMemory.toString())
-                + ", AvailCPU: " + ((_availCPU == null) ? "N/A" : _availCPU.toString()) + "}";
+        return "{Node: " + ((this.sup == null) ? "null (possibly down)" : this.sup.getHost())
+                + ", AvailMem: " + ((this.availMemory == null) ? "N/A" : this.availMemory.toString())
+                + ", this.availCPU: " + ((this.availCPU == null) ? "N/A" : this.availCPU.toString()) + "}";
     }
 
     public static int countSlotsUsed(String topId, Collection<RAS_Node> nodes) {
@@ -436,7 +433,7 @@ public class RAS_Node {
      * @param amount the amount to set as available memory
      */
     public void setAvailableMemory(Double amount) {
-        _availMemory = amount;
+        this.availMemory = amount;
     }
 
     /**
@@ -444,10 +441,10 @@ public class RAS_Node {
      * @return the available memory for this node
      */
     public Double getAvailableMemoryResources() {
-        if (_availMemory == null) {
+        if (this.availMemory == null) {
             return 0.0;
         }
-        return _availMemory;
+        return this.availMemory;
     }
 
     /**
@@ -455,8 +452,8 @@ public class RAS_Node {
      * @return the total memory for this node
      */
     public Double getTotalMemoryResources() {
-        if (_sup != null && _sup.getTotalMemory() != null) {
-            return _sup.getTotalMemory();
+        if (this.sup != null && this.sup.getTotalMemory() != null) {
+            return this.sup.getTotalMemory();
         } else {
             return 0.0;
         }
@@ -468,12 +465,12 @@ public class RAS_Node {
      * @return the current available memory for this node after consumption
      */
     public Double consumeMemory(Double amount) {
-        if (amount > _availMemory) {
-            LOG.error("Attempting to consume more memory than available! Needed: {}, we only have: {}", amount, _availMemory);
+        if (amount > this.availMemory) {
+            LOG.error("Attempting to consume more memory than available! Needed: {}, we only have: {}", amount, this.availMemory);
             return null;
         }
-        _availMemory = _availMemory - amount;
-        return _availMemory;
+        this.availMemory = this.availMemory - amount;
+        return this.availMemory;
     }
 
     /**
@@ -481,10 +478,10 @@ public class RAS_Node {
      * @return the available cpu for this node
      */
     public Double getAvailableCpuResources() {
-        if (_availCPU == null) {
+        if (this.availCPU == null) {
             return 0.0;
         }
-        return _availCPU;
+        return this.availCPU;
     }
 
     /**
@@ -492,8 +489,8 @@ public class RAS_Node {
      * @return the total cpu for this node
      */
     public Double getTotalCpuResources() {
-        if (_sup != null && _sup.getTotalCPU() != null) {
-            return _sup.getTotalCPU();
+        if (this.sup != null && this.sup.getTotalCPU() != null) {
+            return this.sup.getTotalCPU();
         } else {
             return 0.0;
         }
@@ -505,12 +502,12 @@ public class RAS_Node {
      * @return the current available cpu for this node after consumption
      */
     public Double consumeCPU(Double amount) {
-        if (amount > _availCPU) {
-            LOG.error("Attempting to consume more CPU than available! Needed: {}, we only have: {}", amount, _availCPU);
+        if (amount > this.availCPU) {
+            LOG.error("Attempting to consume more CPU than available! Needed: {}, we only have: {}", amount, this.availCPU);
             return null;
         }
-        _availCPU = _availCPU - amount;
-        return _availCPU;
+        this.availCPU = this.availCPU - amount;
+        return this.availCPU;
     }
 
     /**
@@ -526,6 +523,6 @@ public class RAS_Node {
     }
 
     public Map<String, Set<WorkerSlot>> getTopoIdTousedSlots() {
-        return _topIdToUsedSlots;
+        return this.topIdToUsedSlots;
     }
 }

@@ -185,7 +185,6 @@ public class TestUtilsForResourceAwareScheduler {
         }
 
         public void close() {
-
         }
 
         public void nextTuple() {
@@ -197,11 +196,9 @@ public class TestUtilsForResourceAwareScheduler {
         }
 
         public void ack(Object msgId) {
-
         }
 
         public void fail(Object msgId) {
-
         }
 
         public void declareOutputFields(OutputFieldsDeclarer declarer) {

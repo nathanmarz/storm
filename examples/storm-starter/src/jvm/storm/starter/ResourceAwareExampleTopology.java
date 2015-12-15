@@ -82,8 +82,9 @@ public class ResourceAwareExampleTopology {
      */
     conf.setTopologyWorkerMaxHeapSize(1024.0);
 
-    // Set topology priority 0-30 with 0 being the highest priority and 30 being the lowest priority.
-    conf.setTopologyPriority(30);
+    //topology priority describing the importance of the topology in decreasing importance starting from 0 (i.e. 0 is the highest priority and the priority importance decreases as the priority number increases).
+    //Recommended range of 0-29 but no hard limit set.
+    conf.setTopologyPriority(29);
 
     // Set strategy to schedule topology. If not specified, default to backtype.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy
     conf.setTopologyStrategy(backtype.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy.class);

@@ -28,8 +28,6 @@ import java.util.Set;
 import backtype.storm.Config;
 import backtype.storm.networktopography.DNSToSwitchMapping;
 import backtype.storm.utils.Utils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class Cluster {
 
@@ -96,15 +94,15 @@ public class Cluster {
     /**
      * Get a copy of this cluster object
      */
-    public Cluster getCopy() {
+    public static Cluster getCopy(Cluster cluster) {
         HashMap<String, SchedulerAssignmentImpl> newAssignments = new HashMap<String, SchedulerAssignmentImpl>();
-        for (Map.Entry<String, SchedulerAssignmentImpl> entry : this.assignments.entrySet()) {
+        for (Map.Entry<String, SchedulerAssignmentImpl> entry : cluster.assignments.entrySet()) {
             newAssignments.put(entry.getKey(), new SchedulerAssignmentImpl(entry.getValue().getTopologyId(), entry.getValue().getExecutorToSlot()));
         }
         Map newConf = new HashMap<String, Object>();
-        newConf.putAll(this.conf);
-        Cluster copy = new Cluster(this.inimbus, this.supervisors, newAssignments, newConf);
-        copy.status = new HashMap<>(this.status);
+        newConf.putAll(cluster.conf);
+        Cluster copy = new Cluster(cluster.inimbus, cluster.supervisors, newAssignments, newConf);
+        copy.status = new HashMap<>(cluster.status);
         return copy;
     }
     
@@ -622,14 +620,12 @@ public class Cluster {
     /**
      * set scheduler status for a topology
      */
-    private static final Logger LOG = LoggerFactory
-            .getLogger(Cluster.class);
     public void setStatus(String topologyId, String status) {
         this.status.put(topologyId, status);
     }
 
     /**
-     * Get all schedule statuses
+     * Get all topology scheduler statuses
      */
     public Map<String, String> getStatusMap() {
         return this.status;
@@ -639,6 +635,7 @@ public class Cluster {
      * set scheduler status map
      */
     public void setStatusMap(Map<String, String> statusMap) {
+        this.status.clear();
         this.status.putAll(statusMap);
     }
 

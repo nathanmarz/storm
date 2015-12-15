@@ -65,7 +65,7 @@ public class RAS_Nodes {
                     nodeIdToNode.put(id, node);
                 }
                 if (!node.isAlive()) {
-                    //The supervisor on the node down so add an orphaned slot to hold the unsupervised worker
+                    //The supervisor on the node is down so add an orphaned slot to hold the unsupervised worker
                     node.addOrphanedSlot(workerSlot);
                 }
                 if (node.assignInternal(workerSlot, topId, true)) {
@@ -113,7 +113,8 @@ public class RAS_Nodes {
                     if (topoMemoryResourceList.containsKey(exec)) {
                         node.consumeResourcesforTask(exec, topologies.getById(entry.getKey()));
                     } else {
-                        LOG.warn("Resource Req not found...Scheduling Task{} with memory requirement as on heap - {} and off heap - {} and CPU requirement as {}",
+                        LOG.warn("Resource Req not found...Scheduling Task {} with memory requirement as on heap - {} " +
+                                        "and off heap - {} and CPU requirement as {}",
                                 exec,
                                 Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB,
                                 Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT);

@@ -61,7 +61,6 @@ public class DefaultEvictionStrategy implements IEvictionStrategy {
         //user has enough resource under his or her resource guarantee to schedule topology
         if ((1.0 - submitter.getCPUResourcePoolUtilization()) >= cpuNeeded && (1.0 - submitter.getMemoryResourcePoolUtilization()) >= memoryNeeded) {
             if (evictUser != null) {
-
                 TopologyDetails topologyEvict = evictUser.getRunningTopologyWithLowestPriority();
                 evictTopology(topologyEvict);
                 return true;

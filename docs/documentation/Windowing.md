@@ -145,7 +145,8 @@ If the field is not present in the tuple an exception will be thrown. Along with
 can also be specified which indicates the max time limit for tuples with out of order timestamps. 
 
 E.g. If the lag is 5 secs and a tuple `t1` arrived with timestamp `06:00:05` no tuples may arrive with tuple timestamp earlier than `06:00:00`. If a tuple
-arrives with timestamp 05:59:59 after `t1` and the window has moved past `t1`, it will be treated as a late tuple and not processed. 
+arrives with timestamp 05:59:59 after `t1` and the window has moved past `t1`, it will be treated as a late tuple and not processed. Currently the late
+ tuples are just logged in the worker log files at INFO level.
 
 ```java
 /**

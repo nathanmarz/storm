@@ -31,7 +31,7 @@ import java.util.Set;
 import static org.junit.Assert.*;
 
 /**
- * Unit tests for {@link WaterMarkEventGeneratorTest}
+ * Unit tests for {@link WaterMarkEventGenerator}
  */
 public class WaterMarkEventGeneratorTest {
     WaterMarkEventGenerator<Integer> waterMarkEventGenerator;
@@ -79,7 +79,7 @@ public class WaterMarkEventGeneratorTest {
         Set<GlobalStreamId> streams = new HashSet<>();
         streams.add(streamId("s1"));
         streams.add(streamId("s2"));
-        waterMarkEventGenerator = new WaterMarkEventGenerator<>(windowManager, 50, 5, streams);
+        waterMarkEventGenerator = new WaterMarkEventGenerator<>(windowManager, 100000, 5, streams);
 
         waterMarkEventGenerator.track(streamId("s1"), 100);
         waterMarkEventGenerator.track(streamId("s1"), 110);
@@ -96,5 +96,22 @@ public class WaterMarkEventGeneratorTest {
     public void testNoEvents() throws Exception {
         waterMarkEventGenerator.run();
         assertTrue(eventList.isEmpty());
+    }
+
+    @Test
+    public void testLateEvent() throws Exception {
+        assertTrue(waterMarkEventGenerator.track(streamId("s1"), 100));
+        assertTrue(waterMarkEventGenerator.track(streamId("s1"), 110));
+        waterMarkEventGenerator.run();
+        assertTrue(eventList.get(0).isWatermark());
+        assertEquals(105, eventList.get(0).getTimestamp());
+        eventList.clear();
+        assertTrue(waterMarkEventGenerator.track(streamId("s1"), 105));
+        assertTrue(waterMarkEventGenerator.track(streamId("s1"), 106));
+        assertTrue(waterMarkEventGenerator.track(streamId("s1"), 115));
+        assertFalse(waterMarkEventGenerator.track(streamId("s1"), 104));
+        waterMarkEventGenerator.run();
+        assertTrue(eventList.get(0).isWatermark());
+        assertEquals(110, eventList.get(0).getTimestamp());
     }
 }

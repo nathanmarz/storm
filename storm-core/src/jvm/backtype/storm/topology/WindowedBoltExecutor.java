@@ -236,8 +236,11 @@ public class WindowedBoltExecutor implements IRichBolt {
     public void execute(Tuple input) {
         if (isTupleTs()) {
             long ts = input.getLongByField(tupleTsFieldName);
-            windowManager.add(input, ts);
-            waterMarkEventGenerator.track(input.getSourceGlobalStreamId(), ts);
+            if (waterMarkEventGenerator.track(input.getSourceGlobalStreamId(), ts)) {
+                windowManager.add(input, ts);
+            } else {
+                LOG.info("Received a late tuple {} with ts {}. This will not processed.", input, ts);
+            }
         } else {
             windowManager.add(input);
         }

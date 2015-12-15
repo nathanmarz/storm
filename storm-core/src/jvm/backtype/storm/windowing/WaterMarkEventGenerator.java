@@ -57,12 +57,18 @@ public class WaterMarkEventGenerator<T> implements Runnable {
         this.inputStreams = inputStreams;
     }
 
-    public void track(GlobalStreamId stream, long ts) {
+    /**
+     * Tracks the timestamp of the event in the stream, returns
+     * true if the event can be considered for processing or
+     * false if its a late event.
+     */
+    public boolean track(GlobalStreamId stream, long ts) {
         Long currentVal = streamToTs.get(stream);
         if (currentVal == null || ts > currentVal) {
             streamToTs.put(stream, ts);
         }
         checkFailures();
+        return ts >= lastWaterMarkTs;
     }
 
     @Override
@@ -70,7 +76,7 @@ public class WaterMarkEventGenerator<T> implements Runnable {
         try {
             long waterMarkTs = computeWaterMarkTs();
             if (waterMarkTs > lastWaterMarkTs) {
-                this.windowManager.add(new WaterMarkEvent<T>(waterMarkTs - eventTsLag));
+                this.windowManager.add(new WaterMarkEvent<T>(waterMarkTs));
                 lastWaterMarkTs = waterMarkTs;
             }
         } catch (Throwable th) {
@@ -83,7 +89,7 @@ public class WaterMarkEventGenerator<T> implements Runnable {
      * Computes the min ts across all streams.
      */
     private long computeWaterMarkTs() {
-        long ts = Long.MIN_VALUE;
+        long ts = 0;
         // only if some data has arrived on each input stream
         if(streamToTs.size() >= inputStreams.size()) {
             ts = Long.MAX_VALUE;
@@ -91,7 +97,7 @@ public class WaterMarkEventGenerator<T> implements Runnable {
                 ts = Math.min(ts, entry.getValue());
             }
         }
-        return ts;
+        return ts - eventTsLag;
     }
 
     private void checkFailures() {

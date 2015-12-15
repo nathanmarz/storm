@@ -179,7 +179,7 @@ task.refresh.poll.secs: 10
 task.credentials.poll.secs: 30
 
 # now should be null by default
-topology.backpressure.enable: false
+topology.backpressure.enable: true
 backpressure.disruptor.high.watermark: 0.9
 backpressure.disruptor.low.watermark: 0.4
 

@@ -36,6 +36,7 @@
   (:import [backtype.storm.task WorkerTopologyContext])
   (:import [backtype.storm Constants])
   (:import [backtype.storm.security.auth AuthUtils])
+  (:import [backtype.storm.cluster ClusterStateContext DaemonType])
   (:import [javax.security.auth Subject])
   (:import [java.security PrivilegedExceptionAction])
   (:import [org.apache.logging.log4j LogManager])

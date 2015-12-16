@@ -34,6 +34,7 @@
   (:import [backtype.storm.daemon Shutdownable])
   (:import [backtype.storm.metric.api IMetric IMetricsConsumer$TaskInfo IMetricsConsumer$DataPoint StateMetric])
   (:import [backtype.storm Config Constants])
+  (:import [backtype.storm.cluster ClusterStateContext DaemonType])
   (:import [backtype.storm.grouping LoadAwareCustomStreamGrouping LoadAwareShuffleGrouping LoadMapping ShuffleGrouping])
   (:import [java.util.concurrent ConcurrentLinkedQueue])
   (:require [backtype.storm [tuple :as tuple] [thrift :as thrift]

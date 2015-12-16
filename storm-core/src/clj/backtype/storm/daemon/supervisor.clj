@@ -19,6 +19,7 @@
            [backtype.storm.utils LocalState Time Utils]
            [backtype.storm.daemon Shutdownable]
            [backtype.storm Constants]
+           [backtype.storm.cluster ClusterStateContext DaemonType]
            [java.net JarURLConnection]
            [java.net URI]
            [org.apache.commons.io FileUtils])

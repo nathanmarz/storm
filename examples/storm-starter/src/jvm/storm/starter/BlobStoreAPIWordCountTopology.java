@@ -125,7 +125,6 @@ public class BlobStoreAPIWordCountTopology {
     }
 
     public static class FilterWords extends BaseBasicBolt {
-        String key = "key";
         String fileName = "blacklist.txt";
         @Override
         public void execute(Tuple tuple, BasicOutputCollector collector) {

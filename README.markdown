@@ -245,6 +245,7 @@ under the License.
 * David Wimsey ([@dwimsey](https://github.com/dwimsey))
 * Florian Hussonnois ([@fhussonnois](https://github.com/fhussonnois))
 * Ilya Ostrovskiy ([@iostat](https://github.com/iostat))
+* Satish Duggana ([@satishd](https://github.com/satishd))
 
 ## Acknowledgements
 

@@ -196,7 +196,7 @@ public class RAS_Node {
      * @param ws the slot to free
      */
     public void free(WorkerSlot ws) {
-        LOG.info("freeing ws {} on node {}", ws, _hostname);
+        LOG.info("freeing WorkerSlot {} on node {}", ws, _hostname);
         if (_freeSlots.contains(ws)) return;
         for (Entry<String, Set<WorkerSlot>> entry : _topIdToUsedSlots.entrySet()) {
             Set<WorkerSlot> slots = entry.getValue();

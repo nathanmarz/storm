@@ -120,17 +120,13 @@ public class SupervisorDetails {
 
     public Double getTotalMemory() {
         Double totalMemory = getTotalResource(Config.SUPERVISOR_MEMORY_CAPACITY_MB);
-        if (totalMemory == null) {
-            throw new IllegalStateException("default value for " + Config.SUPERVISOR_MEMORY_CAPACITY_MB + " is not set!");
-        }
+        assert totalMemory != null;
         return totalMemory;
     }
 
     public Double getTotalCPU() {
         Double totalCPU = getTotalResource(Config.SUPERVISOR_CPU_CAPACITY);
-        if (totalCPU == null) {
-            throw new IllegalStateException("default value for " + Config.SUPERVISOR_CPU_CAPACITY + " is not set!");
-        }
+        assert totalCPU != null;
         return totalCPU;
     }
 }

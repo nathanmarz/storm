@@ -53,9 +53,9 @@ public class RAS_Nodes {
             LOG.debug("resources_mem: {}, resources_CPU: {}", sup.getTotalMemory(), sup.getTotalCPU());
             nodeIdToNode.put(sup.getId(), new RAS_Node(id, sup.getAllPorts(), isAlive, sup, cluster, topologies));
         }
-        for (Map.Entry<String, SchedulerAssignment> entry : cluster.getAssignments().entrySet()) {
-            String topId = entry.getValue().getTopologyId();
-            for (WorkerSlot workerSlot : entry.getValue().getSlots()) {
+        for (SchedulerAssignment assignment : cluster.getAssignments().values()) {
+            String topId = assignment.getTopologyId();
+            for (WorkerSlot workerSlot : assignment.getSlots()) {
                 String id = workerSlot.getNodeId();
                 RAS_Node node = nodeIdToNode.get(id);
                 if (node == null) {
@@ -69,7 +69,7 @@ public class RAS_Nodes {
                     node.addOrphanedSlot(workerSlot);
                 }
                 if (node.assignInternal(workerSlot, topId, true)) {
-                    LOG.warn("Bad scheduling state, " + workerSlot + " assigned multiple workers, unassigning everything...");
+                    LOG.warn("Bad scheduling state, {} assigned multiple workers, unassigning everything...", workerSlot);
                     node.free(workerSlot);
                 }
             }

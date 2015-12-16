@@ -117,7 +117,7 @@ Once a file is submitted, the blobstore reads the configs and creates a metadata
 is generally used for authorization while accessing the blobs. The blob key and version contribute to the hash code and there by the directory 
 under “storm.local.dir/nimbus/blobs/data” where the data is placed. The blobs are generally placed in a positive number directory like 193,822 etc.
 
-Once the topology is launched and the relevant blobs have been created the supervisor downloads blobs related to the storm.conf, storm.ser 
+Once the topology is launched and the relevant blobs have been created, the supervisor downloads blobs related to the storm.conf, storm.ser 
 and storm.code first and all the blobs uploaded by the command line separately using the localizer to uncompress and map them to a local name 
 specified in the topology.blobstore.map configuration. The supervisor periodically updates blobs by checking for the change of version. 
 This allows updating the blobs on the fly and thereby making it a very useful feature.
@@ -131,11 +131,11 @@ involvement of the nimbus and thereby reduces the load and dependency on nimbus.
 
 ## Highly Available Nimbus
 ### Problem Statement:
-Currently the storm master aka nimbus, is a process that runs on a single machine under supervision. In most cases the 
+Currently the storm master aka nimbus, is a process that runs on a single machine under supervision. In most cases, the 
 nimbus failure is transient and it is restarted by the process that does supervision. However sometimes when disks fail and networks 
-partitions occur, nimbus goes down. Under these circumstances the topologies run normally but no new topologies can be 
+partitions occur, nimbus goes down. Under these circumstances, the topologies run normally but no new topologies can be 
 submitted, no existing topologies can be killed/deactivated/activated and if a supervisor node fails then the 
-reassignments are not performed resulting in performance degradation or topology failures. With this project we intend 
+reassignments are not performed resulting in performance degradation or topology failures. With this project we intend, 
 to resolve this problem by running nimbus in a primary backup mode to guarantee that even if a nimbus server fails one 
 of the backups will take over. 
 
@@ -191,7 +191,7 @@ current status. The leader like actions must finish in less than minimumOf(conne
 the lock was held by nimbus for the entire duration of the action (Not sure if we want to just state this expectation 
 and ensure that zk configurations are set high enough which will result in higher failover time or we actually want to 
 create some sort of rollback mechanism for all actions, the second option needs a lot of code). If a nimbus that is not 
-leader receives a request that only a leader can perform it will throw a RunTimeException.
+leader receives a request that only a leader can perform,  it will throw a RunTimeException.
 
 ### Nimbus state store:
 

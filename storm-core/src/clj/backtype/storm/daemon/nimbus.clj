@@ -1716,15 +1716,15 @@
           (.remove uploaders location)
           ))
 
-      (^String beginFileDownload [this ^String file]
-        (mark! nimbus:num-beginFileDownload-calls)
+      (^String beginFileDownload
+        [this ^String file]
         (check-authorization! nimbus nil nil "fileDownload")
-        (check-file-access (:conf nimbus) file)
-        (let [is (BufferFileInputStream. file)
+        (let [is (BufferInputStream. (.getBlob (:blob-store nimbus) file nil) 
+              ^Integer (Utils/getInt (conf STORM-BLOBSTORE-INPUTSTREAM-BUFFER-SIZE-BYTES) 
+              (int 65536)))
               id (uuid)]
           (.put (:downloaders nimbus) id is)
-          id
-          ))
+          id))
 
       (^ByteBuffer downloadChunk [this ^String id]
         (mark! nimbus:num-downloadChunk-calls)

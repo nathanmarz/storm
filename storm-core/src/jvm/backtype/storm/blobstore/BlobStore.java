@@ -193,10 +193,10 @@ public abstract class BlobStore implements Shutdownable {
      * Validates key checking for potentially harmful patterns
      * @param key Key for the blob.
      */
-    public static final void validateKey(String key) {
+    public static final void validateKey(String key) throws AuthorizationException {
         if (StringUtils.isEmpty(key) || "..".equals(key) || ".".equals(key) || !KEY_PATTERN.matcher(key).matches()) {
             LOG.error("'{}' does not appear to be valid {}", key, KEY_PATTERN);
-            throw new IllegalArgumentException(key+" does not appear to be a valid blob key");
+            throw new AuthorizationException(key+" does not appear to be a valid blob key");
         }
     }
 

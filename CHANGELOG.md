@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1388: Fix url and email links in README file
  * STORM-1389: Removed creation of projection tuples as they are already available
  * STORM-1179: Create Maven Profiles for Integration Tests.
  * STORM-1387: workers-artifacts directory configurable, and default to be under storm.log.dir.

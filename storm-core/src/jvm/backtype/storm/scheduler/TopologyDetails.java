@@ -419,15 +419,15 @@ public class TopologyDetails {
     public void addDefaultResforExec(ExecutorDetails exec) {
         Double topologyComponentCpuPcorePercent = Utils.getDouble(this.topologyConf.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT), null);
         if (topologyComponentCpuPcorePercent == null) {
-            LOG.warn("default value for topology.component.cpu.pcore.percent needs to be set!");
+            LOG.warn("default value for " + Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT + " needs to be set!");
         }
         Double topologyComponentResourcesOffheapMemoryMb = Utils.getDouble(this.topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB), null);
         if (topologyComponentResourcesOffheapMemoryMb == null) {
-            LOG.warn("default value for topology.component.resources.offheap.memory.mb needs to be set!");
+            LOG.warn("default value for " + Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB + " needs to be set!");
         }
         Double topologyComponentResourcesOnheapMemoryMb = Utils.getDouble(this.topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB), null);
         if (topologyComponentResourcesOnheapMemoryMb == null) {
-            LOG.warn("default value for topology.component.resources.onheap.memory.mb needs to be set!");
+            LOG.warn("default value for " + Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB + " needs to be set!");
         }
 
         Map<String, Double> defaultResourceList = new HashMap<>();
@@ -448,11 +448,11 @@ public class TopologyDetails {
     private void initConfigs() {
         this.topologyWorkerMaxHeapSize = Utils.getDouble(this.topologyConf.get(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB), null);
         if (this.topologyWorkerMaxHeapSize == null) {
-            LOG.warn("default value for topology.worker.max.heap.size.mb needs to be set!");
+            LOG.warn("default value for " + Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB + " needs to be set!");
         }
         this.topologyPriority = Utils.getInt(this.topologyConf.get(Config.TOPOLOGY_PRIORITY), null);
         if (this.topologyPriority == null) {
-            LOG.warn("default value for topology.priority needs to be set!");
+            LOG.warn("default value for " + Config.TOPOLOGY_PRIORITY + " needs to be set!");
         }
     }
 

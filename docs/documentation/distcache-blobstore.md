@@ -108,8 +108,8 @@ before the execution starts.
 Apart from compression the blobstore helps to give the blob a name that can be used by the workers. The localizer takes 
 the responsibility of mapping the blob to a local name on the supervisor node.
 
-## Additional blobstore Implementation Details
-blobstore uses a hashing function to create the blobs based on the key. The blobs are generally stored inside the directory specified by 
+## Additional Blobstore Implementation Details
+Blobstore uses a hashing function to create the blobs based on the key. The blobs are generally stored inside the directory specified by
 the blobstore.dir configuration. By default, it is stored under “storm.local.dir/nimbus/blobs” for local file system and a similar path on 
 hdfs file system.
 
@@ -265,8 +265,8 @@ nimbus.min.replication.count > 1.
 
 ## Configuration
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-blobstore.dir: The directory where all blobs are stored. For local file system it represents the directory on the nimbus 
+```
+blobstore.dir: The directory where all blobs are stored. For local file system it represents the directory on the nimbus
 node and for HDFS file system it represents the hdfs file system path.
 
 supervisor.blobstore.class: This configuration is meant to set the client for  the supervisor  in order to talk to the blobstore. 
@@ -308,8 +308,7 @@ topology.max.replication.wait.time.sec: Maximum wait time for the nimbus host re
 Once this time is elapsed nimbus will go ahead and perform topology activation tasks even if required nimbus.min.replication.count is not achieved. 
 The default is 60 seconds, a value of -1 indicates to wait for ever.
 * nimbus.code.sync.freq.secs: Frequency at which the background thread on nimbus which syncs code for locally missing blobs. Default is 2 minutes.
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
+```
 
 ## Using the Distributed Cache API, Command Line Interface (CLI)
 

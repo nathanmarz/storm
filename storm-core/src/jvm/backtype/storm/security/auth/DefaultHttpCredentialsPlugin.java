@@ -79,6 +79,8 @@ public class DefaultHttpCredentialsPlugin implements IHttpCredentialsPlugin {
         if(doAsUser != null) {
             context.setRealPrincipal(new SingleUserPrincipal(userName));
             userName = doAsUser;
+        } else {
+            context.setRealPrincipal(null);
         }
 
         Set<Principal> principals = new HashSet<>();

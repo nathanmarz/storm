@@ -43,6 +43,17 @@ public class ReqContext {
     private Map _storm_conf;
     private Principal realPrincipal;
 
+    @Override
+    public String toString() {
+        return "ReqContext{" +
+                "realPrincipal=" + ((realPrincipal != null) ? realPrincipal.getName() : "null") +
+                ", _reqID=" + _reqID +
+                ", _remoteAddr=" + _remoteAddr +
+                ", _authZPrincipal=" + ((principal() != null) ? principal().getName() : "null") +
+                ", ThreadId=" + Thread.currentThread().toString() +
+                '}';
+    }
+
     /**
      * @return a request context associated with current thread
      */
@@ -130,7 +141,7 @@ public class ReqContext {
      * @return true if this request is an impersonation request.
      */
     public boolean isImpersonating() {
-        return this.realPrincipal != null;
+        return this.realPrincipal != null && !this.realPrincipal.equals(this.principal());
     }
     
     /**

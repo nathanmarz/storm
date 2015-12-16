@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1389: Removed creation of projection tuples as they are already available
  * STORM-1179: Create Maven Profiles for Integration Tests.
  * STORM-1387: workers-artifacts directory configurable, and default to be under storm.log.dir.
  * STORM-1211: Add trident state and query support for cassandra connector

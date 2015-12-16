@@ -264,8 +264,8 @@
      (if workers-artifacts-dir
        (if (is-absolute-path? workers-artifacts-dir)
          workers-artifacts-dir
-         (str backtype.storm.config/LOG-DIR file-path-separator workers-artifacts-dir))
-       (str backtype.storm.config/LOG-DIR file-path-separator "workers-artifacts"))))
+         (str LOG-DIR file-path-separator workers-artifacts-dir))
+       (str LOG-DIR file-path-separator "workers-artifacts"))))
   ([conf id]
    (str (worker-artifacts-root conf) file-path-separator id))
   ([conf id port]

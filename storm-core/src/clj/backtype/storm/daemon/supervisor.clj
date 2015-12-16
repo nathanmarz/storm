@@ -1022,7 +1022,7 @@
           storm-home (System/getProperty "storm.home")
           storm-options (System/getProperty "storm.options")
           storm-conf-file (System/getProperty "storm.conf.file")
-          storm-log-dir backtype.storm.config/LOG-DIR
+          storm-log-dir LOG-DIR
           storm-log-conf-dir (conf STORM-LOG4J2-CONF-DIR)
           storm-log4j2-conf-dir (if storm-log-conf-dir
                                   (if (is-absolute-path? storm-log-conf-dir)

@@ -18,6 +18,7 @@
   (:require [backtype.storm [testing :as testing]])
   (:require [backtype.storm.daemon [nimbus :as nimbus]])
   (:require [backtype.storm [zookeeper :as zk]])
+  (:require [backtype.storm.security.auth [auth-test :refer [nimbus-timeout]]])
   (:import [java.nio ByteBuffer])
   (:import [backtype.storm Config])
   (:import [backtype.storm.utils NimbusClient])
@@ -30,8 +31,6 @@
             AuthorizationException SubmitOptions TopologyInitialStatus KillOptions])
   (:require [conjure.core])
   (:use [conjure core]))
-
-(def nimbus-timeout (Integer. 30))
 
 (defn launch-test-cluster [nimbus-port login-cfg aznClass transportPluginClass] 
   (let [conf {NIMBUS-AUTHORIZER aznClass 

@@ -51,7 +51,7 @@ public class BlobSynchronizerTest {
   @Before
   public void init() throws Exception {
     initializeConfigs();
-    baseFile = new File("/tmp/blob-store-test-"+ UUID.randomUUID());
+    baseFile = new File("target/blob-store-test-"+ UUID.randomUUID());
     base = baseFile.toURI();
   }
 

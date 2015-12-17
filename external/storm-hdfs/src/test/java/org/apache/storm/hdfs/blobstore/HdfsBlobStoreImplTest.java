@@ -68,6 +68,7 @@ public class HdfsBlobStoreImplTest {
 
     @BeforeClass
     public static void init() {
+        System.setProperty("test.build.data", "target/test/data");
         if (hadoopConf == null) {
             hadoopConf = new Configuration();
         }

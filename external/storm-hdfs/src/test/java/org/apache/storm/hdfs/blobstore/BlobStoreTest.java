@@ -76,6 +76,7 @@ public class BlobStoreTest {
 
   @Before
   public void init() {
+    System.setProperty("test.build.data", "target/test/data");
     initializeConfigs();
     baseFile = new File("/tmp/blob-store-test-"+UUID.randomUUID());
     base = baseFile.toURI();

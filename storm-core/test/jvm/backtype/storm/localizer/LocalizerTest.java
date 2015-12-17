@@ -520,7 +520,7 @@ public class LocalizerTest {
   public void testKeyNotFoundException() throws Exception {
     Map conf = new HashMap();
     String key1 = "key1";
-    conf.put(Config.STORM_LOCAL_DIR, "local");
+    conf.put(Config.STORM_LOCAL_DIR, "target");
     conf.put(Config.BLOBSTORE_SUPERUSER, "superuser");
     conf.put(Config.STORM_PRINCIPAL_TO_LOCAL_PLUGIN, "backtype.storm.security.auth.DefaultPrincipalToLocal");
     LocalFsBlobStore bs = new LocalFsBlobStore();

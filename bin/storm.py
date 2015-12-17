@@ -99,7 +99,7 @@ def get_config_opts():
 if not os.path.exists(STORM_LIB_DIR):
     print("******************************************")
     print("The storm client can only be run from within a release. You appear to be trying to run the client from a checkout of Storm's source code.")
-    print("\nYou can download a Storm release at http://storm-project.net/downloads.html")
+    print("\nYou can download a Storm release at http://storm.apache.org/downloads.html")
     print("******************************************")
     sys.exit(1)
 

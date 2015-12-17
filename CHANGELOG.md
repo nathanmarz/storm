@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1395: Move JUnit dependency to top-level pom
  * STORM-1372: Merging design and usage documents for distcache
  * STORM-1393: Update the storm.log.dir function, add doc for logs
  * STORM-1377: nimbus_auth_test: very short timeouts causing spurious failures

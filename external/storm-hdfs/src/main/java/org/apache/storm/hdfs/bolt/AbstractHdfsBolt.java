@@ -49,10 +49,9 @@ public abstract class AbstractHdfsBolt extends BaseRichBolt {
     private static final Logger LOG = LoggerFactory.getLogger(AbstractHdfsBolt.class);
     private static final Integer DEFAULT_RETRY_COUNT = 3;
     /**
-     * A low default value so that tuples are flushed and acked as soon as possible to avoid
-     * replay and spouts can continue emitting without hitting TOPOLOGY_MAX_SPOUT_PENDING.
+     * Half of the default Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS
      */
-    private static final int DEFAULT_TICK_TUPLE_INTERVAL_SECS = 1;
+    private static final int DEFAULT_TICK_TUPLE_INTERVAL_SECS = 15;
 
     protected ArrayList<RotationAction> rotationActions = new ArrayList<RotationAction>();
     private Path currentFile;

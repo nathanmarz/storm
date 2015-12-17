@@ -27,10 +27,9 @@ import org.apache.hive.hcatalog.streaming.*;
 
 public class HiveOptions implements Serializable {
     /**
-     * A low default value so that tuples are flushed and acked as soon as possible to avoid
-     * replay and spouts can continue emitting without hitting TOPOLOGY_MAX_SPOUT_PENDING.
+     * Half of the default Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS
      */
-    private static final int DEFAULT_TICK_TUPLE_INTERVAL_SECS = 1;
+    private static final int DEFAULT_TICK_TUPLE_INTERVAL_SECS = 15;
 
     protected HiveMapper mapper;
     protected String databaseName;

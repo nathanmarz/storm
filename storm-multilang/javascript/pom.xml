@@ -29,14 +29,4 @@
     <artifactId>multilang-javascript</artifactId>
     <packaging>jar</packaging>
     <name>multilang-javascript</name>
-
-    <dependencies>
-        <!-- The JUnit dependency is required for this submodule by the maven-surefire-plugin <excludedGroups> configuration -->
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>${junit.version}</version>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
 </project>

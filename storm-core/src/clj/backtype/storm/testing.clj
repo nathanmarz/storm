@@ -34,6 +34,11 @@
   (:import [backtype.storm.testing FeederSpout FixedTupleSpout FixedTuple
             TupleCaptureBolt SpoutTracker BoltTracker NonRichBoltTracker
             TestWordSpout MemoryTransactionalSpout])
+  (:import [backtype.storm.security.auth ThriftServer ThriftConnectionType ReqContext AuthUtils])
+  (:import [backtype.storm.generated NotAliveException AlreadyAliveException StormTopology ErrorInfo
+            ExecutorInfo InvalidTopologyException Nimbus$Iface Nimbus$Processor SubmitOptions TopologyInitialStatus
+            KillOptions RebalanceOptions ClusterSummary SupervisorSummary TopologySummary TopologyInfo
+            ExecutorSummary AuthorizationException GetInfoOptions NumErrorsChoice])
   (:import [backtype.storm.transactional TransactionalSpoutCoordinator])
   (:import [backtype.storm.transactional.partitioned PartitionedTransactionalSpoutExecutor])
   (:import [backtype.storm.tuple Tuple])
@@ -113,11 +118,20 @@
   (if-not (conf STORM-LOCAL-MODE-ZMQ)
     (msg-loader/mk-local-context)))
 
+(defn start-nimbus-daemon [conf nimbus]
+  (let [server (ThriftServer. conf (Nimbus$Processor. nimbus)
+                              ThriftConnectionType/NIMBUS)
+        nimbus-thread (Thread. (fn [] (.serve server)))]
+    (log-message "Starting Nimbus server...")
+    (.start nimbus-thread)
+    server))
+
+
 ;; returns map containing cluster info
 ;; local dir is always overridden in maps
 ;; can customize the supervisors (except for ports) by passing in map for :supervisors parameter
 ;; if need to customize amt of ports more, can use add-supervisor calls afterwards
-(defnk mk-local-storm-cluster [:supervisors 2 :ports-per-supervisor 3 :daemon-conf {} :inimbus nil :supervisor-slot-port-min 1024]
+(defnk mk-local-storm-cluster [:supervisors 2 :ports-per-supervisor 3 :daemon-conf {} :inimbus nil :supervisor-slot-port-min 1024 :nimbus-daemon false]
   (let [zk-tmp (local-temp-path)
         [zk-port zk-handle] (if-not (contains? daemon-conf STORM-ZOOKEEPER-SERVERS)
                               (zk/mk-inprocess-zookeeper zk-tmp))
@@ -135,9 +149,10 @@
         nimbus-tmp (local-temp-path)
         port-counter (mk-counter supervisor-slot-port-min)
         nimbus (nimbus/service-handler
-                 (assoc daemon-conf STORM-LOCAL-DIR nimbus-tmp)
-                 (if inimbus inimbus (nimbus/standalone-nimbus)))
+                (assoc daemon-conf STORM-LOCAL-DIR nimbus-tmp)
+                (if inimbus inimbus (nimbus/standalone-nimbus)))
         context (mk-shared-context daemon-conf)
+        nimbus-thrift-server (if nimbus-daemon (start-nimbus-daemon daemon-conf nimbus) nil)
         cluster-map {:nimbus nimbus
                      :port-counter port-counter
                      :daemon-conf daemon-conf
@@ -146,10 +161,12 @@
                      :storm-cluster-state (mk-storm-cluster-state daemon-conf)
                      :tmp-dirs (atom [nimbus-tmp zk-tmp])
                      :zookeeper (if (not-nil? zk-handle) zk-handle)
-                     :shared-context context}
+                     :shared-context context
+                     :nimbus-thrift-server nimbus-thrift-server}
         supervisor-confs (if (sequential? supervisors)
                            supervisors
                            (repeat supervisors {}))]
+
     (doseq [sc supervisor-confs]
       (add-supervisor cluster-map :ports ports-per-supervisor :conf sc))
     cluster-map))
@@ -169,6 +186,13 @@
 
 (defn kill-local-storm-cluster [cluster-map]
   (.shutdown (:nimbus cluster-map))
+  (if (not-nil? (:nimbus-thrift-server cluster-map))
+    (do
+      (log-message "shutting down thrift server")
+      (try
+        (.stop (:nimbus-thrift-server cluster-map))
+        (catch Exception e (log-message "failed to stop thrift")))
+      ))
   (.close (:state cluster-map))
   (.disconnect (:storm-cluster-state cluster-map))
   (doseq [s @(:supervisors cluster-map)]

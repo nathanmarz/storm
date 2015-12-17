@@ -1030,6 +1030,10 @@
   (let [klass (if (string? klass) (Class/forName klass) klass)]
     (.newInstance klass)))
 
+(defn get-configured-class
+  [conf config-key]
+  (if (.get conf config-key) (new-instance (.get conf config-key)) nil))
+
 (defmacro -<>
   ([x] x)
   ([x form] (if (seq? form)

@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 
 /**
- * Facility to sychronize access to HDFS directory. The lock itself is represented
+ * Facility to synchronize access to HDFS directory. The lock itself is represented
  * as a file in the same directory. Relies on atomic file creation.
  */
 public class DirLock {
@@ -51,7 +51,7 @@ public class DirLock {
    * @throws IOException if there were errors
    */
   public static DirLock tryLock(FileSystem fs, Path dir) throws IOException {
-    Path lockFile = new Path(dir.toString() + Path.SEPARATOR_CHAR + DIR_LOCK_FILE );
+    Path lockFile = getDirLockFile(dir);
 
     try {
       FSDataOutputStream ostream = HdfsUtils.tryCreateFile(fs, lockFile);
@@ -69,6 +69,10 @@ public class DirLock {
     }
   }
 
+  private static Path getDirLockFile(Path dir) {
+    return new Path(dir.toString() + Path.SEPARATOR_CHAR + DIR_LOCK_FILE );
+  }
+
   private static String threadInfo () {
     return "ThdId=" + Thread.currentThread().getId() + ", ThdName="
             + Thread.currentThread().getName();
@@ -78,6 +82,35 @@ public class DirLock {
   public void release() throws IOException {
     fs.delete(lockFile, false);
     log.info("Thread {} released dir lock {} ", threadInfo(), lockFile);
+  }
+
+  /** if the lock on the directory is stale, take ownership */
+  public static DirLock takeOwnershipIfStale(FileSystem fs, Path dirToLock, int lockTimeoutSec) {
+    Path dirLockFile = getDirLockFile(dirToLock);
+
+    long now =  System.currentTimeMillis();
+    long expiryTime = now - (lockTimeoutSec*1000);
+
+    try {
+      long modTime = fs.getFileStatus(dirLockFile).getModificationTime();
+      if(modTime <= expiryTime)
+        return takeOwnership(fs, dirLockFile);
+      return null;
+    } catch (IOException e)  {
+      return  null;
+    }
+  }
+
+
+  private static DirLock takeOwnership(FileSystem fs, Path dirLockFile) throws IOException {
+    // delete and recreate lock file
+    if( fs.delete(dirLockFile, false) ) { // returns false if somebody else already deleted it (to take ownership)
+      FSDataOutputStream ostream = HdfsUtils.tryCreateFile(fs, dirLockFile);
+      if(ostream!=null)
+        ostream.close();
+      return new DirLock(fs, dirLockFile);
+    }
+    return null;
   }
 
   public Path getLockFile() {

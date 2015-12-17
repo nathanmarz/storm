@@ -29,13 +29,12 @@ import org.apache.hadoop.ipc.RemoteException;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 
 public class HdfsUtils {
   /** list files sorted by modification time that have not been modified since 'olderThan'. if
    * 'olderThan' is <= 0 then the filtering is disabled */
-  public static Collection<Path> listFilesByModificationTime(FileSystem fs, Path directory, long olderThan)
+  public static ArrayList<Path> listFilesByModificationTime(FileSystem fs, Path directory, long olderThan)
           throws IOException {
     ArrayList<LocatedFileStatus> fstats = new ArrayList<>();
 
@@ -43,7 +42,7 @@ public class HdfsUtils {
     while( itr.hasNext() ) {
       LocatedFileStatus fileStatus = itr.next();
       if(olderThan>0) {
-        if( fileStatus.getModificationTime()<olderThan )
+        if( fileStatus.getModificationTime()<=olderThan )
           fstats.add(fileStatus);
       }
       else {
@@ -69,14 +68,13 @@ public class HdfsUtils {
     } catch (FileAlreadyExistsException e) {
       return null;
     } catch (RemoteException e) {
-      if( e.getClassName().contentEquals(AlreadyBeingCreatedException.class.getName()) ) {
+      if( e.unwrapRemoteException() instanceof AlreadyBeingCreatedException ) {
         return null;
       } else { // unexpected error
         throw e;
       }
     }
   }
-
 
   public static class Pair<K,V> {
     private K key;

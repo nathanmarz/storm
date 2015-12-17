@@ -25,16 +25,12 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.HdfsConfiguration;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 import java.io.IOException;
 
@@ -45,8 +41,8 @@ public class TestDirLock {
   static FileSystem fs;
   static String hdfsURI;
   static HdfsConfiguration conf = new  HdfsConfiguration();
-
-  private Path lockDir = new Path("/tmp/lockdir");
+  static final int LOCK_EXPIRY_SEC = 1;
+  private Path locksDir = new Path("/tmp/lockdir");
 
   @BeforeClass
   public static void setupClass() throws IOException {
@@ -65,23 +61,23 @@ public class TestDirLock {
 
   @Before
   public void setUp() throws Exception {
-    assert fs.mkdirs(lockDir) ;
+    assert fs.mkdirs(locksDir) ;
   }
 
   @After
   public void tearDown() throws Exception {
-    fs.delete(lockDir, true);
+    fs.delete(locksDir, true);
   }
 
 
   @Test
   public void testBasicLocking() throws Exception {
     // 1 grab lock
-    DirLock lock = DirLock.tryLock(fs, lockDir);
+    DirLock lock = DirLock.tryLock(fs, locksDir);
     Assert.assertTrue(fs.exists(lock.getLockFile()));
 
     // 2 try to grab another lock while dir is locked
-    DirLock lock2 = DirLock.tryLock(fs, lockDir); // should fail
+    DirLock lock2 = DirLock.tryLock(fs, locksDir); // should fail
     Assert.assertNull(lock2);
 
     // 3 let go first lock
@@ -89,7 +85,7 @@ public class TestDirLock {
     Assert.assertFalse(fs.exists(lock.getLockFile()));
 
     // 4 try locking again
-    lock2  = DirLock.tryLock(fs, lockDir);
+    lock2  = DirLock.tryLock(fs, locksDir);
     Assert.assertTrue(fs.exists(lock2.getLockFile()));
     lock2.release();
     Assert.assertFalse(fs.exists(lock.getLockFile()));
@@ -99,7 +95,7 @@ public class TestDirLock {
 
   @Test
   public void testConcurrentLocking() throws Exception {
-    DirLockingThread[] thds = startThreads(100, lockDir );
+    DirLockingThread[] thds = startThreads(100, locksDir);
     for (DirLockingThread thd : thds) {
       thd.join();
       if( !thd.cleanExit)
@@ -107,7 +103,7 @@ public class TestDirLock {
       Assert.assertTrue(thd.cleanExit);
     }
 
-    Path lockFile = new Path(lockDir + Path.SEPARATOR + DirLock.DIR_LOCK_FILE);
+    Path lockFile = new Path(locksDir + Path.SEPARATOR + DirLock.DIR_LOCK_FILE);
     Assert.assertFalse(fs.exists(lockFile));
   }
 
@@ -124,6 +120,24 @@ public class TestDirLock {
     return result;
   }
 
+  @Test
+  public void testLockRecovery() throws Exception {
+    DirLock lock1 = DirLock.tryLock(fs, locksDir);   // should pass
+    Assert.assertNotNull(lock1);
+
+    DirLock lock2 = DirLock.takeOwnershipIfStale(fs, locksDir, LOCK_EXPIRY_SEC); // should fail
+    Assert.assertNull(lock2);
+
+    Thread.sleep(LOCK_EXPIRY_SEC*1000 + 500); // wait for lock to expire
+    Assert.assertTrue(fs.exists(lock1.getLockFile()));
+
+    DirLock lock3 = DirLock.takeOwnershipIfStale(fs, locksDir, LOCK_EXPIRY_SEC); // should pass now
+    Assert.assertNotNull(lock3);
+    Assert.assertTrue(fs.exists(lock3.getLockFile()));
+    lock3.release();
+    Assert.assertFalse(fs.exists(lock3.getLockFile()));
+    lock1.release(); // should not throw
+  }
 
   class DirLockingThread extends Thread {
 

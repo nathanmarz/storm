@@ -124,14 +124,14 @@ public class HdfsSpout extends BaseRichSpout {
       return;
     }
 
-    // 2) If no failed tuples, then send tuples from hdfs
+    // 2) If no failed tuples to be retried, then send tuples from hdfs
     while (true) {
       try {
         // 3) Select a new file if one is not open already
         if (reader == null) {
           reader = pickNextFile();
           if (reader == null) {
-            LOG.info("Currently no new files to process under : " + sourceDirPath);
+            LOG.debug("Currently no new files to process under : " + sourceDirPath);
             return;
           }
         }
@@ -165,8 +165,9 @@ public class HdfsSpout extends BaseRichSpout {
         LOG.error("Parsing error when processing at file location " + getFileProgress(reader) +
                 ". Skipping remainder of file.", e);
         markFileAsBad(reader.getFilePath());
-        // note: Unfortunately not emitting anything here due to parse error
-        // will trigger the configured spout wait strategy which is unnecessary
+        // Note: We don't return from this method on ParseException to avoid triggering the
+        // spout wait strategy (due to no emits). Instead we go back into the loop and
+        // generate a tuple from next file
       }
     }
 
@@ -192,7 +193,7 @@ public class HdfsSpout extends BaseRichSpout {
     TimerTask timerTask = new TimerTask() {
       @Override
       public void run() {
-        commitTimeElapsed.set(false);
+        commitTimeElapsed.set(true);
       }
     };
     commitTimer.schedule(timerTask, commitFrequencySec * 1000);
@@ -206,7 +207,8 @@ public class HdfsSpout extends BaseRichSpout {
   private void markFileAsDone(Path filePath) {
     fileReadCompletely = false;
     try {
-      renameCompletedFile(reader.getFilePath());
+      Path newFile = renameCompletedFile(reader.getFilePath());
+      LOG.info("Completed processing {}", newFile);
     } catch (IOException e) {
       LOG.error("Unable to archive completed file" + filePath, e);
     }
@@ -220,7 +222,7 @@ public class HdfsSpout extends BaseRichSpout {
     String originalName = new Path(fileNameMinusSuffix).getName();
     Path  newFile = new Path( badFilesDirPath + Path.SEPARATOR + originalName);
 
-    LOG.info("Moving bad file to " + newFile);
+    LOG.info("Moving bad file {} to {} ", originalName, newFile);
     try {
       if (!hdfs.rename(file, newFile) ) { // seems this can fail by returning false or throwing exception
         throw new IOException("Move failed for bad file: " + file); // convert false ret value to exception
@@ -254,7 +256,7 @@ public class HdfsSpout extends BaseRichSpout {
   public void open(Map conf, TopologyContext context,  SpoutOutputCollector collector) {
     this.conf = conf;
     final String FILE_SYSTEM = "filesystem";
-    LOG.info("Opening");
+    LOG.info("Opening HDFS Spout");
     this.collector = collector;
     this.hdfsConfig = new Configuration();
     this.tupleCounter = 0;
@@ -436,7 +438,8 @@ public class HdfsSpout extends BaseRichSpout {
   }
 
   private boolean canCommitNow() {
-    if( acksSinceLastCommit >= commitFrequencyCount )
+
+    if( commitFrequencyCount>0 &&  acksSinceLastCommit >= commitFrequencyCount )
       return true;
     return commitTimeElapsed.get();
   }
@@ -455,7 +458,7 @@ public class HdfsSpout extends BaseRichSpout {
       if (lock != null) {
         Path file = getFileForLockFile(lock.getLockFile(), sourceDirPath);
         String resumeFromOffset = lock.getLastLogEntry().fileOffset;
-        LOG.info("Processing abandoned file : {}", file);
+        LOG.info("Resuming processing of abandoned file : {}", file);
         return createFileReader(file, resumeFromOffset);
       }
 
@@ -468,12 +471,12 @@ public class HdfsSpout extends BaseRichSpout {
         if( file.getName().endsWith(ignoreSuffix) )
           continue;
 
-        LOG.info("Processing : {} ", file);
         lock = FileLock.tryLock(hdfs, file, lockDirPath, spoutId);
         if( lock==null ) {
-          LOG.info("Unable to get lock, so skipping file: {}", file);
+          LOG.debug("Unable to get lock, so skipping file: {}", file);
           continue; // could not lock, so try another file.
         }
+        LOG.info("Processing : {} ", file);
         Path newFile = renameSelectedFile(file);
         return createFileReader(newFile);
       }
@@ -494,8 +497,11 @@ public class HdfsSpout extends BaseRichSpout {
   private FileLock getOldestExpiredLock() throws IOException {
     // 1 - acquire lock on dir
     DirLock dirlock = DirLock.tryLock(hdfs, lockDirPath);
-    if (dirlock == null)
-      return null;
+    if (dirlock == null) {
+      dirlock = DirLock.takeOwnershipIfStale(hdfs, lockDirPath, lockTimeoutSec);
+      if (dirlock == null)
+        return null;
+    }
     try {
       // 2 - if clocks are in sync then simply take ownership of the oldest expired lock
       if (clocksInSync)
@@ -606,14 +612,15 @@ public class HdfsSpout extends BaseRichSpout {
   }
 
 
+  // renames files and returns the new file path
   private Path renameCompletedFile(Path file) throws IOException {
     String fileName = file.toString();
     String fileNameMinusSuffix = fileName.substring(0, fileName.indexOf(inprogress_suffix));
     String newName = new Path(fileNameMinusSuffix).getName();
 
     Path  newFile = new Path( archiveDirPath + Path.SEPARATOR + newName );
-    LOG.debug("Renaming complete file to " + newFile);
-    LOG.info("Completed file " + fileNameMinusSuffix );
+    LOG.debug("Renaming complete file to {} ", newFile);
+    LOG.info("Completed file {}", fileNameMinusSuffix );
     if (!hdfs.rename(file, newFile) ) {
       throw new IOException("Rename failed for file: " + file);
     }

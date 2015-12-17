@@ -33,10 +33,12 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 
 public class TestFileLock {
@@ -68,11 +70,13 @@ public class TestFileLock {
   @Before
   public void setUp() throws Exception {
     assert fs.mkdirs(filesDir) ;
+    assert fs.mkdirs(locksDir) ;
   }
 
   @After
   public void tearDown() throws Exception {
     fs.delete(filesDir, true);
+    fs.delete(locksDir, true);
   }
 
   @Test
@@ -261,9 +265,9 @@ public class TestFileLock {
   }
 
   @Test
-  public void testStaleLockRecovery() throws Exception {
+  public void testLockRecovery() throws Exception {
     final int LOCK_EXPIRY_SEC = 1;
-    final int WAIT_MSEC = 1500;
+    final int WAIT_MSEC = LOCK_EXPIRY_SEC*1000 + 500;
     Path file1 = new Path(filesDir + Path.SEPARATOR + "file1");
     Path file2 = new Path(filesDir + Path.SEPARATOR + "file2");
     Path file3 = new Path(filesDir + Path.SEPARATOR + "file3");
@@ -284,25 +288,36 @@ public class TestFileLock {
       HdfsUtils.Pair<Path, FileLock.LogEntry> expired = FileLock.locateOldestExpiredLock(fs, locksDir, LOCK_EXPIRY_SEC);
       Assert.assertNull(expired);
 
+      // 1) Simulate lock file lease expiring and getting closed by HDFS
+      closeUnderlyingLockFile(lock3);
+
       // 2) wait for all 3 locks to expire then heart beat on 2 locks
-      Thread.sleep(WAIT_MSEC);
+      Thread.sleep(WAIT_MSEC*2); // wait for locks to expire
       lock1.heartbeat("1");
       lock2.heartbeat("1");
 
-      //todo: configure the HDFS lease timeout
-
       // 3) Take ownership of stale lock
       FileLock lock3b = FileLock.acquireOldestExpiredLock(fs, locksDir, LOCK_EXPIRY_SEC, "spout1");
-//      Assert.assertNotNull(lock3b);
-//      Assert.assertEquals("Expected lock3 file", lock3b.getLockFile(), lock3.getLockFile());
-    }finally {
+      Assert.assertNotNull(lock3b);
+      Assert.assertEquals("Expected lock3 file", Path.getPathWithoutSchemeAndAuthority(lock3b.getLockFile()), lock3.getLockFile());
+    } finally {
       lock1.release();
       lock2.release();
       lock3.release();
       fs.delete(file1, false);
       fs.delete(file2, false);
-      fs.delete(file3, false);
+      try {
+        fs.delete(file3, false);
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
     }
+  }
+
+  private void closeUnderlyingLockFile(FileLock lock) throws ReflectiveOperationException {
+    Method m = FileLock.class.getDeclaredMethod("forceCloseLockFile");
+    m.setAccessible(true);
+    m.invoke(lock);
   }
 
   /** return null if file not found */

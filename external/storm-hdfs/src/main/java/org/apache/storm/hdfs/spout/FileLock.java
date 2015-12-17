@@ -92,6 +92,12 @@ public class FileLock {
   public void release() throws IOException {
     lockFileStream.close();
     fs.delete(lockFile, false);
+    log.debug("Released lock file {}", lockFile);
+  }
+
+  // for testing only.. invoked via reflection
+  private void forceCloseLockFile() throws IOException {
+    lockFileStream.close();
   }
 
   /** returns lock on file or null if file is already locked. throws if unexpected problem */
@@ -135,6 +141,7 @@ public class FileLock {
       if(lastEntry==null) {
         throw new RuntimeException(lockFile.getName() + " is empty. this file is invalid.");
       }
+      log.error("{} , lastModified= {},  expiryTime= {},  diff= {}", lockFile, lastEntry.eventTime, olderThan,  lastEntry.eventTime-olderThan );
       if( lastEntry.eventTime <= olderThan )
         return lastEntry;
     }
@@ -176,8 +183,8 @@ public class FileLock {
     try {
       return new FileLock(fs, lockFile, spoutId, lastEntry);
     } catch (RemoteException e) {
-      if (e.getClassName().contentEquals(AlreadyBeingCreatedException.class.getName())) {
-        log.info("Lock file {} is currently open. cannot transfer ownership on.", lockFile);
+      if (e.unwrapRemoteException() instanceof AlreadyBeingCreatedException) {
+        log.info("Lock file {} is currently open. Cannot transfer ownership.", lockFile);
         return null;
       } else { // unexpected error
         throw e;
@@ -198,7 +205,8 @@ public class FileLock {
   public static FileLock acquireOldestExpiredLock(FileSystem fs, Path lockFilesDir, int locktimeoutSec, String spoutId)
           throws IOException {
     // list files
-    long olderThan = System.currentTimeMillis() - (locktimeoutSec*1000);
+    long now = System.currentTimeMillis();
+    long olderThan = now - (locktimeoutSec*1000);
     Collection<Path> listing = HdfsUtils.listFilesByModificationTime(fs, lockFilesDir, olderThan);
 
     // locate expired lock files (if any). Try to take ownership (oldest lock first)
@@ -213,7 +221,7 @@ public class FileLock {
       }
     }
     if(listing.isEmpty())
-      log.info("No abandoned files to be refound");
+      log.info("No abandoned lock files found");
     return null;
   }
 

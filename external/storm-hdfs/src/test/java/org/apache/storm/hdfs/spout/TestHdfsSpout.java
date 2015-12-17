@@ -105,7 +105,7 @@ public class TestHdfsSpout {
 
   @After
   public void shutDown() throws IOException {
-    fs.delete(new Path(baseFolder.toString()),true);
+    fs.delete(new Path(baseFolder.toString()), true);
   }
 
   @Test
@@ -133,7 +133,6 @@ public class TestHdfsSpout {
     Path arc2 = new Path(archive.toString() + "/file2.txt");
     checkCollectorOutput_txt((MockCollector) spout.getCollector(), arc1, arc2);
   }
-
 
   private void checkCollectorOutput_txt(MockCollector collector, Path... txtFiles) throws IOException {
     ArrayList<String> expected = new ArrayList<>();
@@ -196,10 +195,6 @@ public class TestHdfsSpout {
     listDir(archive);
   }
 
-  private List<String> listBadDir() throws IOException {
-    return listDir(badfiles);
-  }
-
   private List<String> listDir(Path p) throws IOException {
     ArrayList<String> result = new ArrayList<>();
     System.err.println("*** Listing " + p);
@@ -207,7 +202,7 @@ public class TestHdfsSpout {
     while ( fileNames.hasNext() ) {
       LocatedFileStatus fileStatus = fileNames.next();
       System.err.println(fileStatus.getPath());
-      result.add(fileStatus.getPath().toString());
+      result.add(Path.getPathWithoutSchemeAndAuthority(fileStatus.getPath()).toString());
     }
     return result;
   }
@@ -244,50 +239,127 @@ public class TestHdfsSpout {
     checkCollectorOutput_seq((MockCollector) spout.getCollector(), f1, f2);
   }
 
-// - TODO: this test needs the spout to fail with an exception
   @Test
-  public void testFailure() throws Exception {
-
+  public void testReadFailures() throws Exception {
+    // 1) create couple of input files to read
     Path file1 = new Path(source.toString() + "/file1.txt");
-    createTextFile(file1, 5);
+    Path file2 = new Path(source.toString() + "/file2.txt");
 
-    listDir(source);
+    createTextFile(file1, 6);
+    createTextFile(file2, 7);
+    Assert.assertEquals(2, listDir(source).size());
 
+    // 2) run spout
     Map conf = getDefaultConfig();
-//    conf.put(HdfsSpout.Configs.BACKOFF_SEC, "2");
     HdfsSpout spout = makeSpout(0, conf, MockTextFailingReader.class.getName());
-    List<String> res = runSpout(spout, "r3");
-    for (String re : res) {
-      System.err.println(re);
-    }
+    List<String> res = runSpout(spout, "r11");
+    String[] expected = new String[] {"[line 0]","[line 1]","[line 2]","[line 0]","[line 1]","[line 2]"};
+    Assert.assertArrayEquals(expected, res.toArray());
 
-    listCompletedDir();
-    List<String> badFiles = listBadDir();
-    Assert.assertEquals( badFiles.size(), 1);
-    Assert.assertEquals(((MockCollector) spout.getCollector()).lines.size(), 1);
+    // 3) make sure 6 lines (3 from each file) were read in all
+    Assert.assertEquals(((MockCollector) spout.getCollector()).lines.size(), 6);
+    ArrayList<Path> badFiles = HdfsUtils.listFilesByModificationTime(fs, badfiles, 0);
+    Assert.assertEquals(badFiles.size(), 2);
   }
 
-  // @Test
+  // check lock creation/deletion and contents
+   @Test
   public void testLocking() throws Exception {
+     Path file1 = new Path(source.toString() + "/file1.txt");
+     createTextFile(file1, 10);
+
+     // 0) config spout to log progress in lock file for each tuple
+     Map conf = getDefaultConfig();
+     conf.put(Configs.COMMIT_FREQ_COUNT, "1");
+     conf.put(Configs.COMMIT_FREQ_SEC, "100"); // make it irrelvant
+     HdfsSpout spout = makeSpout(0, conf, Configs.TEXT);
+
+     // 1) read initial lines in file, then check if lock exists
+     List<String> res = runSpout(spout, "r5");
+     Assert.assertEquals(5, res.size());
+     List<String> lockFiles = listDir(spout.getLockDirPath());
+     Assert.assertEquals(1, lockFiles.size());
+
+     // 2) check log file content line count == tuples emitted + 1
+     List<String> lines = readTextFile(fs, lockFiles.get(0));
+     Assert.assertEquals(lines.size(), res.size()+1);
+
+     // 3) read remaining lines in file, then ensure lock is gone
+     runSpout(spout, "r6");
+     lockFiles = listDir(spout.getLockDirPath());
+     Assert.assertEquals(0, lockFiles.size());
+
+
+     // 4)  --- Create another input file and reverify same behavior ---
+     Path file2 = new Path(source.toString() + "/file2.txt");
+     createTextFile(file2, 10);
+
+     // 5) read initial lines in file, then check if lock exists
+     res = runSpout(spout, "r5");
+     Assert.assertEquals(15, res.size());
+     lockFiles = listDir(spout.getLockDirPath());
+     Assert.assertEquals(1, lockFiles.size());
+
+     // 6) check log file content line count == tuples emitted + 1
+     lines = readTextFile(fs, lockFiles.get(0));
+     Assert.assertEquals(6, lines.size());
+
+     // 7) read remaining lines in file, then ensure lock is gone
+     runSpout(spout, "r6");
+     lockFiles = listDir(spout.getLockDirPath());
+     Assert.assertEquals(0, lockFiles.size());
+   }
+
+  @Test
+  public void testLockLoggingFreqCount() throws Exception {
     Path file1 = new Path(source.toString() + "/file1.txt");
-    createTextFile(file1, 5);
+    createTextFile(file1, 10);
 
-    listDir(source);
-
+    // 0) config spout to log progress in lock file for each tuple
     Map conf = getDefaultConfig();
-    conf.put(Configs.COMMIT_FREQ_COUNT, "1");
-    conf.put(Configs.COMMIT_FREQ_SEC, "1");
+    conf.put(Configs.COMMIT_FREQ_COUNT, "2");  // 1 lock log entry every 2 tuples
+    conf.put(Configs.COMMIT_FREQ_SEC, "1000"); // make it irrelevant for this test
     HdfsSpout spout = makeSpout(0, conf, Configs.TEXT);
-    List<String> res = runSpout(spout,"r4");
-    for (String re : res) {
-      System.err.println(re);
-    }
-    List<String> lockFiles = listDir(spout.getLockDirPath());
-    Assert.assertEquals(1, lockFiles.size());
-    runSpout(spout, "r3");
-    List<String> lines = readTextFile(fs, lockFiles.get(0));
-    System.err.println(lines);
-    Assert.assertEquals(6, lines.size());
+
+    // 1) read 5 lines in file,
+    runSpout(spout, "r5");
+
+    // 2) check log file contents
+    String lockFile = listDir(spout.getLockDirPath()).get(0);
+    List<String> lines = readTextFile(fs, lockFile);
+    Assert.assertEquals(lines.size(), 3);
+
+    // 3) read 6th line and see if another log entry was made
+    runSpout(spout, "r1");
+    lines = readTextFile(fs, lockFile);
+    Assert.assertEquals(lines.size(), 4);
+  }
+
+  @Test
+  public void testLockLoggingFreqSec() throws Exception {
+    Path file1 = new Path(source.toString() + "/file1.txt");
+    createTextFile(file1, 10);
+
+    // 0) config spout to log progress in lock file for each tuple
+    Map conf = getDefaultConfig();
+    conf.put(Configs.COMMIT_FREQ_COUNT, "0");  // disable it
+    conf.put(Configs.COMMIT_FREQ_SEC, "2"); // log every 2 sec
+
+    HdfsSpout spout = makeSpout(0, conf, Configs.TEXT);
+
+    // 1) read 5 lines in file
+    runSpout(spout, "r5");
+
+    // 2) check log file contents
+    String lockFile = listDir(spout.getLockDirPath()).get(0);
+    List<String> lines = readTextFile(fs, lockFile);
+    Assert.assertEquals(lines.size(), 1);
+    Thread.sleep(3000); // allow freq_sec to expire
+
+    // 3) read another line and see if another log entry was made
+    runSpout(spout, "r1");
+    lines = readTextFile(fs, lockFile);
+    Assert.assertEquals(2, lines.size());
   }
 
   private static List<String> readTextFile(FileSystem fs, String f) throws IOException {
@@ -320,7 +392,7 @@ public class TestHdfsSpout {
   }
 
   /**
-   * Execute a sequence of calls to EventHubSpout.
+   * Execute a sequence of calls on HdfsSpout.
    *
    * @param cmds: set of commands to run,
    * e.g. "r,r,r,r,a1,f2,...". The commands are:
@@ -427,7 +499,8 @@ public class TestHdfsSpout {
 
 
 
-  // Throws exceptions for 2nd and 3rd line read attempt
+  // Throws IOExceptions for 3rd & 4th call to next(), succeeds on 5th, thereafter
+  // throws ParseException. Effectively produces 3 lines (1,2 & 3) from each file read
   static class MockTextFailingReader extends TextFileReader {
     int readAttempts = 0;
 
@@ -438,9 +511,9 @@ public class TestHdfsSpout {
     @Override
     public List<Object> next() throws IOException, ParseException {
       readAttempts++;
-      if (readAttempts == 2) {
+      if (readAttempts == 3 || readAttempts ==4) {
         throw new IOException("mock test exception");
-      } else if (readAttempts >= 3) {
+      } else if (readAttempts > 5 ) {
         throw new ParseException("mock test exception", null);
       }
       return super.next();

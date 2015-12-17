@@ -1040,10 +1040,6 @@
               (list form x)))
   ([x form & more] `(-<> (-<> ~x ~form) ~@more)))
 
-(def LOG-DIR
-  (.getCanonicalPath
-    (clojure.java.io/file (or (System/getProperty "storm.log.dir") (str (System/getProperty "storm.home") "logs")))))
-
 (defn logs-filename
   [storm-id port]
   (str storm-id file-path-separator port file-path-separator "worker.log"))

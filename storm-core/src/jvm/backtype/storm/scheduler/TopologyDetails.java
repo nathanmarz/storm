@@ -83,6 +83,10 @@ public class TopologyDetails {
         return numWorkers;
     }
 
+    public StormTopology getTopology() {
+        return topology;
+    }
+
     public Map<ExecutorDetails, String> getExecutorToComponent() {
         return this.executorToComponent;
     }

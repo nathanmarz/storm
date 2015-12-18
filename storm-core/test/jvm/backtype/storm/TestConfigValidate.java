@@ -633,7 +633,6 @@ public class TestConfigValidate {
     @Test
     public void TestResourceAwareSchedulerUserPool() {
         TestConfig config = new TestConfig();
-        Collection<Object> passCases = new LinkedList<Object>();
         Collection<Object> failCases = new LinkedList<Object>();
 
         Map<String, Map<String, Integer>> passCase1 = new HashMap<String, Map<String, Integer>>();
@@ -648,12 +647,8 @@ public class TestConfigValidate {
         passCase1.get("derek").put("cpu", 30000);
         passCase1.get("derek").put("memory", 60148);
 
-        passCases.add(passCase1);
-
-        for (Object value : passCases) {
-            config.put(TestConfig.TEST_MAP_CONFIG_7, value);
-            ConfigValidation.validateFields(config, TestConfig.class);
-        }
+        config.put(TestConfig.TEST_MAP_CONFIG_7, (Object) passCase1);
+        ConfigValidation.validateFields(config, TestConfig.class);
 
         Map<String, Map<String, Integer>> failCase1 = new HashMap<String, Map<String, Integer>>();
         failCase1.put("jerry", new HashMap<String, Integer>());
@@ -664,9 +659,11 @@ public class TestConfigValidate {
         failCase1.get("jerry").put("memory", 20148);
         failCase1.get("bobby").put("cpu", 20000);
         failCase1.get("bobby").put("memory", 40148);
+        //this will fail the test since user derek does not have an entry for memory
         failCase1.get("derek").put("cpu", 30000);
 
         Map<String, Map<String, Integer>> failCase2 = new HashMap<String, Map<String, Integer>>();
+        //this will fail since jerry doesn't have either cpu or memory entries
         failCase2.put("jerry", new HashMap<String, Integer>());
         failCase2.put("bobby", new HashMap<String, Integer>());
         failCase2.put("derek", new HashMap<String, Integer>());
@@ -700,7 +697,7 @@ public class TestConfigValidate {
             config.put(TestConfig.TEST_MAP_CONFIG_8, value);
             ConfigValidation.validateFields(config, TestConfig.class);
         }
-
+        //will fail since backtype.storm.nimbus.NimbusInfo doesn't implement or extend backtype.storm.networktopography.DNSToSwitchMapping
         failCases.add("backtype.storm.nimbus.NimbusInfo");
         failCases.add(null);
         for (Object value : failCases) {

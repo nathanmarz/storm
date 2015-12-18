@@ -26,8 +26,6 @@ import org.slf4j.LoggerFactory;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -324,6 +322,7 @@ public class User {
 
     /**
      * Comparator that sorts topologies by priority and then by submission time
+     * First sort by Topology Priority, if there is a tie for topology priority, topology uptime is used to sort
      */
     static class PQsortByPriorityAndSubmittionTime implements Comparator<TopologyDetails> {
 

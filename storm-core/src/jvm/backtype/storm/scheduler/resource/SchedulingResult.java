@@ -80,7 +80,7 @@ public class SchedulingResult {
     }
 
     public Map<WorkerSlot, Collection<ExecutorDetails>> getSchedulingResultMap() {
-        return schedulingResultMap;
+        return this.schedulingResultMap;
     }
 
     public boolean isSuccess() {

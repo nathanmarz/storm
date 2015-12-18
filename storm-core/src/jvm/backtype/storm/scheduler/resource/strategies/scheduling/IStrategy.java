@@ -18,15 +18,11 @@
 
 package backtype.storm.scheduler.resource.strategies.scheduling;
 
-import java.util.Collection;
 import java.util.Map;
 
 import backtype.storm.scheduler.Cluster;
 import backtype.storm.scheduler.Topologies;
-import backtype.storm.scheduler.ExecutorDetails;
 import backtype.storm.scheduler.TopologyDetails;
-import backtype.storm.scheduler.WorkerSlot;
-import backtype.storm.scheduler.resource.RAS_Node;
 import backtype.storm.scheduler.resource.RAS_Nodes;
 import backtype.storm.scheduler.resource.SchedulingResult;
 import backtype.storm.scheduler.resource.User;

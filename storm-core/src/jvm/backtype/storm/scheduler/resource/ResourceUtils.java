@@ -152,7 +152,7 @@ public class ResourceUtils {
                     WorkerSlot slot = entry.getValue();
                     String nodeId = slot.getNodeId();
                     ExecutorDetails exec = entry.getKey();
-                    if (schedulingMap.containsKey(nodeId) == false) {
+                    if (!schedulingMap.containsKey(nodeId)) {
                         schedulingMap.put(nodeId, new HashMap<String, Map<WorkerSlot, Collection<ExecutorDetails>>>());
                     }
                     if (schedulingMap.get(nodeId).containsKey(topo.getId()) == false) {
@@ -180,14 +180,5 @@ public class ResourceUtils {
             }
         }
         return str.toString();
-    }
-
-    public static String printScheduling(RAS_Nodes nodes) {
-        String ret="";
-        for (RAS_Node node : nodes.getNodes()) {
-            ret += "Node: " + node.getHostname() + "\n";
-            ret += "-> " + node.getTopoIdTousedSlots() + "\n";
-        }
-        return ret;
     }
 }

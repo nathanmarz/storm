@@ -32,17 +32,13 @@ public class DefaultSchedulingPriorityStrategy implements ISchedulingPriorityStr
     private static final Logger LOG = LoggerFactory
             .getLogger(DefaultSchedulingPriorityStrategy.class);
 
-    private Topologies topologies;
     private Cluster cluster;
     private Map<String, User> userMap;
-    private RAS_Nodes nodes;
 
     @Override
     public void prepare(Topologies topologies, Cluster cluster, Map<String, User> userMap, RAS_Nodes nodes) {
-        this.topologies = topologies;
         this.cluster = cluster;
         this.userMap = userMap;
-        this.nodes = nodes;
     }
 
     @Override

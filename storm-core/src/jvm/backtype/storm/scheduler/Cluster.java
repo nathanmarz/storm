@@ -458,7 +458,7 @@ public class Cluster {
      * set assignments for cluster
      */
     public void setAssignments(Map<String, SchedulerAssignment> newAssignments) {
-        this.assignments = new HashMap<String, SchedulerAssignmentImpl>();
+        this.assignments = new HashMap<String, SchedulerAssignmentImpl>(newAssignments.size());
         for (Map.Entry<String, SchedulerAssignment> entry : newAssignments.entrySet()) {
             this.assignments.put(entry.getKey(), new SchedulerAssignmentImpl(entry.getValue().getTopologyId(), entry.getValue().getExecutorToSlot()));
         }

@@ -34,14 +34,12 @@ public class DefaultEvictionStrategy implements IEvictionStrategy {
     private static final Logger LOG = LoggerFactory
             .getLogger(DefaultEvictionStrategy.class);
 
-    private Topologies topologies;
     private Cluster cluster;
     private Map<String, User> userMap;
     private RAS_Nodes nodes;
 
     @Override
     public void prepare(Topologies topologies, Cluster cluster, Map<String, User> userMap, RAS_Nodes nodes) {
-        this.topologies = topologies;
         this.cluster = cluster;
         this.userMap = userMap;
         this.nodes = nodes;
@@ -51,14 +49,16 @@ public class DefaultEvictionStrategy implements IEvictionStrategy {
     public boolean makeSpaceForTopo(TopologyDetails td) {
         LOG.debug("attempting to make space for topo {} from user {}", td.getName(), td.getTopologySubmitter());
         User submitter = this.userMap.get(td.getTopologySubmitter());
-        if (submitter.getCPUResourceGuaranteed() == null || submitter.getMemoryResourceGuaranteed() == null) {
+        if (submitter.getCPUResourceGuaranteed() == null || submitter.getMemoryResourceGuaranteed() == null
+                || submitter.getCPUResourceGuaranteed() == 0.0 || submitter.getMemoryResourceGuaranteed() == 0.0) {
             return false;
         }
+
         double cpuNeeded = td.getTotalRequestedCpu() / submitter.getCPUResourceGuaranteed();
         double memoryNeeded = (td.getTotalRequestedMemOffHeap() + td.getTotalRequestedMemOnHeap()) / submitter.getMemoryResourceGuaranteed();
 
         User evictUser = this.findUserWithHighestAverageResourceUtilAboveGuarantee();
-        //user has enough resource under his or her resource guarantee to schedule topology
+        //check if user has enough resource under his or her resource guarantee to schedule topology
         if ((1.0 - submitter.getCPUResourcePoolUtilization()) >= cpuNeeded && (1.0 - submitter.getMemoryResourcePoolUtilization()) >= memoryNeeded) {
             if (evictUser != null) {
                 TopologyDetails topologyEvict = evictUser.getRunningTopologyWithLowestPriority();
@@ -67,7 +67,7 @@ public class DefaultEvictionStrategy implements IEvictionStrategy {
             }
         } else {
             if (evictUser != null) {
-                if ((evictUser.getResourcePoolAverageUtilization() - 1.0) > (cpuNeeded + (submitter.getResourcePoolAverageUtilization() - 1.0))) {
+                if ((evictUser.getResourcePoolAverageUtilization() - 1.0) > (((cpuNeeded + memoryNeeded) / 2) + (submitter.getResourcePoolAverageUtilization() - 1.0))) {
                     TopologyDetails topologyEvict = evictUser.getRunningTopologyWithLowestPriority();
                     evictTopology(topologyEvict);
                     return true;

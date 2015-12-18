@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1400: Netty Context removeClient() called after term() causes NullPointerException.
  * STORM-1383: Supervisors should not crash if nimbus is unavailable
  * STORM-1381: Client side topology submission hook.
  * STORM-1376: Performance slowdown due excessive zk connections and log-debugging

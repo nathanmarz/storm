@@ -1554,7 +1554,9 @@
                            (.get_wait_secs options)
                            )]
             (transition-name! nimbus storm-name [:kill wait-amt] true)
-            (notify-topology-action-listener nimbus storm-name operation))))
+            (notify-topology-action-listener nimbus storm-name operation))
+          (add-topology-to-history-log (get-storm-id (:storm-cluster-state nimbus) storm-name)
+            nimbus topology-conf)))
 
       (^void rebalance [this ^String storm-name ^RebalanceOptions options]
         (mark! nimbus:num-rebalance-calls)

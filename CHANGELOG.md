@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1383: Supervisors should not crash if nimbus is unavailable
  * STORM-1381: Client side topology submission hook.
  * STORM-1376: Performance slowdown due excessive zk connections and log-debugging
  * STORM-1395: Move JUnit dependency to top-level pom

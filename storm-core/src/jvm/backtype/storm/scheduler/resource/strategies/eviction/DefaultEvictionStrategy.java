@@ -62,6 +62,12 @@ public class DefaultEvictionStrategy implements IEvictionStrategy {
         if ((1.0 - submitter.getCPUResourcePoolUtilization()) >= cpuNeeded && (1.0 - submitter.getMemoryResourcePoolUtilization()) >= memoryNeeded) {
             if (evictUser != null) {
                 TopologyDetails topologyEvict = evictUser.getRunningTopologyWithLowestPriority();
+                LOG.debug("Running Topology {} from user {} is still within user's resource guarantee thus, POTENTIALLY evicting Topology {} from user {} since:" +
+                                "\n(1.0 - submitter.getCPUResourcePoolUtilization()) = {} >= cpuNeeded = {}" +
+                                "\nand" +
+                                "\n(1.0 - submitter.getMemoryResourcePoolUtilization()) = {} >= memoryNeeded = {}"
+                        ,td, submitter, topologyEvict, evictUser, (1.0 - submitter.getCPUResourcePoolUtilization())
+                        , cpuNeeded, (1.0 - submitter.getMemoryResourcePoolUtilization()), memoryNeeded);
                 evictTopology(topologyEvict);
                 return true;
             }
@@ -69,16 +75,27 @@ public class DefaultEvictionStrategy implements IEvictionStrategy {
             if (evictUser != null) {
                 if ((evictUser.getResourcePoolAverageUtilization() - 1.0) > (((cpuNeeded + memoryNeeded) / 2) + (submitter.getResourcePoolAverageUtilization() - 1.0))) {
                     TopologyDetails topologyEvict = evictUser.getRunningTopologyWithLowestPriority();
+                    LOG.debug("POTENTIALLY Evicting Topology {} from user {} since:" +
+                                    "\n((evictUser.getResourcePoolAverageUtilization() - 1.0) = {}" +
+                                    "\n(cpuNeeded + memoryNeeded) / 2) = {} and (submitter.getResourcePoolAverageUtilization() - 1.0)) = {} Thus," +
+                                    "\n(evictUser.getResourcePoolAverageUtilization() - 1.0) = {} > (((cpuNeeded + memoryNeeded) / 2) + (submitter.getResourcePoolAverageUtilization() - 1.0)) = {}"
+                            ,topologyEvict, evictUser, (evictUser.getResourcePoolAverageUtilization() - 1.0), ((cpuNeeded + memoryNeeded) / 2)
+                            , (submitter.getResourcePoolAverageUtilization() - 1.0), (evictUser.getResourcePoolAverageUtilization() - 1.0)
+                            , (((cpuNeeded + memoryNeeded) / 2) + (submitter.getResourcePoolAverageUtilization() - 1.0)));
                     evictTopology(topologyEvict);
                     return true;
                 }
             }
         }
         //See if there is a lower priority topology that can be evicted from the current user
+        //topologies should already be sorted in order of increasing priority.
+        //Thus, topology at the front of the queue has the lowest priority
         for (TopologyDetails topo : submitter.getTopologiesRunning()) {
             //check to if there is a topology with a lower priority we can evict
             if (topo.getTopologyPriority() > td.getTopologyPriority()) {
-                evictTopology(topo);
+                LOG.debug("POTENTIALLY Evicting Topology {} from user {} (itself) since topology {} has a lower priority than topology {}"
+                        , topo, submitter, topo, td);
+                        evictTopology(topo);
                 return true;
             }
         }

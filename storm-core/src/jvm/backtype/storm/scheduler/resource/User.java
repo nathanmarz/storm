@@ -38,9 +38,10 @@ public class User {
     //Topologies yet to be scheduled sorted by priority for each user
     private TreeSet<TopologyDetails> runningQueue = new TreeSet<TopologyDetails>(new PQsortByPriorityAndSubmittionTime());
 
-    //Topologies that was attempted to be scheduled but wasn't successull
+    //Topologies that was attempted to be scheduled but wasn't successful
     private TreeSet<TopologyDetails> attemptedQueue = new TreeSet<TopologyDetails>(new PQsortByPriorityAndSubmittionTime());
 
+    //Topologies that was deemed to be invalid
     private TreeSet<TopologyDetails> invalidQueue = new TreeSet<TopologyDetails>(new PQsortByPriorityAndSubmittionTime());
 
     private Map<String, Double> resourcePool = new HashMap<String, Double>();

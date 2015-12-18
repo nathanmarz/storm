@@ -2159,7 +2159,7 @@
               bases (topology-bases storm-cluster-state)
               assigned-topology-ids (.assignments storm-cluster-state nil)
               user-group-match-fn (fn [topo-id user conf]
-                                    (let [topology-conf (try-read-storm-conf conf topo-id)
+                                    (let [topology-conf (try-read-storm-conf conf topo-id (:blob-store nimbus))
                                           groups (get-topo-logs-groups topology-conf)]
                                       (or (nil? user)
                                           (some #(= % user) admin-users)

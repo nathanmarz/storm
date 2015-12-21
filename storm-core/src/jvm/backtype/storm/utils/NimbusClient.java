@@ -82,12 +82,15 @@ public class NimbusClient extends ThriftClient {
                         }
                     }
                 }
-                throw new RuntimeException("Found nimbuses " + nimbuses + " none of which is elected as leader, please try " +
+                throw new NimbusLeaderNotFoundException(
+                        "Found nimbuses " + nimbuses + " none of which is elected as leader, please try " +
                         "again after some time.");
             }
         }
-        throw new RuntimeException("Could not find leader nimbus from seed hosts " + seeds + ". " +
-                "Did you specify a valid list of nimbus hosts for config " + Config.NIMBUS_SEEDS);
+        throw new NimbusLeaderNotFoundException(
+                "Could not find leader nimbus from seed hosts " + seeds + ". " +
+                "Did you specify a valid list of nimbus hosts for config " +
+                        Config.NIMBUS_SEEDS + "?");
     }
 
     public NimbusClient(Map conf, String host, int port) throws TTransportException {

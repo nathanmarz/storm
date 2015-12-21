@@ -1030,6 +1030,10 @@
   (let [klass (if (string? klass) (Class/forName klass) klass)]
     (.newInstance klass)))
 
+(defn get-configured-class
+  [conf config-key]
+  (if (.get conf config-key) (new-instance (.get conf config-key)) nil))
+
 (defmacro -<>
   ([x] x)
   ([x form] (if (seq? form)
@@ -1039,10 +1043,6 @@
                 (meta form))
               (list form x)))
   ([x form & more] `(-<> (-<> ~x ~form) ~@more)))
-
-(def LOG-DIR
-  (.getCanonicalPath
-    (clojure.java.io/file (or (System/getProperty "storm.log.dir") (str (System/getProperty "storm.home") "logs")))))
 
 (defn logs-filename
   [storm-id port]

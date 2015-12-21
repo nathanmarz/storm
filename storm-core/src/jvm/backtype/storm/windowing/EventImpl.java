@@ -35,4 +35,17 @@ class EventImpl<T> implements Event<T> {
     public T get() {
         return event;
     }
+
+    @Override
+    public boolean isWatermark() {
+        return false;
+    }
+
+    @Override
+    public String toString() {
+        return "EventImpl{" +
+                "event=" + event +
+                ", ts=" + ts +
+                '}';
+    }
 }

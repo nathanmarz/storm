@@ -29,17 +29,22 @@ public class CountTriggerPolicy<T> implements TriggerPolicy<T> {
     private final int count;
     private final AtomicInteger currentCount;
     private final TriggerHandler handler;
+    private final EvictionPolicy<T> evictionPolicy;
 
-    public CountTriggerPolicy(int count, TriggerHandler handler) {
+    public CountTriggerPolicy(int count, TriggerHandler handler, EvictionPolicy<T> evictionPolicy) {
         this.count = count;
         this.currentCount = new AtomicInteger();
         this.handler = handler;
+        this.evictionPolicy = evictionPolicy;
     }
 
     @Override
     public void track(Event<T> event) {
-        if (currentCount.incrementAndGet() >= count) {
-            handler.onTrigger();
+        if (!event.isWatermark()) {
+            if (currentCount.incrementAndGet() >= count) {
+                evictionPolicy.setContext(System.currentTimeMillis());
+                handler.onTrigger();
+            }
         }
     }
 

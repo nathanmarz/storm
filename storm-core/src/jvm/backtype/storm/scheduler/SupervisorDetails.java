@@ -119,10 +119,14 @@ public class SupervisorDetails {
     }
 
     public Double getTotalMemory() {
-        return getTotalResource(Config.SUPERVISOR_MEMORY_CAPACITY_MB);
+        Double totalMemory = getTotalResource(Config.SUPERVISOR_MEMORY_CAPACITY_MB);
+        assert totalMemory != null;
+        return totalMemory;
     }
 
     public Double getTotalCPU() {
-        return getTotalResource(Config.SUPERVISOR_CPU_CAPACITY);
+        Double totalCPU = getTotalResource(Config.SUPERVISOR_CPU_CAPACITY);
+        assert totalCPU != null;
+        return totalCPU;
     }
 }

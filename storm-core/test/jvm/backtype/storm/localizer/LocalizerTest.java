@@ -518,11 +518,9 @@ public class LocalizerTest {
 
   @Test(expected = KeyNotFoundException.class)
   public void testKeyNotFoundException() throws Exception {
-    Map conf = new HashMap();
+    Map conf = Utils.readStormConfig();
     String key1 = "key1";
     conf.put(Config.STORM_LOCAL_DIR, "target");
-    conf.put(Config.BLOBSTORE_SUPERUSER, "superuser");
-    conf.put(Config.STORM_PRINCIPAL_TO_LOCAL_PLUGIN, "backtype.storm.security.auth.DefaultPrincipalToLocal");
     LocalFsBlobStore bs = new LocalFsBlobStore();
     LocalFsBlobStore spy = spy(bs);
     Mockito.doReturn(true).when(spy).checkForBlobOrDownload(key1);

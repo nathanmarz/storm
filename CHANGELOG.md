@@ -1,4 +1,16 @@
 ## 0.11.0
+ * STORM-898: Add priorities and per user resource guarantees to Resource Aware Scheduler
+ * STORM-1187: Support windowing based on tuple ts.
+ * STORM-1400: Netty Context removeClient() called after term() causes NullPointerException.
+ * STORM-1383: Supervisors should not crash if nimbus is unavailable
+ * STORM-1381: Client side topology submission hook.
+ * STORM-1376: Performance slowdown due excessive zk connections and log-debugging
+ * STORM-1395: Move JUnit dependency to top-level pom
+ * STORM-1372: Merging design and usage documents for distcache
+ * STORM-1393: Update the storm.log.dir function, add doc for logs
+ * STORM-1377: nimbus_auth_test: very short timeouts causing spurious failures
+ * STORM-1388: Fix url and email links in README file
+ * STORM-1389: Removed creation of projection tuples as they are already available
  * STORM-1179: Create Maven Profiles for Integration Tests.
  * STORM-1387: workers-artifacts directory configurable, and default to be under storm.log.dir.
  * STORM-1211: Add trident state and query support for cassandra connector

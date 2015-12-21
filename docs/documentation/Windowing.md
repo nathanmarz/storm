@@ -126,6 +126,97 @@ Time duration based tumbling window that tumbles after the specified time durati
 
 ```
 
+## Tuple timestamp and out of order tuples
+By default the timestamp tracked in the window is the time when the tuple is processed by the bolt. The window calculations
+are performed based on the processing timestamp. Storm has support for tracking windows based on the source generated timestamp.
+
+```java
+/**
+* Specify a field in the tuple that represents the timestamp as a long value. If this
+* field is not present in the incoming tuple, an {@link IllegalArgumentException} will be thrown.
+*
+* @param fieldName the name of the field that contains the timestamp
+*/
+public BaseWindowedBolt withTimestampField(String fieldName)
+```
+
+The value for the above `fieldName` will be looked up from the incoming tuple and considered for windowing calculations. 
+If the field is not present in the tuple an exception will be thrown. Along with the timestamp field name, a time lag parameter 
+can also be specified which indicates the max time limit for tuples with out of order timestamps. 
+
+E.g. If the lag is 5 secs and a tuple `t1` arrived with timestamp `06:00:05` no tuples may arrive with tuple timestamp earlier than `06:00:00`. If a tuple
+arrives with timestamp 05:59:59 after `t1` and the window has moved past `t1`, it will be treated as a late tuple and not processed. Currently the late
+ tuples are just logged in the worker log files at INFO level.
+
+```java
+/**
+* Specify the maximum time lag of the tuple timestamp in milliseconds. It means that the tuple timestamps
+* cannot be out of order by more than this amount.
+*
+* @param duration the max lag duration
+*/
+public BaseWindowedBolt withLag(Duration duration)
+```
+
+### Watermarks
+For processing tuples with timestamp field, storm internally computes watermarks based on the incoming tuple timestamp. Watermark is 
+the minimum of the latest tuple timestamps (minus the lag) across all the input streams. At a higher level this is similar to the watermark concept
+used by Flink and Google's MillWheel for tracking event based timestamps.
+
+Periodically (default every sec), the watermark timestamps are emitted and this is considered as the clock tick for the window calculation if 
+tuple based timestamps are in use. The interval at which watermarks are emitted can be changed with the below api.
+ 
+```java
+/**
+* Specify the watermark event generation interval. For tuple based timestamps, watermark events
+* are used to track the progress of time
+*
+* @param interval the interval at which watermark events are generated
+*/
+public BaseWindowedBolt withWatermarkInterval(Duration interval)
+```
+
+
+When a watermark is received, all windows up to that timestamp will be evaluated.
+
+For example, consider tuple timestamp based processing with following window parameters,
+
+`Window length = 20s, sliding interval = 10s, watermark emit frequency = 1s, max lag = 5s`
+
+```
+|-----|-----|-----|-----|-----|-----|-----|
+0     10    20    30    40    50    60    70
+````
+
+Current ts = `09:00:00`
+
+Tuples `e1(6:00:03), e2(6:00:05), e3(6:00:07), e4(6:00:18), e5(6:00:26), e6(6:00:36)` are received between `9:00:00` and `9:00:01`
+
+At time t = `09:00:01`, watermark w1 = `6:00:31` is emitted since no tuples earlier than `6:00:31` can arrive.
+
+Three windows will be evaluated. The first window end ts (06:00:10) is computed by taking the earliest event timestamp (06:00:03) 
+and computing the ceiling based on the sliding interval (10s).
+
+1. `5:59:50 - 06:00:10` with tuples e1, e2, e3
+2. `6:00:00 - 06:00:20` with tuples e1, e2, e3, e4
+3. `6:00:10 - 06:00:30` with tuples e4, e5
+
+e6 is not evaluated since watermark timestamp `6:00:31` is older than the tuple ts `6:00:36`.
+
+Tuples `e7(8:00:25), e8(8:00:26), e9(8:00:27), e10(8:00:39)` are received between `9:00:01` and `9:00:02`
+
+At time t = `09:00:02` another watermark w2 = `08:00:34` is emitted since no tuples earlier than `8:00:34` can arrive now.
+
+Three windows will be evaluated,
+
+1. `6:00:20 - 06:00:40` with tuples e5, e6 (from earlier batch)
+2. `6:00:30 - 06:00:50` with tuple e6 (from earlier batch)
+3. `8:00:10 - 08:00:30` with tuples e7, e8, e9
+
+e10 is not evaluated since the tuple ts `8:00:39` is beyond the watermark time `8:00:34`.
+
+The window calculation considers the time gaps and computes the windows based on the tuple timestamp.
+
 ## Guarentees
 The windowing functionality in storm core currently provides at-least once guarentee. The values emitted from the bolts
 `execute(TupleWindow inputWindow)` method are automatically anchored to all the tuples in the inputWindow. The downstream

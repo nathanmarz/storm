@@ -85,7 +85,9 @@ public class Context implements IContext {
     }
 
     synchronized void removeClient(String host, int port) {
-        connections.remove(key(host, port));
+        if (connections != null) {
+            connections.remove(key(host, port));
+        }
     }
 
     /**

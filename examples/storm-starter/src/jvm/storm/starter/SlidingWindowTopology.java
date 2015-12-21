@@ -20,12 +20,10 @@ package storm.starter;
 import backtype.storm.Config;
 import backtype.storm.LocalCluster;
 import backtype.storm.StormSubmitter;
-import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.TopologyBuilder;
-import backtype.storm.topology.base.BaseRichSpout;
 import backtype.storm.topology.base.BaseWindowedBolt;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
@@ -35,10 +33,11 @@ import backtype.storm.windowing.TupleWindow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import storm.starter.bolt.PrinterBolt;
+import storm.starter.bolt.SlidingWindowSumBolt;
+import storm.starter.spout.RandomIntegerSpout;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
 import static backtype.storm.topology.base.BaseWindowedBolt.Count;
 
@@ -49,79 +48,6 @@ import static backtype.storm.topology.base.BaseWindowedBolt.Count;
 public class SlidingWindowTopology {
 
     private static final Logger LOG = LoggerFactory.getLogger(SlidingWindowTopology.class);
-
-    /*
-     * emits a random integer every 100 ms
-     */
-
-    private static class RandomIntegerSpout extends BaseRichSpout {
-        SpoutOutputCollector collector;
-        Random rand;
-
-        @Override
-        public void declareOutputFields(OutputFieldsDeclarer declarer) {
-            declarer.declare(new Fields("value"));
-        }
-
-        @Override
-        public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
-            this.collector = collector;
-            this.rand = new Random();
-        }
-
-        @Override
-        public void nextTuple() {
-            Utils.sleep(100);
-            collector.emit(new Values(rand.nextInt(1000)));
-        }
-    }
-
-    /*
-     * Computes sliding window sum
-     */
-    private static class SlidingWindowSumBolt extends BaseWindowedBolt {
-        private int sum = 0;
-        private OutputCollector collector;
-
-        @Override
-        public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
-            this.collector = collector;
-        }
-
-        @Override
-        public void execute(TupleWindow inputWindow) {
-            /*
-             * The inputWindow gives a view of
-             * (a) all the events in the window
-             * (b) events that expired since last activation of the window
-             * (c) events that newly arrived since last activation of the window
-             */
-            List<Tuple> tuplesInWindow = inputWindow.get();
-            List<Tuple> newTuples = inputWindow.getNew();
-            List<Tuple> expiredTuples = inputWindow.getExpired();
-
-            LOG.debug("Events in current window: " + tuplesInWindow.size());
-            /*
-             * Instead of iterating over all the tuples in the window to compute
-             * the sum, the values for the new events are added and old events are
-             * subtracted. Similar optimizations might be possible in other
-             * windowing computations.
-             */
-            for (Tuple tuple : newTuples) {
-                sum += (int) tuple.getValue(0);
-            }
-            for (Tuple tuple : expiredTuples) {
-                sum -= (int) tuple.getValue(0);
-            }
-            collector.emit(new Values(sum));
-        }
-
-        @Override
-        public void declareOutputFields(OutputFieldsDeclarer declarer) {
-            declarer.declare(new Fields("sum"));
-        }
-    }
-
 
     /*
      * Computes tumbling window average
@@ -168,13 +94,10 @@ public class SlidingWindowTopology {
         builder.setBolt("printer", new PrinterBolt(), 1).shuffleGrouping("tumblingavg");
         Config conf = new Config();
         conf.setDebug(true);
-
         if (args != null && args.length > 0) {
             conf.setNumWorkers(1);
-
             StormSubmitter.submitTopologyWithProgressBar(args[0], conf, builder.createTopology());
         } else {
-
             LocalCluster cluster = new LocalCluster();
             cluster.submitTopology("test", conf, builder.createTopology());
             Utils.sleep(40000);

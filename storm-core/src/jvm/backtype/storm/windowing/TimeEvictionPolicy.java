@@ -21,21 +21,34 @@ package backtype.storm.windowing;
  * Eviction policy that evicts events based on time duration.
  */
 public class TimeEvictionPolicy<T> implements EvictionPolicy<T> {
-    private final long duration;
+    private final int windowLength;
+    /**
+     * The reference time in millis for window calculations and
+     * expiring events. If not set it will default to System.currentTimeMillis()
+     */
+    protected Long referenceTime;
 
-    public TimeEvictionPolicy(long millis) {
-        this.duration = millis;
+    /**
+     * Constructs a TimeEvictionPolicy that evicts events older
+     * than the given window length in millis
+     *
+     * @param windowLength the duration in milliseconds
+     */
+    public TimeEvictionPolicy(int windowLength) {
+        this.windowLength = windowLength;
     }
 
     /**
-     * Returns true if the event falls out of the window based on the window duration
-     *
-     * @param event
-     * @return
+     * {@inheritDoc}
      */
     @Override
-    public boolean evict(Event<T> event) {
-        return (System.currentTimeMillis() - event.getTimestamp()) >= duration;
+    public Action evict(Event<T> event) {
+        long now = referenceTime == null ? System.currentTimeMillis() : referenceTime;
+        long diff = now - event.getTimestamp();
+        if (diff >= windowLength) {
+            return Action.EXPIRE;
+        }
+        return Action.PROCESS;
     }
 
     @Override
@@ -44,9 +57,15 @@ public class TimeEvictionPolicy<T> implements EvictionPolicy<T> {
     }
 
     @Override
+    public void setContext(Object context) {
+        referenceTime = ((Number) context).longValue();
+    }
+
+    @Override
     public String toString() {
         return "TimeEvictionPolicy{" +
-                "duration=" + duration +
+                "windowLength=" + windowLength +
+                ", referenceTime=" + referenceTime +
                 '}';
     }
 }

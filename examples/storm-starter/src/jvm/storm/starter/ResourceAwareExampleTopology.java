@@ -54,8 +54,6 @@ public class ResourceAwareExampleTopology {
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
       declarer.declare(new Fields("word"));
     }
-
-
   }
 
   public static void main(String[] args) throws Exception {
@@ -83,6 +81,13 @@ public class ResourceAwareExampleTopology {
      * Can be used to spread executors to to multiple workers
      */
     conf.setTopologyWorkerMaxHeapSize(1024.0);
+
+    //topology priority describing the importance of the topology in decreasing importance starting from 0 (i.e. 0 is the highest priority and the priority importance decreases as the priority number increases).
+    //Recommended range of 0-29 but no hard limit set.
+    conf.setTopologyPriority(29);
+
+    // Set strategy to schedule topology. If not specified, default to backtype.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy
+    conf.setTopologyStrategy(backtype.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy.class);
 
     if (args != null && args.length > 0) {
       conf.setNumWorkers(3);

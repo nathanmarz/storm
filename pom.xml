@@ -270,6 +270,16 @@
         <module>examples/storm-starter</module>
     </modules>
 
+    <dependencies>
+        <!-- The JUnit dependency is required for submodules by the maven-surefire-plugin <excludedGroups> configuration -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
     <profiles>
         <profile>
             <id>sign</id>

@@ -16,6 +16,7 @@
 (ns backtype.storm.security.auth.ThriftClient-test
   (:use [backtype.storm config util])
   (:use [clojure test])
+  (:require [backtype.storm.security.auth [auth-test :refer [nimbus-timeout]]])
   (:import [backtype.storm.security.auth ThriftClient ThriftConnectionType])
   (:import [org.apache.thrift.transport TTransportException])
 )
@@ -23,23 +24,37 @@
 (deftest test-ctor-throws-if-port-invalid
   (let [conf (merge
               (read-default-config)
-              {STORM-NIMBUS-RETRY-TIMES 0})
-        timeout (Integer. 30)]
+              {STORM-NIMBUS-RETRY-TIMES 0})]
     (is (thrown-cause? java.lang.IllegalArgumentException
-      (ThriftClient. conf ThriftConnectionType/DRPC "bogushost" (int -1) timeout)))
+      (ThriftClient. conf
+                     ThriftConnectionType/DRPC
+                     "bogushost"
+                     (int -1)
+                     nimbus-timeout)))
     (is (thrown-cause? java.lang.IllegalArgumentException
-        (ThriftClient. conf ThriftConnectionType/DRPC "bogushost" (int 0) timeout)))
+        (ThriftClient. conf
+                       ThriftConnectionType/DRPC
+                       "bogushost"
+                       (int 0)
+                       nimbus-timeout)))
   )
 )
 
 (deftest test-ctor-throws-if-host-not-set
   (let [conf (merge
               (read-default-config)
-              {STORM-NIMBUS-RETRY-TIMES 0})
-        timeout (Integer. 60)]
+              {STORM-NIMBUS-RETRY-TIMES 0})]
     (is (thrown-cause? TTransportException
-         (ThriftClient. conf ThriftConnectionType/DRPC "" (int 4242) timeout)))
+         (ThriftClient. conf
+                        ThriftConnectionType/DRPC
+                        ""
+                        (int 4242)
+                        nimbus-timeout)))
     (is (thrown-cause? IllegalArgumentException
-        (ThriftClient. conf ThriftConnectionType/DRPC nil (int 4242) timeout)))
+        (ThriftClient. conf
+                       ThriftConnectionType/DRPC
+                       nil
+                       (int 4242)
+                       nimbus-timeout)))
   )
 )

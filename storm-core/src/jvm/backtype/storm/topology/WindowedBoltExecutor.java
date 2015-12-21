@@ -22,7 +22,18 @@ import backtype.storm.task.IOutputCollector;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Tuple;
+import backtype.storm.windowing.CountEvictionPolicy;
+import backtype.storm.windowing.CountTriggerPolicy;
+import backtype.storm.windowing.EvictionPolicy;
+import backtype.storm.windowing.TimeEvictionPolicy;
+import backtype.storm.windowing.TimeTriggerPolicy;
+import backtype.storm.windowing.TriggerPolicy;
 import backtype.storm.windowing.TupleWindowImpl;
+import backtype.storm.windowing.WaterMarkEventGenerator;
+import backtype.storm.windowing.WatermarkCountEvictionPolicy;
+import backtype.storm.windowing.WatermarkCountTriggerPolicy;
+import backtype.storm.windowing.WatermarkTimeEvictionPolicy;
+import backtype.storm.windowing.WatermarkTimeTriggerPolicy;
 import backtype.storm.windowing.WindowLifecycleListener;
 import backtype.storm.windowing.WindowManager;
 import org.slf4j.Logger;
@@ -40,11 +51,16 @@ import static backtype.storm.topology.base.BaseWindowedBolt.Duration;
  */
 public class WindowedBoltExecutor implements IRichBolt {
     private static final Logger LOG = LoggerFactory.getLogger(WindowedBoltExecutor.class);
-
-    private IWindowedBolt bolt;
+    private static final int DEFAULT_WATERMARK_EVENT_INTERVAL_MS = 1000; // 1s
+    private static final int DEFAULT_MAX_LAG_MS = 0; // no lag
+    private final IWindowedBolt bolt;
     private transient WindowedOutputCollector windowedOutputCollector;
     private transient WindowLifecycleListener<Tuple> listener;
     private transient WindowManager<Tuple> windowManager;
+    private transient int maxLagMs;
+    private transient String tupleTsFieldName;
+    // package level for unit tests
+    transient WaterMarkEventGenerator<Tuple> waterMarkEventGenerator;
 
     public WindowedBoltExecutor(IWindowedBolt bolt) {
         this.bolt = bolt;
@@ -93,6 +109,10 @@ public class WindowedBoltExecutor implements IRichBolt {
 
         int topologyTimeout = getTopologyTimeoutMillis(stormConf);
         int maxSpoutPending = getMaxSpoutPending(stormConf);
+        if (windowLengthCount == null && windowLengthDuration == null) {
+            throw new IllegalArgumentException("Window length is not specified");
+        }
+
         if (windowLengthDuration != null && slidingIntervalDuration != null) {
             ensureDurationLessThanTimeout(windowLengthDuration.value + slidingIntervalDuration.value, topologyTimeout);
         } else if (windowLengthDuration != null) {
@@ -110,12 +130,14 @@ public class WindowedBoltExecutor implements IRichBolt {
         }
     }
 
-    private WindowManager<Tuple> initWindowManager(WindowLifecycleListener<Tuple> lifecycleListener, Map stormConf) {
+    private WindowManager<Tuple> initWindowManager(WindowLifecycleListener<Tuple> lifecycleListener, Map stormConf,
+                                                   TopologyContext context) {
         WindowManager<Tuple> manager = new WindowManager<>(lifecycleListener);
         Duration windowLengthDuration = null;
         Count windowLengthCount = null;
         Duration slidingIntervalDuration = null;
         Count slidingIntervalCount = null;
+        // window length
         if (stormConf.containsKey(Config.TOPOLOGY_BOLTS_WINDOW_LENGTH_COUNT)) {
             windowLengthCount = new Count(((Number) stormConf.get(Config.TOPOLOGY_BOLTS_WINDOW_LENGTH_COUNT)).intValue());
         } else if (stormConf.containsKey(Config.TOPOLOGY_BOLTS_WINDOW_LENGTH_DURATION_MS)) {
@@ -123,7 +145,7 @@ public class WindowedBoltExecutor implements IRichBolt {
                     ((Number) stormConf.get(Config.TOPOLOGY_BOLTS_WINDOW_LENGTH_DURATION_MS)).intValue(),
                     TimeUnit.MILLISECONDS);
         }
-
+        // sliding interval
         if (stormConf.containsKey(Config.TOPOLOGY_BOLTS_SLIDING_INTERVAL_COUNT)) {
             slidingIntervalCount = new Count(((Number) stormConf.get(Config.TOPOLOGY_BOLTS_SLIDING_INTERVAL_COUNT)).intValue());
         } else if (stormConf.containsKey(Config.TOPOLOGY_BOLTS_SLIDING_INTERVAL_DURATION_MS)) {
@@ -132,20 +154,73 @@ public class WindowedBoltExecutor implements IRichBolt {
             // default is a sliding window of count 1
             slidingIntervalCount = new Count(1);
         }
+        // tuple ts
+        if (stormConf.containsKey(Config.TOPOLOGY_BOLTS_TUPLE_TIMESTAMP_FIELD_NAME)) {
+            tupleTsFieldName = (String) stormConf.get(Config.TOPOLOGY_BOLTS_TUPLE_TIMESTAMP_FIELD_NAME);
+            // max lag
+            if (stormConf.containsKey(Config.TOPOLOGY_BOLTS_TUPLE_TIMESTAMP_MAX_LAG_MS)) {
+                maxLagMs = ((Number) stormConf.get(Config.TOPOLOGY_BOLTS_TUPLE_TIMESTAMP_MAX_LAG_MS)).intValue();
+            } else {
+                maxLagMs = DEFAULT_MAX_LAG_MS;
+            }
+            // watermark interval
+            int watermarkInterval;
+            if (stormConf.containsKey(Config.TOPOLOGY_BOLTS_WATERMARK_EVENT_INTERVAL_MS)) {
+                watermarkInterval = ((Number) stormConf.get(Config.TOPOLOGY_BOLTS_WATERMARK_EVENT_INTERVAL_MS)).intValue();
+            } else {
+                watermarkInterval = DEFAULT_WATERMARK_EVENT_INTERVAL_MS;
+            }
+            waterMarkEventGenerator = new WaterMarkEventGenerator<>(manager, watermarkInterval,
+                                                                    maxLagMs, context.getThisSources().keySet());
+        }
         // validate
         validate(stormConf, windowLengthCount, windowLengthDuration,
                  slidingIntervalCount, slidingIntervalDuration);
-        if (windowLengthCount != null) {
-            manager.setWindowLength(windowLengthCount);
-        } else {
-            manager.setWindowLength(windowLengthDuration);
-        }
-        if (slidingIntervalCount != null) {
-            manager.setSlidingInterval(slidingIntervalCount);
-        } else {
-            manager.setSlidingInterval(slidingIntervalDuration);
-        }
+        EvictionPolicy<Tuple> evictionPolicy = getEvictionPolicy(windowLengthCount, windowLengthDuration,
+                                                                 manager);
+        TriggerPolicy<Tuple> triggerPolicy = getTriggerPolicy(slidingIntervalCount, slidingIntervalDuration,
+                                                              manager, evictionPolicy);
+        manager.setEvictionPolicy(evictionPolicy);
+        manager.setTriggerPolicy(triggerPolicy);
         return manager;
+    }
+
+    private boolean isTupleTs() {
+        return tupleTsFieldName != null;
+    }
+
+    private TriggerPolicy<Tuple> getTriggerPolicy(Count slidingIntervalCount, Duration slidingIntervalDuration,
+                                                  WindowManager<Tuple> manager, EvictionPolicy<Tuple> evictionPolicy) {
+        if (slidingIntervalCount != null) {
+            if (isTupleTs()) {
+                return new WatermarkCountTriggerPolicy<>(slidingIntervalCount.value, manager, evictionPolicy, manager);
+            } else {
+                return new CountTriggerPolicy<>(slidingIntervalCount.value, manager, evictionPolicy);
+            }
+        } else {
+            if (isTupleTs()) {
+                return new WatermarkTimeTriggerPolicy<>(slidingIntervalDuration.value, manager, evictionPolicy, manager);
+            } else {
+                return new TimeTriggerPolicy<>(slidingIntervalDuration.value, manager, evictionPolicy);
+            }
+        }
+    }
+
+    private EvictionPolicy<Tuple> getEvictionPolicy(Count windowLengthCount, Duration windowLengthDuration,
+                                                    WindowManager<Tuple> manager) {
+        if (windowLengthCount != null) {
+            if (isTupleTs()) {
+                return new WatermarkCountEvictionPolicy<>(windowLengthCount.value, manager);
+            } else {
+                return new CountEvictionPolicy<>(windowLengthCount.value);
+            }
+        } else {
+            if (isTupleTs()) {
+                return new WatermarkTimeEvictionPolicy<>(windowLengthDuration.value, maxLagMs);
+            } else {
+                return new TimeEvictionPolicy<>(windowLengthDuration.value);
+            }
+        }
     }
 
     @Override
@@ -153,13 +228,22 @@ public class WindowedBoltExecutor implements IRichBolt {
         this.windowedOutputCollector = new WindowedOutputCollector(collector);
         bolt.prepare(stormConf, context, windowedOutputCollector);
         this.listener = newWindowLifecycleListener();
-        this.windowManager = initWindowManager(listener, stormConf);
+        this.windowManager = initWindowManager(listener, stormConf, context);
         LOG.debug("Initialized window manager {} ", this.windowManager);
     }
 
     @Override
     public void execute(Tuple input) {
-        windowManager.add(input);
+        if (isTupleTs()) {
+            long ts = input.getLongByField(tupleTsFieldName);
+            if (waterMarkEventGenerator.track(input.getSourceGlobalStreamId(), ts)) {
+                windowManager.add(input, ts);
+            } else {
+                LOG.info("Received a late tuple {} with ts {}. This will not processed.", input, ts);
+            }
+        } else {
+            windowManager.add(input);
+        }
     }
 
     @Override

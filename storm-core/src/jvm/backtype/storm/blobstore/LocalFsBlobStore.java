@@ -74,11 +74,13 @@ public class LocalFsBlobStore extends BlobStore {
     private FileBlobStoreImpl fbs;
     private final int allPermissions = READ | WRITE | ADMIN;
     private Map conf;
+    private CuratorFramework zkClient;
 
     @Override
     public void prepare(Map conf, String overrideBase, NimbusInfo nimbusInfo) {
         this.conf = conf;
         this.nimbusInfo = nimbusInfo;
+        zkClient = BlobStoreUtils.createZKClient(conf);
         if (overrideBase == null) {
             overrideBase = (String)conf.get(Config.BLOBSTORE_DIR);
             if (overrideBase == null) {
@@ -254,27 +256,21 @@ public class LocalFsBlobStore extends BlobStore {
 
     @Override
     public void shutdown() {
+        if (zkClient != null) {
+            zkClient.close();
+        }
     }
 
     @Override
     public int getBlobReplication(String key, Subject who) throws Exception {
-        CuratorFramework zkClient = null;
         int replicationCount = 0;
-        try {
-            validateKey(key);
-            SettableBlobMeta meta = getStoredBlobMeta(key);
-            _aclHandler.hasPermissions(meta.get_acl(), READ, who, key);
-            zkClient = BlobStoreUtils.createZKClient(conf);
-            if (zkClient.checkExists().forPath(BLOBSTORE_SUBTREE + key) == null) {
-                zkClient.close();
-                return 0;
-            }
-            replicationCount = zkClient.getChildren().forPath(BLOBSTORE_SUBTREE + key).size();
-        } finally {
-            if (zkClient != null) {
-                zkClient.close();
-            }
+        validateKey(key);
+        SettableBlobMeta meta = getStoredBlobMeta(key);
+        _aclHandler.hasPermissions(meta.get_acl(), READ, who, key);
+        if (zkClient.checkExists().forPath(BLOBSTORE_SUBTREE + key) == null) {
+            return 0;
         }
+        replicationCount = zkClient.getChildren().forPath(BLOBSTORE_SUBTREE + key).size();
         return replicationCount;
     }
 
@@ -285,13 +281,11 @@ public class LocalFsBlobStore extends BlobStore {
     }
 
     //This additional check and download is for nimbus high availability in case you have more than one nimbus
-    public boolean checkForBlobOrDownload(String key) {
+    public synchronized boolean checkForBlobOrDownload(String key) {
         boolean checkBlobDownload = false;
-        CuratorFramework zkClient = null;
         try {
             List<String> keyList = BlobStoreUtils.getKeyListFromBlobStore(this);
             if (!keyList.contains(key)) {
-                zkClient = BlobStoreUtils.createZKClient(conf);
                 if (zkClient.checkExists().forPath(BLOBSTORE_SUBTREE + key) != null) {
                     Set<NimbusInfo> nimbusSet = BlobStoreUtils.getNimbodesWithLatestSequenceNumberOfBlob(zkClient, key);
                     if (BlobStoreUtils.downloadMissingBlob(conf, this, key, nimbusSet)) {
@@ -303,18 +297,12 @@ public class LocalFsBlobStore extends BlobStore {
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
-        } finally {
-            if (zkClient != null) {
-                zkClient.close();
-            }
         }
         return checkBlobDownload;
     }
 
-    public void checkForBlobUpdate(String key) {
-        CuratorFramework zkClient = BlobStoreUtils.createZKClient(conf);
+    public synchronized void checkForBlobUpdate(String key) {
         BlobStoreUtils.updateKeyForBlobStore(conf, this, zkClient, key, nimbusInfo);
-        zkClient.close();
     }
 
     public void fullCleanup(long age) throws IOException {

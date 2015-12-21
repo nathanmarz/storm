@@ -24,7 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;;
+import java.util.Set;
 
 /**
  * Is called periodically and updates the nimbus with blobs based on the state stored inside the zookeeper

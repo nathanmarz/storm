@@ -67,4 +67,18 @@ public class Topologies {
         }
         return _allComponents;
     }
+
+    public static Topologies getCopy(Topologies topologies) {
+        return new Topologies(topologies.topologies);
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder ret = new StringBuilder();
+        ret.append("Topologies:\n");
+        for (TopologyDetails td : this.getTopologies()) {
+            ret.append(td.toString()).append("\n");
+        }
+        return ret.toString();
+    }
 }

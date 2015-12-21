@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-898: Add priorities and per user resource guarantees to Resource Aware Scheduler
  * STORM-1187: Support windowing based on tuple ts.
  * STORM-1400: Netty Context removeClient() called after term() causes NullPointerException.
  * STORM-1383: Supervisors should not crash if nimbus is unavailable

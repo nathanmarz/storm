@@ -489,17 +489,63 @@ public class ConfigValidation {
     public static class PacemakerAuthTypeValidator extends Validator {
         @Override
         public void validateField(String name, Object o) {
-            if(o == null) {
-                throw new IllegalArgumentException( "Field " + name + " must be set.");
+            if (o == null) {
+                throw new IllegalArgumentException("Field " + name + " must be set.");
             }
 
-            if(o instanceof String &&
-                    (((String)o).equals("NONE") ||
-                            ((String)o).equals("DIGEST") ||
-                            ((String)o).equals("KERBEROS"))) {
+            if (o instanceof String &&
+                    (((String) o).equals("NONE") ||
+                            ((String) o).equals("DIGEST") ||
+                            ((String) o).equals("KERBEROS"))) {
                 return;
             }
-            throw new IllegalArgumentException( "Field " + name + " must be one of \"NONE\", \"DIGEST\", or \"KERBEROS\"");
+            throw new IllegalArgumentException("Field " + name + " must be one of \"NONE\", \"DIGEST\", or \"KERBEROS\"");
+        }
+    }
+
+    public static class UserResourcePoolEntryValidator extends Validator {
+
+        @Override
+        public void validateField(String name, Object o) {
+            if (o == null) {
+                return;
+            }
+            SimpleTypeValidator.validateField(name, Map.class, o);
+            if (!((Map) o).containsKey("cpu")) {
+                throw new IllegalArgumentException("Field " + name + " must have map entry with key: cpu");
+            }
+            if (!((Map) o).containsKey("memory")) {
+                throw new IllegalArgumentException("Field " + name + " must have map entry with key: memory");
+            }
+
+            SimpleTypeValidator.validateField(name, Number.class, ((Map) o).get("cpu"));
+            SimpleTypeValidator.validateField(name, Number.class, ((Map) o).get("memory"));
+        }
+    }
+
+    public static class ImplementsClassValidator extends Validator {
+
+        Class classImplements;
+
+        public ImplementsClassValidator(Map<String, Object> params) {
+            this.classImplements = (Class) params.get(ConfigValidationAnnotations.ValidatorParams.IMPLEMENTS_CLASS);
+        }
+
+        @Override
+        public void validateField(String name, Object o) {
+            if (o == null) {
+                return;
+            }
+            SimpleTypeValidator.validateField(name, String.class, o);
+            try {
+                Class objectClass = Class.forName((String) o);
+                if (!this.classImplements.isAssignableFrom(objectClass)) {
+                    throw new IllegalArgumentException("Field " + name + " with value " + o
+                            + " does not implement " + this.classImplements.getName());
+                }
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 

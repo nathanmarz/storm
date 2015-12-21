@@ -46,6 +46,7 @@ public class ConfigValidationAnnotations {
         static final String VALUE_TYPE = "valueType";
         static final String INCLUDE_ZERO = "includeZero";
         static final String ACCEPTED_VALUES = "acceptedValues";
+        static final String IMPLEMENTS_CLASS = "implementsClass";
     }
 
     /**
@@ -174,6 +175,14 @@ public class ConfigValidationAnnotations {
         Class validatorClass() default ConfigValidation.PositiveNumberValidator.class;
 
         boolean includeZero() default false;
+    }
+
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.FIELD)
+    public @interface isImplementationOfClass {
+        Class validatorClass() default ConfigValidation.ImplementsClassValidator.class;
+
+        Class implementsClass();
     }
 
     /**

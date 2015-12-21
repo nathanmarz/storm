@@ -22,13 +22,20 @@ import backtype.storm.Config;
 import backtype.storm.generated.Bolt;
 import backtype.storm.generated.SpoutSpec;
 import backtype.storm.generated.StormTopology;
+import backtype.storm.scheduler.Cluster;
+import backtype.storm.scheduler.ExecutorDetails;
+import backtype.storm.scheduler.Topologies;
+import backtype.storm.scheduler.TopologyDetails;
+import backtype.storm.scheduler.WorkerSlot;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
 
 public class ResourceUtils {
@@ -129,5 +136,49 @@ public class ResourceUtils {
                     "Unable to extract resource requirement for Component {} \n Resource : CPU Pcore Percent set to default {}",
                     Com, topologyConf.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT));
         }
+    }
+
+    /**
+     * print scheduling for debug purposes
+     * @param cluster
+     * @param topologies
+     */
+    public static String printScheduling(Cluster cluster, Topologies topologies) {
+        StringBuilder str = new StringBuilder();
+        Map<String, Map<String, Map<WorkerSlot, Collection<ExecutorDetails>>>> schedulingMap = new HashMap<String, Map<String, Map<WorkerSlot, Collection<ExecutorDetails>>>>();
+        for (TopologyDetails topo : topologies.getTopologies()) {
+            if (cluster.getAssignmentById(topo.getId()) != null) {
+                for (Map.Entry<ExecutorDetails, WorkerSlot> entry : cluster.getAssignmentById(topo.getId()).getExecutorToSlot().entrySet()) {
+                    WorkerSlot slot = entry.getValue();
+                    String nodeId = slot.getNodeId();
+                    ExecutorDetails exec = entry.getKey();
+                    if (!schedulingMap.containsKey(nodeId)) {
+                        schedulingMap.put(nodeId, new HashMap<String, Map<WorkerSlot, Collection<ExecutorDetails>>>());
+                    }
+                    if (schedulingMap.get(nodeId).containsKey(topo.getId()) == false) {
+                        schedulingMap.get(nodeId).put(topo.getId(), new HashMap<WorkerSlot, Collection<ExecutorDetails>>());
+                    }
+                    if (schedulingMap.get(nodeId).get(topo.getId()).containsKey(slot) == false) {
+                        schedulingMap.get(nodeId).get(topo.getId()).put(slot, new LinkedList<ExecutorDetails>());
+                    }
+                    schedulingMap.get(nodeId).get(topo.getId()).get(slot).add(exec);
+                }
+            }
+        }
+
+        for (Map.Entry<String, Map<String, Map<WorkerSlot, Collection<ExecutorDetails>>>> entry : schedulingMap.entrySet()) {
+            if (cluster.getSupervisorById(entry.getKey()) != null) {
+                str.append("/** Node: " + cluster.getSupervisorById(entry.getKey()).getHost() + "-" + entry.getKey() + " **/\n");
+            } else {
+                str.append("/** Node: Unknown may be dead -" + entry.getKey() + " **/\n");
+            }
+            for (Map.Entry<String, Map<WorkerSlot, Collection<ExecutorDetails>>> topo_sched : schedulingMap.get(entry.getKey()).entrySet()) {
+                str.append("\t-->Topology: " + topo_sched.getKey() + "\n");
+                for (Map.Entry<WorkerSlot, Collection<ExecutorDetails>> ws : topo_sched.getValue().entrySet()) {
+                    str.append("\t\t->Slot [" + ws.getKey().getPort() + "] -> " + ws.getValue() + "\n");
+                }
+            }
+        }
+        return str.toString();
     }
 }

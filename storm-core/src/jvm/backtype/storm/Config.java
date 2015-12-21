@@ -17,6 +17,9 @@
  */
 package backtype.storm;
 
+import backtype.storm.scheduler.resource.strategies.eviction.IEvictionStrategy;
+import backtype.storm.scheduler.resource.strategies.priority.ISchedulingPriorityStrategy;
+import backtype.storm.scheduler.resource.strategies.scheduling.IStrategy;
 import backtype.storm.serialization.IKryoDecorator;
 import backtype.storm.serialization.IKryoFactory;
 import backtype.storm.validation.ConfigValidationAnnotations.*;
@@ -194,7 +197,8 @@ public class Config extends HashMap<String, Object> {
      * rack names that correspond to the supervisors. This information is stored in Cluster.java, and
      * is used in the resource aware scheduler.
      */
-    @isString
+    @NotNull
+    @isImplementationOfClass(implementsClass = backtype.storm.networktopography.DNSToSwitchMapping.class)
     public static final String STORM_NETWORK_TOPOGRAPHY_PLUGIN = "storm.network.topography.plugin";
 
     /**
@@ -1497,6 +1501,13 @@ public class Config extends HashMap<String, Object> {
     public static final String TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB = "topology.worker.max.heap.size.mb";
 
     /**
+     * The strategy to use when scheduling a topology with Resource Aware Scheduler
+     */
+    @NotNull
+    @isImplementationOfClass(implementsClass = IStrategy.class)
+    public static final String TOPOLOGY_SCHEDULER_STRATEGY = "topology.scheduler.strategy";
+
+    /**
      * How many executors to spawn for ackers.
      *
      * <p>By not setting this variable or setting it as null, Storm will set the number of acker executors
@@ -1889,6 +1900,13 @@ public class Config extends HashMap<String, Object> {
     public static final String TOPOLOGY_LOGGING_SENSITIVITY="topology.logging.sensitivity";
 
     /**
+     * Sets the priority for a topology
+     */
+    @isInteger
+    @isPositiveNumber(includeZero = true)
+    public static final String TOPOLOGY_PRIORITY = "topology.priority";
+
+    /**
      * The root directory in ZooKeeper for metadata about TransactionalSpouts.
      */
     @isString
@@ -1969,6 +1987,27 @@ public class Config extends HashMap<String, Object> {
      */
     @isMapEntryType(keyType = String.class, valueType = Number.class)
     public static final String MULTITENANT_SCHEDULER_USER_POOLS = "multitenant.scheduler.user.pools";
+
+    /**
+     * A map of users to another map of the resource guarantees of the user. Used by Resource Aware Scheduler to ensure
+     * per user resource guarantees.
+     */
+    @isMapEntryCustom(keyValidatorClasses = {StringValidator.class}, valueValidatorClasses = {UserResourcePoolEntryValidator.class})
+    public static final String RESOURCE_AWARE_SCHEDULER_USER_POOLS = "resource.aware.scheduler.user.pools";
+
+    /**
+     * The class that specifies the eviction strategy to use in ResourceAwareScheduler
+     */
+    @NotNull
+    @isImplementationOfClass(implementsClass = IEvictionStrategy.class)
+    public static final String RESOURCE_AWARE_SCHEDULER_EVICTION_STRATEGY = "resource.aware.scheduler.eviction.strategy";
+
+    /**
+     * the class that specifies the scheduling priority strategy to use in ResourceAwareScheduler
+     */
+    @NotNull
+    @isImplementationOfClass(implementsClass = ISchedulingPriorityStrategy.class)
+    public static final String RESOURCE_AWARE_SCHEDULER_PRIORITY_STRATEGY = "resource.aware.scheduler.priority.strategy";
 
     /**
      * The number of machines that should be used by this topology to isolate it from all others. Set storm.scheduler
@@ -2219,6 +2258,24 @@ public class Config extends HashMap<String, Object> {
     public void setTopologyWorkerMaxHeapSize(Number size) {
         if(size != null) {
             this.put(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB, size);
+        }
+    }
+
+    /**
+     * set the priority for a topology
+     * @param priority
+     */
+    public void setTopologyPriority(int priority) {
+        this.put(Config.TOPOLOGY_PRIORITY, priority);
+    }
+
+    /**
+     * Takes as input the strategy class name. Strategy must implement the IStrategy interface
+     * @param clazz class of the strategy to use
+     */
+    public void setTopologyStrategy(Class<? extends IStrategy> clazz) {
+        if (clazz != null) {
+            this.put(Config.TOPOLOGY_SCHEDULER_STRATEGY, clazz.getName());
         }
     }
 }

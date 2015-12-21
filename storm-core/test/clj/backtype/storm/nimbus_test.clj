@@ -397,7 +397,103 @@
       (is (= 7 (storm-num-workers state "test")))
     )))
 
+(deftest test-topo-history
+  (with-simulated-time-local-cluster [cluster :supervisors 2 :ports-per-supervisor 5
+                                      :daemon-conf {SUPERVISOR-ENABLE false
+                                                    NIMBUS-ADMINS ["admin-user"]
+                                                    NIMBUS-TASK-TIMEOUT-SECS 30
+                                                    NIMBUS-MONITOR-FREQ-SECS 10
+                                                    TOPOLOGY-ACKER-EXECUTORS 0}]
 
+    (stubbing [nimbus/user-groups ["alice-group"]]
+      (letlocals
+        (bind conf (:daemon-conf cluster))
+        (bind topology (thrift/mk-topology
+                         {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 4)}
+                         {}
+                         ))
+        (bind state (:storm-cluster-state cluster))
+        (submit-local-topology (:nimbus cluster) "test" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 20, LOGS-USERS ["alice", (System/getProperty "user.name")]} topology)
+        (bind storm-id (get-storm-id state "test"))
+        (advance-cluster-time cluster 5)
+        (is (not-nil? (.storm-base state storm-id nil)))
+        (is (not-nil? (.assignment-info state storm-id nil)))
+        (.killTopology (:nimbus cluster) "test")
+        ;; check that storm is deactivated but alive
+        (is (= :killed (-> (.storm-base state storm-id nil) :status :type)))
+        (is (not-nil? (.assignment-info state storm-id nil)))
+        (advance-cluster-time cluster 35)
+        ;; kill topology read on group
+        (submit-local-topology (:nimbus cluster) "killgrouptest" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 20, LOGS-GROUPS ["alice-group"]} topology)
+        (bind storm-id-killgroup (get-storm-id state "killgrouptest"))
+        (advance-cluster-time cluster 5)
+        (is (not-nil? (.storm-base state storm-id-killgroup nil)))
+        (is (not-nil? (.assignment-info state storm-id-killgroup nil)))
+        (.killTopology (:nimbus cluster) "killgrouptest")
+        ;; check that storm is deactivated but alive
+        (is (= :killed (-> (.storm-base state storm-id-killgroup nil) :status :type)))
+        (is (not-nil? (.assignment-info state storm-id-killgroup nil)))
+        (advance-cluster-time cluster 35)
+        ;; kill topology can't read
+        (submit-local-topology (:nimbus cluster) "killnoreadtest" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 20} topology)
+        (bind storm-id-killnoread (get-storm-id state "killnoreadtest"))
+        (advance-cluster-time cluster 5)
+        (is (not-nil? (.storm-base state storm-id-killnoread nil)))
+        (is (not-nil? (.assignment-info state storm-id-killnoread nil)))
+        (.killTopology (:nimbus cluster) "killnoreadtest")
+        ;; check that storm is deactivated but alive
+        (is (= :killed (-> (.storm-base state storm-id-killnoread nil) :status :type)))
+        (is (not-nil? (.assignment-info state storm-id-killnoread nil)))
+        (advance-cluster-time cluster 35)
+
+        ;; active topology can read
+        (submit-local-topology (:nimbus cluster) "2test" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10, LOGS-USERS ["alice", (System/getProperty "user.name")]} topology)
+        (advance-cluster-time cluster 11)
+        (bind storm-id2 (get-storm-id state "2test"))
+        (is (not-nil? (.storm-base state storm-id2 nil)))
+        (is (not-nil? (.assignment-info state storm-id2 nil)))
+        ;; active topology can not read
+        (submit-local-topology (:nimbus cluster) "testnoread" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10, LOGS-USERS ["alice"]} topology)
+        (advance-cluster-time cluster 11)
+        (bind storm-id3 (get-storm-id state "testnoread"))
+        (is (not-nil? (.storm-base state storm-id3 nil)))
+        (is (not-nil? (.assignment-info state storm-id3 nil)))
+        ;; active topology can read based on group
+        (submit-local-topology (:nimbus cluster) "testreadgroup" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10, LOGS-GROUPS ["alice-group"]} topology)
+        (advance-cluster-time cluster 11)
+        (bind storm-id4 (get-storm-id state "testreadgroup"))
+        (is (not-nil? (.storm-base state storm-id4 nil)))
+        (is (not-nil? (.assignment-info state storm-id4 nil)))
+        ;; at this point have 1 running, 1 killed topo
+        (let [hist-topo-ids (vec (sort (.get_topo_ids (.getTopologyHistory (:nimbus cluster) (System/getProperty "user.name")))))]
+          (log-message "Checking user " (System/getProperty "user.name") " " hist-topo-ids)
+          (is (= 4 (count hist-topo-ids)))
+          (is (= storm-id2 (get hist-topo-ids 0)))
+          (is (= storm-id-killgroup (get hist-topo-ids 1)))
+          (is (= storm-id (get hist-topo-ids 2)))
+          (is (= storm-id4 (get hist-topo-ids 3))))
+        (let [hist-topo-ids (vec (sort (.get_topo_ids (.getTopologyHistory (:nimbus cluster) "alice"))))]
+          (log-message "Checking user alice " hist-topo-ids)
+          (is (= 5 (count hist-topo-ids)))
+          (is (= storm-id2 (get hist-topo-ids 0)))
+          (is (= storm-id-killgroup (get hist-topo-ids 1)))
+          (is (= storm-id (get hist-topo-ids 2)))
+          (is (= storm-id3 (get hist-topo-ids 3)))
+          (is (= storm-id4 (get hist-topo-ids 4))))
+        (let [hist-topo-ids (vec (sort (.get_topo_ids (.getTopologyHistory (:nimbus cluster) "admin-user"))))]
+          (log-message "Checking user admin-user " hist-topo-ids)
+          (is (= 6 (count hist-topo-ids)))
+          (is (= storm-id2 (get hist-topo-ids 0)))
+          (is (= storm-id-killgroup (get hist-topo-ids 1)))
+          (is (= storm-id-killnoread (get hist-topo-ids 2)))
+          (is (= storm-id (get hist-topo-ids 3)))
+          (is (= storm-id3 (get hist-topo-ids 4)))
+          (is (= storm-id4 (get hist-topo-ids 5))))
+        (let [hist-topo-ids (vec (sort (.get_topo_ids (.getTopologyHistory (:nimbus cluster) "group-only-user"))))]
+          (log-message "Checking user group-only-user " hist-topo-ids)
+          (is (= 2 (count hist-topo-ids)))
+          (is (= storm-id-killgroup (get hist-topo-ids 0)))
+          (is (= storm-id4 (get hist-topo-ids 1))))))))
 
 (deftest test-kill-storm
   (with-simulated-time-local-cluster [cluster :supervisors 2 :ports-per-supervisor 5

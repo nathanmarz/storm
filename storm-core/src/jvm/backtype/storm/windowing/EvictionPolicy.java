@@ -25,12 +25,36 @@ package backtype.storm.windowing;
  */
 public interface EvictionPolicy<T> {
     /**
-     * Decides if an event should be evicted from the window or not.
+     * The action to be taken when {@link EvictionPolicy#evict(Event)} is invoked.
+     */
+    enum Action {
+        /**
+         * expire the event and remove it from the queue
+         */
+        EXPIRE,
+        /**
+         * process the event in the current window of events
+         */
+        PROCESS,
+        /**
+         * don't include in the current window but keep the event
+         * in the queue for evaluating as a part of future windows
+         */
+        KEEP,
+        /**
+         * stop processing the queue, there cannot be anymore events
+         * satisfying the eviction policy
+         */
+        STOP
+    }
+    /**
+     * Decides if an event should be expired from the window, processed in the current
+     * window or kept for later processing.
      *
      * @param event the input event
-     * @return true if the event should be evicted, false otherwise
+     * @return the {@link backtype.storm.windowing.EvictionPolicy.Action} to be taken based on the input event
      */
-    boolean evict(Event<T> event);
+    Action evict(Event<T> event);
 
     /**
      * Tracks the event to later decide whether
@@ -39,4 +63,12 @@ public interface EvictionPolicy<T> {
      * @param event the input event to be tracked
      */
     void track(Event<T> event);
+
+    /**
+     * Sets a context in the eviction policy that can be used while evicting the events.
+     * E.g. For TimeEvictionPolicy, this could be used to set the reference timestamp.
+     *
+     * @param context
+     */
+    void setContext(Object context);
 }

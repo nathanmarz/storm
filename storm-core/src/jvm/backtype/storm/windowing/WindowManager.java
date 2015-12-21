@@ -17,11 +17,11 @@
  */
 package backtype.storm.windowing;
 
+import backtype.storm.windowing.EvictionPolicy.Action;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -30,8 +30,9 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static backtype.storm.topology.base.BaseWindowedBolt.Count;
-import static backtype.storm.topology.base.BaseWindowedBolt.Duration;
+import static backtype.storm.windowing.EvictionPolicy.Action.EXPIRE;
+import static backtype.storm.windowing.EvictionPolicy.Action.PROCESS;
+import static backtype.storm.windowing.EvictionPolicy.Action.STOP;
 
 /**
  * Tracks a window of events and fires {@link WindowLifecycleListener} callbacks
@@ -49,7 +50,7 @@ public class WindowManager<T> implements TriggerHandler {
     public static final int EXPIRE_EVENTS_THRESHOLD = 100;
 
     private final WindowLifecycleListener<T> windowLifecycleListener;
-    private final ConcurrentLinkedQueue<Event<T>> window;
+    private final ConcurrentLinkedQueue<Event<T>> queue;
     private final List<T> expiredEvents;
     private final Set<Event<T>> prevWindowEvents;
     private final AtomicInteger eventsSinceLastExpiry;
@@ -59,27 +60,19 @@ public class WindowManager<T> implements TriggerHandler {
 
     public WindowManager(WindowLifecycleListener<T> lifecycleListener) {
         windowLifecycleListener = lifecycleListener;
-        window = new ConcurrentLinkedQueue<>();
+        queue = new ConcurrentLinkedQueue<>();
         expiredEvents = new ArrayList<>();
         prevWindowEvents = new HashSet<>();
         eventsSinceLastExpiry = new AtomicInteger();
         lock = new ReentrantLock(true);
     }
 
-    public void setWindowLength(Count count) {
-        this.evictionPolicy = new CountEvictionPolicy<>(count.value);
+    public void setEvictionPolicy(EvictionPolicy<T> evictionPolicy) {
+        this.evictionPolicy = evictionPolicy;
     }
 
-    public void setWindowLength(Duration duration) {
-        this.evictionPolicy = new TimeEvictionPolicy<>(duration.value);
-    }
-
-    public void setSlidingInterval(Count count) {
-        this.triggerPolicy = new CountTriggerPolicy<>(count.value, this);
-    }
-
-    public void setSlidingInterval(Duration duration) {
-        this.triggerPolicy = new TimeTriggerPolicy<>(duration.value, this);
+    public void setTriggerPolicy(TriggerPolicy<T> triggerPolicy) {
+        this.triggerPolicy = triggerPolicy;
     }
 
     /**
@@ -99,8 +92,21 @@ public class WindowManager<T> implements TriggerHandler {
      * @param ts    the timestamp
      */
     public void add(T event, long ts) {
-        Event<T> windowEvent = new EventImpl<T>(event, ts);
-        window.add(windowEvent);
+        add(new EventImpl<T>(event, ts));
+    }
+
+    /**
+     * Tracks a window event
+     *
+     * @param windowEvent the window event to track
+     */
+    public void add(Event<T> windowEvent) {
+        // watermark events are not added to the queue.
+        if (!windowEvent.isWatermark()) {
+            queue.add(windowEvent);
+        } else {
+            LOG.debug("Got watermark event with ts {}", windowEvent.getTimestamp());
+        }
         track(windowEvent);
         compactWindow();
     }
@@ -109,7 +115,7 @@ public class WindowManager<T> implements TriggerHandler {
      * The callback invoked by the trigger policy.
      */
     @Override
-    public void onTrigger() {
+    public boolean onTrigger() {
         List<Event<T>> windowEvents = null;
         List<T> expired = null;
         try {
@@ -118,7 +124,7 @@ public class WindowManager<T> implements TriggerHandler {
              * scan the entire window to handle out of order events in
              * the case of time based windows.
              */
-            windowEvents = expireEvents(true);
+            windowEvents = scanEvents(true);
             expired = new ArrayList<>(expiredEvents);
             expiredEvents.clear();
         } finally {
@@ -133,10 +139,15 @@ public class WindowManager<T> implements TriggerHandler {
             }
         }
         prevWindowEvents.clear();
-        prevWindowEvents.addAll(windowEvents);
-        LOG.debug("invoking windowLifecycleListener onActivation, [{}] events in window.", windowEvents.size());
-        windowLifecycleListener.onActivation(events, newEvents, expired);
+        if (!events.isEmpty()) {
+            prevWindowEvents.addAll(windowEvents);
+            LOG.debug("invoking windowLifecycleListener onActivation, [{}] events in window.", events.size());
+            windowLifecycleListener.onActivation(events, newEvents, expired);
+        } else {
+            LOG.debug("No events in the window, skipping onActivation");
+        }
         triggerPolicy.reset();
+        return !events.isEmpty();
     }
 
     public void shutdown() {
@@ -153,7 +164,7 @@ public class WindowManager<T> implements TriggerHandler {
      */
     private void compactWindow() {
         if (eventsSinceLastExpiry.incrementAndGet() >= EXPIRE_EVENTS_THRESHOLD) {
-            expireEvents(false);
+            scanEvents(false);
         }
     }
 
@@ -167,29 +178,30 @@ public class WindowManager<T> implements TriggerHandler {
     }
 
     /**
-     * Expire events from the window, using the expiration policy to check
+     * Scan events in the queue, using the expiration policy to check
      * if the event should be evicted or not.
      *
-     * @param fullScan if set, will scan the entire window; if not set, will stop
+     * @param fullScan if set, will scan the entire queue; if not set, will stop
      *                 as soon as an event not satisfying the expiration policy is found
-     * @return the list of remaining events in the window after expiry
+     * @return the list of events to be processed as a part of the current window
      */
-    private List<Event<T>> expireEvents(boolean fullScan) {
-        LOG.debug("Expire events, eviction policy {}", evictionPolicy);
+    private List<Event<T>> scanEvents(boolean fullScan) {
+        LOG.debug("Scan events, eviction policy {}", evictionPolicy);
         List<T> eventsToExpire = new ArrayList<>();
-        List<Event<T>> remaining = new ArrayList<>();
+        List<Event<T>> eventsToProcess = new ArrayList<>();
         try {
             lock.lock();
-            Iterator<Event<T>> it = window.iterator();
+            Iterator<Event<T>> it = queue.iterator();
             while (it.hasNext()) {
                 Event<T> windowEvent = it.next();
-                if (evictionPolicy.evict(windowEvent)) {
+                Action action = evictionPolicy.evict(windowEvent);
+                if (action == EXPIRE) {
                     eventsToExpire.add(windowEvent.get());
                     it.remove();
-                } else if (!fullScan) {
+                } else if (!fullScan || action == STOP) {
                     break;
-                } else {
-                    remaining.add(windowEvent);
+                } else if (action == PROCESS) {
+                    eventsToProcess.add(windowEvent);
                 }
             }
             expiredEvents.addAll(eventsToExpire);
@@ -198,8 +210,73 @@ public class WindowManager<T> implements TriggerHandler {
         }
         eventsSinceLastExpiry.set(0);
         LOG.debug("[{}] events expired from window.", eventsToExpire.size());
-        windowLifecycleListener.onExpiry(eventsToExpire);
-        return remaining;
+        if (!eventsToExpire.isEmpty()) {
+            LOG.debug("invoking windowLifecycleListener.onExpiry");
+            windowLifecycleListener.onExpiry(eventsToExpire);
+        }
+        return eventsToProcess;
+    }
+
+    /**
+     * Scans the event queue and returns the next earliest event ts
+     * between the startTs and endTs
+     *
+     * @param startTs the start ts (exclusive)
+     * @param endTs the end ts (inclusive)
+     * @return the earliest event ts between startTs and endTs
+     */
+    public long getEarliestEventTs(long startTs, long endTs) {
+        long minTs = Long.MAX_VALUE;
+        for (Event<T> event : queue) {
+            if (event.getTimestamp() > startTs && event.getTimestamp() <= endTs) {
+                minTs = Math.min(minTs, event.getTimestamp());
+            }
+        }
+        return minTs;
+    }
+
+    /**
+     * Scans the event queue and returns number of events having
+     * timestamp less than or equal to the reference time.
+     *
+     * @param referenceTime the reference timestamp in millis
+     * @return the count of events with timestamp less than or equal to referenceTime
+     */
+    public int getEventCount(long referenceTime) {
+        int count = 0;
+        for (Event<T> event : queue) {
+            if (event.getTimestamp() <= referenceTime) {
+                ++count;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * Scans the event queue and returns the list of event ts
+     * falling between startTs (exclusive) and endTs (inclusive)
+     * at each sliding interval counts.
+     *
+     * @param startTs the start timestamp (exclusive)
+     * @param endTs the end timestamp (inclusive)
+     * @param slidingCount the sliding interval count
+     * @return the list of event ts
+     */
+    public List<Long> getSlidingCountTimestamps(long startTs, long endTs, int slidingCount) {
+        List<Long> timestamps = new ArrayList<>();
+        if (endTs > startTs) {
+            int count = 0;
+            long ts = Long.MIN_VALUE;
+            for (Event<T> event : queue) {
+                if (event.getTimestamp() > startTs && event.getTimestamp() <= endTs) {
+                    ts = Math.max(ts, event.getTimestamp());
+                    if (++count % slidingCount == 0) {
+                        timestamps.add(ts);
+                    }
+                }
+            }
+        }
+        return timestamps;
     }
 
     @Override

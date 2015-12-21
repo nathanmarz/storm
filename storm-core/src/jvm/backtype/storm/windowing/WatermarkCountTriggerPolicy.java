@@ -17,40 +17,39 @@
  */
 package backtype.storm.windowing;
 
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.List;
 
 /**
- * A trigger that tracks event counts and calls back {@link TriggerHandler#onTrigger()}
- * when the count threshold is hit.
+ * A trigger policy that tracks event counts and sets the context for
+ * eviction policy to evict based on latest watermark time.
  *
  * @param <T> the type of event tracked by this policy.
  */
-public class CountTriggerPolicy<T> implements TriggerPolicy<T> {
+public class WatermarkCountTriggerPolicy<T> implements TriggerPolicy<T> {
     private final int count;
-    private final AtomicInteger currentCount;
     private final TriggerHandler handler;
     private final EvictionPolicy<T> evictionPolicy;
+    private final WindowManager<T> windowManager;
+    private long lastProcessedTs = 0;
 
-    public CountTriggerPolicy(int count, TriggerHandler handler, EvictionPolicy<T> evictionPolicy) {
+    public WatermarkCountTriggerPolicy(int count, TriggerHandler handler,
+                                       EvictionPolicy<T> evictionPolicy, WindowManager<T> windowManager) {
         this.count = count;
-        this.currentCount = new AtomicInteger();
         this.handler = handler;
         this.evictionPolicy = evictionPolicy;
+        this.windowManager = windowManager;
     }
 
     @Override
     public void track(Event<T> event) {
-        if (!event.isWatermark()) {
-            if (currentCount.incrementAndGet() >= count) {
-                evictionPolicy.setContext(System.currentTimeMillis());
-                handler.onTrigger();
-            }
+        if (event.isWatermark()) {
+            handleWaterMarkEvent(event);
         }
     }
 
     @Override
     public void reset() {
-        currentCount.set(0);
+        // NOOP
     }
 
     @Override
@@ -58,11 +57,27 @@ public class CountTriggerPolicy<T> implements TriggerPolicy<T> {
         // NOOP
     }
 
+    /**
+     * Triggers all the pending windows up to the waterMarkEvent timestamp
+     * based on the sliding interval count.
+     *
+     * @param waterMarkEvent the watermark event
+     */
+    private void handleWaterMarkEvent(Event<T> waterMarkEvent) {
+        long watermarkTs = waterMarkEvent.getTimestamp();
+        List<Long> eventTs = windowManager.getSlidingCountTimestamps(lastProcessedTs, watermarkTs, count);
+        for (long ts : eventTs) {
+            evictionPolicy.setContext(ts);
+            handler.onTrigger();
+            lastProcessedTs = ts;
+        }
+    }
+
     @Override
     public String toString() {
-        return "CountTriggerPolicy{" +
+        return "WatermarkCountTriggerPolicy{" +
                 "count=" + count +
-                ", currentCount=" + currentCount +
+                ", lastProcessedTs=" + lastProcessedTs +
                 '}';
     }
 }

@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class CountEvictionPolicy<T> implements EvictionPolicy<T> {
     private final int threshold;
-    private final AtomicInteger currentCount;
+    protected final AtomicInteger currentCount;
 
     public CountEvictionPolicy(int count) {
         this.threshold = count;
@@ -35,7 +35,7 @@ public class CountEvictionPolicy<T> implements EvictionPolicy<T> {
     }
 
     @Override
-    public boolean evict(Event<T> event) {
+    public Action evict(Event<T> event) {
         /*
          * atomically decrement the count if its greater than threshold and
          * return if the event should be evicted
@@ -44,18 +44,25 @@ public class CountEvictionPolicy<T> implements EvictionPolicy<T> {
             int curVal = currentCount.get();
             if (curVal > threshold) {
                 if (currentCount.compareAndSet(curVal, curVal - 1)) {
-                    return true;
+                    return Action.EXPIRE;
                 }
             } else {
                 break;
             }
         }
-        return false;
+        return Action.PROCESS;
     }
 
     @Override
     public void track(Event<T> event) {
-        currentCount.incrementAndGet();
+        if (!event.isWatermark()) {
+            currentCount.incrementAndGet();
+        }
+    }
+
+    @Override
+    public void setContext(Object context) {
+        // NOOP
     }
 
     @Override

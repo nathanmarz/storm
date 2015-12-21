@@ -157,6 +157,39 @@ public abstract class BaseWindowedBolt implements IWindowedBolt {
         return withWindowLength(duration).withSlidingInterval(duration);
     }
 
+    /**
+     * Specify a field in the tuple that represents the timestamp as a long value. If this
+     * field is not present in the incoming tuple, an {@link IllegalArgumentException} will be thrown.
+     *
+     * @param fieldName the name of the field that contains the timestamp
+     */
+    public BaseWindowedBolt withTimestampField(String fieldName) {
+        windowConfiguration.put(Config.TOPOLOGY_BOLTS_TUPLE_TIMESTAMP_FIELD_NAME, fieldName);
+        return this;
+    }
+
+    /**
+     * Specify the maximum time lag of the tuple timestamp in milliseconds. It means that the tuple timestamps
+     * cannot be out of order by more than this amount.
+     *
+     * @param duration the max lag duration
+     */
+    public BaseWindowedBolt withLag(Duration duration) {
+        windowConfiguration.put(Config.TOPOLOGY_BOLTS_TUPLE_TIMESTAMP_MAX_LAG_MS, duration.value);
+        return this;
+    }
+
+    /**
+     * Specify the watermark event generation interval. For tuple based timestamps, watermark events
+     * are used to track the progress of time
+     *
+     * @param interval the interval at which watermark events are generated
+     */
+    public BaseWindowedBolt withWatermarkInterval(Duration interval) {
+        windowConfiguration.put(Config.TOPOLOGY_BOLTS_WATERMARK_EVENT_INTERVAL_MS, interval.value);
+        return this;
+    }
+
     @Override
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
         // NOOP

@@ -1,4 +1,6 @@
 ## 0.11.0
+ * STORM-1399: Blobstore tests should write data to `target` so it gets removed when running `mvn clean`
+ * STORM-1398: Add back in TopologyDetails.getTopology
  * STORM-898: Add priorities and per user resource guarantees to Resource Aware Scheduler
  * STORM-1187: Support windowing based on tuple ts.
  * STORM-1400: Netty Context removeClient() called after term() causes NullPointerException.

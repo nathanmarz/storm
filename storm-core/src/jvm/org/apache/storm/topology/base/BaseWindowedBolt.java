@@ -33,7 +33,7 @@ import java.util.concurrent.TimeUnit;
 public abstract class BaseWindowedBolt implements IWindowedBolt {
     private static final Logger LOG = LoggerFactory.getLogger(BaseWindowedBolt.class);
 
-    private final transient Map<String, Object> windowConfiguration;
+    protected final transient Map<String, Object> windowConfiguration;
 
     /**
      * Holds a count value for count based windows and sliding intervals.

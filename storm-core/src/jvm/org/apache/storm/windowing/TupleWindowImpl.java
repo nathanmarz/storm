@@ -58,4 +58,25 @@ public class TupleWindowImpl implements TupleWindow {
                 ", expiredTuples=" + expiredTuples +
                 '}';
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        TupleWindowImpl that = (TupleWindowImpl) o;
+
+        if (tuples != null ? !tuples.equals(that.tuples) : that.tuples != null) return false;
+        if (newTuples != null ? !newTuples.equals(that.newTuples) : that.newTuples != null) return false;
+        return expiredTuples != null ? expiredTuples.equals(that.expiredTuples) : that.expiredTuples == null;
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = tuples != null ? tuples.hashCode() : 0;
+        result = 31 * result + (newTuples != null ? newTuples.hashCode() : 0);
+        result = 31 * result + (expiredTuples != null ? expiredTuples.hashCode() : 0);
+        return result;
+    }
 }

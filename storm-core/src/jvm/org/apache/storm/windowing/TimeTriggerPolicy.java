@@ -36,8 +36,8 @@ public class TimeTriggerPolicy<T> implements TriggerPolicy<T> {
     private long duration;
     private final TriggerHandler handler;
     private final ScheduledExecutorService executor;
-    private final ScheduledFuture<?> executorFuture;
     private final EvictionPolicy<T> evictionPolicy;
+    private ScheduledFuture<?> executorFuture;
 
     public TimeTriggerPolicy(long millis, TriggerHandler handler) {
         this(millis, handler, null);
@@ -47,7 +47,6 @@ public class TimeTriggerPolicy<T> implements TriggerPolicy<T> {
         this.duration = millis;
         this.handler = handler;
         this.executor = Executors.newSingleThreadScheduledExecutor();
-        this.executorFuture = executor.scheduleAtFixedRate(newTriggerTask(), duration, duration, TimeUnit.MILLISECONDS);
         this.evictionPolicy = evictionPolicy;
     }
 
@@ -59,6 +58,11 @@ public class TimeTriggerPolicy<T> implements TriggerPolicy<T> {
     @Override
     public void reset() {
         checkFailures();
+    }
+
+    @Override
+    public void start() {
+        executorFuture = executor.scheduleAtFixedRate(newTriggerTask(), duration, duration, TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -88,7 +92,7 @@ public class TimeTriggerPolicy<T> implements TriggerPolicy<T> {
     * ExecutionException and thrown when future.get() is invoked.
     */
     private void checkFailures() {
-        if (executorFuture.isDone()) {
+        if (executorFuture != null && executorFuture.isDone()) {
             try {
                 executorFuture.get();
             } catch (InterruptedException ex) {
@@ -110,7 +114,7 @@ public class TimeTriggerPolicy<T> implements TriggerPolicy<T> {
                      * set the current timestamp as the reference time for the eviction policy
                      * to evict the events
                      */
-                    if(evictionPolicy != null) {
+                    if (evictionPolicy != null) {
                         evictionPolicy.setContext(System.currentTimeMillis());
                     }
                     handler.onTrigger();

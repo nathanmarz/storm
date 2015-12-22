@@ -30,17 +30,19 @@ public class CountTriggerPolicy<T> implements TriggerPolicy<T> {
     private final AtomicInteger currentCount;
     private final TriggerHandler handler;
     private final EvictionPolicy<T> evictionPolicy;
+    private boolean started;
 
     public CountTriggerPolicy(int count, TriggerHandler handler, EvictionPolicy<T> evictionPolicy) {
         this.count = count;
         this.currentCount = new AtomicInteger();
         this.handler = handler;
         this.evictionPolicy = evictionPolicy;
+        this.started = false;
     }
 
     @Override
     public void track(Event<T> event) {
-        if (!event.isWatermark()) {
+        if (started && !event.isWatermark()) {
             if (currentCount.incrementAndGet() >= count) {
                 evictionPolicy.setContext(System.currentTimeMillis());
                 handler.onTrigger();
@@ -54,6 +56,11 @@ public class CountTriggerPolicy<T> implements TriggerPolicy<T> {
     }
 
     @Override
+    public void start() {
+        started = true;
+    }
+
+    @Override
     public void shutdown() {
         // NOOP
     }
@@ -63,6 +70,7 @@ public class CountTriggerPolicy<T> implements TriggerPolicy<T> {
         return "CountTriggerPolicy{" +
                 "count=" + count +
                 ", currentCount=" + currentCount +
+                ", started=" + started +
                 '}';
     }
 }

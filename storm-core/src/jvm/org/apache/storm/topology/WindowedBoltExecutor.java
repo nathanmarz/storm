@@ -59,6 +59,8 @@ public class WindowedBoltExecutor implements IRichBolt {
     private transient WindowManager<Tuple> windowManager;
     private transient int maxLagMs;
     private transient String tupleTsFieldName;
+    private transient TriggerPolicy<Tuple> triggerPolicy;
+    private transient EvictionPolicy<Tuple> evictionPolicy;
     // package level for unit tests
     transient WaterMarkEventGenerator<Tuple> waterMarkEventGenerator;
 
@@ -176,13 +178,25 @@ public class WindowedBoltExecutor implements IRichBolt {
         // validate
         validate(stormConf, windowLengthCount, windowLengthDuration,
                  slidingIntervalCount, slidingIntervalDuration);
-        EvictionPolicy<Tuple> evictionPolicy = getEvictionPolicy(windowLengthCount, windowLengthDuration,
+        evictionPolicy = getEvictionPolicy(windowLengthCount, windowLengthDuration,
                                                                  manager);
-        TriggerPolicy<Tuple> triggerPolicy = getTriggerPolicy(slidingIntervalCount, slidingIntervalDuration,
+        triggerPolicy = getTriggerPolicy(slidingIntervalCount, slidingIntervalDuration,
                                                               manager, evictionPolicy);
         manager.setEvictionPolicy(evictionPolicy);
         manager.setTriggerPolicy(triggerPolicy);
         return manager;
+    }
+
+    /**
+     * Start the trigger policy and waterMarkEventGenerator if set
+     */
+    protected void start() {
+        if (waterMarkEventGenerator != null) {
+            LOG.debug("Starting waterMarkEventGenerator");
+            waterMarkEventGenerator.start();
+        }
+        LOG.debug("Starting trigger policy");
+        triggerPolicy.start();
     }
 
     private boolean isTupleTs() {
@@ -229,6 +243,7 @@ public class WindowedBoltExecutor implements IRichBolt {
         bolt.prepare(stormConf, context, windowedOutputCollector);
         this.listener = newWindowLifecycleListener();
         this.windowManager = initWindowManager(listener, stormConf, context);
+        start();
         LOG.debug("Initialized window manager {} ", this.windowManager);
     }
 
@@ -262,7 +277,7 @@ public class WindowedBoltExecutor implements IRichBolt {
         return bolt.getComponentConfiguration();
     }
 
-    private WindowLifecycleListener<Tuple> newWindowLifecycleListener() {
+    protected WindowLifecycleListener<Tuple> newWindowLifecycleListener() {
         return new WindowLifecycleListener<Tuple>() {
             @Override
             public void onExpiry(List<Tuple> tuples) {

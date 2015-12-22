@@ -68,12 +68,13 @@ public class StatefulBoltExecutor<T extends State> extends CheckpointTupleForwar
     protected void handleCheckpoint(Tuple input, String action, long txid) {
         LOG.debug("handleCheckPoint with tuple {}, action {}, txid {}", input, action, txid);
         if (action.equals(CHECKPOINT_ACTION_PREPARE)) {
+            bolt.prePrepare(txid);
             state.prepareCommit(txid);
         } else if (action.equals(CHECKPOINT_ACTION_COMMIT)) {
-            bolt.preCommit();
+            bolt.preCommit(txid);
             state.commit(txid);
-            bolt.postCommit();
         } else if (action.equals(CHECKPOINT_ACTION_ROLLBACK)) {
+            bolt.preRollback();
             state.rollback();
         } else if (action.equals(CHECKPOINT_ACTION_INITSTATE)) {
             bolt.initState((T) state);

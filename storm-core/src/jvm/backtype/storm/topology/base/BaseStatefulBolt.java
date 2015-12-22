@@ -48,12 +48,17 @@ public abstract class BaseStatefulBolt<T extends State> implements IStatefulBolt
     }
 
     @Override
-    public void preCommit() {
+    public void preCommit(long txid) {
         // NOOP
     }
 
     @Override
-    public void postCommit() {
+    public void prePrepare(long txid) {
+        // NOOP
+    }
+
+    @Override
+    public void preRollback() {
         // NOOP
     }
 }

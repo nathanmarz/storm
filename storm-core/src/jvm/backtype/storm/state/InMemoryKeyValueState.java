@@ -20,8 +20,8 @@ package backtype.storm.state;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * An in-memory implementation of the {@link State}
@@ -31,7 +31,7 @@ public class InMemoryKeyValueState<K, V> implements KeyValueState<K, V> {
     private static final long DEFAULT_TXID = -1;
     private TxIdState<K, V> commitedState;
     private TxIdState<K, V> preparedState;
-    private Map<K, V> state = new HashMap<>();
+    private Map<K, V> state = new ConcurrentHashMap<>();
 
     private static class TxIdState<K, V> {
         private long txid;
@@ -69,7 +69,7 @@ public class InMemoryKeyValueState<K, V> implements KeyValueState<K, V> {
 
     @Override
     public void commit() {
-        commitedState = new TxIdState<>(DEFAULT_TXID, new HashMap<K, V>(state));
+        commitedState = new TxIdState<>(DEFAULT_TXID, new ConcurrentHashMap<>(state));
     }
 
     @Override
@@ -78,7 +78,7 @@ public class InMemoryKeyValueState<K, V> implements KeyValueState<K, V> {
         if (preparedState != null && txid > preparedState.txid) {
             throw new RuntimeException("Cannot prepare a new txn while there is a pending txn");
         }
-        preparedState = new TxIdState<>(txid, new HashMap<K, V>(state));
+        preparedState = new TxIdState<>(txid, new ConcurrentHashMap<K, V>(state));
     }
 
     @Override
@@ -99,7 +99,7 @@ public class InMemoryKeyValueState<K, V> implements KeyValueState<K, V> {
         if (commitedState != null) {
             state = commitedState.state;
         } else {
-            state = new HashMap<>();
+            state = new ConcurrentHashMap<>();
         }
     }
 

@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * A redis based implementation that persists the state in Redis.
@@ -76,7 +77,7 @@ public class RedisKeyValueState<K, V> implements KeyValueState<K, V> {
         this.keySerializer = keySerializer;
         this.valueSerializer = valueSerializer;
         this.jedisContainer = jedisContainer;
-        this.pendingPrepare = new HashMap<>();
+        this.pendingPrepare = new ConcurrentHashMap<>();
         initTxids();
         initPendingCommit();
     }
@@ -101,10 +102,10 @@ public class RedisKeyValueState<K, V> implements KeyValueState<K, V> {
             commands = jedisContainer.getInstance();
             if (commands.exists(prepareNamespace)) {
                 LOG.debug("Loading previously prepared commit from {}", prepareNamespace);
-                pendingCommit = commands.hgetAll(prepareNamespace);
+                pendingCommit = Collections.unmodifiableMap(commands.hgetAll(prepareNamespace));
             } else {
                 LOG.debug("No previously prepared commits.");
-                pendingCommit = new HashMap<>();
+                pendingCommit = Collections.emptyMap();
             }
         } finally {
             jedisContainer.returnInstance(commands);
@@ -169,7 +170,7 @@ public class RedisKeyValueState<K, V> implements KeyValueState<K, V> {
             txIds.put(PREPARE_TXID_KEY, String.valueOf(txid));
             commands.hmset(txidNamespace, txIds);
             pendingCommit = Collections.unmodifiableMap(pendingPrepare);
-            pendingPrepare = new HashMap<>();
+            pendingPrepare = new ConcurrentHashMap<>();
         } finally {
             jedisContainer.returnInstance(commands);
         }
@@ -206,7 +207,7 @@ public class RedisKeyValueState<K, V> implements KeyValueState<K, V> {
             } else {
                 LOG.debug("Nothing to save for commit");
             }
-            pendingPrepare = new HashMap<>();
+            pendingPrepare = new ConcurrentHashMap<>();
         } finally {
             jedisContainer.returnInstance(commands);
         }
@@ -231,7 +232,7 @@ public class RedisKeyValueState<K, V> implements KeyValueState<K, V> {
             }
             commands.hmset(txidNamespace, txIds);
             pendingCommit = Collections.emptyMap();
-            pendingPrepare = new HashMap<>();
+            pendingPrepare = new ConcurrentHashMap<>();
         } finally {
             jedisContainer.returnInstance(commands);
         }
@@ -247,10 +248,6 @@ public class RedisKeyValueState<K, V> implements KeyValueState<K, V> {
             if (txid <= committedTxid) {
                 throw new RuntimeException("Invalid txid '" + txid + "' for prepare. Txid '" + committedTxid +
                                                    "' is already committed");
-            }
-            if (txid > committedTxid + 1) {
-                throw new RuntimeException("Cannot prepare a txn with id '" + txid +
-                                                   "' when last committed txid is '" + committedTxid + "'");
             }
         }
     }

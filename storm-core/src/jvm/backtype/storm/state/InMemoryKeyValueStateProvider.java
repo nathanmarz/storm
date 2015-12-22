@@ -20,14 +20,24 @@ package backtype.storm.state;
 import backtype.storm.task.TopologyContext;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Provides {@link InMemoryKeyValueState}
  */
 public class InMemoryKeyValueStateProvider implements StateProvider {
+    private final ConcurrentHashMap<String, State> states = new ConcurrentHashMap<>();
 
     @Override
     public State newState(String namespace, Map stormConf, TopologyContext context) {
-        return new InMemoryKeyValueState();
+        State state = states.get(namespace);
+        if (state == null) {
+            State newState = new InMemoryKeyValueState<>();
+            state = states.putIfAbsent(namespace, newState);
+            if (state == null) {
+                state = newState;
+            }
+        }
+        return state;
     }
 }

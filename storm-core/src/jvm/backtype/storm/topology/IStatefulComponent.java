@@ -40,11 +40,17 @@ public interface IStatefulComponent<T extends State> extends IComponent {
      * This is a hook for the component to perform some actions just before the
      * framework commits its state.
      */
-    void preCommit();
+    void preCommit(long txid);
 
     /**
-     * This is a hook for the component to perform some actions just after the
-     * framework commits its state.
+     * This is a hook for the component to perform some actions just before the
+     * framework prepares its state.
      */
-    void postCommit();
+    void prePrepare(long txid);
+
+    /**
+     * This is a hook for the component to perform some actions just before the
+     * framework rolls back the prepared state.
+     */
+    void preRollback();
 }

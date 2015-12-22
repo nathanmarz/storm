@@ -86,7 +86,7 @@ public class HdfsSpout extends BaseRichSpout {
   private int acksSinceLastCommit = 0 ;
   private final AtomicBoolean commitTimeElapsed = new AtomicBoolean(false);
   private final Timer commitTimer = new Timer();
-  private boolean fileReadCompletely = false;
+  private boolean fileReadCompletely = true;
 
   private String configKey = Configs.DEFAULT_HDFS_CONFIG_KEY; // key for hdfs kerberos configs
 
@@ -130,12 +130,15 @@ public class HdfsSpout extends BaseRichSpout {
         // 3) Select a new file if one is not open already
         if (reader == null) {
           reader = pickNextFile();
+          fileReadCompletely=false;
           if (reader == null) {
             LOG.debug("Currently no new files to process under : " + sourceDirPath);
             return;
           }
         }
-
+        if( fileReadCompletely ) { // wait for more ACKs before proceeding
+          return;
+        }
         // 4) Read record from file, emit to collector and record progress
         List<Object> tuple = reader.next();
         if (tuple != null) {
@@ -145,7 +148,7 @@ public class HdfsSpout extends BaseRichSpout {
           emitData(tuple, msgId);
 
           if(!ackEnabled) {
-            ++acksSinceLastCommit; // assume message is immediately acked in non-ack mode
+            ++acksSinceLastCommit; // assume message is immediately ACKed in non-ack mode
             commitProgress(reader.getFileOffset());
           } else {
             commitProgress(tracker.getCommitPosition());
@@ -175,6 +178,8 @@ public class HdfsSpout extends BaseRichSpout {
 
   // will commit progress into lock file if commit threshold is reached
   private void commitProgress(FileOffset position) {
+    if(position==null)
+      return;
     if ( lock!=null && canCommitNow() ) {
       try {
         lock.heartbeat(position.toString());
@@ -205,15 +210,13 @@ public class HdfsSpout extends BaseRichSpout {
   }
 
   private void markFileAsDone(Path filePath) {
-    fileReadCompletely = false;
     try {
       Path newFile = renameCompletedFile(reader.getFilePath());
       LOG.info("Completed processing {}", newFile);
     } catch (IOException e) {
       LOG.error("Unable to archive completed file" + filePath, e);
     }
-    unlockAndCloseReader();
-
+    closeReaderAndResetTrackers();
   }
 
   private void markFileAsBad(Path file) {
@@ -222,19 +225,22 @@ public class HdfsSpout extends BaseRichSpout {
     String originalName = new Path(fileNameMinusSuffix).getName();
     Path  newFile = new Path( badFilesDirPath + Path.SEPARATOR + originalName);
 
-    LOG.info("Moving bad file {} to {} ", originalName, newFile);
+    LOG.info("Moving bad file {} to {}. Processed it till offset {}", originalName, newFile, tracker.getCommitPosition());
     try {
       if (!hdfs.rename(file, newFile) ) { // seems this can fail by returning false or throwing exception
         throw new IOException("Move failed for bad file: " + file); // convert false ret value to exception
       }
     } catch (IOException e) {
-      LOG.warn("Error moving bad file: " + file + ". to destination :  " + newFile);
+      LOG.warn("Error moving bad file: " + file + " to destination " + newFile, e);
     }
-
-    unlockAndCloseReader();
+    closeReaderAndResetTrackers();
   }
 
-  private void unlockAndCloseReader() {
+  private void closeReaderAndResetTrackers() {
+    inflight.clear();
+    tracker.offsets.clear();
+    retryList.clear();
+
     reader.close();
     reader = null;
     try {
@@ -244,8 +250,6 @@ public class HdfsSpout extends BaseRichSpout {
     }
     lock = null;
   }
-
-
 
   protected void emitData(List<Object> tuple, MessageId id) {
     LOG.debug("Emitting - {}", id);
@@ -306,21 +310,7 @@ public class HdfsSpout extends BaseRichSpout {
       throw new RuntimeException(Configs.ARCHIVE_DIR + " setting is required");
     }
     this.archiveDirPath = new Path( conf.get(Configs.ARCHIVE_DIR).toString() );
-
-    try {
-      if(hdfs.exists(archiveDirPath)) {
-        if(! hdfs.isDirectory(archiveDirPath) ) {
-          LOG.error("Archive directory is a file. " + archiveDirPath);
-          throw new RuntimeException("Archive directory is a file. " + archiveDirPath);
-        }
-      } else if(! hdfs.mkdirs(archiveDirPath) ) {
-        LOG.error("Unable to create archive directory. " + archiveDirPath);
-        throw new RuntimeException("Unable to create archive directory " + archiveDirPath);
-      }
-    } catch (IOException e) {
-      LOG.error("Unable to create archive dir ", e);
-      throw new RuntimeException("Unable to create archive directory ", e);
-    }
+    validateOrMakeDir(hdfs, archiveDirPath, "Archive");
 
     // -- bad files dir config
     if ( !conf.containsKey(Configs.BAD_DIR) ) {
@@ -329,23 +319,9 @@ public class HdfsSpout extends BaseRichSpout {
     }
 
     this.badFilesDirPath = new Path(conf.get(Configs.BAD_DIR).toString());
+    validateOrMakeDir(hdfs, badFilesDirPath, "bad files");
 
-    try {
-      if(hdfs.exists(badFilesDirPath)) {
-        if(! hdfs.isDirectory(badFilesDirPath) ) {
-          LOG.error("Bad files directory is a file: " + badFilesDirPath);
-          throw new RuntimeException("Bad files directory is a file: " + badFilesDirPath);
-        }
-      } else if(! hdfs.mkdirs(badFilesDirPath) ) {
-        LOG.error("Unable to create directory for bad files: " + badFilesDirPath);
-        throw new RuntimeException("Unable to create a directory for bad files: " + badFilesDirPath);
-      }
-    } catch (IOException e) {
-      LOG.error("Unable to create archive dir ", e);
-      throw new RuntimeException(e.getMessage(), e);
-    }
-
-    // -- ignore filename suffix
+            // -- ignore filename suffix
     if ( conf.containsKey(Configs.IGNORE_SUFFIX) ) {
       this.ignoreSuffix = conf.get(Configs.IGNORE_SUFFIX).toString();
     }
@@ -353,21 +329,7 @@ public class HdfsSpout extends BaseRichSpout {
     // -- lock dir config
     String lockDir = !conf.containsKey(Configs.LOCK_DIR) ? getDefaultLockDir(sourceDirPath) : conf.get(Configs.LOCK_DIR).toString() ;
     this.lockDirPath = new Path(lockDir);
-
-    try {
-      if(hdfs.exists(lockDirPath)) {
-        if(! hdfs.isDirectory(lockDirPath) ) {
-          LOG.error("Lock directory is a file: " + lockDirPath);
-          throw new RuntimeException("Lock directory is a file: " + lockDirPath);
-        }
-      } else if(! hdfs.mkdirs(lockDirPath) ) {
-        LOG.error("Unable to create lock directory: " + lockDirPath);
-        throw new RuntimeException("Unable to create lock directory: " + lockDirPath);
-      }
-    } catch (IOException e) {
-      LOG.error("Unable to create lock dir: " + lockDirPath, e);
-      throw new RuntimeException(e.getMessage(), e);
-    }
+    validateOrMakeDir(hdfs,lockDirPath,"locks");
 
     // -- lock timeout
     if( conf.get(Configs.LOCK_TIMEOUT) !=null )
@@ -403,6 +365,23 @@ public class HdfsSpout extends BaseRichSpout {
     setupCommitElapseTimer();
   }
 
+  private static void validateOrMakeDir(FileSystem fs, Path dir, String dirDescription) {
+    try {
+      if(fs.exists(dir)) {
+        if(! fs.isDirectory(dir) ) {
+          LOG.error(dirDescription + " directory is a file, not a dir. " + dir);
+          throw new RuntimeException(dirDescription + " directory is a file, not a dir. " + dir);
+        }
+      } else if(! fs.mkdirs(dir) ) {
+        LOG.error("Unable to create " + dirDescription + " directory " + dir);
+        throw new RuntimeException("Unable to create " + dirDescription + " directory " + dir);
+      }
+    } catch (IOException e) {
+      LOG.error("Unable to create " + dirDescription + " directory " + dir, e);
+      throw new RuntimeException("Unable to create " + dirDescription + " directory " + dir, e);
+    }
+  }
+
   private String getDefaultLockDir(Path sourceDirPath) {
     return sourceDirPath.toString() + Path.SEPARATOR + Configs.DEFAULT_LOCK_DIR;
   }
@@ -425,12 +404,14 @@ public class HdfsSpout extends BaseRichSpout {
 
   @Override
   public void ack(Object msgId) {
+    if(!ackEnabled)
+      throw new IllegalStateException("Received an ACKs when ack-ing is disabled" );
     MessageId id = (MessageId) msgId;
     inflight.remove(id);
     ++acksSinceLastCommit;
     tracker.recordAckedOffset(id.offset);
     commitProgress(tracker.getCommitPosition());
-    if(fileReadCompletely) {
+    if(fileReadCompletely && inflight.isEmpty()) {
       markFileAsDone(reader.getFilePath());
       reader = null;
     }

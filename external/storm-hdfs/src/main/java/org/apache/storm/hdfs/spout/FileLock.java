@@ -48,7 +48,7 @@ public class FileLock {
   private final FSDataOutputStream lockFileStream;
   private LogEntry lastEntry;
 
-  private static final Logger log = LoggerFactory.getLogger(DirLock.class);
+  private static final Logger log = LoggerFactory.getLogger(FileLock.class);
 
   private FileLock(FileSystem fs, Path lockFile, FSDataOutputStream lockFileStream, String spoutId)
           throws IOException {
@@ -89,9 +89,15 @@ public class FileLock {
     lastEntry = entry; // update this only after writing to hdfs
   }
 
+  /** Release lock by deleting file
+   * @throws IOException if lock file could not be deleted
+   */
   public void release() throws IOException {
     lockFileStream.close();
-    fs.delete(lockFile, false);
+    if(!fs.delete(lockFile, false)){
+      log.warn("Unable to delete lock file");
+      throw new IOException("Unable to delete lock file");
+    }
     log.debug("Released lock file {}", lockFile);
   }
 
@@ -109,10 +115,10 @@ public class FileLock {
     try {
       FSDataOutputStream ostream = HdfsUtils.tryCreateFile(fs, lockFile);
       if (ostream != null) {
-        log.info("Acquired lock on file {}. LockFile=", fileToLock, lockFile);
+        log.debug("Acquired lock on file {}. LockFile=", fileToLock, lockFile);
         return new FileLock(fs, lockFile, ostream, spoutId);
       } else {
-        log.info("Cannot lock file {} as its already locked.", fileToLock);
+        log.debug("Cannot lock file {} as its already locked.", fileToLock);
         return null;
       }
     } catch (IOException e) {
@@ -166,7 +172,6 @@ public class FileLock {
     return LogEntry.deserialize(lastLine);
   }
 
-  // takes ownership of the lock file
   /**
    * Takes ownership of the lock file if possible.
    * @param lockFile
@@ -184,7 +189,7 @@ public class FileLock {
       return new FileLock(fs, lockFile, spoutId, lastEntry);
     } catch (RemoteException e) {
       if (e.unwrapRemoteException() instanceof AlreadyBeingCreatedException) {
-        log.info("Lock file {} is currently open. Cannot transfer ownership.", lockFile);
+        log.warn("Lock file {} is currently open. Cannot transfer ownership now. Will try later.", lockFile);
         return null;
       } else { // unexpected error
         throw e;

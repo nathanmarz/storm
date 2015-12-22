@@ -46,19 +46,20 @@ class TextFileReader extends AbstractFileReader {
   private TextFileReader.Offset offset;
 
   public TextFileReader(FileSystem fs, Path file, Map conf) throws IOException {
-    super(fs, file, new Fields(DEFAULT_FIELD_NAME));
-    FSDataInputStream in = fs.open(file);
-    String charSet = (conf==null || !conf.containsKey(CHARSET) ) ? "UTF-8" : conf.get(CHARSET).toString();
-    int buffSz = (conf==null || !conf.containsKey(BUFFER_SIZE) ) ? DEFAULT_BUFF_SIZE : Integer.parseInt( conf.get(BUFFER_SIZE).toString() );
-    reader = new BufferedReader(new InputStreamReader(in, charSet), buffSz);
-    offset = new TextFileReader.Offset(0,0);
+    this(fs, file, conf, new TextFileReader.Offset(0,0) );
   }
 
   public TextFileReader(FileSystem fs, Path file, Map conf, String startOffset) throws IOException {
+    this(fs, file, conf, new TextFileReader.Offset(startOffset) );
+  }
+
+  private TextFileReader(FileSystem fs, Path file, Map conf, TextFileReader.Offset startOffset) throws IOException {
     super(fs, file, new Fields(DEFAULT_FIELD_NAME));
-    offset = new TextFileReader.Offset(startOffset);
+    offset = startOffset;
     FSDataInputStream in = fs.open(file);
-    in.seek(offset.byteOffset);
+    if(offset.byteOffset>0)
+      in.seek(offset.byteOffset);
+
     String charSet = (conf==null || !conf.containsKey(CHARSET) ) ? "UTF-8" : conf.get(CHARSET).toString();
     int buffSz = (conf==null || !conf.containsKey(BUFFER_SIZE) ) ? DEFAULT_BUFF_SIZE : Integer.parseInt( conf.get(BUFFER_SIZE).toString() );
     reader = new BufferedReader(new InputStreamReader(in, charSet), buffSz);
@@ -97,6 +98,8 @@ class TextFileReader extends AbstractFileReader {
     }
 
     public Offset(String offset) {
+      if(offset!=null)
+        throw new IllegalArgumentException("offset cannot be null");
       try {
         String[] parts = offset.split(":");
         this.byteOffset = Long.parseLong(parts[0].split("=")[1]);

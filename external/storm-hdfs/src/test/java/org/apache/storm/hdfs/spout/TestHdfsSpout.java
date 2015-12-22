@@ -18,6 +18,7 @@
 
 package org.apache.storm.hdfs.spout;
 
+import backtype.storm.Config;
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
@@ -48,6 +49,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -109,27 +111,47 @@ public class TestHdfsSpout {
   }
 
   @Test
-  public void testSimpleText() throws IOException {
+  public void testSimpleText_noACK() throws IOException {
     Path file1 = new Path(source.toString() + "/file1.txt");
     createTextFile(file1, 5);
 
     Path file2 = new Path(source.toString() + "/file2.txt");
     createTextFile(file2, 5);
 
-    listDir(source);
+    Map conf = getDefaultConfig();
+    conf.put(Configs.COMMIT_FREQ_COUNT, "1");
+    conf.put(Configs.COMMIT_FREQ_SEC, "1");
+
+    HdfsSpout spout = makeSpout(0, conf, Configs.TEXT);
+
+    runSpout(spout,"r11");
+
+    Path arc1 = new Path(archive.toString() + "/file1.txt");
+    Path arc2 = new Path(archive.toString() + "/file2.txt");
+    checkCollectorOutput_txt((MockCollector) spout.getCollector(), arc1, arc2);
+  }
+
+  @Test
+  public void testSimpleText_ACK() throws IOException {
+    Path file1 = new Path(source.toString() + "/file1.txt");
+    createTextFile(file1, 5);
+
+    Path file2 = new Path(source.toString() + "/file2.txt");
+    createTextFile(file2, 5);
 
     Map conf = getDefaultConfig();
     conf.put(Configs.COMMIT_FREQ_COUNT, "1");
     conf.put(Configs.COMMIT_FREQ_SEC, "1");
+    conf.put(Config.TOPOLOGY_ACKER_EXECUTORS, "1"); // enable acking
     HdfsSpout spout = makeSpout(0, conf, Configs.TEXT);
 
-    List<String> res = runSpout(spout,"r11", "a0", "a1", "a2", "a3", "a4");
-    for (String re : res) {
-      System.err.println(re);
-    }
-
-    listCompletedDir();
+    // consume file 1
+    runSpout(spout, "r6", "a0", "a1", "a2", "a3", "a4");
     Path arc1 = new Path(archive.toString() + "/file1.txt");
+    checkCollectorOutput_txt((MockCollector) spout.getCollector(), arc1);
+
+    // consume file 2
+    runSpout(spout, "r6", "a5", "a6", "a7", "a8", "a9");
     Path arc2 = new Path(archive.toString() + "/file2.txt");
     checkCollectorOutput_txt((MockCollector) spout.getCollector(), arc1, arc2);
   }
@@ -190,11 +212,6 @@ public class TestHdfsSpout {
     return result;
   }
 
-  private void listCompletedDir() throws IOException {
-    listDir(source);
-    listDir(archive);
-  }
-
   private List<String> listDir(Path p) throws IOException {
     ArrayList<String> result = new ArrayList<>();
     System.err.println("*** Listing " + p);
@@ -209,28 +226,97 @@ public class TestHdfsSpout {
 
 
   @Test
-  public void testSimpleSequenceFile() throws IOException {
+  public void testMultipleFileConsumption_Ack() throws Exception {
+    Path file1 = new Path(source.toString() + "/file1.txt");
+    createTextFile(file1, 5);
 
+    Map conf = getDefaultConfig();
+    conf.put(Configs.COMMIT_FREQ_COUNT, "1");
+    conf.put(Configs.COMMIT_FREQ_SEC, "1");
+    conf.put(Config.TOPOLOGY_ACKER_EXECUTORS, "1"); // enable ACKing
+    HdfsSpout spout = makeSpout(0, conf, Configs.TEXT);
+
+    // read few lines from file1 dont ack
+    runSpout(spout, "r3");
+    FileReader reader = getField(spout, "reader");
+    Assert.assertNotNull(reader);
+    Assert.assertEquals(false, getBoolField(spout, "fileReadCompletely"));
+
+    // read remaining lines
+    runSpout(spout, "r3");
+    reader = getField(spout, "reader");
+    Assert.assertNotNull(reader);
+    Assert.assertEquals(true, getBoolField(spout, "fileReadCompletely") );
+
+    // ack few
+    runSpout(spout, "a0", "a1", "a2");
+    reader = getField(spout, "reader");
+    Assert.assertNotNull(reader);
+    Assert.assertEquals(true, getBoolField(spout, "fileReadCompletely"));
+
+    //ack rest
+    runSpout(spout, "a3", "a4");
+    reader = getField(spout, "reader");
+    Assert.assertNull(reader);
+    Assert.assertEquals(true, getBoolField(spout, "fileReadCompletely"));
+
+
+    // go to next file
+    Path file2 = new Path(source.toString() + "/file2.txt");
+    createTextFile(file2, 5);
+
+    // Read 1 line
+    runSpout(spout, "r1");
+    Assert.assertNotNull(getField(spout, "reader"));
+    Assert.assertEquals(false, getBoolField(spout, "fileReadCompletely"));
+
+    // ack 1 tuple
+    runSpout(spout, "a5");
+    Assert.assertNotNull(getField(spout, "reader"));
+    Assert.assertEquals(false, getBoolField(spout, "fileReadCompletely"));
+
+
+    // read and ack remaining lines
+    runSpout(spout, "r5", "a6", "a7", "a8", "a9");
+    Assert.assertNull(getField(spout, "reader"));
+    Assert.assertEquals(true, getBoolField(spout, "fileReadCompletely"));
+  }
+
+  private static <T> T getField(HdfsSpout spout, String fieldName) throws NoSuchFieldException, IllegalAccessException {
+    Field readerFld = HdfsSpout.class.getDeclaredField(fieldName);
+    readerFld.setAccessible(true);
+    return (T) readerFld.get(spout);
+  }
+
+  private static boolean getBoolField(HdfsSpout spout, String fieldName) throws NoSuchFieldException, IllegalAccessException {
+    Field readerFld = HdfsSpout.class.getDeclaredField(fieldName);
+    readerFld.setAccessible(true);
+    return readerFld.getBoolean(spout);
+  }
+
+
+  @Test
+  public void testSimpleSequenceFile() throws IOException {
+    //1) create a couple files to consume
     source = new Path("/tmp/hdfsspout/source");
     fs.mkdirs(source);
     archive = new Path("/tmp/hdfsspout/archive");
     fs.mkdirs(archive);
 
     Path file1 = new Path(source + "/file1.seq");
-    createSeqFile(fs, file1);
+    createSeqFile(fs, file1, 5);
 
     Path file2 = new Path(source + "/file2.seq");
-    createSeqFile(fs, file2);
+    createSeqFile(fs, file2, 5);
 
     Map conf = getDefaultConfig();
     HdfsSpout spout = makeSpout(0, conf, Configs.SEQ);
 
-    List<String> res = runSpout(spout, "r11", "a0", "a1", "a2", "a3", "a4");
-    for (String re : res) {
-      System.err.println(re);
-    }
+    // consume both files
+    List<String> res = runSpout(spout, "r11");
+    Assert.assertEquals(10, res.size());
 
-    listDir(archive);
+    Assert.assertEquals(2, listDir(archive).size());
 
 
     Path f1 = new Path(archive + "/file1.seq");
@@ -401,7 +487,7 @@ public class TestHdfsSpout {
    * fN - fail, item number: N
    */
 
-  private List<String> runSpout(HdfsSpout spout,  String...  cmds) {
+  private List<String> runSpout(HdfsSpout spout, String...  cmds) {
     MockCollector collector = (MockCollector) spout.getCollector();
       for(String cmd : cmds) {
         if(cmd.startsWith("r")) {
@@ -437,7 +523,7 @@ public class TestHdfsSpout {
 
 
 
-  private static void createSeqFile(FileSystem fs, Path file) throws IOException {
+  private static void createSeqFile(FileSystem fs, Path file, int rowCount) throws IOException {
 
     Configuration conf = new Configuration();
     try {
@@ -446,7 +532,7 @@ public class TestHdfsSpout {
       }
 
       SequenceFile.Writer w = SequenceFile.createWriter(fs, conf, file, IntWritable.class, Text.class );
-      for (int i = 0; i < 5; i++) {
+      for (int i = 0; i < rowCount; i++) {
         w.append(new IntWritable(i), new Text("line " + i));
       }
       w.close();

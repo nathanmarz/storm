@@ -26,13 +26,11 @@ import org.apache.hadoop.fs.Path;
 abstract class AbstractFileReader implements FileReader {
 
   private final Path file;
-  private final FileSystem fs;
   private Fields fields;
 
   public AbstractFileReader(FileSystem fs, Path file, Fields fieldNames) {
     if (fs == null || file == null)
       throw new IllegalArgumentException("file and filesystem args cannot be null");
-    this.fs = fs;
     this.file = file;
     this.fields = fieldNames;
   }

@@ -49,7 +49,7 @@ public class HdfsUtils {
         fstats.add(fileStatus);
       }
     }
-    Collections.sort(fstats, new CmpFilesByModificationTime() );
+    Collections.sort(fstats, new ModifTimeComparator() );
 
     ArrayList<Path> result = new ArrayList<>(fstats.size());
     for (LocatedFileStatus fstat : fstats) {
@@ -59,7 +59,7 @@ public class HdfsUtils {
   }
 
   /**
-   * Returns true if succeeded. False if file already exists. throws if there was unexpected problem
+   * Returns null if file already exists. throws if there was unexpected problem
    */
   public static FSDataOutputStream tryCreateFile(FileSystem fs, Path file) throws IOException {
     try {

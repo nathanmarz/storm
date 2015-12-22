@@ -23,7 +23,7 @@ import org.apache.hadoop.fs.FileStatus;
 import java.util.Comparator;
 
 
-public class CmpFilesByModificationTime
+public class ModifTimeComparator
         implements Comparator<FileStatus> {
    @Override
     public int compare(FileStatus o1, FileStatus o2) {

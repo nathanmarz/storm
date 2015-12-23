@@ -26,14 +26,13 @@ import backtype.storm.utils.Utils;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.ArgumentMatcher;
 import org.mockito.Mockito;
-import org.mockito.internal.matchers.Equals;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static backtype.storm.spout.CheckPointState.Action;
 
 /**
  * Unit test for {@link CheckpointSpout}
@@ -56,7 +55,7 @@ public class CheckpointSpoutTest {
         spout.open(new HashMap(), mockTopologyContext, mockOutputCollector);
 
         spout.nextTuple();
-        Values expectedTuple = new Values(-1L, CheckpointSpout.CHECKPOINT_ACTION_INITSTATE);
+        Values expectedTuple = new Values(-1L, Action.INITSTATE);
         ArgumentCaptor<String> stream = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<Values> values = ArgumentCaptor.forClass(Values.class);
         ArgumentCaptor<Object> msgId = ArgumentCaptor.forClass(Object.class);
@@ -74,7 +73,7 @@ public class CheckpointSpoutTest {
                                                  values.capture(),
                                                  msgId.capture());
 
-        expectedTuple = new Values(-1L, CheckpointSpout.CHECKPOINT_ACTION_INITSTATE);
+        expectedTuple = new Values(-1L, Action.INITSTATE);
         assertEquals(CheckpointSpout.CHECKPOINT_STREAM_ID, stream.getValue());
         assertEquals(expectedTuple, values.getValue());
         assertEquals(-1L, msgId.getValue());
@@ -95,7 +94,7 @@ public class CheckpointSpoutTest {
                                                  values.capture(),
                                                  msgId.capture());
 
-        Values expectedTuple = new Values(0L, CheckpointSpout.CHECKPOINT_ACTION_PREPARE);
+        Values expectedTuple = new Values(0L, Action.PREPARE);
         assertEquals(CheckpointSpout.CHECKPOINT_STREAM_ID, stream.getValue());
         assertEquals(expectedTuple, values.getValue());
         assertEquals(0L, msgId.getValue());
@@ -124,7 +123,7 @@ public class CheckpointSpoutTest {
                                                                    values.capture(),
                                                                    msgId.capture());
 
-        Values expectedTuple = new Values(0L, CheckpointSpout.CHECKPOINT_ACTION_PREPARE);
+        Values expectedTuple = new Values(0L, Action.PREPARE);
         assertEquals(CheckpointSpout.CHECKPOINT_STREAM_ID, stream.getValue());
         assertEquals(expectedTuple, values.getValue());
         assertEquals(0L, msgId.getValue());
@@ -153,7 +152,7 @@ public class CheckpointSpoutTest {
                                                                    values.capture(),
                                                                    msgId.capture());
 
-        Values expectedTuple = new Values(0L, CheckpointSpout.CHECKPOINT_ACTION_COMMIT);
+        Values expectedTuple = new Values(0L, Action.COMMIT);
         assertEquals(CheckpointSpout.CHECKPOINT_STREAM_ID, stream.getValue());
         assertEquals(expectedTuple, values.getValue());
         assertEquals(0L, msgId.getValue());
@@ -179,7 +178,7 @@ public class CheckpointSpoutTest {
                                                                    values.capture(),
                                                                    msgId.capture());
 
-        Values expectedTuple = new Values(100L, CheckpointSpout.CHECKPOINT_ACTION_ROLLBACK);
+        Values expectedTuple = new Values(100L, Action.ROLLBACK);
         assertEquals(CheckpointSpout.CHECKPOINT_STREAM_ID, stream.getValue());
         assertEquals(expectedTuple, values.getValue());
         assertEquals(100L, msgId.getValue());
@@ -209,7 +208,7 @@ public class CheckpointSpoutTest {
                                                                    values.capture(),
                                                                    msgId.capture());
 
-        Values expectedTuple = new Values(100L, CheckpointSpout.CHECKPOINT_ACTION_PREPARE);
+        Values expectedTuple = new Values(100L, Action.PREPARE);
         assertEquals(CheckpointSpout.CHECKPOINT_STREAM_ID, stream.getValue());
         assertEquals(expectedTuple, values.getValue());
         assertEquals(100L, msgId.getValue());
@@ -235,7 +234,7 @@ public class CheckpointSpoutTest {
                                                                    values.capture(),
                                                                    msgId.capture());
 
-        Values expectedTuple = new Values(100L, CheckpointSpout.CHECKPOINT_ACTION_COMMIT);
+        Values expectedTuple = new Values(100L, Action.COMMIT);
         assertEquals(CheckpointSpout.CHECKPOINT_STREAM_ID, stream.getValue());
         assertEquals(expectedTuple, values.getValue());
         assertEquals(100L, msgId.getValue());

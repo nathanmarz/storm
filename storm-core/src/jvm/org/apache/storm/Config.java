@@ -1548,7 +1548,9 @@ public class Config extends HashMap<String, Object> {
 
     /**
      * The configuration specific to the {@link backtype.storm.state.StateProvider} implementation.
-     * This can be overridden at the component level.
+     * This can be overridden at the component level. The value and the interpretation of this config
+     * is based on the state provider implementation. For e.g. this could be just a config file name
+     * which contains the config for the state provider implementation.
      */
     @isString
     public static final String TOPOLOGY_STATE_PROVIDER_CONFIG = "topology.state.provider.config";

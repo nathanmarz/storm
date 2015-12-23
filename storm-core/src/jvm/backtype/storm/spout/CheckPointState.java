@@ -17,13 +17,30 @@
  */
 package backtype.storm.spout;
 
+import static backtype.storm.spout.CheckPointState.State.COMMITTED;
+import static backtype.storm.spout.CheckPointState.State.COMMITTING;
+import static backtype.storm.spout.CheckPointState.State.PREPARING;
+
 /**
- * Captures the current state of the transaction in
- * {@link CheckpointSpout}
+ * Captures the current state of the transaction in {@link CheckpointSpout}. The state transitions are as follows.
+ * <pre>
+ *                  ROLLBACK(tx2)
+ *               <-------------                  PREPARE(tx2)                     COMMIT(tx2)
+ * COMMITTED(tx1)-------------> PREPARING(tx2) --------------> COMMITTING(tx2) -----------------> COMMITTED (tx2)
+ *
+ * </pre>
+ *
+ * During recovery, if a previous transaction is in PREPARING state, it is rolled back since all bolts in the topology
+ * might not have prepared (saved) the data for commit. If the previous transaction is in COMMITTING state, it is
+ * rolled forward (committed) since some bolts might have already committed the data.
+ * <p>
+ * During normal flow, the state transitions from PREPARING to COMMITTING to COMMITTED. In case of failures the
+ * prepare/commit operation is retried.
+ * </p>
  */
 public class CheckPointState {
-    public long txid;
-    public State state;
+    private long txid;
+    private State state;
 
     public enum State {
         /**
@@ -31,13 +48,34 @@ public class CheckPointState {
          */
         COMMITTED,
         /**
-         * The checkpoint spout has started committing the transaction.
+         * The checkpoint spout has started committing the transaction
+         * and the commit is in progress.
          */
         COMMITTING,
         /**
-         * The checkpoint spout has started preparing the transaction for commit.
+         * The checkpoint spout has started preparing the transaction for commit
+         * and the prepare is in progress.
          */
         PREPARING
+    }
+
+    public enum Action {
+        /**
+         * prepare transaction for commit
+         */
+        PREPARE,
+        /**
+         * commit the previously prepared transaction
+         */
+        COMMIT,
+        /**
+         * rollback the previously prepared transaction
+         */
+        ROLLBACK,
+        /**
+         * initialize the state
+         */
+        INITSTATE
     }
 
     public CheckPointState(long txid, State state) {
@@ -47,6 +85,62 @@ public class CheckPointState {
 
     // for kryo
     public CheckPointState() {
+    }
+
+    public long getTxid() {
+        return txid;
+    }
+
+    public State getState() {
+        return state;
+    }
+
+    /**
+     * Get the next state based on this checkpoint state.
+     *
+     * @param recovering if in recovering phase
+     * @return the next checkpoint state based on this state.
+     */
+    public CheckPointState nextState(boolean recovering) {
+        CheckPointState nextState;
+        switch (state) {
+            case PREPARING:
+                nextState = recovering ? new CheckPointState(txid - 1, COMMITTED) : new CheckPointState(txid, COMMITTING);
+                break;
+            case COMMITTING:
+                nextState = new CheckPointState(txid, COMMITTED);
+                break;
+            case COMMITTED:
+                nextState = recovering ? this : new CheckPointState(txid + 1, PREPARING);
+                break;
+            default:
+                throw new IllegalStateException("Unknown state " + state);
+        }
+        return nextState;
+    }
+
+    /**
+     * Get the next action to perform based on this checkpoint state.
+     *
+     * @param recovering if in recovering phase
+     * @return the next action to perform based on this state
+     */
+    public Action nextAction(boolean recovering) {
+        Action action;
+        switch (state) {
+            case PREPARING:
+                action = recovering ? Action.ROLLBACK : Action.PREPARE;
+                break;
+            case COMMITTING:
+                action = Action.COMMIT;
+                break;
+            case COMMITTED:
+                action = recovering ? Action.INITSTATE : Action.PREPARE;
+                break;
+            default:
+                throw new IllegalStateException("Unknown state " + state);
+        }
+        return action;
     }
 
     @Override

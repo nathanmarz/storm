@@ -36,6 +36,9 @@ import java.util.Map;
 import java.util.Set;
 
 import static backtype.storm.spout.CheckpointSpout.*;
+import static backtype.storm.spout.CheckPointState.Action.INITSTATE;
+import static backtype.storm.spout.CheckPointState.Action.ROLLBACK;
+import static backtype.storm.spout.CheckPointState.Action.COMMIT;
 
 /**
  * Unit tests for {@link StatefulBoltExecutor}
@@ -86,7 +89,7 @@ public class StatefulBoltExecutorTest {
         Mockito.when(mockTuple.getSourceStreamId()).thenReturn("default");
         executor.execute(mockTuple);
         Mockito.when(mockCheckpointTuple.getSourceStreamId()).thenReturn(CheckpointSpout.CHECKPOINT_STREAM_ID);
-        Mockito.when(mockCheckpointTuple.getStringByField(CHECKPOINT_FIELD_ACTION)).thenReturn(CHECKPOINT_ACTION_INITSTATE);
+        Mockito.when(mockCheckpointTuple.getValueByField(CHECKPOINT_FIELD_ACTION)).thenReturn(INITSTATE);
         Mockito.when(mockCheckpointTuple.getLongByField(CHECKPOINT_FIELD_TXID)).thenReturn(new Long(0));
         Mockito.doNothing().when(mockOutputCollector).ack(mockCheckpointTuple);
         executor.execute(mockCheckpointTuple);
@@ -99,7 +102,7 @@ public class StatefulBoltExecutorTest {
         Mockito.when(mockTuple.getSourceStreamId()).thenReturn("default");
         executor.execute(mockTuple);
         Mockito.when(mockCheckpointTuple.getSourceStreamId()).thenReturn(CheckpointSpout.CHECKPOINT_STREAM_ID);
-        Mockito.when(mockCheckpointTuple.getStringByField(CHECKPOINT_FIELD_ACTION)).thenReturn(CHECKPOINT_ACTION_ROLLBACK);
+        Mockito.when(mockCheckpointTuple.getValueByField(CHECKPOINT_FIELD_ACTION)).thenReturn(ROLLBACK);
         Mockito.when(mockCheckpointTuple.getLongByField(CHECKPOINT_FIELD_TXID)).thenReturn(new Long(0));
         Mockito.doNothing().when(mockOutputCollector).ack(mockCheckpointTuple);
         executor.execute(mockCheckpointTuple);
@@ -111,7 +114,7 @@ public class StatefulBoltExecutorTest {
         Mockito.when(mockTuple.getSourceStreamId()).thenReturn("default");
         executor.execute(mockTuple);
         Mockito.when(mockCheckpointTuple.getSourceStreamId()).thenReturn(CheckpointSpout.CHECKPOINT_STREAM_ID);
-        Mockito.when(mockCheckpointTuple.getStringByField(CHECKPOINT_FIELD_ACTION)).thenReturn(CHECKPOINT_ACTION_COMMIT);
+        Mockito.when(mockCheckpointTuple.getValueByField(CHECKPOINT_FIELD_ACTION)).thenReturn(COMMIT);
         Mockito.when(mockCheckpointTuple.getLongByField(CHECKPOINT_FIELD_TXID)).thenReturn(new Long(0));
         Mockito.doNothing().when(mockOutputCollector).ack(mockCheckpointTuple);
         executor.execute(mockCheckpointTuple);

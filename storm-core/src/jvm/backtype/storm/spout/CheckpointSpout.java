@@ -26,28 +26,22 @@ import backtype.storm.topology.base.BaseRichSpout;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
+import backtype.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+
 import static backtype.storm.spout.CheckPointState.State.COMMITTED;
-import static backtype.storm.spout.CheckPointState.State.COMMITTING;
-import static backtype.storm.spout.CheckPointState.State.PREPARING;
+import static backtype.storm.spout.CheckPointState.Action;
 
 /**
  * Emits checkpoint tuples which is used to save the state of the {@link backtype.storm.topology.IStatefulComponent}
  * across the topology. If a topology contains Stateful bolts, Checkpoint spouts are automatically added
  * to the topology. There is only one Checkpoint task per topology.
- * <p/>
- * Checkpoint spout stores its internal state in a {@link KeyValueState}. The state transitions are as follows.
- * <p/>
- * <pre>
- *                  ROLLBACK(tx2)
- *               <-------------                  PREPARE(tx2)                     COMMIT(tx2)
- * COMMITTED(tx1)-------------> PREPARING(tx2) --------------> COMMITTING(tx2) -----------------> COMMITTED (tx2)
+ * Checkpoint spout stores its internal state in a {@link KeyValueState}.
  *
- *
- * </pre>
+ * @see CheckPointState
  */
 public class CheckpointSpout extends BaseRichSpout {
     private static final Logger LOG = LoggerFactory.getLogger(CheckpointSpout.class);
@@ -56,22 +50,17 @@ public class CheckpointSpout extends BaseRichSpout {
     public static final String CHECKPOINT_COMPONENT_ID = "$checkpointspout";
     public static final String CHECKPOINT_FIELD_TXID = "txid";
     public static final String CHECKPOINT_FIELD_ACTION = "action";
-    public static final String CHECKPOINT_ACTION_PREPARE = "prepare";
-    public static final String CHECKPOINT_ACTION_COMMIT = "commit";
-    public static final String CHECKPOINT_ACTION_ROLLBACK = "rollback";
-    public static final String CHECKPOINT_ACTION_INITSTATE = "initstate";
-
     private static final String TX_STATE_KEY = "__state";
-    private static final int DEFAULT_CHECKPOINT_INTERVAL = 1000; // every sec
-
     private TopologyContext context;
     private SpoutOutputCollector collector;
     private long lastCheckpointTs;
     private int checkpointInterval;
+    private int sleepInterval;
     private boolean recoveryStepInProgress;
     private boolean checkpointStepInProgress;
     private boolean recovering;
     private KeyValueState<String, CheckPointState> checkpointState;
+    private CheckPointState curTxState;
 
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
@@ -84,7 +73,9 @@ public class CheckpointSpout extends BaseRichSpout {
         this.context = context;
         this.collector = collector;
         this.checkpointInterval = checkpointInterval;
+        this.sleepInterval = checkpointInterval / 10;
         this.checkpointState = checkpointState;
+        this.curTxState = checkpointState.get(TX_STATE_KEY);
         lastCheckpointTs = 0;
         recoveryStepInProgress = false;
         checkpointStepInProgress = false;
@@ -94,28 +85,27 @@ public class CheckpointSpout extends BaseRichSpout {
     @Override
     public void nextTuple() {
         if (shouldRecover()) {
-            LOG.debug("In recovery");
             handleRecovery();
             startProgress();
         } else if (shouldCheckpoint()) {
-            LOG.debug("In checkpoint");
             doCheckpoint();
             startProgress();
+        } else {
+            Utils.sleep(sleepInterval);
         }
     }
 
     @Override
     public void ack(Object msgId) {
-        CheckPointState txState = getTxState();
-        LOG.debug("Got ack with txid {}, current txState {}", msgId, txState);
-        if (txState.txid == ((Number) msgId).longValue()) {
+        LOG.debug("Got ack with txid {}, current txState {}", msgId, curTxState);
+        if (curTxState.getTxid() == ((Number) msgId).longValue()) {
             if (recovering) {
                 handleRecoveryAck();
             } else {
                 handleCheckpointAck();
             }
         } else {
-            LOG.warn("Ack msgid {}, txState.txid {} mismatch", msgId, txState.txid);
+            LOG.warn("Ack msgid {}, txState.txid {} mismatch", msgId, curTxState.getTxid());
         }
         resetProgress();
     }
@@ -129,13 +119,6 @@ public class CheckpointSpout extends BaseRichSpout {
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declareStream(CHECKPOINT_STREAM_ID, new Fields(CHECKPOINT_FIELD_TXID, CHECKPOINT_FIELD_ACTION));
-    }
-
-    @Override
-    public Map<String, Object> getComponentConfiguration() {
-        Config conf = new Config();
-        conf.put(Config.TOPOLOGY_SLEEP_SPOUT_WAIT_STRATEGY_TIME_MS, 100);
-        return conf;
     }
 
     public static boolean isCheckpoint(Tuple input) {
@@ -161,12 +144,13 @@ public class CheckpointSpout extends BaseRichSpout {
     }
 
     private int loadCheckpointInterval(Map stormConf) {
-        int interval;
+        int interval = 0;
         if (stormConf.containsKey(Config.TOPOLOGY_STATE_CHECKPOINT_INTERVAL)) {
             interval = ((Number) stormConf.get(Config.TOPOLOGY_STATE_CHECKPOINT_INTERVAL)).intValue();
-        } else {
-            interval = DEFAULT_CHECKPOINT_INTERVAL;
         }
+        // ensure checkpoint interval is not less than a sane low value.
+        interval = Math.max(100, interval);
+        LOG.info("Checkpoint interval is {} millis", interval);
         return interval;
     }
 
@@ -175,91 +159,55 @@ public class CheckpointSpout extends BaseRichSpout {
     }
 
     private boolean shouldCheckpoint() {
-        return !recovering && !checkpointStepInProgress
-                && (System.currentTimeMillis() - lastCheckpointTs) > checkpointInterval;
+        return !recovering && !checkpointStepInProgress &&
+                (curTxState.getState() != COMMITTED || checkpointIntervalElapsed());
     }
 
-    private boolean shouldRollback(CheckPointState txState) {
-        return txState.state == PREPARING;
-    }
-
-    private boolean shouldCommit(CheckPointState txState) {
-        return txState.state == COMMITTING;
-    }
-
-    private boolean shouldInitState(CheckPointState txState) {
-        return txState.state == COMMITTED;
+    private boolean checkpointIntervalElapsed() {
+        return (System.currentTimeMillis() - lastCheckpointTs) > checkpointInterval;
     }
 
     private void handleRecovery() {
-        CheckPointState txState = getTxState();
-        LOG.debug("Current txState is {}", txState);
-        if (shouldRollback(txState)) {
-            LOG.debug("Emitting rollback with txid {}", txState.txid);
-            collector.emit(CHECKPOINT_STREAM_ID, new Values(txState.txid, CHECKPOINT_ACTION_ROLLBACK), txState.txid);
-        } else if (shouldCommit(txState)) {
-            LOG.debug("Emitting commit with txid {}", txState.txid);
-            collector.emit(CHECKPOINT_STREAM_ID, new Values(txState.txid, CHECKPOINT_ACTION_COMMIT), txState.txid);
-        } else if (shouldInitState(txState)) {
-            LOG.debug("Emitting init state with txid {}", txState.txid);
-            collector.emit(CHECKPOINT_STREAM_ID, new Values(txState.txid, CHECKPOINT_ACTION_INITSTATE), txState.txid);
-        }
-        startProgress();
+        LOG.debug("In recovery");
+        Action action = curTxState.nextAction(true);
+        emit(curTxState.getTxid(), action);
     }
 
     private void handleRecoveryAck() {
-        CheckPointState txState = getTxState();
-        if (shouldRollback(txState)) {
-            txState.state = COMMITTED;
-            --txState.txid;
-            saveTxState(txState);
-        } else if (shouldCommit(txState)) {
-            txState.state = COMMITTED;
-            saveTxState(txState);
-        } else if (shouldInitState(txState)) {
-            LOG.debug("Recovery complete, current state {}", txState);
+        CheckPointState nextState = curTxState.nextState(true);
+        if (curTxState != nextState) {
+            saveTxState(nextState);
+        } else {
+            LOG.debug("Recovery complete, current state {}", curTxState);
             recovering = false;
         }
     }
 
     private void doCheckpoint() {
-        CheckPointState txState = getTxState();
-        if (txState.state == COMMITTED) {
-            txState.txid++;
-            txState.state = PREPARING;
-            saveTxState(txState);
+        LOG.debug("In checkpoint");
+        if (curTxState.getState() == COMMITTED) {
+            saveTxState(curTxState.nextState(false));
             lastCheckpointTs = System.currentTimeMillis();
-            LOG.debug("Emitting prepare with txid {}", txState.txid);
-            collector.emit(CHECKPOINT_STREAM_ID, new Values(txState.txid, CHECKPOINT_ACTION_PREPARE), txState.txid);
-        } else if (txState.state == PREPARING) {
-            LOG.debug("Emitting prepare with txid {}", txState.txid);
-            collector.emit(CHECKPOINT_STREAM_ID, new Values(txState.txid, CHECKPOINT_ACTION_PREPARE), txState.txid);
-        } else if (txState.state == COMMITTING) {
-            LOG.debug("Emitting commit with txid {}", txState.txid);
-            collector.emit(CHECKPOINT_STREAM_ID, new Values(txState.txid, CHECKPOINT_ACTION_COMMIT), txState.txid);
         }
-        startProgress();
+        Action action = curTxState.nextAction(false);
+        emit(curTxState.getTxid(), action);
     }
 
     private void handleCheckpointAck() {
-        CheckPointState txState = getTxState();
-        if (txState.state == PREPARING) {
-            txState.state = COMMITTING;
-            LOG.debug("Prepare txid {} complete", txState.txid);
-        } else if (txState.state == COMMITTING) {
-            txState.state = COMMITTED;
-            LOG.debug("Commit txid {} complete", txState.txid);
-        }
-        saveTxState(txState);
+        CheckPointState nextState = curTxState.nextState(false);
+        saveTxState(nextState);
+    }
+
+    private void emit(long txid, Action action) {
+        LOG.debug("Current state {}, emitting txid {}, action {}", curTxState, txid, action);
+        collector.emit(CHECKPOINT_STREAM_ID, new Values(txid, action), txid);
     }
 
     private void saveTxState(CheckPointState txState) {
+        LOG.debug("saveTxState, current state {} -> new state {}", curTxState, txState);
         checkpointState.put(TX_STATE_KEY, txState);
         checkpointState.commit();
-    }
-
-    private CheckPointState getTxState() {
-        return checkpointState.get(TX_STATE_KEY);
+        curTxState = txState;
     }
 
     private void startProgress() {

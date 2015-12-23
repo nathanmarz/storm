@@ -40,8 +40,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class RedisKeyValueState<K, V> implements KeyValueState<K, V> {
     private static final Logger LOG = LoggerFactory.getLogger(RedisKeyValueState.class);
-    private static final String COMMIT_TXID_KEY = "$commit";
-    private static final String PREPARE_TXID_KEY = "$prepare";
+    private static final String COMMIT_TXID_KEY = "commit";
+    private static final String PREPARE_TXID_KEY = "prepare";
 
     private final BASE64Encoder base64Encoder;
     private final BASE64Decoder base64Decoder;

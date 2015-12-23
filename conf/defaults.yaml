@@ -253,6 +253,7 @@ topology.disruptor.wait.timeout.millis: 1000
 topology.disruptor.batch.size: 100
 topology.disruptor.batch.timeout.millis: 1
 topology.disable.loadaware: false
+topology.state.checkpoint.interval.ms: 1000
 
 # Configs for Resource Aware Scheduler
 # topology priority describing the importance of the topology in decreasing importance starting from 0 (i.e. 0 is the highest priority and the priority importance decreases as the priority number increases).

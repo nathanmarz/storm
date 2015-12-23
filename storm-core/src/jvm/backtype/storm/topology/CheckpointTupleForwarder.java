@@ -30,7 +30,11 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.Map;
 
-import static backtype.storm.spout.CheckpointSpout.*;
+import static backtype.storm.spout.CheckpointSpout.CHECKPOINT_STREAM_ID;
+import static backtype.storm.spout.CheckpointSpout.CHECKPOINT_FIELD_TXID;
+import static backtype.storm.spout.CheckpointSpout.CHECKPOINT_FIELD_ACTION;
+import static backtype.storm.spout.CheckPointState.Action;
+import static backtype.storm.spout.CheckPointState.Action.ROLLBACK;
 
 /**
  * Wraps {@link IRichBolt} and forwards checkpoint tuples in a
@@ -94,7 +98,7 @@ public class CheckpointTupleForwarder implements IRichBolt {
      * @param action the action (prepare, commit, rollback or initstate)
      * @param txid   the transaction id.
      */
-    protected void handleCheckpoint(Tuple input, String action, long txid) {
+    protected void handleCheckpoint(Tuple input, Action action, long txid) {
         collector.emit(CHECKPOINT_STREAM_ID, input, new Values(txid, action));
     }
 
@@ -117,14 +121,14 @@ public class CheckpointTupleForwarder implements IRichBolt {
      * all input checkpoint streams to this component.
      */
     private void processCheckpoint(Tuple input) {
-        String action = input.getStringByField(CHECKPOINT_FIELD_ACTION);
+        Action action = (Action) input.getValueByField(CHECKPOINT_FIELD_ACTION);
         long txid = input.getLongByField(CHECKPOINT_FIELD_TXID);
         if (shouldProcessTransaction(action, txid)) {
             LOG.debug("Processing action {}, txid {}", action, txid);
             try {
                 if (txid >= lastTxid) {
                     handleCheckpoint(input, action, txid);
-                    if (CHECKPOINT_ACTION_ROLLBACK.equals(action)) {
+                    if (action == ROLLBACK) {
                         lastTxid = txid - 1;
                     } else {
                         lastTxid = txid;
@@ -162,7 +166,7 @@ public class CheckpointTupleForwarder implements IRichBolt {
      * Checks if check points have been received from all tasks across
      * all input streams to this component
      */
-    private boolean shouldProcessTransaction(String action, long txid) {
+    private boolean shouldProcessTransaction(Action action, long txid) {
         TransactionRequest request = new TransactionRequest(action, txid);
         Integer count;
         if ((count = transactionRequestCount.get(request)) == null) {
@@ -179,10 +183,10 @@ public class CheckpointTupleForwarder implements IRichBolt {
     }
 
     private static class TransactionRequest {
-        private final String action;
+        private final Action action;
         private final long txid;
 
-        TransactionRequest(String action, long txid) {
+        TransactionRequest(Action action, long txid) {
             this.action = action;
             this.txid = txid;
         }

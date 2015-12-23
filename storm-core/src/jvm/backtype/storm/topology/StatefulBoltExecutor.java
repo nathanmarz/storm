@@ -31,10 +31,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static backtype.storm.spout.CheckpointSpout.CHECKPOINT_ACTION_COMMIT;
-import static backtype.storm.spout.CheckpointSpout.CHECKPOINT_ACTION_PREPARE;
-import static backtype.storm.spout.CheckpointSpout.CHECKPOINT_ACTION_ROLLBACK;
-import static backtype.storm.spout.CheckpointSpout.CHECKPOINT_ACTION_INITSTATE;
+import static backtype.storm.spout.CheckPointState.Action;
+import static backtype.storm.spout.CheckPointState.Action.COMMIT;
+import static backtype.storm.spout.CheckPointState.Action.PREPARE;
+import static backtype.storm.spout.CheckPointState.Action.ROLLBACK;
+import static backtype.storm.spout.CheckPointState.Action.INITSTATE;
 
 /**
  * Wraps a {@link IStatefulBolt} and manages the state of the bolt.
@@ -65,18 +66,18 @@ public class StatefulBoltExecutor<T extends State> extends CheckpointTupleForwar
     }
 
     @Override
-    protected void handleCheckpoint(Tuple input, String action, long txid) {
+    protected void handleCheckpoint(Tuple input, Action action, long txid) {
         LOG.debug("handleCheckPoint with tuple {}, action {}, txid {}", input, action, txid);
-        if (action.equals(CHECKPOINT_ACTION_PREPARE)) {
+        if (action == PREPARE) {
             bolt.prePrepare(txid);
             state.prepareCommit(txid);
-        } else if (action.equals(CHECKPOINT_ACTION_COMMIT)) {
+        } else if (action == COMMIT) {
             bolt.preCommit(txid);
             state.commit(txid);
-        } else if (action.equals(CHECKPOINT_ACTION_ROLLBACK)) {
+        } else if (action == ROLLBACK) {
             bolt.preRollback();
             state.rollback();
-        } else if (action.equals(CHECKPOINT_ACTION_INITSTATE)) {
+        } else if (action == INITSTATE) {
             bolt.initState((T) state);
             boltInitialized = true;
             LOG.debug("{} pending tuples to process", pendingTuples.size());

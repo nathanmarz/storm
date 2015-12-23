@@ -34,39 +34,38 @@ import storm.trident.tuple.TridentTuple;
 import storm.trident.tuple.TridentTupleView.ProjectionFactory;
 
 public class MapReducerAggStateUpdater implements StateUpdater<MapState> {
+    //ANY CHANGE TO THIS CODE MUST BE SERIALIZABLE COMPATIBLE OR THERE WILL BE PROBLEMS
+    private static final long serialVersionUID = 4382969836839584102L;
+
     ReducerAggregator _agg;
     Fields _groupFields;
     Fields _inputFields;
     ProjectionFactory _groupFactory;
     ProjectionFactory _inputFactory;
     ComboList.Factory _factory;
-    
-    
+
     public MapReducerAggStateUpdater(ReducerAggregator agg, Fields groupFields, Fields inputFields) {
         _agg = agg;
         _groupFields = groupFields;
         _inputFields = inputFields;
         _factory = new ComboList.Factory(groupFields.size(), 1);
     }
-    
 
     @Override
     public void updateState(MapState map, List<TridentTuple> tuples, TridentCollector collector) {
-        Map<List<Object>, List<TridentTuple>> grouped = new HashMap();
+        Map<List<Object>, List<TridentTuple>> grouped = new HashMap<>();
         
-        List<List<Object>> groups = new ArrayList<List<Object>>(tuples.size());
-        List<Object> values = new ArrayList<Object>(tuples.size());
         for(TridentTuple t: tuples) {
             List<Object> group = _groupFactory.create(t);
             List<TridentTuple> groupTuples = grouped.get(group);
             if(groupTuples==null) {
-                groupTuples = new ArrayList();
+                groupTuples = new ArrayList<>();
                 grouped.put(group, groupTuples);
             }
             groupTuples.add(_inputFactory.create(t));
         }
-        List<List<Object>> uniqueGroups = new ArrayList(grouped.keySet());
-        List<ValueUpdater> updaters = new ArrayList(uniqueGroups.size());
+        List<List<Object>> uniqueGroups = new ArrayList<>(grouped.keySet());
+        List<ValueUpdater> updaters = new ArrayList<>(uniqueGroups.size());
         for(List<Object> group: uniqueGroups) {
             updaters.add(new ReducerValueUpdater(_agg, grouped.get(group)));
         }
@@ -88,5 +87,5 @@ public class MapReducerAggStateUpdater implements StateUpdater<MapState> {
     @Override
     public void cleanup() {
     }
-    
+
 }

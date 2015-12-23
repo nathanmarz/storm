@@ -33,24 +33,25 @@ import storm.trident.tuple.TridentTuple;
 import storm.trident.tuple.TridentTupleView.ProjectionFactory;
 
 public class MapCombinerAggStateUpdater implements StateUpdater<MapState> {
+    //ANY CHANGE TO THIS CODE MUST BE SERIALIZABLE COMPATIBLE OR THERE WILL BE PROBLEMS
+    private static final long serialVersionUID = 4783054195826968400L;
+
     CombinerAggregator _agg;
     Fields _groupFields;
     Fields _inputFields;
     ProjectionFactory _groupFactory;
     ProjectionFactory _inputFactory;
     ComboList.Factory _factory;
-    
-    
+
     public MapCombinerAggStateUpdater(CombinerAggregator agg, Fields groupFields, Fields inputFields) {
         _agg = agg;
         _groupFields = groupFields;
         _inputFields = inputFields;
-        if(inputFields.size()!=1) {
+        if(inputFields.size() != 1) {
             throw new IllegalArgumentException("Combiner aggs only take a single field as input. Got this instead: " + inputFields.toString());
         }
         _factory = new ComboList.Factory(groupFields.size(), inputFields.size());
     }
-    
 
     @Override
     public void updateState(MapState map, List<TridentTuple> tuples, TridentCollector collector) {
@@ -79,5 +80,5 @@ public class MapCombinerAggStateUpdater implements StateUpdater<MapState> {
     @Override
     public void cleanup() {
     }
-    
+
 }

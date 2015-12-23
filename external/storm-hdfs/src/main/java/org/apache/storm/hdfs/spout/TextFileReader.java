@@ -53,16 +53,18 @@ class TextFileReader extends AbstractFileReader {
     this(fs, file, conf, new TextFileReader.Offset(startOffset) );
   }
 
-  private TextFileReader(FileSystem fs, Path file, Map conf, TextFileReader.Offset startOffset) throws IOException {
+  private TextFileReader(FileSystem fs, Path file, Map conf, TextFileReader.Offset startOffset)
+          throws IOException {
     super(fs, file, new Fields(DEFAULT_FIELD_NAME));
     offset = startOffset;
     FSDataInputStream in = fs.open(file);
-    if(offset.byteOffset>0)
-      in.seek(offset.byteOffset);
 
     String charSet = (conf==null || !conf.containsKey(CHARSET) ) ? "UTF-8" : conf.get(CHARSET).toString();
     int buffSz = (conf==null || !conf.containsKey(BUFFER_SIZE) ) ? DEFAULT_BUFF_SIZE : Integer.parseInt( conf.get(BUFFER_SIZE).toString() );
     reader = new BufferedReader(new InputStreamReader(in, charSet), buffSz);
+    if(offset.charOffset >0)
+      reader.skip(offset.charOffset);
+
   }
 
   public Offset getFileOffset() {
@@ -70,13 +72,29 @@ class TextFileReader extends AbstractFileReader {
   }
 
   public List<Object> next() throws IOException, ParseException {
-    String line =  reader.readLine();
+    String line = readLineAndTrackOffset(reader);
     if(line!=null) {
-      int strByteSize = line.getBytes().length;
-      offset.increment(strByteSize);
       return Collections.singletonList((Object) line);
     }
     return null;
+  }
+
+  private String readLineAndTrackOffset(BufferedReader reader) throws IOException {
+    StringBuffer sb = new StringBuffer(1000);
+    long before = offset.charOffset;
+    int ch;
+    while( (ch = reader.read()) != -1 ) {
+      ++offset.charOffset;
+      if (ch == '\n') {
+        ++offset.lineNumber;
+        return sb.toString();
+      } else if( ch != '\r') {
+        sb.append((char)ch);
+      }
+    }
+    if(before==offset.charOffset) // reached EOF, didnt read anything
+      return null;
+    return sb.toString();
   }
 
   @Override
@@ -89,41 +107,41 @@ class TextFileReader extends AbstractFileReader {
   }
 
   public static class Offset implements FileOffset {
-    long byteOffset;
+    long charOffset;
     long lineNumber;
 
     public Offset(long byteOffset, long lineNumber) {
-      this.byteOffset = byteOffset;
+      this.charOffset = byteOffset;
       this.lineNumber = lineNumber;
     }
 
     public Offset(String offset) {
-      if(offset!=null)
+      if(offset==null)
         throw new IllegalArgumentException("offset cannot be null");
       try {
         String[] parts = offset.split(":");
-        this.byteOffset = Long.parseLong(parts[0].split("=")[1]);
+        this.charOffset = Long.parseLong(parts[0].split("=")[1]);
         this.lineNumber = Long.parseLong(parts[1].split("=")[1]);
       } catch (Exception e) {
         throw new IllegalArgumentException("'" + offset +
                 "' cannot be interpreted. It is not in expected format for TextFileReader." +
-                " Format e.g.  {byte=123:line=5}");
+                " Format e.g.  {char=123:line=5}");
       }
     }
 
     @Override
     public String toString() {
       return '{' +
-              "byte=" + byteOffset +
+              "char=" + charOffset +
               ":line=" + lineNumber +
-              '}';
+              ":}";
     }
 
     @Override
     public boolean isNextOffset(FileOffset rhs) {
       if(rhs instanceof Offset) {
         Offset other = ((Offset) rhs);
-        return  other.byteOffset > byteOffset    &&
+        return  other.charOffset > charOffset &&
                 other.lineNumber == lineNumber+1;
       }
       return false;
@@ -146,26 +164,21 @@ class TextFileReader extends AbstractFileReader {
 
       Offset that = (Offset) o;
 
-      if (byteOffset != that.byteOffset)
+      if (charOffset != that.charOffset)
         return false;
       return lineNumber == that.lineNumber;
     }
 
     @Override
     public int hashCode() {
-      int result = (int) (byteOffset ^ (byteOffset >>> 32));
+      int result = (int) (charOffset ^ (charOffset >>> 32));
       result = 31 * result + (int) (lineNumber ^ (lineNumber >>> 32));
       return result;
     }
 
-    void increment(int delta) {
-      ++lineNumber;
-      byteOffset += delta;
-    }
-
     @Override
     public Offset clone() {
-      return new Offset(byteOffset, lineNumber);
+      return new Offset(charOffset, lineNumber);
     }
   } //class Offset
 }

@@ -107,7 +107,7 @@ public class HdfsSpout extends BaseRichSpout {
   }
 
   public void nextTuple() {
-    LOG.debug("Next Tuple");
+    LOG.debug("Next Tuple {}", spoutId);
     // 1) First re-emit any previously failed tuples (from retryList)
     if (!retryList.isEmpty()) {
       LOG.debug("Sending from retry list");
@@ -118,8 +118,8 @@ public class HdfsSpout extends BaseRichSpout {
 
     if( ackEnabled  &&  tracker.size()>=maxDuplicates ) {
       LOG.warn("Waiting for more ACKs before generating new tuples. " +
-               "Progress tracker size has reached limit {}"
-              , maxDuplicates);
+               "Progress tracker size has reached limit {}, SpoutID {}"
+              , maxDuplicates, spoutId);
       // Don't emit anything .. allow configured spout wait strategy to kick in
       return;
     }
@@ -172,8 +172,7 @@ public class HdfsSpout extends BaseRichSpout {
         // spout wait strategy (due to no emits). Instead we go back into the loop and
         // generate a tuple from next file
       }
-    }
-
+    } // while
   }
 
   // will commit progress into lock file if commit threshold is reached
@@ -187,7 +186,7 @@ public class HdfsSpout extends BaseRichSpout {
         commitTimeElapsed.set(false);
         setupCommitElapseTimer();
       } catch (IOException e) {
-        LOG.error("Unable to commit progress Will retry later.", e);
+        LOG.error("Unable to commit progress Will retry later. Spout ID = " + spoutId, e);
       }
     }
   }
@@ -212,9 +211,9 @@ public class HdfsSpout extends BaseRichSpout {
   private void markFileAsDone(Path filePath) {
     try {
       Path newFile = renameCompletedFile(reader.getFilePath());
-      LOG.info("Completed processing {}", newFile);
+      LOG.info("Completed processing {}. Spout Id = {} ", newFile, spoutId);
     } catch (IOException e) {
-      LOG.error("Unable to archive completed file" + filePath, e);
+      LOG.error("Unable to archive completed file" + filePath + " Spout ID " + spoutId, e);
     }
     closeReaderAndResetTrackers();
   }
@@ -225,13 +224,13 @@ public class HdfsSpout extends BaseRichSpout {
     String originalName = new Path(fileNameMinusSuffix).getName();
     Path  newFile = new Path( badFilesDirPath + Path.SEPARATOR + originalName);
 
-    LOG.info("Moving bad file {} to {}. Processed it till offset {}", originalName, newFile, tracker.getCommitPosition());
+    LOG.info("Moving bad file {} to {}. Processed it till offset {}. SpoutID= {}", originalName, newFile, tracker.getCommitPosition(), spoutId);
     try {
       if (!hdfs.rename(file, newFile) ) { // seems this can fail by returning false or throwing exception
         throw new IOException("Move failed for bad file: " + file); // convert false ret value to exception
       }
     } catch (IOException e) {
-      LOG.warn("Error moving bad file: " + file + " to destination " + newFile, e);
+      LOG.warn("Error moving bad file: " + file + " to destination " + newFile + " SpoutId =" + spoutId, e);
     }
     closeReaderAndResetTrackers();
   }
@@ -245,8 +244,9 @@ public class HdfsSpout extends BaseRichSpout {
     reader = null;
     try {
       lock.release();
+      LOG.debug("Spout {} released FileLock. SpoutId = {}", lock.getLockFile(), spoutId);
     } catch (IOException e) {
-      LOG.error("Unable to delete lock file : " + this.lock.getLockFile(), e);
+      LOG.error("Unable to delete lock file : " + this.lock.getLockFile() + " SpoutId =" + spoutId, e);
     }
     lock = null;
   }
@@ -260,7 +260,7 @@ public class HdfsSpout extends BaseRichSpout {
   public void open(Map conf, TopologyContext context,  SpoutOutputCollector collector) {
     this.conf = conf;
     final String FILE_SYSTEM = "filesystem";
-    LOG.info("Opening HDFS Spout");
+    LOG.info("Opening HDFS Spout {}", spoutId);
     this.collector = collector;
     this.hdfsConfig = new Configuration();
     this.tupleCounter = 0;
@@ -437,6 +437,7 @@ public class HdfsSpout extends BaseRichSpout {
       // 1) If there are any abandoned files, pick oldest one
       lock = getOldestExpiredLock();
       if (lock != null) {
+        LOG.debug("Spout {} now took over ownership of abandoned FileLock {}" , spoutId, lock.getLockFile());
         Path file = getFileForLockFile(lock.getLockFile(), sourceDirPath);
         String resumeFromOffset = lock.getLastLogEntry().fileOffset;
         LOG.info("Resuming processing of abandoned file : {}", file);
@@ -454,7 +455,7 @@ public class HdfsSpout extends BaseRichSpout {
 
         lock = FileLock.tryLock(hdfs, file, lockDirPath, spoutId);
         if( lock==null ) {
-          LOG.debug("Unable to get lock, so skipping file: {}", file);
+          LOG.debug("Unable to get FileLock, so skipping file: {}", file);
           continue; // could not lock, so try another file.
         }
         LOG.info("Processing : {} ", file);
@@ -480,9 +481,15 @@ public class HdfsSpout extends BaseRichSpout {
     DirLock dirlock = DirLock.tryLock(hdfs, lockDirPath);
     if (dirlock == null) {
       dirlock = DirLock.takeOwnershipIfStale(hdfs, lockDirPath, lockTimeoutSec);
-      if (dirlock == null)
+      if (dirlock == null) {
+        LOG.debug("Spout {} could not take over ownership of DirLock for {}" , spoutId, lockDirPath);
         return null;
+      }
+      LOG.debug("Spout {} now took over ownership of abandoned DirLock for {}" , spoutId, lockDirPath);
+    } else {
+      LOG.debug("Spout {} now owns DirLock for {}", spoutId, lockDirPath);
     }
+
     try {
       // 2 - if clocks are in sync then simply take ownership of the oldest expired lock
       if (clocksInSync)
@@ -512,6 +519,7 @@ public class HdfsSpout extends BaseRichSpout {
       }
     } finally {
       dirlock.release();
+      LOG.debug("Released DirLock {}, SpoutID {} ", dirlock.getLockFile(), spoutId);
     }
   }
 
@@ -583,10 +591,10 @@ public class HdfsSpout extends BaseRichSpout {
   private Path getFileForLockFile(Path lockFile, Path sourceDirPath)
           throws IOException {
     String lockFileName = lockFile.getName();
-    Path dataFile = new Path(sourceDirPath + lockFileName + inprogress_suffix);
+    Path dataFile = new Path(sourceDirPath + Path.SEPARATOR + lockFileName + inprogress_suffix);
     if( hdfs.exists(dataFile) )
       return dataFile;
-    dataFile = new Path(sourceDirPath + lockFileName);
+    dataFile = new Path(sourceDirPath + Path.SEPARATOR +  lockFileName);
     if(hdfs.exists(dataFile))
       return dataFile;
     return null;

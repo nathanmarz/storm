@@ -21,6 +21,7 @@ package org.apache.storm.hdfs.spout;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.storm.hdfs.common.HdfsUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -101,8 +102,14 @@ public class DirLock {
     }
   }
 
-
   private static DirLock takeOwnership(FileSystem fs, Path dirLockFile) throws IOException {
+    if(fs instanceof DistributedFileSystem) {
+      if (!((DistributedFileSystem) fs).recoverLease(dirLockFile)) {
+        log.warn("Unable to recover lease on dir lock file " + dirLockFile + " right now. Cannot transfer ownership. Will need to try later.");
+        return null;
+      }
+    }
+
     // delete and recreate lock file
     if( fs.delete(dirLockFile, false) ) { // returns false if somebody else already deleted it (to take ownership)
       FSDataOutputStream ostream = HdfsUtils.tryCreateFile(fs, dirLockFile);

@@ -23,6 +23,7 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.hdfs.protocol.AlreadyBeingCreatedException;
 import org.apache.hadoop.ipc.RemoteException;
 import org.apache.storm.hdfs.common.HdfsUtils;
@@ -65,7 +66,7 @@ public class FileLock {
     this.lockFile = lockFile;
     this.lockFileStream =  fs.append(lockFile);
     this.componentID = spoutId;
-    log.debug("Acquired abandoned lockFile {}", lockFile);
+    log.debug("Acquired abandoned lockFile {}, Spout {}", lockFile, spoutId);
     logProgress(entry.fileOffset, true);
   }
 
@@ -95,13 +96,13 @@ public class FileLock {
   public void release() throws IOException {
     lockFileStream.close();
     if(!fs.delete(lockFile, false)){
-      log.warn("Unable to delete lock file");
+      log.warn("Unable to delete lock file, Spout = {}", componentID);
       throw new IOException("Unable to delete lock file");
     }
-    log.debug("Released lock file {}", lockFile);
+    log.debug("Released lock file {}. Spout {}", lockFile, componentID);
   }
 
-  // for testing only.. invoked via reflection
+  // For testing only.. invoked via reflection
   private void forceCloseLockFile() throws IOException {
     lockFileStream.close();
   }
@@ -115,14 +116,14 @@ public class FileLock {
     try {
       FSDataOutputStream ostream = HdfsUtils.tryCreateFile(fs, lockFile);
       if (ostream != null) {
-        log.debug("Acquired lock on file {}. LockFile=", fileToLock, lockFile);
+        log.debug("Acquired lock on file {}. LockFile= {}, Spout = {}", fileToLock, lockFile, spoutId);
         return new FileLock(fs, lockFile, ostream, spoutId);
       } else {
-        log.debug("Cannot lock file {} as its already locked.", fileToLock);
+        log.debug("Cannot lock file {} as its already locked. Spout = {}", fileToLock, spoutId);
         return null;
       }
     } catch (IOException e) {
-      log.error("Error when acquiring lock on file " + fileToLock, e);
+      log.error("Error when acquiring lock on file " + fileToLock + " Spout = " + spoutId, e);
       throw e;
     }
   }
@@ -147,7 +148,6 @@ public class FileLock {
       if(lastEntry==null) {
         throw new RuntimeException(lockFile.getName() + " is empty. this file is invalid.");
       }
-      log.error("{} , lastModified= {},  expiryTime= {},  diff= {}", lockFile, lastEntry.eventTime, olderThan,  lastEntry.eventTime-olderThan );
       if( lastEntry.eventTime <= olderThan )
         return lastEntry;
     }
@@ -181,17 +181,25 @@ public class FileLock {
    *                    file is stale. so this value comes from that earlier scan.
    * @param spoutId     spout id
    * @throws IOException if unable to acquire
-   * @return null if lock File is being used by another thread
+   * @return null if lock File is not recoverable
    */
   public static FileLock takeOwnership(FileSystem fs, Path lockFile, LogEntry lastEntry, String spoutId)
           throws IOException {
     try {
+      if(fs instanceof DistributedFileSystem ) {
+        if( !((DistributedFileSystem) fs).recoverLease(lockFile) ) {
+          log.warn("Unable to recover lease on lock file {} right now. Cannot transfer ownership. Will need to try later. Spout = {}" , lockFile , spoutId);
+          return null;
+        }
+      }
       return new FileLock(fs, lockFile, spoutId, lastEntry);
-    } catch (RemoteException e) {
-      if (e.unwrapRemoteException() instanceof AlreadyBeingCreatedException) {
-        log.warn("Lock file {} is currently open. Cannot transfer ownership now. Will try later.", lockFile);
+    } catch (IOException e) {
+      if (e instanceof RemoteException &&
+              ((RemoteException) e).unwrapRemoteException() instanceof AlreadyBeingCreatedException) {
+        log.warn("Lock file " + lockFile  + "is currently open. Cannot transfer ownership now. Will need to try later. Spout= " + spoutId, e);
         return null;
       } else { // unexpected error
+        log.warn("Cannot transfer ownership now for lock file " + lockFile + ". Will need to try later. Spout =" + spoutId, e);
         throw e;
       }
     }
@@ -226,7 +234,7 @@ public class FileLock {
       }
     }
     if(listing.isEmpty())
-      log.info("No abandoned lock files found");
+      log.info("No abandoned lock files found by Spout {}", spoutId);
     return null;
   }
 

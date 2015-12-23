@@ -21,6 +21,7 @@ package org.apache.storm.hdfs.spout;
 import backtype.storm.Config;
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
+import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.util.ReflectionUtils;
@@ -74,7 +75,7 @@ public class TestHdfsSpout {
 
   static MiniDFSCluster.Builder builder;
   static MiniDFSCluster hdfsCluster;
-  static FileSystem fs;
+  static DistributedFileSystem fs;
   static String hdfsURI;
   static Configuration conf = new Configuration();
 
@@ -156,6 +157,49 @@ public class TestHdfsSpout {
     checkCollectorOutput_txt((MockCollector) spout.getCollector(), arc1, arc2);
   }
 
+  @Test
+  public void testResumeAbandoned_Text_NoAck() throws Exception {
+    Path file1 = new Path(source.toString() + "/file1.txt");
+    createTextFile(file1, 6);
+
+    final Integer lockExpirySec = 1;
+    Map conf = getDefaultConfig();
+    conf.put(Configs.COMMIT_FREQ_COUNT, "1");
+    conf.put(Configs.COMMIT_FREQ_SEC, "1000"); // basically disable it
+    conf.put(Configs.LOCK_TIMEOUT, lockExpirySec.toString());
+    HdfsSpout spout = makeSpout(0, conf, Configs.TEXT);
+    HdfsSpout spout2 = makeSpout(1, conf, Configs.TEXT);
+
+    // consume file 1 partially
+    List<String> res = runSpout(spout, "r2");
+    Assert.assertEquals(2, res.size());
+    // abandon file
+    FileLock lock = getField(spout, "lock");
+    TestFileLock.closeUnderlyingLockFile(lock);
+    Thread.sleep(lockExpirySec * 2 * 1000);
+
+    // check lock file presence
+    Assert.assertTrue(fs.exists(lock.getLockFile()));
+
+    // create another spout to take over processing and read a few lines
+    List<String> res2 = runSpout(spout2, "r3");
+    Assert.assertEquals(3, res2.size());
+
+    // check lock file presence
+    Assert.assertTrue(fs.exists(lock.getLockFile()));
+
+    // check lock file contents
+    List<String> contents = readTextFile(fs, lock.getLockFile().toString());
+    System.err.println(contents);
+
+    // finish up reading the file
+    res2 = runSpout(spout2, "r2");
+    Assert.assertEquals(4, res2.size());
+
+    // check lock file is gone
+    Assert.assertFalse(fs.exists(lock.getLockFile()));
+  }
+
   private void checkCollectorOutput_txt(MockCollector collector, Path... txtFiles) throws IOException {
     ArrayList<String> expected = new ArrayList<>();
     for (Path txtFile : txtFiles) {
@@ -182,6 +226,7 @@ public class TestHdfsSpout {
     isreader.close();
     return result;
   }
+
 
   private void checkCollectorOutput_seq(MockCollector collector, Path... seqFiles) throws IOException {
     ArrayList<String> expected = new ArrayList<>();
@@ -515,8 +560,12 @@ public class TestHdfsSpout {
 
   private void createTextFile(Path file, int lineCount) throws IOException {
     FSDataOutputStream os = fs.create(file);
+    int size = 0;
     for (int i = 0; i < lineCount; i++) {
       os.writeBytes("line " + i + System.lineSeparator());
+      String msg = "line " + i + System.lineSeparator();
+      System.err.print(size +  "-" + msg);
+      size += msg.getBytes().length;
     }
     os.close();
   }

@@ -150,6 +150,8 @@ public class SequenceFileReader<Key extends Writable,Value extends Writable>
 
     public Offset(String offset) {
       try {
+        if(offset==null)
+          throw new IllegalArgumentException("offset cannot be null");
         String[] parts = offset.split(",");
         this.lastSyncPoint = Long.parseLong(parts[0].split("=")[1]);
         this.recordsSinceLastSync = Long.parseLong(parts[1].split("=")[1]);
@@ -169,7 +171,7 @@ public class SequenceFileReader<Key extends Writable,Value extends Writable>
               "sync=" + lastSyncPoint +
               ":afterSync=" + recordsSinceLastSync +
               ":record=" + currentRecord +
-              '}';
+              ":}";
     }
 
     @Override

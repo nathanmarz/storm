@@ -60,7 +60,7 @@ public class TestProgressTracker {
 
     TextFileReader.Offset currOffset = reader.getFileOffset();
     Assert.assertNotNull(currOffset);
-    Assert.assertEquals(0, currOffset.byteOffset);
+    Assert.assertEquals(0, currOffset.charOffset);
 
     // read 1st line and ack
     Assert.assertNotNull(reader.next());

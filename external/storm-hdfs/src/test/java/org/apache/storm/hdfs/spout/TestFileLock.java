@@ -314,7 +314,7 @@ public class TestFileLock {
     }
   }
 
-  private void closeUnderlyingLockFile(FileLock lock) throws ReflectiveOperationException {
+  public static void closeUnderlyingLockFile(FileLock lock) throws ReflectiveOperationException {
     Method m = FileLock.class.getDeclaredMethod("forceCloseLockFile");
     m.setAccessible(true);
     m.invoke(lock);

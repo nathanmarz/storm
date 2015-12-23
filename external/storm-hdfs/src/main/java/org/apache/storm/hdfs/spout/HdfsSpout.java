@@ -130,10 +130,11 @@ public class HdfsSpout extends BaseRichSpout {
         // 3) Select a new file if one is not open already
         if (reader == null) {
           reader = pickNextFile();
-          fileReadCompletely=false;
           if (reader == null) {
             LOG.debug("Currently no new files to process under : " + sourceDirPath);
             return;
+          } else {
+            fileReadCompletely=false;
           }
         }
         if( fileReadCompletely ) { // wait for more ACKs before proceeding

@@ -198,6 +198,56 @@ public class TestHdfsSpout {
 
     // check lock file is gone
     Assert.assertFalse(fs.exists(lock.getLockFile()));
+    FileReader rdr = getField(spout2, "reader");
+    Assert.assertNull(rdr);
+    Assert.assertTrue(getBoolField(spout2, "fileReadCompletely"));
+
+  }
+
+  @Test
+  public void testResumeAbandoned_Seq_NoAck() throws Exception {
+    Path file1 = new Path(source.toString() + "/file1.seq");
+    createSeqFile(fs, file1, 6);
+
+    final Integer lockExpirySec = 1;
+    Map conf = getDefaultConfig();
+    conf.put(Configs.COMMIT_FREQ_COUNT, "1");
+    conf.put(Configs.COMMIT_FREQ_SEC, "1000"); // basically disable it
+    conf.put(Configs.LOCK_TIMEOUT, lockExpirySec.toString());
+    HdfsSpout spout = makeSpout(0, conf, Configs.SEQ);
+    HdfsSpout spout2 = makeSpout(1, conf, Configs.SEQ);
+
+    // consume file 1 partially
+    List<String> res = runSpout(spout, "r2");
+    Assert.assertEquals(2, res.size());
+    // abandon file
+    FileLock lock = getField(spout, "lock");
+    TestFileLock.closeUnderlyingLockFile(lock);
+    Thread.sleep(lockExpirySec * 2 * 1000);
+
+    // check lock file presence
+    Assert.assertTrue(fs.exists(lock.getLockFile()));
+
+    // create another spout to take over processing and read a few lines
+    List<String> res2 = runSpout(spout2, "r3");
+    Assert.assertEquals(3, res2.size());
+
+    // check lock file presence
+    Assert.assertTrue(fs.exists(lock.getLockFile()));
+
+    // check lock file contents
+    List<String> contents = getTextFileContents(fs, lock.getLockFile());
+    System.err.println(contents);
+
+    // finish up reading the file
+    res2 = runSpout(spout2, "r3");
+    Assert.assertEquals(4, res2.size());
+
+    // check lock file is gone
+    Assert.assertFalse(fs.exists(lock.getLockFile()));
+    FileReader rdr = getField(spout2, "reader");
+    Assert.assertNull( rdr );
+    Assert.assertTrue(getBoolField(spout2, "fileReadCompletely"));
   }
 
   private void checkCollectorOutput_txt(MockCollector collector, Path... txtFiles) throws IOException {

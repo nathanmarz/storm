@@ -76,9 +76,16 @@ public class SequenceFileReader<Key extends Writable,Value extends Writable>
     int bufferSize = !conf.containsKey(BUFFER_SIZE) ? DEFAULT_BUFF_SIZE : Integer.parseInt( conf.get(BUFFER_SIZE).toString() );
     this.offset = new SequenceFileReader.Offset(offset);
     this.reader = new SequenceFile.Reader(fs.getConf(),  SequenceFile.Reader.file(file), SequenceFile.Reader.bufferSize(bufferSize) );
-    this.reader.sync(this.offset.lastSyncPoint);
     this.key = (Key) ReflectionUtils.newInstance(reader.getKeyClass(), fs.getConf() );
     this.value = (Value) ReflectionUtils.newInstance(reader.getValueClass(), fs.getConf() );
+    skipToOffset(this.reader, this.offset, this.key);
+  }
+
+  private static <K> void skipToOffset(SequenceFile.Reader reader, Offset offset, K key) throws IOException {
+    reader.sync(offset.lastSyncPoint);
+    for(int i=0; i<offset.recordsSinceLastSync; ++i) {
+      reader.next(key);
+    }
   }
 
   public String getKeyName() {
@@ -129,9 +136,9 @@ public class SequenceFileReader<Key extends Writable,Value extends Writable>
 
 
   public static class Offset implements  FileOffset {
-    private long lastSyncPoint;
-    private long recordsSinceLastSync;
-    private long currentRecord;
+    public long lastSyncPoint;
+    public long recordsSinceLastSync;
+    public long currentRecord;
     private long currRecordEndOffset;
     private long prevRecordEndOffset;
 
@@ -152,12 +159,20 @@ public class SequenceFileReader<Key extends Writable,Value extends Writable>
       try {
         if(offset==null)
           throw new IllegalArgumentException("offset cannot be null");
-        String[] parts = offset.split(",");
-        this.lastSyncPoint = Long.parseLong(parts[0].split("=")[1]);
-        this.recordsSinceLastSync = Long.parseLong(parts[1].split("=")[1]);
-        this.currentRecord = Long.parseLong(parts[2].split("=")[1]);
-        this.prevRecordEndOffset = 0;
-        this.currRecordEndOffset = 0;
+        if(offset.equalsIgnoreCase("0")) {
+          this.lastSyncPoint = 0;
+          this.recordsSinceLastSync = 0;
+          this.currentRecord = 0;
+          this.prevRecordEndOffset = 0;
+          this.currRecordEndOffset = 0;
+        } else {
+          String[] parts = offset.split(":");
+          this.lastSyncPoint = Long.parseLong(parts[0].split("=")[1]);
+          this.recordsSinceLastSync = Long.parseLong(parts[1].split("=")[1]);
+          this.currentRecord = Long.parseLong(parts[2].split("=")[1]);
+          this.prevRecordEndOffset = 0;
+          this.currRecordEndOffset = 0;
+        }
       } catch (Exception e) {
         throw new IllegalArgumentException("'" + offset +
                 "' cannot be interpreted. It is not in expected format for SequenceFileReader." +

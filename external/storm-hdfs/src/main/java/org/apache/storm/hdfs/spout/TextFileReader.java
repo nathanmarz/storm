@@ -119,9 +119,14 @@ class TextFileReader extends AbstractFileReader {
       if(offset==null)
         throw new IllegalArgumentException("offset cannot be null");
       try {
-        String[] parts = offset.split(":");
-        this.charOffset = Long.parseLong(parts[0].split("=")[1]);
-        this.lineNumber = Long.parseLong(parts[1].split("=")[1]);
+        if(offset.equalsIgnoreCase("0")) {
+          this.charOffset = 0;
+          this.lineNumber = 0;
+        } else {
+          String[] parts = offset.split(":");
+          this.charOffset = Long.parseLong(parts[0].split("=")[1]);
+          this.lineNumber = Long.parseLong(parts[1].split("=")[1]);
+        }
       } catch (Exception e) {
         throw new IllegalArgumentException("'" + offset +
                 "' cannot be interpreted. It is not in expected format for TextFileReader." +

@@ -43,7 +43,7 @@ public class TimeTriggerPolicy<T> implements TriggerPolicy<T> {
         this(millis, handler, null);
     }
 
-    public TimeTriggerPolicy(long millis, TriggerHandler handler, EvictionPolicy evictionPolicy) {
+    public TimeTriggerPolicy(long millis, TriggerHandler handler, EvictionPolicy<T> evictionPolicy) {
         this.duration = millis;
         this.handler = handler;
         this.executor = Executors.newSingleThreadScheduledExecutor();

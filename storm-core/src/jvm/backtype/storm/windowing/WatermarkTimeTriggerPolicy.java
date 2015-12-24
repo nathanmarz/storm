@@ -32,7 +32,7 @@ public class WatermarkTimeTriggerPolicy<T> implements TriggerPolicy<T> {
     private final WindowManager<T> windowManager;
     private long nextWindowEndTs = 0;
 
-    public WatermarkTimeTriggerPolicy(long slidingIntervalMs, TriggerHandler handler, EvictionPolicy evictionPolicy,
+    public WatermarkTimeTriggerPolicy(long slidingIntervalMs, TriggerHandler handler, EvictionPolicy<T> evictionPolicy,
                                       WindowManager<T> windowManager) {
         this.slidingIntervalMs = slidingIntervalMs;
         this.handler = handler;

@@ -17,7 +17,7 @@
  */
 package backtype.storm.windowing;
 
-class EventImpl<T> implements Event<T> {
+public class EventImpl<T> implements Event<T> {
     private final T event;
     private long ts;
 

@@ -56,7 +56,7 @@ public class LocalizerTest {
   private final String user2 = "user2";
   private final String user3 = "user3";
 
-  ClientBlobStore mockblobstore = mock(ClientBlobStore.class);
+  private ClientBlobStore mockblobstore = mock(ClientBlobStore.class);
 
 
   class TestLocalizer extends Localizer {
@@ -73,10 +73,6 @@ public class LocalizerTest {
 
   class TestInputStreamWithMeta extends InputStreamWithMeta {
     private InputStream iostream;
-    private byte[] buffer = null;
-    private int offset = 0;
-    private int end = 0;
-    private boolean eof = false;
 
     public TestInputStreamWithMeta() {
       iostream = IOUtils.toInputStream("some test data for my input stream");
@@ -118,7 +114,6 @@ public class LocalizerTest {
     if (!baseDir.mkdir()) {
       throw new IOException("failed to create base directory");
     }
-    ClientBlobStore mockblobstore = mock(ClientBlobStore.class);
   }
 
   @After
@@ -338,7 +333,6 @@ public class LocalizerTest {
     assertNull("user set should be null", lrsrcSet);
 
   }
-
 
   @Test
   public void testBasic() throws Exception {

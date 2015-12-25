@@ -251,7 +251,7 @@ public class PartitionManager {
                             " behind _emittedToOffset=" + _emittedToOffset
             );
         } else {
-            LOG.debug("failing at offset=" + offset + " with _pending.size()=" + _pending.size() + " pending and _emittedToOffset=" + _emittedToOffset);
+            LOG.debug("failing at offset={} with _pending.size()={} pending and _emittedToOffset={}", offset, _pending.size(), _emittedToOffset);
             numberFailed++;
             if (numberAcked == 0 && numberFailed > _spoutConfig.maxOffsetBehind) {
                 throw new RuntimeException("Too many tuple failures");
@@ -264,7 +264,7 @@ public class PartitionManager {
     public void commit() {
         long lastCompletedOffset = lastCompletedOffset();
         if (_committedTo != lastCompletedOffset) {
-            LOG.debug("Writing last completed offset (" + lastCompletedOffset + ") to ZK for " + _partition + " for topology: " + _topologyInstanceId);
+            LOG.debug("Writing last completed offset ({}) to ZK for {} for topology: {}", lastCompletedOffset, _partition, _topologyInstanceId);
             Map<Object, Object> data = (Map<Object, Object>) ImmutableMap.builder()
                     .put("topology", ImmutableMap.of("id", _topologyInstanceId,
                             "name", _stormConf.get(Config.TOPOLOGY_NAME)))
@@ -276,9 +276,9 @@ public class PartitionManager {
             _state.writeJSON(committedPath(), data);
 
             _committedTo = lastCompletedOffset;
-            LOG.debug("Wrote last completed offset (" + lastCompletedOffset + ") to ZK for " + _partition + " for topology: " + _topologyInstanceId);
+            LOG.debug("Wrote last completed offset ({}) to ZK for {} for topology: {}", lastCompletedOffset, _partition, _topologyInstanceId);
         } else {
-            LOG.debug("No new offset for " + _partition + " for topology: " + _topologyInstanceId);
+            LOG.debug("No new offset for {} for topology: {}", _partition, _topologyInstanceId);
         }
     }
 

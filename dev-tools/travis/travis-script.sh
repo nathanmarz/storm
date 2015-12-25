@@ -25,7 +25,7 @@ cd ${STORM_SRC_ROOT_DIR}
 # We should be concerned that Travis CI could be very slow because it uses VM
 export STORM_TEST_TIMEOUT_MS=150000
 
-mvn --batch-mode test -fae -Pnative -pl $2
+mvn --batch-mode test -fae -Pnative,all-tests -pl $2
 BUILD_RET_VAL=$?
 
 for dir in `find . -type d -and -wholename \*/target/\*-reports`;

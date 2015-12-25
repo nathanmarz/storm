@@ -23,6 +23,8 @@ import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseRichBolt;
 import backtype.storm.tuple.Tuple;
+import backtype.storm.utils.TupleUtils;
+
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrRequest;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -41,7 +43,7 @@ import java.util.List;
 import java.util.Map;
 
 public class SolrUpdateBolt extends BaseRichBolt {
-    private static final Logger logger = LoggerFactory.getLogger(SolrUpdateBolt.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SolrUpdateBolt.class);
 
     private final SolrConfig solrConfig;
     private final SolrMapper solrMapper;
@@ -59,7 +61,7 @@ public class SolrUpdateBolt extends BaseRichBolt {
         this.solrConfig = solrConfig;
         this.solrMapper = solrMapper;
         this.commitStgy = commitStgy;
-        logger.debug("Created {} with the following configuration: " +
+        LOG.debug("Created {} with the following configuration: " +
                     "[SolrConfig = {}], [SolrMapper = {}], [CommitStgy = {}]",
                     this.getClass().getSimpleName(), solrConfig, solrMapper, commitStgy);
     }
@@ -92,11 +94,19 @@ public class SolrUpdateBolt extends BaseRichBolt {
         if (commitStgy == null) {
             collector.ack(tuple);
         } else {
-            toCommitTuples.add(tuple);
-            commitStgy.update();
-            if (commitStgy.commit()) {
+            if (TupleUtils.isTick(tuple)) {
+                LOG.debug("TICK! forcing solr client commit");
+                collector.ack(tuple);
+                commitStgy.commit();
                 solrClient.commit(solrMapper.getCollection());
                 ackCommittedTuples();
+            } else {
+                toCommitTuples.add(tuple);
+                commitStgy.update();
+                if (commitStgy.commit()) {
+                    solrClient.commit(solrMapper.getCollection());
+                    ackCommittedTuples();
+                }
             }
         }
     }

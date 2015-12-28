@@ -19,6 +19,7 @@ package backtype.storm.spout;
 
 import backtype.storm.Config;
 import backtype.storm.state.KeyValueState;
+import backtype.storm.state.State;
 import backtype.storm.state.StateFactory;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Values;
@@ -31,6 +32,7 @@ import org.mockito.Mockito;
 import java.util.HashMap;
 import java.util.Map;
 
+import static backtype.storm.spout.CheckPointState.State.COMMITTED;
 import static org.junit.Assert.assertEquals;
 import static backtype.storm.spout.CheckPointState.Action;
 
@@ -104,29 +106,46 @@ public class CheckpointSpoutTest {
     @Test
     public void testPrepareWithFail() throws Exception {
         Map<String, Object> stormConf = new HashMap<>();
-        stormConf.put(Config.TOPOLOGY_STATE_CHECKPOINT_INTERVAL, 0);
-        spout.open(stormConf, mockTopologyContext, mockOutputCollector);
+        KeyValueState<String, CheckPointState> state =
+                (KeyValueState<String, CheckPointState>) StateFactory.getState("__state", stormConf, mockTopologyContext);
+        CheckPointState txState = new CheckPointState(-1, COMMITTED);
+        state.put("__state", txState);
+
+        spout.open(mockTopologyContext, mockOutputCollector, 0, state);
         ArgumentCaptor<String> stream = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<Values> values = ArgumentCaptor.forClass(Values.class);
         ArgumentCaptor<Object> msgId = ArgumentCaptor.forClass(Object.class);
 
         spout.nextTuple();
         spout.ack(-1L);
-        spout.nextTuple();
-        spout.fail(0L);
         Utils.sleep(10);
         spout.nextTuple();
-        spout.fail(0L);
+        spout.ack(0L);
         Utils.sleep(10);
         spout.nextTuple();
-        Mockito.verify(mockOutputCollector, Mockito.times(4)).emit(stream.capture(),
+        spout.ack(0L);
+        Utils.sleep(10);
+        spout.nextTuple();
+        spout.fail(1L);
+        Utils.sleep(10);
+        spout.nextTuple();
+        spout.fail(1L);
+        Utils.sleep(10);
+        spout.nextTuple();
+        spout.ack(1L);
+        Utils.sleep(10);
+        spout.nextTuple();
+        spout.ack(0L);
+        Utils.sleep(10);
+        spout.nextTuple();
+        Mockito.verify(mockOutputCollector, Mockito.times(8)).emit(stream.capture(),
                                                                    values.capture(),
                                                                    msgId.capture());
 
-        Values expectedTuple = new Values(0L, Action.PREPARE);
+        Values expectedTuple = new Values(1L, Action.PREPARE);
         assertEquals(CheckpointSpout.CHECKPOINT_STREAM_ID, stream.getValue());
         assertEquals(expectedTuple, values.getValue());
-        assertEquals(0L, msgId.getValue());
+        assertEquals(1L, msgId.getValue());
 
     }
 

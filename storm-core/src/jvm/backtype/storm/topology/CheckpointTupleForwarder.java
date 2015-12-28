@@ -19,6 +19,7 @@ package backtype.storm.topology;
 
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.spout.CheckpointSpout;
+import backtype.storm.task.IOutputCollector;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Fields;
@@ -28,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static backtype.storm.spout.CheckpointSpout.CHECKPOINT_STREAM_ID;
@@ -51,7 +53,7 @@ public class CheckpointTupleForwarder implements IRichBolt {
     private final Map<TransactionRequest, Integer> transactionRequestCount;
     private int checkPointInputTaskCount;
     private long lastTxid = Long.MIN_VALUE;
-    protected OutputCollector collector;
+    protected AnchoringOutputCollector collector;
 
     public CheckpointTupleForwarder(IRichBolt bolt) {
         this.bolt = bolt;
@@ -60,8 +62,8 @@ public class CheckpointTupleForwarder implements IRichBolt {
 
     @Override
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
-        bolt.prepare(stormConf, context, collector);
-        this.collector = collector;
+        this.collector = new AnchoringOutputCollector(collector);
+        bolt.prepare(stormConf, context, this.collector);
         checkPointInputTaskCount = getCheckpointInputTaskCount(context);
     }
 
@@ -94,12 +96,13 @@ public class CheckpointTupleForwarder implements IRichBolt {
      * Forwards the checkpoint tuple downstream. Sub-classes can override
      * with the logic for handling checkpoint tuple.
      *
-     * @param input  the checkpoint tuple
+     * @param checkpointTuple  the checkpoint tuple
      * @param action the action (prepare, commit, rollback or initstate)
      * @param txid   the transaction id.
      */
-    protected void handleCheckpoint(Tuple input, Action action, long txid) {
-        collector.emit(CHECKPOINT_STREAM_ID, input, new Values(txid, action));
+    protected void handleCheckpoint(Tuple checkpointTuple, Action action, long txid) {
+        collector.emit(CHECKPOINT_STREAM_ID, checkpointTuple, new Values(txid, action));
+        collector.ack(checkpointTuple);
     }
 
     /**
@@ -113,7 +116,9 @@ public class CheckpointTupleForwarder implements IRichBolt {
      * @param input the input tuple
      */
     protected void handleTuple(Tuple input) {
+        collector.setContext(input);
         bolt.execute(input);
+        collector.ack(input);
     }
 
     /**
@@ -135,6 +140,7 @@ public class CheckpointTupleForwarder implements IRichBolt {
                     }
                 } else {
                     LOG.debug("Ignoring old transaction. Action {}, txid {}", action, txid);
+                    collector.ack(input);
                 }
             } catch (Throwable th) {
                 LOG.error("Got error while processing checkpoint tuple", th);
@@ -144,8 +150,8 @@ public class CheckpointTupleForwarder implements IRichBolt {
         } else {
             LOG.debug("Waiting for action {}, txid {} from all input tasks. checkPointInputTaskCount {}, " +
                               "transactionRequestCount {}", action, txid, checkPointInputTaskCount, transactionRequestCount);
+            collector.ack(input);
         }
-        collector.ack(input);
     }
 
     /**
@@ -217,6 +223,30 @@ public class CheckpointTupleForwarder implements IRichBolt {
                     ", txid=" + txid +
                     '}';
         }
+    }
+
+
+    protected static class AnchoringOutputCollector extends OutputCollector {
+        private Tuple inputTuple;
+
+        AnchoringOutputCollector(IOutputCollector delegate) {
+            super(delegate);
+        }
+
+        void setContext(Tuple inputTuple) {
+            this.inputTuple = inputTuple;
+        }
+
+        @Override
+        public List<Integer> emit(String streamId, List<Object> tuple) {
+            return emit(streamId, inputTuple, tuple);
+        }
+
+        @Override
+        public void emitDirect(int taskId, String streamId, List<Object> tuple) {
+            emitDirect(taskId, streamId, inputTuple, tuple);
+        }
+
     }
 
 }

@@ -113,6 +113,10 @@ public class CheckpointSpout extends BaseRichSpout {
     @Override
     public void fail(Object msgId) {
         LOG.debug("Got fail with msgid {}", msgId);
+        if (!recovering) {
+            LOG.debug("Checkpoint failed, will trigger recovery");
+            recovering = true;
+        }
         resetProgress();
     }
 

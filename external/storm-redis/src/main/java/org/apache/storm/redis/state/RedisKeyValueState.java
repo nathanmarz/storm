@@ -91,6 +91,7 @@ public class RedisKeyValueState<K, V> implements KeyValueState<K, V> {
             } else {
                 txIds = new HashMap<>();
             }
+            LOG.debug("initTxids, txIds {}", txIds);
         } finally {
             jedisContainer.returnInstance(commands);
         }
@@ -230,7 +231,10 @@ public class RedisKeyValueState<K, V> implements KeyValueState<K, V> {
             } else {
                 txIds.remove(PREPARE_TXID_KEY);
             }
-            commands.hmset(txidNamespace, txIds);
+            if (!txIds.isEmpty()) {
+                LOG.debug("hmset txidNamespace {}, txIds {}", txidNamespace, txIds);
+                commands.hmset(txidNamespace, txIds);
+            }
             pendingCommit = Collections.emptyMap();
             pendingPrepare = new ConcurrentHashMap<>();
         } finally {

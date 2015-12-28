@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1409: StormClientErrorHandler is not used
  * STORM-1411: Some fixes for storm-windowing
  * STORM-1399: Blobstore tests should write data to `target` so it gets removed when running `mvn clean`
  * STORM-1398: Add back in TopologyDetails.getTopology

@@ -956,4 +956,3 @@ NOTE: The change from 0.7.0 in which OutputCollector no longer assumes immutable
 ## 0.5.0
  
  * Initial release!
-

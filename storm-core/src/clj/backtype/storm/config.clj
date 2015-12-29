@@ -217,8 +217,7 @@
 (defn read-supervisor-storm-conf
   [conf storm-id]
   (let [stormroot (supervisor-stormdist-root conf storm-id)
-        conf-path (supervisor-stormconf-path stormroot)
-        topology-path (supervisor-stormcode-path stormroot)]
+        conf-path (supervisor-stormconf-path stormroot)]
     (read-supervisor-storm-conf-given-path conf conf-path)))
 
 (defn read-supervisor-topology

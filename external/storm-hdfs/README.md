@@ -1,8 +1,57 @@
 # Storm HDFS
 
 Storm components for interacting with HDFS file systems
+ - HDFS Bolt
+ - HDFS Spout
+ 
+
+# HDFS Spout
+
+## Usage
+
+The following example creates an HDFS spout that reads text files from HDFS path hdfs://localhost:54310/source.
+
+```java
+// Instantiate spout
+HdfsSpout textReaderSpout = new HdfsSpout().withOutputFields("line");
+// HdfsSpout seqFileReaderSpout = new HdfsSpout().withOutputFields("key","value");
+
+// Configure it
+Config conf = new Config();
+conf.put(Configs.SOURCE_DIR, "hdfs://localhost:54310/source");
+conf.put(Configs.ARCHIVE_DIR, "hdfs://localhost:54310/done");
+conf.put(Configs.BAD_DIR, "hdfs://localhost:54310/badfiles");
+conf.put(Configs.READER_TYPE, "text"); // or 'seq' for sequence files
+
+// Create & configure topology
+TopologyBuilder builder = new TopologyBuilder();
+builder.setSpout("hdfsspout", textReaderSpout, SPOUT_NUM);
+
+// Setup bolts and other topology configuration
+     ..snip..
+
+// Submit topology with config
+StormSubmitter.submitTopologyWithProgressBar("topologyName", conf, builder.createTopology());
+```
+
+## HDFS Spout Configuration Settings
+
+| Setting                  | Default     | Description |
+|--------------------------|-------------|-------------|
+|**hdfsspout.reader.type** |             | Indicates the reader for the file format. Set to 'seq' for reading sequence files or 'text' for text files. Set to a fully qualified class name if using a custom type (that implements interface org.apache.storm.hdfs.spout.FileReader)|
+|**hdfsspout.source.dir**  |             | HDFS location from where to read.  E.g. hdfs://localhost:54310/inputfiles       |
+|**hdfsspout.archive.dir** |             | After a file is processed completely it will be moved to this directory. E.g. hdfs://localhost:54310/done|
+|**hdfsspout.badfiles.dir**|             | if there is an error parsing a file's contents, the file is moved to this location.  E.g. hdfs://localhost:54310/badfiles  |
+|hdfsspout.ignore.suffix   |   .ignore   | File names with this suffix in the in the hdfsspout.source.dir location will not be processed|
+|hdfsspout.lock.dir        | '.lock' subdirectory under hdfsspout.source.dir | Dir in which lock files will be created. Concurrent HDFS spout instances synchronize using *lock*. Before processing a file the spout instance creates a lock file in this directory with same name as input file and deletes this lock file after processing the file. Spout also periodically makes a note of its progress (wrt reading the input file) in the lock file so that another spout instance can resume progress on the same file if the spout dies for any reason.|
+|hdfsspout.commit.count    |    20000    | Record progress in the lock file after these many records are processed. If set to 0, this criterion will not be used. |
+|hdfsspout.commit.sec      |    10       | Record progress in the lock file after these many seconds have elapsed. Must be greater than 0 |
+|hdfsspout.max.outstanding |   10000     | Limits the number of unACKed tuples by pausing tuple generation (if ACKers are used in the topology) |
+|hdfsspout.lock.timeout.sec|  5 minutes  | Duration of inactivity after which a lock file is considered to be abandoned and ready for another spout to take ownership |
+|hdfsspout.clocks.insync   |    true     | Indicates whether clocks on the storm machines are in sync (using services like NTP)       |
 
 
+# HDFS Bolt
 ## Usage
 The following example will write pipe("|")-delimited files to the HDFS path hdfs://localhost:54310/foo. After every
 1,000 tuples it will sync filesystem, making that data visible to other HDFS clients. It will rotate files when they
@@ -29,6 +78,7 @@ HdfsBolt bolt = new HdfsBolt()
         .withRotationPolicy(rotationPolicy)
         .withSyncPolicy(syncPolicy);
 ```
+
 
 ### Packaging a Topology
 When packaging your topology, it's important that you use the [maven-shade-plugin]() as opposed to the
@@ -115,7 +165,7 @@ Hadoop client version incompatibilites can manifest as errors like:
 com.google.protobuf.InvalidProtocolBufferException: Protocol message contained an invalid tag (zero)
 ```
 
-## Customization
+## HDFS Bolt Customization
 
 ### Record Formats
 Record format can be controlled by providing an implementation of the `org.apache.storm.hdfs.format.RecordFormat`
@@ -236,7 +286,7 @@ If you are using Trident and sequence files you can do something like this:
 ```
 
 
-## Support for HDFS Sequence Files
+## HDFS Bolt Support for HDFS Sequence Files
 
 The `org.apache.storm.hdfs.bolt.SequenceFileBolt` class allows you to write storm data to HDFS sequence files:
 
@@ -277,7 +327,7 @@ public interface SequenceFormat extends Serializable {
 }
 ```
 
-## Support for Avro Files
+## HDFS Bolt Support for Avro Files
 
 The `org.apache.storm.hdfs.bolt.AvroGenericRecordBolt` class allows you to write Avro objects directly to HDFS:
  
@@ -310,7 +360,7 @@ An `org.apache.avro.Schema` object cannot be directly provided since it does not
 The AvroGenericRecordBolt expects to receive tuples containing an Avro GenericRecord that conforms to the provided
 schema.
 
-## Trident API
+## HDFS Bolt support for Trident API
 storm-hdfs also includes a Trident `state` implementation for writing data to HDFS, with an API that closely mirrors
 that of the bolts.
 

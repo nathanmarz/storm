@@ -33,10 +33,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-// Todo: Track file offsets instead of line number
 public class SequenceFileReader<Key extends Writable,Value extends Writable>
         extends AbstractFileReader {
-  private static final Logger LOG = LoggerFactory
+  private static final Logger log = LoggerFactory
           .getLogger(SequenceFileReader.class);
   private static final int DEFAULT_BUFF_SIZE = 4096;
   public static final String BUFFER_SIZE = "hdfsspout.reader.buffer.bytes";
@@ -45,12 +44,6 @@ public class SequenceFileReader<Key extends Writable,Value extends Writable>
 
   private final SequenceFileReader.Offset offset;
 
-  private static final String DEFAULT_KEYNAME = "key";
-  private static final String DEFAULT_VALNAME = "value";
-
-  private String keyName;
-  private String valueName;
-
 
   private final Key key;
   private final Value value;
@@ -58,9 +51,7 @@ public class SequenceFileReader<Key extends Writable,Value extends Writable>
 
   public SequenceFileReader(FileSystem fs, Path file, Map conf)
           throws IOException {
-    super(fs, file, new Fields(DEFAULT_KEYNAME, DEFAULT_VALNAME));
-    this.keyName = DEFAULT_KEYNAME;
-    this.valueName = DEFAULT_VALNAME;
+    super(fs, file);
     int bufferSize = !conf.containsKey(BUFFER_SIZE) ? DEFAULT_BUFF_SIZE : Integer.parseInt( conf.get(BUFFER_SIZE).toString() );
     this.reader = new SequenceFile.Reader(fs.getConf(),  SequenceFile.Reader.file(file), SequenceFile.Reader.bufferSize(bufferSize) );
     this.key = (Key) ReflectionUtils.newInstance(reader.getKeyClass(), fs.getConf() );
@@ -70,9 +61,7 @@ public class SequenceFileReader<Key extends Writable,Value extends Writable>
 
   public SequenceFileReader(FileSystem fs, Path file, Map conf, String offset)
           throws IOException {
-    super(fs, file, new Fields(DEFAULT_KEYNAME, DEFAULT_VALNAME));
-    this.keyName = DEFAULT_KEYNAME;
-    this.valueName = DEFAULT_VALNAME;
+    super(fs, file);
     int bufferSize = !conf.containsKey(BUFFER_SIZE) ? DEFAULT_BUFF_SIZE : Integer.parseInt( conf.get(BUFFER_SIZE).toString() );
     this.offset = new SequenceFileReader.Offset(offset);
     this.reader = new SequenceFile.Reader(fs.getConf(),  SequenceFile.Reader.file(file), SequenceFile.Reader.bufferSize(bufferSize) );
@@ -86,29 +75,6 @@ public class SequenceFileReader<Key extends Writable,Value extends Writable>
     for(int i=0; i<offset.recordsSinceLastSync; ++i) {
       reader.next(key);
     }
-  }
-
-  public String getKeyName() {
-    return keyName;
-  }
-
-  public void setKeyName(String name) {
-    if (name == null)
-      throw new IllegalArgumentException("keyName cannot be null");
-    this.keyName = name;
-    setFields(keyName, valueName);
-
-  }
-
-  public String getValueName() {
-    return valueName;
-  }
-
-  public void setValueName(String name) {
-    if (name == null)
-      throw new IllegalArgumentException("valueName cannot be null");
-    this.valueName = name;
-    setFields(keyName, valueName);
   }
 
   public List<Object> next() throws IOException, ParseException {
@@ -126,7 +92,7 @@ public class SequenceFileReader<Key extends Writable,Value extends Writable>
     try {
       reader.close();
     } catch (IOException e) {
-      LOG.warn("Ignoring error when closing file " + getFilePath(), e);
+      log.warn("Ignoring error when closing file " + getFilePath(), e);
     }
   }
 

@@ -28,11 +28,10 @@ abstract class AbstractFileReader implements FileReader {
   private final Path file;
   private Fields fields;
 
-  public AbstractFileReader(FileSystem fs, Path file, Fields fieldNames) {
+  public AbstractFileReader(FileSystem fs, Path file) {
     if (fs == null || file == null)
       throw new IllegalArgumentException("file and filesystem args cannot be null");
     this.file = file;
-    this.fields = fieldNames;
   }
 
   @Override
@@ -40,16 +39,6 @@ abstract class AbstractFileReader implements FileReader {
     return file;
   }
 
-
-  @Override
-  public Fields getOutputFields() {
-    return fields;
-  }
-
-  @Override
-  public void setFields(String... fieldNames) {
-    this.fields = new Fields(fieldNames);
-  }
 
   @Override
   public boolean equals(Object o) {

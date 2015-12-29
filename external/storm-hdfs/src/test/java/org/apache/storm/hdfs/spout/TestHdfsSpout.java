@@ -565,7 +565,7 @@ public class TestHdfsSpout {
 
 
   private static HdfsSpout makeSpout(int spoutId, Map conf, String readerType) {
-    HdfsSpout spout = new HdfsSpout();
+    HdfsSpout spout = new HdfsSpout().withOutputFields("line");
     MockCollector collector = new MockCollector();
     conf.put(Configs.READER_TYPE, readerType);
     spout.open(conf, new MockTopologyContext(spoutId), collector);

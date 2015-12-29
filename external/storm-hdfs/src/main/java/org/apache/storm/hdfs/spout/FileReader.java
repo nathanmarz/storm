@@ -25,13 +25,13 @@ import java.io.IOException;
 import java.util.List;
 
 interface FileReader {
-  public Path getFilePath();
+  Path getFilePath();
 
   /**
    * A simple numeric value may not be sufficient for certain formats consequently
    * this is a String.
    */
-  public FileOffset getFileOffset();
+  FileOffset getFileOffset();
 
   /**
    * Get the next tuple from the file
@@ -39,11 +39,7 @@ interface FileReader {
    * @return null if no more data
    * @throws IOException
    */
-  public List<Object> next() throws IOException, ParseException;
+  List<Object> next() throws IOException, ParseException;
 
-  public Fields getOutputFields();
-
-  public void setFields(String... fieldNames);
-
-  public void close();
+  void close();
 }

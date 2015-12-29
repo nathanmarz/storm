@@ -46,20 +46,27 @@ import backtype.storm.tuple.Fields;
 
 public class HdfsSpout extends BaseRichSpout {
 
-  private static final Logger LOG = LoggerFactory.getLogger(HdfsSpout.class);
-
-  private Path sourceDirPath;
-  private Path archiveDirPath;
-  private Path badFilesDirPath;
+  // user configurable
+  private String readerType;         // required
+  private Fields outputFields;       // required
+  private Path sourceDirPath;        // required
+  private Path archiveDirPath;       // required
+  private Path badFilesDirPath;      // required
   private Path lockDirPath;
 
   private int commitFrequencyCount = Configs.DEFAULT_COMMIT_FREQ_COUNT;
   private int commitFrequencySec = Configs.DEFAULT_COMMIT_FREQ_SEC;
-  private int maxDuplicates = Configs.DEFAULT_MAX_DUPLICATES;
+  private int maxOutstanding = Configs.DEFAULT_MAX_OUTSTANDING;
   private int lockTimeoutSec = Configs.DEFAULT_LOCK_TIMEOUT;
   private boolean clocksInSync = true;
 
-  private ProgressTracker tracker = new ProgressTracker();
+  private String inprogress_suffix = ".inprogress";
+  private String ignoreSuffix = ".ignore";
+
+  // other members
+  private static final Logger log = LoggerFactory.getLogger(HdfsSpout.class);
+
+  private ProgressTracker tracker = null;
 
   private FileSystem hdfs;
   private FileReader reader;
@@ -68,11 +75,7 @@ public class HdfsSpout extends BaseRichSpout {
   HashMap<MessageId, List<Object> > inflight = new HashMap<>();
   LinkedBlockingQueue<HdfsUtils.Pair<MessageId, List<Object>>> retryList = new LinkedBlockingQueue<>();
 
-  private String inprogress_suffix = ".inprogress";
-  private String ignoreSuffix = ".ignore";
-
   private Configuration hdfsConfig;
-  private String readerType;
 
   private Map conf = null;
   private FileLock lock;
@@ -85,12 +88,17 @@ public class HdfsSpout extends BaseRichSpout {
   private boolean ackEnabled = false;
   private int acksSinceLastCommit = 0 ;
   private final AtomicBoolean commitTimeElapsed = new AtomicBoolean(false);
-  private final Timer commitTimer = new Timer();
+  private Timer commitTimer;
   private boolean fileReadCompletely = true;
 
-  private String configKey = Configs.DEFAULT_HDFS_CONFIG_KEY; // key for hdfs kerberos configs
+  private String configKey = Configs.DEFAULT_HDFS_CONFIG_KEY; // key for hdfs Kerberos configs
 
   public HdfsSpout() {
+  }
+  /** Name of the output field names. Number of fields depends upon the reader type */
+  public HdfsSpout withOutputFields(String... fields) {
+    outputFields = new Fields(fields);
+    return this;
   }
 
   public Path getLockDirPath() {
@@ -101,25 +109,27 @@ public class HdfsSpout extends BaseRichSpout {
     return collector;
   }
 
+  /** config key under which HDFS options are placed. (similar to HDFS bolt).
+   * default key name is 'hdfs.config' */
   public HdfsSpout withConfigKey(String configKey){
     this.configKey = configKey;
     return this;
   }
 
   public void nextTuple() {
-    LOG.debug("Next Tuple {}", spoutId);
+    log.debug("Next Tuple {}", spoutId);
     // 1) First re-emit any previously failed tuples (from retryList)
     if (!retryList.isEmpty()) {
-      LOG.debug("Sending from retry list");
+      log.debug("Sending from retry list");
       HdfsUtils.Pair<MessageId, List<Object>> pair = retryList.remove();
       emitData(pair.getValue(), pair.getKey());
       return;
     }
 
-    if( ackEnabled  &&  tracker.size()>=maxDuplicates ) {
-      LOG.warn("Waiting for more ACKs before generating new tuples. " +
-               "Progress tracker size has reached limit {}, SpoutID {}"
-              , maxDuplicates, spoutId);
+    if( ackEnabled  &&  tracker.size()>= maxOutstanding) {
+      log.warn("Waiting for more ACKs before generating new tuples. " +
+              "Progress tracker size has reached limit {}, SpoutID {}"
+              , maxOutstanding, spoutId);
       // Don't emit anything .. allow configured spout wait strategy to kick in
       return;
     }
@@ -131,7 +141,7 @@ public class HdfsSpout extends BaseRichSpout {
         if (reader == null) {
           reader = pickNextFile();
           if (reader == null) {
-            LOG.debug("Currently no new files to process under : " + sourceDirPath);
+            log.debug("Currently no new files to process under : " + sourceDirPath);
             return;
           } else {
             fileReadCompletely=false;
@@ -162,11 +172,11 @@ public class HdfsSpout extends BaseRichSpout {
           }
         }
       } catch (IOException e) {
-        LOG.error("I/O Error processing at file location " + getFileProgress(reader), e);
+        log.error("I/O Error processing at file location " + getFileProgress(reader), e);
         // don't emit anything .. allow configured spout wait strategy to kick in
         return;
       } catch (ParseException e) {
-        LOG.error("Parsing error when processing at file location " + getFileProgress(reader) +
+        log.error("Parsing error when processing at file location " + getFileProgress(reader) +
                 ". Skipping remainder of file.", e);
         markFileAsBad(reader.getFilePath());
         // Note: We don't return from this method on ParseException to avoid triggering the
@@ -187,7 +197,7 @@ public class HdfsSpout extends BaseRichSpout {
         commitTimeElapsed.set(false);
         setupCommitElapseTimer();
       } catch (IOException e) {
-        LOG.error("Unable to commit progress Will retry later. Spout ID = " + spoutId, e);
+        log.error("Unable to commit progress Will retry later. Spout ID = " + spoutId, e);
       }
     }
   }
@@ -212,9 +222,9 @@ public class HdfsSpout extends BaseRichSpout {
   private void markFileAsDone(Path filePath) {
     try {
       Path newFile = renameCompletedFile(reader.getFilePath());
-      LOG.info("Completed processing {}. Spout Id = {} ", newFile, spoutId);
+      log.info("Completed processing {}. Spout Id = {} ", newFile, spoutId);
     } catch (IOException e) {
-      LOG.error("Unable to archive completed file" + filePath + " Spout ID " + spoutId, e);
+      log.error("Unable to archive completed file" + filePath + " Spout ID " + spoutId, e);
     }
     closeReaderAndResetTrackers();
   }
@@ -225,13 +235,13 @@ public class HdfsSpout extends BaseRichSpout {
     String originalName = new Path(fileNameMinusSuffix).getName();
     Path  newFile = new Path( badFilesDirPath + Path.SEPARATOR + originalName);
 
-    LOG.info("Moving bad file {} to {}. Processed it till offset {}. SpoutID= {}", originalName, newFile, tracker.getCommitPosition(), spoutId);
+    log.info("Moving bad file {} to {}. Processed it till offset {}. SpoutID= {}", originalName, newFile, tracker.getCommitPosition(), spoutId);
     try {
       if (!hdfs.rename(file, newFile) ) { // seems this can fail by returning false or throwing exception
         throw new IOException("Move failed for bad file: " + file); // convert false ret value to exception
       }
     } catch (IOException e) {
-      LOG.warn("Error moving bad file: " + file + " to destination " + newFile + " SpoutId =" + spoutId, e);
+      log.warn("Error moving bad file: " + file + " to destination " + newFile + " SpoutId =" + spoutId, e);
     }
     closeReaderAndResetTrackers();
   }
@@ -245,23 +255,25 @@ public class HdfsSpout extends BaseRichSpout {
     reader = null;
     try {
       lock.release();
-      LOG.debug("Spout {} released FileLock. SpoutId = {}", lock.getLockFile(), spoutId);
+      log.debug("Spout {} released FileLock. SpoutId = {}", lock.getLockFile(), spoutId);
     } catch (IOException e) {
-      LOG.error("Unable to delete lock file : " + this.lock.getLockFile() + " SpoutId =" + spoutId, e);
+      log.error("Unable to delete lock file : " + this.lock.getLockFile() + " SpoutId =" + spoutId, e);
     }
     lock = null;
   }
 
   protected void emitData(List<Object> tuple, MessageId id) {
-    LOG.debug("Emitting - {}", id);
+    log.debug("Emitting - {}", id);
     this.collector.emit(tuple, id);
     inflight.put(id, tuple);
   }
 
   public void open(Map conf, TopologyContext context,  SpoutOutputCollector collector) {
     this.conf = conf;
+    this.commitTimer = new Timer();
+    this.tracker = new ProgressTracker();
     final String FILE_SYSTEM = "filesystem";
-    LOG.info("Opening HDFS Spout {}", spoutId);
+    log.info("Opening HDFS Spout {}", spoutId);
     this.collector = collector;
     this.hdfsConfig = new Configuration();
     this.tupleCounter = 0;
@@ -270,7 +282,7 @@ public class HdfsSpout extends BaseRichSpout {
       String key = k.toString();
       if( ! FILE_SYSTEM.equalsIgnoreCase( key ) ) { // to support unit test only
         String val = conf.get(key).toString();
-        LOG.info("Config setting : " + key + " = " + val);
+        log.info("Config setting : " + key + " = " + val);
         this.hdfsConfig.set(key, val);
       }
       else
@@ -294,20 +306,20 @@ public class HdfsSpout extends BaseRichSpout {
     try {
       HdfsSecurityUtil.login(conf, hdfsConfig);
     } catch (IOException e) {
-      LOG.error("Failed to open " + sourceDirPath);
+      log.error("Failed to open " + sourceDirPath);
       throw new RuntimeException(e);
     }
 
     // -- source dir config
     if ( !conf.containsKey(Configs.SOURCE_DIR) ) {
-      LOG.error(Configs.SOURCE_DIR + " setting is required");
+      log.error(Configs.SOURCE_DIR + " setting is required");
       throw new RuntimeException(Configs.SOURCE_DIR + " setting is required");
     }
     this.sourceDirPath = new Path( conf.get(Configs.SOURCE_DIR).toString() );
 
     // -- archive dir config
     if ( !conf.containsKey(Configs.ARCHIVE_DIR) ) {
-      LOG.error(Configs.ARCHIVE_DIR + " setting is required");
+      log.error(Configs.ARCHIVE_DIR + " setting is required");
       throw new RuntimeException(Configs.ARCHIVE_DIR + " setting is required");
     }
     this.archiveDirPath = new Path( conf.get(Configs.ARCHIVE_DIR).toString() );
@@ -315,14 +327,14 @@ public class HdfsSpout extends BaseRichSpout {
 
     // -- bad files dir config
     if ( !conf.containsKey(Configs.BAD_DIR) ) {
-      LOG.error(Configs.BAD_DIR + " setting is required");
+      log.error(Configs.BAD_DIR + " setting is required");
       throw new RuntimeException(Configs.BAD_DIR + " setting is required");
     }
 
     this.badFilesDirPath = new Path(conf.get(Configs.BAD_DIR).toString());
     validateOrMakeDir(hdfs, badFilesDirPath, "bad files");
 
-            // -- ignore filename suffix
+    // -- ignore file names config
     if ( conf.containsKey(Configs.IGNORE_SUFFIX) ) {
       this.ignoreSuffix = conf.get(Configs.IGNORE_SUFFIX).toString();
     }
@@ -348,12 +360,15 @@ public class HdfsSpout extends BaseRichSpout {
       commitFrequencyCount = Integer.parseInt( conf.get(Configs.COMMIT_FREQ_COUNT).toString() );
 
     // -- commit frequency - seconds
-    if( conf.get(Configs.COMMIT_FREQ_SEC) != null )
-      commitFrequencySec = Integer.parseInt( conf.get(Configs.COMMIT_FREQ_SEC).toString() );
+    if( conf.get(Configs.COMMIT_FREQ_SEC) != null ) {
+      commitFrequencySec = Integer.parseInt(conf.get(Configs.COMMIT_FREQ_SEC).toString());
+      if(commitFrequencySec<=0)
+        throw new RuntimeException(Configs.COMMIT_FREQ_SEC + " setting must be greater than 0");
+    }
 
     // -- max duplicate
-    if( conf.get(Configs.MAX_DUPLICATE) !=null )
-      maxDuplicates = Integer.parseInt( conf.get(Configs.MAX_DUPLICATE).toString() );
+    if( conf.get(Configs.MAX_OUTSTANDING) !=null )
+      maxOutstanding = Integer.parseInt( conf.get(Configs.MAX_OUTSTANDING).toString() );
 
     // -- clocks in sync
     if( conf.get(Configs.CLOCKS_INSYNC) !=null )
@@ -370,15 +385,15 @@ public class HdfsSpout extends BaseRichSpout {
     try {
       if(fs.exists(dir)) {
         if(! fs.isDirectory(dir) ) {
-          LOG.error(dirDescription + " directory is a file, not a dir. " + dir);
+          log.error(dirDescription + " directory is a file, not a dir. " + dir);
           throw new RuntimeException(dirDescription + " directory is a file, not a dir. " + dir);
         }
       } else if(! fs.mkdirs(dir) ) {
-        LOG.error("Unable to create " + dirDescription + " directory " + dir);
+        log.error("Unable to create " + dirDescription + " directory " + dir);
         throw new RuntimeException("Unable to create " + dirDescription + " directory " + dir);
       }
     } catch (IOException e) {
-      LOG.error("Unable to create " + dirDescription + " directory " + dir, e);
+      log.error("Unable to create " + dirDescription + " directory " + dir, e);
       throw new RuntimeException("Unable to create " + dirDescription + " directory " + dir, e);
     }
   }
@@ -395,10 +410,10 @@ public class HdfsSpout extends BaseRichSpout {
       classType.getConstructor(FileSystem.class, Path.class, Map.class);
       return;
     } catch (ClassNotFoundException e) {
-      LOG.error(readerType + " not found in classpath.", e);
+      log.error(readerType + " not found in classpath.", e);
       throw new IllegalArgumentException(readerType + " not found in classpath.", e);
     } catch (NoSuchMethodException e) {
-      LOG.error(readerType + " is missing the expected constructor for Readers.", e);
+      log.error(readerType + " is missing the expected constructor for Readers.", e);
       throw new IllegalArgumentException(readerType + " is missing the expected constuctor for Readers.");
     }
   }
@@ -438,10 +453,10 @@ public class HdfsSpout extends BaseRichSpout {
       // 1) If there are any abandoned files, pick oldest one
       lock = getOldestExpiredLock();
       if (lock != null) {
-        LOG.debug("Spout {} now took over ownership of abandoned FileLock {}" , spoutId, lock.getLockFile());
+        log.debug("Spout {} now took over ownership of abandoned FileLock {}", spoutId, lock.getLockFile());
         Path file = getFileForLockFile(lock.getLockFile(), sourceDirPath);
         String resumeFromOffset = lock.getLastLogEntry().fileOffset;
-        LOG.info("Resuming processing of abandoned file : {}", file);
+        log.info("Resuming processing of abandoned file : {}", file);
         return createFileReader(file, resumeFromOffset);
       }
 
@@ -456,17 +471,17 @@ public class HdfsSpout extends BaseRichSpout {
 
         lock = FileLock.tryLock(hdfs, file, lockDirPath, spoutId);
         if( lock==null ) {
-          LOG.debug("Unable to get FileLock, so skipping file: {}", file);
+          log.debug("Unable to get FileLock, so skipping file: {}", file);
           continue; // could not lock, so try another file.
         }
-        LOG.info("Processing : {} ", file);
+        log.info("Processing : {} ", file);
         Path newFile = renameSelectedFile(file);
         return createFileReader(newFile);
       }
 
       return null;
     } catch (IOException e) {
-      LOG.error("Unable to select next file for consumption " + sourceDirPath, e);
+      log.error("Unable to select next file for consumption " + sourceDirPath, e);
       return null;
     }
   }
@@ -483,12 +498,12 @@ public class HdfsSpout extends BaseRichSpout {
     if (dirlock == null) {
       dirlock = DirLock.takeOwnershipIfStale(hdfs, lockDirPath, lockTimeoutSec);
       if (dirlock == null) {
-        LOG.debug("Spout {} could not take over ownership of DirLock for {}" , spoutId, lockDirPath);
+        log.debug("Spout {} could not take over ownership of DirLock for {}", spoutId, lockDirPath);
         return null;
       }
-      LOG.debug("Spout {} now took over ownership of abandoned DirLock for {}" , spoutId, lockDirPath);
+      log.debug("Spout {} now took over ownership of abandoned DirLock for {}", spoutId, lockDirPath);
     } else {
-      LOG.debug("Spout {} now owns DirLock for {}", spoutId, lockDirPath);
+      log.debug("Spout {} now owns DirLock for {}", spoutId, lockDirPath);
     }
 
     try {
@@ -520,7 +535,7 @@ public class HdfsSpout extends BaseRichSpout {
       }
     } finally {
       dirlock.release();
-      LOG.debug("Released DirLock {}, SpoutID {} ", dirlock.getLockFile(), spoutId);
+      log.debug("Released DirLock {}, SpoutID {} ", dirlock.getLockFile(), spoutId);
     }
   }
 
@@ -546,7 +561,7 @@ public class HdfsSpout extends BaseRichSpout {
       Constructor<?> constructor = clsType.getConstructor(FileSystem.class, Path.class, Map.class);
       return (FileReader) constructor.newInstance(this.hdfs, file, conf);
     } catch (Exception e) {
-      LOG.error(e.getMessage(), e);
+      log.error(e.getMessage(), e);
       throw new RuntimeException("Unable to instantiate " + readerType, e);
     }
   }
@@ -571,7 +586,7 @@ public class HdfsSpout extends BaseRichSpout {
       Constructor<?> constructor = clsType.getConstructor(FileSystem.class, Path.class, Map.class, String.class);
       return (FileReader) constructor.newInstance(this.hdfs, file, conf, offset);
     } catch (Exception e) {
-      LOG.error(e.getMessage(), e);
+      log.error(e.getMessage(), e);
       throw new RuntimeException("Unable to instantiate " + readerType, e);
     }
   }
@@ -609,17 +624,16 @@ public class HdfsSpout extends BaseRichSpout {
     String newName = new Path(fileNameMinusSuffix).getName();
 
     Path  newFile = new Path( archiveDirPath + Path.SEPARATOR + newName );
-    LOG.debug("Renaming complete file to {} ", newFile);
-    LOG.info("Completed file {}", fileNameMinusSuffix );
+    log.info("Completed consuming file {}", fileNameMinusSuffix);
     if (!hdfs.rename(file, newFile) ) {
       throw new IOException("Rename failed for file: " + file);
     }
+    log.debug("Renamed completed file {} to {} ", file, newFile);
     return newFile;
   }
 
   public void declareOutputFields(OutputFieldsDeclarer declarer) {
-    Fields fields = reader.getOutputFields();
-    declarer.declare(fields);
+    declarer.declare(outputFields);
   }
 
   static class MessageId implements  Comparable<MessageId> {

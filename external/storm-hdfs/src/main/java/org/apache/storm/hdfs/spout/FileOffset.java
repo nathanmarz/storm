@@ -32,5 +32,5 @@ package org.apache.storm.hdfs.spout;
 interface FileOffset extends Comparable<FileOffset>, Cloneable {
   /** tests if rhs == currOffset+1 */
   boolean isNextOffset(FileOffset rhs);
-  public FileOffset clone();
+  FileOffset clone();
 }

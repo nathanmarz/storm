@@ -37,12 +37,10 @@ class TextFileReader extends AbstractFileReader {
   public static final String CHARSET = "hdfsspout.reader.charset";
   public static final String BUFFER_SIZE = "hdfsspout.reader.buffer.bytes";
 
-  public static final String DEFAULT_FIELD_NAME = "line";
-
   private static final int DEFAULT_BUFF_SIZE = 4096;
 
   private BufferedReader reader;
-  private final Logger LOG = LoggerFactory.getLogger(TextFileReader.class);
+  private final Logger log = LoggerFactory.getLogger(TextFileReader.class);
   private TextFileReader.Offset offset;
 
   public TextFileReader(FileSystem fs, Path file, Map conf) throws IOException {
@@ -55,7 +53,7 @@ class TextFileReader extends AbstractFileReader {
 
   private TextFileReader(FileSystem fs, Path file, Map conf, TextFileReader.Offset startOffset)
           throws IOException {
-    super(fs, file, new Fields(DEFAULT_FIELD_NAME));
+    super(fs, file);
     offset = startOffset;
     FSDataInputStream in = fs.open(file);
 
@@ -102,7 +100,7 @@ class TextFileReader extends AbstractFileReader {
     try {
       reader.close();
     } catch (IOException e) {
-      LOG.warn("Ignoring error when closing file " + getFilePath(), e);
+      log.warn("Ignoring error when closing file " + getFilePath(), e);
     }
   }
 

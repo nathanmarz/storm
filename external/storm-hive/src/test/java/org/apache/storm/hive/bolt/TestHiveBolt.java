@@ -380,10 +380,10 @@ public class TestHiveBolt {
         bolt = new HiveBolt(hiveOptions);
         bolt.prepare(config, null, new OutputCollector(collector));
 
-        //The tick should NOT cause any acks since the batch was empty
+        //The tick should NOT cause any acks since the batch was empty except for acking itself
         Tuple mockTick = MockTupleHelpers.mockTickTuple();
         bolt.execute(mockTick);
-        verifyZeroInteractions(collector);
+        verify(collector).ack(mockTick);
 
         bolt.cleanup();
     }

@@ -37,6 +37,7 @@ public class SequenceFileReader<Key extends Writable,Value extends Writable>
         extends AbstractFileReader {
   private static final Logger log = LoggerFactory
           .getLogger(SequenceFileReader.class);
+  public static final String[] defaultFields = {"key", "value"};
   private static final int DEFAULT_BUFF_SIZE = 4096;
   public static final String BUFFER_SIZE = "hdfsspout.reader.buffer.bytes";
 

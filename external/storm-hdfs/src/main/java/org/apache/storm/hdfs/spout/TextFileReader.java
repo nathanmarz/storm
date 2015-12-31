@@ -34,6 +34,7 @@ import java.util.Map;
 
 // Todo: Track file offsets instead of line number
 class TextFileReader extends AbstractFileReader {
+  public static final String[] defaultFields = {"line"};
   public static final String CHARSET = "hdfsspout.reader.charset";
   public static final String BUFFER_SIZE = "hdfsspout.reader.buffer.bytes";
 

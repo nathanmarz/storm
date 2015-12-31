@@ -20,6 +20,7 @@ package org.apache.storm.hdfs.spout;
 
 import java.io.IOException;
 import java.lang.reflect.Constructor;
+import java.net.URI;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -47,6 +48,7 @@ import backtype.storm.tuple.Fields;
 public class HdfsSpout extends BaseRichSpout {
 
   // user configurable
+  private String hdfsUri;            // required
   private String readerType;         // required
   private Fields outputFields;       // required
   private Path sourceDirPath;        // required
@@ -101,19 +103,19 @@ public class HdfsSpout extends BaseRichSpout {
     return this;
   }
 
+  /** set key name under which HDFS options are placed. (similar to HDFS bolt).
+   * default key name is 'hdfs.config' */
+  public HdfsSpout withConfigKey(String configKey) {
+    this.configKey = configKey;
+    return this;
+  }
+
   public Path getLockDirPath() {
     return lockDirPath;
   }
 
   public SpoutOutputCollector getCollector() {
     return collector;
-  }
-
-  /** config key under which HDFS options are placed. (similar to HDFS bolt).
-   * default key name is 'hdfs.config' */
-  public HdfsSpout withConfigKey(String configKey){
-    this.configKey = configKey;
-    return this;
   }
 
   public void nextTuple() {
@@ -214,7 +216,6 @@ public class HdfsSpout extends BaseRichSpout {
     commitTimer.schedule(timerTask, commitFrequencySec * 1000);
   }
 
-
   private static String getFileProgress(FileReader reader) {
     return reader.getFilePath() + " " + reader.getFileOffset();
   }
@@ -268,46 +269,52 @@ public class HdfsSpout extends BaseRichSpout {
     inflight.put(id, tuple);
   }
 
-  public void open(Map conf, TopologyContext context,  SpoutOutputCollector collector) {
+  public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
+    log.info("Opening HDFS Spout {}", spoutId);
     this.conf = conf;
     this.commitTimer = new Timer();
     this.tracker = new ProgressTracker();
-    final String FILE_SYSTEM = "filesystem";
-    log.info("Opening HDFS Spout {}", spoutId);
+    this.hdfsConfig = new Configuration();
+
     this.collector = collector;
     this.hdfsConfig = new Configuration();
     this.tupleCounter = 0;
 
-    for( Object k : conf.keySet() ) {
-      String key = k.toString();
-      if( ! FILE_SYSTEM.equalsIgnoreCase( key ) ) { // to support unit test only
-        String val = conf.get(key).toString();
-        log.info("Config setting : " + key + " = " + val);
-        this.hdfsConfig.set(key, val);
-      }
-      else
-        this.hdfs = (FileSystem) conf.get(key);
-
-      if(key.equalsIgnoreCase(Configs.READER_TYPE)) {
-        readerType = conf.get(key).toString();
-        checkValidReader(readerType);
-      }
-    }
-
-    // - Hdfs configs
-    this.hdfsConfig = new Configuration();
-    Map<String, Object> map = (Map<String, Object>)conf.get(this.configKey);
-    if(map != null){
-      for(String key : map.keySet()){
-        this.hdfsConfig.set(key, String.valueOf(map.get(key)));
-      }
+    // Hdfs related settings
+    if( conf.containsKey(Configs.HDFS_URI)) {
+      this.hdfsUri = conf.get(Configs.HDFS_URI).toString();
+    } else {
+      throw new RuntimeException(Configs.HDFS_URI + " setting is required");
     }
 
     try {
-      HdfsSecurityUtil.login(conf, hdfsConfig);
+      this.hdfs = FileSystem.get(URI.create(hdfsUri), hdfsConfig);
     } catch (IOException e) {
-      log.error("Failed to open " + sourceDirPath);
-      throw new RuntimeException(e);
+      log.error("Unable to instantiate file system", e);
+      throw new RuntimeException("Unable to instantiate file system", e);
+    }
+
+
+    if ( conf.containsKey(configKey) ) {
+      Map<String, Object> map = (Map<String, Object>)conf.get(configKey);
+        if(map != null) {
+          for(String keyName : map.keySet()){
+            log.info("HDFS Config override : " + keyName + " = " + String.valueOf(map.get(keyName)));
+            this.hdfsConfig.set(keyName, String.valueOf(map.get(keyName)));
+          }
+          try {
+            HdfsSecurityUtil.login(conf, hdfsConfig);
+          } catch (IOException e) {
+            log.error("HDFS Login failed ", e);
+            throw new RuntimeException(e);
+          }
+        } // if(map != null)
+      }
+
+    // Reader type config
+    if( conf.containsKey(Configs.READER_TYPE) ) {
+      readerType = conf.get(Configs.READER_TYPE).toString();
+      checkValidReader(readerType);
     }
 
     // -- source dir config
@@ -354,6 +361,8 @@ public class HdfsSpout extends BaseRichSpout {
       this.ackEnabled = ( Integer.parseInt( ackers.toString() ) > 0 );
     else
       this.ackEnabled = false;
+
+    log.info("ACK mode is {}", ackEnabled ? "enabled" : "disabled");
 
     // -- commit frequency - count
     if( conf.get(Configs.COMMIT_FREQ_COUNT) != null )
@@ -420,8 +429,11 @@ public class HdfsSpout extends BaseRichSpout {
 
   @Override
   public void ack(Object msgId) {
-    if(!ackEnabled)
-      throw new IllegalStateException("Received an ACKs when ack-ing is disabled" );
+    if(!ackEnabled) {
+      log.debug("Ack() called but acker count = 0", msgId, spoutId);
+      return;
+    }
+    log.debug("Ack received for msg {} on spout {}", msgId, spoutId);
     MessageId id = (MessageId) msgId;
     inflight.remove(id);
     ++acksSinceLastCommit;
@@ -443,6 +455,7 @@ public class HdfsSpout extends BaseRichSpout {
 
   @Override
   public void fail(Object msgId) {
+    log.debug("Fail() called for msg {} on spout {}", msgId, spoutId);
     super.fail(msgId);
     HdfsUtils.Pair<MessageId, List<Object>> item = HdfsUtils.Pair.of(msgId, inflight.remove(msgId));
     retryList.add(item);

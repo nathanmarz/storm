@@ -23,6 +23,7 @@ public class Configs {
   public static final String TEXT = "text";
   public static final String SEQ = "seq";
 
+  public static final String HDFS_URI = "hdfsspout.hdfs";                   // Required - HDFS name node
   public static final String SOURCE_DIR = "hdfsspout.source.dir";           // Required - dir from which to read files
   public static final String ARCHIVE_DIR = "hdfsspout.archive.dir";         // Required - completed files will be moved here
   public static final String BAD_DIR = "hdfsspout.badfiles.dir";            // Required - unparsable files will be moved here

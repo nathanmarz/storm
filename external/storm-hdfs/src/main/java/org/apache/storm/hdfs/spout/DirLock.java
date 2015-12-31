@@ -81,8 +81,12 @@ public class DirLock {
 
   /** Release lock on dir by deleting the lock file */
   public void release() throws IOException {
-    fs.delete(lockFile, false);
-    log.info("Thread {} released dir lock {} ", threadInfo(), lockFile);
+    if(!fs.delete(lockFile, false)) {
+      log.error("Thread {} could not delete dir lock {} ", threadInfo(), lockFile);
+    }
+    else {
+      log.info("Thread {} released dir lock {} ", threadInfo(), lockFile);
+    }
   }
 
   /** if the lock on the directory is stale, take ownership */

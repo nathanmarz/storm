@@ -33,6 +33,12 @@ import org.apache.storm.hdfs.bolt.rotation.TimedRotationPolicy;
 import org.apache.storm.hdfs.bolt.sync.CountSyncPolicy;
 import org.apache.storm.hdfs.spout.Configs;
 import org.apache.storm.hdfs.spout.HdfsSpout;
+import backtype.storm.topology.base.BaseRichBolt;
+import backtype.storm.topology.*;
+import backtype.storm.tuple.*;
+import backtype.storm.task.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
@@ -42,37 +48,47 @@ public class HdfsSpoutTopology {
   public static final String SPOUT_ID = "hdfsspout";
   public static final String BOLT_ID = "hdfsbolt";
 
-  public static final int SPOUT_NUM = 4;
-  public static final int BOLT_NUM = 4;
-  public static final int WORKER_NUM = 4;
+  public static final int SPOUT_NUM = 1;
+  public static final int BOLT_NUM = 1;
+  public static final int WORKER_NUM = 1;
 
+  public static class ConstBolt extends BaseRichBolt {
+    private static final long serialVersionUID = -5313598399155365865L;
+    public static final String FIELDS = "message";
+    private OutputCollector collector;
+    private static final Logger log = LoggerFactory.getLogger(ConstBolt.class);
 
-  private static HdfsBolt makeHdfsBolt(String arg, String destinationDir) {
-    DefaultFileNameFormat fileNameFormat = new DefaultFileNameFormat()
-            .withPath(destinationDir)
-            .withExtension(".txt");
-    RecordFormat format = new DelimitedRecordFormat();
-    FileRotationPolicy rotationPolicy = new TimedRotationPolicy(5.0f, TimedRotationPolicy.TimeUnit.MINUTES);
+    public ConstBolt() {
+    }
 
-    return new HdfsBolt()
-            .withConfigKey("hdfs.config")
-            .withFsUrl(arg)
-            .withFileNameFormat(fileNameFormat)
-            .withRecordFormat(format)
-            .withRotationPolicy(rotationPolicy)
-            .withSyncPolicy(new CountSyncPolicy(1000));
-  }
+    @Override
+    public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
+      this.collector = collector;
+    }
+
+    @Override
+    public void execute(Tuple tuple) {
+      log.info("Received tuple : {}", tuple.getValue(0));
+      collector.ack(tuple);
+    }
+
+    @Override
+    public void declareOutputFields(OutputFieldsDeclarer declarer) {
+      declarer.declare(new Fields(FIELDS));
+    }
+  } // class
 
   /** Copies text file content from sourceDir to destinationDir. Moves source files into sourceDir after its done consuming
    *    args: sourceDir sourceArchiveDir badDir destinationDir
    */
   public static void main(String[] args) throws Exception {
     // 0 - validate args
-    if (args.length < 6) {
+    if (args.length < 7) {
       System.err.println("Please check command line arguments.");
       System.err.println("Usage :");
-      System.err.println(HdfsSpoutTopology.class.toString() + " topologyName fileFormat sourceDir sourceArchiveDir badDir destinationDir.");
+      System.err.println(HdfsSpoutTopology.class.toString() + " topologyName hdfsUri fileFormat sourceDir sourceArchiveDir badDir destinationDir.");
       System.err.println(" topologyName - topology name.");
+      System.err.println(" hdfsUri - hdfs name node URI");
       System.err.println(" fileFormat -  Set to 'TEXT' for reading text files or 'SEQ' for sequence files.");
       System.err.println(" sourceDir  - read files from this HDFS dir using HdfsSpout.");
       System.err.println(" sourceArchiveDir - after a file in sourceDir is read completely, it is moved to this HDFS location.");
@@ -85,14 +101,15 @@ public class HdfsSpoutTopology {
 
     // 1 - parse cmd line args
     String topologyName = args[0];
-    String fileFormat = args[1];
-    String sourceDir = args[2];
-    String sourceArchiveDir = args[3];
-    String badDir = args[4];
-    String destinationDir = args[5];
+    String hdfsUri = args[1];
+    String fileFormat = args[2];
+    String sourceDir = args[3];
+    String sourceArchiveDir = args[4];
+    String badDir = args[5];
+    String destinationDir = args[6];
 
     // 2 - create and configure spout and bolt
-    HdfsBolt bolt = makeHdfsBolt(args[0], destinationDir);
+    ConstBolt bolt = new ConstBolt();
     HdfsSpout spout = new HdfsSpout().withOutputFields("line");
 
     Config conf = new Config();
@@ -100,6 +117,10 @@ public class HdfsSpoutTopology {
     conf.put(Configs.ARCHIVE_DIR, sourceArchiveDir);
     conf.put(Configs.BAD_DIR, badDir);
     conf.put(Configs.READER_TYPE, fileFormat);
+    conf.put(Configs.HDFS_URI, hdfsUri);
+    conf.setDebug(true);
+    conf.setNumWorkers(1);
+    conf.setMaxTaskParallelism(1);
 
     // 3 - Create and configure topology
     conf.setDebug(true);
@@ -115,8 +136,8 @@ public class HdfsSpoutTopology {
     StormSubmitter.submitTopologyWithProgressBar(topologyName, conf, builder.createTopology());
     Nimbus.Client client = NimbusClient.getConfiguredClient(clusterConf).getClient();
 
-    // 5 - Print metrics every 30 sec, kill topology after 5 min
-    for (int i = 0; i < 10; i++) {
+    // 5 - Print metrics every 30 sec, kill topology after 20 min
+    for (int i = 0; i < 40; i++) {
       Thread.sleep(30 * 1000);
       FastWordCountTopology.printMetrics(client, topologyName);
     }

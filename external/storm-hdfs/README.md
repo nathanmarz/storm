@@ -1,11 +1,50 @@
 # Storm HDFS
 
 Storm components for interacting with HDFS file systems
- - HDFS Bolt
  - HDFS Spout
- 
+ - HDFS Bolt 
 
 # HDFS Spout
+
+Hdfs spout is intended to allow feeding data into Storm from a HDFS directory. 
+It will actively monitor the directory to consume any new files that appear in the directory.
+
+**Impt**: Hdfs spout assumes that the files being made visible to it in the monitored directory 
+are NOT actively being written to. Only after a files is completely written should it be made
+visible to the spout. This can be achieved by either writing the files out to another directory 
+and once completely written, move it to the monitored directory. Alternatively the file
+can be created with a '.ignore' suffix in the monitored directory and after data is completely 
+written, rename it without the suffix. File names with a '.ignore' suffix are ignored
+by the spout.
+
+When the spout is actively consuming a file, ite renames the file with a '.inprogress' suffix.
+After consuming all the contents in the file, the file will be moved to a configurable *done* 
+directory and the '.inprogress' suffix will be dropped.
+
+**Concurrency** If multiple spout instances are used in the topology, each instance will consume
+a different file. Synchronization among spout instances is done using a lock files created in 
+(by default) a '.lock' subdirectory under the monitored directory. A file with the same name
+as the file being consumed (with the in progress suffix) is created in the lock directory.
+Once the file is completely consumed, the corresponding lock file is deleted.
+
+**Recovery from failure**
+Periodically, the spout also records progress information wrt to how much of the file has been
+consumed in the lock file. In case of an crash of the spout instance (or force kill of topology) 
+another spout can take over the file and resume from the location recorded in the lock file.
+
+Certain error conditions can cause lock files to go stale. Basically the lock file exists, 
+but no spout actively owns and therefore will the file will not be deleted. Usually this indicates 
+that the corresponding input file has also not been completely processed. A configuration
+'hdfsspout.lock.timeout.sec' can be set to specify the duration of inactivity that a lock file
+should be considered stale. Stale lock files are candidates for automatic transfer of ownership to 
+another spout.
+
+**Lock on .lock Directory**
+The .lock directory contains another DIRLOCK file which is used to co-ordinate accesses to the 
+.lock dir itself among spout instances. A spout will try to create it when it needs access to
+the .lock directory and then delete it when done.  In case of a topology crash or force kill,
+if this file still exists, it should be deleted to allow the new topology instance to regain 
+full access to the  .lock directory and resume normal processing. 
 
 ## Usage
 
@@ -13,8 +52,10 @@ The following example creates an HDFS spout that reads text files from HDFS path
 
 ```java
 // Instantiate spout
-HdfsSpout textReaderSpout = new HdfsSpout().withOutputFields("line");
-// HdfsSpout seqFileReaderSpout = new HdfsSpout().withOutputFields("key","value");
+HdfsSpout textReaderSpout = new HdfsSpout().withOutputFields(TextFileReader.defaultFields);
+// HdfsSpout seqFileReaderSpout = new HdfsSpout().withOutputFields(SequenceFileReader.defaultFields);
+
+// textReaderSpout.withConfigKey("custom.keyname"); // Optional. Not required normally unless you need to change the keyname use to provide hds settings. This keyname defaults to 'hdfs.config' 
 
 // Configure it
 Config conf = new Config();
@@ -34,21 +75,34 @@ builder.setSpout("hdfsspout", textReaderSpout, SPOUT_NUM);
 StormSubmitter.submitTopologyWithProgressBar("topologyName", conf, builder.createTopology());
 ```
 
-## HDFS Spout Configuration Settings
+## Configuration Settings
+Class HdfsSpout provided following methods for configuration:
 
-| Setting                  | Default     | Description |
-|--------------------------|-------------|-------------|
-|**hdfsspout.reader.type** |             | Indicates the reader for the file format. Set to 'seq' for reading sequence files or 'text' for text files. Set to a fully qualified class name if using a custom type (that implements interface org.apache.storm.hdfs.spout.FileReader)|
-|**hdfsspout.source.dir**  |             | HDFS location from where to read.  E.g. hdfs://localhost:54310/inputfiles       |
-|**hdfsspout.archive.dir** |             | After a file is processed completely it will be moved to this directory. E.g. hdfs://localhost:54310/done|
-|**hdfsspout.badfiles.dir**|             | if there is an error parsing a file's contents, the file is moved to this location.  E.g. hdfs://localhost:54310/badfiles  |
-|hdfsspout.ignore.suffix   |   .ignore   | File names with this suffix in the in the hdfsspout.source.dir location will not be processed|
-|hdfsspout.lock.dir        | '.lock' subdirectory under hdfsspout.source.dir | Dir in which lock files will be created. Concurrent HDFS spout instances synchronize using *lock*. Before processing a file the spout instance creates a lock file in this directory with same name as input file and deletes this lock file after processing the file. Spout also periodically makes a note of its progress (wrt reading the input file) in the lock file so that another spout instance can resume progress on the same file if the spout dies for any reason.|
-|hdfsspout.commit.count    |    20000    | Record progress in the lock file after these many records are processed. If set to 0, this criterion will not be used. |
-|hdfsspout.commit.sec      |    10       | Record progress in the lock file after these many seconds have elapsed. Must be greater than 0 |
-|hdfsspout.max.outstanding |   10000     | Limits the number of unACKed tuples by pausing tuple generation (if ACKers are used in the topology) |
-|hdfsspout.lock.timeout.sec|  5 minutes  | Duration of inactivity after which a lock file is considered to be abandoned and ready for another spout to take ownership |
-|hdfsspout.clocks.insync   |    true     | Indicates whether clocks on the storm machines are in sync (using services like NTP)       |
+`HdfsSpout withOutputFields(String... fields)` : This sets the names for the output fields. 
+The number of fields depends upon the reader being used. For convenience, built-in reader types 
+expose a static member called `defaultFields` that can be used for this. 
+ 
+ `HdfsSpout withConfigKey(String configKey)`
+Allows overriding the default key name (hdfs.config) with new name for specifying HDFS configs. Typicallly used
+to provide kerberos keytabs.
+
+Only settings mentioned in **bold** are required.
+
+| Setting                      | Default     | Description |
+|------------------------------|-------------|-------------|
+|**hdfsspout.reader.type**     |             | Indicates the reader for the file format. Set to 'seq' for reading sequence files or 'text' for text files. Set to a fully qualified class name if using a custom type (that implements interface org.apache.storm.hdfs.spout.FileReader)|
+|**hdfsspout.hdfs**            |             | HDFS URI. Example:  hdfs://namenodehost:8020
+|**hdfsspout.source.dir**      |             | HDFS location from where to read.  E.g. /data/inputfiles  |
+|**hdfsspout.archive.dir**     |             | After a file is processed completely it will be moved to this directory. E.g. /data/done|
+|**hdfsspout.badfiles.dir**    |             | if there is an error parsing a file's contents, the file is moved to this location.  E.g. /data/badfiles  |
+|hdfsspout.lock.dir            | '.lock' subdirectory under hdfsspout.source.dir | Dir in which lock files will be created. Concurrent HDFS spout instances synchronize using *lock* files. Before processing a file the spout instance creates a lock file in this directory with same name as input file and deletes this lock file after processing the file. Spout also periodically makes a note of its progress (wrt reading the input file) in the lock file so that another spout instance can resume progress on the same file if the spout dies for any reason. When a toplogy is killed, if a .lock/DIRLOCK file is left behind it can be safely deleted to allow normal resumption of the topology on restart.|
+|hdfsspout.ignore.suffix       |   .ignore   | File names with this suffix in the in the hdfsspout.source.dir location will not be processed|
+|hdfsspout.commit.count        |    20000    | Record progress in the lock file after these many records are processed. If set to 0, this criterion will not be used. |
+|hdfsspout.commit.sec          |    10       | Record progress in the lock file after these many seconds have elapsed. Must be greater than 0 |
+|hdfsspout.max.outstanding     |   10000     | Limits the number of unACKed tuples by pausing tuple generation (if ACKers are used in the topology) |
+|hdfsspout.lock.timeout.sec    |  5 minutes  | Duration of inactivity after which a lock file is considered to be abandoned and ready for another spout to take ownership |
+|hdfsspout.clocks.insync       |    true     | Indicates whether clocks on the storm machines are in sync (using services like NTP)       |
+|hdfs.config (unless changed)  |             | Set it to a Map of Key/value pairs indicating the HDFS settigns to be used. For example, keytab and principle could be set using this. See section **Using keytabs on all worker hosts** under HDFS bolt below.| 
 
 
 # HDFS Bolt

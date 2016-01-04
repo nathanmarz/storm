@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1412: null check should be done in the first place
  * STORM-1210: Set Output Stream id in KafkaSpout
  * STORM-1397: Merge conflict from Pacemaker merge
  * STORM-1373: Blobstore API sample example usage

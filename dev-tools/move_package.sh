@@ -45,8 +45,10 @@ git mv "$BASE"/storm-core/test/clj/backtype/storm/* "$BASE"/storm-core/test/clj/
 rm -rf "$BASE"/storm-core/test/clj/backtype
 git mv "$BASE"/storm-core/test/clj/storm/trident "$BASE"/storm-core/test/clj/org/apache/storm
 rm -rf "$BASE"/storm-core/test/clj/storm
-git mv "$BASE"/storm-core/test/clj/integration/storm "$BASE"/storm-core/test/clj/integration/org/apache/storm
+git mv "$BASE"/storm-core/test/clj/integration/storm/* "$BASE"/storm-core/test/clj/integration/org/apache/storm
 rm -rf "$BASE"/storm-core/test/clj/integration/storm
+git mv "$BASE"/storm-core/test/clj/integration/backtype/storm/* "$BASE"/storm-core/test/clj/integration/org/apache/storm
+rm -rf "$BASE"/storm-core/test/clj/integration/backtype
 
 #STORM-STARTER
 mkdir -p "$BASE"/examples/storm-starter/src/jvm/org/apache/ "$BASE"/examples/storm-starter/src/clj/org/apache/ "$BASE"/examples/storm-starter/test/jvm/org/apache/

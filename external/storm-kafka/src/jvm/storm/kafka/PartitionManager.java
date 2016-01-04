@@ -24,6 +24,7 @@ import backtype.storm.metric.api.MeanReducer;
 import backtype.storm.metric.api.ReducedMetric;
 import backtype.storm.spout.SpoutOutputCollector;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 
 import kafka.javaapi.consumer.SimpleConsumer;
@@ -149,9 +150,9 @@ public class PartitionManager {
             }
             
             if ((tups != null) && tups.iterator().hasNext()) {
-                if(_spoutConfig.topicAsStreamId) {
+               if (!Strings.isNullOrEmpty(_spoutConfig.outputStreamId)) {
                     for (List<Object> tup : tups) {
-                        collector.emit(_spoutConfig.topic, tup, new KafkaMessageId(_partition, toEmit.offset));
+                        collector.emit(_spoutConfig.outputStreamId, tup, new KafkaMessageId(_partition, toEmit.offset));
                     }
                 } else {
                     for (List<Object> tup : tups) {

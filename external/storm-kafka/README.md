@@ -71,8 +71,6 @@ In addition to these parameters, SpoutConfig contains the following fields that 
     public double retryDelayMultiplier = 1.0;
     public long retryDelayMaxMs = 60 * 1000;
 
-    // if set to true, spout will set Kafka topic as the emitted Stream ID
-    public boolean topicAsStreamId = false;
 ```
 Core KafkaSpout only accepts an instance of SpoutConfig.
 

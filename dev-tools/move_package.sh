@@ -19,9 +19,8 @@ set -e
 
 BASE="$1"
 find "$BASE" -type f -print0 | xargs -0 egrep -l 'backtype.storm|storm.trident|storm.starter|storm.kafka|"backtype", "storm"' | egrep -v '.git/|docs/|CHANGELOG.md|dev-tools/move_package.sh|StormShadeRequest.java' | xargs sed -i.back -e 's/storm\(.\)trident/org\1apache\1storm\1trident/g' -e 's/backtype\(.\)storm/org\1apache\1storm/g' -e 's/storm\([\.\\]\)starter/org\1apache\1storm\1starter/g' -e 's/storm\([\.\\]\)kafka/org\1apache\1storm\1kafka/g' -e 's/"backtype", "storm"/"org", "apache", "storm"/g'
-#find "$BASE" -type f -print0 | xargs -0 egrep -l 'backtype.storm|storm.trident' | egrep -v '.git/|docs/|CHANGELOG.md' | xargs sed -i '' -e 's/storm\(.\)trident/org\1apache\1storm\1trident/g' -e 's/backtype\(.\)storm/org\1apache\1storm/g'
 find "$BASE" -iname \*.back | xargs rm
-mkdir -p "$BASE"/storm-core/src/jvm/org/apache/storm/ "$BASE"/storm-core/src/clj/org/apache/storm/ "$BASE"/storm-core/test/jvm/org/apache/storm/ "$BASE"/storm-core/test/clj/org/apache/storm/
+mkdir -p "$BASE"/storm-core/src/jvm/org/apache/storm/ "$BASE"/storm-core/src/clj/org/apache/storm/ "$BASE"/storm-core/test/jvm/org/apache/storm/ "$BASE"/storm-core/test/clj/org/apache/storm/ "$BASE"/storm-core/test/clj/integration/org/apache/storm/
 #STORM-CORE
 #SRC JVM
 git mv "$BASE"/storm-core/src/jvm/backtype/storm/* "$BASE"/storm-core/src/jvm/org/apache/storm/
@@ -46,6 +45,8 @@ git mv "$BASE"/storm-core/test/clj/backtype/storm/* "$BASE"/storm-core/test/clj/
 rm -rf "$BASE"/storm-core/test/clj/backtype
 git mv "$BASE"/storm-core/test/clj/storm/trident "$BASE"/storm-core/test/clj/org/apache/storm
 rm -rf "$BASE"/storm-core/test/clj/storm
+git mv "$BASE"/storm-core/test/clj/integration/storm "$BASE"/storm-core/test/clj/integration/org/apache/storm
+rm -rf "$BASE"/storm-core/test/clj/integration/storm
 
 #STORM-STARTER
 mkdir -p "$BASE"/examples/storm-starter/src/jvm/org/apache/ "$BASE"/examples/storm-starter/src/clj/org/apache/ "$BASE"/examples/storm-starter/test/jvm/org/apache/

@@ -72,23 +72,6 @@ the Maven command to build and run storm-starter (see below), Maven will then be
 of Storm in this local Maven repository at `$HOME/.m2/repository`.
 
 
-## Running topologies with Maven
-
-> Note: All following examples require that you run `cd examples/storm-starter` beforehand.
-
-storm-starter topologies which don't use multilang feature can be run with the maven-exec-plugin. 
-For example, to compile and run `ExclamationTopology` in local mode, use the command:
-
-    $ mvn compile exec:java -Dstorm.topology=storm.starter.ExclamationTopology
-
-You can also run clojure topologies with Maven:
-
-    $ mvn compile exec:java -Dstorm.topology=storm.starter.clj.word_count
-
-In Windows parameter should be quoted, like this:
-
-    $ mvn compile exec:java "-Dstorm.topology=storm.starter.clj.word_count"
-
 ## Packaging storm-starter for use on a Storm cluster
 
 You can package a jar suitable for submitting to a Storm cluster with the command:
@@ -104,8 +87,8 @@ Example filename of the uberjar:
 
 You can submit (run) a topology contained in this uberjar to Storm via the `storm` CLI tool:
 
-    # Example 1: Run the RollingTopWords in local mode (LocalCluster)
-    $ storm jar storm-starter-*.jar storm.starter.RollingTopWords
+    # Example 1: Run the ExclamationTopology in local mode (LocalCluster)
+    $ storm jar target/storm-starter-*.jar storm.starter.ExclamationTopology
 
     # Example 2: Run the RollingTopWords in remote/cluster mode,
     #            under the name "production-topology"

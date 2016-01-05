@@ -246,6 +246,7 @@ under the License.
 * Florian Hussonnois ([@fhussonnois](https://github.com/fhussonnois))
 * Ilya Ostrovskiy ([@iostat](https://github.com/iostat))
 * Satish Duggana ([@satishd](https://github.com/satishd))
+* Seth Ammons ([@sethgrid](https://github.com/sethgrid))
 
 ## Acknowledgements
 

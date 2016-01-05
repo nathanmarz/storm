@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1422: broken example in storm-starter tutorial
  * STORM-1429: LocalizerTest fix
  * STORM-1401: removes multilang-test
  * STORM-1424: Removed unused topology-path variable

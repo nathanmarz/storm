@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-695: storm CLI tool reports zero exit code on error scenario
  * STORM-1416: Documentation for state store
  * STORM-1426: keep backtype.storm.tuple.AddressedTuple and delete duplicated backtype.storm.messaging.AddressedTuple
  * STORM-1417: fixed equals/hashCode contract in CoordType

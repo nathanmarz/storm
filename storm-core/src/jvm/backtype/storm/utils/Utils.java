@@ -634,7 +634,7 @@ public class Utils {
 
     public static List<String> getStrings(final Object o) {
         if (o == null) {
-            return Collections.emptyList();
+            return new ArrayList<String>();
         } else if (o instanceof String) {
             return new ArrayList<String>() {{ add((String) o); }};
         } else if (o instanceof Collection) {

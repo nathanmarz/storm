@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1426: keep backtype.storm.tuple.AddressedTuple and delete duplicated backtype.storm.messaging.AddressedTuple
  * STORM-1417: fixed equals/hashCode contract in CoordType
  * STORM-1422: broken example in storm-starter tutorial
  * STORM-1429: LocalizerTest fix

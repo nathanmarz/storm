@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1416: Documentation for state store
  * STORM-1426: keep backtype.storm.tuple.AddressedTuple and delete duplicated backtype.storm.messaging.AddressedTuple
  * STORM-1417: fixed equals/hashCode contract in CoordType
  * STORM-1422: broken example in storm-starter tutorial

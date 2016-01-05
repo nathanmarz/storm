@@ -70,9 +70,19 @@ public class TridentBoltExecutor implements IRichBolt {
 
         @Override
         public boolean equals(Object o) {
-            return singleCount == ((CoordType) o).singleCount;
-        }        
-        
+            if (this == o) return true;
+            if (!(o instanceof CoordType)) return false;
+
+            CoordType coordType = (CoordType) o;
+
+            return singleCount == coordType.singleCount;
+        }
+
+        @Override
+        public int hashCode() {
+            return (singleCount ? 1 : 0);
+        }
+
         @Override
         public String toString() {
             return "<Single: " + singleCount + ">";

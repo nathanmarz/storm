@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1427: add TupleUtils/listHashCode method and delete tuple.clj
  * STORM-1413: remove unused variables for some tests
  * STORM-1412: null check should be done in the first place
  * STORM-1210: Set Output Stream id in KafkaSpout

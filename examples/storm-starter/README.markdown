@@ -150,7 +150,7 @@ The following instructions will import storm-starter as a new project in Intelli
   defaults.  Click _Next_.
 * Click _Next_ on the following screen about selecting Maven projects to import.
 * Select the JDK to be used by IDEA for storm-starter, then click _Next_.
-    * At the time of this writing you should use JDK 6.
-    * It is strongly recommended to use Sun/Oracle JDK 6 rather than OpenJDK 6.
+    * At the time of this writing you should use JDK 7 and above.
+    * It is strongly recommended to use Oracle JDK rather than OpenJDK.
 * You may now optionally change the name of the project in IDEA.  The default name suggested by IDEA is "storm-starter".
   Click _Finish_ once you are done.

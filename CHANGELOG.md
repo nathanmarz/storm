@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1429: LocalizerTest fix
  * STORM-1401: removes multilang-test
  * STORM-1424: Removed unused topology-path variable
  * STORM-1427: add TupleUtils/listHashCode method and delete tuple.clj

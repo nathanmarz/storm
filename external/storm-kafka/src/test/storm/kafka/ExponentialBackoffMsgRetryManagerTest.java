@@ -163,9 +163,9 @@ public class ExponentialBackoffMsgRetryManagerTest {
 
     @Test
     public void testMaxBackoff() throws Exception {
-        final long initial = 10;
+        final long initial = 100;
         final double mult = 2d;
-        final long max = 20;
+        final long max = 2000;
         ExponentialBackoffMsgRetryManager manager = new ExponentialBackoffMsgRetryManager(initial, mult, max);
 
         long expectedWaitTime = initial;

@@ -57,7 +57,7 @@ public class HikariCPConnectionProvider implements ConnectionProvider {
     @Override
     public void cleanup() {
         if(dataSource != null) {
-            dataSource.shutdown();
+            dataSource.close();
         }
     }
 }

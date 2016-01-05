@@ -470,6 +470,10 @@ public class LocalizerTest {
 
     lrsrcSet = localizer.getUserResources().get(user1);
     assertEquals("local resource set size wrong", 2, lrsrcSet.getSize());
+    long end = System.currentTimeMillis() + 100;
+    while ((end - System.currentTimeMillis()) >= 0 && keyFile2.exists()) {
+      Thread.sleep(1);
+    }
     assertFalse("blob not deleted", keyFile2.exists());
     assertTrue("blob deleted", keyFile.exists());
     assertTrue("blob deleted", keyFile3.exists());

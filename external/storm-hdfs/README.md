@@ -295,7 +295,7 @@ The `org.apache.storm.hdfs.bolt.AvroGenericRecordBolt` class allows you to write
         // create sequence format instance.
         DefaultSequenceFormat format = new DefaultSequenceFormat("timestamp", "sentence");
 
-        SequenceFileBolt bolt = new SequenceFileBolt()
+        AvroGenericRecordBolt bolt = new AvroGenericRecordBolt()
                 .withFsUrl("hdfs://localhost:54310")
                 .withFileNameFormat(fileNameFormat)
                 .withSchemaAsString(schema)

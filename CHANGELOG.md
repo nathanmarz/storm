@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1401: removes multilang-test
  * STORM-1424: Removed unused topology-path variable
  * STORM-1427: add TupleUtils/listHashCode method and delete tuple.clj
  * STORM-1413: remove unused variables for some tests

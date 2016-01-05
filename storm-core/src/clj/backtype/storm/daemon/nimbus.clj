@@ -38,7 +38,7 @@
   (:import [backtype.storm.scheduler INimbus SupervisorDetails WorkerSlot TopologyDetails
             Cluster Topologies SchedulerAssignment SchedulerAssignmentImpl DefaultScheduler ExecutorDetails])
   (:import [backtype.storm.nimbus NimbusInfo])
-  (:import [backtype.storm.utils TimeCacheMap TimeCacheMap$ExpiredCallback Utils ThriftTopologyUtils
+  (:import [backtype.storm.utils TimeCacheMap TimeCacheMap$ExpiredCallback Utils TupleUtils ThriftTopologyUtils
             BufferFileInputStream BufferInputStream])
   (:import [backtype.storm.generated NotAliveException AlreadyAliveException StormTopology ErrorInfo
             ExecutorInfo InvalidTopologyException Nimbus$Iface Nimbus$Processor SubmitOptions TopologyInitialStatus
@@ -51,8 +51,7 @@
   (:use [backtype.storm util config log timer zookeeper local-state])
   (:require [backtype.storm [cluster :as cluster]
                             [converter :as converter]
-                            [stats :as stats]
-                            [tuple :as tuple]])
+                            [stats :as stats]])
   (:require [clojure.set :as set])
   (:import [backtype.storm.daemon.common StormBase Assignment])
   (:use [backtype.storm.daemon common])
@@ -2145,7 +2144,7 @@
                 eventlogger-tasks (sort (get component->tasks
                                              EVENTLOGGER-COMPONENT-ID))
                 ;; Find the task the events from this component route to.
-                task-index (mod (tuple/list-hash-code [component-id])
+                task-index (mod (TupleUtils/listHashCode [component-id])
                                 (count eventlogger-tasks))
                 task-id (nth eventlogger-tasks task-index)
                 eventlogger-exec (first (filter (fn [[start stop]]

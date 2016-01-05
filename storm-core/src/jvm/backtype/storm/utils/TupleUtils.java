@@ -17,6 +17,9 @@
  */
 package backtype.storm.utils;
 
+import java.util.Arrays;
+import java.util.List;
+
 import backtype.storm.Constants;
 import backtype.storm.tuple.Tuple;
 
@@ -30,6 +33,14 @@ public final class TupleUtils {
     return tuple != null
            && Constants.SYSTEM_COMPONENT_ID  .equals(tuple.getSourceComponent())
            && Constants.SYSTEM_TICK_STREAM_ID.equals(tuple.getSourceStreamId());
+  }
+
+  public static <T> int listHashCode(List<T> alist) {
+    if (alist == null) {
+      return 1;
+    } else {
+      return Arrays.deepHashCode(alist.toArray());
+    }
   }
 
 }

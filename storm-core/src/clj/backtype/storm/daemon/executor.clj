@@ -28,7 +28,7 @@
   (:import [backtype.storm.grouping CustomStreamGrouping])
   (:import [backtype.storm.task WorkerTopologyContext IBolt OutputCollector IOutputCollector])
   (:import [backtype.storm.generated GlobalStreamId])
-  (:import [backtype.storm.utils Utils MutableObject RotatingMap RotatingMap$ExpiredCallback MutableLong Time DisruptorQueue WorkerBackpressureThread])
+  (:import [backtype.storm.utils Utils TupleUtils MutableObject RotatingMap RotatingMap$ExpiredCallback MutableLong Time DisruptorQueue WorkerBackpressureThread])
   (:import [com.lmax.disruptor InsufficientCapacityException])
   (:import [backtype.storm.serialization KryoTupleSerializer])
   (:import [backtype.storm.daemon Shutdownable])
@@ -37,7 +37,7 @@
   (:import [backtype.storm.cluster ClusterStateContext DaemonType])
   (:import [backtype.storm.grouping LoadAwareCustomStreamGrouping LoadAwareShuffleGrouping LoadMapping ShuffleGrouping])
   (:import [java.util.concurrent ConcurrentLinkedQueue])
-  (:require [backtype.storm [tuple :as tuple] [thrift :as thrift]
+  (:require [backtype.storm [thrift :as thrift]
              [cluster :as cluster] [disruptor :as disruptor] [stats :as stats]])
   (:require [backtype.storm.daemon [task :as task]])
   (:require [backtype.storm.daemon.builtin-metrics :as builtin-metrics])
@@ -49,7 +49,7 @@
         task-getter (fn [i] (.get target-tasks i))]
     (fn [task-id ^List values load]
       (-> (.select out-fields group-fields values)
-          tuple/list-hash-code
+          (TupleUtils/listHashCode)
           (mod num-tasks)
           task-getter))))
 

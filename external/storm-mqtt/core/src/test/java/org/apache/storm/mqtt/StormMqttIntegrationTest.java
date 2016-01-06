@@ -52,6 +52,10 @@ public class StormMqttIntegrationTest implements Serializable{
     private static BrokerService broker;
     static boolean spoutActivated = false;
 
+    private static final String TEST_TOPIC = "/mqtt-topology";
+    private static final String RESULT_TOPIC = "/integration-result";
+    private static final String RESULT_PAYLOAD = "Storm MQTT Spout";
+
     public static class TestSpout extends MqttSpout{
         public TestSpout(MqttMessageMapper type, MqttOptions options){
             super(type, options);
@@ -109,7 +113,7 @@ public class StormMqttIntegrationTest implements Serializable{
         options.setCleanConnection(false);
         MqttPublisher publisher = new MqttPublisher(options, true);
         publisher.connectMqtt("MqttPublisher");
-        publisher.publish(new MqttMessage("/mqtt-topology", "test".getBytes()));
+        publisher.publish(new MqttMessage(TEST_TOPIC, "test".getBytes()));
 
         LOG.info("published message");
 
@@ -118,8 +122,8 @@ public class StormMqttIntegrationTest implements Serializable{
         LOG.info("Payload: " + new String(message.getPayload()));
         message.ack();
 
-        Assert.assertArrayEquals(message.getPayload(), "hello mqtt".getBytes());
-        Assert.assertEquals(message.getTopic(), "/integration-result");
+        Assert.assertArrayEquals(message.getPayload(), RESULT_PAYLOAD.getBytes());
+        Assert.assertEquals(message.getTopic(), RESULT_TOPIC);
         cluster.shutdown();
     }
 
@@ -127,7 +131,7 @@ public class StormMqttIntegrationTest implements Serializable{
         TopologyBuilder builder = new TopologyBuilder();
 
         MqttOptions options = new MqttOptions();
-        options.setTopics(Arrays.asList("/mqtt-topology"));
+        options.setTopics(Arrays.asList(TEST_TOPIC));
         options.setCleanConnection(false);
         TestSpout spout = new TestSpout(new StringMessageMapper(), options);
 
@@ -135,7 +139,7 @@ public class StormMqttIntegrationTest implements Serializable{
             @Override
             public MqttMessage toMessage(ITuple tuple) {
                 LOG.info("Received: " + tuple);
-                return new MqttMessage("/integration-result", "hello mqtt".getBytes());
+                return new MqttMessage(RESULT_TOPIC, RESULT_PAYLOAD.getBytes());
             }
         });
 

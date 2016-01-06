@@ -40,12 +40,12 @@ import backtype.storm.utils.Utils;
  */
 public class JsonSerializer implements ISerializer {
     //ANY CHANGE TO THIS CODE MUST BE SERIALIZABLE COMPATIBLE OR THERE WILL BE PROBLEMS
-    private static final long serialVersionUID = 8581179559440582569L;
+    private static final long serialVersionUID = 2548814660410474022L;
 
     public static final String DEFAULT_CHARSET = "UTF-8";
 
-    private BufferedWriter processIn;
-    private BufferedReader processOut;
+    private transient BufferedWriter processIn;
+    private transient BufferedReader processOut;
 
     public void initialize(OutputStream processIn, InputStream processOut) {
         try {

@@ -18,9 +18,17 @@
 package org.apache.storm.mqtt.common;
 
 
+import org.apache.storm.mqtt.MqttLogger;
+import org.apache.storm.mqtt.ssl.KeyStoreLoader;
+import org.fusesource.mqtt.client.MQTT;
 import org.fusesource.mqtt.client.QoS;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.URI;
 
 public class MqttUtils {
+    private static final Logger LOG = LoggerFactory.getLogger(MqttUtils.class);
 
     private MqttUtils(){}
 
@@ -40,5 +48,41 @@ public class MqttUtils {
                 throw new IllegalArgumentException(i + "is not a valid MQTT QoS.");
         }
         return qos;
+    }
+
+
+    public static MQTT configureClient(MqttOptions options, String clientId, KeyStoreLoader keyStoreLoader)
+            throws Exception{
+
+        MQTT client = new MQTT();
+        URI uri = URI.create(options.getUrl());
+
+        client.setHost(uri);
+        if(!uri.getScheme().toLowerCase().equals("tcp")){
+            client.setSslContext(SslUtils.sslContext(uri.getScheme(), keyStoreLoader));
+        }
+        client.setClientId(clientId);
+        LOG.info("MQTT ClientID: " + client.getClientId().toString());
+        client.setCleanSession(options.isCleanConnection());
+
+        client.setReconnectDelay(options.getReconnectDelay());
+        client.setReconnectDelayMax(options.getReconnectDelayMax());
+        client.setReconnectBackOffMultiplier(options.getReconnectBackOffMultiplier());
+        client.setConnectAttemptsMax(options.getConnectAttemptsMax());
+        client.setReconnectAttemptsMax(options.getReconnectAttemptsMax());
+
+
+        client.setUserName(options.getUserName());
+        client.setPassword(options.getPassword());
+        client.setTracer(new MqttLogger());
+
+        if(options.getWillTopic() != null && options.getWillPayload() != null){
+            QoS qos = MqttUtils.qosFromInt(options.getWillQos());
+            client.setWillQos(qos);
+            client.setWillTopic(options.getWillTopic());
+            client.setWillMessage(options.getWillPayload());
+            client.setWillRetain(options.getWillRetain());
+        }
+        return client;
     }
 }

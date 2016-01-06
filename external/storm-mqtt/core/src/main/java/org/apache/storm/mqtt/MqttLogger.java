@@ -33,13 +33,4 @@ public class MqttLogger extends Tracer {
         LOG.debug(String.format(message, args));
     }
 
-    @Override
-    public void onSend(MQTTFrame frame) {
-        super.onSend(frame);
-    }
-
-    @Override
-    public void onReceive(MQTTFrame frame) {
-        super.onReceive(frame);
-    }
 }

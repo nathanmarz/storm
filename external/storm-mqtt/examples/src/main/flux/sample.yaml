@@ -50,14 +50,12 @@ spouts:
 
 # bolt definitions
 bolts:
-
   - id: "log"
     className: "org.apache.storm.flux.wrappers.bolts.LogInfoBolt"
     parallelism: 1
 
 
 streams:
-
   - from: "mqtt-spout"
     to: "log"
     grouping:

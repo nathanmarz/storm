@@ -50,6 +50,20 @@ import java.util.Arrays;
 public class StormMqttIntegrationTest implements Serializable{
     private static final Logger LOG = LoggerFactory.getLogger(StormMqttIntegrationTest.class);
     private static BrokerService broker;
+    static boolean spoutActivated = false;
+
+    public static class TestSpout extends MqttSpout{
+        public TestSpout(MqttMessageMapper type, MqttOptions options){
+            super(type, options);
+        }
+
+        @Override
+        public void activate() {
+            super.activate();
+            LOG.info("Spout activated.");
+            spoutActivated = true;
+        }
+    }
 
 
     @AfterClass
@@ -86,14 +100,16 @@ public class StormMqttIntegrationTest implements Serializable{
         cluster.submitTopology("test", new Config(), buildMqttTopology());
 
         System.out.println("topology started");
-        Thread.sleep(10000);
+        while(!spoutActivated) {
+            Thread.sleep(500);
+        }
 
         // publish a retained message to the broker
         MqttOptions options = new MqttOptions();
         options.setCleanConnection(false);
-        MqttPublisher publisher = new MqttPublisher(options);
+        MqttPublisher publisher = new MqttPublisher(options, true);
         publisher.connectMqtt("MqttPublisher");
-        publisher.publish(new MqttMessage("/mqtt-topology", "test".getBytes()), true);
+        publisher.publish(new MqttMessage("/mqtt-topology", "test".getBytes()));
 
         LOG.info("published message");
 
@@ -113,7 +129,7 @@ public class StormMqttIntegrationTest implements Serializable{
         MqttOptions options = new MqttOptions();
         options.setTopics(Arrays.asList("/mqtt-topology"));
         options.setCleanConnection(false);
-        MqttSpout spout = new MqttSpout(new StringMessageMapper(), options);
+        TestSpout spout = new TestSpout(new StringMessageMapper(), options);
 
         MqttBolt bolt = new MqttBolt(options, new MqttTupleMapper() {
             @Override

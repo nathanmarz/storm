@@ -77,7 +77,7 @@ public class MqttOptions implements Serializable {
 
     /**
      * Set to false if you want the MQTT server to persist topic subscriptions and ack positions across client sessions.
-     * Defaults to true.
+     * Defaults to false.
      *
      * @param cleanConnection
      */

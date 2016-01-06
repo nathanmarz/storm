@@ -55,47 +55,13 @@ public class MqttPublisher {
         this.qos = MqttUtils.qosFromInt(this.options.getQos());
     }
 
-    public void publish(MqttMessage message, boolean retain) throws Exception {
+    public void publish(MqttMessage message) throws Exception {
         this.connection.publish(message.getTopic(), message.getMessage(), this.qos, this.retain);
     }
 
-
-
     public void connectMqtt(String clientId) throws Exception {
-        MQTT client = new MQTT();
-        URI uri = URI.create(this.options.getUrl());
-
-        client.setHost(uri);
-        if(!uri.getScheme().toLowerCase().equals("tcp")){
-            client.setSslContext(SslUtils.sslContext(uri.getScheme(), this.keyStoreLoader));
-        }
-        client.setClientId(clientId);
-        LOG.info("MQTT ClientID: " + client.getClientId().toString());
-        client.setCleanSession(this.options.isCleanConnection());
-
-        client.setReconnectDelay(this.options.getReconnectDelay());
-        client.setReconnectDelayMax(this.options.getReconnectDelayMax());
-        client.setReconnectBackOffMultiplier(this.options.getReconnectBackOffMultiplier());
-        client.setConnectAttemptsMax(this.options.getConnectAttemptsMax());
-        client.setReconnectAttemptsMax(this.options.getReconnectAttemptsMax());
-
-
-        client.setUserName(this.options.getUserName());
-        client.setPassword(this.options.getPassword());
-        client.setTracer(new MqttLogger());
-
-        if(this.options.getWillTopic() != null && this.options.getWillPayload() != null){
-            QoS qos = MqttUtils.qosFromInt(this.options.getWillQos());
-            client.setWillQos(qos);
-            client.setWillTopic(this.options.getWillTopic());
-            client.setWillMessage(this.options.getWillPayload());
-            client.setWillRetain(this.options.getWillRetain());
-        }
-
+        MQTT client = MqttUtils.configureClient(this.options, clientId, this.keyStoreLoader);
         this.connection = client.blockingConnection();
         this.connection.connect();
     }
-
-
-
 }

@@ -76,6 +76,7 @@ public class MqttSpout implements IRichSpout, Listener {
         return this.sequence;
     }
 
+    protected MqttSpout(){}
 
     public MqttSpout(MqttMessageMapper type, MqttOptions options){
         this(type, options, null);
@@ -116,38 +117,10 @@ public class MqttSpout implements IRichSpout, Listener {
     }
 
     private void connectMqtt() throws Exception {
-        MQTT client = new MQTT();
-        URI uri = URI.create(this.options.getUrl());
+        String clientId = this.topologyName + "-" + this.context.getThisComponentId() + "-" +
+                this.context.getThisTaskId();
 
-        client.setHost(uri);
-        if(!uri.getScheme().toLowerCase().equals("tcp")){
-            client.setSslContext(SslUtils.sslContext(uri.getScheme(), this.keyStoreLoader));
-        }
-        client.setClientId(this.topologyName + "-" + this.context.getThisComponentId() + "-" +
-                this.context.getThisTaskId());
-        LOG.info("MQTT ClientID: " + client.getClientId().toString());
-        client.setCleanSession(this.options.isCleanConnection());
-
-        client.setReconnectDelay(this.options.getReconnectDelay());
-        client.setReconnectDelayMax(this.options.getReconnectDelayMax());
-        client.setReconnectBackOffMultiplier(this.options.getReconnectBackOffMultiplier());
-        client.setConnectAttemptsMax(this.options.getConnectAttemptsMax());
-        client.setReconnectAttemptsMax(this.options.getReconnectAttemptsMax());
-
-
-        client.setUserName(this.options.getUserName());
-        client.setPassword(this.options.getPassword());
-        client.setTracer(new MqttLogger());
-
-        if(this.options.getWillTopic() != null && this.options.getWillPayload() != null){
-            client.setWillTopic(this.options.getWillTopic());
-            client.setWillMessage(this.options.getWillPayload());
-            client.setWillRetain(this.options.getWillRetain());
-            QoS qos = MqttUtils.qosFromInt(this.options.getWillQos());
-            client.setWillQos(qos);
-        }
-
-
+        MQTT client = MqttUtils.configureClient(this.options, clientId, this.keyStoreLoader);
         this.connection = client.callbackConnection();
         this.connection.listener(this);
         this.connection.connect(new ConnectCallback());

@@ -89,11 +89,12 @@ public class MqttBolt extends BaseRichBolt {
         if(!TupleUtils.isTick(input)){
             MqttMessage message = this.mapper.toMessage(input);
             try {
-                this.publisher.publish(message, this.retain);
+                this.publisher.publish(message);
                 this.collector.ack(input);
             } catch (Exception e) {
                 LOG.warn("Error publishing MQTT message. Failing tuple.", e);
                 // should we fail the tuple or kill the worker?
+                collector.reportError(e);
                 collector.fail(input);
             }
         } else {

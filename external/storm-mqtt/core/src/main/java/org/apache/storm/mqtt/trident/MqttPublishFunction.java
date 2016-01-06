@@ -74,7 +74,7 @@ public class MqttPublishFunction extends BaseFunction {
     public void execute(TridentTuple tuple, TridentCollector collector) {
         MqttMessage message = this.mapper.toMessage(tuple);
         try {
-            this.publisher.publish(message, this.retain);
+            this.publisher.publish(message);
         } catch (Exception e) {
             LOG.warn("Error publishing MQTT message. Failing tuple.", e);
             // should we fail the batch or kill the worker?

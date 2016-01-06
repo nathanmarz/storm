@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1396: Added backward compatibility method for File Download
  * STORM-695: storm CLI tool reports zero exit code on error scenario
  * STORM-1416: Documentation for state store
  * STORM-1426: keep backtype.storm.tuple.AddressedTuple and delete duplicated backtype.storm.messaging.AddressedTuple

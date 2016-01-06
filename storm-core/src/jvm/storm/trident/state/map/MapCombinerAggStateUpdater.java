@@ -34,13 +34,13 @@ import storm.trident.tuple.TridentTupleView.ProjectionFactory;
 
 public class MapCombinerAggStateUpdater implements StateUpdater<MapState> {
     //ANY CHANGE TO THIS CODE MUST BE SERIALIZABLE COMPATIBLE OR THERE WILL BE PROBLEMS
-    private static final long serialVersionUID = 4783054195826968400L;
+    private static final long serialVersionUID = -3960578785572592092L;
 
     CombinerAggregator _agg;
     Fields _groupFields;
     Fields _inputFields;
-    ProjectionFactory _groupFactory;
-    ProjectionFactory _inputFactory;
+    transient ProjectionFactory _groupFactory;
+    transient ProjectionFactory _inputFactory;
     ComboList.Factory _factory;
 
     public MapCombinerAggStateUpdater(CombinerAggregator agg, Fields groupFields, Fields inputFields) {

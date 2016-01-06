@@ -49,7 +49,7 @@ public class FileLock {
   private final FSDataOutputStream lockFileStream;
   private LogEntry lastEntry;
 
-  private static final Logger log = LoggerFactory.getLogger(FileLock.class);
+  private static final Logger LOG = LoggerFactory.getLogger(FileLock.class);
 
   private FileLock(FileSystem fs, Path lockFile, FSDataOutputStream lockFileStream, String spoutId)
           throws IOException {
@@ -66,7 +66,7 @@ public class FileLock {
     this.lockFile = lockFile;
     this.lockFileStream =  fs.append(lockFile);
     this.componentID = spoutId;
-    log.debug("Acquired abandoned lockFile {}, Spout {}", lockFile, spoutId);
+    LOG.info("Acquired abandoned lockFile {}, Spout {}", lockFile, spoutId);
     logProgress(entry.fileOffset, true);
   }
 
@@ -81,10 +81,12 @@ public class FileLock {
     long now = System.currentTimeMillis();
     LogEntry entry = new LogEntry(now, componentID, fileOffset);
     String line = entry.toString();
-    if(prefixNewLine)
+    if(prefixNewLine) {
       lockFileStream.writeBytes(System.lineSeparator() + line);
-    else
+    }
+    else {
       lockFileStream.writeBytes(line);
+    }
     lockFileStream.hflush();
 
     lastEntry = entry; // update this only after writing to hdfs
@@ -95,11 +97,11 @@ public class FileLock {
    */
   public void release() throws IOException {
     lockFileStream.close();
-    if(!fs.delete(lockFile, false)){
-      log.warn("Unable to delete lock file, Spout = {}", componentID);
+    if(!fs.delete(lockFile, false)) {
+      LOG.warn("Unable to delete lock file, Spout = {}", componentID);
       throw new IOException("Unable to delete lock file");
     }
-    log.debug("Released lock file {}. Spout {}", lockFile, componentID);
+    LOG.debug("Released lock file {}. Spout {}", lockFile, componentID);
   }
 
   // For testing only.. invoked via reflection
@@ -116,14 +118,14 @@ public class FileLock {
     try {
       FSDataOutputStream ostream = HdfsUtils.tryCreateFile(fs, lockFile);
       if (ostream != null) {
-        log.debug("Acquired lock on file {}. LockFile= {}, Spout = {}", fileToLock, lockFile, spoutId);
+        LOG.debug("Acquired lock on file {}. LockFile= {}, Spout = {}", fileToLock, lockFile, spoutId);
         return new FileLock(fs, lockFile, ostream, spoutId);
       } else {
-        log.debug("Cannot lock file {} as its already locked. Spout = {}", fileToLock, spoutId);
+        LOG.debug("Cannot lock file {} as its already locked. Spout = {}", fileToLock, spoutId);
         return null;
       }
     } catch (IOException e) {
-      log.error("Error when acquiring lock on file " + fileToLock + " Spout = " + spoutId, e);
+      LOG.error("Error when acquiring lock on file " + fileToLock + " Spout = " + spoutId, e);
       throw e;
     }
   }
@@ -188,7 +190,7 @@ public class FileLock {
     try {
       if(fs instanceof DistributedFileSystem ) {
         if( !((DistributedFileSystem) fs).recoverLease(lockFile) ) {
-          log.warn("Unable to recover lease on lock file {} right now. Cannot transfer ownership. Will need to try later. Spout = {}" , lockFile , spoutId);
+          LOG.warn("Unable to recover lease on lock file {} right now. Cannot transfer ownership. Will need to try later. Spout = {}", lockFile, spoutId);
           return null;
         }
       }
@@ -196,10 +198,10 @@ public class FileLock {
     } catch (IOException e) {
       if (e instanceof RemoteException &&
               ((RemoteException) e).unwrapRemoteException() instanceof AlreadyBeingCreatedException) {
-        log.warn("Lock file " + lockFile  + "is currently open. Cannot transfer ownership now. Will need to try later. Spout= " + spoutId, e);
+        LOG.warn("Lock file " + lockFile + "is currently open. Cannot transfer ownership now. Will need to try later. Spout= " + spoutId, e);
         return null;
       } else { // unexpected error
-        log.warn("Cannot transfer ownership now for lock file " + lockFile + ". Will need to try later. Spout =" + spoutId, e);
+        LOG.warn("Cannot transfer ownership now for lock file " + lockFile + ". Will need to try later. Spout =" + spoutId, e);
         throw e;
       }
     }
@@ -224,17 +226,20 @@ public class FileLock {
 
     // locate expired lock files (if any). Try to take ownership (oldest lock first)
     for (Path file : listing) {
-      if(file.getName().equalsIgnoreCase( DirLock.DIR_LOCK_FILE) )
+      if(file.getName().equalsIgnoreCase( DirLock.DIR_LOCK_FILE) ) {
         continue;
+      }
       LogEntry lastEntry = getLastEntryIfStale(fs, file, olderThan);
       if(lastEntry!=null) {
         FileLock lock = FileLock.takeOwnership(fs, file, lastEntry, spoutId);
-        if(lock!=null)
+        if(lock!=null) {
           return lock;
+        }
       }
     }
-    if(listing.isEmpty())
-      log.info("No abandoned lock files found by Spout {}", spoutId);
+    if(listing.isEmpty()) {
+      LOG.debug("No abandoned lock files found by Spout {}", spoutId);
+    }
     return null;
   }
 
@@ -259,13 +264,15 @@ public class FileLock {
 
     // locate oldest expired lock file (if any) and take ownership
     for (Path file : listing) {
-      if(file.getName().equalsIgnoreCase( DirLock.DIR_LOCK_FILE) )
+      if(file.getName().equalsIgnoreCase( DirLock.DIR_LOCK_FILE) ) {
         continue;
+      }
       LogEntry lastEntry = getLastEntryIfStale(fs, file, olderThan);
-      if(lastEntry!=null)
+      if(lastEntry!=null) {
         return new HdfsUtils.Pair<>(file, lastEntry);
+      }
     }
-    log.info("No abandoned files found");
+    LOG.debug("No abandoned files found");
     return null;
   }
 
@@ -299,13 +306,13 @@ public class FileLock {
 
     @Override
     public boolean equals(Object o) {
-      if (this == o) return true;
-      if (!(o instanceof LogEntry)) return false;
+      if (this == o) { return true; }
+      if (!(o instanceof LogEntry)) { return false; }
 
       LogEntry logEntry = (LogEntry) o;
 
-      if (eventTime != logEntry.eventTime) return false;
-      if (!componentID.equals(logEntry.componentID)) return false;
+      if (eventTime != logEntry.eventTime) { return false; }
+      if (!componentID.equals(logEntry.componentID)) { return false; }
       return fileOffset.equals(logEntry.fileOffset);
 
     }

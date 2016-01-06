@@ -26,8 +26,9 @@ public class ProgressTracker {
   TreeSet<FileOffset> offsets = new TreeSet<>();
 
   public void recordAckedOffset(FileOffset newOffset) {
-    if(newOffset==null)
+    if(newOffset==null) {
       return;
+    }
     offsets.add(newOffset);
 
     FileOffset currHead = offsets.first();
@@ -40,8 +41,9 @@ public class ProgressTracker {
   // remove contiguous elements from the head of the heap
   // e.g.:  1,2,3,4,10,11,12,15  =>  4,10,11,12,15
   private void trimHead() {
-    if(offsets.size()<=1)
+    if(offsets.size()<=1) {
       return;
+    }
     FileOffset head = offsets.first();
     FileOffset head2 = offsets.higher(head);
     if( head.isNextOffset(head2) ) {
@@ -52,8 +54,9 @@ public class ProgressTracker {
   }
 
   public FileOffset getCommitPosition() {
-    if(!offsets.isEmpty())
+    if(!offsets.isEmpty()) {
       return offsets.first().clone();
+    }
     return null;
   }
 

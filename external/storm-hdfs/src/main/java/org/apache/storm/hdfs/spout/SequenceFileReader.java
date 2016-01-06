@@ -18,7 +18,6 @@
 
 package org.apache.storm.hdfs.spout;
 
-import backtype.storm.tuple.Fields;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.SequenceFile;
@@ -35,7 +34,7 @@ import java.util.Map;
 
 public class SequenceFileReader<Key extends Writable,Value extends Writable>
         extends AbstractFileReader {
-  private static final Logger log = LoggerFactory
+  private static final Logger LOG = LoggerFactory
           .getLogger(SequenceFileReader.class);
   public static final String[] defaultFields = {"key", "value"};
   private static final int DEFAULT_BUFF_SIZE = 4096;
@@ -93,7 +92,7 @@ public class SequenceFileReader<Key extends Writable,Value extends Writable>
     try {
       reader.close();
     } catch (IOException e) {
-      log.warn("Ignoring error when closing file " + getFilePath(), e);
+      LOG.warn("Ignoring error when closing file " + getFilePath(), e);
     }
   }
 
@@ -124,8 +123,9 @@ public class SequenceFileReader<Key extends Writable,Value extends Writable>
 
     public Offset(String offset) {
       try {
-        if(offset==null)
+        if(offset==null) {
           throw new IllegalArgumentException("offset cannot be null");
+        }
         if(offset.equalsIgnoreCase("0")) {
           this.lastSyncPoint = 0;
           this.recordsSinceLastSync = 0;
@@ -168,17 +168,19 @@ public class SequenceFileReader<Key extends Writable,Value extends Writable>
     @Override
     public int compareTo(FileOffset o) {
       Offset rhs = ((Offset) o);
-      if(currentRecord<rhs.currentRecord)
+      if(currentRecord<rhs.currentRecord) {
         return -1;
-      if(currentRecord==rhs.currentRecord)
+      }
+      if(currentRecord==rhs.currentRecord) {
         return 0;
+      }
       return 1;
     }
 
     @Override
     public boolean equals(Object o) {
-      if (this == o) return true;
-      if (!(o instanceof Offset)) return false;
+      if (this == o) { return true; }
+      if (!(o instanceof Offset)) { return false; }
 
       Offset offset = (Offset) o;
 

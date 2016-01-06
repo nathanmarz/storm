@@ -98,8 +98,9 @@ public class TestDirLock {
     DirLockingThread[] thds = startThreads(100, locksDir);
     for (DirLockingThread thd : thds) {
       thd.join();
-      if( !thd.cleanExit)
+      if( !thd.cleanExit ) {
         System.err.println(thd.getName() + " did not exit cleanly");
+      }
       Assert.assertTrue(thd.cleanExit);
     }
 

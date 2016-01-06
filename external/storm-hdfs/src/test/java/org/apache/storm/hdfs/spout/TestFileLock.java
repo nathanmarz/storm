@@ -165,8 +165,9 @@ public class TestFileLock {
     FileLockingThread[] thds = startThreads(100, file1, locksDir);
     for (FileLockingThread thd : thds) {
       thd.join();
-      if( !thd.cleanExit)
+      if( !thd.cleanExit) {
         System.err.println(thd.getName() + " did not exit cleanly");
+      }
       Assert.assertTrue(thd.cleanExit);
     }
 
@@ -325,8 +326,9 @@ public class TestFileLock {
     FSDataInputStream os = null;
     try {
       os = fs.open(file);
-      if (os == null)
+      if (os == null) {
         return null;
+      }
       BufferedReader reader = new BufferedReader(new InputStreamReader(os));
       ArrayList<String> lines = new ArrayList<>();
       for (String line = reader.readLine(); line != null; line = reader.readLine()) {
@@ -336,8 +338,9 @@ public class TestFileLock {
     } catch( FileNotFoundException e) {
       return null;
     } finally {
-      if(os!=null)
+      if(os!=null) {
         os.close();
+      }
     }
   }
 

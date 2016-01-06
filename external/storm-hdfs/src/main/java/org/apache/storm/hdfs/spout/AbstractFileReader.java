@@ -18,7 +18,6 @@
 
 package org.apache.storm.hdfs.spout;
 
-import backtype.storm.tuple.Fields;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
@@ -26,11 +25,14 @@ import org.apache.hadoop.fs.Path;
 abstract class AbstractFileReader implements FileReader {
 
   private final Path file;
-  private Fields fields;
 
   public AbstractFileReader(FileSystem fs, Path file) {
-    if (fs == null || file == null)
-      throw new IllegalArgumentException("file and filesystem args cannot be null");
+    if (fs == null ) {
+      throw new IllegalArgumentException("filesystem arg cannot be null for reader");
+    }
+    if (file == null ) {
+      throw new IllegalArgumentException("file arg cannot be null for reader");
+    }
     this.file = file;
   }
 
@@ -42,8 +44,8 @@ abstract class AbstractFileReader implements FileReader {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
+    if (this == o) { return true; }
+    if (o == null || getClass() != o.getClass()) { return false; }
 
     AbstractFileReader that = (AbstractFileReader) o;
 

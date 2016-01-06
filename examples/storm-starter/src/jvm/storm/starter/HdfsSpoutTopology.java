@@ -24,13 +24,6 @@ import backtype.storm.generated.Nimbus;
 import backtype.storm.topology.TopologyBuilder;
 import backtype.storm.utils.NimbusClient;
 import backtype.storm.utils.Utils;
-import org.apache.storm.hdfs.bolt.HdfsBolt;
-import org.apache.storm.hdfs.bolt.format.DefaultFileNameFormat;
-import org.apache.storm.hdfs.bolt.format.DelimitedRecordFormat;
-import org.apache.storm.hdfs.bolt.format.RecordFormat;
-import org.apache.storm.hdfs.bolt.rotation.FileRotationPolicy;
-import org.apache.storm.hdfs.bolt.rotation.TimedRotationPolicy;
-import org.apache.storm.hdfs.bolt.sync.CountSyncPolicy;
 import org.apache.storm.hdfs.spout.Configs;
 import org.apache.storm.hdfs.spout.HdfsSpout;
 import backtype.storm.topology.base.BaseRichBolt;
@@ -46,10 +39,8 @@ import java.util.Map;
 public class HdfsSpoutTopology {
 
   public static final String SPOUT_ID = "hdfsspout";
-  public static final String BOLT_ID = "hdfsbolt";
+  public static final String BOLT_ID = "constbolt";
 
-  public static final int SPOUT_NUM = 1;
-  public static final int BOLT_NUM = 1;
   public static final int WORKER_NUM = 1;
 
   public static class ConstBolt extends BaseRichBolt {
@@ -57,6 +48,7 @@ public class HdfsSpoutTopology {
     public static final String FIELDS = "message";
     private OutputCollector collector;
     private static final Logger log = LoggerFactory.getLogger(ConstBolt.class);
+    int count =0;
 
     public ConstBolt() {
     }
@@ -69,7 +61,13 @@ public class HdfsSpoutTopology {
     @Override
     public void execute(Tuple tuple) {
       log.info("Received tuple : {}", tuple.getValue(0));
-      collector.ack(tuple);
+      count++;
+      if(count==3) {
+        collector.fail(tuple);
+      }
+      else {
+        collector.ack(tuple);
+      }
     }
 
     @Override
@@ -78,9 +76,7 @@ public class HdfsSpoutTopology {
     }
   } // class
 
-  /** Copies text file content from sourceDir to destinationDir. Moves source files into sourceDir after its done consuming
-   *    args: sourceDir sourceArchiveDir badDir destinationDir
-   */
+  /** Copies text file content from sourceDir to destinationDir. Moves source files into sourceDir after its done consuming */
   public static void main(String[] args) throws Exception {
     // 0 - validate args
     if (args.length < 7) {
@@ -91,10 +87,9 @@ public class HdfsSpoutTopology {
       System.err.println(" hdfsUri - hdfs name node URI");
       System.err.println(" fileFormat -  Set to 'TEXT' for reading text files or 'SEQ' for sequence files.");
       System.err.println(" sourceDir  - read files from this HDFS dir using HdfsSpout.");
-      System.err.println(" sourceArchiveDir - after a file in sourceDir is read completely, it is moved to this HDFS location.");
+      System.err.println(" archiveDir - after a file in sourceDir is read completely, it is moved to this HDFS location.");
       System.err.println(" badDir - files that cannot be read properly will be moved to this HDFS location.");
-      System.err.println(" destinationDir - write data out to this HDFS location using HDFS bolt.");
-
+      System.err.println(" spoutCount - Num of spout instances.");
       System.err.println();
       System.exit(-1);
     }
@@ -106,12 +101,12 @@ public class HdfsSpoutTopology {
     String sourceDir = args[3];
     String sourceArchiveDir = args[4];
     String badDir = args[5];
-    String destinationDir = args[6];
+    int spoutNum = Integer.parseInt(args[6]);
 
     // 2 - create and configure spout and bolt
     ConstBolt bolt = new ConstBolt();
-    HdfsSpout spout = new HdfsSpout().withOutputFields("line");
 
+    HdfsSpout spout = new HdfsSpout().withOutputFields("line");
     Config conf = new Config();
     conf.put(Configs.SOURCE_DIR, sourceDir);
     conf.put(Configs.ARCHIVE_DIR, sourceArchiveDir);
@@ -120,6 +115,7 @@ public class HdfsSpoutTopology {
     conf.put(Configs.HDFS_URI, hdfsUri);
     conf.setDebug(true);
     conf.setNumWorkers(1);
+    conf.setNumAckers(1);
     conf.setMaxTaskParallelism(1);
 
     // 3 - Create and configure topology
@@ -128,10 +124,10 @@ public class HdfsSpoutTopology {
     conf.registerMetricsConsumer(backtype.storm.metric.LoggingMetricsConsumer.class);
 
     TopologyBuilder builder = new TopologyBuilder();
-    builder.setSpout(SPOUT_ID, spout, SPOUT_NUM);
-    builder.setBolt(BOLT_ID, bolt, BOLT_NUM).shuffleGrouping(SPOUT_ID);
+    builder.setSpout(SPOUT_ID, spout, spoutNum);
+    builder.setBolt(BOLT_ID, bolt, 1).shuffleGrouping(SPOUT_ID);
 
-    // 4 - submit topology, wait for few min and terminate it
+    // 4 - submit topology, wait for a few min and terminate it
     Map clusterConf = Utils.readStormConfig();
     StormSubmitter.submitTopologyWithProgressBar(topologyName, conf, builder.createTopology());
     Nimbus.Client client = NimbusClient.getConfiguredClient(clusterConf).getClient();

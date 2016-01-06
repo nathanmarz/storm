@@ -190,7 +190,7 @@ public class TestHdfsSpout {
 
     // check lock file contents
     List<String> contents = readTextFile(fs, lock.getLockFile().toString());
-    System.err.println(contents);
+    Assert.assertFalse(contents.isEmpty());
 
     // finish up reading the file
     res2 = runSpout(spout2, "r2");
@@ -237,7 +237,7 @@ public class TestHdfsSpout {
 
     // check lock file contents
     List<String> contents = getTextFileContents(fs, lock.getLockFile());
-    System.err.println(contents);
+    Assert.assertFalse(contents.isEmpty());
 
     // finish up reading the file
     res2 = runSpout(spout2, "r3");
@@ -309,11 +309,9 @@ public class TestHdfsSpout {
 
   private List<String> listDir(Path p) throws IOException {
     ArrayList<String> result = new ArrayList<>();
-    System.err.println("*** Listing " + p);
     RemoteIterator<LocatedFileStatus> fileNames =  fs.listFiles(p, false);
     while ( fileNames.hasNext() ) {
       LocatedFileStatus fileStatus = fileNames.next();
-      System.err.println(fileStatus.getPath());
       result.add(Path.getPathWithoutSchemeAndAuthority(fileStatus.getPath()).toString());
     }
     return result;
@@ -615,7 +613,6 @@ public class TestHdfsSpout {
     for (int i = 0; i < lineCount; i++) {
       os.writeBytes("line " + i + System.lineSeparator());
       String msg = "line " + i + System.lineSeparator();
-      System.err.print(size +  "-" + msg);
       size += msg.getBytes().length;
     }
     os.close();
@@ -660,8 +657,6 @@ public class TestHdfsSpout {
 
     @Override
     public List<Integer> emit(String streamId, List<Object> tuple, Object messageId) {
-//      HdfsSpout.MessageId id = (HdfsSpout.MessageId) messageId;
-//      lines.add(id.toString() + ' ' + tuple.toString());
       lines.add(tuple.toString());
       items.add(HdfsUtils.Pair.of(messageId, tuple));
       return null;

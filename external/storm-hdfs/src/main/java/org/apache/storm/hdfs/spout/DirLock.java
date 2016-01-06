@@ -36,10 +36,11 @@ public class DirLock {
   private FileSystem fs;
   private final Path lockFile;
   public static final String DIR_LOCK_FILE = "DIRLOCK";
-  private static final Logger log = LoggerFactory.getLogger(DirLock.class);
+  private static final Logger LOG = LoggerFactory.getLogger(DirLock.class);
   private DirLock(FileSystem fs, Path lockFile) throws IOException {
-    if( fs.isDirectory(lockFile) )
+    if( fs.isDirectory(lockFile) ) {
       throw new IllegalArgumentException(lockFile.toString() + " is not a directory");
+    }
     this.fs = fs;
     this.lockFile = lockFile;
   }
@@ -57,15 +58,15 @@ public class DirLock {
     try {
       FSDataOutputStream ostream = HdfsUtils.tryCreateFile(fs, lockFile);
       if (ostream!=null) {
-        log.info("Thread ({}) acquired lock on dir {}", threadInfo(), dir);
+        LOG.debug("Thread ({}) Acquired lock on dir {}", threadInfo(), dir);
         ostream.close();
         return new DirLock(fs, lockFile);
       } else {
-        log.info("Thread ({}) cannot lock dir {} as its already locked.", threadInfo(), dir);
+        LOG.debug("Thread ({}) cannot lock dir {} as its already locked.", threadInfo(), dir);
         return null;
       }
     } catch (IOException e) {
-        log.error("Error when acquiring lock on dir " + dir, e);
+        LOG.error("Error when acquiring lock on dir " + dir, e);
         throw e;
     }
   }
@@ -82,10 +83,10 @@ public class DirLock {
   /** Release lock on dir by deleting the lock file */
   public void release() throws IOException {
     if(!fs.delete(lockFile, false)) {
-      log.error("Thread {} could not delete dir lock {} ", threadInfo(), lockFile);
+      LOG.error("Thread {} could not delete dir lock {} ", threadInfo(), lockFile);
     }
     else {
-      log.info("Thread {} released dir lock {} ", threadInfo(), lockFile);
+      LOG.debug("Thread {} Released dir lock {} ", threadInfo(), lockFile);
     }
   }
 
@@ -98,8 +99,9 @@ public class DirLock {
 
     try {
       long modTime = fs.getFileStatus(dirLockFile).getModificationTime();
-      if(modTime <= expiryTime)
+      if(modTime <= expiryTime) {
         return takeOwnership(fs, dirLockFile);
+      }
       return null;
     } catch (IOException e)  {
       return  null;
@@ -109,7 +111,7 @@ public class DirLock {
   private static DirLock takeOwnership(FileSystem fs, Path dirLockFile) throws IOException {
     if(fs instanceof DistributedFileSystem) {
       if (!((DistributedFileSystem) fs).recoverLease(dirLockFile)) {
-        log.warn("Unable to recover lease on dir lock file " + dirLockFile + " right now. Cannot transfer ownership. Will need to try later.");
+        LOG.warn("Unable to recover lease on dir lock file " + dirLockFile + " right now. Cannot transfer ownership. Will need to try later.");
         return null;
       }
     }
@@ -117,8 +119,9 @@ public class DirLock {
     // delete and recreate lock file
     if( fs.delete(dirLockFile, false) ) { // returns false if somebody else already deleted it (to take ownership)
       FSDataOutputStream ostream = HdfsUtils.tryCreateFile(fs, dirLockFile);
-      if(ostream!=null)
+      if(ostream!=null) {
         ostream.close();
+      }
       return new DirLock(fs, dirLockFile);
     }
     return null;

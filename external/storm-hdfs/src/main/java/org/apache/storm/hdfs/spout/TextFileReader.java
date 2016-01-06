@@ -18,7 +18,6 @@
 
 package org.apache.storm.hdfs.spout;
 
-import backtype.storm.tuple.Fields;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -41,7 +40,7 @@ class TextFileReader extends AbstractFileReader {
   private static final int DEFAULT_BUFF_SIZE = 4096;
 
   private BufferedReader reader;
-  private final Logger log = LoggerFactory.getLogger(TextFileReader.class);
+  private final Logger LOG = LoggerFactory.getLogger(TextFileReader.class);
   private TextFileReader.Offset offset;
 
   public TextFileReader(FileSystem fs, Path file, Map conf) throws IOException {
@@ -61,8 +60,9 @@ class TextFileReader extends AbstractFileReader {
     String charSet = (conf==null || !conf.containsKey(CHARSET) ) ? "UTF-8" : conf.get(CHARSET).toString();
     int buffSz = (conf==null || !conf.containsKey(BUFFER_SIZE) ) ? DEFAULT_BUFF_SIZE : Integer.parseInt( conf.get(BUFFER_SIZE).toString() );
     reader = new BufferedReader(new InputStreamReader(in, charSet), buffSz);
-    if(offset.charOffset >0)
+    if(offset.charOffset >0) {
       reader.skip(offset.charOffset);
+    }
 
   }
 
@@ -91,8 +91,9 @@ class TextFileReader extends AbstractFileReader {
         sb.append((char)ch);
       }
     }
-    if(before==offset.charOffset) // reached EOF, didnt read anything
+    if(before==offset.charOffset) { // reached EOF, didnt read anything
       return null;
+    }
     return sb.toString();
   }
 
@@ -101,7 +102,7 @@ class TextFileReader extends AbstractFileReader {
     try {
       reader.close();
     } catch (IOException e) {
-      log.warn("Ignoring error when closing file " + getFilePath(), e);
+      LOG.warn("Ignoring error when closing file " + getFilePath(), e);
     }
   }
 
@@ -115,8 +116,9 @@ class TextFileReader extends AbstractFileReader {
     }
 
     public Offset(String offset) {
-      if(offset==null)
+      if(offset==null) {
         throw new IllegalArgumentException("offset cannot be null");
+      }
       try {
         if(offset.equalsIgnoreCase("0")) {
           this.charOffset = 0;
@@ -154,17 +156,19 @@ class TextFileReader extends AbstractFileReader {
     @Override
     public int compareTo(FileOffset o) {
       Offset rhs = ((Offset)o);
-      if(lineNumber < rhs.lineNumber)
+      if(lineNumber < rhs.lineNumber) {
         return -1;
-      if(lineNumber == rhs.lineNumber)
+      }
+      if(lineNumber == rhs.lineNumber) {
         return 0;
+      }
       return 1;
     }
 
     @Override
     public boolean equals(Object o) {
-      if (this == o) return true;
-      if (!(o instanceof Offset)) return false;
+      if (this == o) { return true; }
+      if (!(o instanceof Offset)) { return false; }
 
       Offset that = (Offset) o;
 

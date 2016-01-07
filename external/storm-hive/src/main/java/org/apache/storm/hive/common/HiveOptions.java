@@ -39,12 +39,19 @@ public class HiveOptions implements Serializable {
     protected Boolean autoCreatePartitions = true;
     protected String kerberosPrincipal;
     protected String kerberosKeytab;
+    protected Integer tickTupleInterval = 0;
 
     public HiveOptions(String metaStoreURI,String databaseName,String tableName,HiveMapper mapper) {
         this.metaStoreURI = metaStoreURI;
         this.databaseName = databaseName;
         this.tableName = tableName;
         this.mapper = mapper;
+    }
+
+    public HiveOptions withTickTupleInterval(Integer tickInterval)
+    {
+        this.tickTupleInterval = tickInterval;
+        return this;
     }
 
     public HiveOptions withTxnsPerBatch(Integer txnsPerBatch) {
@@ -142,5 +149,9 @@ public class HiveOptions implements Serializable {
 
     public String getKerberosKeytab() {
         return kerberosKeytab;
+    }
+
+    public Integer getTickTupleInterval() {
+        return tickTupleInterval;
     }
 }

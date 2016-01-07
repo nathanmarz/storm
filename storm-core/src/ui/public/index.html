@@ -1,3 +1,4 @@
+
 <html><head>
     <!--
      Licensed to the Apache Software Foundation (ASF) under one or more
@@ -21,6 +22,7 @@
 <link href="/css/bootstrap-3.3.1.min.css" rel="stylesheet" type="text/css">
 <link href="/css/jquery.dataTables.1.10.4.min.css" rel="stylesheet" type="text/css">
 <link href="/css/dataTables.bootstrap.css" rel="stylesheet" type="text/css">
+<link href="/css/jsonFormatter.min.css" rel="stylesheet" type="text/css">
 <link href="/css/style.css" rel="stylesheet" type="text/css">
 <script src="/js/jquery-1.11.1.min.js" type="text/javascript"></script>
 <script src="/js/jquery.dataTables.1.10.4.min.js" type="text/javascript"></script>
@@ -29,21 +31,28 @@
 <script src="/js/bootstrap-3.3.1.min.js" type="text/javascript"></script>
 <script src="/js/jquery.blockUI.min.js" type="text/javascript"></script>
 <script src="/js/dataTables.bootstrap.min.js" type="text/javascript"></script>
+<script src="/js/jsonFormatter.min.js" type="text/javascript"></script>
 <script src="/js/script.js" type="text/javascript"></script>
 </head>
 <body>
 <div class="container-fluid">
   <div class="row">
-    <div class="col-md-11">
+    <div class="col-md-9">
       <h1><a href="/">Storm UI</a></h1>
     </div>
-    <div id="ui-user" class="col-md-1"></div>
+    <div id="ui-user" class="col-md-3"></div>
   </div>
   <div class="row">
     <div class="col-md-12">
       <h2>Cluster Summary</h2>
       <div id="cluster-summary"></div>
     </div>
+  </div>
+  <div class="row">
+     <div class="col-md-12">
+        <h2>Nimbus Summary</h2>
+        <div id="nimbus-summary"></div>
+     </div>
   </div>
   <div class="row">
     <div class="col-md-12">
@@ -94,6 +103,7 @@ $(document).ready(function() {
     });
     var uiUser = $("#ui-user");
     var clusterSummary = $("#cluster-summary");
+    var nimbusSummary = $("#nimbus-summary");
     var topologySummary = $("#topology-summary");
     var supervisorSummary = $("#supervisor-summary");
     var config = $("#nimbus-configuration");
@@ -109,14 +119,27 @@ $(document).ready(function() {
             $('#cluster-summary [data-toggle="tooltip"]').tooltip();
         });
     });
+    $.getJSON("/api/v1/nimbus/summary",function(response,status,jqXHR) {
+      $.get("/templates/index-page-template.html", function(template) {
+          nimbusSummary.append(Mustache.render($(template).filter("#nimbus-summary-template").html(),response));
+          //host, port, isLeader, version, uptime
+          dtAutoPage("#nimbus-summary-table", {
+            columnDefs: [
+              {type: "num", targets: [1]},
+              {type: "time-str", targets: [4]}
+            ]
+          });
+          $('#nimbus-summary [data-toggle="tooltip"]').tooltip();
+      });
+    });
     $.getJSON("/api/v1/topology/summary",function(response,status,jqXHR) {
       $.get("/templates/index-page-template.html", function(template) {
           topologySummary.append(Mustache.render($(template).filter("#topology-summary-template").html(),response));
-          //name, id, owner, status, uptime, num workers, num executors, num tasks, scheduler info
+          //name, owner, status, uptime, num workers, num executors, num tasks, replication count, assigned total mem, assigned total cpu, scheduler info
           dtAutoPage("#topology-summary-table", {
             columnDefs: [
-              {type: "num", targets: [5, 6, 7]},
-              {type: "time-str", targets: [4]}
+              {type: "num", targets: [4, 5, 6, 7, 8, 9]},
+              {type: "time-str", targets: [3]}
             ]
           });
           $('#topology-summary [data-toggle="tooltip"]').tooltip();
@@ -139,6 +162,7 @@ $(document).ready(function() {
       var formattedResponse = formatConfigData(response);
       $.get("/templates/index-page-template.html", function(template) {
         config.append(Mustache.render($(template).filter("#configuration-template").html(),formattedResponse));
+        $('#nimbus-configuration-table td').jsonFormatter()
         //key, value
         dtAutoPage("#nimbus-configuration-table", {});
         $('#nimbus-configuration [data-toggle="tooltip"]').tooltip();

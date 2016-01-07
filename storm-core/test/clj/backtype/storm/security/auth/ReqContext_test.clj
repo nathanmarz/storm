@@ -68,5 +68,6 @@
     (.setSubject rc s)
     (is (not (nil? (.principal rc))))
     (is (= (-> rc .principal .getName) principal-name))
+    (.setSubject rc nil)
   )
 )

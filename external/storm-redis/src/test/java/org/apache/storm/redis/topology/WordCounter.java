@@ -23,23 +23,32 @@ import backtype.storm.topology.IBasicBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
+import backtype.storm.tuple.Values;
+import com.google.common.collect.Maps;
 
 import java.util.Map;
 
 import static backtype.storm.utils.Utils.tuple;
 
 public class WordCounter implements IBasicBolt {
-
+    private Map<String, Integer> wordCounter = Maps.newHashMap();
 
     @SuppressWarnings("rawtypes")
     public void prepare(Map stormConf, TopologyContext context) {
     }
 
-    /*
-     * Just output the word value with a count of 1.
-     */
     public void execute(Tuple input, BasicOutputCollector collector) {
-        collector.emit(tuple(input.getValues().get(0), 1));
+        String word = input.getStringByField("word");
+        int count;
+        if (wordCounter.containsKey(word)) {
+            count = wordCounter.get(word) + 1;
+            wordCounter.put(word, wordCounter.get(word) + 1);
+        } else {
+            count = 1;
+        }
+
+        wordCounter.put(word, count);
+        collector.emit(new Values(word, String.valueOf(count)));
     }
 
     public void cleanup() {

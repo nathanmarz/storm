@@ -20,16 +20,30 @@
          [string :only [blank? join]]
          [walk :only [keywordize-keys]]])
   (:use [backtype.storm config log])
-  (:use [backtype.storm.util :only [clojurify-structure uuid defnk url-encode]])
+  (:use [backtype.storm.util :only [clojurify-structure uuid defnk to-json url-encode not-nil?]])
   (:use [clj-time coerce format])
   (:import [backtype.storm.generated ExecutorInfo ExecutorSummary])
+  (:import [backtype.storm.logging.filters AccessLoggingFilter])
+  (:import [java.util EnumSet])
   (:import [org.eclipse.jetty.server Server]
            [org.eclipse.jetty.server.nio SelectChannelConnector]
            [org.eclipse.jetty.server.ssl SslSocketConnector]
-           [org.eclipse.jetty.servlet ServletHolder FilterMapping])
+           [org.eclipse.jetty.servlet ServletHolder FilterMapping]
+	   [org.eclipse.jetty.util.ssl SslContextFactory]
+           [org.eclipse.jetty.server DispatcherType]
+           [org.eclipse.jetty.servlets CrossOriginFilter])
   (:require [ring.util servlet])
   (:require [compojure.route :as route]
-            [compojure.handler :as handler]))
+            [compojure.handler :as handler])
+  (:require [metrics.meters :refer [defmeter mark!]]))
+
+(defmeter num-web-requests)
+(defn requests-middleware
+  "Coda Hale metric for counting the number of web requests."
+  [handler]
+  (fn [req]
+    (mark! num-web-requests)
+    (handler req)))
 
 (defn split-divide [val divider]
   [(Integer. (int (/ val divider))) (mod val divider)]
@@ -92,60 +106,60 @@
       )]
    ])
 
-(defn float-str [n]
-  (if n
-    (format "%.3f" (float n))
-    "0"
-    ))
-
-(defn swap-map-order [m]
-  (->> m
-       (map (fn [[k v]]
-              (into
-               {}
-               (for [[k2 v2] v]
-                 [k2 {k v2}]
-                 ))
-              ))
-       (apply merge-with merge)
-       ))
-
 (defn url-format [fmt & args]
   (String/format fmt
     (to-array (map #(url-encode (str %)) args))))
 
-(defn to-tasks [^ExecutorInfo e]
-  (let [start (.get_task_start e)
-        end (.get_task_end e)]
-    (range start (inc end))
-    ))
-
-(defn sum-tasks [executors]
-  (reduce + (->> executors
-                 (map #(.get_executor_info ^ExecutorSummary %))
-                 (map to-tasks)
-                 (map count))))
-
 (defn pretty-executor-info [^ExecutorInfo e]
   (str "[" (.get_task_start e) "-" (.get_task_end e) "]"))
+
+(defn unauthorized-user-json
+  [user]
+  {"error" "No Authorization"
+   "errorMessage" (str "User " user " is not authorized.")})
 
 (defn unauthorized-user-html [user]
   [[:h2 "User '" (escape-html user) "' is not authorized."]])
 
-(defn- mk-ssl-connector [port ks-path ks-password ks-type]
-  (doto (SslSocketConnector.)
-    (.setExcludeCipherSuites (into-array String ["SSL_RSA_WITH_RC4_128_MD5" "SSL_RSA_WITH_RC4_128_SHA"]))
-    (.setExcludeProtocols (into-array String ["SSLv3"]))
-    (.setAllowRenegotiate false)
-    (.setKeystore ks-path)
-    (.setKeystoreType ks-type)
-    (.setKeyPassword ks-password)
-    (.setPassword ks-password)
-    (.setPort port)))
+(defn- mk-ssl-connector [port ks-path ks-password ks-type key-password
+                         ts-path ts-password ts-type need-client-auth want-client-auth]
+  (let [sslContextFactory (doto (SslContextFactory.)
+                            (.setExcludeCipherSuites (into-array String ["SSL_RSA_WITH_RC4_128_MD5" "SSL_RSA_WITH_RC4_128_SHA"]))
+                            (.setExcludeProtocols (into-array String ["SSLv3"]))
+                            (.setAllowRenegotiate false)
+                            (.setKeyStorePath ks-path)
+                            (.setKeyStoreType ks-type)
+                            (.setKeyStorePassword ks-password)
+                            (.setKeyManagerPassword key-password))]
+    (if (and (not-nil? ts-path) (not-nil? ts-password) (not-nil? ts-type))
+      (do
+        (.setTrustStore sslContextFactory ts-path)
+        (.setTrustStoreType sslContextFactory ts-type)
+        (.setTrustStorePassword sslContextFactory ts-password)))
+    (cond
+      need-client-auth (.setNeedClientAuth sslContextFactory true)
+      want-client-auth (.setWantClientAuth sslContextFactory true))
+    (doto (SslSocketConnector. sslContextFactory)
+      (.setPort port))))
 
-(defn config-ssl [server port ks-path ks-password ks-type]
+
+(defn config-ssl [server port ks-path ks-password ks-type key-password
+                  ts-path ts-password ts-type need-client-auth want-client-auth]
   (when (> port 0)
-    (.addConnector server (mk-ssl-connector port ks-path ks-password ks-type))))
+    (.addConnector server (mk-ssl-connector port ks-path ks-password ks-type key-password
+                                            ts-path ts-password ts-type need-client-auth want-client-auth))))
+
+(defn cors-filter-handler
+  []
+  (doto (org.eclipse.jetty.servlet.FilterHolder. (CrossOriginFilter.))
+    (.setInitParameter CrossOriginFilter/ALLOWED_ORIGINS_PARAM "*")
+    (.setInitParameter CrossOriginFilter/ALLOWED_METHODS_PARAM "GET, POST, PUT")
+    (.setInitParameter CrossOriginFilter/ALLOWED_HEADERS_PARAM "X-Requested-With, X-Requested-By, Access-Control-Allow-Origin, Content-Type, Content-Length, Accept, Origin")
+    (.setInitParameter CrossOriginFilter/ACCESS_CONTROL_ALLOW_ORIGIN_HEADER "*")
+    ))
+
+(defn mk-access-logging-filter-handler []
+  (org.eclipse.jetty.servlet.FilterHolder. (AccessLoggingFilter.)))
 
 (defn config-filter [server handler filters-confs]
   (if filters-confs
@@ -153,6 +167,7 @@
                            (ring.util.servlet/servlet handler))
           context (doto (org.eclipse.jetty.servlet.ServletContextHandler. server "/")
                     (.addServlet servlet-holder "/"))]
+      (.addFilter context (cors-filter-handler) "/*" (EnumSet/allOf DispatcherType))
       (doseq [{:keys [filter-name filter-class filter-params]} filters-confs]
         (if filter-class
           (let [filter-holder (doto (org.eclipse.jetty.servlet.FilterHolder.)
@@ -160,12 +175,20 @@
                                 (.setName (or filter-name filter-class))
                                 (.setInitParameters (or filter-params {})))]
             (.addFilter context filter-holder "/*" FilterMapping/ALL))))
+      (.addFilter context (mk-access-logging-filter-handler) "/*" (EnumSet/allOf DispatcherType))
       (.setHandler server context))))
 
 (defn ring-response-from-exception [ex]
   {:headers {}
    :status 400
    :body (.getMessage ex)})
+
+(defn- remove-non-ssl-connectors [server]
+  (doseq [c (.getConnectors server)]
+    (when-not (or (nil? c) (instance? SslSocketConnector c))
+      (.removeConnector server c)
+      ))
+  server)
 
 ;; Modified from ring.adapter.jetty 1.3.0
 (defn- jetty-create-server
@@ -177,7 +200,9 @@
                     (.setMaxIdleTime (options :max-idle-time 200000)))
         server    (doto (Server.)
                     (.addConnector connector)
-                    (.setSendDateHeader true))]
+                    (.setSendDateHeader true))
+        https-port (options :https-port)]
+    (if (and (not-nil? https-port) (> https-port 0)) (remove-non-ssl-connectors server))
     server))
 
 (defn storm-run-jetty
@@ -189,3 +214,27 @@
         configurator (:configurator config)]
     (configurator s)
     (.start s)))
+
+(defn wrap-json-in-callback [callback response]
+  (str callback "(" response ");"))
+
+(defnk json-response
+  [data callback :serialize-fn to-json :status 200 :headers {}]
+  {:status status
+   :headers (merge {"Cache-Control" "no-cache, no-store"
+                    "Access-Control-Allow-Origin" "*"
+                    "Access-Control-Allow-Headers" "Content-Type, Access-Control-Allow-Headers, Access-Controler-Allow-Origin, X-Requested-By, X-Csrf-Token, Authorization, X-Requested-With"}
+              (if (not-nil? callback) {"Content-Type" "application/javascript;charset=utf-8"}
+                {"Content-Type" "application/json;charset=utf-8"})
+              headers)
+   :body (if (not-nil? callback)
+           (wrap-json-in-callback callback (serialize-fn data))
+           (serialize-fn data))})
+
+(defn exception->json
+  [ex]
+  {"error" "Internal Server Error"
+   "errorMessage"
+   (let [sw (java.io.StringWriter.)]
+     (.printStackTrace ex (java.io.PrintWriter. sw))
+     (.toString sw))})

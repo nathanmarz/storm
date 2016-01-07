@@ -30,10 +30,9 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.thrift.TBase;
-import org.apache.thrift.TDeserializer;
-import org.apache.thrift.TException;
-import org.apache.thrift.TSerializer;
 import org.jgrapht.DirectedGraph;
+
+import backtype.storm.utils.Utils;
 
 public class TridentUtils {
     public static Fields fieldsUnion(Fields... fields) {
@@ -108,35 +107,11 @@ public class TridentUtils {
         return parents.get(0);
     }
     
-    private static ThreadLocal<TSerializer> threadSer = new ThreadLocal<TSerializer>();
-    private static ThreadLocal<TDeserializer> threadDes = new ThreadLocal<TDeserializer>();
-    
     public static byte[] thriftSerialize(TBase t) {
-        try {
-            TSerializer ser = threadSer.get();
-            if (ser == null) {
-                ser = new TSerializer();
-                threadSer.set(ser);
-            } 
-            return ser.serialize(t);
-        } catch (TException e) {
-            throw new RuntimeException(e);
-        }
+        return Utils.thriftSerialize(t);
     }
 
     public static <T> T thriftDeserialize(Class c, byte[] b) {
-        try {
-            T ret = (T) c.newInstance();
-            TDeserializer des = threadDes.get();
-            if (des == null) {
-                des = new TDeserializer();
-                threadDes.set(des);
-            }
-            des.deserialize((TBase) ret, b);
-            return ret;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        
+        return Utils.thriftDeserialize(c,b);
     }
 }

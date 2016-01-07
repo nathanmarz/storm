@@ -22,8 +22,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.net.InetAddress;
 import com.google.common.annotations.VisibleForTesting;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.security.AccessControlContext;
 import java.security.AccessController;
@@ -31,10 +29,11 @@ import java.security.Principal;
 import javax.security.auth.Subject;
 
 /**
- * context request context includes info about 
- *      	   (1) remote address, 
- *             (2) remote subject and primary principal
- *             (3) request ID 
+ * context request context includes info about:
+ *
+ *   1. remote address,
+ *   2. remote subject and primary principal
+ *   3. request ID
  */
 public class ReqContext {
     private static final AtomicInteger uniqueId = new AtomicInteger(0);
@@ -44,15 +43,18 @@ public class ReqContext {
     private Map _storm_conf;
     private Principal realPrincipal;
 
-    private static final Logger LOG = LoggerFactory.getLogger(ReqContext.class);
-
-
     /**
-     * Get a request context associated with current thread
-     * @return
+     * @return a request context associated with current thread
      */
     public static ReqContext context() {
         return ctxt.get();
+    }
+
+    /**
+     * Reset the context back to a default.  used for testing.
+     */
+    public static void reset() {
+        ctxt.remove();
     }
 
     //each thread will have its own request context
@@ -125,8 +127,7 @@ public class ReqContext {
     }
 
     /**
-     * Returns true if this request is an impersonation request.
-     * @return
+     * @return true if this request is an impersonation request.
      */
     public boolean isImpersonating() {
         return this.realPrincipal != null;

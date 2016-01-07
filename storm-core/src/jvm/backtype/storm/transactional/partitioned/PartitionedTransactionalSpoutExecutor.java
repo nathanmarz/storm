@@ -67,7 +67,7 @@ public class PartitionedTransactionalSpoutExecutor implements ITransactionalSpou
     class Emitter implements ITransactionalSpout.Emitter<Integer> {
         private IPartitionedTransactionalSpout.Emitter _emitter;
         private TransactionalState _state;
-        private Map<Integer, RotatingTransactionalState> _partitionStates = new HashMap<Integer, RotatingTransactionalState>();
+        private Map<Integer, RotatingTransactionalState> _partitionStates = new HashMap<>();
         private int _index;
         private int _numTasks;
         

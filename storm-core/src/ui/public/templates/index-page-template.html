@@ -24,34 +24,29 @@
         </span>
       </th>
       <th>
-        <span data-toggle="tooltip" data-placement="right" title="The duration the current Nimbus instance has been running. (Note that the storm cluster may have been deployed and available for a much longer period than the current Nimbus process has been running.)">
-          Nimbus uptime
-        </span>
-      </th>
-      <th>
         <span data-toggle="tooltip" data-placement="above" title="The number of nodes in the cluster currently.">
           Supervisors
-      </span>
+        </span>
       </th>
       <th>
         <span data-toggle="tooltip" data-placement="above" title="Slots are Workers (processes).">
           Used slots
-      </span>
+        </span>
       </th>
       <th>
         <span data-toggle="tooltip" data-placement="above" title="Slots are Workers (processes).">
           Free slots
-      </span>
+        </span>
       </th>
       <th>
         <span data-toggle="tooltip" data-placement="above" title="Slots are Workers (processes).">
           Total slots
-      </span>
+        </span>
       </th>
       <th>
         <span data-toggle="tooltip" data-placement="above" title="Executors are threads in a Worker process.">
           Executors
-      </span>
+        </span>
       </th>
       <th>
         <span data-toggle="tooltip" data-placement="left" title="A Task is an instance of a Bolt or Spout. The number of Tasks is almost always equal to the number of Executors.">
@@ -63,7 +58,6 @@
   <tbody>
     <tr>
       <td>{{stormVersion}}</td>
-      <td>{{nimbusUptime}}</td>
       <td>{{supervisors}}</td>
       <td>{{slotsUsed}}</td>
       <td>{{slotsFree}}</td>
@@ -74,6 +68,43 @@
   </tbody>
 </table>
 </script>
+
+<script id="nimbus-summary-template" type="text/html">
+    <table class="zebra-striped" id="nimbus-summary-table">
+        <thead>
+        <tr>
+            <th>
+                <span data-toggle="tooltip" data-placement="right" title="nimbus host name.">Host</span>
+            </th>
+            <th>
+                <span data-toggle="tooltip" data-placement="above" title="Nimbus Thrift port number.">Port</span>
+            </th>
+            <th>
+                <span data-toggle="tooltip" data-placement="above" title="Leader if this host is leader, Not a Leader for all other live hosts,
+                note that these hosts may or may not be in leader lock queue, and Dead for hosts that are part of nimbus.seeds list but are not alive.">Status</span>
+            </th>
+            <th>
+                <span data-toggle="tooltip" data-placement="above" title="Storm version this nimbus host is running.">Version</span>
+            </th>
+            <th>
+                <span data-toggle="tooltip" data-placement="left" title="Time since this nimbus host has been running.">UpTime</span>
+            </th>
+        </tr>
+        </thead>
+        <tbody>
+        {{#nimbuses}}
+        <tr>
+            <td>{{host}}</td>
+            <td><a href="{{nimbusLogLink}}">{{port}}</a></td>
+            <td>{{status}}</td>
+            <td>{{version}}</td>
+            <td>{{nimbusUpTime}}</td>
+        </tr>
+        {{/nimbuses}}
+        </tbody>
+    </table>
+</script>
+
 <script id="topology-summary-template" type="text/html">
   <table class="table table-striped compact" id="topology-summary-table">
     <thead>
@@ -81,11 +112,6 @@
         <th>
           <span data-toggle="tooltip" data-placement="right" title="The name given to the topology by when it was submitted. Click the name to view the Topology's information.">
             Name
-          </span>
-        </th>
-        <th>
-          <span data-toggle="tooltip" data-placement="right" title="The unique ID given to a Topology each time it is launched.">
-            Id
           </span>
         </th>
         <th>
@@ -119,6 +145,23 @@
           </span>
         </th>
         <th>
+          <span data-toggle="tooltip" data-placement="above" title="Number of nimbus hosts on which this topology's code is replicated. ">
+            Replication count
+          </span>
+        </th>
+        <th>
+          <span data-toggle="tooltip" data-placement="above" title="Assigned Total Memory by Scheduler.">
+            Assigned Mem (MB)
+          </span>
+        </th>
+        {{#schedulerDisplayResource}}
+        <th>
+          <span data-toggle="tooltip" data-placement="above" title="Assigned Total CPU by Scheduler. Every 100 means 1 core.">
+            Assigned CPU (%)
+          </span>
+        </th>
+        {{/schedulerDisplayResource}}
+        <th>
           <span data-toggle="tooltip" data-placement="left" title="This shows information from the scheduler about the latest attempt to schedule the Topology on the cluster.">
             Scheduler Info
           </span>
@@ -129,13 +172,17 @@
       {{#topologies}}
       <tr>
         <td><a href="/topology.html?id={{encodedId}}">{{name}}</a></td>
-        <td>{{id}}</td>
         <td>{{owner}}</td>
         <td>{{status}}</td>
         <td>{{uptime}}</td>
         <td>{{workersTotal}}</td>
         <td>{{executorsTotal}}</td>
         <td>{{tasksTotal}}</td>
+        <td>{{replicationCount}}</td>
+        <td>{{assignedTotalMem}}</td>
+        {{#schedulerDisplayResource}}
+        <td>{{assignedCpu}}</td>
+        {{/schedulerDisplayResource}}
         <td>{{schedulerInfo}}</td>
       </tr>
       {{/topologies}}
@@ -171,6 +218,35 @@
           Used slots
         </span>
       </th>
+      {{#schedulerDisplayResource}}
+      <th>
+        <span data-toggle="tooltip" data-placement="above" title="Memory capacity of a supervisor.">
+          Total Mem (MB)
+        </span>
+      </th>
+      {{/schedulerDisplayResource}}
+      <th>
+        <span data-toggle="tooltip" data-placement="left" title="Memory that has been allocated.">
+          Used Mem (MB)
+        </span>
+      </th>
+      {{#schedulerDisplayResource}}
+      <th>
+        <span data-toggle="tooltip" data-placement="above" title="CPU capacity of a supervisor. Every 100 means one core.">
+          Total CPU (%)
+        </span>
+      </th>
+      <th>
+        <span data-toggle="tooltip" data-placement="left" title="CPU that has been allocated. Every 100 means one core">
+          Used CPU (%)
+        </span>
+      </th>
+      {{/schedulerDisplayResource}}
+      <th>
+        <span data-toggle="tooltip" data-placement="left" title="Version">
+          Version
+        </span>
+      </th>
     </tr>
   </thead>
   <tbody>
@@ -181,6 +257,15 @@
       <td>{{uptime}}</td>
       <td>{{slotsTotal}}</td>
       <td>{{slotsUsed}}</td>
+      {{#schedulerDisplayResource}}
+      <td>{{totalMem}}</td>
+      {{/schedulerDisplayResource}}
+      <td>{{usedMem}}</td>
+      {{#schedulerDisplayResource}}
+      <td>{{totalCpu}}</td>
+      <td>{{usedCpu}}</td>
+      {{/schedulerDisplayResource}}
+      <td>{{version}}</td>
     </tr>
     {{/supervisors}}
   </tbody>

@@ -1,6 +1,22 @@
+;; Licensed to the Apache Software Foundation (ASF) under one
+;; or more contributor license agreements.  See the NOTICE file
+;; distributed with this work for additional information
+;; regarding copyright ownership.  The ASF licenses this file
+;; to you under the Apache License, Version 2.0 (the
+;; "License"); you may not use this file except in compliance
+;; with the License.  You may obtain a copy of the License at
+;;
+;; http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS,
+;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;; See the License for the specific language governing permissions and
+;; limitations under the License.
 (ns backtype.storm.converter
-  (:import [backtype.storm.generated SupervisorInfo NodeInfo Assignment
-            StormBase TopologyStatus ClusterWorkerHeartbeat ExecutorInfo ErrorInfo Credentials RebalanceOptions KillOptions TopologyActionOptions])
+  (:import [backtype.storm.generated SupervisorInfo NodeInfo Assignment WorkerResources
+            StormBase TopologyStatus ClusterWorkerHeartbeat ExecutorInfo ErrorInfo Credentials RebalanceOptions KillOptions
+            TopologyActionOptions DebugOptions ProfileRequest])
   (:use [backtype.storm util stats log])
   (:require [backtype.storm.daemon [common :as common]]))
 
@@ -12,7 +28,10 @@
     (.set_used_ports (map long (:used-ports supervisor-info)))
     (.set_meta (map long (:meta supervisor-info)))
     (.set_scheduler_meta (:scheduler-meta supervisor-info))
-    (.set_uptime_secs (long (:uptime-secs supervisor-info)))))
+    (.set_uptime_secs (long (:uptime-secs supervisor-info)))
+    (.set_version (:version supervisor-info))
+    (.set_resources_map (:resources-map supervisor-info))
+    ))
 
 (defn clojurify-supervisor-info [^SupervisorInfo supervisor-info]
   (if supervisor-info
@@ -23,22 +42,34 @@
       (if (.get_used_ports supervisor-info) (into [] (.get_used_ports supervisor-info)))
       (if (.get_meta supervisor-info) (into [] (.get_meta supervisor-info)))
       (if (.get_scheduler_meta supervisor-info) (into {} (.get_scheduler_meta supervisor-info)))
-      (.get_uptime_secs supervisor-info))))
+      (.get_uptime_secs supervisor-info)
+      (.get_version supervisor-info)
+      (if-let [res-map (.get_resources_map supervisor-info)] (into {} res-map)))))
 
 (defn thriftify-assignment [assignment]
-  (doto (Assignment.)
-    (.set_master_code_dir (:master-code-dir assignment))
-    (.set_node_host (:node->host assignment))
-    (.set_executor_node_port (map-val
-                               (fn [node+port]
-                                 (NodeInfo. (first node+port) (set (map long (rest node+port)))))
-                               (map-key #(map long %)
-                                 (:executor->node+port assignment))))
-    (.set_executor_start_time_secs
-      (map-val
-        long
-        (map-key #(map long %)
-          (:executor->start-time-secs assignment))))))
+  (let [thrift-assignment (doto (Assignment.)
+                            (.set_master_code_dir (:master-code-dir assignment))
+                            (.set_node_host (:node->host assignment))
+                            (.set_executor_node_port (into {}
+                                                           (map (fn [[k v]]
+                                                                  [(map long k)
+                                                                   (NodeInfo. (first v) (set (map long (rest v))))])
+                                                                (:executor->node+port assignment))))
+                            (.set_executor_start_time_secs
+                              (into {}
+                                    (map (fn [[k v]]
+                                           [(map long k) (long v)])
+                                         (:executor->start-time-secs assignment)))))]
+    (if (:worker->resources assignment)
+      (.set_worker_resources thrift-assignment (into {} (map
+                                                          (fn [[node+port resources]]
+                                                            [(NodeInfo. (first node+port) (set (map long (rest node+port))))
+                                                             (doto (WorkerResources.)
+                                                               (.set_mem_on_heap (first resources))
+                                                               (.set_mem_off_heap (second resources))
+                                                               (.set_cpu (last resources)))])
+                                                          (:worker->resources assignment)))))
+    thrift-assignment))
 
 (defn clojurify-executor->node_port [executor->node_port]
   (into {}
@@ -50,6 +81,15 @@
           (into [] list-of-executors)) ; list of executors must be coverted to clojure vector to ensure it is sortable.
         executor->node_port))))
 
+(defn clojurify-worker->resources [worker->resources]
+  "convert worker info to be [node, port]
+   convert resources to be [mem_on_heap mem_off_heap cpu]"
+  (into {} (map
+             (fn [[nodeInfo resources]]
+               [(concat [(.get_node nodeInfo)] (.get_port nodeInfo))
+                [(.get_mem_on_heap resources) (.get_mem_off_heap resources) (.get_cpu resources)]])
+             worker->resources)))
+
 (defn clojurify-assignment [^Assignment assignment]
   (if assignment
     (backtype.storm.daemon.common.Assignment.
@@ -57,7 +97,8 @@
       (into {} (.get_node_host assignment))
       (clojurify-executor->node_port (into {} (.get_executor_node_port assignment)))
       (map-key (fn [executor] (into [] executor))
-        (into {} (.get_executor_start_time_secs assignment))))))
+        (into {} (.get_executor_start_time_secs assignment)))
+      (clojurify-worker->resources (into {} (.get_worker_resources assignment))))))
 
 (defn convert-to-symbol-from-status [status]
   (condp = status
@@ -116,10 +157,26 @@
       thrift-topology-action-options)))
 
 (defn clojurify-topology-action-options [^TopologyActionOptions topology-action-options]
-  (if (and topology-action-options (.is_set_kill_options topology-action-options))
-      (clojurify-kill-options (.get_kill_options topology-action-options)))
-  (if (and topology-action-options (.is_set_rebalance_options topology-action-options))
-      (clojurify-rebalance-options (.get_rebalance_options topology-action-options))))
+  (if topology-action-options
+    (or (and (.is_set_kill_options topology-action-options)
+             (clojurify-kill-options
+               (.get_kill_options topology-action-options)))
+        (and (.is_set_rebalance_options topology-action-options)
+             (clojurify-rebalance-options
+               (.get_rebalance_options topology-action-options))))))
+
+(defn clojurify-debugoptions [^DebugOptions options]
+  (if options
+    {
+      :enable (.is_enable options)
+      :samplingpct (.get_samplingpct options)
+      }
+    ))
+
+(defn thriftify-debugoptions [options]
+  (doto (DebugOptions.)
+    (.set_enable (get options :enable false))
+    (.set_samplingpct (get options :samplingpct 10))))
 
 (defn thriftify-storm-base [storm-base]
   (doto (StormBase.)
@@ -130,7 +187,8 @@
     (.set_component_executors (map-val int (:component->executors storm-base)))
     (.set_owner (:owner storm-base))
     (.set_topology_action_options (thriftify-topology-action-options storm-base))
-    (.set_prev_status (convert-to-status-from-symbol (:prev-status storm-base)))))
+    (.set_prev_status (convert-to-status-from-symbol (:prev-status storm-base)))
+    (.set_component_debug (map-val thriftify-debugoptions (:component->debug storm-base)))))
 
 (defn clojurify-storm-base [^StormBase storm-base]
   (if storm-base
@@ -142,7 +200,8 @@
       (into {} (.get_component_executors storm-base))
       (.get_owner storm-base)
       (clojurify-topology-action-options (.get_topology_action_options storm-base))
-      (convert-to-symbol-from-status (.get_prev_status storm-base)))))
+      (convert-to-symbol-from-status (.get_prev_status storm-base))
+      (map-val clojurify-debugoptions (.get_component_debug storm-base)))))
 
 (defn thriftify-stats [stats]
   (if stats
@@ -162,7 +221,7 @@
   (if worker-hb
     {:storm-id (.get_storm_id worker-hb)
      :executor-stats (clojurify-stats (into {} (.get_executor_stats worker-hb)))
-     :uptime (time-delta (.get_time_secs worker-hb))
+     :uptime (.get_uptime_secs worker-hb)
      :time-secs (.get_time_secs worker-hb)
      }
     {}))
@@ -170,6 +229,7 @@
 (defn thriftify-zk-worker-hb [worker-hb]
   (if (not-empty (filter second (:executor-stats worker-hb)))
     (doto (ClusterWorkerHeartbeat.)
+      (.set_uptime_secs (:uptime worker-hb))
       (.set_storm_id (:storm-id worker-hb))
       (.set_executor_stats (thriftify-stats (filter second (:executor-stats worker-hb))))
       (.set_time_secs (:time-secs worker-hb)))))
@@ -189,6 +249,23 @@
     (.set_host (:host error))
     (.set_port (:port error))))
 
+(defn clojurify-profile-request
+  [^ProfileRequest request]
+  (when request
+    {:host (.get_node (.get_nodeInfo request))
+     :port (first (.get_port (.get_nodeInfo request)))
+     :action     (.get_action request)
+     :timestamp  (.get_time_stamp request)}))
+
+(defn thriftify-profile-request
+  [profile-request]
+  (let [nodeinfo (doto (NodeInfo.)
+                   (.set_node (:host profile-request))
+                   (.set_port (set [(:port profile-request)])))
+        request (ProfileRequest. nodeinfo (:action profile-request))]
+    (.set_time_stamp request (:timestamp profile-request))
+    request))
+
 (defn thriftify-credentials [credentials]
     (doto (Credentials.)
       (.set_creds (if credentials credentials {}))))
@@ -198,4 +275,3 @@
     (into {} (.get_creds credentials))
     nil
     ))
-

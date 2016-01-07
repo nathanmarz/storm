@@ -18,10 +18,8 @@
 package backtype.storm.security.auth.digest;
 
 import java.io.IOException;
-import java.util.Map;
 
 import javax.security.auth.callback.CallbackHandler;
-import javax.security.auth.login.Configuration;
 
 import org.apache.thrift.transport.TSaslClientTransport;
 import org.apache.thrift.transport.TSaslServerTransport;

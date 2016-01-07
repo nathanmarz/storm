@@ -36,7 +36,7 @@ import java.util.Map;
  * This spout only works in local mode.
  */
 public class OpaqueMemoryTransactionalSpout implements IOpaquePartitionedTransactionalSpout<MemoryTransactionalSpoutMeta> {
-    public static String TX_FIELD = MemoryTransactionalSpout.class.getName() + "/id";
+    public static final String TX_FIELD = MemoryTransactionalSpout.class.getName() + "/id";
     
     private String _id;
     private String _finishedPartitionsId;
@@ -81,7 +81,7 @@ public class OpaqueMemoryTransactionalSpout implements IOpaquePartitionedTransac
         return new Coordinator();
     }
     
-    class Coordinator implements IOpaquePartitionedTransactionalSpout.Coordinator {
+    private static class Coordinator implements IOpaquePartitionedTransactionalSpout.Coordinator {
         @Override
         public boolean isReady() {
             return true;
@@ -95,7 +95,7 @@ public class OpaqueMemoryTransactionalSpout implements IOpaquePartitionedTransac
     class Emitter implements IOpaquePartitionedTransactionalSpout.Emitter<MemoryTransactionalSpoutMeta> {
         
         Integer _maxSpoutPending;
-        Map<Integer, Integer> _emptyPartitions = new HashMap<Integer, Integer>();
+        Map<Integer, Integer> _emptyPartitions = new HashMap<>();
         
         public Emitter(Map conf) {
             Object c = conf.get(Config.TOPOLOGY_MAX_SPOUT_PENDING);
@@ -120,7 +120,7 @@ public class OpaqueMemoryTransactionalSpout implements IOpaquePartitionedTransac
 
                 MemoryTransactionalSpoutMeta ret = new MemoryTransactionalSpoutMeta(index, toTake);
                 for(int i=ret.index; i < ret.index + ret.amt; i++) {
-                    List<Object> toEmit = new ArrayList<Object>(queue.get(i));
+                    List<Object> toEmit = new ArrayList<>(queue.get(i));
                     toEmit.add(0, tx);
                     collector.emit(toEmit);                
                 }
@@ -151,7 +151,7 @@ public class OpaqueMemoryTransactionalSpout implements IOpaquePartitionedTransac
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        List<String> toDeclare = new ArrayList<String>(_outFields.toList());
+        List<String> toDeclare = new ArrayList<>(_outFields.toList());
         toDeclare.add(0, TX_FIELD);
         declarer.declare(new Fields(toDeclare));
     }

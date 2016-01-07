@@ -1,3 +1,20 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package backtype.storm.security.auth.authorizer;
 
 import backtype.storm.Config;
@@ -21,14 +38,15 @@ public class ImpersonationAuthorizer implements IAuthorizer {
 
     @Override
     public void prepare(Map conf) {
-        userImpersonationACL = new HashMap<String, ImpersonationACL>();
+        userImpersonationACL = new HashMap<>();
 
         Map<String, Map<String, List<String>>> userToHostAndGroup = (Map<String, Map<String, List<String>>>) conf.get(Config.NIMBUS_IMPERSONATION_ACL);
 
         if (userToHostAndGroup != null) {
-            for (String user : userToHostAndGroup.keySet()) {
-                Set<String> groups = ImmutableSet.copyOf(userToHostAndGroup.get(user).get("groups"));
-                Set<String> hosts = ImmutableSet.copyOf(userToHostAndGroup.get(user).get("hosts"));
+            for (Map.Entry<String, Map<String, List<String>>> entry : userToHostAndGroup.entrySet()) {
+                String user = entry.getKey();
+                Set<String> groups = ImmutableSet.copyOf(entry.getValue().get("groups"));
+                Set<String> hosts = ImmutableSet.copyOf(entry.getValue().get("hosts"));
                 userImpersonationACL.put(user, new ImpersonationACL(user, groups, hosts));
             }
         }
@@ -49,7 +67,7 @@ public class ImpersonationAuthorizer implements IAuthorizer {
         String userBeingImpersonated = _ptol.toLocal(context.principal());
         InetAddress remoteAddress = context.remoteAddress();
 
-        LOG.info("user = {}, principal = {} is attmepting to impersonate user = {} for operation = {} from host = {}",
+        LOG.info("user = {}, principal = {} is attempting to impersonate user = {} for operation = {} from host = {}",
                 impersonatingUser, impersonatingPrincipal, userBeingImpersonated, operation, remoteAddress);
 
         /**
@@ -65,8 +83,8 @@ public class ImpersonationAuthorizer implements IAuthorizer {
         ImpersonationACL principalACL = userImpersonationACL.get(impersonatingPrincipal);
         ImpersonationACL userACL = userImpersonationACL.get(impersonatingUser);
 
-        Set<String> authorizedHosts = new HashSet<String>();
-        Set<String> authorizedGroups = new HashSet<String>();
+        Set<String> authorizedHosts = new HashSet<>();
+        Set<String> authorizedGroups = new HashSet<>();
 
         if (principalACL != null) {
             authorizedHosts.addAll(principalACL.authorizedHosts);
@@ -109,7 +127,7 @@ public class ImpersonationAuthorizer implements IAuthorizer {
             return true;
         }
 
-        Set<String> groups = null;
+        Set<String> groups;
         try {
             groups = _groupMappingProvider.getGroups(userBeingImpersonated);
         } catch (IOException e) {
@@ -129,7 +147,7 @@ public class ImpersonationAuthorizer implements IAuthorizer {
         return false;
     }
 
-    protected class ImpersonationACL {
+    protected static class ImpersonationACL {
         public String impersonatingUser;
         //Groups this user is authorized to impersonate.
         public Set<String> authorizedGroups;

@@ -34,18 +34,20 @@ public class StormBoundedExponentialBackoffRetry extends BoundedExponentialBacko
      * The class provides generic exponential-linear backoff retry strategy for
      * storm. It calculates threshold for exponentially increasing sleeptime
      * for retries. Beyond this threshold, the sleeptime increase is linear.
+     *
      * Also adds jitter for exponential/linear retry.
-     * It guarantees currSleepTimeMs >= prevSleepTimeMs and 
-     * baseSleepTimeMs <= currSleepTimeMs <= maxSleepTimeMs
+     * It guarantees `currSleepTimeMs >= prevSleepTimeMs` and
+     * `baseSleepTimeMs <= currSleepTimeMs <= maxSleepTimeMs`
      */
 
     public StormBoundedExponentialBackoffRetry(int baseSleepTimeMs, int maxSleepTimeMs, int maxRetries) {
         super(baseSleepTimeMs, maxSleepTimeMs, maxRetries);
         expRetriesThreshold = 1;
-        while ((1 << (expRetriesThreshold + 1)) < ((maxSleepTimeMs - baseSleepTimeMs) / 2))
+        while ((1 << (expRetriesThreshold + 1)) < ((maxSleepTimeMs - baseSleepTimeMs) / 2)) {
             expRetriesThreshold++;
-        LOG.info("The baseSleepTimeMs [" + baseSleepTimeMs + "] the maxSleepTimeMs [" + maxSleepTimeMs + "] " +
-                "the maxRetries [" + maxRetries + "]");
+        }
+        LOG.debug("The baseSleepTimeMs [{}] the maxSleepTimeMs [{}] the maxRetries [{}]", 
+				baseSleepTimeMs, maxSleepTimeMs, maxRetries);
         if (baseSleepTimeMs > maxSleepTimeMs) {
             LOG.warn("Misconfiguration: the baseSleepTimeMs [" + baseSleepTimeMs + "] can't be greater than " +
                     "the maxSleepTimeMs [" + maxSleepTimeMs + "].");

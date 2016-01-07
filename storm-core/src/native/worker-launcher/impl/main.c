@@ -47,6 +47,7 @@ void display_usage(FILE *stream) {
   fprintf(stream, "   initialize stormdist dir: code-dir <code-directory>\n");
   fprintf(stream, "   remove a file/directory: rmr <directory>\n");
   fprintf(stream, "   launch a worker: worker <working-directory> <script-to-run>\n");
+  fprintf(stream, "   launch a profiler: profiler <working-directory> <script-to-run>\n");
   fprintf(stream, "   signal a worker: signal <pid> <signal>\n");
 }
 
@@ -176,6 +177,15 @@ int main(int argc, char **argv) {
     if (exit_code == 0) {
       exit_code = exec_as_user(working_dir, argv[optind]);
     }
+   } else if (strcasecmp("profiler", command) == 0) {
+    if (argc != 5) {
+      fprintf(ERRORFILE, "Incorrect number of arguments (%d vs 5) for profiler\n",
+	      argc);
+      fflush(ERRORFILE);
+      return INVALID_ARGUMENT_NUMBER;
+    }
+    working_dir = argv[optind++];
+    exit_code = exec_as_user(working_dir, argv[optind]);
   } else if (strcasecmp("signal", command) == 0) {
     if (argc != 5) {
       fprintf(ERRORFILE, "Incorrect number of arguments (%d vs 5) for signal\n",

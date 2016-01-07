@@ -81,24 +81,87 @@ function ensureInt(n) {
     return isInt;
 }
 
-function confirmAction(id, name, action, wait, defaultWait) {
+function sendRequest(id, action, extra, body, cb){
+   var opts = {
+        type:'POST',
+        url:'/api/v1/topology/' + id + '/' + action
+    };
+
+    if (body) {
+        opts.data = JSON.stringify(body);
+        opts.contentType = 'application/json; charset=utf-8';
+    }
+
+    opts.url += extra ? "/" + extra : "";
+
+    $.ajax(opts).always(function(data){
+        cb (data);
+    }).fail (function(){
+        alert("Error while communicating with Nimbus.");
+    });
+}
+
+function confirmComponentAction(topologyId, componentId, componentName, action, param, defaultParamValue, paramText, actionText) {
     var opts = {
         type:'POST',
-        url:'/api/v1/topology/' + id + '/' + action,
-        headers: { 'x-csrf-token': $.trim($('#anti-forgery-token').text()) }
+        url:'/api/v1/topology/' + topologyId + '/component/' + componentId + '/' + action
     };
-    if (wait) {
-        var waitSecs = prompt('Do you really want to ' + action + ' topology "' + name + '"? ' +
-                              'If yes, please, specify wait time in seconds:',
-                              defaultWait);
-
-        if (waitSecs != null && waitSecs != "" && ensureInt(waitSecs)) {
-            opts.url += '/' + waitSecs;
+    if (actionText === undefined) {
+        actionText = action;
+    }
+    if (param) {
+        var paramValue = prompt('Do you really want to ' + actionText + ' component "' + componentName + '"? ' +
+                                  'If yes, please, specify ' + paramText + ':',
+                                  defaultParamValue);
+        if (paramValue != null && paramValue != "" && ensureInt(paramValue)) {
+            opts.url += '/' + paramValue;
         } else {
             return false;
         }
-    } else if (!confirm('Do you really want to ' + action + ' topology "' + name + '"?')) {
-        return false;
+    } else {
+        if (typeof defaultParamValue !== 'undefined') {
+            opts.url +=  '/' + defaultParamValue;
+        }
+        if (!confirm('Do you really want to ' + actionText + ' component "' + componentName + '"?')) {
+            return false;
+        }
+    }
+
+    $("input[type=button]").attr("disabled", "disabled");
+    $.ajax(opts).always(function () {
+        window.location.reload();
+    }).fail(function () {
+        alert("Error while communicating with Nimbus.");
+    });
+
+    return false;
+}
+
+function confirmAction(id, name, action, param, defaultParamValue, paramText, actionText) {
+    var opts = {
+        type:'POST',
+        url:'/api/v1/topology/' + id + '/' + action
+    };
+    if (actionText === undefined) {
+        actionText = action;
+    }
+    if (param) {
+        var paramValue = prompt('Do you really want to ' + actionText + ' topology "' + name + '"? ' +
+                              'If yes, please, specify ' + paramText + ':',
+                              defaultParamValue);
+
+        if (paramValue != null && paramValue != "" && ensureInt(paramValue)) {
+            opts.url += '/' + paramValue;
+        } else {
+            return false;
+        }
+    } else {
+        if (typeof defaultParamValue !== 'undefined') {
+            opts.url +=  '/' + defaultParamValue;
+        }
+        if (!confirm('Do you really want to ' + actionText + ' topology "' + name + '"?')) {
+            return false;
+        }
     }
 
     $("input[type=button]").attr("disabled", "disabled");
@@ -121,7 +184,7 @@ function formatConfigData(data) {
        if(data.hasOwnProperty(prop)) {
            mustacheFormattedData['config'].push({
                'key': prop,
-               'value': data[prop]
+               'value': JSON.stringify(data[prop])
            });
        }
     }
@@ -147,16 +210,30 @@ function renderToggleSys(div) {
     }
 }
 
-function topologyActionJson(id, encodedId, name,status,msgTimeout) {
+function topologyActionJson(id, encodedId, name, status, msgTimeout, debug, samplingPct) {
     var jsonData = {};
     jsonData["id"] = id;
     jsonData["encodedId"] = encodedId;
     jsonData["name"] = name;
     jsonData["msgTimeout"] = msgTimeout;
-    jsonData["activateStatus"] = (status === "ACTIVE") ? "disabled" : "enabled";
+    jsonData["activateStatus"] = (status === "INACTIVE") ? "enabled" : "disabled";
     jsonData["deactivateStatus"] = (status === "ACTIVE") ? "enabled" : "disabled";
     jsonData["rebalanceStatus"] = (status === "ACTIVE" || status === "INACTIVE" ) ? "enabled" : "disabled";
     jsonData["killStatus"] = (status !== "KILLED") ? "enabled" : "disabled";
+    jsonData["startDebugStatus"] = (status === "ACTIVE" && !debug) ? "enabled" : "disabled";
+    jsonData["stopDebugStatus"] = (status === "ACTIVE" && debug) ? "enabled" : "disabled";
+    jsonData["currentSamplingPct"] = samplingPct;
+    return jsonData;
+}
+
+function componentActionJson(encodedTopologyId, encodedId, componentName, status, debug, samplingPct) {
+    var jsonData = {};
+    jsonData["encodedTopologyId"] = encodedTopologyId;
+    jsonData["encodedId"] = encodedId;
+    jsonData["componentName"] = componentName;
+    jsonData["startDebugStatus"] = (status === "ACTIVE" && !debug) ? "enabled" : "disabled";
+    jsonData["stopDebugStatus"] = (status === "ACTIVE" && debug) ? "enabled" : "disabled";
+    jsonData["currentSamplingPct"] = samplingPct;
     return jsonData;
 }
 

@@ -28,9 +28,13 @@ target
 *.ipr
 *.iws
 .idea
-.*
+#.*
+!/.travis.yml
 !/.gitignore
 _site
 dependency-reduced-pom.xml
 derby.log
 metastore_db
+.settings/
+**/.project
+**/.classpath

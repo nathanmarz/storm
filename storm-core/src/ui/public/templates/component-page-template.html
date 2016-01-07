@@ -39,6 +39,11 @@
             Tasks
           </span>
         </th>
+        <th>
+          <span data-toggle="tooltip" data-placement="above" title="Click on the link below to open the logviewer and view the events emitted by this component.">
+            Debug
+          </span>
+        </th>
       </tr>
     </thead>
     <tbody>
@@ -47,6 +52,7 @@
         <td><a href="/topology.html?id={{encodedTopologyId}}">{{name}}</a></td>
         <td>{{executors}}</td>
         <td>{{tasks}}</td>
+        <td><a href="{{eventLogLink}}">events</a></td>
     </tbody>
   </table>
 </script>
@@ -91,8 +97,8 @@
       {{#spoutSummary}}
       <tr>
         <td><a href="/component.html?id={{encodedId}}&topology_id={{encodedTopologyId}}&window={{window}}">{{windowPretty}}</a></td>
-        <td>{{transferred}}</td>
         <td>{{emitted}}</td>
+        <td>{{transferred}}</td>
         <td>{{completeLatency}}</td>
         <td>{{acked}}</td>
         <td>{{failed}}</td>
@@ -220,6 +226,59 @@
       {{/executorStats}}
     </tbody>
   </table>
+</script>
+<script id="profiling-template" type="text/html">
+  <h2>Profiling and Debugging</h2>
+  Use the following controls to profile and debug the components on this page.
+  <table class="table table-striped compact">
+    <thead>
+      <tr>
+        <th class="header">Component</th>
+        <th class="header">
+          <span data-original-title="The status of a running profiler or the timeout for one you're starting (in minutes)" data-toggle="tooltip">
+            Status / Timeout (Minutes)
+          </span>
+        </th>
+        <th class="header">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="profiler-table-body">
+      <tr>
+        <td>
+          <select id="selected_worker">
+            {{#hosts}}
+            <option value="{{name}}">{{name}}</option>
+            {{/hosts}}
+          </select>
+        </td>
+        <td>
+          <input id="timeout" class="timeout_input" type="text" value="" placeholder="10"/>
+        </td>
+        <td>
+          <input type="button" value="Start" name="start" onClick="start_profiling(profiler_selected_worker())" class="btn btn-secondary"/>
+          <input type="button" value="JStack" name="jstack" onClick="dump_jstack(profiler_selected_worker())" class="btn btn-secondary"/>
+          <input type="button" value="Restart Worker" name="jvmrestart" onClick="restart_worker_jvm(profiler_selected_worker())" class="btn btn-secondary"/>
+          <input type="button" value="Heap" name="heap" onClick="dump_heap(profiler_selected_worker())" class="btn btn-secondary"/>
+        </td>
+      </tr>
+      {{> profilerActive}}
+    </tbody>
+  </table>
+</script>
+<script id="profiler-active-partial" type="text/html">
+  {{#profilerActive}}
+  <tr>
+    <td>{{host}}:{{port}}</td>
+    <td>Active until {{timestamp}}</td>
+    <td>
+      <input id="stop_{{host}}:{{port}}" type="button" value="Stop" name="stop" onClick="stop_profiling('{{host}}:{{port}}')" class="btn btn-secondary"/>
+      <input id="dump_profile_{{host}}:{{port}}" type="button" value="Dump Profile" name="dumpjprofile" onClick="dump_profile('{{host}}:{{port}}')" class="btn btn-secondary"/>
+      <input id="dump_jstack_{{host}}:{{port}}" type="button" value="JStack" name="jstack" onClick="dump_jstack('{{host}}:{{port}}')" class="btn btn-secondary"/>
+      <input id="restart_worker_jvm_{{host}}:{{port}}" type="button" value="Restart Worker" name="jvmrestart" onClick="restart_worker_jvm('{{host}}:{{port}}')" class="btn btn-secondary"/>
+      <input id="dump_heap_{{host}}:{{port}}" type="button" value="Heap" name="heap" onClick="dump_heap('{{host}}:{{port}}')" class="btn btn-secondary"/> <a href="{{dumplink}}">My Dump Files</a>
+    </td>
+  </tr>
+  {{/profilerActive}}
 </script>
 <script id="bolt-stats-template" type="text/html">
   <h2>Bolt stats</h2>
@@ -375,7 +434,7 @@
   </table>
 </script>
 <script id="bolt-executor-template" type="text/html">
-  <h2>Executors</h2>
+  <h2>Executors ({{windowHint}})</h2>
   <table class="table table-striped compact" id="bolt-executor-table">
     <thead>
       <tr>
@@ -444,7 +503,7 @@
     <tbody>
       {{#executorStats}}
       <tr>
-        <td>{{id}}}</td>
+        <td>{{id}}</td>
         <td>{{uptime}}</td>
         <td>{{host}}</td>
         <td><a href="{{workerLogLink}}">{{port}}</a></td>
@@ -475,14 +534,21 @@
     <tbody>
       {{#componentErrors}}
       <tr>
-        <td>{{time}}</td>
+        <td>{{errorTime}}</td>
         <td>{{errorHost}}</td>
         <td><a href="{{errorWorkerLogLink}}">{{errorPort}}</a></td>
         <td>
-          <span id="{{errorLapsedSecs}}" class="errorSpan"><a href="{{errorWorkerLogLink}}">{{error}}</a></span>
+          <span id="{{errorLapsedSecs}}" class="errorSpan">{{error}}</span>
         </td>
       </tr>
       {{/componentErrors}}
     </tbody>
   </table>
+</script>
+<script id="component-actions-template" type="text/html">
+  <h2>Component actions</h2>
+  <p id="component-actions">
+    <input {{startDebugStatus}} onclick="confirmComponentAction('{{encodedTopologyId}}', '{{encodedId}}', '{{componentName}}', 'debug/enable', true, {{currentSamplingPct}}, 'sampling percentage', 'debug')" type="button" value="Debug" class="btn btn-default">
+    <input {{stopDebugStatus}} onclick="confirmComponentAction('{{encodedTopologyId}}', '{{encodedId}}', '{{componentName}}', 'debug/disable', false, 0, 'sampling percentage', 'stop debugging')" type="button" value="Stop Debug" class="btn btn-default">
+  </p>
 </script>

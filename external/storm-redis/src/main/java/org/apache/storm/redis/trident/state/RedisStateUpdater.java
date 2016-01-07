@@ -17,59 +17,82 @@
  */
 package org.apache.storm.redis.trident.state;
 
-import org.apache.storm.redis.trident.mapper.TridentTupleMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.storm.redis.common.mapper.RedisDataTypeDescription;
+import org.apache.storm.redis.common.mapper.RedisStoreMapper;
 import redis.clients.jedis.Jedis;
-import storm.trident.operation.TridentCollector;
-import storm.trident.state.BaseStateUpdater;
-import storm.trident.tuple.TridentTuple;
+import redis.clients.jedis.Pipeline;
 
-import java.util.List;
+import java.util.Map;
 
-public class RedisStateUpdater extends BaseStateUpdater<RedisState> {
-    private static final Logger logger = LoggerFactory.getLogger(RedisState.class);
-
-    private final String redisKeyPrefix;
-    private final TridentTupleMapper tupleMapper;
-    private final int expireIntervalSec;
-
-    public RedisStateUpdater(String redisKeyPrefix, TridentTupleMapper tupleMapper, int expireIntervalSec) {
-        this.redisKeyPrefix = redisKeyPrefix;
-        this.tupleMapper = tupleMapper;
-        if (expireIntervalSec > 0) {
-            this.expireIntervalSec = expireIntervalSec;
-        } else {
-            this.expireIntervalSec = 0;
-        }
+/**
+ * BaseStateUpdater implementation for single Redis environment.
+ *
+ * @see AbstractRedisStateUpdater
+ */
+public class RedisStateUpdater extends AbstractRedisStateUpdater<RedisState> {
+    /**
+     * Constructor
+     *
+     * @param storeMapper mapper for storing
+     */
+    public RedisStateUpdater(RedisStoreMapper storeMapper) {
+        super(storeMapper);
     }
 
+    /**
+     * Sets expire (time to live) if needed.
+     *
+     * @param expireIntervalSec time to live in seconds
+     * @return RedisStateUpdater itself
+     */
+    public RedisStateUpdater withExpire(int expireIntervalSec) {
+        setExpireInterval(expireIntervalSec);
+        return this;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public void updateState(RedisState redisState, List<TridentTuple> inputs,
-                            TridentCollector collector) {
+    protected void updateStatesToRedis(RedisState redisState, Map<String, String> keyToValue) {
         Jedis jedis = null;
         try {
             jedis = redisState.getJedis();
-            for (TridentTuple input : inputs) {
-                String key = this.tupleMapper.getKeyFromTridentTuple(input);
-                String redisKey = key;
-                if (redisKeyPrefix != null && redisKeyPrefix.length() > 0) {
-                    redisKey = redisKeyPrefix + redisKey;
-                }
-                String value = this.tupleMapper.getValueFromTridentTuple(input);
+            Pipeline pipeline = jedis.pipelined();
 
-                logger.debug("update key[" + key + "] redisKey[" + redisKey + "] value[" + value + "]");
+            for (Map.Entry<String, String> kvEntry : keyToValue.entrySet()) {
+                String key = kvEntry.getKey();
+                String value = kvEntry.getValue();
 
-                if (this.expireIntervalSec > 0) {
-                    jedis.setex(redisKey, expireIntervalSec, value);
-                } else {
-                    jedis.set(redisKey, value);
+                switch (dataType) {
+                case STRING:
+                    if (this.expireIntervalSec > 0) {
+                        pipeline.setex(key, expireIntervalSec, value);
+                    } else {
+                        pipeline.set(key, value);
+                    }
+                    break;
+                case HASH:
+                    pipeline.hset(additionalKey, key, value);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Cannot process such data type: " + dataType);
                 }
             }
+
+            // send expire command for hash only once
+            // it expires key itself entirely, so use it with caution
+            if (dataType == RedisDataTypeDescription.RedisDataType.HASH &&
+                    this.expireIntervalSec > 0) {
+                pipeline.expire(additionalKey, expireIntervalSec);
+            }
+
+            pipeline.sync();
         } finally {
             if (jedis != null) {
                 redisState.returnJedis(jedis);
             }
         }
     }
+
 }

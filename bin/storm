@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
@@ -52,18 +52,16 @@ STORM_BIN_DIR=`dirname ${PRG}`
 export STORM_BASE_DIR=`cd ${STORM_BIN_DIR}/..;pwd`
 
 #check to see if the conf dir is given as an optional argument
-if [ $# -gt 1 ]
-then
-    if [ "--config" = "$1" ]
-          then
-              conf_file=$2
-              if [ ! -f "$conf_file" ]; then
-                echo "Error: Cannot find configuration directory: $conf_file"
-                exit 1
-             fi
-              STORM_CONF_FILE=$conf_file
-              STORM_CONF_DIR=`dirname $conf_file`
+if [ $# -gt 1 ]; then
+  if [ "--config" = "$1" ]; then
+    conf_file=$2
+    if [ ! -f "$conf_file" ]; then
+      echo "Error: Cannot find configuration directory: $conf_file"
+      exit 1
     fi
+    STORM_CONF_FILE=$conf_file
+    STORM_CONF_DIR=`dirname $conf_file`
+  fi
 fi
 
 export STORM_CONF_DIR="${STORM_CONF_DIR:-$STORM_BASE_DIR/conf}"
@@ -73,4 +71,4 @@ if [ -f "${STORM_CONF_DIR}/storm-env.sh" ]; then
   . "${STORM_CONF_DIR}/storm-env.sh"
 fi
 
-exec $PYTHON ${STORM_BIN_DIR}/storm.py $@
+exec "$PYTHON" "${STORM_BIN_DIR}/storm.py" "$@"

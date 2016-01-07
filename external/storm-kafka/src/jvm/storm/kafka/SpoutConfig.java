@@ -27,6 +27,8 @@ public class SpoutConfig extends KafkaConfig implements Serializable {
     public String zkRoot = null;
     public String id = null;
 
+    public String outputStreamId;
+
     // setting for how often to save the current kafka offset to ZooKeeper
     public long stateUpdateIntervalMs = 2000;
 

@@ -17,10 +17,13 @@
  */
 package storm.kafka;
 
+import java.util.Set;
+
 public interface FailedMsgRetryManager {
     public void failed(Long offset);
     public void acked(Long offset);
     public void retryStarted(Long offset);
     public Long nextFailedMessageToRetry();
     public boolean shouldRetryMsg(Long offset);
+    public Set<Long> clearInvalidMessages(Long kafkaOffset);
 }

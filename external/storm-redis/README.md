@@ -2,6 +2,8 @@
 
 Storm/Trident integration for [Redis](http://redis.io/)
 
+Storm-redis uses Jedis for Redis client.
+
 ## Usage
 
 ### How do I use it?
@@ -12,12 +14,114 @@ use it as a maven dependency:
 <dependency>
     <groupId>org.apache.storm</groupId>
     <artifactId>storm-redis</artifactId>
-    <version>0.10.0</version>
+    <version>{storm.version}</version>
     <type>jar</type>
 </dependency>
 ```
 
-### AbstractRedisBolt usage:
+### For normal Bolt
+
+Storm-redis provides basic Bolt implementations, ```RedisLookupBolt``` and ```RedisStoreBolt```.
+
+As name represents its usage, ```RedisLookupBolt``` retrieves value from Redis using key, and ```RedisStoreBolt``` stores key / value to Redis. One tuple will be matched to one key / value pair, and you can define match pattern to ```TupleMapper```.
+
+You can also choose data type from ```RedisDataTypeDescription``` to use. Please refer ```RedisDataTypeDescription.RedisDataType``` to see what data types are supported. In some data types (hash and sorted set), it requires additional key and converted key from tuple becomes element.
+
+These interfaces are combined with ```RedisLookupMapper``` and ```RedisStoreMapper``` which fit ```RedisLookupBolt``` and ```RedisStoreBolt``` respectively.
+
+#### RedisLookupBolt example
+
+```java
+
+class WordCountRedisLookupMapper implements RedisLookupMapper {
+    private RedisDataTypeDescription description;
+    private final String hashKey = "wordCount";
+
+    public WordCountRedisLookupMapper() {
+        description = new RedisDataTypeDescription(
+                RedisDataTypeDescription.RedisDataType.HASH, hashKey);
+    }
+
+    @Override
+    public List<Values> toTuple(ITuple input, Object value) {
+        String member = getKeyFromTuple(input);
+        List<Values> values = Lists.newArrayList();
+        values.add(new Values(member, value));
+        return values;
+    }
+
+    @Override
+    public void declareOutputFields(OutputFieldsDeclarer declarer) {
+        declarer.declare(new Fields("wordName", "count"));
+    }
+
+    @Override
+    public RedisDataTypeDescription getDataTypeDescription() {
+        return description;
+    }
+
+    @Override
+    public String getKeyFromTuple(ITuple tuple) {
+        return tuple.getStringByField("word");
+    }
+
+    @Override
+    public String getValueFromTuple(ITuple tuple) {
+        return null;
+    }
+}
+
+```
+
+```java
+
+JedisPoolConfig poolConfig = new JedisPoolConfig.Builder()
+        .setHost(host).setPort(port).build();
+RedisLookupMapper lookupMapper = new WordCountRedisLookupMapper();
+RedisLookupBolt lookupBolt = new RedisLookupBolt(poolConfig, lookupMapper);
+```
+
+#### RedisStoreBolt example
+
+```java
+
+class WordCountStoreMapper implements RedisStoreMapper {
+    private RedisDataTypeDescription description;
+    private final String hashKey = "wordCount";
+
+    public WordCountStoreMapper() {
+        description = new RedisDataTypeDescription(
+            RedisDataTypeDescription.RedisDataType.HASH, hashKey);
+    }
+
+    @Override
+    public RedisDataTypeDescription getDataTypeDescription() {
+        return description;
+    }
+
+    @Override
+    public String getKeyFromTuple(ITuple tuple) {
+        return tuple.getStringByField("word");
+    }
+
+    @Override
+    public String getValueFromTuple(ITuple tuple) {
+        return tuple.getStringByField("count");
+    }
+}
+```
+
+```java
+
+JedisPoolConfig poolConfig = new JedisPoolConfig.Builder()
+                .setHost(host).setPort(port).build();
+RedisStoreMapper storeMapper = new WordCountStoreMapper();
+RedisStoreBolt storeBolt = new RedisStoreBolt(poolConfig, storeMapper);
+```
+
+### For non-simple Bolt
+
+If your scenario doesn't fit ```RedisStoreBolt``` and ```RedisLookupBolt```, storm-redis also provides ```AbstractRedisBolt``` to let you extend and apply your business logic.
 
 ```java
 
@@ -80,7 +184,8 @@ RedisState
         JedisPoolConfig poolConfig = new JedisPoolConfig.Builder()
                                         .setHost(redisHost).setPort(redisPort)
                                         .build();
-        TridentTupleMapper tupleMapper = new WordCountTupleMapper();
+        RedisStoreMapper storeMapper = new WordCountStoreMapper();
+        RedisLookupMapper lookupMapper = new WordCountLookupMapper();
         RedisState.Factory factory = new RedisState.Factory(poolConfig);
 
         TridentTopology topology = new TridentTopology();
@@ -88,8 +193,13 @@ RedisState
 
         stream.partitionPersist(factory,
                                 fields,
-                                new RedisStateUpdater("test_", tupleMapper, 86400000),
+                                new RedisStateUpdater(storeMapper).withExpire(86400000),
                                 new Fields());
+
+        TridentState state = topology.newStaticState(factory);
+        stream = stream.stateQuery(state, new Fields("word"),
+                                new RedisStateQuerier(lookupMapper),
+                                new Fields("columnName","columnValue"));
 ```
 
 RedisClusterState
@@ -101,7 +211,8 @@ RedisClusterState
         }
         JedisClusterConfig clusterConfig = new JedisClusterConfig.Builder().setNodes(nodes)
                                         .build();
-        TridentTupleMapper tupleMapper = new WordCountTupleMapper();
+        RedisStoreMapper storeMapper = new WordCountStoreMapper();
+        RedisLookupMapper lookupMapper = new WordCountLookupMapper();
         RedisClusterState.Factory factory = new RedisClusterState.Factory(clusterConfig);
 
         TridentTopology topology = new TridentTopology();
@@ -109,8 +220,13 @@ RedisClusterState
 
         stream.partitionPersist(factory,
                                 fields,
-                                new RedisClusterStateUpdater("test_", tupleMapper, 86400000),
+                                new RedisClusterStateUpdater(storeMapper).withExpire(86400000),
                                 new Fields());
+
+        TridentState state = topology.newStaticState(factory);
+        stream = stream.stateQuery(state, new Fields("word"),
+                                new RedisClusterStateQuerier(lookupMapper),
+                                new Fields("columnName","columnValue"));
 ```
 
 ## License
@@ -135,3 +251,4 @@ under the License.
 ## Committer Sponsors
 
  * Robert Evans ([@revans2](https://github.com/revans2))
+ * Jungtaek Lim ([@HeartSaVioR](https://github.com/HeartSaVioR))

@@ -118,6 +118,25 @@ GitHub.
     3. Storm committers will iterate with you on the design to make sure you are on the right track.
     4. Implement your issue, create a pull request (see below), and iterate from there.
 
+### Testing
+
+Unit tests and Integration tests are an essential part of code contributions.
+
+To mark a Java test as a Java integration test, add the annotation `@Category(IntegrationTest.class)` to the test class definition as well as to its hierarchy of superclasses. Java integration tests can be in the same package as Java unit tests.
+ 
+```java
+    @Category(IntegrationTest.class)
+    public class MyIntegrationTest {
+    ...
+    }
+```
+ 
+To mark a Clojure test as Clojure integration test, the test source must be located in a package with name prefixed by `integration.`
+
+For example, the test `test/clj/backtype.storm.drpc_test.clj` is considered a clojure unit test, whereas
+ `test/clj/integration.backtype.storm.drpc_test.clj` is considered a clojure integration test.
+
+Please refer to section <a href="#building">Build the code and run the tests</a> for how to run integration tests, and the info on the build phase each test runs. 
 
 <a name="contribute-documentation"></a>
 
@@ -160,12 +179,9 @@ your fork up to date with the latest changes of the upstream (official) `storm` 
 
 ### Approve a pull request
 
-_NOTE: The information in this section may need to be formalized via proper project bylaws._
+[BYLAWS](http://storm.apache.org/documentation/BYLAWS.html) describes the condition of approval for code / non-code change. 
 
-Pull requests are approved with two +1s from committers and need to be up for at least 72 hours for all committers to
-have a chance to comment.  In case it was a committer who sent the pull request than two _different_ committers must +1
-the request.
-
+Please refer Approvals -> Actions section for more details.
 
 <a name="merge-pull-request"></a>
 
@@ -195,6 +211,7 @@ To pull in a merge request you should generally follow the command line instruct
 3. Merge the pull request into your local test branch.
 
         $ git pull <remote_repo_url> <remote_branch>
+    You can use `./dev-tools/storm-merge.py <pull-number>` to produce the above command most of the time.
 
 4.  Assuming that the pull request merges without any conflicts:
     Update the top-level `CHANGELOG.md`, and add in the JIRA ticket number (example: `STORM-1234`) and ticket
@@ -225,17 +242,31 @@ To pull in a merge request you should generally follow the command line instruct
 
 # Build the code and run the tests
 
+## Prerequisites
+Firt of all you need to make sure you are using maven 3.2.5 or below.  There is a bug in later versions of maven as linked to from https://issues.apache.org/jira/browse/MSHADE-206 that
+cause shaded dependencies to not be packaged correctly.  Also please be aware that because we are shading dependencies mvn dependency:tree will not always show the dependencies correctly. 
+
+In order to build `storm` you need `python`, `ruby` and `nodejs`. In order to avoid an overful page we don't provide platform/OS specific installation instructions for those here. Please refer to you platform's/OS' documentation for support.
+
+The `ruby` package manager `rvm` and `nodejs` package manager `nvm` are for convenience and are used in the tests which run on [travis](https://travis-ci.org/apache/storm). They can be installed using `curl -L https://get.rvm.io | bash -s stable --autolibs=enabled && source ~/.profile` (see the [rvm installation instructions](https://github.com/rvm/rvm) for details) and `wget -qO- https://raw.githubusercontent.com/creationix/nvm/v0.26.1/install.sh | bash && source ~/.bashrc` (see the [nvm installation instructions](https://github.com/creationix/nvm) for details).
+
+With `rvm` and `nvm` installed you can run
+
+```sh
+rvm use 2.1.5 --install
+nvm install 0.12.2
+nvm use 0.12.2
+```
+
+in order to get started as fast as possible. Users can still install a specific version of `ruby` and/or `node` manually.
+
+## Building
+
 The following commands must be run from the top-level directory.
 
-    # Build the code and run the tests (requires nodejs, python and ruby installed)
-    $ mvn clean install
+`mvn clean install`
 
-    # Build the code and run the tests, with specifying default test timeout (in millisecond)
-    $ export STORM_TEST_TIMEOUT_MS=10000
-    $ mvn clean install
-
-    # Build the code but skip the tests
-    $ mvn clean install -DskipTests=true
+If you wish to skip the unit tests you can do this by adding `-DskipTests` to the command line. 
 
 In case you modified `storm.thrift`, you have to regenerate thrift code as java and python code before compiling whole project.
 
@@ -244,27 +275,45 @@ cd storm-core/src
 sh genthrift.sh
 ```
 
+## Testing
+
+Tests are separated in two groups, Unit tests, and Integration tests. Java unit tests, Clojure unit tests, and Clojure integration tests (for reasons inherent to the clojure-maven-plugin) run in the maven `test` phase. Java integration tests run in the maven `integration-test` or `verify` phases. 
+ 
+To run Clojure and Java unit tests but no integration tests execute the command
+ 
+    mvn test
+
+Integration tests require that you activate the profile `integration-test` and that you specify the `maven-failsafe-plugin` in the module pom file.
+ 
+To run all Java and Clojure integration tests but no unit tests execute one of the commands
+ 
+    mvn -P  integration-tests-only verify
+    mvn -P  integration-tests-only integration-test
+
+To run all unit tests plus Clojure integration tests but no Java integration tests execute the command
+ 
+    mvn -P all-tests test
+
+To run all unit tests and all integration tests execute one of the commands
+ 
+    mvn -P all-tests verify
+    mvn -P all-tests integration-test
+ 
+ 
 You can also run tests selectively via the Clojure REPL.  The following example runs the tests in
 [auth_test.clj](storm-core/test/clj/backtype/storm/security/auth/auth_test.clj), which has the namespace
 `backtype.storm.security.auth.auth-test`.
 
-First, start the REPL from within the relevant sub-project (here: `storm-core`):
-
-    $ cd storm-core/
-    $ mvn clojure:repl
-
-Now we run the tests in `auth_test.clj` in the REPL:
-
-```clojure
-;; You can use both absolute as well as relative paths to the .clj file.
-(load-file "test/clj/backtype/storm/security/auth/auth_test.clj")
-(ns backtype.storm.security.auth.auth-test)
-(run-tests)
-```
+You can also run tests selectively with `-Dtest=<test_name>`.  This works for both clojure and junit tests.
 
 > Tip: IDEs such as IntelliJ IDEA support a built-in Clojure REPL, which you can also use to run tests selectively.
 > Sometimes you may find that tests pass/fail depending on which REPL you use, which -- although frustrating --
 > can be helpful to narrow down errors.
+
+Unfortunately you might experience failures in clojure tests which are wrapped in the `maven-clojure-plugin` and thus doesn't provide too much useful output at first sight - you might end up with a maven test failure with an error message as unhelpful as `Clojure failed.`. In this case it's recommended to look into `target/test-reports` of the failed project to see what actual tests have failed or scroll through the maven output looking for obvious issues like missing binaries.
+
+By default integration tests are not run in the test phase. To run Java and Clojure integration tests you must enable the profile
+ 
 
 
 <a name="packaging"></a>
@@ -275,7 +324,7 @@ You can create a _distribution_ (like what you can download from Apache) as foll
 do not use the Maven release plugin because creating an official release is the task of our release manager.
 
     # First, build the code.
-    $ mvn clean install  # you may skip tests with `-DskipTests=true` to save time
+    $ mvn clean install # you may skip tests with `-DskipTests=true` to save time
 
     # Create the binary distribution.
     $ cd storm-dist/binary && mvn package
@@ -307,7 +356,7 @@ You can verify whether the digital signatures match their corresponding files:
 
 ## Testing
 
-Tests should never rely on timing in order to pass.  In Storm can properly test functionality that depends on time by
+Tests should never rely on timing in order to pass.  Storm can properly test functionality that depends on time by
 simulating time, which means we do not have to worry about e.g. random delays failing our tests indeterministically.
 
 If you are testing topologies that do not do full tuple acking, then you should be testing using the "tracked
@@ -363,6 +412,8 @@ The Storm JIRA is available at:
 
 If you do not have a JIRA account yet, then you can create one via the link above (registration is free).
 
+<a name="code-search"></a>
+The storm codebase is available at [Codota](https://www.codota.com/xref/#/github_apache_storm_560da9ada8cb8703008bbfdc/findUsages) where you can semantically search it like in an IDE (e.g. find usages for a method). 
 
 <a name="questions"></a>
 

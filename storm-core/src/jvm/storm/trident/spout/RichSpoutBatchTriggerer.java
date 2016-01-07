@@ -56,7 +56,7 @@ public class RichSpoutBatchTriggerer implements IRichSpout {
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
         _delegate.open(conf, context, new SpoutOutputCollector(new StreamOverrideCollector(collector)));
-        _outputTasks = new ArrayList<Integer>();
+        _outputTasks = new ArrayList<>();
         for(String component: Utils.get(context.getThisTargets(),
                                         _coordStream,
                                         new HashMap<String, Grouping>()).keySet()) {
@@ -119,20 +119,20 @@ public class RichSpoutBatchTriggerer implements IRichSpout {
     @Override
     public Map<String, Object> getComponentConfiguration() {
         Map<String, Object> conf = _delegate.getComponentConfiguration();
-        if(conf==null) conf = new HashMap();
-        else conf = new HashMap(conf);
+        if(conf==null) conf = new HashMap<>();
+        else conf = new HashMap<>(conf);
         Config.registerSerialization(conf, RichSpoutBatchId.class, RichSpoutBatchIdSerializer.class);
         return conf;
     }
     
     static class FinishCondition {
-        Set<Long> vals = new HashSet<Long>();
+        Set<Long> vals = new HashSet<>();
         Object msgId;
     }
     
-    Map<Long, Long> _msgIdToBatchId = new HashMap();
+    Map<Long, Long> _msgIdToBatchId = new HashMap<>();
     
-    Map<Long, FinishCondition> _finishConditions = new HashMap();
+    Map<Long, FinishCondition> _finishConditions = new HashMap<>();
     
     class StreamOverrideCollector implements ISpoutOutputCollector {
         
@@ -149,7 +149,7 @@ public class RichSpoutBatchTriggerer implements IRichSpout {
             FinishCondition finish = new FinishCondition();
             finish.msgId = msgId;
             List<Integer> tasks = _collector.emit(_stream, new ConsList(batchId, values));
-            Set<Integer> outTasksSet = new HashSet<Integer>(tasks);
+            Set<Integer> outTasksSet = new HashSet<>(tasks);
             for(Integer t: _outputTasks) {
                 int count = 0;
                 if(outTasksSet.contains(t)) {
@@ -174,5 +174,9 @@ public class RichSpoutBatchTriggerer implements IRichSpout {
             _collector.reportError(t);
         }
         
+        @Override
+        public long getPendingCount() {
+            return _collector.getPendingCount();
+        }
     }
 }

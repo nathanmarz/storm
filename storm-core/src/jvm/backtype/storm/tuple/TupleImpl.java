@@ -40,7 +40,7 @@ public class TupleImpl extends IndifferentAccessMap implements Seqable, Indexed,
     private String streamId;
     private GeneralTopologyContext context;
     private MessageId id;
-    private IPersistentMap _meta = null;
+    private IPersistentMap _meta;
     
     public TupleImpl(GeneralTopologyContext context, List<Object> values, int taskId, String streamId, MessageId id) {
         this.values = values;
@@ -63,8 +63,8 @@ public class TupleImpl extends IndifferentAccessMap implements Seqable, Indexed,
         this(context, values, taskId, streamId, MessageId.makeUnanchored());
     }    
     
-    Long _processSampleStartTime = null;
-    Long _executeSampleStartTime = null;
+    Long _processSampleStartTime;
+    Long _executeSampleStartTime;
     
     public void setProcessSampleStartTime(long ms) {
         _processSampleStartTime = ms;
@@ -196,8 +196,13 @@ public class TupleImpl extends IndifferentAccessMap implements Seqable, Indexed,
     public List<Object> select(Fields selector) {
         return getFields().select(selector, values);
     }
-      
+    
+    @Deprecated
     public GlobalStreamId getSourceGlobalStreamid() {
+        return getSourceGlobalStreamId();
+    }
+    
+    public GlobalStreamId getSourceGlobalStreamId() {
         return new GlobalStreamId(getSourceComponent(), streamId);
     }
     
@@ -232,7 +237,7 @@ public class TupleImpl extends IndifferentAccessMap implements Seqable, Indexed,
         return System.identityHashCode(this);
     }
 
-    private final Keyword makeKeyword(String name) {
+    private Keyword makeKeyword(String name) {
         return Keyword.intern(Symbol.create(name));
     }    
 
@@ -245,7 +250,7 @@ public class TupleImpl extends IndifferentAccessMap implements Seqable, Indexed,
             } else if(o instanceof String) {
                 return getValueByField((String) o);
             }
-        } catch(IllegalArgumentException e) {
+        } catch(IllegalArgumentException ignored) {
         }
         return null;
     }

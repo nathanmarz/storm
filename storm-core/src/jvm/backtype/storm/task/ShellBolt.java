@@ -26,6 +26,7 @@ import backtype.storm.multilang.BoltMsg;
 import backtype.storm.multilang.ShellMsg;
 import backtype.storm.topology.ReportedFailedException;
 import backtype.storm.tuple.Tuple;
+import backtype.storm.utils.ShellBoltMessageQueue;
 import backtype.storm.utils.ShellProcess;
 import clojure.lang.RT;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -45,16 +46,16 @@ import static java.util.concurrent.TimeUnit.SECONDS;
  * line library is required to implement that protocol, and adapter libraries
  * currently exist for Ruby and Python.
  *
- * <p>To run a ShellBolt on a cluster, the scripts that are shelled out to must be
+ * To run a ShellBolt on a cluster, the scripts that are shelled out to must be
  * in the resources directory within the jar submitted to the master.
  * During development/testing on a local machine, that resources directory just
- * needs to be on the classpath.</p>
+ * needs to be on the classpath.
  *
- * <p>When creating topologies using the Java API, subclass this bolt and implement
+ * When creating topologies using the Java API, subclass this bolt and implement
  * the IRichBolt interface to create components for the topology that use other languages. For example:
- * </p>
  *
- * <pre>
+ *
+ * ```java
  * public class MyBolt extends ShellBolt implements IRichBolt {
  *      public MyBolt() {
  *          super("python", "mybolt.py");
@@ -64,20 +65,20 @@ import static java.util.concurrent.TimeUnit.SECONDS;
  *          declarer.declare(new Fields("field1", "field2"));
  *      }
  * }
- * </pre>
+ * ```
  */
 public class ShellBolt implements IBolt {
     public static final String HEARTBEAT_STREAM_ID = "__heartbeat";
-    public static Logger LOG = LoggerFactory.getLogger(ShellBolt.class);
-    Process _subprocess;
+    public static final Logger LOG = LoggerFactory.getLogger(ShellBolt.class);
     OutputCollector _collector;
-    Map<String, Tuple> _inputs = new ConcurrentHashMap<String, Tuple>();
+    Map<String, Tuple> _inputs = new ConcurrentHashMap<>();
 
     private String[] _command;
+    private Map<String, String> env = new HashMap<>();
     private ShellProcess _process;
     private volatile boolean _running = true;
     private volatile Throwable _exception;
-    private LinkedBlockingQueue _pendingWrites = new LinkedBlockingQueue();
+    private ShellBoltMessageQueue _pendingWrites = new ShellBoltMessageQueue();
     private Random _rand;
 
     private Thread _readerThread;
@@ -98,20 +99,33 @@ public class ShellBolt implements IBolt {
         _command = command;
     }
 
+    public ShellBolt setEnv(Map<String, String> env) {
+        this.env = env;
+        return this;
+    }
+
     public void prepare(Map stormConf, TopologyContext context,
                         final OutputCollector collector) {
         Object maxPending = stormConf.get(Config.TOPOLOGY_SHELLBOLT_MAX_PENDING);
         if (maxPending != null) {
-           this._pendingWrites = new LinkedBlockingQueue(((Number)maxPending).intValue());
+            this._pendingWrites = new ShellBoltMessageQueue(((Number)maxPending).intValue());
         }
+
         _rand = new Random();
         _collector = collector;
 
         _context = context;
 
-        workerTimeoutMills = 1000 * RT.intCast(stormConf.get(Config.SUPERVISOR_WORKER_TIMEOUT_SECS));
+        if (stormConf.containsKey(Config.TOPOLOGY_SUBPROCESS_TIMEOUT_SECS)) {
+            workerTimeoutMills = 1000 * RT.intCast(stormConf.get(Config.TOPOLOGY_SUBPROCESS_TIMEOUT_SECS));
+        } else {
+            workerTimeoutMills = 1000 * RT.intCast(stormConf.get(Config.SUPERVISOR_WORKER_TIMEOUT_SECS));
+        }
 
         _process = new ShellProcess(_command);
+        if (!env.isEmpty()) {
+            _process.setEnv(env);
+        }
 
         //subprocesses must send their pid first thing
         Number subpid = _process.launch(stormConf, context);
@@ -142,7 +156,7 @@ public class ShellBolt implements IBolt {
         try {
             BoltMsg boltMsg = createBoltMessage(input, genId);
 
-            _pendingWrites.put(boltMsg);
+            _pendingWrites.putBoltMsg(boltMsg);
         } catch(InterruptedException e) {
             String processInfo = _process.getProcessInfoString() + _process.getProcessTerminationInfoString();
             throw new RuntimeException("Error during multilang processing " + processInfo, e);
@@ -189,7 +203,7 @@ public class ShellBolt implements IBolt {
     }
 
     private void handleEmit(ShellMsg shellMsg) throws InterruptedException {
-        List<Tuple> anchors = new ArrayList<Tuple>();
+        List<Tuple> anchors = new ArrayList<>();
         List<String> recvAnchors = shellMsg.getAnchors();
         if (recvAnchors != null) {
             for (String anchor : recvAnchors) {
@@ -204,7 +218,7 @@ public class ShellBolt implements IBolt {
         if(shellMsg.getTask() == 0) {
             List<Integer> outtasks = _collector.emit(shellMsg.getStream(), anchors, shellMsg.getTuple());
             if (shellMsg.areTaskIdsNeeded()) {
-                _pendingWrites.put(outtasks);
+                _pendingWrites.putTaskIds(outtasks);
             }
         } else {
             _collector.emitDirect((int) shellMsg.getTask(),
@@ -279,7 +293,10 @@ public class ShellBolt implements IBolt {
     private void die(Throwable exception) {
         String processInfo = _process.getProcessInfoString() + _process.getProcessTerminationInfoString();
         _exception = new RuntimeException(processInfo, exception);
-        LOG.error("Halting process: ShellBolt died.", exception);
+        String message = String.format("Halting process: ShellBolt died. Command: %s, ProcessInfo %s",
+                Arrays.toString(_command),
+                processInfo);
+        LOG.error(message, exception);
         _collector.reportError(exception);
         if (_running || (exception instanceof Error)) { //don't exit if not running, unless it is an Error
             System.exit(11);
@@ -307,8 +324,6 @@ public class ShellBolt implements IBolt {
 
             sendHeartbeatFlag.compareAndSet(false, true);
         }
-
-
     }
 
     private class BoltReaderRunnable implements Runnable {
@@ -321,20 +336,29 @@ public class ShellBolt implements IBolt {
                     if (command == null) {
                         throw new IllegalArgumentException("Command not found in bolt message: " + shellMsg);
                     }
-                    if (command.equals("sync")) {
-                        setHeartbeat();
-                    } else if(command.equals("ack")) {
-                        handleAck(shellMsg.getId());
-                    } else if (command.equals("fail")) {
-                        handleFail(shellMsg.getId());
-                    } else if (command.equals("error")) {
-                        handleError(shellMsg.getMsg());
-                    } else if (command.equals("log")) {
-                        handleLog(shellMsg);
-                    } else if (command.equals("emit")) {
-                        handleEmit(shellMsg);
-                    } else if (command.equals("metrics")) {
-                        handleMetrics(shellMsg);
+
+                    setHeartbeat();
+
+                    // We don't need to take care of sync, cause we're always updating heartbeat
+                    switch (command) {
+                        case "ack":
+                            handleAck(shellMsg.getId());
+                            break;
+                        case "fail":
+                            handleFail(shellMsg.getId());
+                            break;
+                        case "error":
+                            handleError(shellMsg.getMsg());
+                            break;
+                        case "log":
+                            handleLog(shellMsg);
+                            break;
+                        case "emit":
+                            handleEmit(shellMsg);
+                            break;
+                        case "metrics":
+                            handleMetrics(shellMsg);
+                            break;
                     }
                 } catch (InterruptedException e) {
                 } catch (Throwable t) {
@@ -364,7 +388,6 @@ public class ShellBolt implements IBolt {
                     } else if (write != null) {
                         throw new RuntimeException("Unknown class type to write: " + write.getClass().getName());
                     }
-                } catch (InterruptedException e) {
                 } catch (Throwable t) {
                     die(t);
                 }
@@ -376,7 +399,7 @@ public class ShellBolt implements IBolt {
             msg.setId(genId);
             msg.setTask(Constants.SYSTEM_TASK_ID);
             msg.setStream(HEARTBEAT_STREAM_ID);
-            msg.setTuple(new ArrayList<Object>());
+            msg.setTuple(new ArrayList<>());
             return msg;
         }
     }

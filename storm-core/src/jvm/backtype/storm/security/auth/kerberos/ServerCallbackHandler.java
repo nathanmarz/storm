@@ -87,6 +87,8 @@ public class ServerCallbackHandler implements CallbackHandler {
         //add the authNid as the real user in reqContext's subject which will be used during authorization.
         if(!ac.getAuthenticationID().equals(ac.getAuthorizationID())) {
             ReqContext.context().setRealPrincipal(new SaslTransportPlugin.User(ac.getAuthenticationID()));
+        } else {
+            ReqContext.context().setRealPrincipal(null);
         }
 
         ac.setAuthorized(true);

@@ -23,12 +23,17 @@ import backtype.storm.metric.api.CountMetric;
 import backtype.storm.metric.api.MeanReducer;
 import backtype.storm.metric.api.ReducedMetric;
 import backtype.storm.spout.SpoutOutputCollector;
+
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
+
 import kafka.javaapi.consumer.SimpleConsumer;
 import kafka.javaapi.message.ByteBufferMessageSet;
 import kafka.message.MessageAndOffset;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import storm.kafka.KafkaSpout.EmitState;
 import storm.kafka.KafkaSpout.MessageAndRealOffset;
 import storm.kafka.trident.MaxMetric;
@@ -63,7 +68,7 @@ public class PartitionManager {
         _connections = connections;
         _spoutConfig = spoutConfig;
         _topologyInstanceId = topologyInstanceId;
-        _consumer = connections.register(id.host, id.partition);
+        _consumer = connections.register(id.host, id.topic, id.partition);
         _state = state;
         _stormConf = stormConf;
         numberAcked = numberFailed = 0;
@@ -86,14 +91,15 @@ public class PartitionManager {
             LOG.warn("Error reading and/or parsing at ZkNode: " + path, e);
         }
 
-        Long currentOffset = KafkaUtils.getOffset(_consumer, spoutConfig.topic, id.partition, spoutConfig);
+        String topic = _partition.topic;
+        Long currentOffset = KafkaUtils.getOffset(_consumer, topic, id.partition, spoutConfig);
 
         if (jsonTopologyId == null || jsonOffset == null) { // failed to parse JSON?
             _committedTo = currentOffset;
             LOG.info("No partition information found, using configuration to determine offset");
-        } else if (!topologyInstanceId.equals(jsonTopologyId) && spoutConfig.forceFromStart) {
-            _committedTo = KafkaUtils.getOffset(_consumer, spoutConfig.topic, id.partition, spoutConfig.startOffsetTime);
-            LOG.info("Topology change detected and reset from start forced, using configuration to determine offset");
+        } else if (!topologyInstanceId.equals(jsonTopologyId) && spoutConfig.ignoreZkOffsets) {
+            _committedTo = KafkaUtils.getOffset(_consumer, topic, id.partition, spoutConfig.startOffsetTime);
+            LOG.info("Topology change detected and ignore zookeeper offsets set to true, using configuration to determine offset");
         } else {
             _committedTo = jsonOffset;
             LOG.info("Read last commit offset from zookeeper: " + _committedTo + "; old topology_id: " + jsonTopologyId + " - new topology_id: " + topologyInstanceId );
@@ -135,10 +141,23 @@ public class PartitionManager {
             if (toEmit == null) {
                 return EmitState.NO_EMITTED;
             }
-            Iterable<List<Object>> tups = KafkaUtils.generateTuples(_spoutConfig, toEmit.msg);
-            if (tups != null) {
-                for (List<Object> tup : tups) {
-                    collector.emit(tup, new KafkaMessageId(_partition, toEmit.offset));
+
+            Iterable<List<Object>> tups;
+            if (_spoutConfig.scheme instanceof MessageMetadataSchemeAsMultiScheme) {
+                tups = KafkaUtils.generateTuples((MessageMetadataSchemeAsMultiScheme) _spoutConfig.scheme, toEmit.msg, _partition, toEmit.offset);
+            } else {
+                tups = KafkaUtils.generateTuples(_spoutConfig, toEmit.msg, _partition.topic);
+            }
+            
+            if ((tups != null) && tups.iterator().hasNext()) {
+               if (!Strings.isNullOrEmpty(_spoutConfig.outputStreamId)) {
+                    for (List<Object> tup : tups) {
+                        collector.emit(_spoutConfig.outputStreamId, tup, new KafkaMessageId(_partition, toEmit.offset));
+                    }
+                } else {
+                    for (List<Object> tup : tups) {
+                        collector.emit(tup, new KafkaMessageId(_partition, toEmit.offset));
+                    }
                 }
                 break;
             } else {
@@ -168,9 +187,21 @@ public class PartitionManager {
         try {
             msgs = KafkaUtils.fetchMessages(_spoutConfig, _consumer, _partition, offset);
         } catch (TopicOffsetOutOfRangeException e) {
-            _emittedToOffset = KafkaUtils.getOffset(_consumer, _spoutConfig.topic, _partition.partition, kafka.api.OffsetRequest.EarliestTime());
-            LOG.warn("Using new offset: {}", _emittedToOffset);
+            _emittedToOffset = KafkaUtils.getOffset(_consumer, _partition.topic, _partition.partition, kafka.api.OffsetRequest.EarliestTime());
+            LOG.warn("{} Using new offset: {}", _partition.partition, _emittedToOffset);
             // fetch failed, so don't update the metrics
+            
+            //fix bug [STORM-643] : remove outdated failed offsets
+            if (!processingNewTuples) {
+                // For the case of EarliestTime it would be better to discard
+                // all the failed offsets, that are earlier than actual EarliestTime
+                // offset, since they are anyway not there.
+                // These calls to broker API will be then saved.
+                Set<Long> omitted = this._failedMsgRetryManager.clearInvalidMessages(_emittedToOffset);
+                
+                LOG.warn("Removing the failed offsets that are out of range: {}", omitted);
+            }
+            
             return;
         }
         long end = System.nanoTime();
@@ -242,7 +273,7 @@ public class PartitionManager {
                     .put("partition", _partition.partition)
                     .put("broker", ImmutableMap.of("host", _partition.host.host,
                             "port", _partition.host.port))
-                    .put("topic", _spoutConfig.topic).build();
+                    .put("topic", _partition.topic).build();
             _state.writeJSON(committedPath(), data);
 
             _committedTo = lastCompletedOffset;
@@ -269,12 +300,14 @@ public class PartitionManager {
     }
 
     public void close() {
-        _connections.unregister(_partition.host, _partition.partition);
+        commit();
+        _connections.unregister(_partition.host, _partition.topic , _partition.partition);
     }
 
     static class KafkaMessageId {
         public Partition partition;
         public long offset;
+
 
         public KafkaMessageId(Partition partition, long offset) {
             this.partition = partition;

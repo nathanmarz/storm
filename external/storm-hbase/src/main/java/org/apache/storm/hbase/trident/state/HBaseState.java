@@ -141,7 +141,7 @@ public class HBaseState implements State {
         try {
             hBaseClient.batchMutate(mutations);
         } catch (Exception e) {
-            LOG.warn("Batch write failed but some requests might have succeeded. Triggering replay.", e);
+            collector.reportError(e);
             throw new FailedException(e);
         }
     }

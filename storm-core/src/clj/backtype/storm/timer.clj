@@ -16,7 +16,7 @@
 
 (ns backtype.storm.timer
   (:import [backtype.storm.utils Time])
-  (:import [java.util PriorityQueue Comparator])
+  (:import [java.util PriorityQueue Comparator Random])
   (:import [java.util.concurrent Semaphore])
   (:use [backtype.storm util log]))
 
@@ -53,8 +53,11 @@
                                    ;; event generation. If any recurring events
                                    ;; are scheduled then we will always go
                                    ;; through this branch, sleeping only the
-                                   ;; exact necessary amount of time.
-                                   (Time/sleep (- time-millis (current-time-millis)))
+                                   ;; exact necessary amount of time. We give
+                                   ;; an upper bound, e.g. 1000 millis, to the
+                                   ;; sleeping time, to limit the response time
+                                   ;; for detecting any new event within 1 secs.
+                                   (Time/sleep (min 1000 (- time-millis (current-time-millis))))
                                    ;; Otherwise poll to see if any new event
                                    ;; was scheduled. This is, in essence, the
                                    ;; response time for detecting any new event
@@ -76,6 +79,7 @@
      :queue queue
      :active active
      :lock lock
+     :random (Random.)
      :cancel-notifier notifier}))
 
 (defn- check-active!
@@ -84,12 +88,14 @@
     (throw (IllegalStateException. "Timer is not active"))))
 
 (defnk schedule
-  [timer delay-secs afn :check-active true]
+  [timer delay-secs afn :check-active true :jitter-ms 0]
   (when check-active (check-active! timer))
   (let [id (uuid)
-        ^PriorityQueue queue (:queue timer)]
+        ^PriorityQueue queue (:queue timer)
+        end-time-ms (+ (current-time-millis) (secs-to-millis-long delay-secs))
+        end-time-ms (if (< 0 jitter-ms) (+ (.nextInt (:random timer) jitter-ms) end-time-ms) end-time-ms)]
     (locking (:lock timer)
-      (.add queue [(+ (current-time-millis) (secs-to-millis-long delay-secs)) afn id]))))
+      (.add queue [end-time-ms afn id]))))
 
 (defn schedule-recurring
   [timer delay-secs recur-secs afn]
@@ -99,6 +105,15 @@
               (afn)
               ; This avoids a race condition with cancel-timer.
               (schedule timer recur-secs this :check-active false))))
+
+(defn schedule-recurring-with-jitter
+  [timer delay-secs recur-secs jitter-ms afn]
+  (schedule timer
+            delay-secs
+            (fn this []
+              (afn)
+              ; This avoids a race condition with cancel-timer.
+              (schedule timer recur-secs this :check-active false :jitter-ms jitter-ms))))
 
 (defn cancel-timer
   [timer]

@@ -22,7 +22,7 @@ import backtype.storm.LocalCluster;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
-import storm.kafka.trident.TridentKafkaState;
+import com.google.common.collect.ImmutableMap;
 import storm.kafka.trident.TridentKafkaStateFactory;
 import storm.kafka.trident.TridentKafkaUpdater;
 import storm.kafka.trident.mapper.FieldNameBasedTupleToKafkaMapper;
@@ -31,14 +31,11 @@ import storm.trident.Stream;
 import storm.trident.TridentTopology;
 import storm.trident.testing.FixedBatchSpout;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Properties;
-
 
 public class TridentKafkaTopology {
 
-    private static StormTopology buildTopology() {
+    private static StormTopology buildTopology(String brokerConnectionString) {
         Fields fields = new Fields("word", "count");
         FixedBatchSpout spout = new FixedBatchSpout(fields, 4,
                 new Values("storm", "1"),
@@ -51,9 +48,16 @@ public class TridentKafkaTopology {
         TridentTopology topology = new TridentTopology();
         Stream stream = topology.newStream("spout1", spout);
 
+        Properties props = new Properties();
+        props.put("bootstrap.servers", brokerConnectionString);
+        props.put("acks", "1");
+        props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+
         TridentKafkaStateFactory stateFactory = new TridentKafkaStateFactory()
-                .withKafkaTopicSelector(new DefaultTopicSelector("test"))
-                .withTridentTupleToKafkaMapper(new FieldNameBasedTupleToKafkaMapper("word", "count"));
+            .withProducerProperties(props)
+            .withKafkaTopicSelector(new DefaultTopicSelector("test"))
+            .withTridentTupleToKafkaMapper(new FieldNameBasedTupleToKafkaMapper("word", "count"));
         stream.partitionPersist(stateFactory, fields, new TridentKafkaUpdater(), new Fields());
 
         return topology.build();
@@ -77,24 +81,11 @@ public class TridentKafkaTopology {
             System.out.println("Please provide kafka broker url ,e.g. localhost:9092");
         }
 
-        Config conf = getConfig(args[0]);
         LocalCluster cluster = new LocalCluster();
-        cluster.submitTopology("wordCounter", conf, buildTopology());
+        cluster.submitTopology("wordCounter", new Config(), buildTopology(args[0]));
         Thread.sleep(60 * 1000);
         cluster.killTopology("wordCounter");
 
         cluster.shutdown();
     }
-
-    private  static Config getConfig(String brokerConnectionString) {
-        Config conf = new Config();
-        Map config = new HashMap();
-        Properties props = new Properties();
-        props.put("metadata.broker.list", brokerConnectionString);
-        props.put("request.required.acks", "1");
-        props.put("serializer.class", "kafka.serializer.StringEncoder");
-        conf.put(TridentKafkaState.KAFKA_BROKER_PROPERTIES, props);
-        return conf;
-    }
-
 }

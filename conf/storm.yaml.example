@@ -19,7 +19,7 @@
 #     - "server1"
 #     - "server2"
 # 
-# nimbus.host: "nimbus"
+# nimbus.seeds: ["host1", "host2", "host3"]
 # 
 # 
 # ##### These may optionally be filled in:

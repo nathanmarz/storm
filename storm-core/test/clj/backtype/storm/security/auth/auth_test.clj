@@ -47,7 +47,9 @@
 (defn mk-subject [name]
   (Subject. true #{(mk-principal name)} #{} #{}))
 
-(def nimbus-timeout (Integer. 120))
+;; 3 seconds in milliseconds
+;; This is plenty of time for a thrift client to respond.
+(def nimbus-timeout (Integer. (* 3 1000)))
 
 (defn nimbus-data [storm-conf inimbus]
   (let [forced-scheduler (.getForcedScheduler inimbus)]
@@ -124,7 +126,6 @@
 (defn launch-server [server-port login-cfg aznClass transportPluginClass serverConf]
   (let [conf1 (merge (read-storm-config)
                      {NIMBUS-AUTHORIZER aznClass
-                      NIMBUS-HOST "localhost"
                       NIMBUS-THRIFT-PORT server-port
                       STORM-THRIFT-TRANSPORT-PLUGIN transportPluginClass})
         conf2 (if login-cfg (merge conf1 {"java.security.auth.login.config" login-cfg}) conf1)
@@ -348,10 +349,9 @@
                   "backtype.storm.security.auth.SimpleTransportPlugin" nil]
       (let [storm-conf (merge (read-storm-config)
                               {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.SimpleTransportPlugin"
-                               Config/NIMBUS_HOST "localhost"
                                Config/NIMBUS_THRIFT_PORT a-port
                                Config/NIMBUS_TASK_TIMEOUT_SECS nimbus-timeout})
-            client (NimbusClient/getConfiguredClient storm-conf)
+            client (NimbusClient. storm-conf "localhost" a-port nimbus-timeout)
             nimbus_client (.getClient client)]
         (testing "(Negative authorization) Authorization plugin should reject client request"
           (is (thrown-cause? AuthorizationException

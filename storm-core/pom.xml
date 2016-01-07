@@ -20,7 +20,7 @@
     <parent>
         <artifactId>storm</artifactId>
         <groupId>org.apache.storm</groupId>
-        <version>0.10.0-SNAPSHOT</version>
+        <version>0.11.0-SNAPSHOT</version>
         <relativePath>..</relativePath>
     </parent>
     <groupId>org.apache.storm</groupId>
@@ -32,9 +32,31 @@
     <properties>
         <worker-launcher.conf.dir>/etc/storm</worker-launcher.conf.dir>
         <worker-launcher.additional_cflags></worker-launcher.additional_cflags>
+        <argLine></argLine>
     </properties>
 
     <dependencies>
+        <!--Hadoop Mini Cluster cannot use log4j2 bridge,
+            Surefire has a way to exclude the conflicting log4j API jar
+            from the classpath, classpathDependencyExcludes, but it didn't work in practice.
+            This is here as a work around to place it at the beginning of the classpath
+            even though maven does not officially support ordering of the classpath.-->
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.17</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.esotericsoftware.kryo</groupId>
+            <artifactId>kryo</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.objenesis</groupId>
+                    <artifactId>objenesis</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
         <!--clojure-->
         <dependency>
             <groupId>org.clojure</groupId>
@@ -68,13 +90,7 @@
         </dependency>
         <dependency>
             <groupId>ring</groupId>
-            <artifactId>ring-anti-forgery</artifactId>
-            <version>1.0.0</version>
-        </dependency>
-        <dependency>
-            <groupId>ring</groupId>
             <artifactId>ring-json</artifactId>
-            <version>0.3.1</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
@@ -121,24 +137,35 @@
             <artifactId>data.codec</artifactId>
             <scope>test</scope>
         </dependency>
-
+        <dependency>
+          <groupId>org.clojure</groupId>
+          <artifactId>java.jmx</artifactId>
+          <version>${java_jmx.version}</version>
+        </dependency>
+        
         <!--java-->
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-compress</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-exec</artifactId>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>commons-lang</groupId>
             <artifactId>commons-lang</artifactId>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.thrift</groupId>
             <artifactId>libthrift</artifactId>
-            <version>0.9.2</version>
             <scope>compile</scope>
             <exclusions>
                 <exclusion>
@@ -151,11 +178,38 @@
                 </exclusion>
             </exclusions>
         </dependency>
-
-
         <dependency>
             <groupId>org.apache.curator</groupId>
             <artifactId>curator-framework</artifactId>
+            <scope>compile</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.curator</groupId>
+            <artifactId>curator-recipes</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.curator</groupId>
+            <artifactId>curator-test</artifactId>
             <exclusions>
                 <exclusion>
                     <groupId>log4j</groupId>
@@ -170,37 +224,43 @@
         <dependency>
             <groupId>com.googlecode.json-simple</groupId>
             <artifactId>json-simple</artifactId>
+            <scope>compile</scope>
         </dependency>
-
-
         <dependency>
             <groupId>com.twitter</groupId>
             <artifactId>carbonite</artifactId>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.yaml</groupId>
             <artifactId>snakeyaml</artifactId>
+            <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.googlecode.disruptor</groupId>
+            <groupId>com.lmax</groupId>
             <artifactId>disruptor</artifactId>
         </dependency>
         <dependency>
             <groupId>org.jgrapht</groupId>
             <artifactId>jgrapht-core</artifactId>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
+            <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-slf4j-impl</artifactId>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -211,78 +271,66 @@
             <artifactId>netty</artifactId>
         </dependency>
         <dependency>
+            <groupId>io.dropwizard.metrics</groupId>
+            <artifactId>metrics-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>metrics-clojure</groupId>
+            <artifactId>metrics-clojure</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-all</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
-	  <groupId>org.apache.hadoop</groupId>
-	  <artifactId>hadoop-auth</artifactId>
-	  <version>2.4.0</version>
-          <exclusions>
-             <exclusion>
-               <groupId>junit</groupId>
-               <artifactId>junit</artifactId>
-             </exclusion>
-             <exclusion>
-               <groupId>org.mockito</groupId>
-               <artifactId>mockito-all</artifactId>
-             </exclusion>
-             <exclusion>
-               <groupId>org.mortbay.jetty</groupId>
-               <artifactId>jetty-util</artifactId>
-             </exclusion>
-             <exclusion>
-               <groupId>org.mortbay.jetty</groupId>
-               <artifactId>jetty</artifactId>
-             </exclusion>
-             <exclusion>
-               <groupId>javax.servlet</groupId>
-               <artifactId>servlet-api</artifactId>
-             </exclusion>
-             <exclusion>
-               <groupId>org.slf4j</groupId>
-               <artifactId>slf4j-api</artifactId>
-             </exclusion>
-             <exclusion>
-               <groupId>commons-codec</groupId>
-               <artifactId>commons-codec</artifactId>
-             </exclusion>
-             <exclusion>
-               <groupId>log4j</groupId>
-               <artifactId>log4j</artifactId>
-             </exclusion>
-             <exclusion>
-               <groupId>org.slf4j</groupId>
-               <artifactId>slf4j-log4j12</artifactId>
-             </exclusion>
-             <exclusion>
-               <groupId>org.apache.hadoop</groupId>
-               <artifactId>hadoop-minikdc</artifactId>
-             </exclusion>
-             <exclusion>
-               <groupId>org.apache.directory.server</groupId>
-               <artifactId>apacheds-kerberos-codec</artifactId>
-             </exclusion>
-             <exclusion>
-               <groupId>log4j</groupId>
-               <artifactId>log4j</artifactId>
-             </exclusion>
-             <exclusion>
-               <groupId>org.slf4j</groupId>
-               <artifactId>slf4j-log4j12</artifactId>
-             </exclusion>
-             <exclusion>
-               <groupId>org.apache.httpcomponents</groupId>
-               <artifactId>httpclient</artifactId>
-             </exclusion>
-          </exclusions>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
-        	<groupId>junit</groupId>
-        	<artifactId>junit</artifactId>
-        	<version>4.11</version>
-        	<scope>test</scope>
+            <groupId>org.apache.zookeeper</groupId>
+            <artifactId>zookeeper</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>servlet-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>joda-time</groupId>
+            <artifactId>joda-time</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-server</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-util</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-smile</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.curator</groupId>
+            <artifactId>curator-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>commons-fileupload</groupId>
+            <artifactId>commons-fileupload</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
         </dependency>
     </dependencies>
     <build>
@@ -357,11 +405,18 @@
                         <id>test-clojure</id>
                         <phase>test</phase>
                         <goals>
-                            <goal>test-with-junit</goal>
+                            <goal>test</goal>
                         </goals>
                         <configuration>
+                            <junitOutput>true</junitOutput>
+                            <testScript>test/resources/test_runner.clj</testScript>
                             <!-- argLine is set by JaCoCo for code coverage -->
                             <vmargs>${argLine} ${test.extra.args}</vmargs>
+                            <!-- Run clojure unit tests or all tests (including integration tests) depending on the profile enabled -->
+                            <testNamespaces>
+                                <testNamespace>${clojure.test.set}</testNamespace>
+                            </testNamespaces>
+                            <testDeclaredNamespaceOnly>${clojure.test.declared.namespace.only}</testDeclaredNamespaceOnly>
                         </configuration>
                     </execution>
                 </executions>
@@ -377,8 +432,14 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <reportsDirectory>${project.build.directory}/test-reports</reportsDirectory>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>2.2</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -389,54 +450,278 @@
                 </executions>
                 <configuration>
                     <keepDependenciesWithProvidedScope>false</keepDependenciesWithProvidedScope>
-                    <promoteTransitiveDependencies>true</promoteTransitiveDependencies>
+                    <promoteTransitiveDependencies>false</promoteTransitiveDependencies>
                     <createDependencyReducedPom>true</createDependencyReducedPom>
                     <minimizeJar>false</minimizeJar>
                     <artifactSet>
                         <includes>
+                            <include>ns-tracker:ns-tracker</include>
+                            <include>hiccup:hiccup</include>
+                            <include>ring:*</include>
+                            <include>compojure:compojure</include>
+                            <include>clj-time:clj-time</include>
                             <include>org.apache.thrift:*</include>
                             <include>io.netty:netty</include>
                             <include>com.google.guava:guava</include>
                             <include>org.apache.httpcomponents:http*</include>
                             <include>org.apache.zookeeper:zookeeper</include>
                             <include>org.apache.curator:*</include>
+                            <include>com.twitter:carbonite</include>
+                            <include>com.twitter:chill-java</include>
+                            <include>org.tukaani:xz</include>
+                            <include>org.yaml:snakeyaml</include>
+                            <include>org.jgrapht:jgrapht-core</include>
+                            <include>org.apache.commons:commons-exec</include>
+                            <include>org.apache.commons:commons-compress</include>
+                            <include>commons-io:commons-io</include>
+                            <include>commons-codec:commons-codec</include>
+                            <include>commons-fileupload:commons-fileupload</include>
+                            <include>commons-lang:commons-lang</include>
+                            <include>com.googlecode.json-simple:json-simple</include>
+                            <include>org.clojure:math.numeric-tower</include>
+                            <include>org.clojure:tools.cli</include>
+                            <include>org.clojure:tools.logging</include>
+                            <include>org.clojure:tools.macro</include>
+                            <include>org.clojure:java.jmx</include>
+                            <include>joda-time:joda-time</include>
+                            <include>org.eclipse.jetty:*</include>
+                            <include>com.fasterxml.jackson.core:*</include>
+                            <include>com.fasterxml.jackson.dataformat:*</include>
+                            <include>clout:clout</include>
+                            <include>org.clojure:tools.namespace</include>
+                            <include>cheshire:cheshire</include>
+                            <include>org.clojure:core.incubator</include>
+                            <include>io.dropwizard.metrics:*</include>
+                            <include>metrics-clojure:*</include>
                         </includes>
                     </artifactSet>
-
                     <relocations>
                         <relocation>
+                            <pattern>cheshire</pattern>
+                            <shadedPattern>org.apache.storm.shade.cheshire</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>clojure.tools.logging</pattern>
+                            <shadedPattern>org.apache.storm.shade.clojure.tools.logging</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>clojure.core.incubator</pattern>
+                            <shadedPattern>org.apache.storm.shade.clojure.core.incubator</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>clojure.tools.namespace</pattern>
+                            <shadedPattern>org.apache.storm.shade.clojure.tools.namespace</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>clout</pattern>
+                            <shadedPattern>org.apache.storm.shade.clout</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>compojure</pattern>
+                            <shadedPattern>org.apache.storm.shade.compojure</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>ns_tracker</pattern>
+                            <shadedPattern>org.apache.storm.shade.ns_tracker</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>ns-tracker</pattern>
+                            <shadedPattern>org.apache.storm.shade.ns-tracker</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>hiccup</pattern>
+                            <shadedPattern>org.apache.storm.shade.hiccup</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>ring</pattern>
+                            <shadedPattern>org.apache.storm.shade.ring</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>clj_time</pattern>
+                            <shadedPattern>org.apache.storm.shade.clj_time</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>clj-time</pattern>
+                            <shadedPattern>org.apache.storm.shade.clj-time</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>com.fasterxml</pattern>
+                            <shadedPattern>org.apache.storm.shade.com.fasterxml</shadedPattern>
+                        </relocation>
+                        <relocation>
                             <pattern>org.apache.thrift</pattern>
+                            <!-- This pattern is inconsistent for backwards compatibility purposes. -->
                             <shadedPattern>org.apache.thrift7</shadedPattern>
                         </relocation>
                         <relocation>
                             <pattern>org.jboss.netty</pattern>
-                            <shadedPattern>org.apache.storm.netty</shadedPattern>
+                            <shadedPattern>org.apache.storm.shade.org.jboss.netty</shadedPattern>
                         </relocation>
                         <relocation>
                             <pattern>com.google.common</pattern>
-                            <shadedPattern>org.apache.storm.guava</shadedPattern>
+                            <shadedPattern>org.apache.storm.shade.com.google.common</shadedPattern>
                         </relocation>
                         <relocation>
                             <pattern>com.google.thirdparty</pattern>
-                            <shadedPattern>org.apache.storm.guava.thirdparty</shadedPattern>
+                            <shadedPattern>org.apache.storm.shade.com.google.thirdparty</shadedPattern>
                         </relocation>
                         <relocation>
                             <pattern>org.apache.http</pattern>
-                            <shadedPattern>org.apache.storm.http</shadedPattern>
-                        </relocation>
-                        <relocation>
-                            <pattern>org.apache.zookeeper</pattern>
-                            <shadedPattern>org.apache.storm.zookeeper</shadedPattern>
+                            <shadedPattern>org.apache.storm.shade.org.apache.http</shadedPattern>
                         </relocation>
                         <relocation>
                             <pattern>org.apache.curator</pattern>
-                            <shadedPattern>org.apache.storm.curator</shadedPattern>
+                            <shadedPattern>org.apache.storm.shade.org.apache.curator</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>org.apache.zookeeper</pattern>
+                            <shadedPattern>org.apache.storm.shade.org.apache.zookeeper</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>org.apache.jute</pattern>
+                            <shadedPattern>org.apache.storm.shade.org.apache.jute</shadedPattern>
+                        </relocation>
+                        <relocation>
+                          <pattern>carbonite</pattern>
+                          <shadedPattern>org.apache.storm.shade.carbonite</shadedPattern>
+                        </relocation>
+                        <relocation>
+                          <pattern>com.twitter.chill</pattern>
+                          <shadedPattern>org.apache.storm.shade.com.twitter.chill</shadedPattern>
+                        </relocation>
+                        <relocation>
+                          <pattern>org.tukaani.xz</pattern>
+                          <shadedPattern>org.apache.storm.shade.org.tukaani.xz</shadedPattern>
+                        </relocation>
+                        <relocation>
+                          <pattern>org.yaml.snakeyaml</pattern>
+                          <shadedPattern>org.apache.storm.shade.org.yaml.snakeyaml</shadedPattern>
+                        </relocation>
+                        <relocation>
+                          <pattern>org.jgrapht</pattern>
+                          <shadedPattern>org.apache.storm.shade.org.jgrapht</shadedPattern>
+                        </relocation>
+                        <relocation>
+                          <pattern>org.fusesource</pattern>
+                          <shadedPattern>org.apache.storm.shade.org.fusesource</shadedPattern>
+                        </relocation>
+                        <relocation>
+                          <pattern>com.metamx.http.client</pattern>
+                          <shadedPattern>org.apache.storm.shade.com.metamx.http.client</shadedPattern>
+                        </relocation>
+                        <relocation>
+                          <pattern>org.apache.commons.io</pattern>
+                          <shadedPattern>org.apache.storm.shade.org.apache.commons.io</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>org.apache.commons.compress</pattern>
+                            <shadedPattern>org.apache.storm.shade.org.apache.commons.compress</shadedPattern>
+                        </relocation>
+                        <relocation>
+                          <pattern>org.apache.commons.codec</pattern>
+                          <shadedPattern>org.apache.storm.shade.org.apache.commons.codec</shadedPattern>
+                        </relocation>
+                        <relocation>
+                          <pattern>org.apache.commons.fileupload</pattern>
+                          <shadedPattern>org.apache.storm.shade.org.apache.commons.fileupload</shadedPattern>
+                        </relocation>
+                        <relocation>
+                          <pattern>org.apache.commons.exec</pattern>
+                          <shadedPattern>org.apache.storm.shade.org.apache.commons.exec</shadedPattern>
+                        </relocation>
+                        <relocation>
+                          <pattern>org.apache.commons.lang</pattern>
+                          <shadedPattern>org.apache.storm.shade.org.apache.commons.lang</shadedPattern>
+                        </relocation>
+                        <relocation>
+                          <pattern>org.json.simple</pattern>
+                          <shadedPattern>org.apache.storm.shade.org.json.simple</shadedPattern>
+                        </relocation>
+                        <relocation>
+                          <pattern>clojure.math</pattern>
+                          <shadedPattern>org.apache.storm.shade.clojure.math</shadedPattern>
+                        </relocation>
+                        <relocation>
+                          <pattern>clojure.tools.cli</pattern>
+                          <shadedPattern>org.apache.storm.shade.clojure.tools.cli</shadedPattern>
+                        </relocation>
+                        <relocation>
+                          <pattern>cljs.tools.cli</pattern>
+                          <shadedPattern>org.apache.storm.shade.cljs.tools.cli</shadedPattern>
+                        </relocation>
+                        <relocation>
+                          <pattern>clojure.tools.macro</pattern>
+                          <shadedPattern>org.apache.storm.shade.clojure.tools.macro</shadedPattern>
+                        </relocation>
+                        <relocation>
+                          <pattern>org.joda.time</pattern>
+                          <shadedPattern>org.apache.storm.shade.org.joda.time</shadedPattern>
+                        </relocation>
+                        <relocation>
+                          <pattern>org.eclipse.jetty</pattern>
+                          <shadedPattern>org.apache.storm.shade.org.eclipse.jetty</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>com.codahale.metrics</pattern>
+                            <shadedPattern>org.apache.storm.shade.com.codahale.metrics</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>metrics.core</pattern>
+                            <shadedPattern>org.apache.storm.shade.metrics.core</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>metrics.counters</pattern>
+                            <shadedPattern>org.apache.storm.shade.metrics.counters</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>metrics.gauges</pattern>
+                            <shadedPattern>org.apache.storm.shade.metrics.gauges</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>metrics.histograms</pattern>
+                            <shadedPattern>org.apache.storm.shade.metrics.histograms</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>metrics.meters</pattern>
+                            <shadedPattern>org.apache.storm.shade.metrics.meters</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>metrics.reporters</pattern>
+                            <shadedPattern>org.apache.storm.shade.metrics.reporters</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>metrics.timers</pattern>
+                            <shadedPattern>org.apache.storm.shade.metrics.timers</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>metrics.utils</pattern>
+                            <shadedPattern>org.apache.storm.shade.metrics.utils</shadedPattern>
                         </relocation>
                     </relocations>
                     <transformers>
                         <transformer implementation="org.apache.storm.maven.shade.clojure.ClojureTransformer" />
                     </transformers>
                     <filters>
+                        <!-- Several of these filters remove the .clj files from the shaded dependencies, even though only .clj files are in these jars.
+                             The reason for this is a bit complex, but intentional.  During the build process all of the dependency .clj files are
+                             compiled down into .class files, and included in storm-core.jar.  The regular shade transformer handles these in 
+                             the majority of cases correctly.  However, the Clojure-Transformer does not shade everything correctly all the
+                             time.  Instead of spending a lot of time to get the Clojure-Transformer to parse Clojure correctly we opted to remove
+                             the .clj files from the uber jar. -->
+                        <filter><artifact>metrics-clojure:*</artifact><excludes><exclude>**/*.clj</exclude></excludes></filter>
+                        <filter><artifact>org.clojure:core.incubator</artifact><excludes><exclude>**/*.clj</exclude></excludes></filter>
+                        <filter><artifact>cheshire:cheshire</artifact><excludes><exclude>**/*.clj</exclude></excludes></filter>
+                        <filter><artifact>org.clojure:tools.logging</artifact><excludes><exclude>**/*.clj</exclude></excludes></filter>
+                        <filter><artifact>org.clojure:tools.namespace</artifact><excludes><exclude>**/*.clj</exclude></excludes></filter>
+                        <filter><artifact>org.clojure:math.numeric-tower</artifact><excludes><exclude>**/*.clj</exclude></excludes></filter>
+                        <filter><artifact>org.clojure:tools.macro</artifact><excludes><exclude>**/*.clj</exclude></excludes></filter>
+                        <filter><artifact>org.clojure:tools.cli</artifact><excludes><exclude>**/*.clj</exclude></excludes></filter>
+                        <filter><artifact>ns-tracker:ns-tracker</artifact><excludes><exclude>**/*.clj</exclude></excludes></filter>
+                        <filter><artifact>clout:clout</artifact><excludes><exclude>**/*.clj</exclude></excludes></filter>
+                        <filter><artifact>hiccup:hiccup</artifact><excludes><exclude>**/*.clj</exclude></excludes></filter>
+                        <filter><artifact>clj-time:clj-time</artifact><excludes><exclude>**/*.clj</exclude></excludes></filter>
+                        <filter><artifact>ring:*</artifact><excludes><exclude>**/*.clj</exclude></excludes></filter>
+                        <filter><artifact>compojure:compojure</artifact><excludes><exclude>**/*.clj</exclude></excludes></filter>
                         <filter>
                             <artifact>org.apache.thrift:*</artifact>
                             <excludes>
@@ -452,17 +737,51 @@
                             </excludes>
                         </filter>
                         <filter>
-                            <artifact>commons-httpclient:commons-httpclient</artifact>
-                            <excludes>
-                                <exclude>META-INF/LICENSE.txt</exclude>
-                                <exclude>META-INF/NOTICE.txt</exclude>
-                                <exclude>META-INF/README.txt</exclude>
-                            </excludes>
-                        </filter>
-                        <filter>
                             <artifact>org.apache.zookeeper:zookeeper</artifact>
                             <excludes>
                                 <exclude>LICENSE.txt</exclude>
+                            </excludes>
+                        </filter>
+                        <filter>
+                            <artifact>org.apache.commons:commons-exec</artifact>
+                            <excludes>
+                                <exclude>META-INF/LICENSE.txt</exclude>
+                                <exclude>META-INF/NOTICE.txt</exclude>
+                            </excludes>
+                        </filter>
+                        <filter>
+                            <artifact>commons-io:commons-io</artifact>
+                            <excludes>
+                                <exclude>META-INF/LICENSE.txt</exclude>
+                                <exclude>META-INF/NOTICE.txt</exclude>
+                            </excludes>
+                        </filter>
+                        <filter>
+                            <artifact>commons-codec:commons-codec</artifact>
+                            <excludes>
+                                <exclude>META-INF/LICENSE.txt</exclude>
+                                <exclude>META-INF/NOTICE.txt</exclude>
+                            </excludes>
+                        </filter>
+                        <filter>
+                            <artifact>commons-fileupload:commons-fileupload</artifact>
+                            <excludes>
+                                <exclude>META-INF/LICENSE.txt</exclude>
+                                <exclude>META-INF/NOTICE.txt</exclude>
+                            </excludes>
+                        </filter>
+                        <filter>
+                            <artifact>commons-lang:commons-lang</artifact>
+                            <excludes>
+                                <exclude>META-INF/LICENSE.txt</exclude>
+                                <exclude>META-INF/NOTICE.txt</exclude>
+                            </excludes>
+                        </filter>
+                        <filter>
+                            <artifact>joda-time:joda-time</artifact>
+                            <excludes>
+                                <exclude>META-INF/LICENSE.txt</exclude>
+                                <exclude>META-INF/NOTICE.txt</exclude>
                             </excludes>
                         </filter>
                     </filters>
@@ -515,6 +834,35 @@
                             <includeScope>runtime</includeScope>
                         </configuration>
                     </execution>
+                    <!-- multi-lang resources -->
+                               <execution>
+                                 <id>unpack</id>
+                                 <phase>process-test-resources</phase>
+                                 <goals>
+                                   <goal>unpack</goal>
+                                 </goals>
+                                 <configuration>
+                                   <artifactItems>
+                                     <artifactItem>
+                                       <groupId>org.apache.storm</groupId>
+                                       <artifactId>multilang-ruby</artifactId>
+                                       <version>${project.version}</version>
+                                     </artifactItem>
+                                     <artifactItem>
+                                        <groupId>org.apache.storm</groupId>
+                                        <artifactId>multilang-python</artifactId>
+                                        <version>${project.version}</version>
+                                      </artifactItem>
+                                      <artifactItem>
+                                         <groupId>org.apache.storm</groupId>
+                                         <artifactId>multilang-javascript</artifactId>
+                                         <version>${project.version}</version>
+                                       </artifactItem>
+                                   </artifactItems>
+                                   <outputDirectory>${project.build.directory}/test-classes</outputDirectory>
+                                 </configuration>
+                               </execution>
+
                 </executions>
             </plugin>
             <plugin>
@@ -527,6 +875,18 @@
                         <goals>
                             <!-- avoid warning about recursion -->
                             <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>2.6</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>test-jar</goal>
                         </goals>
                     </execution>
                 </executions>
@@ -650,6 +1010,7 @@
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>make-maven-plugin</artifactId>
+                        <version>1.0-beta-1</version>
                         <executions>
                             <execution>
                                 <id>compile</id>

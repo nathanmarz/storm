@@ -40,7 +40,7 @@ import storm.trident.tuple.TridentTuple;
 
 public class ReturnResultsReducer implements MultiReducer<ReturnResultsState> {
     public static class ReturnResultsState {
-        List<TridentTuple> results = new ArrayList<TridentTuple>();
+        List<TridentTuple> results = new ArrayList<>();
         String returnInfo;
 
         @Override
@@ -50,7 +50,7 @@ public class ReturnResultsReducer implements MultiReducer<ReturnResultsState> {
     }
     boolean local;
     Map conf;
-    Map<List, DRPCInvocationsClient> _clients = new HashMap<List, DRPCInvocationsClient>();
+    Map<List, DRPCInvocationsClient> _clients = new HashMap<>();
     
     
     @Override

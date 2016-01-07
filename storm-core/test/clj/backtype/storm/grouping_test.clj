@@ -15,40 +15,111 @@
 ;; limitations under the License.
 (ns backtype.storm.grouping-test
   (:use [clojure test])
-  (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter NGrouping]
+  (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter TestWordBytesCounter NGrouping]
            [backtype.storm.generated JavaObject JavaObjectArg])
-  (:use [backtype.storm testing clojure])
-  (:use [backtype.storm.daemon common])
+  (:import [backtype.storm.grouping LoadMapping])
+  (:use [backtype.storm testing clojure log config])
+  (:use [backtype.storm.daemon common executor])
   (:require [backtype.storm [thrift :as thrift]]))
 
 (deftest test-shuffle
+ (let [shuffle-fn (mk-shuffle-grouper [(int 1) (int 2)] {TOPOLOGY-DISABLE-LOADAWARE-MESSAGING true} nil "comp" "stream")
+       num-messages 100000
+       min-prcnt (int (* num-messages 0.49))
+       max-prcnt (int (* num-messages 0.51))
+       data [1 2]
+       freq (frequencies (for [x (range 0 num-messages)] (shuffle-fn (int 1) data nil)))
+       load1 (.get freq [(int 1)])
+       load2 (.get freq [(int 2)])]
+    (log-message "FREQ:" freq)
+    (is (>= load1 min-prcnt))
+    (is (<= load1 max-prcnt))
+    (is (>= load2 min-prcnt))
+    (is (<= load2 max-prcnt))))
+
+(deftest test-shuffle-load-even
+ (let [shuffle-fn (mk-shuffle-grouper [(int 1) (int 2)] {} nil "comp" "stream")
+       num-messages 100000
+       min-prcnt (int (* num-messages 0.49))
+       max-prcnt (int (* num-messages 0.51))
+       load (LoadMapping.)
+       _ (.setLocal load {(int 1) 0.0 (int 2) 0.0})
+       data [1 2]
+       freq (frequencies (for [x (range 0 num-messages)] (shuffle-fn (int 1) data load)))
+       load1 (.get freq [(int 1)])
+       load2 (.get freq [(int 2)])]
+    (log-message "FREQ:" freq)
+    (is (>= load1 min-prcnt))
+    (is (<= load1 max-prcnt))
+    (is (>= load2 min-prcnt))
+    (is (<= load2 max-prcnt))))
+
+(deftest test-shuffle-load-uneven
+ (let [shuffle-fn (mk-shuffle-grouper [(int 1) (int 2)] {} nil "comp" "stream")
+       num-messages 100000
+       min1-prcnt (int (* num-messages 0.32))
+       max1-prcnt (int (* num-messages 0.34))
+       min2-prcnt (int (* num-messages 0.65))
+       max2-prcnt (int (* num-messages 0.67))
+       load (LoadMapping.)
+       _ (.setLocal load {(int 1) 0.5 (int 2) 0.0})
+       data [1 2]
+       freq (frequencies (for [x (range 0 num-messages)] (shuffle-fn (int 1) data load)))
+       load1 (.get freq [(int 1)])
+       load2 (.get freq [(int 2)])]
+    (log-message "FREQ:" freq)
+    (is (>= load1 min1-prcnt))
+    (is (<= load1 max1-prcnt))
+    (is (>= load2 min2-prcnt))
+    (is (<= load2 max2-prcnt))))
+
+(deftest test-field
   (with-simulated-time-local-cluster [cluster :supervisors 4]
-    (let [topology (thrift/mk-topology
-                    {"1" (thrift/mk-spout-spec (TestWordSpout. true) :parallelism-hint 4)}
-                    {"2" (thrift/mk-bolt-spec {"1" :shuffle} (TestGlobalCount.)
-                                            :parallelism-hint 6)
+    (let [spout-phint 4
+          bolt-phint 6
+          topology (thrift/mk-topology
+                    {"1" (thrift/mk-spout-spec (TestWordSpout. true)
+                                               :parallelism-hint spout-phint)}
+                    {"2" (thrift/mk-bolt-spec {"1" ["word"]}
+                                              (TestWordBytesCounter.)
+                                              :parallelism-hint bolt-phint)
                      })
-          results (complete-topology cluster
-                                     topology
-                                     ;; important for test that
-                                     ;; #tuples = multiple of 4 and 6
-                                     :mock-sources {"1" [["a"] ["b"]
-                                                         ["a"] ["b"]
-                                                         ["a"] ["b"]
-                                                         ["a"] ["b"]
-                                                         ["a"] ["b"]
-                                                         ["a"] ["b"]
-                                                         ["a"] ["b"]
-                                                         ["a"] ["b"]
-                                                         ["a"] ["b"]
-                                                         ["a"] ["b"]
-                                                         ["a"] ["b"]
-                                                         ["a"] ["b"]
-                                                       ]}
-                                     )]
-      (is (ms= (apply concat (repeat 6 [[1] [2] [3] [4]]))
-               (read-tuples results "2")))
-      )))
+          results (complete-topology
+                    cluster
+                    topology
+                    :mock-sources {"1" (->> [[(.getBytes "a")]
+                                             [(.getBytes "b")]]
+                                            (repeat (* spout-phint bolt-phint))
+                                            (apply concat))})]
+      (is (ms= (apply concat
+                      (for [value '("a" "b")
+                            sum (range 1 (inc (* spout-phint bolt-phint)))]
+                        [[value sum]]))
+               (read-tuples results "2"))))))
+
+(deftest test-field
+  (with-simulated-time-local-cluster [cluster :supervisors 4]
+    (let [spout-phint 4
+          bolt-phint 6
+          topology (thrift/mk-topology
+                    {"1" (thrift/mk-spout-spec (TestWordSpout. true)
+                                               :parallelism-hint spout-phint)}
+                    {"2" (thrift/mk-bolt-spec {"1" ["word"]}
+                                              (TestWordBytesCounter.)
+                                              :parallelism-hint bolt-phint)
+                     })
+          results (complete-topology
+                    cluster
+                    topology
+                    :mock-sources {"1" (->> [[(.getBytes "a")]
+                                             [(.getBytes "b")]]
+                                            (repeat (* spout-phint bolt-phint))
+                                            (apply concat))})]
+      (is (ms= (apply concat
+                      (for [value '("a" "b")
+                            sum (range 1 (inc (* spout-phint bolt-phint)))]
+                        [[value sum]]))
+               (read-tuples results "2"))))))
 
 (defbolt id-bolt ["val"] [tuple collector]
   (emit-bolt! collector (.getValues tuple))

@@ -16,20 +16,22 @@
 (ns backtype.storm.daemon.common
   (:use [backtype.storm log config util])
   (:import [backtype.storm.generated StormTopology
-            InvalidTopologyException GlobalStreamId])
+            InvalidTopologyException GlobalStreamId]
+           [backtype.storm.utils ThriftTopologyUtils])
   (:import [backtype.storm.utils Utils])
   (:import [backtype.storm.task WorkerTopologyContext])
   (:import [backtype.storm Constants])
   (:import [backtype.storm.metric SystemBolt])
+  (:import [backtype.storm.metric EventLoggerBolt])
   (:import [backtype.storm.security.auth IAuthorizer]) 
   (:import [java.io InterruptedIOException])
   (:require [clojure.set :as set])  
   (:require [backtype.storm.daemon.acker :as acker])
   (:require [backtype.storm.thrift :as thrift])
-  )
+  (:require [metrics.reporters.jmx :as jmx]))
 
-(defn system-id? [id]
-  (Utils/isSystemId id))
+(defn start-metrics-reporters []
+  (jmx/start (jmx/reporter {})))
 
 (def ACKER-COMPONENT-ID acker/ACKER-COMPONENT-ID)
 (def ACKER-INIT-STREAM-ID acker/ACKER-INIT-STREAM-ID)
@@ -37,6 +39,9 @@
 (def ACKER-FAIL-STREAM-ID acker/ACKER-FAIL-STREAM-ID)
 
 (def SYSTEM-STREAM-ID "__system")
+
+(def EVENTLOGGER-COMPONENT-ID "__eventlogger")
+(def EVENTLOGGER-STREAM-ID "__eventlog")
 
 (def SYSTEM-COMPONENT-ID Constants/SYSTEM_COMPONENT_ID)
 (def SYSTEM-TICK-STREAM-ID Constants/SYSTEM_TICK_STREAM_ID)
@@ -47,29 +52,16 @@
 ;; the task id is the virtual port
 ;; node->host is here so that tasks know who to talk to just from assignment
 ;; this avoid situation where node goes down and task doesn't know what to do information-wise
-(defrecord Assignment [master-code-dir node->host executor->node+port executor->start-time-secs])
+(defrecord Assignment [master-code-dir node->host executor->node+port executor->start-time-secs worker->resources])
 
 
 ;; component->executors is a map from spout/bolt id to number of executors for that component
-(defrecord StormBase [storm-name launch-time-secs status num-workers component->executors owner topology-action-options prev-status])
+(defrecord StormBase [storm-name launch-time-secs status num-workers component->executors owner topology-action-options prev-status component->debug])
 
-(defrecord SupervisorInfo [time-secs hostname assignment-id used-ports meta scheduler-meta uptime-secs])
+(defrecord SupervisorInfo [time-secs hostname assignment-id used-ports meta scheduler-meta uptime-secs version resources-map])
 
 (defprotocol DaemonCommon
   (waiting? [this]))
-
-(def LS-WORKER-HEARTBEAT "worker-heartbeat")
-
-;; LocalState constants
-(def LS-ID "supervisor-id")
-(def LS-LOCAL-ASSIGNMENTS "local-assignments")
-(def LS-APPROVED-WORKERS "approved-workers")
-
-(defn mk-local-worker-heartbeat [time-secs storm-id executors port]
-  {:time-secs time-secs
-   :storm-id storm-id
-   :executors executors
-   :port port})
 
 (defrecord ExecutorStats [^long processed
                           ^long acked
@@ -122,22 +114,23 @@
               (str "Duplicate component ids: " offending))))
     (doseq [f thrift/STORM-TOPOLOGY-FIELDS
             :let [obj-map (.getFieldValue topology f)]]
-      (doseq [id (keys obj-map)]
-        (if (system-id? id)
-          (throw (InvalidTopologyException.
-                  (str id " is not a valid component id")))))
-      (doseq [obj (vals obj-map)
-              id (-> obj .get_common .get_streams keys)]
-        (if (system-id? id)
-          (throw (InvalidTopologyException.
-                  (str id " is not a valid stream id"))))))
-    ))
+      (if-not (ThriftTopologyUtils/isWorkerHook f)
+        (do
+          (doseq [id (keys obj-map)]
+            (if (Utils/isSystemId id)
+              (throw (InvalidTopologyException.
+                       (str id " is not a valid component id")))))
+          (doseq [obj (vals obj-map)
+                  id (-> obj .get_common .get_streams keys)]
+            (if (Utils/isSystemId id)
+              (throw (InvalidTopologyException.
+                       (str id " is not a valid stream id"))))))))))
 
 (defn all-components [^StormTopology topology]
   (apply merge {}
-         (for [f thrift/STORM-TOPOLOGY-FIELDS]
-           (.getFieldValue topology f)
-           )))
+    (for [f thrift/STORM-TOPOLOGY-FIELDS]
+      (if-not (ThriftTopologyUtils/isWorkerHook f)
+        (.getFieldValue topology f)))))
 
 (defn component-conf [component]
   (->> component
@@ -193,6 +186,22 @@
                              {[id ACKER-ACK-STREAM-ID] ["id"]
                               [id ACKER-FAIL-STREAM-ID] ["id"]}
                              ))]
+    (merge spout-inputs bolt-inputs)))
+
+;; the event logger receives inputs from all the spouts and bolts
+;; with a field grouping on component id so that all tuples from a component
+;; goes to same executor and can be viewed via logviewer.
+(defn eventlogger-inputs [^StormTopology topology]
+  (let [bolt-ids (.. topology get_bolts keySet)
+        spout-ids (.. topology get_spouts keySet)
+        spout-inputs (apply merge
+                       (for [id spout-ids]
+                         {[id EVENTLOGGER-STREAM-ID] ["component-id"]}
+                         ))
+        bolt-inputs (apply merge
+                      (for [id bolt-ids]
+                        {[id EVENTLOGGER-STREAM-ID] ["component-id"]}
+                        ))]
     (merge spout-inputs bolt-inputs)))
 
 (defn add-acker! [storm-conf ^StormTopology ret]
@@ -286,6 +295,26 @@
      (metrics-consumer-register-ids storm-conf)
      (get storm-conf TOPOLOGY-METRICS-CONSUMER-REGISTER))))
 
+;; return the fields that event logger bolt expects
+(defn eventlogger-bolt-fields []
+  [(EventLoggerBolt/FIELD_COMPONENT_ID) (EventLoggerBolt/FIELD_MESSAGE_ID)  (EventLoggerBolt/FIELD_TS) (EventLoggerBolt/FIELD_VALUES)]
+  )
+
+(defn add-eventlogger! [storm-conf ^StormTopology ret]
+  (let [num-executors (if (nil? (storm-conf TOPOLOGY-EVENTLOGGER-EXECUTORS)) (storm-conf TOPOLOGY-WORKERS) (storm-conf TOPOLOGY-EVENTLOGGER-EXECUTORS))
+        eventlogger-bolt (thrift/mk-bolt-spec* (eventlogger-inputs ret)
+                     (EventLoggerBolt.)
+                     {}
+                     :p num-executors
+                     :conf {TOPOLOGY-TASKS num-executors
+                            TOPOLOGY-TICK-TUPLE-FREQ-SECS (storm-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS)})]
+
+    (doseq [[_ component] (all-components ret)
+            :let [common (.get_common component)]]
+      (.put_to_streams common EVENTLOGGER-STREAM-ID (thrift/output-fields (eventlogger-bolt-fields))))
+    (.put_to_bolts ret EVENTLOGGER-COMPONENT-ID eventlogger-bolt)
+    ))
+
 (defn add-metric-components! [storm-conf ^StormTopology topology]  
   (doseq [[comp-id bolt-spec] (metrics-consumer-bolt-specs storm-conf topology)]
     (.put_to_bolts topology comp-id bolt-spec)))
@@ -305,7 +334,8 @@
   (validate-basic! topology)
   (let [ret (.deepCopy topology)]
     (add-acker! storm-conf ret)
-    (add-metric-components! storm-conf ret)    
+    (add-eventlogger! storm-conf ret)
+    (add-metric-components! storm-conf ret)
     (add-system-components! storm-conf ret)
     (add-metric-streams! ret)
     (add-system-streams! ret)
@@ -316,6 +346,8 @@
 (defn has-ackers? [storm-conf]
   (or (nil? (storm-conf TOPOLOGY-ACKER-EXECUTORS)) (> (storm-conf TOPOLOGY-ACKER-EXECUTORS) 0)))
 
+(defn has-eventloggers? [storm-conf]
+  (or (nil? (storm-conf TOPOLOGY-EVENTLOGGER-EXECUTORS)) (> (storm-conf TOPOLOGY-EVENTLOGGER-EXECUTORS) 0)))
 
 (defn num-start-executors [component]
   (thrift/parallelism-hint (.get_common component)))

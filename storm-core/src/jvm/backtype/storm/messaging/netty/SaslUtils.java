@@ -17,7 +17,6 @@
  */
 package backtype.storm.messaging.netty;
 
-import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -29,11 +28,12 @@ import org.apache.commons.io.Charsets;
 import backtype.storm.Config;
 
 class SaslUtils {
+    public static final String KERBEROS = "GSSAPI";
     public static final String AUTH_DIGEST_MD5 = "DIGEST-MD5";
     public static final String DEFAULT_REALM = "default";
 
     static Map<String, String> getSaslProps() {
-        Map<String, String> props = new HashMap<String, String>();
+        Map<String, String> props = new HashMap<>();
         props.put(Sasl.POLICY_NOPLAINTEXT, "true");
         return props;
     }
@@ -62,13 +62,7 @@ class SaslUtils {
     }
 
     static String getSecretKey(Map conf) {
-        if (conf == null || conf.isEmpty())
-            return null;
-
-        String secretPayLoad = (String) conf
-                .get(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD);
-
-        return secretPayLoad;
+        return conf == null || conf.isEmpty() ? null : (String) conf.get(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD);
     }
 
 }

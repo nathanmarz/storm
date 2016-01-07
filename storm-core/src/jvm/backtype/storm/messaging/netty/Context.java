@@ -18,12 +18,9 @@
 package backtype.storm.messaging.netty;
 
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.jboss.netty.util.HashedWheelTimer;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -33,15 +30,12 @@ import backtype.storm.messaging.IContext;
 import backtype.storm.utils.Utils;
 
 public class Context implements IContext {
-    private static final Logger LOG = LoggerFactory.getLogger(Context.class);
-        
     @SuppressWarnings("rawtypes")
     private Map storm_conf;
     private Map<String, IConnection> connections;
     private NioClientSocketChannelFactory clientChannelFactory;
     
-    private ScheduledExecutorService clientScheduleService;
-    private final int MAX_CLIENT_SCHEDULER_THREAD_POOL_SIZE = 10;
+    private HashedWheelTimer clientScheduleService;
 
     /**
      * initialization per Storm configuration 
@@ -49,7 +43,7 @@ public class Context implements IContext {
     @SuppressWarnings("rawtypes")
     public void prepare(Map storm_conf) {
         this.storm_conf = storm_conf;
-        connections = new HashMap<String, IConnection>();
+        connections = new HashMap<>();
 
         //each context will have a single client channel factory
         int maxWorkers = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_CLIENT_WORKER_THREADS));
@@ -63,9 +57,7 @@ public class Context implements IContext {
                     Executors.newCachedThreadPool(workerFactory));
         }
         
-        int otherWorkers = Utils.getInt(storm_conf.get(Config.TOPOLOGY_WORKERS), 1) - 1;
-        int poolSize = Math.min(Math.max(1, otherWorkers), MAX_CLIENT_SCHEDULER_THREAD_POOL_SIZE);
-        clientScheduleService = Executors.newScheduledThreadPool(poolSize, new NettyRenameThreadFactory("client-schedule-service"));
+        clientScheduleService = new HashedWheelTimer(new NettyRenameThreadFactory("client-schedule-service"));
     }
 
     /**
@@ -93,25 +85,21 @@ public class Context implements IContext {
     }
 
     synchronized void removeClient(String host, int port) {
-        connections.remove(key(host, port));
+        if (connections != null) {
+            connections.remove(key(host, port));
+        }
     }
 
     /**
      * terminate this context
      */
     public synchronized void term() {
-        clientScheduleService.shutdown();        
-        
+        clientScheduleService.stop();
+
         for (IConnection conn : connections.values()) {
             conn.close();
         }
-        
-        try {
-            clientScheduleService.awaitTermination(30, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            LOG.error("Error when shutting down client scheduler", e);
-        }
-        
+
         connections = null;
 
         //we need to release resources associated with client channel factory

@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
 
 
 abstract public class ShellUtils {
-    public static Logger LOG = LoggerFactory.getLogger(ShellUtils.class);
+    public static final Logger LOG = LoggerFactory.getLogger(ShellUtils.class);
 
     // OSType detection
     public enum OSType {
@@ -100,6 +100,13 @@ abstract public class ShellUtils {
 
     public ShellUtils(long interval) {
         this(interval, false);
+    }
+
+    /** get the exit code
+     * @return the exit code of the process
+     */
+    public int getExitCode() {
+      return exitCode;
     }
 
     /**

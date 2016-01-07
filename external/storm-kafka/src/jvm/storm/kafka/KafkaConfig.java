@@ -23,7 +23,8 @@ import backtype.storm.spout.RawMultiScheme;
 import java.io.Serializable;
 
 public class KafkaConfig implements Serializable {
-
+    private static final long serialVersionUID = 5276718734571623855L;
+    
     public final BrokerHosts hosts;
     public final String topic;
     public final String clientId;
@@ -33,7 +34,7 @@ public class KafkaConfig implements Serializable {
     public int fetchMaxWait = 10000;
     public int bufferSizeBytes = 1024 * 1024;
     public MultiScheme scheme = new RawMultiScheme();
-    public boolean forceFromStart = false;
+    public boolean ignoreZkOffsets = false;
     public long startOffsetTime = kafka.api.OffsetRequest.EarliestTime();
     public long maxOffsetBehind = Long.MAX_VALUE;
     public boolean useStartOffsetTimeIfOffsetOutOfRange = true;

@@ -17,54 +17,53 @@
  */
 package org.apache.storm.redis.trident.state;
 
-import backtype.storm.tuple.Values;
-import com.google.common.collect.Lists;
-import org.apache.storm.redis.trident.mapper.TridentTupleMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.storm.redis.common.mapper.RedisLookupMapper;
 import redis.clients.jedis.Jedis;
-import storm.trident.operation.TridentCollector;
-import storm.trident.state.BaseQueryFunction;
-import storm.trident.tuple.TridentTuple;
 
 import java.util.List;
 
-public class RedisStateQuerier extends BaseQueryFunction<RedisState, String> {
-    private static final Logger logger = LoggerFactory.getLogger(RedisState.class);
-
-    private final String redisKeyPrefix;
-    private final TridentTupleMapper tupleMapper;
-
-    public RedisStateQuerier(String redisKeyPrefix, TridentTupleMapper tupleMapper) {
-        this.redisKeyPrefix = redisKeyPrefix;
-        this.tupleMapper = tupleMapper;
+/**
+ * BaseQueryFunction implementation for single Redis environment.
+ *
+ * @see AbstractRedisStateQuerier
+ */
+public class RedisStateQuerier extends AbstractRedisStateQuerier<RedisState> {
+    /**
+     * Constructor
+     *
+     * @param lookupMapper mapper for querying
+     */
+    public RedisStateQuerier(RedisLookupMapper lookupMapper) {
+        super(lookupMapper);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public List<String> batchRetrieve(RedisState redisState, List<TridentTuple> inputs) {
-        List<String> keys = Lists.newArrayList();
-        for (TridentTuple input : inputs) {
-            String key = this.tupleMapper.getKeyFromTridentTuple(input);
-            if (redisKeyPrefix != null && redisKeyPrefix.length() > 0) {
-                key = redisKeyPrefix + key;
-            }
-            keys.add(key);
-        }
-
+    protected List<String> retrieveValuesFromRedis(RedisState state, List<String> keys) {
         Jedis jedis = null;
         try {
-            jedis = redisState.getJedis();
-            return jedis.mget(keys.toArray(new String[keys.size()]));
+            jedis = state.getJedis();
+            List<String> redisVals;
+
+            String[] keysForRedis = keys.toArray(new String[keys.size()]);
+            switch (dataType) {
+            case STRING:
+                redisVals = jedis.mget(keysForRedis);
+                break;
+            case HASH:
+                redisVals = jedis.hmget(additionalKey, keysForRedis);
+                break;
+            default:
+                throw new IllegalArgumentException("Cannot process such data type: " + dataType);
+            }
+
+            return redisVals;
         } finally {
             if (jedis != null) {
-                redisState.returnJedis(jedis);
+                state.returnJedis(jedis);
             }
         }
-    }
-
-    @Override
-    public void execute(TridentTuple tuple, String s, TridentCollector collector) {
-        String key = this.tupleMapper.getKeyFromTridentTuple(tuple);
-        collector.emit(new Values(key, s));
     }
 }

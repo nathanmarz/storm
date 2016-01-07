@@ -115,7 +115,7 @@ public class OutputCollector implements IOutputCollector {
      * @param tuple the new output tuple from this bolt
      */
     public void emitDirect(int taskId, String streamId, Tuple anchor, List<Object> tuple) {
-        emitDirect(taskId, streamId, Arrays.asList(anchor), tuple);
+        emitDirect(taskId, streamId, anchor == null ? (List) null : Arrays.asList(anchor), tuple);
     }
 
     /**
@@ -143,12 +143,12 @@ public class OutputCollector implements IOutputCollector {
      * an error will occur at runtime. The emitted values must be 
      * immutable.
      *
-     * <p>The default stream must be declared as direct in the topology definition.
+     * The default stream must be declared as direct in the topology definition.
      * See OutputDeclarer#declare for how this is done when defining topologies
-     * in Java.</p>
+     * in Java.
      *
      * @param taskId the taskId to send the new tuple to
-     * @param anchosr the tuples to anchor to
+     * @param anchors the tuples to anchor to
      * @param tuple the new output tuple from this bolt
      */
     public void emitDirect(int taskId, Collection<Tuple> anchors, List<Object> tuple) {
@@ -163,9 +163,9 @@ public class OutputCollector implements IOutputCollector {
      * an error will occur at runtime. The emitted values must be 
      * immutable.
      *
-     * <p>The default stream must be declared as direct in the topology definition.
+     * The default stream must be declared as direct in the topology definition.
      * See OutputDeclarer#declare for how this is done when defining topologies
-     * in Java.</p>
+     * in Java.
      *
      * @param taskId the taskId to send the new tuple to
      * @param anchor the tuple to anchor to
@@ -184,12 +184,12 @@ public class OutputCollector implements IOutputCollector {
      * an error will occur at runtime. The emitted values must be 
      * immutable.
      *
-     * <p>The default stream must be declared as direct in the topology definition.
+     * The default stream must be declared as direct in the topology definition.
      * See OutputDeclarer#declare for how this is done when defining topologies
-     * in Java.</p>
+     * in Java.<
      *
-     * <p>Note that this method does not use anchors, so downstream failures won't
-     * affect the failure status of any spout tuples.</p>
+     * Note that this method does not use anchors, so downstream failures won't
+     * affect the failure status of any spout tuples.
      *
      * @param taskId the taskId to send the new tuple to
      * @param tuple the new output tuple from this bolt

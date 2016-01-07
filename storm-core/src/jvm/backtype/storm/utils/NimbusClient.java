@@ -17,14 +17,20 @@
  */
 package backtype.storm.utils;
 
+
 import backtype.storm.Config;
+import backtype.storm.generated.ClusterSummary;
+import backtype.storm.generated.Nimbus;
+import backtype.storm.generated.NimbusSummary;
 import backtype.storm.security.auth.ThriftClient;
 import backtype.storm.security.auth.ThriftConnectionType;
-import backtype.storm.generated.Nimbus;
-import java.util.Map;
+import com.google.common.collect.Lists;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
+import java.util.Map;
 
 public class NimbusClient extends ThriftClient {
     private Nimbus.Client _client;
@@ -32,25 +38,63 @@ public class NimbusClient extends ThriftClient {
 
 
     public static NimbusClient getConfiguredClient(Map conf) {
-        try {
-            String nimbusHost = (String) conf.get(Config.NIMBUS_HOST);
-            return new NimbusClient(conf, nimbusHost);
-        } catch (TTransportException ex) {
-            throw new RuntimeException(ex);
-        }
+        return getConfiguredClientAs(conf, null);
     }
 
     public static NimbusClient getConfiguredClientAs(Map conf, String asUser) {
-        try {
-            String nimbusHost = (String) conf.get(Config.NIMBUS_HOST);
-            return new NimbusClient(conf, nimbusHost, null, null, asUser);
-        } catch (TTransportException ex) {
-            throw new RuntimeException(ex);
+        if (conf.containsKey(Config.STORM_DO_AS_USER)) {
+            if (asUser != null && !asUser.isEmpty()) {
+                LOG.warn("You have specified a doAsUser as param {} and a doAsParam as config, config will take precedence."
+                        , asUser, conf.get(Config.STORM_DO_AS_USER));
+            }
+            asUser = (String) conf.get(Config.STORM_DO_AS_USER);
         }
+
+        List<String> seeds;
+        if(conf.containsKey(Config.NIMBUS_HOST)) {
+            LOG.warn("Using deprecated config {} for backward compatibility. Please update your storm.yaml so it only has config {}",
+                    Config.NIMBUS_HOST, Config.NIMBUS_SEEDS);
+            seeds = Lists.newArrayList(conf.get(Config.NIMBUS_HOST).toString());
+        } else {
+            seeds = (List<String>) conf.get(Config.NIMBUS_SEEDS);
+        }
+
+        for (String host : seeds) {
+            int port = Integer.parseInt(conf.get(Config.NIMBUS_THRIFT_PORT).toString());
+            ClusterSummary clusterInfo;
+            try {
+                NimbusClient client = new NimbusClient(conf, host, port);
+                clusterInfo = client.getClient().getClusterInfo();
+            } catch (Exception e) {
+                LOG.warn("Ignoring exception while trying to get leader nimbus info from " + host
+                        + ". will retry with a different seed host.", e);
+                continue;
+            }
+            List<NimbusSummary> nimbuses = clusterInfo.get_nimbuses();
+            if (nimbuses != null) {
+                for (NimbusSummary nimbusSummary : nimbuses) {
+                    if (nimbusSummary.is_isLeader()) {
+                        try {
+                            return new NimbusClient(conf, nimbusSummary.get_host(), nimbusSummary.get_port(), null, asUser);
+                        } catch (TTransportException e) {
+                            String leaderNimbus = nimbusSummary.get_host() + ":" + nimbusSummary.get_port();
+                            throw new RuntimeException("Failed to create a nimbus client for the leader " + leaderNimbus, e);
+                        }
+                    }
+                }
+                throw new NimbusLeaderNotFoundException(
+                        "Found nimbuses " + nimbuses + " none of which is elected as leader, please try " +
+                        "again after some time.");
+            }
+        }
+        throw new NimbusLeaderNotFoundException(
+                "Could not find leader nimbus from seed hosts " + seeds + ". " +
+                "Did you specify a valid list of nimbus hosts for config " +
+                        Config.NIMBUS_SEEDS + "?");
     }
 
     public NimbusClient(Map conf, String host, int port) throws TTransportException {
-        this(conf, host, port, null);
+        this(conf, host, port, null, null);
     }
 
     public NimbusClient(Map conf, String host, int port, Integer timeout) throws TTransportException {

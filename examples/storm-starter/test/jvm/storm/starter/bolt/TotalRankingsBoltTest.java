@@ -23,9 +23,9 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
+import backtype.storm.utils.MockTupleHelpers;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
-import storm.starter.tools.MockTupleHelpers;
 import storm.starter.tools.Rankings;
 
 import java.util.Map;

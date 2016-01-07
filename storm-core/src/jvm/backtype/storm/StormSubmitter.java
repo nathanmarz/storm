@@ -24,6 +24,8 @@ import java.util.regex.Pattern;
 import java.util.HashMap;
 import java.util.Map;
 
+import backtype.storm.scheduler.resource.ResourceUtils;
+import backtype.storm.validation.ConfigValidation;
 import org.apache.commons.lang.StringUtils;
 import org.apache.thrift.TException;
 import org.json.simple.JSONValue;
@@ -43,15 +45,11 @@ import backtype.storm.utils.Utils;
  * submit your topologies.
  */
 public class StormSubmitter {
-    public static Logger LOG = LoggerFactory.getLogger(StormSubmitter.class);    
+    public static final Logger LOG = LoggerFactory.getLogger(StormSubmitter.class);
 
     private static final int THRIFT_CHUNK_SIZE_BYTES = 307200;
-    
-    private static ILocalCluster localNimbus = null;
 
-    public static void setLocalNimbus(ILocalCluster localNimbusHandler) {
-        StormSubmitter.localNimbus = localNimbusHandler;
-    }
+    private static ILocalCluster localNimbus = null;
 
     private static String generateZookeeperDigestSecretPayload() {
         return Utils.secureRandomLong() + ":" + Utils.secureRandomLong();
@@ -73,7 +71,7 @@ public class StormSubmitter {
 
         // Is the topology ZooKeeper authentication configuration unset?
         if (! conf.containsKey(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD) ||
-                conf.get(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD) == null || 
+                conf.get(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD) == null ||
                 !  validateZKDigestPayload((String)
                     conf.get(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD))) {
 
@@ -81,7 +79,7 @@ public class StormSubmitter {
             toRet.put(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD, secretPayload);
             LOG.info("Generated ZooKeeper secret payload for MD5-digest: " + secretPayload);
         }
-        
+
         // This should always be set to digest.
         toRet.put(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_SCHEME, "digest");
 
@@ -89,7 +87,7 @@ public class StormSubmitter {
     }
 
     private static Map<String,String> populateCredentials(Map conf, Map<String, String> creds) {
-        Map<String,String> ret = new HashMap<String,String>();
+        Map<String,String> ret = new HashMap<>();
         for (IAutoCredentials autoCred: AuthUtils.GetAutoCredentials(conf)) {
             LOG.info("Running "+autoCred);
             autoCred.populateCredentials(ret);
@@ -103,13 +101,13 @@ public class StormSubmitter {
     /**
      * Push a new set of credentials to the running topology.
      * @param name the name of the topology to push credentials to.
-     * @param stormConf the topology-specific configuration, if desired. See {@link Config}. 
+     * @param stormConf the topology-specific configuration, if desired. See {@link Config}.
      * @param credentials the credentials to push.
      * @throws AuthorizationException if you are not authorized ot push credentials.
      * @throws NotAliveException if the topology is not alive
      * @throws InvalidTopologyException if any other error happens
      */
-    public static void pushCredentials(String name, Map stormConf, Map<String, String> credentials) 
+    public static void pushCredentials(String name, Map stormConf, Map<String, String> credentials)
             throws AuthorizationException, NotAliveException, InvalidTopologyException {
         stormConf = new HashMap(stormConf);
         stormConf.putAll(Utils.readCommandLineOpts());
@@ -117,7 +115,7 @@ public class StormSubmitter {
         conf.putAll(stormConf);
         Map<String,String> fullCreds = populateCredentials(conf, credentials);
         if (fullCreds.isEmpty()) {
-            LOG.warn("No credentials were found to push to "+name);
+            LOG.warn("No credentials were found to push to " + name);
             return;
         }
         try {
@@ -138,43 +136,45 @@ public class StormSubmitter {
             throw new RuntimeException(e);
         }
     }
- 
+
 
     /**
-     * Submits a topology to run on the cluster. A topology runs forever or until 
+     * Submits a topology to run on the cluster. A topology runs forever or until
      * explicitly killed.
      *
      *
      * @param name the name of the storm.
-     * @param stormConf the topology-specific configuration. See {@link Config}. 
+     * @param stormConf the topology-specific configuration. See {@link Config}.
      * @param topology the processing to execute.
      * @throws AlreadyAliveException if a topology with this name is already running
      * @throws InvalidTopologyException if an invalid topology was submitted
      * @throws AuthorizationException if authorization is failed
      */
-    public static void submitTopology(String name, Map stormConf, StormTopology topology) 
+    public static void submitTopology(String name, Map stormConf, StormTopology topology)
             throws AlreadyAliveException, InvalidTopologyException, AuthorizationException {
         submitTopology(name, stormConf, topology, null, null);
-    }    
+    }
 
     /**
-     * Submits a topology to run on the cluster. A topology runs forever or until 
+     * Submits a topology to run on the cluster. A topology runs forever or until
      * explicitly killed.
      *
      * @param name the name of the storm.
-     * @param stormConf the topology-specific configuration. See {@link Config}. 
+     * @param stormConf the topology-specific configuration. See {@link Config}.
      * @param topology the processing to execute.
      * @param opts to manipulate the starting of the topology.
      * @throws AlreadyAliveException if a topology with this name is already running
      * @throws InvalidTopologyException if an invalid topology was submitted
      * @throws AuthorizationException if authorization is failed
      */
-    public static void submitTopology(String name, Map stormConf, StormTopology topology, SubmitOptions opts) 
+    public static void submitTopology(String name, Map stormConf, StormTopology topology, SubmitOptions opts)
             throws AlreadyAliveException, InvalidTopologyException, AuthorizationException {
         submitTopology(name, stormConf, topology, opts, null);
     }
 
     /**
+     * Submits a topology to run on the cluster as a particular user. A topology runs forever or until
+     * explicitly killed.
      *
      * @param name
      * @param stormConf
@@ -185,9 +185,10 @@ public class StormSubmitter {
      * @throws AlreadyAliveException
      * @throws InvalidTopologyException
      * @throws AuthorizationException
+     * @throws IllegalArgumentException thrown if configs will yield an unschedulable topology. validateConfs validates confs
      */
     public static void submitTopologyAs(String name, Map stormConf, StormTopology topology, SubmitOptions opts, ProgressListener progressListener, String asUser)
-            throws AlreadyAliveException, InvalidTopologyException, AuthorizationException {
+            throws AlreadyAliveException, InvalidTopologyException, AuthorizationException, IllegalArgumentException {
         if(!Utils.isValidConf(stormConf)) {
             throw new IllegalArgumentException("Storm conf is not valid. Must be json-serializable");
         }
@@ -197,7 +198,9 @@ public class StormSubmitter {
         conf.putAll(stormConf);
         stormConf.putAll(prepareZookeeperAuthentication(conf));
 
-        Map<String,String> passedCreds = new HashMap<String, String>();
+        validateConfs(conf, topology);
+
+        Map<String,String> passedCreds = new HashMap<>();
         if (opts != null) {
             Credentials tmpCreds = opts.get_creds();
             if (tmpCreds != null) {
@@ -247,6 +250,20 @@ public class StormSubmitter {
             }
             LOG.info("Finished submitting topology: " +  name);
         } catch(TException e) {
+            throw new RuntimeException(e);
+        }
+        invokeSubmitterHook(name, asUser, conf, topology);
+
+    }
+
+    private static void invokeSubmitterHook(String name, String asUser, Map stormConf, StormTopology topology) {
+        try {
+            if (stormConf.containsKey(Config.STORM_TOPOLOGY_SUBMISSION_NOTIFIER_PLUGIN)) {
+                ISubmitterHook submitterHook = (ISubmitterHook) Class.forName(stormConf.get(Config.STORM_TOPOLOGY_SUBMISSION_NOTIFIER_PLUGIN).toString()).newInstance();
+                TopologyInfo topologyInfo = Utils.getTopologyInfo(name, asUser, stormConf);
+                submitterHook.notify(topologyInfo, stormConf, topology);
+            }
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
@@ -332,10 +349,10 @@ public class StormSubmitter {
         try {
             ClusterSummary summary = client.getClient().getClusterInfo();
             for(TopologySummary s : summary.get_topologies()) {
-                if(s.get_name().equals(name)) {  
+                if(s.get_name().equals(name)) {
                     return true;
-                } 
-            }  
+                }
+            }
             return false;
 
         } catch(Exception e) {
@@ -441,5 +458,39 @@ public class StormSubmitter {
          * @param totalBytes - total number of bytes of the file
          */
         public void onCompleted(String srcFile, String targetFile, long totalBytes);
+    }
+
+    private static void validateConfs(Map stormConf, StormTopology topology) throws IllegalArgumentException {
+        ConfigValidation.validateFields(stormConf);
+        validateTopologyWorkerMaxHeapSizeMBConfigs(stormConf, topology);
+    }
+
+    private static void validateTopologyWorkerMaxHeapSizeMBConfigs(Map stormConf, StormTopology topology) {
+        double largestMemReq = getMaxExecutorMemoryUsageForTopo(topology, stormConf);
+        Double topologyWorkerMaxHeapSize = Utils.getDouble(stormConf.get(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB));
+        if(topologyWorkerMaxHeapSize < largestMemReq) {
+            throw new IllegalArgumentException("Topology will not be able to be successfully scheduled: Config TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB="
+                    +Utils.getDouble(stormConf.get(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB)) + " < "
+                    + largestMemReq + " (Largest memory requirement of a component in the topology). Perhaps set TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB to a larger amount");
+        }
+    }
+
+    private static double getMaxExecutorMemoryUsageForTopo(StormTopology topology, Map topologyConf) {
+        double largestMemoryOperator = 0.0;
+        for(Map<String, Double> entry : ResourceUtils.getBoltsResources(topology, topologyConf).values()) {
+            double memoryRequirement = entry.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)
+                    + entry.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB);
+            if(memoryRequirement > largestMemoryOperator) {
+                largestMemoryOperator = memoryRequirement;
+            }
+        }
+        for(Map<String, Double> entry : ResourceUtils.getSpoutsResources(topology, topologyConf).values()) {
+            double memoryRequirement = entry.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)
+                    + entry.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB);
+            if(memoryRequirement > largestMemoryOperator) {
+                largestMemoryOperator = memoryRequirement;
+            }
+        }
+        return largestMemoryOperator;
     }
 }

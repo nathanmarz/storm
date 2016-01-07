@@ -29,10 +29,20 @@ public interface INimbus {
      */
     Collection<WorkerSlot> allSlotsAvailableForScheduling(Collection<SupervisorDetails> existingSupervisors, Topologies topologies, Set<String> topologiesMissingAssignments);
 
-    // this is called after the assignment is changed in ZK
+
+    /**
+     * this is called after the assignment is changed in ZK
+     * @param topologies
+     * @param newSlotsByTopologyId
+     */
     void assignSlots(Topologies topologies, Map<String, Collection<WorkerSlot>> newSlotsByTopologyId);
-    
-    // map from node id to supervisor details
+
+    /**
+     * map from node id to supervisor details
+     * @param existingSupervisors
+     * @param nodeId
+     * @return
+     */
     String getHostName(Map<String, SupervisorDetails> existingSupervisors, String nodeId);
     
     IScheduler getForcedScheduler(); 

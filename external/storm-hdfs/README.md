@@ -277,6 +277,39 @@ public interface SequenceFormat extends Serializable {
 }
 ```
 
+## Support for Avro Files
+
+The `org.apache.storm.hdfs.bolt.AvroGenericRecordBolt` class allows you to write Avro objects directly to HDFS:
+ 
+```java
+        // sync the filesystem after every 1k tuples
+        SyncPolicy syncPolicy = new CountSyncPolicy(1000);
+
+        // rotate files when they reach 5MB
+        FileRotationPolicy rotationPolicy = new FileSizeRotationPolicy(5.0f, Units.MB);
+
+        FileNameFormat fileNameFormat = new DefaultFileNameFormat()
+                .withExtension(".avro")
+                .withPath("/data/");
+
+        // create sequence format instance.
+        DefaultSequenceFormat format = new DefaultSequenceFormat("timestamp", "sentence");
+
+        AvroGenericRecordBolt bolt = new AvroGenericRecordBolt()
+                .withFsUrl("hdfs://localhost:54310")
+                .withFileNameFormat(fileNameFormat)
+                .withSchemaAsString(schema)
+                .withRotationPolicy(rotationPolicy)
+                .withSyncPolicy(syncPolicy);
+```
+
+The setup is very similar to the `SequenceFileBolt` example above.  The key difference is that instead of specifying a
+`SequenceFormat` you must provide a string representation of an Avro schema through the `withSchemaAsString()` method.
+An `org.apache.avro.Schema` object cannot be directly provided since it does not implement `Serializable`.
+
+The AvroGenericRecordBolt expects to receive tuples containing an Avro GenericRecord that conforms to the provided
+schema.
+
 ## Trident API
 storm-hdfs also includes a Trident `state` implementation for writing data to HDFS, with an API that closely mirrors
 that of the bolts.
@@ -316,6 +349,15 @@ that of the bolts.
                 .withFsUrl("hdfs://localhost:54310")
                 .addRotationAction(new MoveFileAction().toDestination("/dest2/"));
 ```
+
+### Note
+Whenever a batch is replayed by storm (due to failures), the trident state implementation automatically removes 
+duplicates from the current data file by copying the data up to the last transaction to another file. Since this 
+operation involves a lot of data copy, ensure that the data files are rotated at reasonable sizes with `FileSizeRotationPolicy` 
+and at reasonable intervals with `TimedRotationPolicy` so that the recovery can complete within topology.message.timeout.secs.
+
+Also note with `TimedRotationPolicy` the files are never rotated in the middle of a batch even if the timer ticks, 
+but only when a batch completes so that complete batches can be efficiently recovered in case of failures.
 
 ##Working with Secure HDFS
 If your topology is going to interact with secure HDFS, your bolts/states needs to be authenticated by NameNode. We 

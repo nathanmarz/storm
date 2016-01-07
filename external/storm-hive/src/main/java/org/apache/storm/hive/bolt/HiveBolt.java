@@ -23,6 +23,8 @@ import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.topology.base.BaseRichBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
+import backtype.storm.utils.TupleUtils;
+import backtype.storm.Config;
 import org.apache.storm.hive.common.HiveWriter;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.hive.hcatalog.streaming.*;
@@ -43,23 +45,25 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.List;
+import java.util.LinkedList;
 import java.io.IOException;
 
 public class HiveBolt extends  BaseRichBolt {
     private static final Logger LOG = LoggerFactory.getLogger(HiveBolt.class);
     private OutputCollector collector;
     private HiveOptions options;
-    private Integer currentBatchSize;
     private ExecutorService callTimeoutPool;
     private transient Timer heartBeatTimer;
     private Boolean kerberosEnabled = false;
     private AtomicBoolean timeToSendHeartBeat = new AtomicBoolean(false);
     private UserGroupInformation ugi = null;
     HashMap<HiveEndPoint, HiveWriter> allWriters;
+    private List<Tuple> tupleBatch;
 
     public HiveBolt(HiveOptions options) {
         this.options = options;
-        this.currentBatchSize = 0;
+        tupleBatch = new LinkedList<>();
     }
 
     @Override
@@ -89,31 +93,63 @@ public class HiveBolt extends  BaseRichBolt {
                                 new ThreadFactoryBuilder().setNameFormat(timeoutName).build());
             heartBeatTimer = new Timer();
             setupHeartBeatTimer();
+
+            // If interval is non-zero then it has already been explicitly set and we should not default it
+            if (conf.containsKey("topology.message.timeout.secs") && options.getTickTupleInterval() == 0)
+            {
+                Integer topologyTimeout = Integer.parseInt(conf.get("topology.message.timeout.secs").toString());
+                int tickTupleInterval = (int) (Math.floor(topologyTimeout / 2));
+                options.withTickTupleInterval(tickTupleInterval);
+                LOG.debug("Setting tick tuple interval to [" + tickTupleInterval + "] based on topology timeout");
+            }
         } catch(Exception e) {
-            LOG.warn("unable to make connection to hive ",e);
+            LOG.warn("unable to make connection to hive ", e);
         }
     }
 
     @Override
     public void execute(Tuple tuple) {
         try {
-            List<String> partitionVals = options.getMapper().mapPartitions(tuple);
-            HiveEndPoint endPoint = HiveUtils.makeEndPoint(partitionVals, options);
-            HiveWriter writer = getOrCreateWriter(endPoint);
-            if(timeToSendHeartBeat.compareAndSet(true, false)) {
-                enableHeartBeatOnAllWriters();
+            boolean forceFlush = false;
+            if (TupleUtils.isTick(tuple)) {
+                LOG.debug("TICK received! current batch status [" + tupleBatch.size() + "/" + options.getBatchSize() + "]");
+                forceFlush = true;
             }
-            writer.write(options.getMapper().mapRecord(tuple));
-            currentBatchSize++;
-            if(currentBatchSize >= options.getBatchSize()) {
-                flushAllWriters();
-                currentBatchSize = 0;
+            else {
+                List<String> partitionVals = options.getMapper().mapPartitions(tuple);
+                HiveEndPoint endPoint = HiveUtils.makeEndPoint(partitionVals, options);
+                HiveWriter writer = getOrCreateWriter(endPoint);
+                if (timeToSendHeartBeat.compareAndSet(true, false)) {
+                    enableHeartBeatOnAllWriters();
+                }
+                writer.write(options.getMapper().mapRecord(tuple));
+                tupleBatch.add(tuple);
+                if (tupleBatch.size() >= options.getBatchSize())
+                    forceFlush = true;
             }
-            collector.ack(tuple);
+            if(forceFlush && !tupleBatch.isEmpty()) {
+                flushAllWriters(true);
+                LOG.info("acknowledging tuples after writers flushed ");
+                for(Tuple t : tupleBatch)
+                    collector.ack(t);
+                tupleBatch.clear();
+            }
         } catch(Exception e) {
             this.collector.reportError(e);
             collector.fail(tuple);
-            flushAndCloseWriters();
+            try {
+                flushAndCloseWriters();
+                LOG.info("acknowledging tuples after writers flushed and closed");
+                for (Tuple t : tupleBatch)
+                    collector.ack(t);
+                tupleBatch.clear();
+            } catch (Exception e1) {
+                //If flushAndClose fails assume tuples are lost, do not ack
+                LOG.warn("Error while flushing and closing writers, tuples will NOT be acknowledged");
+                for (Tuple t : tupleBatch)
+                    collector.fail(t);
+                tupleBatch.clear();
+            }
         }
     }
 
@@ -157,6 +193,17 @@ public class HiveBolt extends  BaseRichBolt {
         LOG.info("Hive Bolt stopped");
     }
 
+    @Override
+    public Map<String, Object> getComponentConfiguration() {
+        Map<String, Object> conf = super.getComponentConfiguration();
+        if (conf == null)
+            conf = new Config();
+
+        if (options.getTickTupleInterval() > 0)
+            conf.put(Config.TOPOLOGY_TICK_TUPLE_FREQ_SECS, options.getTickTupleInterval());
+
+        return conf;
+    }
 
     private void setupHeartBeatTimer() {
         if(options.getHeartBeatInterval()>0) {
@@ -170,10 +217,10 @@ public class HiveBolt extends  BaseRichBolt {
         }
     }
 
-    private void flushAllWriters()
+    void flushAllWriters(boolean rollToNext)
         throws HiveWriter.CommitFailure, HiveWriter.TxnBatchFailure, HiveWriter.TxnFailure, InterruptedException {
         for(HiveWriter writer: allWriters.values()) {
-            writer.flush(true);
+            writer.flush(rollToNext);
         }
     }
 
@@ -194,11 +241,12 @@ public class HiveBolt extends  BaseRichBolt {
         }
     }
 
-    private void flushAndCloseWriters() {
+    void flushAndCloseWriters() throws Exception {
         try {
-            flushAllWriters();
+            flushAllWriters(false);
         } catch(Exception e) {
             LOG.warn("unable to flush hive writers. ", e);
+            throw e;
         } finally {
             closeAllWriters();
         }

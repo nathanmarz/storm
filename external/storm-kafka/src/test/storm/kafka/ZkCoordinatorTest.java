@@ -61,7 +61,7 @@ public class ZkCoordinatorTest {
         Map conf = buildZookeeperConfig(server);
         state = new ZkState(conf);
         simpleConsumer = new SimpleConsumer("localhost", broker.getPort(), 60000, 1024, "testClient");
-        when(dynamicPartitionConnections.register(any(Broker.class), anyInt())).thenReturn(simpleConsumer);
+        when(dynamicPartitionConnections.register(any(Broker.class), any(String.class) ,anyInt())).thenReturn(simpleConsumer);
     }
 
     private Map buildZookeeperConfig(TestingServer server) {
@@ -69,6 +69,7 @@ public class ZkCoordinatorTest {
         conf.put(Config.TRANSACTIONAL_ZOOKEEPER_PORT, server.getPort());
         conf.put(Config.TRANSACTIONAL_ZOOKEEPER_SERVERS, Arrays.asList("localhost"));
         conf.put(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT, 20000);
+        conf.put(Config.STORM_ZOOKEEPER_CONNECTION_TIMEOUT, 20000);
         conf.put(Config.STORM_ZOOKEEPER_RETRY_TIMES, 3);
         conf.put(Config.STORM_ZOOKEEPER_RETRY_INTERVAL, 30);
         return conf;
@@ -86,7 +87,7 @@ public class ZkCoordinatorTest {
         int totalTasks = 64;
         int partitionsPerTask = 1;
         List<ZkCoordinator> coordinatorList = buildCoordinators(totalTasks / partitionsPerTask);
-        when(reader.getBrokerInfo()).thenReturn(TestUtils.buildPartitionInfo(totalTasks));
+        when(reader.getBrokerInfo()).thenReturn(TestUtils.buildPartitionInfoList(TestUtils.buildPartitionInfo(totalTasks)));
         for (ZkCoordinator coordinator : coordinatorList) {
             List<PartitionManager> myManagedPartitions = coordinator.getMyManagedPartitions();
             assertEquals(partitionsPerTask, myManagedPartitions.size());
@@ -100,10 +101,10 @@ public class ZkCoordinatorTest {
         final int totalTasks = 64;
         int partitionsPerTask = 2;
         List<ZkCoordinator> coordinatorList = buildCoordinators(totalTasks / partitionsPerTask);
-        when(reader.getBrokerInfo()).thenReturn(TestUtils.buildPartitionInfo(totalTasks, 9092));
+        when(reader.getBrokerInfo()).thenReturn(TestUtils.buildPartitionInfoList(TestUtils.buildPartitionInfo(totalTasks, 9092)));
         List<List<PartitionManager>> partitionManagersBeforeRefresh = getPartitionManagers(coordinatorList);
         waitForRefresh();
-        when(reader.getBrokerInfo()).thenReturn(TestUtils.buildPartitionInfo(totalTasks, 9093));
+        when(reader.getBrokerInfo()).thenReturn(TestUtils.buildPartitionInfoList(TestUtils.buildPartitionInfo(totalTasks, 9093)));
         List<List<PartitionManager>> partitionManagersAfterRefresh = getPartitionManagers(coordinatorList);
         assertEquals(partitionManagersAfterRefresh.size(), partitionManagersAfterRefresh.size());
         Iterator<List<PartitionManager>> iterator = partitionManagersAfterRefresh.iterator();

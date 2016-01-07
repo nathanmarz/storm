@@ -21,7 +21,9 @@ import backtype.storm.tuple.Fields;
 import com.google.common.collect.ImmutableMap;
 import org.junit.Test;
 
-import java.util.Arrays;
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.util.Collections;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -32,7 +34,7 @@ public class StringKeyValueSchemeTest {
 
     @Test
     public void testDeserialize() throws Exception {
-        assertEquals(Arrays.asList("test"), scheme.deserialize("test".getBytes()));
+        assertEquals(Collections.singletonList("test"), scheme.deserialize(wrapString("test")));
     }
 
     @Test
@@ -44,12 +46,17 @@ public class StringKeyValueSchemeTest {
 
     @Test
     public void testDeserializeWithNullKeyAndValue() throws Exception {
-        assertEquals(Arrays.asList("test"), scheme.deserializeKeyAndValue(null, "test".getBytes()));
+        assertEquals(Collections.singletonList("test"),
+            scheme.deserializeKeyAndValue(null, wrapString("test")));
     }
 
     @Test
     public void testDeserializeWithKeyAndValue() throws Exception {
-        assertEquals(Arrays.asList(ImmutableMap.of("key", "test")),
-                scheme.deserializeKeyAndValue("key".getBytes(), "test".getBytes()));
+        assertEquals(Collections.singletonList(ImmutableMap.of("key", "test")),
+                scheme.deserializeKeyAndValue(wrapString("key"), wrapString("test")));
+    }
+
+    private static ByteBuffer wrapString(String s) {
+        return ByteBuffer.wrap(s.getBytes(Charset.defaultCharset()));
     }
 }

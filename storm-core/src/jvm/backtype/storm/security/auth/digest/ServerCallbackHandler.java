@@ -26,7 +26,6 @@ import backtype.storm.security.auth.SaslTransportPlugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.security.auth.Subject;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.NameCallback;
@@ -40,7 +39,7 @@ import javax.security.sasl.RealmCallback;
 import backtype.storm.security.auth.AuthUtils;
 
 /**
- * SASL server side collback handler
+ * SASL server side callback handler
  */
 public class ServerCallbackHandler implements CallbackHandler {
     private static final String USER_PREFIX = "user_";
@@ -48,7 +47,7 @@ public class ServerCallbackHandler implements CallbackHandler {
     private static final String SYSPROP_SUPER_PASSWORD = "storm.SASLAuthenticationProvider.superPassword";
 
     private String userName;
-    private final Map<String,String> credentials = new HashMap<String,String>();
+    private final Map<String,String> credentials = new HashMap<>();
 
     public ServerCallbackHandler(Configuration configuration) throws IOException {
         if (configuration==null) return;

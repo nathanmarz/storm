@@ -49,7 +49,7 @@ import static backtype.storm.utils.Utils.get;
  * in the case of retries.
  */
 public class CoordinatedBolt implements IRichBolt {
-    public static Logger LOG = LoggerFactory.getLogger(CoordinatedBolt.class);
+    public static final Logger LOG = LoggerFactory.getLogger(CoordinatedBolt.class);
 
     public static interface FinishedCallback {
         void finishedId(Object id);
@@ -148,7 +148,7 @@ public class CoordinatedBolt implements IRichBolt {
     private IdStreamSpec _idStreamSpec;
     private IRichBolt _delegate;
     private Integer _numSourceReports;
-    private List<Integer> _countOutTasks = new ArrayList<Integer>();;
+    private List<Integer> _countOutTasks = new ArrayList<>();
     private OutputCollector _collector;
     private TimeCacheMap<Object, TrackingInfo> _tracked;
 
@@ -157,10 +157,10 @@ public class CoordinatedBolt implements IRichBolt {
         int expectedTupleCount = 0;
         int receivedTuples = 0;
         boolean failed = false;
-        Map<Integer, Integer> taskEmittedTuples = new HashMap<Integer, Integer>();
+        Map<Integer, Integer> taskEmittedTuples = new HashMap<>();
         boolean receivedId = false;
         boolean finished = false;
-        List<Tuple> ackTuples = new ArrayList<Tuple>();
+        List<Tuple> ackTuples = new ArrayList<>();
         
         @Override
         public String toString() {
@@ -199,7 +199,7 @@ public class CoordinatedBolt implements IRichBolt {
     
     public CoordinatedBolt(IRichBolt delegate, Map<String, SourceArgs> sourceArgs, IdStreamSpec idStreamSpec) {
         _sourceArgs = sourceArgs;
-        if(_sourceArgs==null) _sourceArgs = new HashMap<String, SourceArgs>();
+        if(_sourceArgs==null) _sourceArgs = new HashMap<>();
         _delegate = delegate;
         _idStreamSpec = idStreamSpec;
     }
@@ -209,7 +209,7 @@ public class CoordinatedBolt implements IRichBolt {
         if(_delegate instanceof TimeoutCallback) {
             callback = new TimeoutItems();
         }
-        _tracked = new TimeCacheMap<Object, TrackingInfo>(context.maxTopologyMessageTimeout(), callback);
+        _tracked = new TimeCacheMap<>(context.maxTopologyMessageTimeout(), callback);
         _collector = collector;
         _delegate.prepare(config, context, new OutputCollector(new CoordinatedOutputCollector(collector)));
         for(String component: Utils.get(context.getThisTargets(),
@@ -343,7 +343,7 @@ public class CoordinatedBolt implements IRichBolt {
     }
     
     private static Map<String, SourceArgs> singleSourceArgs(String sourceComponent, SourceArgs sourceArgs) {
-        Map<String, SourceArgs> ret = new HashMap<String, SourceArgs>();
+        Map<String, SourceArgs> ret = new HashMap<>();
         ret.put(sourceComponent, sourceArgs);
         return ret;
     }
@@ -364,7 +364,7 @@ public class CoordinatedBolt implements IRichBolt {
     
     private TupleType getTupleType(Tuple tuple) {
         if(_idStreamSpec!=null
-                && tuple.getSourceGlobalStreamid().equals(_idStreamSpec._id)) {
+                && tuple.getSourceGlobalStreamId().equals(_idStreamSpec._id)) {
             return TupleType.ID;
         } else if(!_sourceArgs.isEmpty()
                 && tuple.getSourceStreamId().equals(Constants.COORDINATED_STREAM_ID)) {

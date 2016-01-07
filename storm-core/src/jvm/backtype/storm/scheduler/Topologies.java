@@ -21,19 +21,22 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import backtype.storm.scheduler.resource.Component;
+
 public class Topologies {
     Map<String, TopologyDetails> topologies;
     Map<String, String> nameToId;
-    
+    Map<String, Map<String, Component>> _allComponents;
+
     public Topologies(Map<String, TopologyDetails> topologies) {
-        if(topologies==null) topologies = new HashMap();
-        this.topologies = new HashMap<String, TopologyDetails>(topologies.size());
+        if(topologies==null) topologies = new HashMap<>();
+        this.topologies = new HashMap<>(topologies.size());
         this.topologies.putAll(topologies);
-        this.nameToId = new HashMap<String, String>(topologies.size());
+        this.nameToId = new HashMap<>(topologies.size());
         
-        for (String topologyId : topologies.keySet()) {
-            TopologyDetails topology = topologies.get(topologyId);
-            this.nameToId.put(topology.getName(), topologyId);
+        for (Map.Entry<String, TopologyDetails> entry : topologies.entrySet()) {
+            TopologyDetails topology = entry.getValue();
+            this.nameToId.put(topology.getName(), entry.getKey());
         }
     }
     
@@ -53,5 +56,29 @@ public class Topologies {
     
     public Collection<TopologyDetails> getTopologies() {
         return this.topologies.values();
+    }
+
+    public Map<String, Map<String, Component>> getAllComponents() {
+        if (_allComponents == null) {
+            _allComponents = new HashMap<>();
+            for (Map.Entry<String, TopologyDetails> entry : this.topologies.entrySet()) {
+                _allComponents.put(entry.getKey(), entry.getValue().getComponents());
+            }
+        }
+        return _allComponents;
+    }
+
+    public static Topologies getCopy(Topologies topologies) {
+        return new Topologies(topologies.topologies);
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder ret = new StringBuilder();
+        ret.append("Topologies:\n");
+        for (TopologyDetails td : this.getTopologies()) {
+            ret.append(td.toString()).append("\n");
+        }
+        return ret.toString();
     }
 }

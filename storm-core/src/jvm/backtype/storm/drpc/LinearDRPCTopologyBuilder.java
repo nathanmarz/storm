@@ -120,7 +120,7 @@ public class LinearDRPCTopologyBuilder {
                     new CoordinatedBolt(component.bolt, source, idSpec),
                     component.parallelism);
             
-            for(Map conf: component.componentConfs) {
+            for(Map<String, Object> conf: component.componentConfs) {
                 declarer.addConfigurations(conf);
             }
             
@@ -174,13 +174,12 @@ public class LinearDRPCTopologyBuilder {
     private static class Component {
         public IRichBolt bolt;
         public int parallelism;
-        public List<Map> componentConfs;
+        public List<Map<String, Object>> componentConfs = new ArrayList<>();
         public List<InputDeclaration> declarations = new ArrayList<InputDeclaration>();
         
         public Component(IRichBolt bolt, int parallelism) {
             this.bolt = bolt;
             this.parallelism = parallelism;
-            this.componentConfs = new ArrayList();
         }
     }
     
@@ -188,7 +187,7 @@ public class LinearDRPCTopologyBuilder {
         public void declare(String prevComponent, InputDeclarer declarer);
     }
     
-    private class InputDeclarerImpl extends BaseConfigurationDeclarer<LinearDRPCInputDeclarer> implements LinearDRPCInputDeclarer {
+    private static class InputDeclarerImpl extends BaseConfigurationDeclarer<LinearDRPCInputDeclarer> implements LinearDRPCInputDeclarer {
         Component _component;
         
         public InputDeclarerImpl(Component component) {
@@ -386,7 +385,7 @@ public class LinearDRPCTopologyBuilder {
         }
 
         @Override
-        public LinearDRPCInputDeclarer addConfigurations(Map conf) {
+        public LinearDRPCInputDeclarer addConfigurations(Map<String, Object> conf) {
             _component.componentConfs.add(conf);
             return this;
         }

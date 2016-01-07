@@ -132,7 +132,7 @@ public class BatchSubtopologyBuilder {
         public IRichBolt bolt;
         public Integer parallelism;
         public List<InputDeclaration> declarations = new ArrayList<InputDeclaration>();
-        public List<Map> componentConfs = new ArrayList<Map>();
+        public List<Map<String, Object>> componentConfs = new ArrayList<>();
         
         public Component(IRichBolt bolt, Integer parallelism) {
             this.bolt = bolt;
@@ -145,7 +145,7 @@ public class BatchSubtopologyBuilder {
         String getComponent();
     }
         
-    private class BoltDeclarerImpl extends BaseConfigurationDeclarer<BoltDeclarer> implements BoltDeclarer {
+    private static class BoltDeclarerImpl extends BaseConfigurationDeclarer<BoltDeclarer> implements BoltDeclarer {
         Component _component;
         
         public BoltDeclarerImpl(Component component) {
@@ -439,7 +439,7 @@ public class BatchSubtopologyBuilder {
         }
 
         @Override
-        public BoltDeclarer addConfigurations(Map conf) {
+        public BoltDeclarer addConfigurations(Map<String, Object> conf) {
             _component.componentConfs.add(conf);
             return this;
         }

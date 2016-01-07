@@ -17,18 +17,20 @@
 (ns backtype.storm.config
   (:import [java.io FileReader File IOException]
            [backtype.storm.generated StormTopology])
-  (:import [backtype.storm Config ConfigValidation$FieldValidator])
+  (:import [backtype.storm Config])
   (:import [backtype.storm.utils Utils LocalState])
+  (:import [backtype.storm.validation ConfigValidation])
   (:import [org.apache.commons.io FileUtils])
   (:require [clojure [string :as str]])
   (:use [backtype.storm log util]))
 
 (def RESOURCES-SUBDIR "resources")
+(def NIMBUS-DO-NOT-REASSIGN "NIMBUS-DO-NOT-REASSIGN")
 
 (defn- clojure-config-name [name]
   (.replace (.toUpperCase name) "_" "-"))
 
-;; define clojure constants for every configuration parameter
+; define clojure constants for every configuration parameter
 (doseq [f (seq (.getFields Config))]
   (let [name (.getName f)
         new-name (clojure-config-name name)]
@@ -39,35 +41,6 @@
   (dofor [f (seq (.getFields Config))]
          (.get f nil)))
 
-(defmulti get-FieldValidator class-selector)
-
-(defmethod get-FieldValidator nil [_]
-  (throw (IllegalArgumentException. "Cannot validate a nil field.")))
-
-(defmethod get-FieldValidator
-  ConfigValidation$FieldValidator [validator] validator)
-
-(defmethod get-FieldValidator Object
-  [klass]
-  {:pre [(not (nil? klass))]}
-  (reify ConfigValidation$FieldValidator
-    (validateField [this name v]
-                   (if (and (not (nil? v))
-                            (not (instance? klass v)))
-                     (throw (IllegalArgumentException.
-                              (str "field " name " '" v "' must be a '" (.getName klass) "'")))))))
-
-;; Create a mapping of config-string -> validator
-;; Config fields must have a _SCHEMA field defined
-(def CONFIG-SCHEMA-MAP
-  (->> (.getFields Config)
-       (filter #(not (re-matches #".*_SCHEMA$" (.getName %))))
-       (map (fn [f] [(.get f nil)
-                     (get-FieldValidator
-                       (-> Config
-                           (.getField (str (.getName f) "_SCHEMA"))
-                           (.get nil)))]))
-       (into {})))
 
 (defn cluster-mode
   [conf & args]
@@ -92,30 +65,13 @@
   [conf]
   (even-sampler (sampling-rate conf)))
 
-; storm.zookeeper.servers:
-;     - "server1"
-;     - "server2"
-;     - "server3"
-; nimbus.host: "master"
-;
-; ########### These all have default values as shown
-;
-; ### storm.* configs are general configurations
-; # the local dir is where jars are kept
-; storm.local.dir: "/mnt/storm"
-; storm.zookeeper.port: 2181
-; storm.zookeeper.root: "/storm"
-
 (defn read-default-config
   []
   (clojurify-structure (Utils/readDefaultConfig)))
 
 (defn validate-configs-with-schemas
   [conf]
-  (doseq [[k v] conf
-          :let [schema (CONFIG-SCHEMA-MAP k)]]
-    (if (not (nil? schema))
-      (.validateField schema k v))))
+  (ConfigValidation/validateFields conf))
 
 (defn read-storm-config
   []
@@ -131,17 +87,62 @@
   ([name]
      (read-yaml-config true)))
 
+(defn absolute-storm-local-dir [conf]
+  (let [storm-home (System/getProperty "storm.home")
+        path (conf STORM-LOCAL-DIR)]
+    (if path
+      (if (is-absolute-path? path) path (str storm-home file-path-separator path))
+      (str storm-home file-path-separator "storm-local"))))
+
+(def LOG-DIR
+  (.getCanonicalPath
+    (clojure.java.io/file (or (System/getProperty "storm.log.dir")
+                              (get (read-storm-config) "storm.log.dir")
+                              (str (System/getProperty "storm.home") file-path-separator "logs")))))
+
+(defn absolute-healthcheck-dir [conf]
+  (let [storm-home (System/getProperty "storm.home")
+        path (conf STORM-HEALTH-CHECK-DIR)]
+    (if path
+      (if (is-absolute-path? path) path (str storm-home file-path-separator path))
+      (str storm-home file-path-separator "healthchecks"))))
+
 (defn master-local-dir
   [conf]
-  (let [ret (str (conf STORM-LOCAL-DIR) file-path-separator "nimbus")]
+  (let [ret (str (absolute-storm-local-dir conf) file-path-separator "nimbus")]
     (FileUtils/forceMkdir (File. ret))
     ret))
+
+(defn master-stormjar-key
+  [topology-id]
+  (str topology-id "-stormjar.jar"))
+
+(defn master-stormcode-key
+  [topology-id]
+  (str topology-id "-stormcode.ser"))
+
+(defn master-stormconf-key
+  [topology-id]
+  (str topology-id "-stormconf.ser"))
 
 (defn master-stormdist-root
   ([conf]
    (str (master-local-dir conf) file-path-separator "stormdist"))
   ([conf storm-id]
    (str (master-stormdist-root conf) file-path-separator storm-id)))
+
+(defn master-tmp-dir
+  [conf]
+  (let [ret (str (master-local-dir conf) file-path-separator "tmp")]
+    (FileUtils/forceMkdir (File. ret))
+    ret ))
+
+(defn read-supervisor-storm-conf-given-path
+  [conf stormconf-path]
+  (merge conf (clojurify-structure (Utils/fromCompressedJsonConf (FileUtils/readFileToByteArray (File. stormconf-path))))))
+
+(defn master-storm-metafile-path [stormroot ]
+  (str stormroot file-path-separator "storm-code-distributor.meta"))
 
 (defn master-stormjar-path
   [stormroot]
@@ -167,7 +168,7 @@
 
 (defn supervisor-local-dir
   [conf]
-  (let [ret (str (conf STORM-LOCAL-DIR) file-path-separator "supervisor")]
+  (let [ret (str (absolute-storm-local-dir conf) file-path-separator "supervisor")]
     (FileUtils/forceMkdir (File. ret))
     ret))
 
@@ -181,9 +182,11 @@
   ([conf storm-id]
    (str (supervisor-stormdist-root conf) file-path-separator (url-encode storm-id))))
 
-(defn supervisor-stormjar-path
-  [stormroot]
+(defn supervisor-stormjar-path [stormroot]
   (str stormroot file-path-separator "stormjar.jar"))
+
+(defn supervisor-storm-metafile-path [stormroot]
+  (str stormroot file-path-separator "storm-code-distributor.meta"))
 
 (defn supervisor-stormcode-path
   [stormroot]
@@ -207,12 +210,15 @@
   [conf]
   (LocalState. (str (supervisor-local-dir conf) file-path-separator "localstate")))
 
+(defn ^LocalState nimbus-topo-history-state
+  [conf]
+  (LocalState. (str (master-local-dir conf) file-path-separator "history")))
+
 (defn read-supervisor-storm-conf
   [conf storm-id]
   (let [stormroot (supervisor-stormdist-root conf storm-id)
-        conf-path (supervisor-stormconf-path stormroot)
-        topology-path (supervisor-stormcode-path stormroot)]
-    (merge conf (clojurify-structure (Utils/javaDeserialize (FileUtils/readFileToByteArray (File. conf-path)) java.util.Map)))))
+        conf-path (supervisor-stormconf-path stormroot)]
+    (read-supervisor-storm-conf-given-path conf conf-path)))
 
 (defn read-supervisor-topology
   [conf storm-id]
@@ -222,7 +228,7 @@
     ))
 
 (defn worker-user-root [conf]
-  (str (conf STORM-LOCAL-DIR) "/workers-users"))
+  (str (absolute-storm-local-dir conf) "/workers-users"))
 
 (defn worker-user-file [conf worker-id]
   (str (worker-user-root conf) "/" worker-id))
@@ -236,7 +242,11 @@
     nil
     )))
 
-  
+(defn get-id-from-blob-key
+  [key]
+  (if-let [groups (re-find #"^(.*)((-stormjar\.jar)|(-stormcode\.ser)|(-stormconf\.ser))$" key)]
+    (nth groups 1)))
+
 (defn set-worker-user! [conf worker-id user]
   (log-message "SET worker-user " worker-id " " user)
   (let [file (worker-user-file conf worker-id)]
@@ -247,9 +257,37 @@
   (log-message "REMOVE worker-user " worker-id)
   (.delete (File. (worker-user-file conf worker-id))))
 
+(defn worker-artifacts-root
+  ([conf]
+   (let [workers-artifacts-dir (conf STORM-WORKERS-ARTIFACTS-DIR)]
+     (if workers-artifacts-dir
+       (if (is-absolute-path? workers-artifacts-dir)
+         workers-artifacts-dir
+         (str LOG-DIR file-path-separator workers-artifacts-dir))
+       (str LOG-DIR file-path-separator "workers-artifacts"))))
+  ([conf id]
+   (str (worker-artifacts-root conf) file-path-separator id))
+  ([conf id port]
+   (str (worker-artifacts-root conf id) file-path-separator port)))
+
+(defn worker-artifacts-pid-path
+  [conf id port]
+  (str (worker-artifacts-root conf id port) file-path-separator "worker.pid"))
+
+(defn get-log-metadata-file
+  ([fname]
+    (let [[id port & _] (str/split fname (re-pattern file-path-separator))]
+      (get-log-metadata-file (read-storm-config) id port)))
+  ([conf id port]
+    (clojure.java.io/file (str (worker-artifacts-root conf id) file-path-separator port file-path-separator) "worker.yaml")))
+
+(defn get-worker-dir-from-root
+  [log-root id port]
+  (clojure.java.io/file (str log-root file-path-separator id file-path-separator port)))
+
 (defn worker-root
   ([conf]
-   (str (conf STORM-LOCAL-DIR) file-path-separator "workers"))
+   (str (absolute-storm-local-dir conf) file-path-separator "workers"))
   ([conf id]
    (str (worker-root conf) file-path-separator id)))
 
@@ -271,3 +309,23 @@
 (defn ^LocalState worker-state
   [conf id]
   (LocalState. (worker-heartbeats-root conf id)))
+
+(defn override-login-config-with-system-property [conf]
+  (if-let [login_conf_file (System/getProperty "java.security.auth.login.config")]
+    (assoc conf "java.security.auth.login.config" login_conf_file)
+    conf))
+
+(defn get-topo-logs-users
+  [topology-conf]
+  (sort (distinct (remove nil?
+                    (concat
+                      (topology-conf LOGS-USERS)
+                      (topology-conf TOPOLOGY-USERS))))))
+
+(defn get-topo-logs-groups
+  [topology-conf]
+  (sort (distinct (remove nil?
+                    (concat
+                      (topology-conf LOGS-GROUPS)
+                      (topology-conf TOPOLOGY-GROUPS))))))
+

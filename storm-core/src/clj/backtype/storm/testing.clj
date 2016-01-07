@@ -34,6 +34,11 @@
   (:import [backtype.storm.testing FeederSpout FixedTupleSpout FixedTuple
             TupleCaptureBolt SpoutTracker BoltTracker NonRichBoltTracker
             TestWordSpout MemoryTransactionalSpout])
+  (:import [backtype.storm.security.auth ThriftServer ThriftConnectionType ReqContext AuthUtils])
+  (:import [backtype.storm.generated NotAliveException AlreadyAliveException StormTopology ErrorInfo
+            ExecutorInfo InvalidTopologyException Nimbus$Iface Nimbus$Processor SubmitOptions TopologyInitialStatus
+            KillOptions RebalanceOptions ClusterSummary SupervisorSummary TopologySummary TopologyInfo
+            ExecutorSummary AuthorizationException GetInfoOptions NumErrorsChoice])
   (:import [backtype.storm.transactional TransactionalSpoutCoordinator])
   (:import [backtype.storm.transactional.partitioned PartitionedTransactionalSpoutExecutor])
   (:import [backtype.storm.tuple Tuple])
@@ -42,7 +47,7 @@
   (:require [backtype.storm [zookeeper :as zk]])
   (:require [backtype.storm.messaging.loader :as msg-loader])
   (:require [backtype.storm.daemon.acker :as acker])
-  (:use [backtype.storm cluster util thrift config log]))
+  (:use [backtype.storm cluster util thrift config log local-state]))
 
 (defn feeder-spout
   [fields]
@@ -79,13 +84,13 @@
   []
   (Time/stopSimulating))
 
-(defmacro with-simulated-time
-  [& body]
-  `(do
+ (defmacro with-simulated-time
+   [& body]
+   `(try
      (start-simulating-time!)
-     (let [ret# (do ~@body)]
-       (stop-simulating-time!)
-       ret#)))
+     ~@body
+     (finally
+       (stop-simulating-time!))))
 
 (defn advance-time-ms! [ms]
   (Time/advanceTime ms))
@@ -113,11 +118,20 @@
   (if-not (conf STORM-LOCAL-MODE-ZMQ)
     (msg-loader/mk-local-context)))
 
+(defn start-nimbus-daemon [conf nimbus]
+  (let [server (ThriftServer. conf (Nimbus$Processor. nimbus)
+                              ThriftConnectionType/NIMBUS)
+        nimbus-thread (Thread. (fn [] (.serve server)))]
+    (log-message "Starting Nimbus server...")
+    (.start nimbus-thread)
+    server))
+
+
 ;; returns map containing cluster info
 ;; local dir is always overridden in maps
 ;; can customize the supervisors (except for ports) by passing in map for :supervisors parameter
 ;; if need to customize amt of ports more, can use add-supervisor calls afterwards
-(defnk mk-local-storm-cluster [:supervisors 2 :ports-per-supervisor 3 :daemon-conf {} :inimbus nil :supervisor-slot-port-min 1024]
+(defnk mk-local-storm-cluster [:supervisors 2 :ports-per-supervisor 3 :daemon-conf {} :inimbus nil :supervisor-slot-port-min 1024 :nimbus-daemon false]
   (let [zk-tmp (local-temp-path)
         [zk-port zk-handle] (if-not (contains? daemon-conf STORM-ZOOKEEPER-SERVERS)
                               (zk/mk-inprocess-zookeeper zk-tmp))
@@ -126,7 +140,8 @@
                             ZMQ-LINGER-MILLIS 0
                             TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS false
                             TOPOLOGY-TRIDENT-BATCH-EMIT-INTERVAL-MILLIS 50
-                            STORM-CLUSTER-MODE "local"}
+                            STORM-CLUSTER-MODE "local"
+                            BLOBSTORE-SUPERUSER (System/getProperty "user.name")}
                            (if-not (contains? daemon-conf STORM-ZOOKEEPER-SERVERS)
                              {STORM-ZOOKEEPER-PORT zk-port
                               STORM-ZOOKEEPER-SERVERS ["localhost"]})
@@ -134,9 +149,10 @@
         nimbus-tmp (local-temp-path)
         port-counter (mk-counter supervisor-slot-port-min)
         nimbus (nimbus/service-handler
-                 (assoc daemon-conf STORM-LOCAL-DIR nimbus-tmp)
-                 (if inimbus inimbus (nimbus/standalone-nimbus)))
+                (assoc daemon-conf STORM-LOCAL-DIR nimbus-tmp)
+                (if inimbus inimbus (nimbus/standalone-nimbus)))
         context (mk-shared-context daemon-conf)
+        nimbus-thrift-server (if nimbus-daemon (start-nimbus-daemon daemon-conf nimbus) nil)
         cluster-map {:nimbus nimbus
                      :port-counter port-counter
                      :daemon-conf daemon-conf
@@ -145,10 +161,12 @@
                      :storm-cluster-state (mk-storm-cluster-state daemon-conf)
                      :tmp-dirs (atom [nimbus-tmp zk-tmp])
                      :zookeeper (if (not-nil? zk-handle) zk-handle)
-                     :shared-context context}
+                     :shared-context context
+                     :nimbus-thrift-server nimbus-thrift-server}
         supervisor-confs (if (sequential? supervisors)
                            supervisors
                            (repeat supervisors {}))]
+
     (doseq [sc supervisor-confs]
       (add-supervisor cluster-map :ports ports-per-supervisor :conf sc))
     cluster-map))
@@ -168,6 +186,13 @@
 
 (defn kill-local-storm-cluster [cluster-map]
   (.shutdown (:nimbus cluster-map))
+  (if (not-nil? (:nimbus-thrift-server cluster-map))
+    (do
+      (log-message "shutting down thrift server")
+      (try
+        (.stop (:nimbus-thrift-server cluster-map))
+        (catch Exception e (log-message "failed to stop thrift")))
+      ))
   (.close (:state cluster-map))
   (.disconnect (:storm-cluster-state cluster-map))
   (doseq [s @(:supervisors cluster-map)]
@@ -202,6 +227,13 @@
            (throw (AssertionError. (str "Test timed out (" ~timeout-ms "ms) " '~condition)))))
        ~@body)
      (log-debug "Condition met " '~condition)))
+
+(defn wait-for-condition
+  ([apredicate]
+    (wait-for-condition TEST-TIMEOUT-MS apredicate))
+  ([timeout-ms apredicate]
+    (while-timeout timeout-ms (not (apredicate))
+      (Time/sleep 100))))
 
 (defn wait-until-cluster-waiting
   "Wait until the cluster is idle. Should be used with time simulation."
@@ -274,25 +306,42 @@
     (throw (IllegalArgumentException. "Topology conf is not json-serializable")))
   (.submitTopologyWithOpts nimbus storm-name nil (to-json conf) topology submit-opts))
 
-(defn mocked-compute-new-topology->executor->node+port [storm-name executor->node+port]
-  (fn [nimbus existing-assignments topologies scratch-topology-id]
-    (let [topology (.getByName topologies storm-name)
-          topology-id (.getId topology)
+(defn mocked-convert-assignments-to-worker->resources [storm-cluster-state storm-name worker->resources]
+  (fn [existing-assignments]
+    (let [topology-id (common/get-storm-id storm-cluster-state storm-name)
+          existing-assignments (into {} (for [[tid assignment] existing-assignments]
+                                          {tid (:worker->resources assignment)}))
+          new-assignments (assoc existing-assignments topology-id worker->resources)]
+      new-assignments)))
+
+(defn mocked-compute-new-topology->executor->node+port [storm-cluster-state storm-name executor->node+port]
+  (fn [new-scheduler-assignments existing-assignments]
+    (let [topology-id (common/get-storm-id storm-cluster-state storm-name)
           existing-assignments (into {} (for [[tid assignment] existing-assignments]
                                           {tid (:executor->node+port assignment)}))
           new-assignments (assoc existing-assignments topology-id executor->node+port)]
       new-assignments)))
 
+(defn mocked-compute-new-scheduler-assignments []
+  (fn [nimbus existing-assignments topologies scratch-topology-id]
+    existing-assignments))
+
 (defn submit-mocked-assignment
-  [nimbus storm-name conf topology task->component executor->node+port]
+  [nimbus storm-cluster-state storm-name conf topology task->component executor->node+port worker->resources]
   (with-var-roots [common/storm-task-info (fn [& ignored] task->component)
+                   nimbus/compute-new-scheduler-assignments (mocked-compute-new-scheduler-assignments)
+                   nimbus/convert-assignments-to-worker->resources (mocked-convert-assignments-to-worker->resources
+                                                          storm-cluster-state
+                                                          storm-name
+                                                          worker->resources)
                    nimbus/compute-new-topology->executor->node+port (mocked-compute-new-topology->executor->node+port
+                                                                      storm-cluster-state
                                                                       storm-name
                                                                       executor->node+port)]
-                  (submit-local-topology nimbus storm-name conf topology)))
+    (submit-local-topology nimbus storm-name conf topology)))
 
 (defn mk-capture-launch-fn [capture-atom]
-  (fn [supervisor storm-id port worker-id]
+  (fn [supervisor storm-id port worker-id mem-onheap]
     (let [supervisor-id (:supervisor-id supervisor)
           conf (:conf supervisor)
           existing (get @capture-atom [supervisor-id port] [])]
@@ -302,13 +351,13 @@
 (defn find-worker-id
   [supervisor-conf port]
   (let [supervisor-state (supervisor-state supervisor-conf)
-        worker->port (.get supervisor-state common/LS-APPROVED-WORKERS)]
+        worker->port (ls-approved-workers supervisor-state)]
     (first ((reverse-map worker->port) port))))
 
 (defn find-worker-port
   [supervisor-conf worker-id]
   (let [supervisor-state (supervisor-state supervisor-conf)
-        worker->port (.get supervisor-state common/LS-APPROVED-WORKERS)]
+        worker->port (ls-approved-workers supervisor-state)]
     (worker->port worker-id)))
 
 (defn mk-capture-shutdown-fn
@@ -491,6 +540,7 @@
       (startup spout))
 
     (submit-local-topology (:nimbus cluster-map) storm-name storm-conf topology)
+    (advance-cluster-time cluster-map 11)
 
     (let [storm-id (common/get-storm-id state storm-name)]
       ;;Give the topology time to come up without using it to wait for the spouts to complete
@@ -587,7 +637,7 @@
                 ;; (log-message "Transferring: " transfer-args#)
                 (increment-global! id# "transferred" 1)
                 (apply transferrer# args2#)))))]
-       (with-local-cluster [~cluster-sym ~@cluster-args]
+       (with-simulated-time-local-cluster [~cluster-sym ~@cluster-args]
                            (let [~cluster-sym (assoc-track-id ~cluster-sym id#)]
                              ~@body)))
      (RegisteredGlobalState/clearState id#)))
@@ -603,7 +653,7 @@
           track-id (-> tracked-topology :cluster ::track-id)
           waiting? (fn []
                      (or (not= target (global-amt track-id "spout-emitted"))
-                         (not= (global-amt track-id "transferred")                                 
+                         (not= (global-amt track-id "transferred")
                                (global-amt track-id "processed"))))]
       (while-timeout timeout-ms (waiting?)
                      ;; (println "Spout emitted: " (global-amt track-id "spout-emitted"))

@@ -37,8 +37,10 @@ public interface ITuple {
     public Fields getFields();
 
     /**
-     * Returns the position of the specified field in this tuple.
-     */
+    *  Returns the position of the specified field in this tuple.
+    *  
+    * @throws IllegalArgumentException - if field does not exist
+    */
     public int fieldIndex(String field);
 
     /**
@@ -47,90 +49,166 @@ public interface ITuple {
     public List<Object> select(Fields selector);
 
     /**
-     * Gets the field at position i in the tuple. Returns object since tuples are dynamically typed.
+     * Gets the field at position i in the tuple. Returns object since tuples are dynamically typed. 
+     *  
+     * @throws IndexOutOfBoundsException - if the index is out of range `(index < 0 || index >= size())`
      */
     public Object getValue(int i);
 
     /**
-     * Returns the String at position i in the tuple. If that field is not a String,
-     * you will get a runtime error.
+     * Returns the String at position i in the tuple. 
+     *  
+     * @throws ClassCastException If that field is not a String 
+     * @throws IndexOutOfBoundsException - if the index is out of range `(index < 0 || index >= size())`
      */
     public String getString(int i);
 
     /**
-     * Returns the Integer at position i in the tuple. If that field is not an Integer,
-     * you will get a runtime error.
+     * Returns the Integer at position i in the tuple. 
+     *  
+    * @throws ClassCastException If that field is not a Integer 
+    * @throws IndexOutOfBoundsException - if the index is out of range `(index < 0 || index >= size())`
      */
     public Integer getInteger(int i);
 
     /**
-     * Returns the Long at position i in the tuple. If that field is not a Long,
-     * you will get a runtime error.
+     * Returns the Long at position i in the tuple. 
+     *  
+    * @throws ClassCastException If that field is not a Long
+    * @throws IndexOutOfBoundsException - if the index is out of range `(index < 0 || index >= size())`
      */
     public Long getLong(int i);
 
     /**
-     * Returns the Boolean at position i in the tuple. If that field is not a Boolean,
-     * you will get a runtime error.
+     * Returns the Boolean at position i in the tuple. 
+     *  
+    * @throws ClassCastException If that field is not a Boolean
+    * @throws IndexOutOfBoundsException - if the index is out of range `(index < 0 || index >= size())`
      */
     public Boolean getBoolean(int i);
 
     /**
-     * Returns the Short at position i in the tuple. If that field is not a Short,
-     * you will get a runtime error.
+     * Returns the Short at position i in the tuple. 
+     *  
+     * @throws ClassCastException If that field is not a Short
+     * @throws IndexOutOfBoundsException - if the index is out of range `(index < 0 || index >= size())`
      */
     public Short getShort(int i);
 
     /**
-     * Returns the Byte at position i in the tuple. If that field is not a Byte,
-     * you will get a runtime error.
+     * Returns the Byte at position i in the tuple. 
+     *  
+     * @throws ClassCastException If that field is not a Byte
+     * @throws IndexOutOfBoundsException - if the index is out of range `(index < 0 || index >= size())`
      */
     public Byte getByte(int i);
 
     /**
-     * Returns the Double at position i in the tuple. If that field is not a Double,
-     * you will get a runtime error.
+     * Returns the Double at position i in the tuple. 
+     *  
+    * @throws ClassCastException If that field is not a Double
+    * @throws IndexOutOfBoundsException - if the index is out of range `(index < 0 || index >= size())`
      */
     public Double getDouble(int i);
 
     /**
-     * Returns the Float at position i in the tuple. If that field is not a Float,
-     * you will get a runtime error.
+     * Returns the Float at position i in the tuple. 
+     *  
+    * @throws ClassCastException If that field is not a Float
+    * @throws IndexOutOfBoundsException - if the index is out of range `(index < 0 || index >= size())`
      */
     public Float getFloat(int i);
 
     /**
-     * Returns the byte array at position i in the tuple. If that field is not a byte array,
-     * you will get a runtime error.
+     * Returns the byte array at position i in the tuple. 
+     *  
+     * @throws ClassCastException If that field is not a byte array 
+     * @throws IndexOutOfBoundsException - if the index is out of range `(index < 0 || index >= size())`
      */
     public byte[] getBinary(int i);
 
-
+    /**
+     * Gets the field with a specific name. Returns object since tuples are dynamically typed. 
+     *  
+     * @throws IllegalArgumentException - if field does not exist
+     */
     public Object getValueByField(String field);
 
+    /**
+     * Gets the String field with a specific name.
+     *  
+     * @throws ClassCastException If that field is not a String 
+     * @throws IllegalArgumentException - if field does not exist
+     */
     public String getStringByField(String field);
 
+    /**
+     * Gets the Integer field with a specific name.
+     *  
+     * @throws ClassCastException If that field is not an Integer
+     * @throws IllegalArgumentException - if field does not exist
+     */
     public Integer getIntegerByField(String field);
 
+    /**
+     * Gets the Long field with a specific name.
+     *  
+     * @throws ClassCastException If that field is not a Long
+     * @throws IllegalArgumentException - if field does not exist
+     */
     public Long getLongByField(String field);
 
+    /**
+     * Gets the Boolean field with a specific name.
+     *  
+     * @throws ClassCastException If that field is not a Boolean
+     * @throws IllegalArgumentException - if field does not exist
+     */
     public Boolean getBooleanByField(String field);
 
+    /**
+     * Gets the Short field with a specific name.
+     *  
+     * @throws ClassCastException If that field is not a Short
+     * @throws IllegalArgumentException - if field does not exist
+     */
     public Short getShortByField(String field);
 
+    /**
+     * Gets the Byte field with a specific name.
+     *  
+     * @throws ClassCastException If that field is not a Byte
+     * @throws IllegalArgumentException - if field does not exist
+     */
     public Byte getByteByField(String field);
 
+    /**
+     * Gets the Double field with a specific name.
+     *  
+     * @throws ClassCastException If that field is not a Double
+     * @throws IllegalArgumentException - if field does not exist
+     */
     public Double getDoubleByField(String field);
 
+    /**
+     * Gets the Float field with a specific name.
+     *  
+     * @throws ClassCastException If that field is not a Float
+     * @throws IllegalArgumentException - if field does not exist
+     */
     public Float getFloatByField(String field);
 
+    /**
+     * Gets the Byte array field with a specific name.
+     *  
+     * @throws ClassCastException If that field is not a byte array
+     * @throws IllegalArgumentException - if field does not exist
+     */
     public byte[] getBinaryByField(String field);
 
     /**
      * Gets all the values in this tuple.
      */
     public List<Object> getValues();
-
-
 
 }

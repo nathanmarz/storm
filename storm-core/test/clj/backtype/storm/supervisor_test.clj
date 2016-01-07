@@ -23,6 +23,9 @@
   (:import [backtype.storm.scheduler ISupervisor])
   (:import [backtype.storm.generated RebalanceOptions])
   (:import [java.util UUID])
+  (:import [java.io File])
+  (:import [java.nio.file Files])
+  (:import [java.nio.file.attribute FileAttribute])
   (:use [backtype.storm config testing util timer])
   (:use [backtype.storm.daemon common])
   (:require [backtype.storm.daemon [worker :as worker] [supervisor :as supervisor]]
@@ -75,7 +78,7 @@
 
 (deftest launches-assignment
   (with-simulated-time-local-cluster [cluster :supervisors 0
-    :daemon-conf {NIMBUS-REASSIGN false
+    :daemon-conf {NIMBUS-DO-NOT-REASSIGN true
                   SUPERVISOR-WORKER-START-TIMEOUT-SECS 5
                   SUPERVISOR-WORKER-TIMEOUT-SECS 15
                   SUPERVISOR-MONITOR-FREQUENCY-SECS 3}]
@@ -85,23 +88,29 @@
                        {}))
       (bind sup1 (add-supervisor cluster :id "sup1" :ports [1 2 3 4]))
       (bind changed (capture-changed-workers
-                        (submit-mocked-assignment
-                          (:nimbus cluster)
-                          "test"
-                          {TOPOLOGY-WORKERS 3}
-                          topology
-                          {1 "1"
-                           2 "1"
-                           3 "1"
-                           4 "1"}
-                          {[1 1] ["sup1" 1]
-                           [2 2] ["sup1" 2]
-                           [3 3] ["sup1" 3]
-                           [4 4] ["sup1" 3]
-                           })
-                        (advance-cluster-time cluster 2)
-                        (heartbeat-workers cluster "sup1" [1 2 3])
-                        (advance-cluster-time cluster 10)))
+                      (submit-mocked-assignment
+                        (:nimbus cluster)
+                        (:storm-cluster-state cluster)
+                        "test"
+                        {TOPOLOGY-WORKERS 3}
+                        topology
+                        {1 "1"
+                         2 "1"
+                         3 "1"
+                         4 "1"}
+                        {[1 1] ["sup1" 1]
+                         [2 2] ["sup1" 2]
+                         [3 3] ["sup1" 3]
+                         [4 4] ["sup1" 3]}
+                        {["sup1" 1] [0.0 0.0 0.0]
+                         ["sup1" 2] [0.0 0.0 0.0]
+                         ["sup1" 3] [0.0 0.0 0.0]
+                         })
+                      ;; Instead of sleeping until topology is scheduled, rebalance topology so mk-assignments is called.
+                      (.rebalance (:nimbus cluster) "test" (doto (RebalanceOptions.) (.set_wait_secs 0)))
+                      (advance-cluster-time cluster 2)
+                      (heartbeat-workers cluster "sup1" [1 2 3])
+                      (advance-cluster-time cluster 10)))
       (bind storm-id (get-storm-id (:storm-cluster-state cluster) "test"))
       (is (empty? (:shutdown changed)))
       (validate-launched-once (:launched changed) {"sup1" [1 2 3]} storm-id)
@@ -122,7 +131,7 @@
 
 (deftest test-multiple-active-storms-multiple-supervisors
   (with-simulated-time-local-cluster [cluster :supervisors 0
-    :daemon-conf {NIMBUS-REASSIGN false
+    :daemon-conf {NIMBUS-DO-NOT-REASSIGN true
                   SUPERVISOR-WORKER-START-TIMEOUT-SECS 5
                   SUPERVISOR-WORKER-TIMEOUT-SECS 15
                   SUPERVISOR-MONITOR-FREQUENCY-SECS 3}]
@@ -136,44 +145,55 @@
       (bind sup1 (add-supervisor cluster :id "sup1" :ports [1 2 3 4]))
       (bind sup2 (add-supervisor cluster :id "sup2" :ports [1 2]))
       (bind changed (capture-changed-workers
-                        (submit-mocked-assignment
-                          (:nimbus cluster)
-                          "test"
-                          {TOPOLOGY-WORKERS 3 TOPOLOGY-MESSAGE-TIMEOUT-SECS 40}
-                          topology
-                          {1 "1"
-                           2 "1"
-                           3 "1"
-                           4 "1"}
-                          {[1 1] ["sup1" 1]
-                           [2 2] ["sup1" 2]
-                           [3 3] ["sup2" 1]
-                           [4 4] ["sup2" 1]
-                           })
-                        (advance-cluster-time cluster 2)
-                        (heartbeat-workers cluster "sup1" [1 2])
-                        (heartbeat-workers cluster "sup2" [1])
-                        ))
+                      (submit-mocked-assignment
+                        (:nimbus cluster)
+                        (:storm-cluster-state cluster)
+                        "test"
+                        {TOPOLOGY-WORKERS 3 TOPOLOGY-MESSAGE-TIMEOUT-SECS 40}
+                        topology
+                        {1 "1"
+                         2 "1"
+                         3 "1"
+                         4 "1"}
+                        {[1 1] ["sup1" 1]
+                         [2 2] ["sup1" 2]
+                         [3 3] ["sup2" 1]
+                         [4 4] ["sup2" 1]}
+                        {["sup1" 1] [0.0 0.0 0.0]
+                         ["sup1" 2] [0.0 0.0 0.0]
+                         ["sup2" 1] [0.0 0.0 0.0]
+                         })
+                      ;; Instead of sleeping until topology is scheduled, rebalance topology so mk-assignments is called.
+                      (.rebalance (:nimbus cluster) "test" (doto (RebalanceOptions.) (.set_wait_secs 0)))
+                      (advance-cluster-time cluster 2)
+                      (heartbeat-workers cluster "sup1" [1 2])
+                      (heartbeat-workers cluster "sup2" [1])
+                      ))
       (bind storm-id (get-storm-id (:storm-cluster-state cluster) "test"))
       (is (empty? (:shutdown changed)))
       (validate-launched-once (:launched changed) {"sup1" [1 2] "sup2" [1]} storm-id)
       (bind changed (capture-changed-workers
-                        (submit-mocked-assignment
-                          (:nimbus cluster)
-                          "test2"
-                          {TOPOLOGY-WORKERS 2}
-                          topology2
-                          {1 "1"
-                           2 "1"
-                           3 "1"}
-                          {[1 1] ["sup1" 3]
-                           [2 2] ["sup1" 3]
-                           [3 3] ["sup2" 2]
-                           })
-                        (advance-cluster-time cluster 2)
-                        (heartbeat-workers cluster "sup1" [3])
-                        (heartbeat-workers cluster "sup2" [2])
-                        ))
+                      (submit-mocked-assignment
+                        (:nimbus cluster)
+                        (:storm-cluster-state cluster)
+                        "test2"
+                        {TOPOLOGY-WORKERS 2}
+                        topology2
+                        {1 "1"
+                         2 "1"
+                         3 "1"}
+                        {[1 1] ["sup1" 3]
+                         [2 2] ["sup1" 3]
+                         [3 3] ["sup2" 2]}
+                        {["sup1" 3] [0.0 0.0 0.0]
+                         ["sup2" 2] [0.0 0.0 0.0]
+                         })
+                      ;; Instead of sleeping until topology is scheduled, rebalance topology so mk-assignments is called.
+                      (.rebalance (:nimbus cluster) "test2" (doto (RebalanceOptions.) (.set_wait_secs 0)))
+                      (advance-cluster-time cluster 2)
+                      (heartbeat-workers cluster "sup1" [3])
+                      (heartbeat-workers cluster "sup2" [2])
+                      ))
       (bind storm-id2 (get-storm-id (:storm-cluster-state cluster) "test2"))
       (is (empty? (:shutdown changed)))
       (validate-launched-once (:launched changed) {"sup1" [3] "sup2" [2]} storm-id2)
@@ -251,18 +271,35 @@
     (let [mock-port "42"
           mock-storm-id "fake-storm-id"
           mock-worker-id "fake-worker-id"
+          mock-mem-onheap 512
           mock-cp (str file-path-separator "base" class-path-separator file-path-separator "stormjar.jar")
+          mock-sensitivity "S3"
+          mock-cp "/base:/stormjar.jar"
           exp-args-fn (fn [opts topo-opts classpath]
-                       (concat [(supervisor/java-cmd) "-server"]
+                       (concat [(supervisor/java-cmd) "-cp" classpath
+                               (str "-Dlogfile.name=" "worker.log")
+                               "-Dstorm.home="
+                               (str "-Dworkers.artifacts=" "/tmp/workers-artifacts")
+                               (str "-Dstorm.id=" mock-storm-id)
+                               (str "-Dworker.id=" mock-worker-id)
+                               (str "-Dworker.port=" mock-port)
+                               "-Dstorm.log.dir=/logs"
+                               "-Dlog4j.configurationFile=/log4j2/worker.xml"
+                               "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector"
+                               "backtype.storm.LogWriter"]
+                               [(supervisor/java-cmd) "-server"]
                                opts
                                topo-opts
                                ["-Djava.library.path="
-                                (str "-Dlogfile.name=" mock-storm-id "-worker-" mock-port ".log")
+                                (str "-Dlogfile.name=" "worker.log")
                                 "-Dstorm.home="
+                                "-Dworkers.artifacts=/tmp/workers-artifacts"
                                 "-Dstorm.conf.file="
                                 "-Dstorm.options="
                                 (str "-Dstorm.log.dir=" file-path-separator "logs")
-                                (str "-Dlogback.configurationFile=" file-path-separator "logback" file-path-separator "worker.xml")
+                                (str "-Dlogging.sensitivity=" mock-sensitivity)
+                                (str "-Dlog4j.configurationFile=" file-path-separator "log4j2" file-path-separator "worker.xml")
+                                "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector"
                                 (str "-Dstorm.id=" mock-storm-id)
                                 (str "-Dworker.id=" mock-worker-id)
                                 (str "-Dworker.port=" mock-port)
@@ -286,11 +323,14 @@
                      launch-process nil
                      set-worker-user! nil
                      supervisor/jlp nil
-                     supervisor/write-log-metadata! nil]
+                     worker-artifacts-root "/tmp/workers-artifacts"
+                     supervisor/write-log-metadata! nil
+                     supervisor/create-blobstore-links nil]
             (supervisor/launch-worker mock-supervisor
                                       mock-storm-id
                                       mock-port
-                                      mock-worker-id)
+                                      mock-worker-id
+                                      mock-mem-onheap)
             (verify-first-call-args-for-indices launch-process
                                                 [0]
                                                 exp-args))))
@@ -307,11 +347,14 @@
                      launch-process nil
                      set-worker-user! nil
                      supervisor/jlp nil
-                     supervisor/write-log-metadata! nil]
+                     supervisor/write-log-metadata! nil
+                     supervisor/create-blobstore-links nil
+                     worker-artifacts-root "/tmp/workers-artifacts"]
             (supervisor/launch-worker mock-supervisor
                                       mock-storm-id
                                       mock-port
-                                      mock-worker-id)
+                                      mock-worker-id
+                                      mock-mem-onheap)
             (verify-first-call-args-for-indices launch-process
                                                 [0]
                                                 exp-args))))
@@ -322,14 +365,17 @@
           (stubbing [read-supervisor-storm-conf {TOPOLOGY-CLASSPATH topo-cp}
                      supervisor-stormdist-root nil
                      supervisor/jlp nil
+                     worker-artifacts-root "/tmp/workers-artifacts"
                      set-worker-user! nil
                      supervisor/write-log-metadata! nil
                      launch-process nil
-                     current-classpath (str file-path-separator "base")]
+                     current-classpath (str file-path-separator "base")
+                     supervisor/create-blobstore-links nil]
                     (supervisor/launch-worker mock-supervisor
                                               mock-storm-id
                                               mock-port
-                                              mock-worker-id)
+                                              mock-worker-id
+                                              mock-mem-onheap)
                     (verify-first-call-args-for-indices launch-process
                                                         [0]
                                                         exp-args))))
@@ -341,31 +387,31 @@
           (stubbing [read-supervisor-storm-conf {TOPOLOGY-ENVIRONMENT topo-env}
                      supervisor-stormdist-root nil
                      supervisor/jlp nil
+                     worker-artifacts-root "/tmp/workers-artifacts"
                      launch-process nil
                      set-worker-user! nil
                      supervisor/write-log-metadata! nil
-                     current-classpath (str file-path-separator "base")]
+                     current-classpath (str file-path-separator "base")
+                     supervisor/create-blobstore-links nil]
                     (supervisor/launch-worker mock-supervisor
                                               mock-storm-id
                                               mock-port
-                                              mock-worker-id)
+                                              mock-worker-id
+                                              mock-mem-onheap)
                     (verify-first-call-args-for-indices launch-process
                                                         [2]
                                                         full-env)))))))
-
-(defn rm-r [f]
-  (if (.isDirectory f)
-    (for [sub (.listFiles f)] (rm-r sub))
-    (.delete f)
-  ))
 
 (deftest test-worker-launch-command-run-as-user
   (testing "*.worker.childopts configuration"
     (let [mock-port "42"
           mock-storm-id "fake-storm-id"
           mock-worker-id "fake-worker-id"
+          mock-mem-onheap 512
+          mock-sensitivity "S3"
           mock-cp "mock-classpath'quote-on-purpose"
-          storm-local (str "/tmp/" (UUID/randomUUID))
+          attrs (make-array FileAttribute 0)
+          storm-local (.getCanonicalPath (.toFile (Files/createTempDirectory "storm-local" attrs)))
           worker-script (str storm-local "/workers/" mock-worker-id "/storm-worker-script.sh")
           exp-launch ["/bin/worker-launcher"
                       "me"
@@ -373,81 +419,102 @@
                       (str storm-local "/workers/" mock-worker-id)
                       worker-script]
           exp-script-fn (fn [opts topo-opts]
-                       (str "#!/bin/bash\n'export' 'LD_LIBRARY_PATH=';\n\nexec 'java' '-server'"
-                                " " (shell-cmd opts)
-                                " " (shell-cmd topo-opts)
-                                " '-Djava.library.path='"
-                                " '-Dlogfile.name=" mock-storm-id "-worker-" mock-port ".log'"
-                                " '-Dstorm.home='"
-                                " '-Dstorm.conf.file='"
-                                " '-Dstorm.options='"
-                                " '-Dstorm.log.dir=/logs'"
-                                " '-Dlogback.configurationFile=/logback/worker.xml'"
-                                " '-Dstorm.id=" mock-storm-id "'"
-                                " '-Dworker.id=" mock-worker-id "'"
-                                " '-Dworker.port=" mock-port "'"
-                                " '-cp' 'mock-classpath'\"'\"'quote-on-purpose'"
-                                " 'backtype.storm.daemon.worker'"
-                                " '" mock-storm-id "'"
-                                " '" mock-port "'"
-                                " '" mock-worker-id "';"))]
+                          (str "#!/bin/bash\n'export' 'LD_LIBRARY_PATH=';\n\nexec 'java'"
+                               " '-cp' 'mock-classpath'\"'\"'quote-on-purpose'"
+                               " '-Dlogfile.name=" "worker.log'"
+                               " '-Dstorm.home='"
+                               " '-Dworkers.artifacts=" (str storm-local "/workers-artifacts'")
+                               " '-Dstorm.id=" mock-storm-id "'"
+                               " '-Dworker.id=" mock-worker-id "'"
+                               " '-Dworker.port=" mock-port "'"
+                               " '-Dstorm.log.dir=/logs'"
+                               " '-Dlog4j.configurationFile=/log4j2/worker.xml'"
+                               " '-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector'"
+                               " 'backtype.storm.LogWriter'"
+                               " 'java' '-server'"
+                               " " (shell-cmd opts)
+                               " " (shell-cmd topo-opts)
+                               " '-Djava.library.path='"
+                               " '-Dlogfile.name=" "worker.log'"
+                               " '-Dstorm.home='"
+                               " '-Dworkers.artifacts=" (str storm-local "/workers-artifacts'")
+                               " '-Dstorm.conf.file='"
+                               " '-Dstorm.options='"
+                               " '-Dstorm.log.dir=/logs'"
+                               " '-Dlogging.sensitivity=" mock-sensitivity "'"
+                               " '-Dlog4j.configurationFile=/log4j2/worker.xml'"
+                               " '-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector'"
+                               " '-Dstorm.id=" mock-storm-id "'"
+                               " '-Dworker.id=" mock-worker-id "'"
+                               " '-Dworker.port=" mock-port "'"
+                               " '-cp' 'mock-classpath'\"'\"'quote-on-purpose'"
+                               " 'backtype.storm.daemon.worker'"
+                               " '" mock-storm-id "'"
+                               " '" mock-port "'"
+                               " '" mock-worker-id "';"))]
+      (try
+        (testing "testing *.worker.childopts as strings with extra spaces"
+          (let [string-opts "-Dfoo=bar  -Xmx1024m"
+                topo-string-opts "-Dkau=aux   -Xmx2048m"
+                exp-script (exp-script-fn ["-Dfoo=bar" "-Xmx1024m"]
+                                          ["-Dkau=aux" "-Xmx2048m"])
+                _ (.mkdirs (io/file storm-local "workers" mock-worker-id))
+                mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed
+                                        STORM-LOCAL-DIR storm-local
+                                        STORM-WORKERS-ARTIFACTS-DIR (str storm-local "/workers-artifacts")
+                                        SUPERVISOR-RUN-WORKER-AS-USER true
+                                        WORKER-CHILDOPTS string-opts}}]
+            (stubbing [read-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
+                                                   topo-string-opts
+                                                   TOPOLOGY-SUBMITTER-USER "me"}
+                       add-to-classpath mock-cp
+                       supervisor-stormdist-root nil
+                       launch-process nil
+                       set-worker-user! nil
+                       supervisor/java-cmd "java"
+                       supervisor/jlp nil
+                       supervisor/write-log-metadata! nil]
+                      (supervisor/launch-worker mock-supervisor
+                                                mock-storm-id
+                                                mock-port
+                                                mock-worker-id
+                                                mock-mem-onheap)
+                      (verify-first-call-args-for-indices launch-process
+                                                          [0]
+                                                          exp-launch))
+            (is (= (slurp worker-script) exp-script))))
+        (finally (rmr storm-local)))
       (.mkdirs (io/file storm-local "workers" mock-worker-id))
       (try
-      (testing "testing *.worker.childopts as strings with extra spaces"
-        (let [string-opts "-Dfoo=bar  -Xmx1024m"
-              topo-string-opts "-Dkau=aux   -Xmx2048m"
-              exp-script (exp-script-fn ["-Dfoo=bar" "-Xmx1024m"]
-                                    ["-Dkau=aux" "-Xmx2048m"])
-              mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed
-                                      STORM-LOCAL-DIR storm-local
-                                      SUPERVISOR-RUN-WORKER-AS-USER true
-                                      WORKER-CHILDOPTS string-opts}}]
-          (stubbing [read-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
-                                                 topo-string-opts
-                                                 TOPOLOGY-SUBMITTER-USER "me"}
-                     add-to-classpath mock-cp
-                     supervisor-stormdist-root nil
-                     launch-process nil
-                     set-worker-user! nil
-                     supervisor/java-cmd "java"
-                     supervisor/jlp nil
-                     supervisor/write-log-metadata! nil]
-            (supervisor/launch-worker mock-supervisor
-                                      mock-storm-id
-                                      mock-port
-                                      mock-worker-id)
-            (verify-first-call-args-for-indices launch-process
-                                                [0]
-                                                exp-launch))
-          (is (= (slurp worker-script) exp-script))))
-      (testing "testing *.worker.childopts as list of strings, with spaces in values"
-        (let [list-opts '("-Dopt1='this has a space in it'" "-Xmx1024m")
-              topo-list-opts '("-Dopt2='val with spaces'" "-Xmx2048m")
-              exp-script (exp-script-fn list-opts topo-list-opts)
-              mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed
-                                      STORM-LOCAL-DIR storm-local
-                                      SUPERVISOR-RUN-WORKER-AS-USER true
-                                      WORKER-CHILDOPTS list-opts}}]
-          (stubbing [read-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
-                                                 topo-list-opts
-                                                 TOPOLOGY-SUBMITTER-USER "me"}
-                     add-to-classpath mock-cp
-                     supervisor-stormdist-root nil
-                     launch-process nil
-                     set-worker-user! nil
-                     supervisor/java-cmd "java"
-                     supervisor/jlp nil
-                     supervisor/write-log-metadata! nil]
-            (supervisor/launch-worker mock-supervisor
-                                      mock-storm-id
-                                      mock-port
-                                      mock-worker-id)
-            (verify-first-call-args-for-indices launch-process
-                                                [0]
-                                                exp-launch))
-          (is (= (slurp worker-script) exp-script))))
-(finally (rm-r (io/file storm-local)))
-))))
+        (testing "testing *.worker.childopts as list of strings, with spaces in values"
+          (let [list-opts '("-Dopt1='this has a space in it'" "-Xmx1024m")
+                topo-list-opts '("-Dopt2='val with spaces'" "-Xmx2048m")
+                exp-script (exp-script-fn list-opts topo-list-opts)
+                mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed
+                                        STORM-LOCAL-DIR storm-local
+                                        STORM-WORKERS-ARTIFACTS-DIR (str storm-local "/workers-artifacts")
+                                        SUPERVISOR-RUN-WORKER-AS-USER true
+                                        WORKER-CHILDOPTS list-opts}}]
+            (stubbing [read-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
+                                                   topo-list-opts
+                                                   TOPOLOGY-SUBMITTER-USER "me"}
+                       add-to-classpath mock-cp
+                       supervisor-stormdist-root nil
+                       launch-process nil
+                       set-worker-user! nil
+                       supervisor/java-cmd "java"
+                       supervisor/jlp nil
+                       supervisor/write-log-metadata! nil]
+                      (supervisor/launch-worker mock-supervisor
+                                                mock-storm-id
+                                                mock-port
+                                                mock-worker-id
+                                                mock-mem-onheap)
+                      (verify-first-call-args-for-indices launch-process
+                                                          [0]
+                                                          exp-launch))
+            (is (= (slurp worker-script) exp-script))))
+        (finally (rmr storm-local))))))
 
 (deftest test-workers-go-bananas
   ;; test that multiple workers are started for a port, and test that
@@ -479,7 +546,8 @@
                  cluster/mk-storm-cluster-state nil
                  supervisor-state nil
                  local-hostname nil
-                 mk-timer nil]
+                 mk-timer nil
+                 supervisor-local-dir nil]
         (supervisor/supervisor-data auth-conf nil fake-isupervisor)
         (verify-call-times-for cluster/mk-storm-cluster-state 1)
         (verify-first-call-args-for-indices cluster/mk-storm-cluster-state [2]
@@ -529,9 +597,10 @@
     (let [worker-id "w-01"
           topology-id "s-01"
           port 9999
-          childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%ID%-%TOPOLOGY-ID%-%WORKER-ID%-%WORKER-PORT%.log -Xms256m"
-          expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-9999-s-01-w-01-9999.log" "-Xms256m")
-          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port)]
+          mem-onheap 512
+          childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%ID%-%TOPOLOGY-ID%-%WORKER-ID%-%WORKER-PORT%.log -Xms256m -Xmx%HEAP-MEM%m"
+          expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-9999-s-01-w-01-9999.log" "-Xms256m" "-Xmx512m")
+          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port mem-onheap)]
       (is (= expected-childopts childopts-with-ids)))))
 
 (deftest test-substitute-childopts-happy-path-list
@@ -539,9 +608,21 @@
     (let [worker-id "w-01"
           topology-id "s-01"
           port 9999
-          childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%ID%-%TOPOLOGY-ID%-%WORKER-ID%-%WORKER-PORT%.log" "-Xms256m")
-          expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-9999-s-01-w-01-9999.log" "-Xms256m")
-          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port)]
+          mem-onheap 512
+          childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%ID%-%TOPOLOGY-ID%-%WORKER-ID%-%WORKER-PORT%.log" "-Xms256m" "-Xmx%HEAP-MEM%m")
+          expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-9999-s-01-w-01-9999.log" "-Xms256m" "-Xmx512m")
+          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port mem-onheap)]
+      (is (= expected-childopts childopts-with-ids)))))
+
+(deftest test-substitute-childopts-happy-path-list-arraylist
+  (testing "worker-launcher replaces ids in childopts"
+    (let [worker-id "w-01"
+          topology-id "s-01"
+          port 9999
+          mem-onheap 512
+          childopts '["-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%ID%-%TOPOLOGY-ID%-%WORKER-ID%-%WORKER-PORT%.log" "-Xms256m" "-Xmx%HEAP-MEM%m"]
+          expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-9999-s-01-w-01-9999.log" "-Xms256m" "-Xmx512m")
+          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port mem-onheap)]
       (is (= expected-childopts childopts-with-ids)))))
 
 (deftest test-substitute-childopts-topology-id-alone
@@ -549,9 +630,10 @@
     (let [worker-id "w-01"
           topology-id "s-01"
           port 9999
+          mem-onheap 512
           childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%TOPOLOGY-ID%.log"
           expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-s-01.log")
-          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port)]
+          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port mem-onheap)]
       (is (= expected-childopts childopts-with-ids)))))
 
 (deftest test-substitute-childopts-no-keys
@@ -559,9 +641,10 @@
     (let [worker-id "w-01"
           topology-id "s-01"
           port 9999
+          mem-onheap 512
           childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker.log"
           expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker.log")
-          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port)]
+          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port mem-onheap)]
       (is (= expected-childopts childopts-with-ids)))))
 
 (deftest test-substitute-childopts-nil-childopts
@@ -569,9 +652,10 @@
     (let [worker-id "w-01"
           topology-id "s-01"
           port 9999
+          mem-onheap 512
           childopts nil
           expected-childopts nil
-          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port)]
+          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port mem-onheap)]
       (is (= expected-childopts childopts-with-ids)))))
 
 (deftest test-substitute-childopts-nil-ids
@@ -579,16 +663,17 @@
     (let [worker-id nil
           topology-id "s-01"
           port 9999
+          mem-onheap 512
           childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%ID%-%TOPOLOGY-ID%-%WORKER-ID%-%WORKER-PORT%.log"
           expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker-9999-s-01--9999.log")
-          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port)]
+          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port mem-onheap)]
       (is (= expected-childopts childopts-with-ids)))))
 
 (deftest test-retry-read-assignments
   (with-simulated-time-local-cluster [cluster
                                       :supervisors 0
                                       :ports-per-supervisor 2
-                                      :daemon-conf {NIMBUS-REASSIGN false
+                                      :daemon-conf {NIMBUS-DO-NOT-REASSIGN true
                                                     NIMBUS-MONITOR-FREQ-SECS 10
                                                     TOPOLOGY-MESSAGE-TIMEOUT-SECS 30
                                                     TOPOLOGY-ACKER-EXECUTORS 0}]
@@ -604,25 +689,32 @@
      (bind changed (capture-changed-workers
                     (submit-mocked-assignment
                      (:nimbus cluster)
+                     (:storm-cluster-state cluster)
                      "topology1"
                      {TOPOLOGY-WORKERS 2}
                      topology1
                      {1 "1"
                       2 "1"}
                      {[1 1] ["sup1" 1]
-                      [2 2] ["sup1" 2]
+                      [2 2] ["sup1" 2]}
+                     {["sup1" 1] [0.0 0.0 0.0]
+                      ["sup1" 2] [0.0 0.0 0.0]
                       })
                     (submit-mocked-assignment
                      (:nimbus cluster)
+                     (:storm-cluster-state cluster)
                      "topology2"
                      {TOPOLOGY-WORKERS 2}
                      topology2
                      {1 "1"
                       2 "1"}
                      {[1 1] ["sup1" 1]
-                      [2 2] ["sup1" 2]
+                      [2 2] ["sup1" 2]}
+                     {["sup1" 1] [0.0 0.0 0.0]
+                      ["sup1" 2] [0.0 0.0 0.0]
                       })
-                    (advance-cluster-time cluster 10)
+                    ;; Instead of sleeping until topology is scheduled, rebalance topology so mk-assignments is called.
+                    (.rebalance (:nimbus cluster) "topology1" (doto (RebalanceOptions.) (.set_wait_secs 0)))
                     ))
      (is (empty? (:launched changed)))
      (bind options (RebalanceOptions.))

@@ -44,9 +44,9 @@ public class MultitenantScheduler implements IScheduler {
   private Map<String, Number> getUserConf() {
     Map<String, Number> ret = (Map<String, Number>)_conf.get(Config.MULTITENANT_SCHEDULER_USER_POOLS);
     if (ret == null) {
-      ret = new HashMap<String, Number>();
+      ret = new HashMap<>();
     } else {
-      ret = new HashMap<String, Number>(ret); 
+      ret = new HashMap<>(ret);
     }
 
     Map fromFile = Utils.findAndReadConfigFile("multitenant-scheduler.yaml", false);
@@ -65,7 +65,7 @@ public class MultitenantScheduler implements IScheduler {
     
     Map<String, Number> userConf = getUserConf();
     
-    Map<String, IsolatedPool> userPools = new HashMap<String, IsolatedPool>();
+    Map<String, IsolatedPool> userPools = new HashMap<>();
     for (Map.Entry<String, Number> entry : userConf.entrySet()) {
       userPools.put(entry.getKey(), new IsolatedPool(entry.getValue().intValue()));
     }

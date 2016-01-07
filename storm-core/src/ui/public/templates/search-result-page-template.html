@@ -1,0 +1,60 @@
+<!--
+ Licensed to the Apache Software Foundation (ASF) under one or more
+ contributor license agreements.  See the NOTICE file distributed with
+ this work for additional information regarding copyright ownership.
+ The ASF licenses this file to You under the Apache License, Version 2.0
+ (the "License"); you may not use this file except in compliance with
+ the License.  You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+<script id="search-result-files-template" type="text/html">
+<table id="search-result-table" class="table table-striped compact">
+  <thead><tr><th>host:port</th><th>Match</th></tr></thead>
+  <tbody>
+    {{#hostPortList}}
+      <tr id="{{elemId}}">
+        <td>{{host}}:{{port}}</td>
+        <td>LOADING ...</td>
+      </tr>
+    {{/hostPortList}}
+  </tbody>
+</table>
+</script>
+<script id="search-result-identified-template" type="text/html">
+    {{#matches}}
+    <tr>
+      <td><a href="http://{{host}}:{{logviewerPort}}/logviewer_search.html?file={{file}}&search={{searchString}}">{{host}}:{{port}}</a></td>
+      <td><pre>{{beforeString}}<b><a href="{{logviewerURL}}">{{matchString}}</a></b>{{afterString}}</pre></td>
+    </tr>
+    {{/matches}}
+</script>
+<script id="deepsearch-result-identified-template" type="text/html">
+    {{#matches}}
+    {{#matches}}
+    <tr>
+      <td><a href="http://{{host}}:{{logviewerPort}}/logviewer_search.html?file={{fileName}}&search={{searchString}}">{{host}}:{{port}}</a></td>
+      <td><pre>{{beforeString}}<b><a href="{{logviewerURL}}">{{matchString}}</a></b>{{afterString}}</pre></td>
+    </tr>
+    {{/matches}}
+    {{/matches}}
+</script>
+<script id="search-form-template" type="text/html">
+  <div class="search-box">
+    <form action="search_result.html" id="search-box">
+      Search {{id}}:
+      <input type="text" name="search" value="{{search}}">
+      <input type="hidden" name="id" value="{{id}}">
+      <input type="hidden" name="count" value="{{count}}">
+      <input type="submit" value="Search">
+      Search Archived Logs: <input type="checkbox" name="searchArchived" value="checked" {{searchArchived}}>
+    </form>
+  </div>
+</script>
+

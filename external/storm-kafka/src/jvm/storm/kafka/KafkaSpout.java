@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
+ * <p/>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,6 +23,7 @@ import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseRichSpout;
+import com.google.common.base.Strings;
 import kafka.message.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,7 +52,6 @@ public class KafkaSpout extends BaseRichSpout {
 
     public static final Logger LOG = LoggerFactory.getLogger(KafkaSpout.class);
 
-    String _uuid = UUID.randomUUID().toString();
     SpoutConfig _spoutConfig;
     SpoutOutputCollector _collector;
     PartitionCoordinator _coordinator;
@@ -69,7 +69,7 @@ public class KafkaSpout extends BaseRichSpout {
     @Override
     public void open(Map conf, final TopologyContext context, final SpoutOutputCollector collector) {
         _collector = collector;
-
+        String topologyInstanceId = context.getStormId();
         Map stateConf = new HashMap(conf);
         List<String> zkServers = _spoutConfig.zkServers;
         if (zkServers == null) {
@@ -89,13 +89,17 @@ public class KafkaSpout extends BaseRichSpout {
         // using TransactionalState like this is a hack
         int totalTasks = context.getComponentTasks(context.getThisComponentId()).size();
         if (_spoutConfig.hosts instanceof StaticHosts) {
-            _coordinator = new StaticCoordinator(_connections, conf, _spoutConfig, _state, context.getThisTaskIndex(), totalTasks, _uuid);
+            _coordinator = new StaticCoordinator(_connections, conf,
+                    _spoutConfig, _state, context.getThisTaskIndex(),
+                    totalTasks, topologyInstanceId);
         } else {
-            _coordinator = new ZkCoordinator(_connections, conf, _spoutConfig, _state, context.getThisTaskIndex(), totalTasks, _uuid);
+            _coordinator = new ZkCoordinator(_connections, conf,
+                    _spoutConfig, _state, context.getThisTaskIndex(),
+                    totalTasks, topologyInstanceId);
         }
 
         context.registerMetric("kafkaOffset", new IMetric() {
-            KafkaUtils.KafkaOffsetMetric _kafkaOffsetMetric = new KafkaUtils.KafkaOffsetMetric(_spoutConfig.topic, _connections);
+            KafkaUtils.KafkaOffsetMetric _kafkaOffsetMetric = new KafkaUtils.KafkaOffsetMetric(_connections);
 
             @Override
             public Object getValueAndReset() {
@@ -151,8 +155,13 @@ public class KafkaSpout extends BaseRichSpout {
             }
         }
 
-        long now = System.currentTimeMillis();
-        if ((now - _lastUpdateMs) > _spoutConfig.stateUpdateIntervalMs) {
+        long diffWithNow = System.currentTimeMillis() - _lastUpdateMs;
+
+        /*
+             As far as the System.currentTimeMillis() is dependent on System clock,
+             additional check on negative value of diffWithNow in case of external changes.
+         */
+        if (diffWithNow > _spoutConfig.stateUpdateIntervalMs || diffWithNow < 0) {
             commit();
         }
     }
@@ -182,7 +191,11 @@ public class KafkaSpout extends BaseRichSpout {
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        declarer.declare(_spoutConfig.scheme.getOutputFields());
+       if (!Strings.isNullOrEmpty(_spoutConfig.outputStreamId)) {
+            declarer.declareStream(_spoutConfig.outputStreamId, _spoutConfig.scheme.getOutputFields());
+        } else {
+            declarer.declare(_spoutConfig.scheme.getOutputFields());
+        }
     }
 
     private void commit() {

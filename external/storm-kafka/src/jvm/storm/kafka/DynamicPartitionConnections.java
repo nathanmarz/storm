@@ -34,7 +34,7 @@ public class DynamicPartitionConnections {
 
     static class ConnectionInfo {
         SimpleConsumer consumer;
-        Set<Integer> partitions = new HashSet();
+        Set<String> partitions = new HashSet<String>();
 
         public ConnectionInfo(SimpleConsumer consumer) {
             this.consumer = consumer;
@@ -51,16 +51,16 @@ public class DynamicPartitionConnections {
     }
 
     public SimpleConsumer register(Partition partition) {
-        Broker broker = _reader.getCurrentBrokers().getBrokerFor(partition.partition);
-        return register(broker, partition.partition);
+        Broker broker = _reader.getBrokerForTopic(partition.topic).getBrokerFor(partition.partition);
+        return register(broker, partition.topic, partition.partition);
     }
 
-    public SimpleConsumer register(Broker host, int partition) {
+    public SimpleConsumer register(Broker host, String topic, int partition) {
         if (!_connections.containsKey(host)) {
             _connections.put(host, new ConnectionInfo(new SimpleConsumer(host.host, host.port, _config.socketTimeoutMs, _config.bufferSizeBytes, _config.clientId)));
         }
         ConnectionInfo info = _connections.get(host);
-        info.partitions.add(partition);
+        info.partitions.add(getHashKey(topic,partition));
         return info.consumer;
     }
 
@@ -72,9 +72,9 @@ public class DynamicPartitionConnections {
         return null;
     }
 
-    public void unregister(Broker port, int partition) {
+    public void unregister(Broker port, String topic, int partition) {
         ConnectionInfo info = _connections.get(port);
-        info.partitions.remove(partition);
+        info.partitions.remove(getHashKey(topic,partition));
         if (info.partitions.isEmpty()) {
             info.consumer.close();
             _connections.remove(port);
@@ -82,7 +82,7 @@ public class DynamicPartitionConnections {
     }
 
     public void unregister(Partition partition) {
-        unregister(partition.host, partition.partition);
+        unregister(partition.host, partition.topic, partition.partition);
     }
 
     public void clear() {
@@ -90,5 +90,9 @@ public class DynamicPartitionConnections {
             info.consumer.close();
         }
         _connections.clear();
+    }
+
+    private String getHashKey(String topic, int partition) {
+        return topic + "_" + partition;
     }
 }

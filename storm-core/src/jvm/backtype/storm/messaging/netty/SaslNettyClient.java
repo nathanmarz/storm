@@ -52,9 +52,8 @@ public class SaslNettyClient {
      */
     public SaslNettyClient(String topologyName, byte[] token) {
         try {
-            LOG.debug("SaslNettyClient: Creating SASL "
-                    + SaslUtils.AUTH_DIGEST_MD5
-                    + " client to authenticate to server ");
+            LOG.debug("SaslNettyClient: Creating SASL {} client to authenticate to server ",
+                      SaslUtils.AUTH_DIGEST_MD5);
 
             saslClient = Sasl.createSaslClient(
                     new String[] { SaslUtils.AUTH_DIGEST_MD5 }, null, null,
@@ -81,9 +80,7 @@ public class SaslNettyClient {
      */
     public byte[] saslResponse(SaslMessageToken saslTokenMessage) {
         try {
-            byte[] retval = saslClient.evaluateChallenge(saslTokenMessage
-                    .getSaslToken());
-            return retval;
+            return saslClient.evaluateChallenge(saslTokenMessage.getSaslToken());
         } catch (SaslException e) {
             LOG.error(
                     "saslResponse: Failed to respond to SASL server's token:",
@@ -104,8 +101,6 @@ public class SaslNettyClient {
 
         /**
          * Set private members using topology token.
-         * 
-         * @param topologyToken
          */
         public SaslClientCallbackHandler(String topologyToken, byte[] token) {
             this.userName = SaslUtils
@@ -141,26 +136,19 @@ public class SaslNettyClient {
                 }
             }
             if (nc != null) {
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("handle: SASL client callback: setting username: "
-                            + userName);
-                }
+                LOG.debug("handle: SASL client callback: setting username: {}",
+                          userName);
                 nc.setName(userName);
             }
             if (pc != null) {
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("handle: SASL client callback: setting userPassword");
-                }
+                LOG.debug("handle: SASL client callback: setting userPassword");
                 pc.setPassword(userPassword);
             }
             if (rc != null) {
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("handle: SASL client callback: setting realm: "
-                            + rc.getDefaultText());
-                }
+                LOG.debug("handle: SASL client callback: setting realm: {}",
+                        rc.getDefaultText());
                 rc.setText(rc.getDefaultText());
             }
         }
     }
-
 }

@@ -28,9 +28,21 @@ import java.util.*;
 public class GlobalPartitionInformation implements Iterable<Partition>, Serializable {
 
     private Map<Integer, Broker> partitionMap;
+    public String topic;
 
-    public GlobalPartitionInformation() {
-        partitionMap = new TreeMap<Integer, Broker>();
+    //Flag to keep the Partition Path Id backward compatible with Old implementation of Partition.getId() == "partition_" + partition
+    private Boolean bUseTopicNameForPartitionPathId;
+
+    public GlobalPartitionInformation(String topic, Boolean bUseTopicNameForPartitionPathId) {
+        this.topic = topic;
+        this.partitionMap = new TreeMap<Integer, Broker>();
+        this.bUseTopicNameForPartitionPathId = bUseTopicNameForPartitionPathId;
+    }
+
+    public GlobalPartitionInformation(String topic) {
+        this.topic = topic;
+        this.partitionMap = new TreeMap<Integer, Broker>();
+        this.bUseTopicNameForPartitionPathId = false;
     }
 
     public void addPartition(int partitionId, Broker broker) {
@@ -40,7 +52,8 @@ public class GlobalPartitionInformation implements Iterable<Partition>, Serializ
     @Override
     public String toString() {
         return "GlobalPartitionInformation{" +
-                "partitionMap=" + partitionMap +
+                "topic=" + topic +
+                ", partitionMap=" + partitionMap +
                 '}';
     }
 
@@ -51,7 +64,7 @@ public class GlobalPartitionInformation implements Iterable<Partition>, Serializ
     public List<Partition> getOrderedPartitions() {
         List<Partition> partitions = new LinkedList<Partition>();
         for (Map.Entry<Integer, Broker> partition : partitionMap.entrySet()) {
-            partitions.add(new Partition(partition.getValue(), partition.getKey()));
+            partitions.add(new Partition(partition.getValue(), this.topic, partition.getKey(), this.bUseTopicNameForPartitionPathId));
         }
         return partitions;
     }
@@ -59,7 +72,8 @@ public class GlobalPartitionInformation implements Iterable<Partition>, Serializ
     @Override
     public Iterator<Partition> iterator() {
         final Iterator<Map.Entry<Integer, Broker>> iterator = partitionMap.entrySet().iterator();
-
+        final String topic = this.topic;
+        final Boolean bUseTopicNameForPartitionPathId = this.bUseTopicNameForPartitionPathId;
         return new Iterator<Partition>() {
             @Override
             public boolean hasNext() {
@@ -69,7 +83,7 @@ public class GlobalPartitionInformation implements Iterable<Partition>, Serializ
             @Override
             public Partition next() {
                 Map.Entry<Integer, Broker> next = iterator.next();
-                return new Partition(next.getValue(), next.getKey());
+                return new Partition(next.getValue(), topic , next.getKey(), bUseTopicNameForPartitionPathId);
             }
 
             @Override

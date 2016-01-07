@@ -28,6 +28,7 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseRichSpout;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
+import backtype.storm.utils.ExtendedThreadPoolExecutor;
 import backtype.storm.utils.ServiceRegistry;
 import backtype.storm.utils.Utils;
 import java.util.ArrayList;
@@ -36,24 +37,25 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.LinkedList;
 import java.util.Map;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.Callable;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.TimeUnit;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.thrift.TException;
-import org.apache.thrift.transport.TTransportException;
 import org.json.simple.JSONValue;
 
 public class DRPCSpout extends BaseRichSpout {
     //ANY CHANGE TO THIS CODE MUST BE SERIALIZABLE COMPATIBLE OR THERE WILL BE PROBLEMS
     static final long serialVersionUID = 2387848310969237877L;
 
-    public static Logger LOG = LoggerFactory.getLogger(DRPCSpout.class);
+    public static final Logger LOG = LoggerFactory.getLogger(DRPCSpout.class);
     
     SpoutOutputCollector _collector;
-    List<DRPCInvocationsClient> _clients = new ArrayList<DRPCInvocationsClient>();
+    List<DRPCInvocationsClient> _clients = new ArrayList<>();
     transient LinkedList<Future<Void>> _futures = null;
     transient ExecutorService _backround = null;
     String _function;
@@ -78,7 +80,11 @@ public class DRPCSpout extends BaseRichSpout {
         _function = function;
         _local_drpc_id = drpc.getServiceId();
     }
-   
+
+    public String get_function() {
+        return _function;
+    }
+
     private class Adder implements Callable<Void> {
         private String server;
         private int port;
@@ -129,8 +135,10 @@ public class DRPCSpout extends BaseRichSpout {
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
         _collector = collector;
         if(_local_drpc_id==null) {
-            _backround = Executors.newCachedThreadPool();
-            _futures = new LinkedList<Future<Void>>();
+            _backround = new ExtendedThreadPoolExecutor(0, Integer.MAX_VALUE,
+                60L, TimeUnit.SECONDS,
+                new SynchronousQueue<Runnable>());
+            _futures = new LinkedList<>();
 
             int numTasks = context.getComponentTasks(context.getThisComponentId()).size();
             int index = context.getThisTaskIndex();
@@ -164,7 +172,7 @@ public class DRPCSpout extends BaseRichSpout {
     public void nextTuple() {
         boolean gotRequest = false;
         if(_local_drpc_id==null) {
-            int size = 0;
+            int size;
             synchronized (_clients) {
                 size = _clients.size(); //This will only ever grow, so no need to worry about falling off the end
             }

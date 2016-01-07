@@ -35,7 +35,7 @@ import storm.trident.topology.TransactionAttempt;
 
 
 public class OpaquePartitionedTridentSpoutExecutor implements ICommitterTridentSpout<Object> {
-    IOpaquePartitionedTridentSpout _spout;
+    IOpaquePartitionedTridentSpout<Object, ISpoutPartition, Object> _spout;
     
     public class Coordinator implements ITridentSpout.BatchCoordinator<Object> {
         IOpaquePartitionedTridentSpout.Coordinator _coordinator;
@@ -75,10 +75,10 @@ public class OpaquePartitionedTridentSpoutExecutor implements ICommitterTridentS
     }
     
     public class Emitter implements ICommitterTridentSpout.Emitter {        
-        IOpaquePartitionedTridentSpout.Emitter _emitter;
+        IOpaquePartitionedTridentSpout.Emitter<Object, ISpoutPartition, Object> _emitter;
         TransactionalState _state;
-        TreeMap<Long, Map<String, Object>> _cachedMetas = new TreeMap<Long, Map<String, Object>>();
-        Map<String, EmitterPartitionState> _partitionStates = new HashMap<String, EmitterPartitionState>();
+        TreeMap<Long, Map<String, Object>> _cachedMetas = new TreeMap<>();
+        Map<String, EmitterPartitionState> _partitionStates = new HashMap<>();
         int _index;
         int _numTasks;
         
@@ -97,7 +97,7 @@ public class OpaquePartitionedTridentSpoutExecutor implements ICommitterTridentS
             if(_savedCoordinatorMeta==null || !_savedCoordinatorMeta.equals(coordinatorMeta)) {
                 List<ISpoutPartition> partitions = _emitter.getOrderedPartitions(coordinatorMeta);
                 _partitionStates.clear();
-                List<ISpoutPartition> myPartitions = new ArrayList();
+                List<ISpoutPartition> myPartitions = new ArrayList<>();
                 for(int i=_index; i < partitions.size(); i+=_numTasks) {
                     ISpoutPartition p = partitions.get(i);
                     String id = p.getId();
@@ -108,7 +108,7 @@ public class OpaquePartitionedTridentSpoutExecutor implements ICommitterTridentS
                 _savedCoordinatorMeta = coordinatorMeta;
                 _changedMeta = true;
             }
-            Map<String, Object> metas = new HashMap<String, Object>();
+            Map<String, Object> metas = new HashMap<>();
             _cachedMetas.put(tx.getTransactionId(), metas);
 
             Entry<Long, Map<String, Object>> entry = _cachedMetas.lowerEntry(tx.getTransactionId());
@@ -116,11 +116,12 @@ public class OpaquePartitionedTridentSpoutExecutor implements ICommitterTridentS
             if(entry!=null) {
                 prevCached = entry.getValue();
             } else {
-                prevCached = new HashMap<String, Object>();
+                prevCached = new HashMap<>();
             }
             
-            for(String id: _partitionStates.keySet()) {
-                EmitterPartitionState s = _partitionStates.get(id);
+            for(Entry<String, EmitterPartitionState> e: _partitionStates.entrySet()) {
+                String id = e.getKey();
+                EmitterPartitionState s = e.getValue();
                 s.rotatingState.removeState(tx.getTransactionId());
                 Object lastMeta = prevCached.get(id);
                 if(lastMeta==null) lastMeta = s.rotatingState.getLastState();
@@ -147,8 +148,8 @@ public class OpaquePartitionedTridentSpoutExecutor implements ICommitterTridentS
             // another attempt of the batch to commit, the batch phase must have succeeded in between.
             // hence, all tasks for the prior commit must have finished committing (whether successfully or not)
             if(_changedMeta && _index==0) {
-                Set<String> validIds = new HashSet<String>();
-                for(ISpoutPartition p: (List<ISpoutPartition>) _emitter.getOrderedPartitions(_savedCoordinatorMeta)) {
+                Set<String> validIds = new HashSet<>();
+                for(ISpoutPartition p: _emitter.getOrderedPartitions(_savedCoordinatorMeta)) {
                     validIds.add(p.getId());
                 }
                 for(String existingPartition: _state.list("")) {
@@ -162,9 +163,8 @@ public class OpaquePartitionedTridentSpoutExecutor implements ICommitterTridentS
             
             Long txid = attempt.getTransactionId();
             Map<String, Object> metas = _cachedMetas.remove(txid);
-            for(String partitionId: metas.keySet()) {
-                Object meta = metas.get(partitionId);
-                _partitionStates.get(partitionId).rotatingState.overrideState(txid, meta);
+            for(Entry<String, Object> entry: metas.entrySet()) {
+                _partitionStates.get(entry.getKey()).rotatingState.overrideState(txid, entry.getValue());
             }
         }
 
@@ -174,7 +174,7 @@ public class OpaquePartitionedTridentSpoutExecutor implements ICommitterTridentS
         }
     } 
     
-    public OpaquePartitionedTridentSpoutExecutor(IOpaquePartitionedTridentSpout spout) {
+    public OpaquePartitionedTridentSpoutExecutor(IOpaquePartitionedTridentSpout<Object, ISpoutPartition, Object> spout) {
         _spout = spout;
     }
     

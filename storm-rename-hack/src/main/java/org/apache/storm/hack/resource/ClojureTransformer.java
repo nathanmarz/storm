@@ -26,6 +26,7 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.jar.JarOutputStream;
+import java.util.jar.JarEntry;
 
 public class ClojureTransformer implements ResourceTransformer {
 
@@ -53,6 +54,11 @@ public class ClojureTransformer implements ResourceTransformer {
             data = rel.applyToSourceContent(data);
         }
         this.entries.put(s, data);
+    }
+
+    @Override
+    public boolean hasTransformedResource() {
+        return !entries.isEmpty();
     }
 
     @Override

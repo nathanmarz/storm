@@ -129,6 +129,15 @@ public class DefaultShader {
         }
 
         jarFile.close();
+
+        for ( ResourceTransformer transformer : transformers )
+        {
+            if ( transformer.hasTransformedResource() )
+            {
+                transformer.modifyOutputStream( jos );
+            }
+        }
+
         jos.close();
     }
 

@@ -53,4 +53,12 @@ public class ClojureTransformer implements ResourceTransformer {
         }
         this.entries.put(s, data);
     }
+
+    @Override
+    public void modifyOutputStream(JarOutputStream jarOut) throws IOException {
+        for(String key : this.entries.keySet()){
+            jarOut.putNextEntry(new JarEntry(key));
+            jarOut.write(this.entries.get(key).getBytes());
+        }
+    }
 }

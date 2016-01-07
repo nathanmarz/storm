@@ -39,4 +39,6 @@ public interface ResourceTransformer
 
     void processResource( String resource, InputStream is, List<Relocator> relocators )
         throws IOException;
+
+    public void modifyOutputStream(JarOutputStream jarOut) throws IOException;
 }

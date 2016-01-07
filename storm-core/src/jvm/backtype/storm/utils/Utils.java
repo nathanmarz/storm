@@ -596,7 +596,7 @@ public class Utils {
     }
 
 
-    public static IFn loadClojureFn(String namespace, String name) {
+    public static synchronized IFn loadClojureFn(String namespace, String name) {
         try {
             clojure.lang.Compiler.eval(RT.readString("(require '" + namespace + ")"));
         } catch (Exception e) {

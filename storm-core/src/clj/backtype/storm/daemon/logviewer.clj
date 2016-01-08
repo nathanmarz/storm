@@ -22,14 +22,17 @@
   (:use [backtype.storm.ui helpers])
   (:import [backtype.storm.utils Utils VersionInfo])
   (:import [org.slf4j LoggerFactory])
-  (:import [java.util Arrays])
+  (:import [java.util Arrays ArrayList HashSet])
   (:import [java.util.zip GZIPInputStream])
   (:import [org.apache.logging.log4j LogManager])
   (:import [org.apache.logging.log4j.core Appender LoggerContext])
   (:import [org.apache.logging.log4j.core.appender RollingFileAppender])
   (:import [java.io BufferedInputStream File FileFilter FileInputStream
             InputStream InputStreamReader])
+  (:import [java.nio.file Files Path Paths DirectoryStream])
   (:import [java.nio ByteBuffer])
+  (:import [backtype.storm.utils Utils])
+  (:import [backtype.storm.daemon DirectoryCleaner])
   (:import [org.yaml.snakeyaml Yaml]
            [org.yaml.snakeyaml.constructor SafeConstructor])
   (:import [backtype.storm.ui InvalidRequestException]
@@ -57,13 +60,45 @@
 (defn cleanup-cutoff-age-millis [conf now-millis]
   (- now-millis (* (conf LOGVIEWER-CLEANUP-AGE-MINS) 60 1000)))
 
+(defn get-stream-for-dir
+  [^File f]
+  (try (Files/newDirectoryStream (.toPath f))
+    (catch Exception ex (log-error ex) nil)))
+
 (defn- last-modifiedtime-worker-logdir
-  "Return the last modified time for all log files in a worker's log dir"
+  "Return the last modified time for all log files in a worker's log dir.
+  Using stream rather than File.listFiles is to avoid large mem usage
+  when a directory has too many files"
+  [^File log-dir]
+  (let [^DirectoryStream stream (get-stream-for-dir log-dir)
+        dir-modified (.lastModified log-dir)
+        last-modified (try (reduce
+                        (fn [maximum path]
+                          (let [curr (.lastModified (.toFile path))]
+                            (if (> curr maximum)
+                              curr
+                              maximum)))
+                        dir-modified
+                        stream)
+                        (catch Exception ex
+                          (log-error ex) dir-modified)
+                        (finally
+                          (if (instance? DirectoryStream stream)
+                            (.close stream))))]
+    last-modified))
+
+(defn get-size-for-logdir
+  "Return the sum of lengths for all log files in a worker's log dir.
+   Using stream rather than File.listFiles is to avoid large mem usage
+   when a directory has too many files"
   [log-dir]
-  (apply max
-         (.lastModified log-dir)
-         (for [^File file (.listFiles log-dir)]
-           (.lastModified file))))
+  (let [^DirectoryStream stream (get-stream-for-dir log-dir)]
+    (reduce
+      (fn [sum path]
+        (let [size (.length (.toFile path))]
+          (+ sum size)))
+      0
+      stream)))
 
 (defn mk-FileFilter-for-log-cleanup [conf now-millis]
   (let [cutoff-age-millis (cleanup-cutoff-age-millis conf now-millis)]
@@ -164,51 +199,30 @@
 (defn get-all-logs-for-rootdir [^File log-dir]
   (reduce concat
           (for [port-dir (get-all-worker-dirs log-dir)]
-            (into [] (.listFiles port-dir)))))
+            (into [] (DirectoryCleaner/getFilesForDir port-dir)))))
 
 (defn is-active-log [^File file]
   (re-find #"\.(log|err|out|current|yaml|pid)$" (.getName file)))
-
-(defn filter-candidate-files
-  "Filter candidate files for global cleanup"
-  [logs log-dir]
-  (let [alive-worker-dirs (get-alive-worker-dirs *STORM-CONF* log-dir)]
-    (filter #(and (not= (.getName %) "worker.yaml")  ; exclude metadata file
-                  (not (and (contains? alive-worker-dirs (.getCanonicalPath (.getParentFile %)))
-                            (is-active-log %)))) ; exclude active workers' active logs
-            logs)))
-
-(defn sorted-worker-logs
-  "Collect the wroker log files recursively, sorted by decreasing age."
-  [^File root-dir]
-  (let [files (get-all-logs-for-rootdir root-dir)
-        logs (filter-candidate-files files root-dir)]
-    (sort-by #(.lastModified %) logs)))
 
 (defn sum-file-size
   "Given a sequence of Files, sum their sizes."
   [files]
   (reduce #(+ %1 (.length %2)) 0 files))
 
-(defn delete-oldest-while-logs-too-large [logs_ size]
-  (loop [logs logs_]
-    (if (> (sum-file-size logs) size)
-      (do
-        (log-message "Log sizes too high. Going to delete: " (.getName (first logs)))
-        (try (rmr (.getCanonicalPath (first logs)))
-             (catch Exception ex (log-error ex)))
-        (recur (rest logs)))
-      logs)))
-
-(defn per-workerdir-cleanup
+(defn per-workerdir-cleanup!
   "Delete the oldest files in each overloaded worker log dir"
-  [^File root-dir size]
+  [^File root-dir size ^DirectoryCleaner cleaner]
   (dofor [worker-dir (get-all-worker-dirs root-dir)]
-    (let [filtered-logs (filter #(not (is-active-log %)) (.listFiles worker-dir))
-          sorted-logs (sort-by #(.lastModified %) filtered-logs)]
-      (delete-oldest-while-logs-too-large sorted-logs size))))
+    (.deleteOldestWhileTooLarge cleaner (ArrayList. [worker-dir]) size true nil)))
 
-(defn cleanup-empty-topodir
+(defn global-log-cleanup!
+  "Delete the oldest files in overloaded worker-artifacts globally"
+  [^File root-dir size ^DirectoryCleaner cleaner]
+  (let [worker-dirs (ArrayList. (get-all-worker-dirs root-dir))
+        alive-worker-dirs (HashSet. (get-alive-worker-dirs *STORM-CONF* root-dir))]
+    (.deleteOldestWhileTooLarge cleaner worker-dirs size false alive-worker-dirs)))
+
+(defn cleanup-empty-topodir!
   "Delete the topo dir if it contains zero port dirs"
   [^File dir]
   (let [topodir (.getParentFile dir)]
@@ -225,6 +239,7 @@
         total-size (*STORM-CONF* LOGVIEWER-MAX-SUM-WORKER-LOGS-SIZE-MB)
         per-dir-size (*STORM-CONF* LOGVIEWER-MAX-PER-WORKER-LOGS-SIZE-MB)
         per-dir-size (min per-dir-size (* total-size 0.5))
+        cleaner (DirectoryCleaner.)
         dead-worker-dirs (get-dead-worker-dirs *STORM-CONF*
                                                now-secs
                                                old-log-dirs)]
@@ -236,12 +251,11 @@
            (let [path (.getCanonicalPath dir)]
              (log-message "Cleaning up: Removing " path)
              (try (rmr path)
-                  (cleanup-empty-topodir dir)
+                  (cleanup-empty-topodir! dir)
                   (catch Exception ex (log-error ex)))))
-    (per-workerdir-cleanup (File. log-root-dir) (* per-dir-size (* 1024 1024)))
-    (let [all-logs (sorted-worker-logs (File. log-root-dir))
-          size (* total-size (*  1024 1024))]
-      (delete-oldest-while-logs-too-large all-logs size))))
+    (per-workerdir-cleanup! (File. log-root-dir) (* per-dir-size (* 1024 1024)) cleaner)
+    (let [size (* total-size (* 1024 1024))]
+      (global-log-cleanup! (File. log-root-dir) size cleaner))))
 
 (defn start-log-cleaner! [conf log-root-dir]
   (let [interval-secs (conf LOGVIEWER-CLEANUP-INTERVAL-SECS)]
@@ -348,7 +362,7 @@
 
 (defn log-file-selection-form [log-files type]
   [[:form {:action type :id "list-of-files"}
-    (drop-down "file" log-files )
+    (drop-down "file" log-files)
     [:input {:type "submit" :value "Switch file"}]]])
 
 (defn pager-links [fname start length file-size]
@@ -403,7 +417,7 @@
               log-files (reduce clojure.set/union
                           (sorted-set)
                           (for [^File port-dir (.listFiles topo-dir)]
-                            (into [] (filter #(.isFile %) (.listFiles port-dir))))) ;all types of files included
+                            (into [] (filter #(.isFile %) (DirectoryCleaner/getFilesForDir port-dir))))) ;all types of files included
               files-str (for [file log-files]
                           (get-topo-port-workerlog file))
               reordered-files-str (conj (filter #(not= fname %) files-str) fname)
@@ -853,7 +867,7 @@
     (sort #(compare (.lastModified %2) (.lastModified %1))
       (filter-authorized-fn
         user
-        (filter #(re-find worker-log-filename-pattern (.getName %)) (.listFiles port-dir))))))
+        (filter #(re-find worker-log-filename-pattern (.getName %)) (DirectoryCleaner/getFilesForDir port-dir))))))
 
 (defn deep-search-logs-for-topology
   [topology-id user ^String root-dir search num-matches port file-offset offset search-archived? callback origin]
@@ -900,6 +914,7 @@
      [:body
       (concat
         (when (not (blank? user)) [[:div.ui-user [:p "User: " user]]])
+        [[:div.ui-note [:p "Note: the drop-list shows at most 1024 files for each worker directory."]]]
         [[:h3 (escape-html fname)]]
         (seq body))
       ])))
@@ -926,17 +941,17 @@
                 (reduce concat
                   (for [port-dir (.listFiles topo-dir)]
                     (if (= (str port) (.getName port-dir))
-                      (into [] (.listFiles port-dir))))))))
+                      (into [] (DirectoryCleaner/getFilesForDir port-dir))))))))
           (if (nil? port)
             (let [topo-dir (File. (str log-root file-path-separator topoId))]
               (if (.exists topo-dir)
                 (reduce concat
                   (for [port-dir (.listFiles topo-dir)]
-                    (into [] (.listFiles port-dir))))
+                    (into [] (DirectoryCleaner/getFilesForDir port-dir))))
                 []))
             (let [port-dir (get-worker-dir-from-root log-root topoId port)]
               (if (.exists port-dir)
-                (into [] (.listFiles port-dir))
+                (into [] (DirectoryCleaner/getFilesForDir port-dir))
                 []))))
         file-strs (sort (for [file file-results]
                           (get-topo-port-workerlog file)))]
@@ -948,7 +963,7 @@
 (defn get-profiler-dump-files
   [dir]
   (filter (comp not nil?)
-        (for [f (.listFiles dir)]
+        (for [f (DirectoryCleaner/getFilesForDir dir)]
           (let [name (.getName f)]
             (if (or
                   (.endsWith name ".txt")

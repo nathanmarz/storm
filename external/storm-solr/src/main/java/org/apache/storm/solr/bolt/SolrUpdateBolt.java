@@ -40,7 +40,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -74,8 +73,9 @@ public class SolrUpdateBolt extends BaseRichBolt {
         this.collector = collector;
         this.solrClient = new CloudSolrClient(solrConfig.getZkHostString());
         this.toCommitTuples = new ArrayList<>(capacity());
+        this.tickTupleInterval = solrConfig.getTickTupleInterval();
 
-        //set default tickTupleInterval if interval is zero
+        //set default tickTupleInterval
         if (stormConf.containsKey("topology.message.timeout.secs") && tickTupleInterval == 0) {
             Integer topologyTimeout = Utils.getInt(stormConf.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS));
             tickTupleInterval = (int)(Math.floor(topologyTimeout / 2));
@@ -108,17 +108,12 @@ public class SolrUpdateBolt extends BaseRichBolt {
         if (commitStgy == null) {
             collector.ack(tuple);
         } else {
-            boolean forceCommit = false;
-            if (TupleUtils.isTick(tuple)) {
-                LOG.debug("TICK! forcing solr client commit");
-                collector.ack(tuple);
-                forceCommit = true;
-            } else {
+            final boolean isTickTuple = TupleUtils.isTick(tuple);
+            if (!isTickTuple) {
                 toCommitTuples.add(tuple);
                 commitStgy.update();
             }
-
-            if (forceCommit || commitStgy.commit()) {
+            if (isTickTuple || commitStgy.commit()) {
                 solrClient.commit(solrMapper.getCollection());
                 ackCommittedTuples();
             }
@@ -153,11 +148,6 @@ public class SolrUpdateBolt extends BaseRichBolt {
         List<Tuple> queuedTuples = toCommitTuples;
         toCommitTuples = new ArrayList<>(capacity());
         return queuedTuples;
-    }
-
-    public SolrUpdateBolt withTickIntervalSecs(int tickTupleInterval) {
-        this.tickTupleInterval = tickTupleInterval;
-        return this;
     }
 
     @Override

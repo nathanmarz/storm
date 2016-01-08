@@ -28,6 +28,7 @@ import java.io.Serializable;
  */
 public class SolrConfig implements Serializable {
     private String zkHostString;
+    private int tickTupleInterval;
 
     /**
      * @param zkHostString Zookeeper host string as defined in the {@link CloudSolrClient} constructor
@@ -39,4 +40,13 @@ public class SolrConfig implements Serializable {
     public String getZkHostString() {
         return zkHostString;
     }
+
+    public int getTickTupleInterval() {
+        return tickTupleInterval;
+    }
+
+    public void setTickTupleInterval(int tickTupleInterval) {
+        this.tickTupleInterval = tickTupleInterval;
+    }
+    
 }

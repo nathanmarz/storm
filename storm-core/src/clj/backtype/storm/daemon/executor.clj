@@ -572,7 +572,8 @@
                                            (do
                                              (.put pending root-id [task-id
                                                                     message-id
-                                                                    {:stream out-stream-id :values values}
+                                                                    {:stream out-stream-id 
+                                                                     :values (if (= true (storm-conf TOPOLOGY-DEBUG)) values nil)}
                                                                     (if (sampler) (System/currentTimeMillis))])
                                              (task/send-unanchored task-data
                                                                    ACKER-INIT-STREAM-ID

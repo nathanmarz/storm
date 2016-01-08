@@ -62,7 +62,7 @@ public class MqttUtils {
             client.setSslContext(SslUtils.sslContext(uri.getScheme(), keyStoreLoader));
         }
         client.setClientId(clientId);
-        LOG.info("MQTT ClientID: " + client.getClientId().toString());
+        LOG.info("MQTT ClientID: {}", client.getClientId().toString());
         client.setCleanSession(options.isCleanConnection());
 
         client.setReconnectDelay(options.getReconnectDelay());

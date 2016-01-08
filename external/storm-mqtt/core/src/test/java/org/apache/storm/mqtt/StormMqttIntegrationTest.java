@@ -103,7 +103,7 @@ public class StormMqttIntegrationTest implements Serializable{
         LocalCluster cluster = new LocalCluster();
         cluster.submitTopology("test", new Config(), buildMqttTopology());
 
-        System.out.println("topology started");
+        LOG.info("topology started");
         while(!spoutActivated) {
             Thread.sleep(500);
         }
@@ -118,8 +118,8 @@ public class StormMqttIntegrationTest implements Serializable{
         LOG.info("published message");
 
         Message message = connection.receive();
-        LOG.info("Message recieved on topic: " + message.getTopic());
-        LOG.info("Payload: " + new String(message.getPayload()));
+        LOG.info("Message recieved on topic: {}", message.getTopic());
+        LOG.info("Payload: {}", new String(message.getPayload()));
         message.ack();
 
         Assert.assertArrayEquals(message.getPayload(), RESULT_PAYLOAD.getBytes());
@@ -138,7 +138,7 @@ public class StormMqttIntegrationTest implements Serializable{
         MqttBolt bolt = new MqttBolt(options, new MqttTupleMapper() {
             @Override
             public MqttMessage toMessage(ITuple tuple) {
-                LOG.info("Received: " + tuple);
+                LOG.info("Received: {}", tuple);
                 return new MqttMessage(RESULT_TOPIC, RESULT_PAYLOAD.getBytes());
             }
         });

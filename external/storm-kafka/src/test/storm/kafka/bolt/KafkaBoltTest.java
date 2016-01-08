@@ -29,26 +29,36 @@ import backtype.storm.tuple.TupleImpl;
 import backtype.storm.tuple.Values;
 import backtype.storm.utils.TupleUtils;
 import backtype.storm.utils.Utils;
+import com.google.common.collect.ImmutableList;
 import kafka.api.OffsetRequest;
+import kafka.api.FetchRequest;
+import kafka.javaapi.FetchResponse;
+import kafka.javaapi.OffsetResponse;
 import kafka.javaapi.consumer.SimpleConsumer;
 import kafka.javaapi.message.ByteBufferMessageSet;
 import kafka.message.Message;
 import kafka.message.MessageAndOffset;
+import org.apache.kafka.clients.producer.Callback;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.*;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.internal.util.reflection.Whitebox;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import storm.kafka.*;
 import storm.kafka.trident.GlobalPartitionInformation;
 
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.HashMap;
 import java.util.Properties;
+import java.util.concurrent.Future;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class KafkaBoltTest {
 
@@ -113,7 +123,7 @@ public class KafkaBoltTest {
     public void executeWithByteArrayKeyAndMessageSync() {
         boolean async = false;
         boolean fireAndForget = false;
-        bolt = generateDefaultSerializerBolt(async, fireAndForget);
+        bolt = generateDefaultSerializerBolt(async, fireAndForget, null);
         String keyString = "test-key";
         String messageString = "test-message";
         byte[] key = keyString.getBytes();
@@ -129,18 +139,26 @@ public class KafkaBoltTest {
     public void executeWithByteArrayKeyAndMessageAsync() {
         boolean async = true;
         boolean fireAndForget = false;
-        bolt = generateDefaultSerializerBolt(async, fireAndForget);
         String keyString = "test-key";
         String messageString = "test-message";
         byte[] key = keyString.getBytes();
         byte[] message = messageString.getBytes();
-        Tuple tuple = generateTestTuple(key, message);
+        final Tuple tuple = generateTestTuple(key, message);
+
+        final ByteBufferMessageSet mockMsg = mockSingleMessage(key, message);
+        simpleConsumer.close();
+        simpleConsumer = mockSimpleConsumer(mockMsg);
+        KafkaProducer<?, ?> producer = mock(KafkaProducer.class);
+        when(producer.send(any(ProducerRecord.class), any(Callback.class))).thenAnswer(new Answer<Future>() {
+            @Override
+            public Future answer(InvocationOnMock invocationOnMock) throws Throwable {
+                Callback cb = (Callback) invocationOnMock.getArguments()[1];
+                cb.onCompletion(null, null);
+                return mock(Future.class);
+            }
+        });
+        bolt = generateDefaultSerializerBolt(async, fireAndForget, producer);
         bolt.execute(tuple);
-        try {
-            Thread.sleep(1000);                 
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-        }
         verify(collector).ack(tuple);
         verifyMessage(keyString, messageString);
     }
@@ -150,18 +168,20 @@ public class KafkaBoltTest {
     public void executeWithByteArrayKeyAndMessageFire() {
         boolean async = true;
         boolean fireAndForget = true;
-        bolt = generateDefaultSerializerBolt(async, fireAndForget);
+        bolt = generateDefaultSerializerBolt(async, fireAndForget, null);
         String keyString = "test-key";
         String messageString = "test-message";
         byte[] key = keyString.getBytes();
         byte[] message = messageString.getBytes();
         Tuple tuple = generateTestTuple(key, message);
+        final ByteBufferMessageSet mockMsg = mockSingleMessage(key, message);
+        simpleConsumer.close();
+        simpleConsumer = mockSimpleConsumer(mockMsg);
+        KafkaProducer<?, ?> producer = mock(KafkaProducer.class);
+        // do not invoke the callback of send() in order to test whether the bolt handle the fireAndForget option
+        // properly.
+        doReturn(mock(Future.class)).when(producer).send(any(ProducerRecord.class), any(Callback.class));
         bolt.execute(tuple);
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-        }
         verify(collector).ack(tuple);
         verifyMessage(keyString, messageString);
     }
@@ -195,7 +215,8 @@ public class KafkaBoltTest {
         return bolt;
     }
 
-    private KafkaBolt generateDefaultSerializerBolt(boolean async, boolean fireAndForget) {
+    private KafkaBolt generateDefaultSerializerBolt(boolean async, boolean fireAndForget,
+                                                    KafkaProducer<?, ?> mockProducer) {
         Properties props = new Properties();
         props.put("acks", "1");
         props.put("bootstrap.servers", broker.getBrokerConnectionString());
@@ -207,6 +228,9 @@ public class KafkaBoltTest {
         bolt.prepare(config, null, new OutputCollector(collector));
         bolt.setAsync(async);
         bolt.setFireAndForget(fireAndForget);
+        if (mockProducer != null) {
+            Whitebox.setInternalState(bolt, "producer", mockProducer);
+        }
         return bolt;
     }
 
@@ -290,5 +314,28 @@ public class KafkaBoltTest {
         // Sanity check
         assertTrue(TupleUtils.isTick(tuple));
         return tuple;
+    }
+
+    private static ByteBufferMessageSet mockSingleMessage(byte[] key, byte[] message) {
+        ByteBufferMessageSet sets = mock(ByteBufferMessageSet.class);
+        MessageAndOffset msg = mock(MessageAndOffset.class);
+        final List<MessageAndOffset> msgs = ImmutableList.of(msg);
+        doReturn(msgs.iterator()).when(sets).iterator();
+        Message kafkaMessage = mock(Message.class);
+        doReturn(ByteBuffer.wrap(key)).when(kafkaMessage).key();
+        doReturn(ByteBuffer.wrap(message)).when(kafkaMessage).payload();
+        doReturn(kafkaMessage).when(msg).message();
+        return sets;
+    }
+
+    private static SimpleConsumer mockSimpleConsumer(ByteBufferMessageSet mockMsg) {
+        SimpleConsumer simpleConsumer = mock(SimpleConsumer.class);
+        FetchResponse resp = mock(FetchResponse.class);
+        doReturn(resp).when(simpleConsumer).fetch(any(FetchRequest.class));
+        OffsetResponse mockOffsetResponse = mock(OffsetResponse.class);
+        doReturn(new long[] {}).when(mockOffsetResponse).offsets(anyString(), anyInt());
+        doReturn(mockOffsetResponse).when(simpleConsumer).getOffsetsBefore(any(kafka.javaapi.OffsetRequest.class));
+        doReturn(mockMsg).when(resp).messageSet(anyString(), anyInt());
+        return simpleConsumer;
     }
 }

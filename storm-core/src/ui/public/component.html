@@ -88,6 +88,49 @@ function jsError(other) {
       });
     }
 }
+
+function setWorkerActionCheckboxesClickCallback() {
+    $('#executor-stats-table tbody tr td')
+        .on('click', ".workerActionCheckbox", workerActionSelectedClicked);
+}
+
+function redrawExecutorTable() {
+    var table = $('#executor-stats-table').DataTable();
+    var data = table.data();
+    // Datatables will not render for display when draw() is called.
+    // so we must clear the data and add it back.
+    table.clear().rows.add(data).draw(false /* keep current page */);
+}
+
+function disableWorkerActionButtons(disable) {
+    $('span#workerActionButtons > input[type="button"]').each(function(e) {
+      this.disabled = disable;
+    });
+}
+
+function setWorkerActionSelected(key, isSelected) {
+    if (isSelected) {
+        workerActionSelected[key] = true;
+        disableWorkerActionButtons(false);
+    } else {
+        delete workerActionSelected[key];
+        if (Object.keys(workerActionSelected) == 0) {
+          disableWorkerActionButtons(true);
+        }
+    }
+    redrawExecutorTable();
+}
+
+function workerActionSelectedClicked() {
+    if (this.checked) {
+        setWorkerActionSelected(this.value, true);
+    } else {
+        setWorkerActionSelected(this.value, false);
+    }
+};
+
+workerActionSelected = {};
+
 $(document).ready(function() {
     var componentId = $.url("?id");
     var topologyId = $.url("?topology_id");
@@ -119,6 +162,29 @@ $(document).ready(function() {
         }
     });
 
+    function renderActionCheckbox(data, type, row, meta) {
+      var host_port = row[2]+':'+$(row[3])[0].text;
+      switch(type) {
+        case 'filter':
+        case 'display':
+        case 'type':
+          var checkedString =
+              host_port in workerActionSelected ? ' checked' : '';
+          var checkboxId ='workerActionCheckbox_'+row[0].replace(/\[(.*)\]/,"$1");
+          // To present a link to debugging output without needing to change
+          // the UI REST API, we must parse the logviewer URL.
+          var loc = $(row[3])[0]; // logviewer URL
+          return '<input type="checkbox" class="workerActionCheckbox"'+
+              'id="'+checkboxId+'" value="'+host_port+'"'+checkedString+'/> '+
+              '<a href="'+loc.protocol+'//'+loc.host+'/dumps/'+topologyId+'/'+
+              encodeURIComponent(host_port)+'">files</a>';
+          break;
+        case 'sort':
+        default:
+          return host_port in workerActionSelected ? 1 : 0;
+      }
+    }
+
     $.getJSON(url,function(response,status,jqXHR) {
         var uiUser = $("#ui-user");
         $.get("/templates/user-template.html", function(template) {
@@ -137,19 +203,6 @@ $(document).ready(function() {
         var executorStats = $("#component-executor-stats");
         var componentErrors = $("#component-errors");
         $.get("/templates/component-page-template.html", function(template) {
-            response["hosts"] = [];
-            for(var comp_index in response["executorStats"]) {
-                var comp = response["executorStats"][comp_index];
-                var host_port = comp["host"] + ":" + comp["port"];
-                if($.inArray(host_port, response["hosts"]) == -1) {
-                    response["hosts"].push(host_port);
-                }
-            }
-
-            response["hosts"] = $.map(response["hosts"], function(host_port) {
-                return {"name": host_port};
-            });
-
             response["profilerActive"] = $.map(response["profilerActive"], function(active_map) {
                 var date = new Date();
                 var millis = date.getTime() + parseInt(active_map["timestamp"]);
@@ -196,13 +249,14 @@ $(document).ready(function() {
                 });
 
                 executorStats.append(Mustache.render($(template).filter("#executor-stats-template").html(),response));
-                //id, uptime, host, port, emitted, transferred, complete latency, acked, failed
+                //id, uptime, host, port, actions, emitted, transferred, complete latency, acked, failed
                 dtAutoPage("#executor-stats-table", {
                   columnDefs: [
-                    {type: "num", targets: [4, 5, 6, 7, 8]},
-                    {type: "time-str", targets: [1]}
+                    {render: renderActionCheckbox, searchable: false, targets: [4]},
+                    {type: "num", targets: [5, 6, 7, 8, 9]},
+                    {type: "time-str", targets: [1]},
                   ]
-                });
+                }).on("draw", function(e,s) {setWorkerActionCheckboxesClickCallback()});
             } else {
                 componentStatsDetail.append(Mustache.render($(template).filter("#bolt-stats-template").html(),response));
                 //window, emitted, transferred, execute latency, executed, process latency, acked, failed
@@ -230,14 +284,16 @@ $(document).ready(function() {
                 });
 
                 executorStats.append(Mustache.render($(template).filter("#bolt-executor-template").html(),response));
-                //id, uptime, host, port, emitted, transferred, capacity, execute latency, executed, process latency, acked, failed
-                dtAutoPage("#bolt-executor-table", {
+                //id, uptime, host, port, actions, emitted, transferred, capacity, execute latency, executed, process latency, acked, failed
+                dtAutoPage("#executor-stats-table", {
                   columnDefs: [
-                    {type: "num", targets: [4, 5, 6, 7, 8, 9, 10, 11]},
-                    {type: "time-str", targets: [1]}
+                    {render: renderActionCheckbox, searchable: false, targets: [4]},
+                    {type: "num", targets: [5, 6, 7, 8, 9, 10, 11, 12]},
+                    {type: "time-str", targets: [1]},
                   ]
-                });
+                }).on("draw", function(e,s) {setWorkerActionCheckboxesClickCallback()});
             }
+            setWorkerActionCheckboxesClickCallback();
             componentErrors.append(Mustache.render($(template).filter("#component-errors-template").html(),formatErrorTimeSecs(response)));
             //time, error
             dtAutoPage("#component-errors-table", {});
@@ -262,11 +318,7 @@ $(document).ready(function() {
     });
 });
 
-function profiler_selected_worker() {
-    return $("#selected_worker").val();
-}
-
-function start_profiling(id) {
+function start_profiling() {
     var topologyId = $.url("?topology_id");
     var timeout = $("#timeout").val();
 
@@ -276,28 +328,42 @@ function start_profiling(id) {
         return;
     }
 
-    var url = "/api/v1/topology/"+topologyId+"/profiling/start/" + id + "/" + timeout;
-    $.get(url, function(response,status,jqXHR) {
-        jsError(function() {
-            $.get("/templates/component-page-template.html", function(template) {
-                var host_port_split = id.split(":");
-                var host = host_port_split[0];
-                var port = host_port_split[1];
-                var millis = new Date().getTime() + (timeout * 60000);
-                var timestamp = new Date(millis).toTimeString();
-                
-                var mustache = Mustache.render($(template).filter("#profiler-active-partial").html(), {"profilerActive": [{
-                    "host": host,
-                    "port": port,
-                    "timestamp": timestamp,
-                    "dumplink": response["dumplink"]}]});
-                $("#profiler-table-body").append(mustache);
+    var failed = {}
+    var passed = {}
+    Object.keys(workerActionSelected).forEach(function (id) {
+        var url = "/api/v1/topology/"+topologyId+"/profiling/start/" + id + "/" + timeout;
+        $.get(url, function(response,status,jqXHR) {
+            jsError(function() {
+                $.get("/templates/component-page-template.html", function(template) {
+                    var host_port_split = id.split(":");
+                    var host = host_port_split[0];
+                    var port = host_port_split[1];
+                    var millis = new Date().getTime() + (timeout * 60000);
+                    var timestamp = new Date(millis).toTimeString();
+
+                    var mustache = Mustache.render($(template).filter("#profiler-active-partial").html(), {"profilerActive": [{
+                        "host": host,
+                        "port": port,
+                        "timestamp": timestamp,
+                        "dumplink": response["dumplink"]}]});
+                    $("#profiler-table-body").append(mustache);
+                });
             });
+        })
+        .fail(function(response) {
+            failed[id] = response;
         });
-    })
-    .fail(function(response) {
-        alert( "Starting profiler for " + id + " failed: \n" + JSON.stringify(response));
+        if (!(id in failed)) {
+            passed[id] = true;
+            setWorkerActionSelected(id, false);
+        }
     });
+    if (Object.keys(failed) > 0) {
+        alert('Failed to start profiling for '+JSON.stringify(Object.keys(failed)));
+    } else {
+        alert('Sent requests to start profiling for '+JSON.stringify(Object.keys(passed)));
+    }
+    redrawExecutorTable();
 }
 
 function stop_profiling(id) {
@@ -331,6 +397,36 @@ function dump_profile(id) {
     });
 }
 
+// Create jstack output for all selected workers.
+function dump_jstacks() {
+    var topologyId = $.url("?topology_id");
+
+    var failed = {}
+    var passed = {}
+    Object.keys(workerActionSelected).forEach(function (id) {
+        var url = "/api/v1/topology/"+topologyId+"/profiling/dumpjstack/" + id;
+
+        $("#dump_jstack_" + id).prop('disabled', true);
+        setTimeout(function(){ $("#dump_jstack_" + id).prop('disabled', false); }, 5000);
+
+        $.get(url)
+        .fail(function(response) {
+            failed[id] = response;
+        });
+        if (!(id in failed)) {
+            passed[id] = true;
+            setWorkerActionSelected(id, false);
+        }
+    });
+    if (Object.keys(failed) > 0) {
+        alert('Failed to create jstack output for '+JSON.stringify(Object.keys(failed)));
+    } else {
+        alert('Sent requests to create jstack output for '+JSON.stringify(Object.keys(passed)));
+    }
+    redrawExecutorTable();
+}
+
+// Create jstack output for the worker with the given id.
 function dump_jstack(id) {
     var topologyId = $.url("?topology_id");
     var url = "/api/v1/topology/"+topologyId+"/profiling/dumpjstack/" + id;
@@ -346,21 +442,62 @@ function dump_jstack(id) {
     });
 }
 
-function restart_worker_jvm(id) {
+function restart_worker_jvms() {
     var topologyId = $.url("?topology_id");
-    var url = "/api/v1/topology/"+topologyId+"/profiling/restartworker/" + id;
+    var failed = {}
+    var passed = {}
+    Object.keys(workerActionSelected).forEach(function (id) {
+        var url = "/api/v1/topology/"+topologyId+"/profiling/restartworker/" + id;
 
-    $("#restart_worker_jvm_" + id).prop('disabled', true);
-    setTimeout(function(){ $("#restart_worker_jvm_" + id).prop('disabled', false); }, 5000);
+        $("#restart_worker_jvm_" + id).prop('disabled', true);
+        setTimeout(function(){ $("#restart_worker_jvm_" + id).prop('disabled', false); }, 5000);
 
-    $.get(url, function(response,status,jqXHR) {
-        alert("Submitted request for restarting worker...");
-    })
-    .fail(function(response) {
-        alert( "Failed to restart worker for " + id + " failed: \n" + JSON.stringify(response));
+        $.get(url)
+        .fail(function(response) {
+            failed[id] = response;
+        });
+        if (!(id in failed)) {
+            passed[id] = true;
+            setWorkerActionSelected(id, false);
+        }
     });
+    if (Object.keys(failed) > 0) {
+        alert('Failed to restart for '+JSON.stringify(Object.keys(failed)));
+    } else {
+        alert('Sent requests to restart '+JSON.stringify(Object.keys(passed)));
+    }
+    redrawExecutorTable();
 }
 
+// Create java heap output for all selected workers.
+function dump_heaps() {
+    var topologyId = $.url("?topology_id");
+    var failed = {}
+    var passed = {}
+    Object.keys(workerActionSelected).forEach(function (id) {
+        var url = "/api/v1/topology/"+topologyId+"/profiling/dumpheap/" + id;
+        var heap = $("#dump_heap_" + id);
+        $("#dump_heap_" + id).prop('disabled', true);
+        setTimeout(function(){ $("#dump_heap_" + id).prop('disabled', false); }, 5000);
+
+        $.get(url)
+        .fail(function(response) {
+            failed[id] = response;
+        });
+        if (!(id in failed)) {
+            passed[id] = true;
+            setWorkerActionSelected(id, false);
+        }
+    });
+    if (Object.keys(failed) > 0) {
+        alert('Failed to create Java heap output for '+JSON.stringify(Object.keys(failed)));
+    } else {
+        alert('Sent requests to create Java heap output for '+JSON.stringify(Object.keys(passed)));
+    }
+    redrawExecutorTable();
+}
+
+// Create java heap output for the worker with the given id.
 function dump_heap(id) {
     var topologyId = $.url("?topology_id");
     var url = "/api/v1/topology/"+topologyId+"/profiling/dumpheap/" + id;

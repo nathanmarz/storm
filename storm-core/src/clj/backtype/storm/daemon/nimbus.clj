@@ -31,7 +31,7 @@
   (:import [backtype.storm.blobstore AtomicOutputStream BlobStoreAclHandler
             InputStreamWithMeta KeyFilter KeySequenceNumber BlobSynchronizer])
   (:import [java.io File FileOutputStream FileInputStream])
-  (:import [java.net InetAddress])
+  (:import [java.net InetAddress ServerSocket BindException])
   (:import [java.nio.channels Channels WritableByteChannel])
   (:import [backtype.storm.security.auth ThriftServer ThriftConnectionType ReqContext AuthUtils])
   (:use [backtype.storm.scheduler.DefaultScheduler])
@@ -2189,8 +2189,17 @@
       (waiting? [this]
         (timer-waiting? (:timer nimbus))))))
 
+(defn validate-port-available[conf]
+  (try
+    (let [socket (ServerSocket. (conf NIMBUS-THRIFT-PORT))]
+      (.close socket))
+    (catch BindException e
+      (log-error e (conf NIMBUS-THRIFT-PORT) " is not available. Check if another process is already listening on " (conf NIMBUS-THRIFT-PORT))
+      (System/exit 0))))
+
 (defn launch-server! [conf nimbus]
   (validate-distributed-mode! conf)
+  (validate-port-available conf)
   (let [service-handler (service-handler conf nimbus)
         server (ThriftServer. conf (Nimbus$Processor. service-handler)
                               ThriftConnectionType/NIMBUS)]

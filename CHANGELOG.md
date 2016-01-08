@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1379: Removed Redundant Structure
  * STORM-706: Clarify examples README for IntelliJ.
  * STORM-1396: Added backward compatibility method for File Download
  * STORM-695: storm CLI tool reports zero exit code on error scenario

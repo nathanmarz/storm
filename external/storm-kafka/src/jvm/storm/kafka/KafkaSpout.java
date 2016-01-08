@@ -34,16 +34,6 @@ import java.util.*;
 // TODO: need to add blacklisting
 // TODO: need to make a best effort to not re-emit messages if don't have to
 public class KafkaSpout extends BaseRichSpout {
-    public static class MessageAndRealOffset {
-        public Message msg;
-        public long offset;
-
-        public MessageAndRealOffset(Message msg, long offset) {
-            this.msg = msg;
-            this.offset = offset;
-        }
-    }
-
     static enum EmitState {
         EMITTED_MORE_LEFT,
         EMITTED_END,

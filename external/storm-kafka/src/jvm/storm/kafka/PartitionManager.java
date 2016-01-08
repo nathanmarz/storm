@@ -35,7 +35,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import storm.kafka.KafkaSpout.EmitState;
-import storm.kafka.KafkaSpout.MessageAndRealOffset;
 import storm.kafka.trident.MaxMetric;
 
 import java.util.*;
@@ -54,7 +53,7 @@ public class PartitionManager {
 
     // retryRecords key = Kafka offset, value = retry info for the given message
     Long _committedTo;
-    LinkedList<MessageAndRealOffset> _waitingToEmit = new LinkedList<MessageAndRealOffset>();
+    LinkedList<MessageAndOffset> _waitingToEmit = new LinkedList<MessageAndOffset>();
     Partition _partition;
     SpoutConfig _spoutConfig;
     String _topologyInstanceId;
@@ -137,31 +136,31 @@ public class PartitionManager {
             fill();
         }
         while (true) {
-            MessageAndRealOffset toEmit = _waitingToEmit.pollFirst();
+            MessageAndOffset toEmit = _waitingToEmit.pollFirst();
             if (toEmit == null) {
                 return EmitState.NO_EMITTED;
             }
 
             Iterable<List<Object>> tups;
             if (_spoutConfig.scheme instanceof MessageMetadataSchemeAsMultiScheme) {
-                tups = KafkaUtils.generateTuples((MessageMetadataSchemeAsMultiScheme) _spoutConfig.scheme, toEmit.msg, _partition, toEmit.offset);
+                tups = KafkaUtils.generateTuples((MessageMetadataSchemeAsMultiScheme) _spoutConfig.scheme, toEmit.message(), _partition, toEmit.offset());
             } else {
-                tups = KafkaUtils.generateTuples(_spoutConfig, toEmit.msg, _partition.topic);
+                tups = KafkaUtils.generateTuples(_spoutConfig, toEmit.message(), _partition.topic);
             }
             
             if ((tups != null) && tups.iterator().hasNext()) {
                if (!Strings.isNullOrEmpty(_spoutConfig.outputStreamId)) {
                     for (List<Object> tup : tups) {
-                        collector.emit(_spoutConfig.outputStreamId, tup, new KafkaMessageId(_partition, toEmit.offset));
+                        collector.emit(_spoutConfig.topic, tup, new KafkaMessageId(_partition, toEmit.offset()));
                     }
                 } else {
                     for (List<Object> tup : tups) {
-                        collector.emit(tup, new KafkaMessageId(_partition, toEmit.offset));
+                        collector.emit(tup, new KafkaMessageId(_partition, toEmit.offset()));
                     }
                 }
                 break;
             } else {
-                ack(toEmit.offset);
+                ack(toEmit.offset());
             }
         }
         if (!_waitingToEmit.isEmpty()) {
@@ -223,7 +222,7 @@ public class PartitionManager {
                     if (!_pending.containsKey(cur_offset)) {
                         _pending.put(cur_offset, System.currentTimeMillis());
                     }
-                    _waitingToEmit.add(new MessageAndRealOffset(msg.message(), cur_offset));
+                    _waitingToEmit.add(msg);
                     _emittedToOffset = Math.max(msg.nextOffset(), _emittedToOffset);
                     if (_failedMsgRetryManager.shouldRetryMsg(cur_offset)) {
                         this._failedMsgRetryManager.retryStarted(cur_offset);

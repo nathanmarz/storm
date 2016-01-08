@@ -8,7 +8,11 @@ The storm dynamic profiler lets you dynamically take heap-dumps, jprofile or jst
 Using the Storm UI
 -------------
 
-In order to request for heap-dump, jstack, start/stop/dump jprofile or restart a worker, click on a running topology, then click on specific component, then you can select worker from the dropdown for that particular component and then click on “Start","Heap", "Jstack" or "Restart Worker" in the "Profiing and Debugging" section.
+In order to request for heap-dump, jstack, start/stop/dump jprofile or restart a worker, click on a running topology, then click on specific component, then you can select workers by checking the box of any of the worker's executors in the Executors table, and then click on “Start","Heap", "Jstack" or "Restart Worker" in the "Profiling and Debugging" section.
+
+![Selecting Workers](images/dynamic_profiling_debugging_4.png "Selecting Workers")
+
+In the Executors table, click the checkbox in the Actions column next to any executor, and any other executors belonging to the same worker are automatically selected. When the action has completed, any output files created will available at the link in the Actions column.
 
 ![Profiling and Debugging](images/dynamic_profiling_debugging_1.png "Profiling and Debugging")
 

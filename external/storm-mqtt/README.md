@@ -369,3 +369,7 @@ streams:
       type: SHUFFLE
 
 ```
+
+## Committer Sponsors
+
+ * P. Taylor Goetz ([ptgoetz@apache.org](mailto:ptgoetz@apache.org))

@@ -508,9 +508,16 @@ public class HdfsSpout extends BaseRichSpout {
           LOG.debug("Unable to get FileLock for {}, so skipping it.", file);
           continue; // could not lock, so try another file.
         }
-        LOG.info("Processing : {} ", file);
-        Path newFile = renameToInProgressFile(file);
-        return createFileReader(newFile);
+        try {
+          Path newFile = renameToInProgressFile(file);
+          FileReader result = createFileReader(newFile);
+          LOG.info("Processing : {} ", file);
+          return result;
+        } catch (Exception e) {
+          LOG.error("Skipping file " + file, e);
+          releaseLockAndLog(lock, spoutId);
+          continue;
+        }
       }
 
       return null;
@@ -599,7 +606,7 @@ public class HdfsSpout extends BaseRichSpout {
       return (FileReader) constructor.newInstance(this.hdfs, file, conf);
     } catch (Exception e) {
       LOG.error(e.getMessage(), e);
-      throw new RuntimeException("Unable to instantiate " + readerType, e);
+      throw new RuntimeException("Unable to instantiate " + readerType + " reader", e);
     }
   }
 
@@ -638,10 +645,14 @@ public class HdfsSpout extends BaseRichSpout {
   private Path renameToInProgressFile(Path file)
           throws IOException {
     Path newFile =  new Path( file.toString() + inprogress_suffix );
-    if (hdfs.rename(file, newFile)) {
-      return newFile;
+    try {
+      if (hdfs.rename(file, newFile)) {
+        return newFile;
+      }
+      throw new RenameException(file, newFile);
+    } catch (IOException e){
+      throw new RenameException(file, newFile, e);
     }
-    throw new IOException("Rename of " + file + " to " + newFile + " failed");
   }
 
   /** Returns the corresponding input file in the 'sourceDirPath' for the specified lock file.
@@ -709,16 +720,20 @@ public class HdfsSpout extends BaseRichSpout {
     }
   }
 
-  private static class RenameFailedException extends IOException {
-    public final Path file;
-    public RenameFailedException(Path file) {
-      super("Rename failed for file: " + file);
-      this.file = file;
+  private static class RenameException extends IOException {
+    public final Path oldFile;
+    public final Path newFile;
+
+    public RenameException(Path oldFile, Path newFile) {
+      super("Rename of " + oldFile + " to " + newFile + " failed");
+      this.oldFile = oldFile;
+      this.newFile = newFile;
     }
 
-    public RenameFailedException(Path file, IOException e) {
-      super("Rename failed for file: " + file, e);
-      this.file = file;
+    public RenameException(Path oldFile, Path newFile, IOException cause) {
+      super("Rename of " + oldFile + " to " + newFile + " failed", cause);
+      this.oldFile = oldFile;
+      this.newFile = newFile;
     }
   }
 }

@@ -77,9 +77,9 @@ well as the MQTT spout.
 
 The MQTT protocol defines the following QoS levels:
 
-`0` - At Most Once (AKA "Fire and Forget")
-`1` - At Least Once
-`2` - Exactly Once
+* `0` - At Most Once (AKA "Fire and Forget")
+* `1` - At Least Once
+* `2` - Exactly Once
 
 This can be a little confusing as the MQTT protocol specification does not really address the concept of a node being 
 completely incinerated by a catasrophic event. This is in stark contrast with Storm's reliability model, which expects 
@@ -87,7 +87,8 @@ and embraces the concept of node failure.
 
 So resiliancy is ultimately dependent on the underlying MQTT implementation and infrastructure.
 
-**Recommendations**
+###Recommendations
+
 *You will never get at exactly once processing with this spout. It can be used with Trident, but it won't provide 
 transational semantics.*
 

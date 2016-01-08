@@ -452,9 +452,9 @@ before selecting the next file for consumption.
 **Lock on *.lock* Directory**
 Hdfs spout instances create a *DIRLOCK* file in the .lock directory to co-ordinate certain accesses to 
 the .lock dir itself. A spout will try to create it when it needs access to the .lock directory and
-then delete it when done.  In case of a topology crash or force kill, this file may not get deleted.
-In this case it should be deleted manually to allow the new topology instance to regain  full access 
-to the  .lock  directory and resume normal processing. 
+then delete it when done.  In error conditions such as a topology crash, force kill or untimely death 
+of a spout, this file may not get deleted. Future running instances of the spout will eventually recover
+this once the DIRLOCK file becomes stale due to inactivity for hdfsspout.lock.timeout.sec seconds.
 
 ## Usage
 
@@ -515,13 +515,13 @@ Only settings mentioned in **bold** are required.
 |**hdfsspout.source.dir**      |             | HDFS location from where to read.  E.g. /data/inputfiles  |
 |**hdfsspout.archive.dir**     |             | After a file is processed completely it will be moved to this directory. E.g. /data/done|
 |**hdfsspout.badfiles.dir**    |             | if there is an error parsing a file's contents, the file is moved to this location.  E.g. /data/badfiles  |
-|hdfsspout.lock.dir            | '.lock' subdirectory under hdfsspout.source.dir | Dir in which lock files will be created. Concurrent HDFS spout instances synchronize using *lock* files. Before processing a file the spout instance creates a lock file in this directory with same name as input file and deletes this lock file after processing the file. Spout also periodically makes a note of its progress (wrt reading the input file) in the lock file so that another spout instance can resume progress on the same file if the spout dies for any reason. When a toplogy is killed, if a .lock/DIRLOCK file is left behind it can be safely deleted to allow normal resumption of the topology on restart.|
+|hdfsspout.lock.dir            | '.lock' subdirectory under hdfsspout.source.dir | Dir in which lock files will be created. Concurrent HDFS spout instances synchronize using *lock* files. Before processing a file the spout instance creates a lock file in this directory with same name as input file and deletes this lock file after processing the file. Spouts also periodically makes a note of their progress (wrt reading the input file) in the lock file so that another spout instance can resume progress on the same file if the spout dies for any reason.|
 |hdfsspout.ignore.suffix       |   .ignore   | File names with this suffix in the in the hdfsspout.source.dir location will not be processed|
 |hdfsspout.commit.count        |    20000    | Record progress in the lock file after these many records are processed. If set to 0, this criterion will not be used. |
 |hdfsspout.commit.sec          |    10       | Record progress in the lock file after these many seconds have elapsed. Must be greater than 0 |
 |hdfsspout.max.outstanding     |   10000     | Limits the number of unACKed tuples by pausing tuple generation (if ACKers are used in the topology) |
 |hdfsspout.lock.timeout.sec    |  5 minutes  | Duration of inactivity after which a lock file is considered to be abandoned and ready for another spout to take ownership |
-|hdfsspout.clocks.insync       |    true     | Indicates whether clocks on the storm machines are in sync (using services like NTP)       |
+|hdfsspout.clocks.insync       |    true     | Indicates whether clocks on the storm machines are in sync (using services like NTP). Used for detecting stale locks. |
 |hdfs.config (unless changed)  |             | Set it to a Map of Key/value pairs indicating the HDFS settigns to be used. For example, keytab and principle could be set using this. See section **Using keytabs on all worker hosts** under HDFS bolt below.| 
 
 ---

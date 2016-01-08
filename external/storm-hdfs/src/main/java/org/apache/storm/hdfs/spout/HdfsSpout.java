@@ -258,13 +258,19 @@ public class HdfsSpout extends BaseRichSpout {
 
     reader.close();
     reader = null;
-    try {
-      lock.release();
-      LOG.debug("Spout {} released FileLock. SpoutId = {}", lock.getLockFile(), spoutId);
-    } catch (IOException e) {
-      LOG.error("Unable to delete lock file : " + this.lock.getLockFile() + " SpoutId =" + spoutId, e);
-    }
+    releaseLockAndLog(lock, spoutId);
     lock = null;
+  }
+
+  private static void releaseLockAndLog(FileLock fLock, String spoutId) {
+    try {
+      if(fLock!=null) {
+        fLock.release();
+        LOG.debug("Spout {} released FileLock. SpoutId = {}", fLock.getLockFile(), spoutId);
+      }
+    } catch (IOException e) {
+      LOG.error("Unable to delete lock file : " +fLock.getLockFile() + " SpoutId =" + spoutId, e);
+    }
   }
 
   protected void emitData(List<Object> tuple, MessageId id) {
@@ -475,7 +481,7 @@ public class HdfsSpout extends BaseRichSpout {
     }
   }
 
-  private FileReader pickNextFile()  {
+  private FileReader pickNextFile() {
     try {
       // 1) If there are any abandoned files, pick oldest one
       lock = getOldestExpiredLock();
@@ -491,19 +497,19 @@ public class HdfsSpout extends BaseRichSpout {
       Collection<Path> listing = HdfsUtils.listFilesByModificationTime(hdfs, sourceDirPath, 0);
 
       for (Path file : listing) {
-        if( file.getName().endsWith(inprogress_suffix) ) {
+        if (file.getName().endsWith(inprogress_suffix)) {
           continue;
         }
-        if( file.getName().endsWith(ignoreSuffix) ) {
+        if (file.getName().endsWith(ignoreSuffix)) {
           continue;
         }
         lock = FileLock.tryLock(hdfs, file, lockDirPath, spoutId);
-        if( lock==null ) {
+        if (lock == null) {
           LOG.debug("Unable to get FileLock for {}, so skipping it.", file);
           continue; // could not lock, so try another file.
         }
         LOG.info("Processing : {} ", file);
-        Path newFile = renameSelectedFile(file);
+        Path newFile = renameToInProgressFile(file);
         return createFileReader(newFile);
       }
 
@@ -624,14 +630,18 @@ public class HdfsSpout extends BaseRichSpout {
     }
   }
 
-  // returns new path of renamed file
-  private Path renameSelectedFile(Path file)
+  /**
+   * Renames files with .inprogress suffix
+   * @return path of renamed file
+   * @throws if operation fails
+   */
+  private Path renameToInProgressFile(Path file)
           throws IOException {
     Path newFile =  new Path( file.toString() + inprogress_suffix );
-    if( ! hdfs.rename(file, newFile) ) {
-      throw new IOException("Rename failed for file: " + file);
+    if (hdfs.rename(file, newFile)) {
+      return newFile;
     }
-    return newFile;
+    throw new IOException("Rename of " + file + " to " + newFile + " failed");
   }
 
   /** Returns the corresponding input file in the 'sourceDirPath' for the specified lock file.
@@ -699,4 +709,16 @@ public class HdfsSpout extends BaseRichSpout {
     }
   }
 
+  private static class RenameFailedException extends IOException {
+    public final Path file;
+    public RenameFailedException(Path file) {
+      super("Rename failed for file: " + file);
+      this.file = file;
+    }
+
+    public RenameFailedException(Path file, IOException e) {
+      super("Rename failed for file: " + file, e);
+      this.file = file;
+    }
+  }
 }

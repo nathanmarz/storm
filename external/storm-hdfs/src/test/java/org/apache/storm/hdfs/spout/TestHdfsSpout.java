@@ -103,7 +103,6 @@ public class TestHdfsSpout {
     fs.mkdirs(archive);
     badfiles = new Path(baseFolder.toString() + "/bad");
     fs.mkdirs(badfiles);
-
   }
 
   @After

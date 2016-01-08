@@ -28,7 +28,7 @@ import java.io.Serializable;
  */
 public interface MqttMessageMapper extends Serializable {
     /**
-     * Convert a AckableMessage to a set of Values that can be emitted as a Storm Tuple.
+     * Convert a `MqttMessage` to a set of Values that can be emitted as a Storm Tuple.
      *
      * @param message An MQTT Message.
      * @return Values representing a Storm Tuple.

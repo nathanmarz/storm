@@ -25,7 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Given a topic name: "/users/{user}/{location}/{deviceId}"
+ * Given a topic name: "users/{user}/{location}/{deviceId}"
  * and a payload of "{temperature}/{humidity}"
  * emits a tuple containing user(String), deviceId(String), location(String), temperature(float), humidity(float)
  *
@@ -39,7 +39,8 @@ public class CustomMessageMapper implements MqttMessageMapper {
         String[] topicElements = topic.split("/");
         String[] payloadElements = new String(message.getMessage()).split("/");
 
-        return new Values(topicElements[2], topicElements[4], topicElements[3], Float.parseFloat(payloadElements[0]), Float.parseFloat(payloadElements[1]));
+        return new Values(topicElements[2], topicElements[4], topicElements[3], Float.parseFloat(payloadElements[0]),
+                Float.parseFloat(payloadElements[1]));
     }
 
     public Fields outputFields() {

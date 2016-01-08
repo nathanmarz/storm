@@ -2069,6 +2069,9 @@ public class Config extends HashMap<String, Object> {
     /**
      * An implementation of @{link backtype.storm.daemon.JarTransformer} that will can be used to transform a jar
      * file before storm jar runs with it. Use with extreme caution.
+     * If you want to enable a transition between backtype.storm and org.apache.storm to run older topologies
+     * you can set this to org.apache.storm.hack.StormShadeTransformer.  But this is likely to be deprecated in
+     * future releases.
      */
     @isString
     public static final Object CLIENT_JAR_TRANSFORMER = "client.jartransformer.class";

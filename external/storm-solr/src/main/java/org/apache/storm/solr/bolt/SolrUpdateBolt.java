@@ -53,7 +53,7 @@ public class SolrUpdateBolt extends BaseRichBolt {
     private SolrClient solrClient;
     private OutputCollector collector;
     private List<Tuple> toCommitTuples;
-    private Integer tickTupleInterval = 0;
+    private int tickTupleInterval;
 
     public SolrUpdateBolt(SolrConfig solrConfig, SolrMapper solrMapper) {
         this(solrConfig, solrMapper, null);
@@ -73,15 +73,17 @@ public class SolrUpdateBolt extends BaseRichBolt {
         this.collector = collector;
         this.solrClient = new CloudSolrClient(solrConfig.getZkHostString());
         this.toCommitTuples = new ArrayList<>(capacity());
-        this.tickTupleInterval = solrConfig.getTickTupleInterval();
 
-        //set default tickTupleInterval
-        if (stormConf.containsKey("topology.message.timeout.secs") && tickTupleInterval == 0) {
+        setTickTupleInterval(stormConf);   
+    }
+
+    private void setTickTupleInterval(Map stormConf) {
+        this.tickTupleInterval = solrConfig.getTickTupleInterval();
+        if(stormConf.containsKey(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS)  && tickTupleInterval == 0) {
             Integer topologyTimeout = Utils.getInt(stormConf.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS));
             tickTupleInterval = (int)(Math.floor(topologyTimeout / 2));
             LOG.debug("Setting tick tuple interval to [{}] based on topology timeout", tickTupleInterval);
         }
-
     }
 
     private int capacity() {
@@ -94,7 +96,7 @@ public class SolrUpdateBolt extends BaseRichBolt {
     @Override
     public void execute(Tuple tuple) {
         try {
-            if (!TupleUtils.isTick(tuple)) {//Don't add tick tuples to the SolrRequest
+            if (!TupleUtils.isTick(tuple)) {    // Don't add tick tuples to the SolrRequest
                 SolrRequest request = solrMapper.toSolrRequest(tuple);
                 solrClient.request(request, solrMapper.getCollection());
             }
@@ -109,7 +111,7 @@ public class SolrUpdateBolt extends BaseRichBolt {
             collector.ack(tuple);
         } else {
             final boolean isTickTuple = TupleUtils.isTick(tuple);
-            if (!isTickTuple) {
+            if (!isTickTuple) {    // Don't ack tick tuples
                 toCommitTuples.add(tuple);
                 commitStgy.update();
             }
@@ -152,16 +154,7 @@ public class SolrUpdateBolt extends BaseRichBolt {
 
     @Override
     public Map<String, Object> getComponentConfiguration() {
-        Map<String, Object> conf = super.getComponentConfiguration();
-        if (conf == null)
-            conf = new Config();
-
-        if (tickTupleInterval > 0) {
-            LOG.info("Enabling tick tuple with interval [{}]", tickTupleInterval);
-            conf.put(Config.TOPOLOGY_TICK_TUPLE_FREQ_SECS, tickTupleInterval);
-        }
-
-        return conf;
+        return TupleUtils.putTickFreqencyIntoComponentConfig(super.getComponentConfiguration(), tickTupleInterval);
     }
 
     @Override

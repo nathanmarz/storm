@@ -17,11 +17,13 @@
 # limitations under the License.
 
 import os
-import sys
 import random
-import subprocess as sub
 import re
 import shlex
+import subprocess as sub
+
+import sys
+
 try:
     # python 3
     from urllib.parse import quote_plus
@@ -229,7 +231,7 @@ def jar(jarfile, klass, *args):
         daemon=False,
         jvmopts=JAR_JVM_OPTS + ["-Dstorm.jar=" + jarfile])
 
-def sql(sql_file, topo_nam):
+def sql(sql_file, topology_name):
     """Syntax: [storm sql sql-file topology]
 
     Compiles the SQL statements into a Trident topology and submits it to Storm.
@@ -238,7 +240,7 @@ def sql(sql_file, topo_nam):
         "org.apache.storm.sql.StormSqlRunner",
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, STORM_BIN_DIR],
-        args=[sql_file, topo_name],
+        args=[sql_file, topology_name],
         daemon=False)
 
 def kill(*args):

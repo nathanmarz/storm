@@ -112,7 +112,7 @@ public class HiveBolt extends  BaseRichBolt {
         try {
             boolean forceFlush = false;
             if (TupleUtils.isTick(tuple)) {
-                LOG.debug("TICK received! current batch status [" + tupleBatch.size() + "/" + options.getBatchSize() + "]");
+                LOG.debug("TICK received! current batch status [{}/{}]", tupleBatch.size(), options.getBatchSize());
                 collector.ack(tuple);
                 forceFlush = true;
             }

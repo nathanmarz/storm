@@ -95,7 +95,7 @@ public class HBaseBolt  extends AbstractHBaseBolt {
         boolean flush = false;
         try {
             if (TupleUtils.isTick(tuple)) {
-                LOG.debug("TICK received! current batch status [" + tupleBatch.size() + "/" + batchSize + "]");
+                LOG.debug("TICK received! current batch status [{}/{}]", tupleBatch.size(), batchSize);
                 collector.ack(tuple);
                 flush = true;
             } else {

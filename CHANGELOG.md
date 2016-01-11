@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1160: Add hadoop-auth dependency needed for storm-core
  * STORM-1404: Fix Mockito test failures in storm-kafka.
  * STORM-1379: Removed Redundant Structure
  * STORM-706: Clarify examples README for IntelliJ.

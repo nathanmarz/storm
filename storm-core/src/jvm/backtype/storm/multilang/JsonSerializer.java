@@ -18,13 +18,13 @@
 package backtype.storm.multilang;
 
 import java.io.BufferedReader;
-import java.io.DataOutputStream;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -33,20 +33,24 @@ import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
 import backtype.storm.task.TopologyContext;
-import backtype.storm.tuple.Tuple;
 import backtype.storm.utils.Utils;
 
 /**
  * JsonSerializer implements the JSON multilang protocol.
  */
 public class JsonSerializer implements ISerializer {
-    private DataOutputStream processIn;
-    private BufferedReader processOut;
+    //ANY CHANGE TO THIS CODE MUST BE SERIALIZABLE COMPATIBLE OR THERE WILL BE PROBLEMS
+    private static final long serialVersionUID = 2548814660410474022L;
+
+    public static final String DEFAULT_CHARSET = "UTF-8";
+
+    private transient BufferedWriter processIn;
+    private transient BufferedReader processOut;
 
     public void initialize(OutputStream processIn, InputStream processOut) {
-        this.processIn = new DataOutputStream(processIn);
         try {
-            this.processOut = new BufferedReader(new InputStreamReader(processOut, "UTF-8"));
+            this.processIn = new BufferedWriter(new OutputStreamWriter(processIn, DEFAULT_CHARSET));
+            this.processOut = new BufferedReader(new InputStreamReader(processOut, DEFAULT_CHARSET));
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
@@ -90,9 +94,8 @@ public class JsonSerializer implements ISerializer {
     }
 
     private void writeString(String str) throws IOException {
-        byte[] strBytes = str.getBytes("UTF-8");
-        processIn.write(strBytes, 0, strBytes.length);
-        processIn.writeBytes("\nend\n");
+        processIn.write(str);
+        processIn.write("\nend\n");
         processIn.flush();
     }
 
@@ -130,7 +133,6 @@ public class JsonSerializer implements ISerializer {
 
         shellMsg.setTuple((List) msg.get("tuple"));
 
-        List<Tuple> anchors = new ArrayList<Tuple>();
         Object anchorObj = msg.get("anchors");
         if (anchorObj != null) {
             if (anchorObj instanceof String) {

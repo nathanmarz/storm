@@ -1056,8 +1056,8 @@
 
 (defn clojure-from-yaml-file [yamlFile]
   (try
-    (let [obj (.load (Yaml. (SafeConstructor.)) (java.io.FileReader. yamlFile))]
-      (clojurify-structure obj))
+    (with-open [reader (java.io.FileReader. yamlFile)]
+      (clojurify-structure (.load (Yaml. (SafeConstructor.)) reader)))
     (catch Exception ex
       (log-error ex))))
 

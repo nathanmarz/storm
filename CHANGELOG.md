@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1414: Some improvements for multilang JsonSerializer
  * STORM-1408: clean up the build directory created by tests
  * STORM-1425: Tick tuples should be acked like normal tuples
  * STORM-1432: Spurious failure in storm-kafka test 

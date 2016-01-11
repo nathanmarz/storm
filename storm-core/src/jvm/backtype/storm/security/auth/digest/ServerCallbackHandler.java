@@ -123,6 +123,8 @@ public class ServerCallbackHandler implements CallbackHandler {
         if(!authenticationID.equals(ac.getAuthorizationID())) {
             LOG.info("Impersonation attempt  authenticationID = " + ac.getAuthenticationID() + " authorizationID = " + ac.getAuthorizationID());
             ReqContext.context().setRealPrincipal(new SaslTransportPlugin.User(ac.getAuthenticationID()));
+        } else {
+            ReqContext.context().setRealPrincipal(null);
         }
 
         ac.setAuthorized(true);

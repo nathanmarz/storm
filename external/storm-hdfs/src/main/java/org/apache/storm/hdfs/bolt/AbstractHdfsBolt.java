@@ -151,6 +151,7 @@ public abstract class AbstractHdfsBolt extends BaseRichBolt {
             boolean forceSync = false;
             if (TupleUtils.isTick(tuple)) {
                 LOG.debug("TICK! forcing a file system flush");
+                this.collector.ack(tuple);
                 forceSync = true;
             } else {
                 try {

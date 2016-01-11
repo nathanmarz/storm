@@ -20,7 +20,10 @@ package org.apache.storm.hbase.bolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
+import backtype.storm.utils.TupleUtils;
+
 import com.google.common.collect.Lists;
+
 import org.apache.commons.lang.Validate;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
@@ -61,6 +64,10 @@ public class HBaseLookupBolt extends AbstractHBaseBolt {
 
     @Override
     public void execute(Tuple tuple) {
+        if (TupleUtils.isTick(tuple)) {
+            collector.ack(tuple);
+            return;
+        }
         byte[] rowKey = this.mapper.rowKey(tuple);
         Get get = hBaseClient.constructGetRequests(rowKey, projectionCriteria);
 

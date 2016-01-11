@@ -1108,12 +1108,8 @@
   (GET "/api/v1/topology/:id/profiling/start/:host-port/:timeout"
        [:as {:keys [servlet-request]} id host-port timeout & m]
        (thrift/with-configured-nimbus-connection nimbus
-         (let [user (.getUserName http-creds-handler servlet-request)
-               topology-conf (from-json
-                              (.getTopologyConf ^Nimbus$Client nimbus id))]
-           (assert-authorized-user "setWorkerProfiler" (topology-config id))
-           (assert-authorized-profiler-action "start"))
-
+         (assert-authorized-user "setWorkerProfiler" (topology-config id))
+         (assert-authorized-profiler-action "start")
          (let [[host, port] (split host-port #":")
                nodeinfo (NodeInfo. host (set [(Long. port)]))
                timestamp (+ (System/currentTimeMillis) (* 60000 (Long. timeout)))
@@ -1133,11 +1129,8 @@
   (GET "/api/v1/topology/:id/profiling/stop/:host-port"
        [:as {:keys [servlet-request]} id host-port & m]
        (thrift/with-configured-nimbus-connection nimbus
-         (let [user (.getUserName http-creds-handler servlet-request)
-               topology-conf (from-json
-                              (.getTopologyConf ^Nimbus$Client nimbus id))]
-           (assert-authorized-user "setWorkerProfiler" (topology-config id))
-           (assert-authorized-profiler-action "stop"))
+         (assert-authorized-user "setWorkerProfiler" (topology-config id))
+         (assert-authorized-profiler-action "stop")
          (let [[host, port] (split host-port #":")
                nodeinfo (NodeInfo. host (set [(Long. port)]))
                timestamp 0
@@ -1152,11 +1145,8 @@
   (GET "/api/v1/topology/:id/profiling/dumpprofile/:host-port"
        [:as {:keys [servlet-request]} id host-port & m]
        (thrift/with-configured-nimbus-connection nimbus
-         (let [user (.getUserName http-creds-handler servlet-request)
-               topology-conf (from-json
-                              (.getTopologyConf ^Nimbus$Client nimbus id))]
-           (assert-authorized-user "setWorkerProfiler" (topology-config id))
-           (assert-authorized-profiler-action "dumpprofile"))
+         (assert-authorized-user "setWorkerProfiler" (topology-config id))
+         (assert-authorized-profiler-action "dumpprofile")
          (let [[host, port] (split host-port #":")
                nodeinfo (NodeInfo. host (set [(Long. port)]))
                timestamp (System/currentTimeMillis)
@@ -1171,11 +1161,8 @@
   (GET "/api/v1/topology/:id/profiling/dumpjstack/:host-port"
        [:as {:keys [servlet-request]} id host-port & m]
        (thrift/with-configured-nimbus-connection nimbus
-         (let [user (.getUserName http-creds-handler servlet-request)
-               topology-conf (from-json
-                              (.getTopologyConf ^Nimbus$Client nimbus id))]
-           (assert-authorized-user "setWorkerProfiler" (topology-config id))
-           (assert-authorized-profiler-action "dumpjstack"))
+         (assert-authorized-user "setWorkerProfiler" (topology-config id))
+         (assert-authorized-profiler-action "dumpjstack")
          (let [[host, port] (split host-port #":")
                nodeinfo (NodeInfo. host (set [(Long. port)]))
                timestamp (System/currentTimeMillis)
@@ -1190,11 +1177,8 @@
   (GET "/api/v1/topology/:id/profiling/restartworker/:host-port"
        [:as {:keys [servlet-request]} id host-port & m]
        (thrift/with-configured-nimbus-connection nimbus
-         (let [user (.getUserName http-creds-handler servlet-request)
-               topology-conf (from-json
-                              (.getTopologyConf ^Nimbus$Client nimbus id))]
-           (assert-authorized-user "setWorkerProfiler" (topology-config id))
-           (assert-authorized-profiler-action "restartworker"))
+         (assert-authorized-user "setWorkerProfiler" (topology-config id))
+         (assert-authorized-profiler-action "restartworker")
          (let [[host, port] (split host-port #":")
                nodeinfo (NodeInfo. host (set [(Long. port)]))
                timestamp (System/currentTimeMillis)
@@ -1209,11 +1193,8 @@
   (GET "/api/v1/topology/:id/profiling/dumpheap/:host-port"
        [:as {:keys [servlet-request]} id host-port & m]
        (thrift/with-configured-nimbus-connection nimbus
-         (let [user (.getUserName http-creds-handler servlet-request)
-               topology-conf (from-json
-                              (.getTopologyConf ^Nimbus$Client nimbus id))]
-           (assert-authorized-user "setWorkerProfiler" (topology-config id))
-           (assert-authorized-profiler-action "dumpheap"))
+         (assert-authorized-user "setWorkerProfiler" (topology-config id))
+         (assert-authorized-profiler-action "dumpheap")
          (let [[host, port] (split host-port #":")
                nodeinfo (NodeInfo. host (set [(Long. port)]))
                timestamp (System/currentTimeMillis)

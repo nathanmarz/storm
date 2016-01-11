@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1457: Avoid collecting pending tuples if topology.debug is off
  * STORM-1430: ui worker checkboxes
  * STORM-1423: storm UI in a secure env shows error even when credentials are present
  * STORM-702: Exhibitor support

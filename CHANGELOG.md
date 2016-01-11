@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1458: Add check to see if nimbus is already running.
  * STORM-1462: Upgrade HikariCP to 2.4.3
  * STORM-1457: Avoid collecting pending tuples if topology.debug is off
  * STORM-1430: ui worker checkboxes

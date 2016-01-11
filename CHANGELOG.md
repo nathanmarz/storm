@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1425: Tick tuples should be acked like normal tuples
  * STORM-1432: Spurious failure in storm-kafka test 
  * STORM-1449: Fix Kafka spout to maintain backward compatibility
  * STORM-1458: Add check to see if nimbus is already running.

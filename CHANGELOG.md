@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1423: storm UI in a secure env shows error even when credentials are present
  * STORM-702: Exhibitor support
  * STORM-1160: Add hadoop-auth dependency needed for storm-core
  * STORM-1404: Fix Mockito test failures in storm-kafka.

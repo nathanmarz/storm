@@ -321,7 +321,7 @@
           logs-groups (concat (conf LOGS-GROUPS)
                               group-wl)]
        (or (some #(= % user) logs-users)
-           (< 0 (.size (intersection (set groups) (set group-wl))))))))
+           (< 0 (.size (intersection (set groups) (set logs-groups))))))))
 
 (defn log-root-dir
   "Given an appender name, as configured, get the parent directory of the appender's log file.

@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1418: improve debug logs for some external modules
  * STORM-1415: Some improvements for trident map StateUpdater
  * STORM-1414: Some improvements for multilang JsonSerializer
  * STORM-1408: clean up the build directory created by tests

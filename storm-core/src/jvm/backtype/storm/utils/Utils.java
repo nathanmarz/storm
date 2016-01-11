@@ -23,7 +23,18 @@ import backtype.storm.blobstore.BlobStoreAclHandler;
 import backtype.storm.blobstore.ClientBlobStore;
 import backtype.storm.blobstore.InputStreamWithMeta;
 import backtype.storm.blobstore.LocalFsBlobStore;
-import backtype.storm.generated.*;
+import backtype.storm.generated.AccessControl;
+import backtype.storm.generated.AccessControlType;
+import backtype.storm.generated.AuthorizationException;
+import backtype.storm.generated.ClusterSummary;
+import backtype.storm.generated.ComponentCommon;
+import backtype.storm.generated.ComponentObject;
+import backtype.storm.generated.KeyNotFoundException;
+import backtype.storm.generated.ReadableBlobMeta;
+import backtype.storm.generated.SettableBlobMeta;
+import backtype.storm.generated.StormTopology;
+import backtype.storm.generated.TopologyInfo;
+import backtype.storm.generated.TopologySummary;
 import backtype.storm.localizer.Localizer;
 import backtype.storm.nimbus.NimbusInfo;
 import backtype.storm.serialization.DefaultSerializationDelegate;
@@ -35,6 +46,9 @@ import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.io.input.ClassLoaderObjectInputStream;
 import org.apache.commons.lang.StringUtils;
+import org.apache.curator.ensemble.exhibitor.DefaultExhibitorRestClient;
+import org.apache.curator.ensemble.exhibitor.ExhibitorEnsembleProvider;
+import org.apache.curator.ensemble.exhibitor.Exhibitors;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.thrift.TBase;
@@ -50,6 +64,26 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintStream;
+import java.io.RandomAccessFile;
+import java.io.Serializable;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;
@@ -57,50 +91,27 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermission;
-
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.ObjectOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ByteArrayInputStream;
-import java.io.OutputStreamWriter;
-import java.io.InputStreamReader;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.FileOutputStream;
-import java.io.BufferedReader;
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.PrintStream;
-import java.io.RandomAccessFile;
-import java.io.Serializable;
-import java.io.IOException;
-
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Iterator;
-import java.util.Enumeration;
-import java.util.List;
-import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.HashMap;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
-
-import org.apache.thrift.TBase;
-import org.apache.thrift.TDeserializer;
-import org.apache.thrift.TSerializer;
 
 public class Utils {
     private static final Logger LOG = LoggerFactory.getLogger(Utils.class);
@@ -621,6 +632,29 @@ public class Utils {
         throw new IllegalArgumentException("Could not find component with id " + id);
     }
 
+    public static List<String> getStrings(final Object o) {
+        if (o == null) {
+            return new ArrayList<String>();
+        } else if (o instanceof String) {
+            return new ArrayList<String>() {{ add((String) o); }};
+        } else if (o instanceof Collection) {
+            List<String> answer = new ArrayList<String>();
+            for (Object v : (Collection) o) {
+                answer.add(v.toString());
+            }
+            return answer;
+        } else {
+            throw new IllegalArgumentException("Don't know how to convert to string list");
+        }
+    }
+
+    public static String getString(Object o) {
+        if (null == o) {
+            throw new IllegalArgumentException("Don't know how to convert null to String");
+        }
+        return o.toString();
+    }
+
     public static Integer getInt(Object o) {
         Integer result = getInt(o, null);
         if (null == result) {
@@ -971,7 +1005,7 @@ public class Utils {
 
     public static CuratorFramework newCurator(Map conf, List<String> servers, Object port, String root, ZookeeperAuthInfo auth) {
         List<String> serverPorts = new ArrayList<String>();
-        for (String zkServer : (List<String>) servers) {
+        for (String zkServer : servers) {
             serverPorts.add(zkServer + ":" + Utils.getInt(port));
         }
         String zkStr = StringUtils.join(serverPorts, ",") + root;
@@ -982,18 +1016,39 @@ public class Utils {
         return builder.build();
     }
 
-    protected static void setupBuilder(CuratorFrameworkFactory.Builder builder, String zkStr, Map conf, ZookeeperAuthInfo auth)
+    protected static void setupBuilder(CuratorFrameworkFactory.Builder builder, final String zkStr, Map conf, ZookeeperAuthInfo auth)
     {
-        builder.connectString(zkStr)
-                .connectionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_CONNECTION_TIMEOUT)))
-                .sessionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT)))
-                .retryPolicy(new StormBoundedExponentialBackoffRetry(
+        List<String> exhibitorServers = getStrings(conf.get(Config.STORM_EXHIBITOR_SERVERS));
+        if (!exhibitorServers.isEmpty()) {
+            // use exhibitor servers
+            builder.ensembleProvider(new ExhibitorEnsembleProvider(
+                new Exhibitors(exhibitorServers, Utils.getInt(conf.get(Config.STORM_EXHIBITOR_PORT)),
+                    new Exhibitors.BackupConnectionStringProvider() {
+                        @Override
+                        public String getBackupConnectionString() throws Exception {
+                            // use zk servers as backup if they exist
+                            return zkStr;
+                        }}),
+                new DefaultExhibitorRestClient(),
+                Utils.getString(conf.get(Config.STORM_EXHIBITOR_URIPATH)),
+                Utils.getInt(conf.get(Config.STORM_EXHIBITOR_POLL)),
+                new StormBoundedExponentialBackoffRetry(
+                    Utils.getInt(conf.get(Config.STORM_EXHIBITOR_RETRY_INTERVAL)),
+                    Utils.getInt(conf.get(Config.STORM_EXHIBITOR_RETRY_INTERVAL_CEILING)),
+                    Utils.getInt(conf.get(Config.STORM_EXHIBITOR_RETRY_TIMES)))));
+        } else {
+            builder.connectString(zkStr);
+        }
+        builder
+            .connectionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_CONNECTION_TIMEOUT)))
+            .sessionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT)))
+            .retryPolicy(new StormBoundedExponentialBackoffRetry(
                         Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL)),
                         Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL_CEILING)),
                         Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES))));
 
         if (auth != null && auth.scheme != null && auth.payload != null) {
-            builder = builder.authorization(auth.scheme, auth.payload);
+            builder.authorization(auth.scheme, auth.payload);
         }
     }
 

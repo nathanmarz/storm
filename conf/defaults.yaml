@@ -35,6 +35,8 @@ storm.zookeeper.retry.interval: 1000
 storm.zookeeper.retry.intervalceiling.millis: 30000
 storm.zookeeper.auth.user: null
 storm.zookeeper.auth.password: null
+storm.exhibitor.port: 8080
+storm.exhibitor.poll.uripath: "/exhibitor/v1/cluster/list"
 storm.cluster.mode: "distributed" # can be distributed or local
 storm.local.mode.zmq: false
 storm.thrift.transport: "backtype.storm.security.auth.SimpleTransportPlugin"

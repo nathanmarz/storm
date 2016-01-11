@@ -153,6 +153,20 @@ public class Config extends HashMap<String, Object> {
     public static final String STORM_ZOOKEEPER_PORT = "storm.zookeeper.port";
 
     /**
+     * A list of hosts of Exhibitor servers used to discover/maintain connection to ZooKeeper cluster.
+     * Any configured ZooKeeper servers will be used for the curator/exhibitor backup connection string.
+     */
+    @isStringList
+    public static final String STORM_EXHIBITOR_SERVERS = "storm.exhibitor.servers";
+
+    /**
+     * The port Storm will use to connect to each of the exhibitor servers.
+     */
+    @isInteger
+    @isPositiveNumber
+    public static final String STORM_EXHIBITOR_PORT = "storm.exhibitor.port";
+
+    /**
      * A directory on the local filesystem used by Storm for any local
      * filesystem usage it needs. The directory must exist and the Storm daemons must
      * have permission to read/write from this location.
@@ -341,6 +355,36 @@ public class Config extends HashMap<String, Object> {
      */
     @isString
     public static final String STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD="storm.zookeeper.topology.auth.payload";
+
+    /*
+     * How often to poll Exhibitor cluster in millis.
+     */
+    @isString
+    public static final String STORM_EXHIBITOR_URIPATH="storm.exhibitor.poll.uripath";
+
+    /**
+     * How often to poll Exhibitor cluster in millis.
+     */
+    @isInteger
+    public static final String STORM_EXHIBITOR_POLL="storm.exhibitor.poll.millis";
+
+    /**
+     * The number of times to retry an Exhibitor operation.
+     */
+    @isInteger
+    public static final String STORM_EXHIBITOR_RETRY_TIMES="storm.exhibitor.retry.times";
+
+    /**
+     * The interval between retries of an Exhibitor operation.
+     */
+    @isInteger
+    public static final String STORM_EXHIBITOR_RETRY_INTERVAL="storm.exhibitor.retry.interval";
+
+    /**
+     * The ceiling of the interval between retries of an Exhibitor operation.
+     */
+    @isInteger
+    public static final String STORM_EXHIBITOR_RETRY_INTERVAL_CEILING="storm.exhibitor.retry.intervalceiling.millis";
 
     /**
      * The id assigned to a running topology. The id is the storm name with a unique nonce appended.

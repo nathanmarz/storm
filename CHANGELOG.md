@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-468: java.io.NotSerializableException should be explained
  * STORM-1348: refactor API to remove Insert/Update builder in Cassandra connector
  * STORM-1206: Reduce logviewer memory usage through directory stream
  * STORM-1219: Fix HDFS and Hive bolt flush/acking

@@ -21,14 +21,13 @@ package org.apache.storm.cassandra.bolt;
 import backtype.storm.topology.TopologyBuilder;
 import com.datastax.driver.core.ResultSet;
 import org.apache.storm.cassandra.WeatherSpout;
-import org.apache.storm.cassandra.query.SimpleCQLStatementTupleMapper;
+import org.apache.storm.cassandra.query.impl.SimpleCQLStatementMapper;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.storm.cassandra.DynamicStatementBuilder.field;
-import static org.apache.storm.cassandra.DynamicStatementBuilder.insertInto;
-import static org.apache.storm.cassandra.DynamicStatementBuilder.with;
+import static org.apache.storm.cassandra.DynamicStatementBuilder.simpleQuery;
 
 
 /**
@@ -45,8 +44,9 @@ public class BatchCassandraWriterBoltTest extends BaseTopologyTest {
         executeAndAssertWith(100000, new BatchCassandraWriterBolt(getInsertInto()));
     }
 
-    private SimpleCQLStatementTupleMapper getInsertInto() {
-        return insertInto("weather", "temperature").values(with(field("weather_station_id"), field("event_time").now(), field("temperature"))).build();
+    private SimpleCQLStatementMapper getInsertInto() {
+        return simpleQuery("INSERT INTO weather.temperature(weather_station_id,event_time,temperature) VALUES (?, ?, ?);")
+                .with(field("weather_station_id"), field("event_time").now(), field("temperature")).build();
     }
 
     protected void executeAndAssertWith(final int maxQueries, final BaseCassandraBolt bolt) {

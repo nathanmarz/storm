@@ -16,36 +16,37 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.storm.cassandra.query;
+package org.apache.storm.cassandra.query.impl;
 
 import backtype.storm.tuple.ITuple;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.DataType;
+import com.datastax.driver.core.ProtocolVersion;
+import com.google.common.base.Preconditions;
 
 import java.io.Serializable;
-import java.util.Arrays;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
-/**
- * Default interface to map a {@link backtype.storm.tuple.ITuple} to a CQL {@link com.datastax.driver.core.Statement}.
- *
- */
-public abstract class SimpleCQLStatementTupleMapper implements CQLStatementTupleMapper, Serializable {
+public class RoutingKeyGenerator implements Serializable {
+
+    private List<String> routingKeys;
 
     /**
-     * {@inheritDoc}
+     * Creates a new {@link RoutingKeyGenerator} instance.
+     * @param routingKeys
      */
-    @Override
-    public List<Statement> map(Map conf, Session session, ITuple tuple) {
-        return Arrays.asList(map(tuple));
+    public RoutingKeyGenerator(List<String> routingKeys) {
+        Preconditions.checkNotNull(routingKeys);
+        this.routingKeys = routingKeys;
     }
 
-    /**
-     * Maps a given tuple to a single CQL statements.
-     *
-     * @param tuple the incoming tuple to map.
-     * @return a list of {@link com.datastax.driver.core.Statement}.
-     */
-    public abstract Statement map(ITuple tuple);
+    public List<ByteBuffer> getRoutingKeys(ITuple tuple) {
+        List<ByteBuffer> keys = new ArrayList<>(routingKeys.size());
+        for(String s : routingKeys) {
+            Object value = tuple.getValueByField(s);
+            keys.add(DataType.serializeValue(value, ProtocolVersion.NEWEST_SUPPORTED));
+        }
+        return keys;
+    }
 }

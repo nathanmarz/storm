@@ -19,39 +19,33 @@
 package org.apache.storm.cassandra.query;
 
 import backtype.storm.tuple.ITuple;
-import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 
-import java.util.ArrayList;
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-
-public class BatchStatementTupleMapper implements CQLStatementTupleMapper {
-
-    private final List<CQLStatementTupleMapper> mappers;
-    private final BatchStatement.Type type;
-
-    /**
-     * Creates a new {@link BatchStatementTupleMapper} instance.
-     * @param type
-     * @param mappers
-     */
-    public BatchStatementTupleMapper(BatchStatement.Type type, List<CQLStatementTupleMapper> mappers) {
-        this.mappers = new ArrayList<>(mappers);
-        this.type = type;
-    }
+/**
+ * Default interface to map a {@link backtype.storm.tuple.ITuple} to a CQL {@link com.datastax.driver.core.Statement}.
+ *
+ */
+public abstract class BaseCQLStatementTupleMapper implements CQLStatementTupleMapper, Serializable {
 
     /**
      * {@inheritDoc}
      */
     @Override
     public List<Statement> map(Map conf, Session session, ITuple tuple) {
-        final BatchStatement batch = new BatchStatement(this.type);
-        for(CQLStatementTupleMapper m : mappers)
-            batch.addAll(m.map(conf, session, tuple));
-        return Arrays.asList((Statement)batch);
+        return Arrays.asList(map(tuple));
     }
+
+    /**
+     * Maps a given tuple to a single CQL statements.
+     *
+     * @param tuple the incoming tuple to map.
+     * @return a list of {@link com.datastax.driver.core.Statement}.
+     */
+    public abstract Statement map(ITuple tuple);
 }

@@ -45,7 +45,6 @@ import java.util.Random;
 
 import static org.apache.storm.cassandra.DynamicStatementBuilder.boundQuery;
 import static org.apache.storm.cassandra.DynamicStatementBuilder.field;
-import static org.apache.storm.cassandra.DynamicStatementBuilder.with;
 
 /**
  *
@@ -109,7 +108,8 @@ public class TridentTopologyTest extends BaseTopologyTest {
         CassandraState.Options options = new CassandraState.Options(new CassandraContext());
         CQLStatementTupleMapper insertTemperatureValues = boundQuery(
                 "INSERT INTO weather.temperature(weather_station_id, weather_station_name, event_time, temperature) VALUES(?, ?, ?, ?)")
-                .bind(with(field("weather_station_id"), field("name").as("weather_station_name"), field("event_time").now(), field("temperature")));
+                .bind(field("weather_station_id"), field("name").as("weather_station_name"), field("event_time").now(), field("temperature"))
+                .build();
         options.withCQLStatementTupleMapper(insertTemperatureValues);
         return new CassandraStateFactory(options);
     }
@@ -117,7 +117,7 @@ public class TridentTopologyTest extends BaseTopologyTest {
     public CassandraStateFactory getSelectWeatherStationStateFactory() {
         CassandraState.Options options = new CassandraState.Options(new CassandraContext());
         CQLStatementTupleMapper insertTemperatureValues = boundQuery("SELECT name FROM weather.station WHERE id = ?")
-                .bind(with(field("weather_station_id").as("id")));
+                .bind(field("weather_station_id").as("id")).build();
         options.withCQLStatementTupleMapper(insertTemperatureValues);
         options.withCQLResultSetValuesMapper(new TridentResultSetValuesMapper(new Fields("name")));
         return new CassandraStateFactory(options);

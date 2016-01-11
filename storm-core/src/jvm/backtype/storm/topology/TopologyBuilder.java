@@ -26,6 +26,7 @@ import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
 import org.json.simple.JSONValue;
 
+import java.io.NotSerializableException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -103,12 +104,32 @@ public class TopologyBuilder {
         for(String boltId: _bolts.keySet()) {
             IRichBolt bolt = _bolts.get(boltId);
             ComponentCommon common = getComponentCommon(boltId, bolt);
-            boltSpecs.put(boltId, new Bolt(ComponentObject.serialized_java(Utils.javaSerialize(bolt)), common));
+            try{
+                boltSpecs.put(boltId, new Bolt(ComponentObject.serialized_java(Utils.javaSerialize(bolt)), common));
+            }catch(RuntimeException wrapperCause){
+                if (wrapperCause.getCause() != null && NotSerializableException.class.equals(wrapperCause.getCause().getClass())){
+                    throw new IllegalStateException(
+                        "Bolt '" + boltId + "' contains a non-serializable field of type " + wrapperCause.getCause().getMessage() + ", " +
+                        "which was instantiated prior to topology creation. " + wrapperCause.getCause().getMessage() + " " +
+                        "should be instantiated within the prepare method of '" + boltId + " at the earliest.", wrapperCause);
+                }
+                throw wrapperCause;
+            }
         }
         for(String spoutId: _spouts.keySet()) {
             IRichSpout spout = _spouts.get(spoutId);
             ComponentCommon common = getComponentCommon(spoutId, spout);
-            spoutSpecs.put(spoutId, new SpoutSpec(ComponentObject.serialized_java(Utils.javaSerialize(spout)), common));
+            try{
+                spoutSpecs.put(spoutId, new SpoutSpec(ComponentObject.serialized_java(Utils.javaSerialize(spout)), common));
+            }catch(RuntimeException wrapperCause){
+                if (wrapperCause.getCause() != null && NotSerializableException.class.equals(wrapperCause.getCause().getClass())){
+                    throw new IllegalStateException(
+                        "Spout '" + spoutId + "' contains a non-serializable field of type " + wrapperCause.getCause().getMessage() + ", " +
+                        "which was instantiated prior to topology creation. " + wrapperCause.getCause().getMessage() + " " +
+                        "should be instantiated within the prepare method of '" + spoutId + " at the earliest.", wrapperCause);
+                }
+                throw wrapperCause;
+            }
         }
 
         StormTopology stormTopology = new StormTopology(spoutSpecs,

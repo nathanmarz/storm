@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
 #  You may obtain a copy of the License at
@@ -19,7 +19,7 @@ STORM_SRC_ROOT_DIR=$1
 TRAVIS_SCRIPT_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
 cd ${STORM_SRC_ROOT_DIR}
-
+./dev-tools/move_package.sh "${STORM_SRC_ROOT_DIR}" || exit 1
 python ${TRAVIS_SCRIPT_DIR}/save-logs.py "install.txt" mvn clean install -DskipTests -Pnative --batch-mode
 BUILD_RET_VAL=$?
 

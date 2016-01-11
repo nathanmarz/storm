@@ -23,18 +23,8 @@ import backtype.storm.blobstore.BlobStoreAclHandler;
 import backtype.storm.blobstore.ClientBlobStore;
 import backtype.storm.blobstore.InputStreamWithMeta;
 import backtype.storm.blobstore.LocalFsBlobStore;
-import backtype.storm.generated.AccessControl;
-import backtype.storm.generated.AccessControlType;
-import backtype.storm.generated.AuthorizationException;
-import backtype.storm.generated.ClusterSummary;
-import backtype.storm.generated.ComponentCommon;
-import backtype.storm.generated.ComponentObject;
-import backtype.storm.generated.KeyNotFoundException;
-import backtype.storm.generated.ReadableBlobMeta;
-import backtype.storm.generated.SettableBlobMeta;
-import backtype.storm.generated.StormTopology;
-import backtype.storm.generated.TopologyInfo;
-import backtype.storm.generated.TopologySummary;
+import backtype.storm.daemon.JarTransformer;
+import backtype.storm.generated.*;
 import backtype.storm.localizer.Localizer;
 import backtype.storm.nimbus.NimbusInfo;
 import backtype.storm.serialization.DefaultSerializationDelegate;
@@ -137,6 +127,14 @@ public class Utils {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static JarTransformer jarTransformer(String klass) {
+        JarTransformer ret = null;
+        if (klass != null) {
+            ret = (JarTransformer)newInstance(klass);
+        }
+        return ret;
     }
 
     public static byte[] serialize(Object obj) {
@@ -598,7 +596,7 @@ public class Utils {
     }
 
 
-    public static IFn loadClojureFn(String namespace, String name) {
+    public static synchronized IFn loadClojureFn(String namespace, String name) {
         try {
             clojure.lang.Compiler.eval(RT.readString("(require '" + namespace + ")"));
         } catch (Exception e) {

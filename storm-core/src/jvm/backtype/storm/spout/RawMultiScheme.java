@@ -21,6 +21,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 
 import backtype.storm.tuple.Fields;
+import backtype.storm.utils.Utils;
 
 
 import static backtype.storm.utils.Utils.tuple;
@@ -29,7 +30,7 @@ import static java.util.Arrays.asList;
 public class RawMultiScheme implements MultiScheme {
   @Override
   public Iterable<List<Object>> deserialize(ByteBuffer ser) {
-    return asList(tuple(ser));
+    return asList(tuple(Utils.toByteArray(ser)));
   }
 
   @Override

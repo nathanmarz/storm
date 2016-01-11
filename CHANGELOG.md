@@ -1,4 +1,5 @@
 ## 0.11.0
+ * STORM-1206: Reduce logviewer memory usage through directory stream
  * STORM-1219: Fix HDFS and Hive bolt flush/acking
  * STORM-1150: Fix the authorization of Logviewer in method authorized-log-user?
  * STORM-1418: improve debug logs for some external modules

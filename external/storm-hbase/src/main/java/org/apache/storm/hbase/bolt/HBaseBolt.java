@@ -17,10 +17,10 @@
  */
 package org.apache.storm.hbase.bolt;
 
-import backtype.storm.topology.OutputFieldsDeclarer;
-import backtype.storm.tuple.Tuple;
-import backtype.storm.utils.TupleUtils;
-import backtype.storm.Config;
+import org.apache.storm.topology.OutputFieldsDeclarer;
+import org.apache.storm.tuple.Tuple;
+import org.apache.storm.utils.TupleUtils;
+import org.apache.storm.Config;
 import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.storm.hbase.bolt.mapper.HBaseMapper;

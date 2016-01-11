@@ -17,7 +17,7 @@
  */
 package org.apache.storm.elasticsearch.bolt;
 
-import backtype.storm.testing.IntegrationTest;
+import org.apache.storm.testing.IntegrationTest;
 import org.apache.commons.io.FileUtils;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;

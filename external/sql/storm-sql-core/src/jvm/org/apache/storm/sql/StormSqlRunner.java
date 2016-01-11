@@ -17,9 +17,9 @@
  */
 package org.apache.storm.sql;
 
-import backtype.storm.generated.SubmitOptions;
-import backtype.storm.generated.TopologyInitialStatus;
-import backtype.storm.utils.Utils;
+import org.apache.storm.generated.SubmitOptions;
+import org.apache.storm.generated.TopologyInitialStatus;
+import org.apache.storm.utils.Utils;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;

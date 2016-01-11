@@ -1018,9 +1018,9 @@
                                 <configuration>
                                     <append>true</append>
                                     <excludes>
-                                        <exclude>backtype/storm/metric/api/IMetricsConsumer$DataPointFieldAccess</exclude>
-                                        <exclude>backtype/storm/metric/api/IMetricsConsumer$TaskInfoFieldAccess</exclude>
-                                        <exclude>backtype/storm/testing/TestSerObjectFieldAccess</exclude>
+                                        <exclude>org/apache/storm/metric/api/IMetricsConsumer$DataPointFieldAccess</exclude>
+                                        <exclude>org/apache/storm/metric/api/IMetricsConsumer$TaskInfoFieldAccess</exclude>
+                                        <exclude>org/apache/storm/testing/TestSerObjectFieldAccess</exclude>
                                     </excludes>
                                 </configuration>
                             </execution>
@@ -1032,7 +1032,7 @@
                                 </goals>
                                 <configuration>
                                     <excludes>
-                                        <exclude>backtype/storm/generated/*</exclude> <!--Thrift generated code-->
+                                        <exclude>org/apache/storm/generated/*</exclude> <!--Thrift generated code-->
                                     </excludes>
                                     <includes>
                                         <include>backtype/*/*/*/*</include>

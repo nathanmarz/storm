@@ -18,8 +18,8 @@
 package org.apache.storm.hive.bolt.mapper;
 
 
-import backtype.storm.tuple.Tuple;
-import storm.trident.tuple.TridentTuple;
+import org.apache.storm.tuple.Tuple;
+import org.apache.storm.trident.tuple.TridentTuple;
 import java.util.List;
 import org.apache.hive.hcatalog.streaming.HiveEndPoint;
 import org.apache.hive.hcatalog.streaming.RecordWriter;
@@ -30,7 +30,7 @@ import java.io.Serializable;
 import java.io.IOException;
 
 /**
- * Maps a <code>backtype.storm.tuple.Tupe</code> object
+ * Maps a <code>org.apache.storm.tuple.Tupe</code> object
  * to a row in an Hive table.
  */
 public interface HiveMapper extends Serializable {

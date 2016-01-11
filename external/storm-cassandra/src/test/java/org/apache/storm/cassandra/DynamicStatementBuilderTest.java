@@ -18,8 +18,8 @@
  */
 package org.apache.storm.cassandra;
 
-import backtype.storm.tuple.Fields;
-import backtype.storm.tuple.Tuple;
+import org.apache.storm.tuple.Fields;
+import org.apache.storm.tuple.Tuple;
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.ProtocolVersion;
 import com.datastax.driver.core.SimpleStatement;

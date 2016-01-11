@@ -18,13 +18,13 @@
  */
 package org.apache.storm.cassandra.bolt;
 
-import backtype.storm.Config;
-import backtype.storm.generated.StormTopology;
-import backtype.storm.topology.TopologyBuilder;
-import backtype.storm.utils.Utils;
+import org.apache.storm.Config;
+import org.apache.storm.generated.StormTopology;
+import org.apache.storm.topology.TopologyBuilder;
+import org.apache.storm.utils.Utils;
 import org.cassandraunit.CassandraCQLUnit;
 import org.cassandraunit.dataset.cql.ClassPathCQLDataSet;
-import backtype.storm.LocalCluster;
+import org.apache.storm.LocalCluster;
 
 import org.junit.Rule;
 

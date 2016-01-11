@@ -52,12 +52,12 @@ name: "hbase-wordcount"
 
 components:
   - id: "columnFields"
-    className: "backtype.storm.tuple.Fields"
+    className: "org.apache.storm.tuple.Fields"
     constructorArgs:
       - ["word"]
 
   - id: "counterFields"
-    className: "backtype.storm.tuple.Fields"
+    className: "org.apache.storm.tuple.Fields"
     constructorArgs:
       - ["count"]
 
@@ -85,14 +85,14 @@ config:
 # spout definitions
 spouts:
   - id: "word-spout"
-    className: "backtype.storm.testing.TestWordSpout"
+    className: "org.apache.storm.testing.TestWordSpout"
     parallelism: 1
 
 # bolt definitions
 
 bolts:
   - id: "count-bolt"
-    className: "backtype.storm.testing.TestWordCounter"
+    className: "org.apache.storm.testing.TestWordCounter"
 
   - id: "hbase-bolt"
     className: "org.apache.storm.hbase.bolt.HBaseBolt"

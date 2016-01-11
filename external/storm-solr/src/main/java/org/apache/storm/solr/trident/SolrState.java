@@ -18,7 +18,7 @@
 
 package org.apache.storm.solr.trident;
 
-import backtype.storm.topology.FailedException;
+import org.apache.storm.topology.FailedException;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrRequest;
 import org.apache.solr.client.solrj.impl.CloudSolrClient;
@@ -26,8 +26,8 @@ import org.apache.storm.solr.config.SolrConfig;
 import org.apache.storm.solr.mapper.SolrMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import storm.trident.state.State;
-import storm.trident.tuple.TridentTuple;
+import org.apache.storm.trident.state.State;
+import org.apache.storm.trident.tuple.TridentTuple;
 
 import java.util.List;
 

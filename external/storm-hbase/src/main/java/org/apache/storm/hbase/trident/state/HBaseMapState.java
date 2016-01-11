@@ -17,9 +17,9 @@
  */
 package org.apache.storm.hbase.trident.state;
 
-import backtype.storm.task.IMetricsContext;
-import backtype.storm.topology.FailedException;
-import backtype.storm.tuple.Values;
+import org.apache.storm.task.IMetricsContext;
+import org.apache.storm.topology.FailedException;
+import org.apache.storm.tuple.Values;
 import com.google.common.collect.Maps;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
@@ -29,8 +29,8 @@ import org.apache.storm.hbase.security.HBaseSecurityUtil;
 import org.apache.storm.hbase.trident.mapper.TridentHBaseMapMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import storm.trident.state.*;
-import storm.trident.state.map.*;
+import org.apache.storm.trident.state.*;
+import org.apache.storm.trident.state.map.*;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;

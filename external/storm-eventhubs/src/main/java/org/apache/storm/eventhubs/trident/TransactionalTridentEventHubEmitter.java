@@ -31,10 +31,10 @@ import org.apache.storm.eventhubs.spout.IEventHubReceiver;
 import org.apache.storm.eventhubs.spout.IEventHubReceiverFactory;
 import com.microsoft.eventhubs.client.Constants;
 
-import storm.trident.operation.TridentCollector;
-import storm.trident.spout.IOpaquePartitionedTridentSpout;
-import storm.trident.spout.IPartitionedTridentSpout;
-import storm.trident.topology.TransactionAttempt;
+import org.apache.storm.trident.operation.TridentCollector;
+import org.apache.storm.trident.spout.IOpaquePartitionedTridentSpout;
+import org.apache.storm.trident.spout.IPartitionedTridentSpout;
+import org.apache.storm.trident.topology.TransactionAttempt;
 
 
 public class TransactionalTridentEventHubEmitter

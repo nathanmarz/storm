@@ -88,11 +88,11 @@ Example filename of the uberjar:
 You can submit (run) a topology contained in this uberjar to Storm via the `storm` CLI tool:
 
     # Example 1: Run the ExclamationTopology in local mode (LocalCluster)
-    $ storm jar target/storm-starter-*.jar storm.starter.ExclamationTopology
+    $ storm jar target/storm-starter-*.jar org.apache.storm.starter.ExclamationTopology
 
     # Example 2: Run the RollingTopWords in remote/cluster mode,
     #            under the name "production-topology"
-    $ storm jar storm-starter-*.jar storm.starter.RollingTopWords production-topology remote
+    $ storm jar storm-starter-*.jar org.apache.storm.starter.RollingTopWords production-topology remote
 
 With submitting you can run topologies which use multilang, for example, `WordCountTopology`.
 

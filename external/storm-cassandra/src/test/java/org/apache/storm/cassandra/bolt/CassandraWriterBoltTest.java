@@ -18,7 +18,7 @@
  */
 package org.apache.storm.cassandra.bolt;
 
-import backtype.storm.topology.TopologyBuilder;
+import org.apache.storm.topology.TopologyBuilder;
 import com.datastax.driver.core.ResultSet;
 import org.apache.storm.cassandra.WeatherSpout;
 import org.apache.storm.cassandra.query.impl.SimpleCQLStatementMapper;

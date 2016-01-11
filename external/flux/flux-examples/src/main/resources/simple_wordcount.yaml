@@ -29,13 +29,13 @@ config:
 # spout definitions
 spouts:
   - id: "spout-1"
-    className: "backtype.storm.testing.TestWordSpout"
+    className: "org.apache.storm.testing.TestWordSpout"
     parallelism: 1
 
 # bolt definitions
 bolts:
   - id: "bolt-1"
-    className: "backtype.storm.testing.TestWordCounter"
+    className: "org.apache.storm.testing.TestWordCounter"
     parallelism: 1
 
   - id: "bolt-2"

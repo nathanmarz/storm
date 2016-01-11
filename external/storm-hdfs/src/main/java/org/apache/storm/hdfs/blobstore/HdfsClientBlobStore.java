@@ -17,15 +17,15 @@
  */
 package org.apache.storm.hdfs.blobstore;
 
-import backtype.storm.blobstore.AtomicOutputStream;
-import backtype.storm.blobstore.ClientBlobStore;
-import backtype.storm.blobstore.InputStreamWithMeta;
-import backtype.storm.generated.AuthorizationException;
-import backtype.storm.generated.ReadableBlobMeta;
-import backtype.storm.generated.SettableBlobMeta;
-import backtype.storm.generated.KeyAlreadyExistsException;
-import backtype.storm.generated.KeyNotFoundException;
-import backtype.storm.utils.NimbusClient;
+import org.apache.storm.blobstore.AtomicOutputStream;
+import org.apache.storm.blobstore.ClientBlobStore;
+import org.apache.storm.blobstore.InputStreamWithMeta;
+import org.apache.storm.generated.AuthorizationException;
+import org.apache.storm.generated.ReadableBlobMeta;
+import org.apache.storm.generated.SettableBlobMeta;
+import org.apache.storm.generated.KeyAlreadyExistsException;
+import org.apache.storm.generated.KeyNotFoundException;
+import org.apache.storm.utils.NimbusClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -19,7 +19,7 @@ package org.apache.storm.eventhubs.trident;
 
 import java.io.Serializable;
 import org.apache.storm.eventhubs.spout.EventHubSpoutConfig;
-import storm.trident.spout.ISpoutPartition;
+import org.apache.storm.trident.spout.ISpoutPartition;
 
 /**
  * Represents an EventHub partition

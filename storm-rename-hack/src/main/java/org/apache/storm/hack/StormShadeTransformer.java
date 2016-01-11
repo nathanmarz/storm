@@ -18,7 +18,7 @@
 
 package org.apache.storm.hack;
 
-import backtype.storm.daemon.JarTransformer;
+import org.apache.storm.daemon.JarTransformer;
 import org.apache.storm.hack.relocation.Relocator;
 import org.apache.storm.hack.relocation.SimpleRelocator;
 import org.apache.storm.hack.resource.ClojureTransformer;

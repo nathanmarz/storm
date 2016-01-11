@@ -17,7 +17,7 @@
  */
 package org.apache.storm.sql.compiler.backends.standalone;
 
-import backtype.storm.tuple.Values;
+import org.apache.storm.tuple.Values;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;

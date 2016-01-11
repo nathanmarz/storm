@@ -18,7 +18,7 @@
 
 /**
  * Example for storm spout. Emits random sentences.
- * The original class in java - storm.starter.spout.RandomSentenceSpout.
+ * The original class in java - org.apache.storm.starter.spout.RandomSentenceSpout.
  *
  */
 

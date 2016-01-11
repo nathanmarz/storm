@@ -23,9 +23,9 @@ import java.util.Map;
 import org.apache.storm.eventhubs.spout.EventHubSpoutConfig;
 import org.apache.storm.eventhubs.spout.IEventHubReceiverFactory;
 
-import storm.trident.operation.TridentCollector;
-import storm.trident.spout.IOpaquePartitionedTridentSpout;
-import storm.trident.topology.TransactionAttempt;
+import org.apache.storm.trident.operation.TridentCollector;
+import org.apache.storm.trident.spout.IOpaquePartitionedTridentSpout;
+import org.apache.storm.trident.topology.TransactionAttempt;
 
 /**
  * A thin wrapper of TransactionalTridentEventHubEmitter for OpaqueTridentEventHubSpout

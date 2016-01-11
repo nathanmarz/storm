@@ -17,10 +17,10 @@
  */
 package org.apache.storm.jdbc.trident.state;
 
-import backtype.storm.tuple.Values;
-import storm.trident.operation.TridentCollector;
-import storm.trident.state.BaseQueryFunction;
-import storm.trident.tuple.TridentTuple;
+import org.apache.storm.tuple.Values;
+import org.apache.storm.trident.operation.TridentCollector;
+import org.apache.storm.trident.state.BaseQueryFunction;
+import org.apache.storm.trident.tuple.TridentTuple;
 
 import java.util.List;
 

@@ -18,7 +18,7 @@
 package org.apache.storm.hdfs.bolt.sync;
 
 
-import backtype.storm.tuple.Tuple;
+import org.apache.storm.tuple.Tuple;
 
 /**
  * SyncPolicy implementation that will trigger a

@@ -16,20 +16,20 @@
 
 (ns org.apache.storm.pacemaker.pacemaker-state-factory
   (:require [org.apache.storm.pacemaker pacemaker]
-            [backtype.storm.cluster-state [zookeeper-state-factory :as zk-factory]]
-            [backtype.storm
+            [org.apache.storm.cluster-state [zookeeper-state-factory :as zk-factory]]
+            [org.apache.storm
              [config :refer :all]
              [cluster :refer :all]
              [log :refer :all]
              [util :as util]])
-  (:import [backtype.storm.generated
+  (:import [org.apache.storm.generated
             HBExecutionException HBServerMessageType HBMessage
             HBMessageData HBPulse]
-           [backtype.storm.cluster_state zookeeper_state_factory]
-           [backtype.storm.cluster ClusterState]
+           [org.apache.storm.cluster_state zookeeper_state_factory]
+           [org.apache.storm.cluster ClusterState]
            [org.apache.storm.pacemaker PacemakerClient])
   (:gen-class
-   :implements [backtype.storm.cluster.ClusterStateFactory]))
+   :implements [org.apache.storm.cluster.ClusterStateFactory]))
 
 ;; So we can mock the client for testing
 (defn makeClient [conf]

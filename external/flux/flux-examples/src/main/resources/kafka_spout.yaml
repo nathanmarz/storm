@@ -29,21 +29,21 @@ name: "kafka-topology"
 # for the time being, components must be declared in the order they are referenced
 components:
   - id: "stringScheme"
-    className: "storm.kafka.StringScheme"
+    className: "org.apache.storm.kafka.StringScheme"
 
   - id: "stringMultiScheme"
-    className: "backtype.storm.spout.SchemeAsMultiScheme"
+    className: "org.apache.storm.spout.SchemeAsMultiScheme"
     constructorArgs:
       - ref: "stringScheme"
 
   - id: "zkHosts"
-    className: "storm.kafka.ZkHosts"
+    className: "org.apache.storm.kafka.ZkHosts"
     constructorArgs:
       - "localhost:2181"
 
 # Alternative kafka config
 #  - id: "kafkaConfig"
-#    className: "storm.kafka.KafkaConfig"
+#    className: "org.apache.storm.kafka.KafkaConfig"
 #    constructorArgs:
 #      # brokerHosts
 #      - ref: "zkHosts"
@@ -53,7 +53,7 @@ components:
 #      - "myKafkaClientId"
 
   - id: "spoutConfig"
-    className: "storm.kafka.SpoutConfig"
+    className: "org.apache.storm.kafka.SpoutConfig"
     constructorArgs:
       # brokerHosts
       - ref: "zkHosts"
@@ -84,7 +84,7 @@ config:
 # spout definitions
 spouts:
   - id: "kafka-spout"
-    className: "storm.kafka.KafkaSpout"
+    className: "org.apache.storm.kafka.KafkaSpout"
     constructorArgs:
       - ref: "spoutConfig"
 
@@ -106,7 +106,7 @@ bolts:
     # ...
 
   - id: "count"
-    className: "backtype.storm.testing.TestWordCounter"
+    className: "org.apache.storm.testing.TestWordCounter"
     parallelism: 1
     # ...
 

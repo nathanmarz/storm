@@ -133,8 +133,8 @@ To mark a Java test as a Java integration test, add the annotation `@Category(In
  
 To mark a Clojure test as Clojure integration test, the test source must be located in a package with name prefixed by `integration.`
 
-For example, the test `test/clj/backtype.storm.drpc_test.clj` is considered a clojure unit test, whereas
- `test/clj/integration.backtype.storm.drpc_test.clj` is considered a clojure integration test.
+For example, the test `test/clj/org.apache.storm.drpc_test.clj` is considered a clojure unit test, whereas
+ `test/clj/integration.org.apache.storm.drpc_test.clj` is considered a clojure integration test.
 
 Please refer to section <a href="#building">Build the code and run the tests</a> for how to run integration tests, and the info on the build phase each test runs. 
 
@@ -301,8 +301,8 @@ To run all unit tests and all integration tests execute one of the commands
  
  
 You can also run tests selectively via the Clojure REPL.  The following example runs the tests in
-[auth_test.clj](storm-core/test/clj/backtype/storm/security/auth/auth_test.clj), which has the namespace
-`backtype.storm.security.auth.auth-test`.
+[auth_test.clj](storm-core/test/clj/org/apache/storm/security/auth/auth_test.clj), which has the namespace
+`org.apache.storm.security.auth.auth-test`.
 
 You can also run tests selectively with `-Dtest=<test_name>`.  This works for both clojure and junit tests.
 
@@ -360,8 +360,8 @@ Tests should never rely on timing in order to pass.  Storm can properly test fun
 simulating time, which means we do not have to worry about e.g. random delays failing our tests indeterministically.
 
 If you are testing topologies that do not do full tuple acking, then you should be testing using the "tracked
-topologies" utilities in `backtype.storm.testing.clj`.  For example,
-[test-acking](storm-core/test/clj/backtype/storm/integration_test.clj) (around line 213) tests the acking system in
+topologies" utilities in `org.apache.storm.testing.clj`.  For example,
+[test-acking](storm-core/test/clj/org/apache/storm/integration_test.clj) (around line 213) tests the acking system in
 Storm using tracked topologies.  Here, the key is the `tracked-wait` function: it will only return when both that many
 tuples have been emitted by the spouts _and_ the topology is idle (i.e. no tuples have been emitted nor will be emitted
 without further input).  Note that you should not use tracked topologies for topologies that have tick tuples.

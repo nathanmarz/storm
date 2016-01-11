@@ -18,13 +18,13 @@
 package org.apache.storm.hbase.bolt.mapper;
 
 
-import backtype.storm.tuple.Tuple;
+import org.apache.storm.tuple.Tuple;
 import org.apache.storm.hbase.common.ColumnList;
 
 import java.io.Serializable;
 
 /**
- * Maps a <code>backtype.storm.tuple.Tuple</code> object
+ * Maps a <code>org.apache.storm.tuple.Tuple</code> object
  * to a row in an HBase table.
  */
 public interface HBaseMapper extends Serializable {

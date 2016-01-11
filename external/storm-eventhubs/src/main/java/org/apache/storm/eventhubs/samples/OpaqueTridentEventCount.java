@@ -17,13 +17,13 @@
  *******************************************************************************/
 package org.apache.storm.eventhubs.samples;
 
-import storm.trident.TridentState;
-import storm.trident.TridentTopology;
-import storm.trident.operation.builtin.Count;
-import storm.trident.operation.builtin.Sum;
-import storm.trident.testing.MemoryMapState;
-import backtype.storm.generated.StormTopology;
-import backtype.storm.tuple.Fields;
+import org.apache.storm.trident.TridentState;
+import org.apache.storm.trident.TridentTopology;
+import org.apache.storm.trident.operation.builtin.Count;
+import org.apache.storm.trident.operation.builtin.Sum;
+import org.apache.storm.trident.testing.MemoryMapState;
+import org.apache.storm.generated.StormTopology;
+import org.apache.storm.tuple.Fields;
 
 import org.apache.storm.eventhubs.samples.TransactionalTridentEventCount.LoggingFilter;
 import org.apache.storm.eventhubs.spout.EventHubSpout;

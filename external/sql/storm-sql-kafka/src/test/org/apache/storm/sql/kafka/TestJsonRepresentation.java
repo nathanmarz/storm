@@ -17,7 +17,7 @@
  */
 package org.apache.storm.sql.kafka;
 
-import backtype.storm.utils.Utils;
+import org.apache.storm.utils.Utils;
 import com.google.common.collect.Lists;
 import org.junit.Test;
 

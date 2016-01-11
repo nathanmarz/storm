@@ -17,11 +17,11 @@
  */
 package org.apache.storm.hive.trident;
 
-import storm.trident.operation.TridentCollector;
-import storm.trident.state.State;
-import storm.trident.tuple.TridentTuple;
-import backtype.storm.task.IMetricsContext;
-import backtype.storm.topology.FailedException;
+import org.apache.storm.trident.operation.TridentCollector;
+import org.apache.storm.trident.state.State;
+import org.apache.storm.trident.tuple.TridentTuple;
+import org.apache.storm.task.IMetricsContext;
+import org.apache.storm.topology.FailedException;
 import org.apache.storm.hive.common.HiveWriter;
 import org.apache.storm.hive.common.HiveWriter;
 import org.apache.hive.hcatalog.streaming.*;

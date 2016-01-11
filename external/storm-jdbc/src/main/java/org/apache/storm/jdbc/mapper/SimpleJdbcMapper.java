@@ -17,7 +17,7 @@
  */
 package org.apache.storm.jdbc.mapper;
 
-import backtype.storm.tuple.ITuple;
+import org.apache.storm.tuple.ITuple;
 import org.apache.commons.lang.Validate;
 import org.apache.storm.jdbc.common.Column;
 import org.apache.storm.jdbc.common.ConnectionProvider;

@@ -18,9 +18,9 @@
  */
 package org.apache.storm.cassandra.trident;
 
-import backtype.storm.LocalCluster;
-import backtype.storm.generated.StormTopology;
-import backtype.storm.tuple.Fields;
+import org.apache.storm.LocalCluster;
+import org.apache.storm.generated.StormTopology;
+import org.apache.storm.tuple.Fields;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
@@ -34,12 +34,12 @@ import org.apache.storm.cassandra.trident.state.CassandraStateUpdater;
 import org.apache.storm.cassandra.trident.state.TridentResultSetValuesMapper;
 import org.junit.Assert;
 import org.junit.Test;
-import storm.trident.Stream;
-import storm.trident.TridentState;
-import storm.trident.TridentTopology;
-import storm.trident.operation.BaseFunction;
-import storm.trident.operation.TridentCollector;
-import storm.trident.tuple.TridentTuple;
+import org.apache.storm.trident.Stream;
+import org.apache.storm.trident.TridentState;
+import org.apache.storm.trident.TridentTopology;
+import org.apache.storm.trident.operation.BaseFunction;
+import org.apache.storm.trident.operation.TridentCollector;
+import org.apache.storm.trident.tuple.TridentTuple;
 
 import java.util.Random;
 

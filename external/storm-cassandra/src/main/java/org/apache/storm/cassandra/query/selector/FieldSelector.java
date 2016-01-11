@@ -18,7 +18,7 @@
  */
 package org.apache.storm.cassandra.query.selector;
 
-import backtype.storm.tuple.ITuple;
+import org.apache.storm.tuple.ITuple;
 import com.datastax.driver.core.utils.UUIDs;
 import org.apache.storm.cassandra.query.Column;
 

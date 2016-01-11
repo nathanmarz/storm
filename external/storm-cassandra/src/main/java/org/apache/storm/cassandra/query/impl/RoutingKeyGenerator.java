@@ -18,7 +18,7 @@
  */
 package org.apache.storm.cassandra.query.impl;
 
-import backtype.storm.tuple.ITuple;
+import org.apache.storm.tuple.ITuple;
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.ProtocolVersion;
 import com.google.common.base.Preconditions;

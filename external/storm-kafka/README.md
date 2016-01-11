@@ -65,7 +65,7 @@ In addition to these parameters, SpoutConfig contains the following fields that 
 
     // Exponential back-off retry settings.  These are used when retrying messages after a bolt
     // calls OutputCollector.fail().
-    // Note: be sure to set backtype.storm.Config.MESSAGE_TIMEOUT_SECS appropriately to prevent
+    // Note: be sure to set org.apache.storm.Config.MESSAGE_TIMEOUT_SECS appropriately to prevent
     // resubmitting the message while still retrying.
     public long retryInitialDelayMs = 0;
     public double retryDelayMultiplier = 1.0;
@@ -190,9 +190,9 @@ use Kafka 0.8.1.1 built against Scala 2.10, you would use the following dependen
 Note that the ZooKeeper and log4j dependencies are excluded to prevent version conflicts with Storm's dependencies.
 
 ##Writing to Kafka as part of your topology
-You can create an instance of storm.kafka.bolt.KafkaBolt and attach it as a component to your topology or if you
-are using trident you can use storm.kafka.trident.TridentState, storm.kafka.trident.TridentStateFactory and
-storm.kafka.trident.TridentKafkaUpdater.
+You can create an instance of org.apache.storm.kafka.bolt.KafkaBolt and attach it as a component to your topology or if you
+are using trident you can use org.apache.storm.kafka.trident.TridentState, org.apache.storm.kafka.trident.TridentStateFactory and
+org.apache.storm.kafka.trident.TridentKafkaUpdater.
 
 You need to provide implementation of following 2 interfaces
 

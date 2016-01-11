@@ -23,7 +23,7 @@
  * details.
  */
 
-namespace java backtype.storm.generated
+namespace java org.apache.storm.generated
 
 union JavaObjectArg {
   1: i32 int_arg;

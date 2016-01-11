@@ -18,7 +18,7 @@
  */
 package org.apache.storm.cassandra.query;
 
-import backtype.storm.tuple.ITuple;
+import org.apache.storm.tuple.ITuple;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 
@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Default interface to map a {@link backtype.storm.tuple.ITuple} to a CQL {@link com.datastax.driver.core.Statement}.
+ * Default interface to map a {@link org.apache.storm.tuple.ITuple} to a CQL {@link com.datastax.driver.core.Statement}.
  */
 public interface CQLStatementTupleMapper extends Serializable {
 

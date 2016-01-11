@@ -20,11 +20,11 @@ name: "sliding-window-topology"
 
 components:
   - id: "windowLength"
-    className: "backtype.storm.topology.base.BaseWindowedBolt$Count"
+    className: "org.apache.storm.topology.base.BaseWindowedBolt$Count"
     constructorArgs:
       - 5
   - id: "slidingInterval"
-    className: "backtype.storm.topology.base.BaseWindowedBolt$Count"
+    className: "org.apache.storm.topology.base.BaseWindowedBolt$Count"
     constructorArgs:
       - 3
 
@@ -34,7 +34,7 @@ config:
 # spout definitions
 spouts:
   - id: "spout-1"
-    className: "backtype.storm.testing.TestWordSpout"
+    className: "org.apache.storm.testing.TestWordSpout"
     parallelism: 1
 
 # bolt definitions

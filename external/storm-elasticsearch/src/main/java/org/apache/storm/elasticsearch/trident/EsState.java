@@ -17,7 +17,7 @@
  */
 package org.apache.storm.elasticsearch.trident;
 
-import backtype.storm.topology.FailedException;
+import org.apache.storm.topology.FailedException;
 
 import org.apache.storm.elasticsearch.common.StormElasticSearchClient;
 import org.apache.storm.elasticsearch.common.EsConfig;
@@ -27,8 +27,8 @@ import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.client.Client;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import storm.trident.state.State;
-import storm.trident.tuple.TridentTuple;
+import org.apache.storm.trident.state.State;
+import org.apache.storm.trident.tuple.TridentTuple;
 
 import java.util.List;
 

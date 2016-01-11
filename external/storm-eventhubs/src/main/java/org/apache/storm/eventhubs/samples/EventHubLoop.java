@@ -17,8 +17,8 @@
  *******************************************************************************/
 package org.apache.storm.eventhubs.samples;
 
-import backtype.storm.generated.StormTopology;
-import backtype.storm.topology.TopologyBuilder;
+import org.apache.storm.generated.StormTopology;
+import org.apache.storm.topology.TopologyBuilder;
 
 import org.apache.storm.eventhubs.bolt.EventHubBolt;
 import org.apache.storm.eventhubs.bolt.EventHubBoltConfig;

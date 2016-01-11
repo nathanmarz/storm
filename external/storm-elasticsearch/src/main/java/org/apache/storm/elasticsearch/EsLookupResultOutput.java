@@ -22,8 +22,8 @@ import java.util.Collection;
 
 import org.elasticsearch.action.get.GetResponse;
 
-import backtype.storm.tuple.Fields;
-import backtype.storm.tuple.Values;
+import org.apache.storm.tuple.Fields;
+import org.apache.storm.tuple.Values;
 
 /**
  * @since 0.11

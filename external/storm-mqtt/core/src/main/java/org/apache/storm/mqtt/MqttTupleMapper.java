@@ -18,7 +18,7 @@
 package org.apache.storm.mqtt;
 
 
-import backtype.storm.tuple.ITuple;
+import org.apache.storm.tuple.ITuple;
 
 import java.io.Serializable;
 

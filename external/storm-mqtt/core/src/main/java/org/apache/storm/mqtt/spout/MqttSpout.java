@@ -17,12 +17,11 @@
  */
 package org.apache.storm.mqtt.spout;
 
-import backtype.storm.Config;
-import backtype.storm.spout.SpoutOutputCollector;
-import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.IRichSpout;
-import backtype.storm.topology.OutputFieldsDeclarer;
-import org.apache.storm.mqtt.MqttLogger;
+import org.apache.storm.Config;
+import org.apache.storm.spout.SpoutOutputCollector;
+import org.apache.storm.task.TopologyContext;
+import org.apache.storm.topology.IRichSpout;
+import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.mqtt.MqttMessageMapper;
 import org.apache.storm.mqtt.common.MqttOptions;
 import org.apache.storm.mqtt.common.MqttUtils;
@@ -39,7 +38,6 @@ import org.fusesource.mqtt.client.Topic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

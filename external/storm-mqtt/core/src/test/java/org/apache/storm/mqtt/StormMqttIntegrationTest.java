@@ -17,12 +17,12 @@
  */
 package org.apache.storm.mqtt;
 
-import backtype.storm.Config;
-import backtype.storm.LocalCluster;
-import backtype.storm.generated.StormTopology;
-import backtype.storm.testing.IntegrationTest;
-import backtype.storm.topology.TopologyBuilder;
-import backtype.storm.tuple.ITuple;
+import org.apache.storm.Config;
+import org.apache.storm.LocalCluster;
+import org.apache.storm.generated.StormTopology;
+import org.apache.storm.testing.IntegrationTest;
+import org.apache.storm.topology.TopologyBuilder;
+import org.apache.storm.tuple.ITuple;
 import org.apache.activemq.broker.BrokerService;
 import org.apache.storm.mqtt.bolt.MqttBolt;
 import org.apache.storm.mqtt.common.MqttOptions;

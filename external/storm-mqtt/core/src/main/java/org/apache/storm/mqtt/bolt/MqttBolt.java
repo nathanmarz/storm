@@ -17,19 +17,19 @@
  */
 package org.apache.storm.mqtt.bolt;
 
-import backtype.storm.Config;
-import backtype.storm.task.OutputCollector;
-import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.OutputFieldsDeclarer;
-import backtype.storm.topology.base.BaseRichBolt;
-import backtype.storm.tuple.Tuple;
-import backtype.storm.utils.TupleUtils;
+import org.apache.storm.Config;
 import org.apache.storm.mqtt.MqttMessage;
 import org.apache.storm.mqtt.common.MqttOptions;
 import org.apache.storm.mqtt.MqttTupleMapper;
 import org.apache.storm.mqtt.common.MqttPublisher;
 import org.apache.storm.mqtt.common.SslUtils;
 import org.apache.storm.mqtt.ssl.KeyStoreLoader;
+import org.apache.storm.task.OutputCollector;
+import org.apache.storm.task.TopologyContext;
+import org.apache.storm.topology.OutputFieldsDeclarer;
+import org.apache.storm.topology.base.BaseRichBolt;
+import org.apache.storm.tuple.Tuple;
+import org.apache.storm.utils.TupleUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -97,8 +97,6 @@ public class MqttBolt extends BaseRichBolt {
                 collector.reportError(e);
                 collector.fail(input);
             }
-        } else {
-            collector.ack(input);
         }
     }
 

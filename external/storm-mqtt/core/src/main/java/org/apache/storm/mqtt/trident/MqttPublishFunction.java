@@ -17,21 +17,22 @@
  */
 package org.apache.storm.mqtt.trident;
 
-import backtype.storm.Config;
-import backtype.storm.task.OutputCollector;
-import backtype.storm.topology.FailedException;
+import org.apache.storm.Config;
+import org.apache.storm.task.OutputCollector;
+import org.apache.storm.topology.FailedException;
 import org.apache.storm.mqtt.MqttMessage;
 import org.apache.storm.mqtt.common.MqttOptions;
 import org.apache.storm.mqtt.MqttTupleMapper;
 import org.apache.storm.mqtt.common.MqttPublisher;
 import org.apache.storm.mqtt.common.SslUtils;
 import org.apache.storm.mqtt.ssl.KeyStoreLoader;
+import org.apache.storm.trident.operation.BaseFunction;
+import org.apache.storm.trident.operation.TridentCollector;
+import org.apache.storm.trident.operation.TridentOperationContext;
+import org.apache.storm.trident.tuple.TridentTuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import storm.trident.operation.BaseFunction;
-import storm.trident.operation.TridentCollector;
-import storm.trident.operation.TridentOperationContext;
-import storm.trident.tuple.TridentTuple;
+
 
 import java.util.Map;
 

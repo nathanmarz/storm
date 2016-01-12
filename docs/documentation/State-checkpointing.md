@@ -133,12 +133,12 @@ stateful bolt's state is prepared, committed or rolled back.
 ## Providing custom state implementations
 Currently the only kind of `State` implementation supported is `KeyValueState` which provides key-value mapping.
 
-Custom state implementations should provide implementations for the methods defined in the `backtype.storm.State` interface.
+Custom state implementations should provide implementations for the methods defined in the `org.apache.storm.State` interface.
 These are the `void prepareCommit(long txid)`, `void commit(long txid)`, `rollback()` methods. `commit()` method is optional
 and is useful if the bolt manages the state on its own. This is currently used only by the internal system bolts,
 for e.g. the CheckpointSpout to save its state.
 
-`KeyValueState` implementation should also implement the methods defined in the `backtype.storm.state.KeyValueState` interface.
+`KeyValueState` implementation should also implement the methods defined in the `org.apache.storm.state.KeyValueState` interface.
 
 ### State provider
 The framework instantiates the state via the corresponding `StateProvider` implementation. A custom state should also provide

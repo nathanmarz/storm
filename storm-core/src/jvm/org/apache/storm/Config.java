@@ -1539,6 +1539,31 @@ public class Config extends HashMap<String, Object> {
     public static final String TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT = "topology.component.cpu.pcore.percent";
 
     /**
+     * The class name of the {@link org.apache.storm.state.StateProvider} implementation. If not specified
+     * defaults to {@link org.apache.storm.state.InMemoryKeyValueStateProvider}. This can be overridden
+     * at the component level.
+     */
+    @isString
+    public static final String TOPOLOGY_STATE_PROVIDER = "topology.state.provider";
+
+    /**
+     * The configuration specific to the {@link org.apache.storm.state.StateProvider} implementation.
+     * This can be overridden at the component level. The value and the interpretation of this config
+     * is based on the state provider implementation. For e.g. this could be just a config file name
+     * which contains the config for the state provider implementation.
+     */
+    @isString
+    public static final String TOPOLOGY_STATE_PROVIDER_CONFIG = "topology.state.provider.config";
+
+    /**
+     * Topology configuration to specify the checkpoint interval (in millis) at which the
+     * topology state is saved when {@link org.apache.storm.topology.IStatefulBolt} bolts are involved.
+     */
+    @isInteger
+    @isPositiveNumber
+    public static final String TOPOLOGY_STATE_CHECKPOINT_INTERVAL = "topology.state.checkpoint.interval.ms";
+
+    /**
      * A per topology config that specifies the maximum amount of memory a worker can use for that specific topology
      */
     @isPositiveNumber

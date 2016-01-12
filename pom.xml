@@ -903,12 +903,6 @@
                 <artifactId>apache-rat-plugin</artifactId>
                 <version>0.11</version>
                 <executions>
-                    <execution>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
                 </executions>
                 <configuration>
                     <excludeSubProjects>false</excludeSubProjects>

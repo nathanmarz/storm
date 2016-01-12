@@ -15,17 +15,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package backtype.storm.topology;
+package org.apache.storm.topology;
 
-import backtype.storm.Config;
-import backtype.storm.generated.GlobalStreamId;
-import backtype.storm.state.KeyValueState;
-import backtype.storm.state.State;
-import backtype.storm.state.StateFactory;
-import backtype.storm.task.OutputCollector;
-import backtype.storm.task.TopologyContext;
-import backtype.storm.tuple.Tuple;
-import backtype.storm.windowing.WindowLifecycleListener;
+import org.apache.storm.Config;
+import org.apache.storm.generated.GlobalStreamId;
+import org.apache.storm.state.KeyValueState;
+import org.apache.storm.state.State;
+import org.apache.storm.state.StateFactory;
+import org.apache.storm.task.OutputCollector;
+import org.apache.storm.task.TopologyContext;
+import org.apache.storm.tuple.Tuple;
+import org.apache.storm.windowing.WindowLifecycleListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

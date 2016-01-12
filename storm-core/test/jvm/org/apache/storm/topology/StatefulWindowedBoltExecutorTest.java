@@ -15,17 +15,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package backtype.storm.topology;
+package org.apache.storm.topology;
 
-import backtype.storm.Config;
-import backtype.storm.generated.GlobalStreamId;
-import backtype.storm.generated.Grouping;
-import backtype.storm.state.KeyValueState;
-import backtype.storm.task.OutputCollector;
-import backtype.storm.task.TopologyContext;
-import backtype.storm.tuple.Tuple;
-import backtype.storm.windowing.TupleWindow;
-import backtype.storm.windowing.TupleWindowImpl;
+import org.apache.storm.Config;
+import org.apache.storm.generated.GlobalStreamId;
+import org.apache.storm.generated.Grouping;
+import org.apache.storm.state.KeyValueState;
+import org.apache.storm.task.OutputCollector;
+import org.apache.storm.task.TopologyContext;
+import org.apache.storm.tuple.Tuple;
+import org.apache.storm.windowing.TupleWindow;
+import org.apache.storm.windowing.TupleWindowImpl;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -36,8 +36,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static backtype.storm.topology.StatefulWindowedBoltExecutor.TaskStream;
-import static backtype.storm.topology.StatefulWindowedBoltExecutor.WindowState;
+import static org.apache.storm.topology.StatefulWindowedBoltExecutor.TaskStream;
+import static org.apache.storm.topology.StatefulWindowedBoltExecutor.WindowState;
 
 /**
  * Unit tests for {@link StatefulWindowedBoltExecutor}

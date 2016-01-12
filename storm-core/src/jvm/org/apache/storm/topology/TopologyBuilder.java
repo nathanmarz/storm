@@ -252,7 +252,7 @@ public class TopologyBuilder {
      * @param id the id of this component. This id is referenced by other components that want to consume this bolt's outputs.
      * @param bolt the stateful windowed bolt
      * @param parallelism_hint the number of tasks that should be assigned to execute this bolt. Each task will run on a thread in a process somwehere around the cluster.
-     * @param <T> the type of the state (e.g. {@link backtype.storm.state.KeyValueState})
+     * @param <T> the type of the state (e.g. {@link org.apache.storm.state.KeyValueState})
      * @return use the returned object to declare the inputs to this component
      * @throws IllegalArgumentException if {@code parallelism_hint} is not positive
      */

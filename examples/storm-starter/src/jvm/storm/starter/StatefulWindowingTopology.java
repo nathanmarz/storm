@@ -17,36 +17,36 @@
  */
 package storm.starter;
 
-import backtype.storm.Config;
-import backtype.storm.LocalCluster;
-import backtype.storm.StormSubmitter;
-import backtype.storm.generated.StormTopology;
-import backtype.storm.state.KeyValueState;
-import backtype.storm.state.State;
-import backtype.storm.task.OutputCollector;
-import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.OutputFieldsDeclarer;
-import backtype.storm.topology.TopologyBuilder;
-import backtype.storm.topology.base.BaseStatefulWindowedBolt;
-import backtype.storm.tuple.Fields;
-import backtype.storm.tuple.Tuple;
-import backtype.storm.tuple.Values;
-import backtype.storm.utils.Utils;
-import backtype.storm.windowing.TupleWindow;
-import storm.starter.bolt.PrinterBolt;
-import storm.starter.spout.RandomIntegerSpout;
+import org.apache.storm.Config;
+import org.apache.storm.LocalCluster;
+import org.apache.storm.StormSubmitter;
+import org.apache.storm.generated.StormTopology;
+import org.apache.storm.starter.bolt.PrinterBolt;
+import org.apache.storm.starter.spout.RandomIntegerSpout;
+import org.apache.storm.state.KeyValueState;
+import org.apache.storm.state.State;
+import org.apache.storm.task.OutputCollector;
+import org.apache.storm.task.TopologyContext;
+import org.apache.storm.topology.OutputFieldsDeclarer;
+import org.apache.storm.topology.TopologyBuilder;
+import org.apache.storm.topology.base.BaseStatefulWindowedBolt;
+import org.apache.storm.tuple.Fields;
+import org.apache.storm.tuple.Tuple;
+import org.apache.storm.tuple.Values;
+import org.apache.storm.utils.Utils;
+import org.apache.storm.windowing.TupleWindow;
 
 import java.util.Map;
 
-import static backtype.storm.topology.base.BaseWindowedBolt.Count;
+import static org.apache.storm.topology.base.BaseWindowedBolt.Count;
 
 /**
- * A simple example that demonstrates the usage of {@link backtype.storm.topology.IStatefulWindowedBolt} to
+ * A simple example that demonstrates the usage of {@link org.apache.storm.topology.IStatefulWindowedBolt} to
  * save the state of the windowing operation to avoid re-computation in case of failures.
  * <p>
  * The framework internally manages the window boundaries and does not invoke
- * {@link backtype.storm.topology.IWindowedBolt#execute(TupleWindow)} for the already evaluated windows in case of restarts
- * during failures. The {@link backtype.storm.topology.IStatefulBolt#initState(State)}
+ * {@link org.apache.storm.topology.IWindowedBolt#execute(TupleWindow)} for the already evaluated windows in case of restarts
+ * during failures. The {@link org.apache.storm.topology.IStatefulBolt#initState(State)}
  * is invoked with the previously saved state of the bolt after prepare, before the execute() method is invoked.
  * </p>
  */

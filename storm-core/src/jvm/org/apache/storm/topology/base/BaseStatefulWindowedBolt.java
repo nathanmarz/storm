@@ -15,11 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package backtype.storm.topology.base;
+package org.apache.storm.topology.base;
 
-import backtype.storm.Config;
-import backtype.storm.state.State;
-import backtype.storm.topology.IStatefulWindowedBolt;
+import org.apache.storm.Config;
+import org.apache.storm.state.State;
+import org.apache.storm.topology.IStatefulWindowedBolt;
 
 public abstract class BaseStatefulWindowedBolt<T extends State> extends BaseWindowedBolt implements IStatefulWindowedBolt<T> {
     /**

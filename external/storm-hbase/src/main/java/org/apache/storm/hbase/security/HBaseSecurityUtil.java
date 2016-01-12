@@ -28,7 +28,7 @@ import java.net.InetAddress;
 import java.util.List;
 import java.util.Map;
 
-import static backtype.storm.Config.TOPOLOGY_AUTO_CREDENTIALS;
+import static org.apache.storm.Config.TOPOLOGY_AUTO_CREDENTIALS;
 
 /**
  * This class provides util methods for storm-hbase connector communicating

@@ -20,12 +20,12 @@ package org.apache.storm.pacemaker.codec;
 import org.jboss.netty.handler.codec.frame.FrameDecoder;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.Channel;
-import backtype.storm.generated.HBMessage;
-import backtype.storm.generated.HBServerMessageType;
+import org.apache.storm.generated.HBMessage;
+import org.apache.storm.generated.HBServerMessageType;
 import org.jboss.netty.buffer.ChannelBuffer;
-import backtype.storm.utils.Utils;
-import backtype.storm.messaging.netty.ControlMessage;
-import backtype.storm.messaging.netty.SaslMessageToken;
+import org.apache.storm.utils.Utils;
+import org.apache.storm.messaging.netty.ControlMessage;
+import org.apache.storm.messaging.netty.SaslMessageToken;
 
 public class ThriftDecoder extends FrameDecoder {
 

@@ -17,12 +17,12 @@
  */
 package org.apache.storm.hbase.trident;
 
-import backtype.storm.Config;
-import backtype.storm.LocalCluster;
-import backtype.storm.StormSubmitter;
-import backtype.storm.generated.StormTopology;
-import backtype.storm.tuple.Fields;
-import backtype.storm.tuple.Values;
+import org.apache.storm.Config;
+import org.apache.storm.LocalCluster;
+import org.apache.storm.StormSubmitter;
+import org.apache.storm.generated.StormTopology;
+import org.apache.storm.tuple.Fields;
+import org.apache.storm.tuple.Values;
 import org.apache.hadoop.hbase.client.Durability;
 import org.apache.storm.hbase.bolt.mapper.HBaseProjectionCriteria;
 import org.apache.storm.hbase.bolt.mapper.HBaseValueMapper;
@@ -33,11 +33,11 @@ import org.apache.storm.hbase.trident.state.HBaseQuery;
 import org.apache.storm.hbase.trident.state.HBaseState;
 import org.apache.storm.hbase.trident.state.HBaseStateFactory;
 import org.apache.storm.hbase.trident.state.HBaseUpdater;
-import storm.trident.Stream;
-import storm.trident.TridentState;
-import storm.trident.TridentTopology;
-import storm.trident.state.StateFactory;
-import storm.trident.testing.FixedBatchSpout;
+import org.apache.storm.trident.Stream;
+import org.apache.storm.trident.TridentState;
+import org.apache.storm.trident.TridentTopology;
+import org.apache.storm.trident.state.StateFactory;
+import org.apache.storm.trident.testing.FixedBatchSpout;
 
 public class WordCountTrident {
     public static StormTopology buildTopology(String hbaseRoot){

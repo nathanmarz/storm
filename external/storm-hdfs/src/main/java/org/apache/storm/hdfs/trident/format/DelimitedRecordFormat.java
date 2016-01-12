@@ -17,8 +17,8 @@
  */
 package org.apache.storm.hdfs.trident.format;
 
-import backtype.storm.tuple.Fields;
-import storm.trident.tuple.TridentTuple;
+import org.apache.storm.tuple.Fields;
+import org.apache.storm.trident.tuple.TridentTuple;
 
 /**
  * RecordFormat implementation that uses field and record delimiters.

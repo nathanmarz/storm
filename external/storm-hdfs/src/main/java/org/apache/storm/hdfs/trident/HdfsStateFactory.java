@@ -17,11 +17,11 @@
  */
 package org.apache.storm.hdfs.trident;
 
-import backtype.storm.task.IMetricsContext;
+import org.apache.storm.task.IMetricsContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import storm.trident.state.State;
-import storm.trident.state.StateFactory;
+import org.apache.storm.trident.state.State;
+import org.apache.storm.trident.state.StateFactory;
 
 import java.util.Map;
 

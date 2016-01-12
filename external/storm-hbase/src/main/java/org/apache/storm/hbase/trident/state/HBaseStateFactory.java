@@ -17,9 +17,9 @@
  */
 package org.apache.storm.hbase.trident.state;
 
-import backtype.storm.task.IMetricsContext;
-import storm.trident.state.State;
-import storm.trident.state.StateFactory;
+import org.apache.storm.task.IMetricsContext;
+import org.apache.storm.trident.state.State;
+import org.apache.storm.trident.state.StateFactory;
 
 import java.util.Map;
 

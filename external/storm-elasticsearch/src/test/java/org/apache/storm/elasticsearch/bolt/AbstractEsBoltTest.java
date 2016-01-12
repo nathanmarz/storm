@@ -19,8 +19,8 @@ package org.apache.storm.elasticsearch.bolt;
 
 import com.google.common.testing.NullPointerTester;
 
-import backtype.storm.Config;
-import backtype.storm.task.OutputCollector;
+import org.apache.storm.Config;
+import org.apache.storm.task.OutputCollector;
 import org.apache.storm.elasticsearch.common.EsConfig;
 import org.junit.After;
 import org.junit.Before;

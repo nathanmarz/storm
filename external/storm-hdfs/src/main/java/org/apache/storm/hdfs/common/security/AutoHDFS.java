@@ -18,10 +18,10 @@
 
 package org.apache.storm.hdfs.common.security;
 
-import backtype.storm.Config;
-import backtype.storm.security.INimbusCredentialPlugin;
-import backtype.storm.security.auth.IAutoCredentials;
-import backtype.storm.security.auth.ICredentialsRenewer;
+import org.apache.storm.Config;
+import org.apache.storm.security.INimbusCredentialPlugin;
+import org.apache.storm.security.auth.IAutoCredentials;
+import org.apache.storm.security.auth.ICredentialsRenewer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.security.Credentials;

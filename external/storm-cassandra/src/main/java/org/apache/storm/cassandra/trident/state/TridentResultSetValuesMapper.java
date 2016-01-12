@@ -18,9 +18,9 @@
  */
 package org.apache.storm.cassandra.trident.state;
 
-import backtype.storm.tuple.Fields;
-import backtype.storm.tuple.ITuple;
-import backtype.storm.tuple.Values;
+import org.apache.storm.tuple.Fields;
+import org.apache.storm.tuple.ITuple;
+import org.apache.storm.tuple.Values;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;

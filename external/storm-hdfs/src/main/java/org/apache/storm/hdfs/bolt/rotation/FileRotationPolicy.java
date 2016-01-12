@@ -18,7 +18,7 @@
 package org.apache.storm.hdfs.bolt.rotation;
 
 
-import backtype.storm.tuple.Tuple;
+import org.apache.storm.tuple.Tuple;
 
 import java.io.Serializable;
 

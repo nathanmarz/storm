@@ -17,7 +17,7 @@
   (:require [clojure.test :refer :all]
             [org.apache.storm.pacemaker [pacemaker :as pacemaker]]
             [conjure.core :as conjure])
-  (:import [backtype.storm.generated
+  (:import [org.apache.storm.generated
             HBExecutionException HBServerMessageType
             HBMessage HBMessageData HBPulse]))
 

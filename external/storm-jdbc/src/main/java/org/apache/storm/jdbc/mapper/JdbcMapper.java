@@ -17,7 +17,7 @@
  */
 package org.apache.storm.jdbc.mapper;
 
-import backtype.storm.tuple.ITuple;
+import org.apache.storm.tuple.ITuple;
 import org.apache.storm.jdbc.common.Column;
 
 import java.io.Serializable;

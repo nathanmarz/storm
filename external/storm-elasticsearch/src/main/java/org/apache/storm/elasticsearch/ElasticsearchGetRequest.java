@@ -21,7 +21,7 @@ import java.io.Serializable;
 
 import org.elasticsearch.action.get.GetRequest;
 
-import backtype.storm.tuple.ITuple;
+import org.apache.storm.tuple.ITuple;
 
 /**
  * @since 0.11

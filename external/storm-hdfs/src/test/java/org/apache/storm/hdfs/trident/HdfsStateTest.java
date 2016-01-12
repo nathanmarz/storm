@@ -17,8 +17,8 @@
  */
 package org.apache.storm.hdfs.trident;
 
-import backtype.storm.Config;
-import backtype.storm.tuple.Fields;
+import org.apache.storm.Config;
+import org.apache.storm.tuple.Fields;
 import org.apache.commons.io.FileUtils;
 import org.apache.storm.hdfs.trident.format.DelimitedRecordFormat;
 import org.apache.storm.hdfs.trident.format.FileNameFormat;
@@ -28,7 +28,7 @@ import org.apache.storm.hdfs.trident.rotation.FileSizeRotationPolicy;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import storm.trident.tuple.TridentTuple;
+import org.apache.storm.trident.tuple.TridentTuple;
 
 import java.io.File;
 import java.io.IOException;

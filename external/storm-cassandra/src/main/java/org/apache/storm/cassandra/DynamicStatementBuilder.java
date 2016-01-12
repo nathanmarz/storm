@@ -19,87 +19,52 @@
 package org.apache.storm.cassandra;
 
 import com.datastax.driver.core.BatchStatement;
-import org.apache.storm.cassandra.query.*;
-import org.apache.storm.cassandra.query.impl.BoundStatementMapperBuilder;
-import org.apache.storm.cassandra.query.impl.InsertStatementBuilder;
-import org.apache.storm.cassandra.query.impl.UpdateStatementBuilder;
+import com.datastax.driver.core.querybuilder.BuiltStatement;
+import org.apache.storm.cassandra.query.CQLStatementBuilder;
+import org.apache.storm.cassandra.query.CQLStatementTupleMapper;
+import org.apache.storm.cassandra.query.ContextQuery;
+import org.apache.storm.cassandra.query.CqlMapper;
+import org.apache.storm.cassandra.query.impl.BatchCQLStatementTupleMapper;
+import org.apache.storm.cassandra.query.builder.BoundCQLStatementMapperBuilder;
+import org.apache.storm.cassandra.query.builder.SimpleCQLStatementMapperBuilder;
 import org.apache.storm.cassandra.query.selector.FieldSelector;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class DynamicStatementBuilder implements Serializable {
 
     private DynamicStatementBuilder() {
     }
 
-    /**
-     * Builds a new insert statement for the specified table.
-     *
-     * @param table the table's name.
-     * @return a new {@link InsertStatementBuilder} instance.
-     */
-    public static final InsertStatementBuilder insertInto(String table) {
-        return new InsertStatementBuilder(table);
-    }
-    /**
-     * Builds a new insert statement based on the specified CQL mapper.
-     *
-     * @param mapper the CQL mapper.
-     * @return a new {@link InsertStatementBuilder} instance.
-     */
-    public static final InsertStatementBuilder insertInto(CQLTableTupleMapper mapper) {
-        return new InsertStatementBuilder(mapper);
-    }
-    /**
-     * Builds a new insert statement for the specified keyspace and table.
-     *
-     * @param ks the keyspace to use.
-     * @param table the table's name.
-     * @return a new {@link InsertStatementBuilder} instance.
-     */
-    public static final InsertStatementBuilder insertInto(String ks, String table) {
-        return new InsertStatementBuilder(table, ks);
+    public static final SimpleCQLStatementMapperBuilder simpleQuery(String queryString) {
+        return new SimpleCQLStatementMapperBuilder(queryString);
     }
 
-    /**
-     * Builds a new update statement for the specified table.
-     *
-     * @param table the table's name.
-     * @return a new {@link UpdateStatementBuilder} instance.
-     */
-    public static final UpdateStatementBuilder update(String table) {
-        return new UpdateStatementBuilder(table);
-    }
-
-    /**
-     * Builds a new update statement for the specified keyspace and table.
-     *
-     * @param table the table's name.
-     * @return a new {@link UpdateStatementBuilder} instance.
-     */
-    public static final UpdateStatementBuilder update(String ks, String table) {
-        return new UpdateStatementBuilder(table, ks);
+    public static final SimpleCQLStatementMapperBuilder simpleQuery(BuiltStatement builtStatement) {
+        return new SimpleCQLStatementMapperBuilder(builtStatement);
     }
 
     /**
      * Builds a new bound statement based on the specified query.
      *
      * @param cql the query.
-     * @return a new {@link BoundStatementMapperBuilder} instance.
+     * @return a new {@link org.apache.storm.cassandra.query.builder.BoundCQLStatementMapperBuilder} instance.
      */
-    public static final BoundStatementMapperBuilder boundQuery(String cql) {
-        return new BoundStatementMapperBuilder(cql);
+    public static final BoundCQLStatementMapperBuilder boundQuery(String cql) {
+        return new BoundCQLStatementMapperBuilder(cql);
     }
 
     /**
      * Builds a new bound statement identified by the given field.
      *
      * @param field a context used to resolve the cassandra query.
-     * @return a new {@link BoundStatementMapperBuilder} instance.
+     * @return a new {@link org.apache.storm.cassandra.query.builder.BoundCQLStatementMapperBuilder} instance.
      */
-    public static final BoundStatementMapperBuilder boundQuery(ContextQuery field) {
-        return new BoundStatementMapperBuilder(field);
+    public static final BoundCQLStatementMapperBuilder boundQuery(ContextQuery field) {
+        return new BoundCQLStatementMapperBuilder(field);
     }
 
     /**
@@ -115,27 +80,27 @@ public class DynamicStatementBuilder implements Serializable {
     /**
      * Creates a new {@link com.datastax.driver.core.BatchStatement.Type#LOGGED} batch statement for the specified CQL statement builders.
      */
-    public static final BatchStatementTupleMapper loggedBatch(CQLStatementBuilder... builders) {
+    public static final BatchCQLStatementTupleMapper loggedBatch(CQLStatementBuilder... builders) {
         return newBatchStatementBuilder(BatchStatement.Type.LOGGED, builders);
     }
     /**
      * Creates a new {@link com.datastax.driver.core.BatchStatement.Type#COUNTER} batch statement for the specified CQL statement builders.
      */
-    public static final BatchStatementTupleMapper counterBatch(CQLStatementBuilder... builders) {
+    public static final BatchCQLStatementTupleMapper counterBatch(CQLStatementBuilder... builders) {
         return newBatchStatementBuilder(BatchStatement.Type.COUNTER, builders);
     }
     /**
      * Creates a new {@link com.datastax.driver.core.BatchStatement.Type#UNLOGGED} batch statement for the specified CQL statement builders.
      */
-    public static final BatchStatementTupleMapper unLoggedBatch(CQLStatementBuilder... builders) {
+    public static final BatchCQLStatementTupleMapper unLoggedBatch(CQLStatementBuilder... builders) {
         return newBatchStatementBuilder(BatchStatement.Type.UNLOGGED, builders);
     }
 
-    private static BatchStatementTupleMapper newBatchStatementBuilder(BatchStatement.Type type, CQLStatementBuilder[] builders) {
+    private static BatchCQLStatementTupleMapper newBatchStatementBuilder(BatchStatement.Type type, CQLStatementBuilder[] builders) {
         List<CQLStatementTupleMapper> mappers = new ArrayList<>(builders.length);
         for(CQLStatementBuilder b : Arrays.asList(builders))
             mappers.add(b.build());
-        return new BatchStatementTupleMapper(type, mappers);
+        return new BatchCQLStatementTupleMapper(type, mappers);
     }
 
     /**
@@ -181,19 +146,11 @@ public class DynamicStatementBuilder implements Serializable {
         return fl.toArray(new FieldSelector[size]);
     }
 
-    /**
-     * Includes only the specified tuple fields.
-     *
-     * @param fields a list of field selector.
-     */
-    public static final CQLValuesTupleMapper with(final FieldSelector... fields) {
-        return new CQLValuesTupleMapper.WithFieldTupleMapper(Arrays.asList(fields));
-    }
 
     /**
      * Includes all tuple fields.
      */
-    public static final CQLValuesTupleMapper all() {
-        return new CQLValuesTupleMapper.AllTupleMapper();
+    public static final CqlMapper.DefaultCqlMapper all() {
+        return new CqlMapper.DefaultCqlMapper();
     }
 }

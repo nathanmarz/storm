@@ -21,9 +21,9 @@ import org.apache.qpid.amqp_1_0.client.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import backtype.storm.metric.api.CountMetric;
-import backtype.storm.metric.api.MeanReducer;
-import backtype.storm.metric.api.ReducedMetric;
+import org.apache.storm.metric.api.CountMetric;
+import org.apache.storm.metric.api.MeanReducer;
+import org.apache.storm.metric.api.ReducedMetric;
 
 import com.microsoft.eventhubs.client.Constants;
 import com.microsoft.eventhubs.client.EventHubException;

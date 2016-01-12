@@ -17,8 +17,8 @@
  */
 package org.apache.storm.elasticsearch.bolt;
 
-import backtype.storm.testing.IntegrationTest;
-import backtype.storm.tuple.Tuple;
+import org.apache.storm.testing.IntegrationTest;
+import org.apache.storm.tuple.Tuple;
 import org.apache.storm.elasticsearch.common.EsConfig;
 import org.apache.storm.elasticsearch.common.EsTestUtil;
 import org.apache.storm.elasticsearch.common.EsTupleMapper;

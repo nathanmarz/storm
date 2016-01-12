@@ -21,11 +21,11 @@ package org.apache.storm.cassandra.query;
 import java.io.Serializable;
 
 
-public interface CQLStatementBuilder extends Serializable {
+public interface CQLStatementBuilder<T extends CQLStatementTupleMapper> extends Serializable {
 
     /**
      * Builds a new {@link CQLStatementTupleMapper} instance.
      * @return a new CQLStatementMapper instance.
      */
-    <T extends CQLStatementTupleMapper> T build();
+    T build();
 }

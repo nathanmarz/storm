@@ -17,14 +17,14 @@
  */
 package org.apache.storm.hdfs.bolt;
 
-import backtype.storm.Config;
-import backtype.storm.task.OutputCollector;
-import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.OutputFieldsDeclarer;
-import backtype.storm.topology.base.BaseRichBolt;
-import backtype.storm.tuple.Tuple;
-import backtype.storm.utils.TupleUtils;
-import backtype.storm.utils.Utils;
+import org.apache.storm.Config;
+import org.apache.storm.task.OutputCollector;
+import org.apache.storm.task.TopologyContext;
+import org.apache.storm.topology.OutputFieldsDeclarer;
+import org.apache.storm.topology.base.BaseRichBolt;
+import org.apache.storm.tuple.Tuple;
+import org.apache.storm.utils.TupleUtils;
+import org.apache.storm.utils.Utils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -48,6 +48,10 @@ import java.util.TimerTask;
 public abstract class AbstractHdfsBolt extends BaseRichBolt {
     private static final Logger LOG = LoggerFactory.getLogger(AbstractHdfsBolt.class);
     private static final Integer DEFAULT_RETRY_COUNT = 3;
+    /**
+     * Half of the default Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS
+     */
+    private static final int DEFAULT_TICK_TUPLE_INTERVAL_SECS = 15;
 
     protected ArrayList<RotationAction> rotationActions = new ArrayList<RotationAction>();
     private Path currentFile;
@@ -64,7 +68,7 @@ public abstract class AbstractHdfsBolt extends BaseRichBolt {
     private List<Tuple> tupleBatch = new LinkedList<>();
     protected long offset = 0;
     protected Integer fileRetryCount = DEFAULT_RETRY_COUNT;
-    protected Integer tickTupleInterval = 0;
+    protected Integer tickTupleInterval = DEFAULT_TICK_TUPLE_INTERVAL_SECS;
 
     protected transient Configuration hdfsConfig;
 
@@ -110,14 +114,6 @@ public abstract class AbstractHdfsBolt extends BaseRichBolt {
             }
         }
 
-        // If interval is non-zero then it has already been explicitly set and we should not default it
-        if (conf.containsKey("topology.message.timeout.secs") && tickTupleInterval == 0)
-        {
-            Integer topologyTimeout = Utils.getInt(conf.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS));
-            tickTupleInterval = (int)(Math.floor(topologyTimeout / 2));
-            LOG.debug("Setting tick tuple interval to [{}] based on topology timeout", tickTupleInterval);
-        }
-
         try{
             HdfsSecurityUtil.login(conf, hdfsConfig);
             doPrepare(conf, topologyContext, collector);
@@ -151,6 +147,7 @@ public abstract class AbstractHdfsBolt extends BaseRichBolt {
             boolean forceSync = false;
             if (TupleUtils.isTick(tuple)) {
                 LOG.debug("TICK! forcing a file system flush");
+                this.collector.ack(tuple);
                 forceSync = true;
             } else {
                 try {

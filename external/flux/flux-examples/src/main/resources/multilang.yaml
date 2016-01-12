@@ -59,7 +59,7 @@ bolts:
     # ...
 
   - id: "count"
-    className: "backtype.storm.testing.TestWordCounter"
+    className: "org.apache.storm.testing.TestWordCounter"
     parallelism: 1
     # ...
 

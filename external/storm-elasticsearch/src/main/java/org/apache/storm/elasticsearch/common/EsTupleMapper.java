@@ -17,7 +17,7 @@
  */
 package org.apache.storm.elasticsearch.common;
 
-import backtype.storm.tuple.ITuple;
+import org.apache.storm.tuple.ITuple;
 
 import java.io.Serializable;
 

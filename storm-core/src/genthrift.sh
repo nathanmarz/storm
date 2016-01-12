@@ -16,9 +16,9 @@
 # limitations under the License.
 
 rm -rf gen-javabean gen-py py
-rm -rf jvm/backtype/storm/generated
+rm -rf jvm/org/apache/storm/generated
 thrift --gen java:beans,hashcode,nocamel,generated_annotations=undated --gen py:utf8strings storm.thrift
-for file in gen-javabean/backtype/storm/generated/* ; do
+for file in gen-javabean/org/apache/storm/generated/* ; do
   cat java_license_header.txt ${file} > ${file}.tmp
   mv -f ${file}.tmp ${file}
 done
@@ -28,6 +28,6 @@ for file in gen-py/storm/* ; do
   cat py_license_header.txt ${file} > ${file}.tmp
   mv -f ${file}.tmp ${file}
 done
-mv gen-javabean/backtype/storm/generated jvm/backtype/storm/generated
+mv gen-javabean/org/apache/storm/generated jvm/org/apache/storm/generated
 mv gen-py py
 rm -rf gen-javabean

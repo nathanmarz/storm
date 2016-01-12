@@ -19,7 +19,7 @@
  */
 package org.apache.storm.sql.runtime;
 
-import backtype.storm.tuple.Values;
+import org.apache.storm.tuple.Values;
 
 public interface ChannelContext {
   /**

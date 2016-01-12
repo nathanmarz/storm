@@ -20,8 +20,8 @@ package org.apache.storm.eventhubs.trident;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import storm.trident.spout.IOpaquePartitionedTridentSpout;
-import storm.trident.spout.IPartitionedTridentSpout;
+import org.apache.storm.trident.spout.IOpaquePartitionedTridentSpout;
+import org.apache.storm.trident.spout.IPartitionedTridentSpout;
 
 import org.apache.storm.eventhubs.spout.EventHubSpoutConfig;
 

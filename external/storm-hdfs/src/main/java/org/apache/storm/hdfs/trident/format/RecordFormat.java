@@ -18,7 +18,7 @@
 package org.apache.storm.hdfs.trident.format;
 
 
-import storm.trident.tuple.TridentTuple;
+import org.apache.storm.trident.tuple.TridentTuple;
 
 import java.io.Serializable;
 

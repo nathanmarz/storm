@@ -18,7 +18,7 @@
 package org.apache.storm.hdfs.trident.sync;
 
 
-import storm.trident.tuple.TridentTuple;
+import org.apache.storm.trident.tuple.TridentTuple;
 
 /**
  * SyncPolicy implementation that will trigger a

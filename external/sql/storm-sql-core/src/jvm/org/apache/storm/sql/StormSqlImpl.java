@@ -17,8 +17,8 @@
  */
 package org.apache.storm.sql;
 
-import backtype.storm.StormSubmitter;
-import backtype.storm.generated.SubmitOptions;
+import org.apache.storm.StormSubmitter;
+import org.apache.storm.generated.SubmitOptions;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.RelNode;
@@ -38,7 +38,7 @@ import org.apache.storm.sql.parser.SqlCreateTable;
 import org.apache.storm.sql.parser.StormParser;
 import org.apache.storm.sql.runtime.*;
 import org.apache.storm.sql.runtime.trident.AbstractTridentProcessor;
-import storm.trident.TridentTopology;
+import org.apache.storm.trident.TridentTopology;
 
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;

@@ -31,7 +31,7 @@ import java.util.concurrent.TimeoutException;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hive.hcatalog.streaming.*;
 import org.apache.storm.hive.bolt.mapper.HiveMapper;
-import backtype.storm.tuple.Tuple;
+import org.apache.storm.tuple.Tuple;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -17,13 +17,13 @@
  */
 package org.apache.storm.hbase.trident.mapper;
 
-import backtype.storm.tuple.Fields;
-import backtype.storm.tuple.Tuple;
+import org.apache.storm.tuple.Fields;
+import org.apache.storm.tuple.Tuple;
 import org.apache.storm.hbase.bolt.mapper.HBaseMapper;
 import org.apache.storm.hbase.common.ColumnList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import storm.trident.tuple.TridentTuple;
+import org.apache.storm.trident.tuple.TridentTuple;
 
 import static org.apache.storm.hbase.common.Utils.toBytes;
 import static org.apache.storm.hbase.common.Utils.toLong;

@@ -17,9 +17,9 @@
  */
 package org.apache.storm.hdfs.blobstore;
 
-import backtype.storm.Config;
-import backtype.storm.blobstore.BlobStoreFile;
-import backtype.storm.utils.Utils;
+import org.apache.storm.Config;
+import org.apache.storm.blobstore.BlobStoreFile;
+import org.apache.storm.utils.Utils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;

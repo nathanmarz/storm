@@ -18,10 +18,10 @@
 package org.apache.storm.jdbc.mapper;
 
 
-import backtype.storm.topology.OutputFieldsDeclarer;
-import backtype.storm.tuple.Fields;
-import backtype.storm.tuple.ITuple;
-import backtype.storm.tuple.Values;
+import org.apache.storm.topology.OutputFieldsDeclarer;
+import org.apache.storm.tuple.Fields;
+import org.apache.storm.tuple.ITuple;
+import org.apache.storm.tuple.Values;
 import org.apache.commons.lang.Validate;
 import org.apache.storm.jdbc.common.Column;
 

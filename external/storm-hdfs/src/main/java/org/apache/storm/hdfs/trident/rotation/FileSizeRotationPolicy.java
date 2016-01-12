@@ -20,7 +20,7 @@ package org.apache.storm.hdfs.trident.rotation;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import storm.trident.tuple.TridentTuple;
+import org.apache.storm.trident.tuple.TridentTuple;
 
 /**
  * File rotation policy that will rotate files when a certain

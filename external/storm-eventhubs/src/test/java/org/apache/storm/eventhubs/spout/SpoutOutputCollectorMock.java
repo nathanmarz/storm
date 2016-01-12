@@ -19,7 +19,7 @@ package org.apache.storm.eventhubs.spout;
 
 import java.util.List;
 
-import backtype.storm.spout.ISpoutOutputCollector;
+import org.apache.storm.spout.ISpoutOutputCollector;
 
 /**
  * Mock of ISpoutOutputCollector

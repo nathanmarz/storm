@@ -1,3 +1,4 @@
+## 2.0.0
 ## 1.0.0
  * STORM-1202: Migrate APIs to org.apache.storm, but try to provide some form of backwards compatability
  * STORM-468: java.io.NotSerializableException should be explained

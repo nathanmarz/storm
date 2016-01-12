@@ -17,9 +17,9 @@
  */
 package org.apache.storm.redis.state;
 
-import backtype.storm.spout.CheckPointState;
-import backtype.storm.state.DefaultStateSerializer;
-import backtype.storm.state.Serializer;
+import org.apache.storm.spout.CheckPointState;
+import org.apache.storm.state.DefaultStateSerializer;
+import org.apache.storm.state.Serializer;
 import org.junit.Test;
 
 import java.util.ArrayList;

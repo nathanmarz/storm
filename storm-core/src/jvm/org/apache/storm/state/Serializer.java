@@ -15,29 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package backtype.storm.state;
+package org.apache.storm.state;
 
-import backtype.storm.task.TopologyContext;
-
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.io.Serializable;
 
 /**
- * Provides {@link InMemoryKeyValueState}
+ * Interface to be implemented for serlializing and de-serializing the
+ * state.
  */
-public class InMemoryKeyValueStateProvider implements StateProvider {
-    private final ConcurrentHashMap<String, State> states = new ConcurrentHashMap<>();
+public interface Serializer<T> extends Serializable {
+    byte[] serialize(T obj);
 
-    @Override
-    public State newState(String namespace, Map stormConf, TopologyContext context) {
-        State state = states.get(namespace);
-        if (state == null) {
-            State newState = new InMemoryKeyValueState<>();
-            state = states.putIfAbsent(namespace, newState);
-            if (state == null) {
-                state = newState;
-            }
-        }
-        return state;
-    }
+    T deserialize(byte[] b);
 }

@@ -15,15 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package backtype.storm.spout;
+package org.apache.storm.spout;
 
-import backtype.storm.Config;
-import backtype.storm.state.KeyValueState;
-import backtype.storm.state.State;
-import backtype.storm.state.StateFactory;
-import backtype.storm.task.TopologyContext;
-import backtype.storm.tuple.Values;
-import backtype.storm.utils.Utils;
+import org.apache.storm.Config;
+import org.apache.storm.state.KeyValueState;
+import org.apache.storm.state.StateFactory;
+import org.apache.storm.task.TopologyContext;
+import org.apache.storm.tuple.Values;
+import org.apache.storm.utils.Utils;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -32,9 +31,9 @@ import org.mockito.Mockito;
 import java.util.HashMap;
 import java.util.Map;
 
-import static backtype.storm.spout.CheckPointState.State.COMMITTED;
+import static org.apache.storm.spout.CheckPointState.State.COMMITTED;
 import static org.junit.Assert.assertEquals;
-import static backtype.storm.spout.CheckPointState.Action;
+import static org.apache.storm.spout.CheckPointState.Action;
 
 /**
  * Unit test for {@link CheckpointSpout}

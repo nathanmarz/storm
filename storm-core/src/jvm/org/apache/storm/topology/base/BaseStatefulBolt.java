@@ -15,13 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package backtype.storm.topology.base;
+package org.apache.storm.topology.base;
 
-import backtype.storm.state.State;
-import backtype.storm.task.OutputCollector;
-import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.IStatefulBolt;
-import backtype.storm.topology.OutputFieldsDeclarer;
+import org.apache.storm.state.State;
+import org.apache.storm.task.OutputCollector;
+import org.apache.storm.task.TopologyContext;
+import org.apache.storm.topology.IStatefulBolt;
+import org.apache.storm.topology.OutputFieldsDeclarer;
 
 import java.util.Map;
 

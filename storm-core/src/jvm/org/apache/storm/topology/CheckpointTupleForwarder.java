@@ -15,16 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package backtype.storm.topology;
+package org.apache.storm.topology;
 
-import backtype.storm.generated.GlobalStreamId;
-import backtype.storm.spout.CheckpointSpout;
-import backtype.storm.task.IOutputCollector;
-import backtype.storm.task.OutputCollector;
-import backtype.storm.task.TopologyContext;
-import backtype.storm.tuple.Fields;
-import backtype.storm.tuple.Tuple;
-import backtype.storm.tuple.Values;
+import org.apache.storm.generated.GlobalStreamId;
+import org.apache.storm.spout.CheckpointSpout;
+import org.apache.storm.task.IOutputCollector;
+import org.apache.storm.task.OutputCollector;
+import org.apache.storm.task.TopologyContext;
+import org.apache.storm.tuple.Fields;
+import org.apache.storm.tuple.Tuple;
+import org.apache.storm.tuple.Values;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,11 +32,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static backtype.storm.spout.CheckpointSpout.CHECKPOINT_STREAM_ID;
-import static backtype.storm.spout.CheckpointSpout.CHECKPOINT_FIELD_TXID;
-import static backtype.storm.spout.CheckpointSpout.CHECKPOINT_FIELD_ACTION;
-import static backtype.storm.spout.CheckPointState.Action;
-import static backtype.storm.spout.CheckPointState.Action.ROLLBACK;
+import static org.apache.storm.spout.CheckPointState.Action;
+import static org.apache.storm.spout.CheckPointState.Action.ROLLBACK;
+import static org.apache.storm.spout.CheckpointSpout.*;
 
 /**
  * Wraps {@link IRichBolt} and forwards checkpoint tuples in a

@@ -17,9 +17,9 @@
  */
 package org.apache.storm.redis.state;
 
-import backtype.storm.state.DefaultStateSerializer;
-import backtype.storm.state.KeyValueState;
-import backtype.storm.state.Serializer;
+import org.apache.storm.state.DefaultStateSerializer;
+import org.apache.storm.state.KeyValueState;
+import org.apache.storm.state.Serializer;
 import org.apache.storm.redis.common.config.JedisPoolConfig;
 import org.apache.storm.redis.common.container.JedisCommandsContainerBuilder;
 import org.apache.storm.redis.common.container.JedisCommandsInstanceContainer;

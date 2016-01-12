@@ -15,10 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package backtype.storm.state;
+package org.apache.storm.state;
 
-import backtype.storm.Config;
-import backtype.storm.task.TopologyContext;
+import org.apache.storm.Config;
+import org.apache.storm.task.TopologyContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +30,7 @@ import java.util.Map;
 public class StateFactory {
     private static final Logger LOG = LoggerFactory.getLogger(StateFactory.class);
 
-    private static final String DEFAULT_PROVIDER = "backtype.storm.state.InMemoryKeyValueStateProvider";
+    private static final String DEFAULT_PROVIDER = "org.apache.storm.state.InMemoryKeyValueStateProvider";
 
     /**
      * Returns a new state instance using the {@link Config#TOPOLOGY_STATE_PROVIDER} or a
@@ -56,7 +56,7 @@ public class StateFactory {
                 state = ((StateProvider) object).newState(namespace, stormConf, context);
             } else {
                 String msg = "Invalid state provider '" + provider +
-                        "'. Should implement backtype.storm.state.StateProvider";
+                        "'. Should implement org.apache.storm.state.StateProvider";
                 LOG.error(msg);
                 throw new RuntimeException(msg);
             }

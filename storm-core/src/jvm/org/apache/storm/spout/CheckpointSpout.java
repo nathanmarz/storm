@@ -15,28 +15,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package backtype.storm.spout;
+package org.apache.storm.spout;
 
-import backtype.storm.Config;
-import backtype.storm.state.KeyValueState;
-import backtype.storm.state.StateFactory;
-import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.OutputFieldsDeclarer;
-import backtype.storm.topology.base.BaseRichSpout;
-import backtype.storm.tuple.Fields;
-import backtype.storm.tuple.Tuple;
-import backtype.storm.tuple.Values;
-import backtype.storm.utils.Utils;
+import org.apache.storm.Config;
+import org.apache.storm.state.KeyValueState;
+import org.apache.storm.state.StateFactory;
+import org.apache.storm.task.TopologyContext;
+import org.apache.storm.topology.OutputFieldsDeclarer;
+import org.apache.storm.topology.base.BaseRichSpout;
+import org.apache.storm.tuple.Fields;
+import org.apache.storm.tuple.Tuple;
+import org.apache.storm.tuple.Values;
+import org.apache.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
-import static backtype.storm.spout.CheckPointState.State.COMMITTED;
-import static backtype.storm.spout.CheckPointState.Action;
+import static org.apache.storm.spout.CheckPointState.State.COMMITTED;
+import static org.apache.storm.spout.CheckPointState.Action;
 
 /**
- * Emits checkpoint tuples which is used to save the state of the {@link backtype.storm.topology.IStatefulComponent}
+ * Emits checkpoint tuples which is used to save the state of the {@link org.apache.storm.topology.IStatefulComponent}
  * across the topology. If a topology contains Stateful bolts, Checkpoint spouts are automatically added
  * to the topology. There is only one Checkpoint task per topology.
  * Checkpoint spout stores its internal state in a {@link KeyValueState}.

@@ -15,24 +15,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package backtype.storm.state;
+package org.apache.storm.state;
 
-import backtype.storm.task.TopologyContext;
+import org.apache.storm.task.TopologyContext;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Used by the {@link StateFactory} to create a new state instances.
+ * Provides {@link InMemoryKeyValueState}
  */
-public interface StateProvider {
-    /**
-     * Returns a new state instance. Each state belongs unique namespace which is typically
-     * the componentid-task of the task, so that each task can have its own unique state.
-     *
-     * @param namespace a namespace of the state
-     * @param stormConf the storm topology configuration
-     * @param context   the {@link TopologyContext}
-     * @return a previously saved state instance
-     */
-    State newState(String namespace, Map stormConf, TopologyContext context);
+public class InMemoryKeyValueStateProvider implements StateProvider {
+    private final ConcurrentHashMap<String, State> states = new ConcurrentHashMap<>();
+
+    @Override
+    public State newState(String namespace, Map stormConf, TopologyContext context) {
+        State state = states.get(namespace);
+        if (state == null) {
+            State newState = new InMemoryKeyValueState<>();
+            state = states.putIfAbsent(namespace, newState);
+            if (state == null) {
+                state = newState;
+            }
+        }
+        return state;
+    }
 }

@@ -17,7 +17,7 @@
  */
 package org.apache.storm.redis.state;
 
-import backtype.storm.state.DefaultStateSerializer;
+import org.apache.storm.state.DefaultStateSerializer;
 import org.apache.storm.redis.common.container.JedisCommandsInstanceContainer;
 import org.junit.Before;
 import org.junit.Test;

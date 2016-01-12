@@ -17,11 +17,11 @@
  */
 package org.apache.storm.redis.state;
 
-import backtype.storm.state.DefaultStateSerializer;
-import backtype.storm.state.Serializer;
-import backtype.storm.state.State;
-import backtype.storm.state.StateProvider;
-import backtype.storm.task.TopologyContext;
+import org.apache.storm.state.DefaultStateSerializer;
+import org.apache.storm.state.Serializer;
+import org.apache.storm.state.State;
+import org.apache.storm.state.StateProvider;
+import org.apache.storm.task.TopologyContext;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -55,8 +55,8 @@ public class RedisKeyValueStateProvider implements StateProvider {
         String providerConfig = null;
         ObjectMapper mapper = new ObjectMapper();
         mapper.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
-        if (stormConf.containsKey(backtype.storm.Config.TOPOLOGY_STATE_PROVIDER_CONFIG)) {
-            providerConfig = (String) stormConf.get(backtype.storm.Config.TOPOLOGY_STATE_PROVIDER_CONFIG);
+        if (stormConf.containsKey(org.apache.storm.Config.TOPOLOGY_STATE_PROVIDER_CONFIG)) {
+            providerConfig = (String) stormConf.get(org.apache.storm.Config.TOPOLOGY_STATE_PROVIDER_CONFIG);
             stateConfig = mapper.readValue(providerConfig, StateConfig.class);
         } else {
             stateConfig = new StateConfig();

@@ -15,11 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package backtype.storm.spout;
+package org.apache.storm.spout;
 
-import static backtype.storm.spout.CheckPointState.State.COMMITTED;
-import static backtype.storm.spout.CheckPointState.State.COMMITTING;
-import static backtype.storm.spout.CheckPointState.State.PREPARING;
+import static org.apache.storm.spout.CheckPointState.State.COMMITTED;
+import static org.apache.storm.spout.CheckPointState.State.COMMITTING;
+import static org.apache.storm.spout.CheckPointState.State.PREPARING;
 
 /**
  * Captures the current state of the transaction in {@link CheckpointSpout}. The state transitions are as follows.

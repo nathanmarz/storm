@@ -17,8 +17,8 @@
  */
 package org.apache.storm.redis.state;
 
-import backtype.storm.Config;
-import backtype.storm.state.State;
+import org.apache.storm.Config;
+import org.apache.storm.state.State;
 import org.junit.Assert;
 import org.junit.Test;
 

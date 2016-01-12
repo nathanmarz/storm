@@ -15,9 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package backtype.storm.topology;
+package org.apache.storm.topology;
 
-import backtype.storm.state.State;
+import org.apache.storm.state.State;
 
 /**
  * <p>

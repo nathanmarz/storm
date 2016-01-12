@@ -15,34 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package backtype.storm.state;
+package org.apache.storm.topology;
+
+import org.apache.storm.state.State;
 
 /**
- * A state that supports key-value mappings.
+ * A bolt abstraction for supporting stateful computation.
  */
-public interface KeyValueState<K, V> extends State {
-    /**
-     * Maps the value with the key
-     *
-     * @param key   the key
-     * @param value the value
-     */
-    void put(K key, V value);
-
-    /**
-     * Returns the value mapped to the key
-     *
-     * @param key the key
-     * @return the value or null if no mapping is found
-     */
-    V get(K key);
-
-    /**
-     * Returns the value mapped to the key or defaultValue if no mapping is found.
-     *
-     * @param key          the key
-     * @param defaultValue the value to return if no mapping is found
-     * @return the value or defaultValue if no mapping is found
-     */
-    V get(K key, V defaultValue);
+public interface IStatefulBolt<T extends State> extends IStatefulComponent<T>, IRichBolt {
 }

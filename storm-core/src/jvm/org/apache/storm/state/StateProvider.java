@@ -15,16 +15,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package backtype.storm.state;
+package org.apache.storm.state;
 
-import java.io.Serializable;
+import org.apache.storm.task.TopologyContext;
+
+import java.util.Map;
 
 /**
- * Interface to be implemented for serlializing and de-serializing the
- * state.
+ * Used by the {@link StateFactory} to create a new state instances.
  */
-public interface Serializer<T> extends Serializable {
-    byte[] serialize(T obj);
-
-    T deserialize(byte[] b);
+public interface StateProvider {
+    /**
+     * Returns a new state instance. Each state belongs unique namespace which is typically
+     * the componentid-task of the task, so that each task can have its own unique state.
+     *
+     * @param namespace a namespace of the state
+     * @param stormConf the storm topology configuration
+     * @param context   the {@link TopologyContext}
+     * @return a previously saved state instance
+     */
+    State newState(String namespace, Map stormConf, TopologyContext context);
 }

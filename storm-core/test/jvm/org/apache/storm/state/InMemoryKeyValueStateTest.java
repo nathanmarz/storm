@@ -15,8 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package backtype.storm.state;
+package org.apache.storm.state;
 
+import org.apache.storm.state.InMemoryKeyValueState;
+import org.apache.storm.state.KeyValueState;
 import org.junit.Before;
 import org.junit.Test;
 

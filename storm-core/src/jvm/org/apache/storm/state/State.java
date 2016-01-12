@@ -15,10 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package backtype.storm.state;
+package org.apache.storm.state;
+
+import org.apache.storm.topology.IStatefulBolt;
 
 /**
- * The state of the component that is either managed by the framework (e.g in case of {@link backtype.storm.topology.IStatefulBolt})
+ * The state of the component that is either managed by the framework (e.g in case of {@link IStatefulBolt})
  * or managed by the the individual components themselves.
  */
 public interface State {

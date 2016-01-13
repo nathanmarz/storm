@@ -38,7 +38,7 @@
   (:import [org.apache.storm.scheduler INimbus SupervisorDetails WorkerSlot TopologyDetails
             Cluster Topologies SchedulerAssignment SchedulerAssignmentImpl DefaultScheduler ExecutorDetails])
   (:import [org.apache.storm.nimbus NimbusInfo])
-  (:import [org.apache.storm.utils TimeCacheMap TimeCacheMap$ExpiredCallback Utils TupleUtils ThriftTopologyUtils
+  (:import [org.apache.storm.utils TimeCacheMap TimeCacheMap$ExpiredCallback Utils ConfigUtils TupleUtils ThriftTopologyUtils
             BufferFileInputStream BufferInputStream])
   (:import [org.apache.storm.generated NotAliveException AlreadyAliveException StormTopology ErrorInfo
             ExecutorInfo InvalidTopologyException Nimbus$Iface Nimbus$Processor SubmitOptions TopologyInitialStatus
@@ -235,7 +235,7 @@
 (defn- get-key-list-from-id
   [conf id]
   (log-debug "set keys id = " id "set = " #{(master-stormcode-key id) (master-stormjar-key id) (master-stormconf-key id)})
-  (if (local-mode? conf)
+  (if (ConfigUtils/isLocalMode conf)
     [(master-stormcode-key id) (master-stormconf-key id)]
     [(master-stormcode-key id) (master-stormjar-key id) (master-stormconf-key id)]))
 
@@ -488,7 +488,7 @@
 (defn- wait-for-desired-code-replication [nimbus conf storm-id]
   (let [min-replication-count (conf TOPOLOGY-MIN-REPLICATION-COUNT)
         max-replication-wait-time (conf TOPOLOGY-MAX-REPLICATION-WAIT-TIME-SEC)
-        current-replication-count-jar (if (not (local-mode? conf))
+        current-replication-count-jar (if (not (ConfigUtils/isLocalMode conf))
                                         (atom (get-blob-replication-count (master-stormjar-key storm-id) nimbus))
                                         (atom min-replication-count))
         current-replication-count-code (atom (get-blob-replication-count (master-stormcode-key storm-id) nimbus))
@@ -504,12 +504,12 @@
         (sleep-secs 1)
         (log-debug "waiting for desired replication to be achieved.
           min-replication-count = " min-replication-count  " max-replication-wait-time = " max-replication-wait-time
-          (if (not (local-mode? conf))"current-replication-count for jar key = " @current-replication-count-jar)
+          (if (not (ConfigUtils/isLocalMode conf))"current-replication-count for jar key = " @current-replication-count-jar)
           "current-replication-count for code key = " @current-replication-count-code
           "current-replication-count for conf key = " @current-replication-count-conf
           " total-wait-time " @total-wait-time)
         (swap! total-wait-time inc)
-        (if (not (local-mode? conf))
+        (if (not (ConfigUtils/isLocalMode conf))
           (reset! current-replication-count-conf  (get-blob-replication-count (master-stormconf-key storm-id) nimbus)))
         (reset! current-replication-count-code  (get-blob-replication-count (master-stormcode-key storm-id) nimbus))
         (reset! current-replication-count-jar  (get-blob-replication-count (master-stormjar-key storm-id) nimbus))))

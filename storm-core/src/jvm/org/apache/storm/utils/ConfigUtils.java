@@ -19,6 +19,7 @@
 package org.apache.storm.utils;
 
 import org.apache.storm.Config;
+import org.apache.storm.validation.ConfigValidation;
 import org.apache.storm.generated.StormTopology;
 import org.apache.storm.utils.LocalState;
 import org.apache.storm.utils.Utils;
@@ -26,15 +27,7 @@ import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.io.BufferedWriter;
-import java.io.BufferedReader;
+import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.lang.reflect.Field;
@@ -102,7 +95,7 @@ public class ConfigUtils {
 
     }
 
-    public static boolean localMode(Map conf) {
+    public static boolean isLocalMode(Map conf) {
         String mode = (String) conf.get(Config.STORM_CLUSTER_MODE);
         if (mode != null) {
             if ("local".equals(mode)) {
@@ -123,18 +116,49 @@ public class ConfigUtils {
         throw new IllegalArgumentException("Illegal topology.stats.sample.rate in conf: " + rate);
     }
 
-    // public static mkStatsSampler // depends on Utils.evenSampler() TODO
+    // public static mkStatsSampler // depends on Utils.evenSampler() TODO, this is sth we have to do
 
-    // public static readDefaultConfig // depends on Utils.clojurifyStructure and Utils.readDefaultConfig // not necessary indeed
+    // public static readDefaultConfig // depends on Utils.clojurifyStructure and Utils.readDefaultConfig // TODO
 
     // validate-configs-with-schemas is just a wrapper of ConfigValidation.validateFields(conf) TODO
 
+    //For testing only
+    // for java
+    // try (SetMockedStormConfig mocked = new SetMockedStormConfig(conf)) {
+    //    run test ...
+    // }
+    //
+    // for clojure
+    // (let [something (SetMockedStormConfig. conf)]
+    //   (try
+    //     run test ...
+    //     (finally (.close something))))
+    public static class SetMockedStormConfig implements Closeable {
+        public SetMockedStormConfig(Map conf) {
+            mockedStormConfig = conf;
+        }
+
+        @Override
+        public void close() {
+            mockedStormConfig = null;
+        }
+    }
+    private static Map mockedStormConfig = null;
     public static Map readStormConfig() {
-        return Utils.readStormConfig();
+        if (mockedStormConfig != null) return mockedStormConfig;
+        Map conf = Utils.readStormConfig();
+        ConfigValidation.validateFields(conf);
+        return conf; // TODO, should this be clojurify-sturecture and then return? Otherwise, the clj files who call it fail
+    }
+
+    public static Map readYamlConfig(String name, boolean mustExist) {
+        Map conf = Utils.findAndReadConfigFile(name, mustExist);
+        ConfigValidation.validateFields(conf);
+        return conf;
     }
 
     public static Map readYamlConfig(String name) {
-        return Utils.findAndReadConfigFile(name, true);
+        return  readYamlConfig(name, true);
     }
 
     public static String absoluteStormLocalDir(Map conf) {

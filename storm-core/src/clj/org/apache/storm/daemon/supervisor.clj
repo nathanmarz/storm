@@ -16,7 +16,7 @@
 (ns org.apache.storm.daemon.supervisor
   (:import [java.io File IOException FileOutputStream])
   (:import [org.apache.storm.scheduler ISupervisor]
-           [org.apache.storm.utils LocalState Time Utils]
+           [org.apache.storm.utils LocalState Time Utils ConfigUtils]
            [org.apache.storm.daemon Shutdownable]
            [org.apache.storm Constants]
            [org.apache.storm.cluster ClusterStateContext DaemonType]
@@ -352,7 +352,7 @@
         stormcodepath (supervisor-stormcode-path stormroot)
         stormconfpath (supervisor-stormconf-path stormroot)]
     (and (every? exists-file? [stormroot stormconfpath stormcodepath])
-         (or (local-mode? conf)
+         (or (ConfigUtils/isLocalMode conf)
              (exists-file? stormjarpath)))))
 
 (defn get-worker-assignment-helper-msg

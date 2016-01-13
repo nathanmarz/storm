@@ -18,7 +18,7 @@
   (:import [org.apache.storm.generated StormTopology
             InvalidTopologyException GlobalStreamId]
            [org.apache.storm.utils ThriftTopologyUtils])
-  (:import [org.apache.storm.utils Utils])
+  (:import [org.apache.storm.utils Utils ConfigUtils])
   (:import [org.apache.storm.task WorkerTopologyContext])
   (:import [org.apache.storm Constants])
   (:import [org.apache.storm.metric SystemBolt])
@@ -88,7 +88,7 @@
     ))
 
 (defn validate-distributed-mode! [conf]
-  (if (local-mode? conf)
+  (if (ConfigUtils/isLocalMode conf)
       (throw
         (IllegalArgumentException. "Cannot start server in local mode!"))))
 

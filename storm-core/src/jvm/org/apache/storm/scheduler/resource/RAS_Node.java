@@ -64,18 +64,10 @@ public class RAS_Node {
     public RAS_Node(String nodeId, SupervisorDetails sup, Cluster cluster, Topologies topologies, Map<String, WorkerSlot> workerIdToWorker, Map<String, Map<String, Collection<ExecutorDetails>>> assignmentMap) {
         //Node ID and supervisor ID are the same.
         _nodeId = nodeId;
-        _isAlive = !cluster.isBlackListed(_nodeId);
-
-        //check if node is alive
-        if (_isAlive && sup != null) {
-            _hostname = sup.getHost();
-            _sup = sup;
-            _availMemory = getTotalMemoryResources();
-            _availCPU = getTotalCpuResources();
-
-            LOG.debug("Found a {} Node {} {}",
-                    _isAlive ? "living" : "dead", _nodeId, sup.getAllPorts());
-            LOG.debug("resources_mem: {}, resources_CPU: {}", sup.getTotalMemory(), sup.getTotalCPU());
+        if (sup == null) {
+            _isAlive = false;
+        } else {
+            _isAlive = !cluster.isBlackListed(_nodeId);
         }
 
         _cluster = cluster;
@@ -89,6 +81,45 @@ public class RAS_Node {
         //initialize assignment map
         if (assignmentMap != null) {
             _topIdToUsedSlots = assignmentMap;
+        }
+
+        //check if node is alive
+        if (_isAlive && sup != null) {
+            _hostname = sup.getHost();
+            _sup = sup;
+            _availMemory = getTotalMemoryResources();
+            _availCPU = getTotalCpuResources();
+
+            LOG.debug("Found a {} Node {} {}",
+                    _isAlive ? "living" : "dead", _nodeId, sup.getAllPorts());
+            LOG.debug("resources_mem: {}, resources_CPU: {}", sup.getTotalMemory(), sup.getTotalCPU());
+            //intialize resource usages on node
+            intializeResources();
+        }
+    }
+
+    /**
+     * intializes resource usages on node
+     */
+    private void intializeResources() {
+        for (Entry<String, Map<String, Collection<ExecutorDetails>>> entry : _topIdToUsedSlots.entrySet()) {
+            String topoId = entry.getKey();
+            Map<String, Collection<ExecutorDetails>> assignment = entry.getValue();
+            Map<ExecutorDetails, Double> topoMemoryResourceList = _topologies.getById(topoId).getTotalMemoryResourceList();
+            for (Collection<ExecutorDetails> execs : assignment.values()) {
+                for (ExecutorDetails exec : execs) {
+                    if (!_isAlive) {
+                        continue;
+                        // We do not free the assigned slots (the orphaned slots) on the inactive supervisors
+                        // The inactive node will be treated as a 0-resource node and not available for other unassigned workers
+                    }
+                    if (topoMemoryResourceList.containsKey(exec)) {
+                        consumeResourcesforTask(exec, _topologies.getById(topoId));
+                    } else {
+                        throw new IllegalStateException("Executor " + exec + "not found!");
+                    }
+                }
+            }
         }
     }
 
@@ -109,7 +140,7 @@ public class RAS_Node {
     }
 
     public Collection<String> getFreeSlotsId() {
-        if(!_isAlive) {
+        if (!_isAlive) {
             return new HashSet<String>();
         }
         Collection<String> usedSlotsId = getUsedSlotsId();
@@ -200,22 +231,21 @@ public class RAS_Node {
             throw new IllegalArgumentException("Tried to free a slot " + ws + " that was already free!");
         }
 
-        //free slot
-        _cluster.freeSlot(ws);
-
-        //cleanup internal assignments
-        _topIdToUsedSlots.get(topo.getId()).remove(ws.getId());
-
         double memUsed = getMemoryUsedByWorker(ws);
         double cpuUsed = getCpuUsedByWorker(ws);
         freeMemory(memUsed);
         freeCPU(cpuUsed);
+
+        //free slot
+        _cluster.freeSlot(ws);
+        //cleanup internal assignments
+        _topIdToUsedSlots.get(topo.getId()).remove(ws.getId());
     }
 
     private void freeMemory(double amount) {
         LOG.debug("freeing {} memory on node {}...avail mem: {}", amount, getHostname(), _availMemory);
-        if((_availMemory + amount) > getTotalCpuResources()) {
-            LOG.warn("Freeing more memory than there exists!");
+        if((_availMemory + amount) > getTotalMemoryResources()) {
+            LOG.warn("Freeing more memory than there exists! Memory trying to free: {} Total memory on Node: {}", (_availMemory + amount), getTotalMemoryResources());
             return;
         }
         _availMemory += amount;
@@ -223,8 +253,8 @@ public class RAS_Node {
 
     private void freeCPU(double amount) {
         LOG.debug("freeing {} CPU on node...avail CPU: {}", amount, getHostname(), _availCPU);
-        if ((_availCPU + amount) > getAvailableCpuResources()) {
-            LOG.warn("Freeing more CPU than there exists!");
+        if ((_availCPU + amount) > getTotalCpuResources()) {
+            LOG.warn("Freeing more CPU than there exists! CPU trying to free: {} Total CPU on Node: {}", (_availMemory + amount), getTotalCpuResources());
             return;
         }
         _availCPU += amount;
@@ -239,6 +269,7 @@ public class RAS_Node {
             return 0.0;
         }
         Collection<ExecutorDetails> execs = getExecutors(ws, _cluster);
+        LOG.info("getMemoryUsedByWorker executors: {}", execs);
         double totalMemoryUsed = 0.0;
         for (ExecutorDetails exec : execs) {
             totalMemoryUsed += topo.getTotalMemReqTask(exec);
@@ -280,54 +311,6 @@ public class RAS_Node {
     }
 
     /**
-     * Allocate Mem and CPU resources to the assigned slot for the topology's executors.
-     * @param td the TopologyDetails that the slot is assigned to.
-     * @param executors the executors to run in that slot.
-     * @param slot the slot to allocate resource to
-     */
-//    private void allocateResourceToSlot (TopologyDetails td, Collection<ExecutorDetails> executors, WorkerSlot slot) {
-//        double onHeapMem = 0.0;
-//        double offHeapMem = 0.0;
-//        double cpu = 0.0;
-//        for (ExecutorDetails exec : executors) {
-//            Double onHeapMemForExec = td.getOnHeapMemoryRequirement(exec);
-//            if (onHeapMemForExec != null) {
-//                onHeapMem += onHeapMemForExec;
-//            }
-//            Double offHeapMemForExec = td.getOffHeapMemoryRequirement(exec);
-//            if (offHeapMemForExec != null) {
-//                offHeapMem += offHeapMemForExec;
-//            }
-//            Double cpuForExec = td.getTotalCpuReqTask(exec);
-//            if (cpuForExec != null) {
-//                cpu += cpuForExec;
-//            }
-//        }
-//        slot.allocateResource(onHeapMem, offHeapMem, cpu);
-//    }
-
-    private WorkerSlot allocateResourceToSlot (TopologyDetails td, Collection<ExecutorDetails> executors, WorkerSlot slot) {
-        double onHeapMem = 0.0;
-        double offHeapMem = 0.0;
-        double cpu = 0.0;
-        for (ExecutorDetails exec : executors) {
-            Double onHeapMemForExec = td.getOnHeapMemoryRequirement(exec);
-            if (onHeapMemForExec != null) {
-                onHeapMem += onHeapMemForExec;
-            }
-            Double offHeapMemForExec = td.getOffHeapMemoryRequirement(exec);
-            if (offHeapMemForExec != null) {
-                offHeapMem += offHeapMemForExec;
-            }
-            Double cpuForExec = td.getTotalCpuReqTask(exec);
-            if (cpuForExec != null) {
-                cpu += cpuForExec;
-            }
-        }
-        return new WorkerSlot(slot.getNodeId(), slot.getPort(), onHeapMem, offHeapMem, cpu);
-    }
-
-    /**
      * Assigns a worker to a node
      * @param target the worker slot to assign the executors
      * @param td the topology the executors are from
@@ -350,7 +333,8 @@ public class RAS_Node {
         if (!freeSlots.contains(target)) {
             throw new IllegalStateException("Trying to assign already used slot" + target.getPort() + "on node " + _nodeId);
         }
-        target = allocateResourceToSlot(td, executors, target);
+        LOG.info("target slot: {}", target);
+
         _cluster.assign(target, td.getId(), executors);
 
         //assigning internally
@@ -362,15 +346,6 @@ public class RAS_Node {
             _topIdToUsedSlots.get(td.getId()).put(target.getId(), new LinkedList<ExecutorDetails>());
         }
         _topIdToUsedSlots.get(td.getId()).get(target.getId()).addAll(executors);
-    }
-
-    /**
-     * Assign a free slot on the node to the following topology and executors.
-     * @param td the TopologyDetails to assign a free slot to.
-     * @param executors the executors to run in that slot.
-     */
-    public void assign(TopologyDetails td, Collection<ExecutorDetails> executors) {
-        assign(null, td, executors);
     }
 
     @Override
@@ -487,7 +462,7 @@ public class RAS_Node {
     public Double consumeMemory(Double amount) {
         if (amount > _availMemory) {
             LOG.error("Attempting to consume more memory than available! Needed: {}, we only have: {}", amount, _availMemory);
-            return null;
+            throw new IllegalStateException("Attempting to consume more memory than available");
         }
         _availMemory = _availMemory - amount;
         return _availMemory;
@@ -524,7 +499,7 @@ public class RAS_Node {
     public Double consumeCPU(Double amount) {
         if (amount > _availCPU) {
             LOG.error("Attempting to consume more CPU than available! Needed: {}, we only have: {}", amount, _availCPU);
-            return null;
+            throw new IllegalStateException("Attempting to consume more memory than available");
         }
         _availCPU = _availCPU - amount;
         return _availCPU;

@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- *  A class to specify which data and API to expose to a scheduling strategy
+ * A class to specify which data and API to expose to a scheduling strategy
  */
 public class ClusterStateData {
 
@@ -86,7 +86,7 @@ public class ClusterStateData {
         this.cluster = cluster;
         this.topologies = topologies;
         Map<String, RAS_Node> nodes = RAS_Nodes.getAllNodesFrom(cluster, topologies);
-        for(Map.Entry<String, RAS_Node> entry : nodes.entrySet()) {
+        for (Map.Entry<String, RAS_Node> entry : nodes.entrySet()) {
             this.nodes.put(entry.getKey(), new NodeDetails(entry.getValue()));
         }
     }

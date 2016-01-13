@@ -18,14 +18,14 @@
 package org.apache.storm.scheduler;
 
 public class WorkerSlot {
-    protected String nodeId;
-    protected int port;
+    private String nodeId;
+    private int port;
     // amount of on-heap memory allocated to it
-    protected double memOnHeap = 0.0;
+    private double memOnHeap = 0.0;
     // amount of off-heap memory allocated to it
-    protected double memOffHeap = 0.0;
+    private double memOffHeap = 0.0;
     // amount of cpu allocated to it
-    protected double cpu = 0.0;
+    private double cpu = 0.0;
     
     public WorkerSlot(String nodeId, Number port) {
         this(nodeId, port, 0.0, 0.0, 0.0);

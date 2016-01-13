@@ -516,13 +516,13 @@
     (if (and (< min-replication-count @current-replication-count-conf)
              (< min-replication-count @current-replication-count-code)
              (< min-replication-count @current-replication-count-jar))
-      (log-message "desired replication count of "  min-replication-count " not achieved but we have hit the max wait time "
-        max-replication-wait-time " so moving on with replication count for conf key = " @current-replication-count-conf
-        " for code key = " @current-replication-count-code "for jar key = " @current-replication-count-jar)
       (log-message "desired replication count "  min-replication-count " achieved, "
         "current-replication-count for conf key = " @current-replication-count-conf ", "
         "current-replication-count for code key = " @current-replication-count-code ", "
-        "current-replication-count for jar key = " @current-replication-count-jar))))
+        "current-replication-count for jar key = " @current-replication-count-jar)
+      (log-message "desired replication count of "  min-replication-count " not achieved but we have hit the max wait time "
+        max-replication-wait-time " so moving on with replication count for conf key = " @current-replication-count-conf
+        " for code key = " @current-replication-count-code "for jar key = " @current-replication-count-jar))))
 
 (defn- read-storm-topology-as-nimbus [storm-id blob-store]
   (Utils/deserialize

@@ -1,4 +1,5 @@
 ## 1.0.0
+ * STORM-1453: nimbus.clj/wait-for-desired-code-replication prints wrong log message
  * STORM-1419: Solr bolt should handle tick tuples
  * STORM-1175: State store for windowing operations
  * STORM-1202: Migrate APIs to org.apache.storm, but try to provide some form of backwards compatability

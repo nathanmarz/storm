@@ -18,18 +18,25 @@
 package org.apache.storm.scheduler;
 
 public class WorkerSlot {
-    String nodeId;
-    int port;
+    protected String nodeId;
+    protected int port;
     // amount of on-heap memory allocated to it
-    double memOnHeap = 0.0;
+    protected double memOnHeap = 0.0;
     // amount of off-heap memory allocated to it
-    double memOffHeap = 0.0;
+    protected double memOffHeap = 0.0;
     // amount of cpu allocated to it
-    double cpu = 0.0;
+    protected double cpu = 0.0;
     
     public WorkerSlot(String nodeId, Number port) {
+        this(nodeId, port, 0.0, 0.0, 0.0);
+    }
+
+    public WorkerSlot(String nodeId, Number port, double memOnHeap, double memOffHeap, double cpu) {
         this.nodeId = nodeId;
         this.port = port.intValue();
+        this.memOnHeap = memOnHeap;
+        this.memOffHeap = memOffHeap;
+        this.cpu = cpu;
     }
     
     public String getNodeId() {
@@ -40,11 +47,8 @@ public class WorkerSlot {
         return port;
     }
 
-    public WorkerSlot allocateResource(double memOnHeap, double memOffHeap, double cpu) {
-        this.memOnHeap += memOnHeap;
-        this.memOffHeap += memOffHeap;
-        this.cpu += cpu;
-        return this;
+    public String getId() {
+        return this.getNodeId() + ":" + this.getPort();
     }
 
     public double getAllocatedMemOnHeap() {

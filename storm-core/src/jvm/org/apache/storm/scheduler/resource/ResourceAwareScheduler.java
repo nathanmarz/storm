@@ -120,6 +120,8 @@ public class ResourceAwareScheduler implements IScheduler {
                 break;
             }
             scheduleTopology(td);
+
+            LOG.info("Nodes after scheduling:{}", this.nodes);
         }
     }
 
@@ -146,7 +148,7 @@ public class ResourceAwareScheduler implements IScheduler {
                 SchedulingResult result = null;
                 try {
                     //Need to re prepare scheduling strategy with cluster and topologies in case scheduling state was restored
-                    rasStrategy.prepare(this.topologies, this.cluster, this.userMap, this.nodes);
+                    rasStrategy.prepare(new ClusterStateData(this.cluster, this.topologies));
                     result = rasStrategy.schedule(td);
                 } catch (Exception ex) {
                     LOG.error(String.format("Exception thrown when running strategy %s to schedule topology %s. Topology will not be scheduled!"
@@ -254,6 +256,9 @@ public class ResourceAwareScheduler implements IScheduler {
                 Collection<ExecutorDetails> execsNeedScheduling = workerToTasksEntry.getValue();
                 RAS_Node targetNode = this.nodes.getNodeById(targetSlot.getNodeId());
                 targetNode.assign(targetSlot, td, execsNeedScheduling);
+                for (ExecutorDetails exec : execsNeedScheduling) {
+                    targetNode.consumeResourcesforTask(exec, td);
+                }
                 LOG.debug("ASSIGNMENT    TOPOLOGY: {}  TASKS: {} To Node: {} on Slot: {}",
                         td.getName(), execsNeedScheduling, targetNode.getHostname(), targetSlot.getPort());
                 if (!nodesUsed.contains(targetNode.getId())) {

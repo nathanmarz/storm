@@ -18,14 +18,9 @@
 
 package org.apache.storm.scheduler.resource.strategies.scheduling;
 
-import java.util.Map;
-
-import org.apache.storm.scheduler.Cluster;
-import org.apache.storm.scheduler.Topologies;
 import org.apache.storm.scheduler.TopologyDetails;
-import org.apache.storm.scheduler.resource.RAS_Nodes;
+import org.apache.storm.scheduler.resource.ClusterStateData;
 import org.apache.storm.scheduler.resource.SchedulingResult;
-import org.apache.storm.scheduler.resource.User;
 
 /**
  * An interface to for implementing different scheduling strategies for the resource aware scheduling
@@ -36,7 +31,7 @@ public interface IStrategy {
     /**
      * initialize prior to scheduling
      */
-    public void prepare(Topologies topologies, Cluster cluster, Map<String, User> userMap, RAS_Nodes nodes);
+    public void prepare(ClusterStateData clusterStateData);
 
     /**
      * This method is invoked to calcuate a scheduling for topology td

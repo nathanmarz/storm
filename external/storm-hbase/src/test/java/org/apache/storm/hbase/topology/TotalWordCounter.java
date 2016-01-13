@@ -17,12 +17,12 @@
  */
 package org.apache.storm.hbase.topology;
 
-import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.BasicOutputCollector;
-import backtype.storm.topology.IBasicBolt;
-import backtype.storm.topology.OutputFieldsDeclarer;
-import backtype.storm.tuple.Fields;
-import backtype.storm.tuple.Tuple;
+import org.apache.storm.task.TopologyContext;
+import org.apache.storm.topology.BasicOutputCollector;
+import org.apache.storm.topology.IBasicBolt;
+import org.apache.storm.topology.OutputFieldsDeclarer;
+import org.apache.storm.tuple.Fields;
+import org.apache.storm.tuple.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +30,7 @@ import java.math.BigInteger;
 import java.util.Map;
 import java.util.Random;
 
-import static backtype.storm.utils.Utils.tuple;
+import static org.apache.storm.utils.Utils.tuple;
 
 public class TotalWordCounter implements IBasicBolt {
 

@@ -25,22 +25,22 @@
           </span>
         </th>
         <th>
-          <span data-toggle="tooltip" data-placement="above" title="The name given to the topology by when it was submitted. Click the name to view the Topology's information.">
+          <span data-toggle="tooltip" data-placement="top" title="The name given to the topology by when it was submitted. Click the name to view the Topology's information.">
             Topology
           </span>
         </th>
         <th>
-          <span data-toggle="tooltip" data-placement="above" title="Executors are threads in a Worker process.">
+          <span data-toggle="tooltip" data-placement="top" title="Executors are threads in a Worker process.">
             Executors
           </span>
         </th>
         <th>
-          <span data-toggle="tooltip" data-placement="above" title="A Task is an instance of a Bolt or Spout. The number of Tasks is almost always equal to the number of Executors.">
+          <span data-toggle="tooltip" data-placement="top" title="A Task is an instance of a Bolt or Spout. The number of Tasks is almost always equal to the number of Executors.">
             Tasks
           </span>
         </th>
         <th>
-          <span data-toggle="tooltip" data-placement="above" title="Click on the link below to open the logviewer and view the events emitted by this component.">
+          <span data-toggle="tooltip" data-placement="top" title="Click on the link below to open the logviewer and view the events emitted by this component.">
             Debug
           </span>
         </th>
@@ -67,22 +67,22 @@
           </span>
         </th>
         <th class="header">
-          <span data-toggle="tooltip" data-placement="above" title="The number of Tuples emitted.">
+          <span data-toggle="tooltip" data-placement="top" title="The number of Tuples emitted.">
             Emitted
           </span>
         </th>
         <th class="header">
-          <span data-original-title="The number of Tuples emitted that sent to one or more bolts." data-toggle="tooltip" data-placement="above">
+          <span data-original-title="The number of Tuples emitted that sent to one or more bolts." data-toggle="tooltip" data-placement="top">
             Transferred
           </span>
         </th>
         <th class="header">
-          <span data-toggle="tooltip" data-placement="above" title="The average time a Tuple &quot;tree&quot; takes to be completely processed by the Topology. A value of 0 is expected if no acking is done.">
+          <span data-toggle="tooltip" data-placement="top" title="The average time a Tuple &quot;tree&quot; takes to be completely processed by the Topology. A value of 0 is expected if no acking is done.">
             Complete latency (ms)
           </span>
         </th>
         <th class="header">
-          <span data-toggle="tooltip" data-placement="above" title="The number of Tuple &quot;trees&quot; successfully processed. A value of 0 is expected if no acking is done.">
+          <span data-toggle="tooltip" data-placement="top" title="The number of Tuple &quot;trees&quot; successfully processed. A value of 0 is expected if no acking is done.">
             Acked
           </span>
         </th>
@@ -118,22 +118,22 @@
           </span>
         </th>
         <th class="header">
-          <span data-toggle="tooltip" data-placement="above" title="The number of Tuples emitted.">
+          <span data-toggle="tooltip" data-placement="top" title="The number of Tuples emitted.">
             Emitted
           </span>
         </th>
         <th class="header">
-          <span data-original-title="The number of Tuples emitted that sent to one or more bolts." data-toggle="tooltip" data-placement="above">
+          <span data-original-title="The number of Tuples emitted that sent to one or more bolts." data-toggle="tooltip" data-placement="top">
             Transferred
           </span>
         </th>
         <th class="header">
-          <span data-original-title="The average time a Tuple &quot;tree&quot; takes to be completely processed by the Topology. A value of 0 is expected if no acking is done." data-toggle="tooltip" data-placement="above">
+          <span data-original-title="The average time a Tuple &quot;tree&quot; takes to be completely processed by the Topology. A value of 0 is expected if no acking is done." data-toggle="tooltip" data-placement="top">
             Complete latency (ms)
           </span>
         </th>
         <th class="header">
-          <span data-original-title="The number of Tuple &quot;trees&quot; successfully processed. A value of 0 is expected if no acking is done." data-toggle="tooltip" data-placement="above">
+          <span data-original-title="The number of Tuple &quot;trees&quot; successfully processed. A value of 0 is expected if no acking is done." data-toggle="tooltip" data-placement="top">
             Acked
           </span>
         </th>
@@ -174,32 +174,37 @@
           </span>
         </th>
         <th class="header">
-          <span data-toggle="tooltip" data-placement="above" title="The hostname reported by the remote host. (Note that this hostname is not the result of a reverse lookup at the Nimbus node.)">
+          <span data-toggle="tooltip" data-placement="top" title="The hostname reported by the remote host. (Note that this hostname is not the result of a reverse lookup at the Nimbus node.)">
             Host
           </span>
         </th>
         <th class="header">
-          <span data-original-title="The port number used by the Worker to which an Executor is assigned. Click on the port number to open the logviewer page for this Worker." data-toggle="tooltip" data-placement="above">
+          <span data-original-title="The port number used by the Worker to which an Executor is assigned. Click on the port number to open the logviewer page for this Worker." data-toggle="tooltip" data-placement="top">
             Port
           </span>
         </th>
         <th class="header">
-          <span data-original-title="The number of Tuples emitted." data-toggle="tooltip" data-placement="above">
+          <span data-original-title="Select workers on which to perform actions. Selecting any row will automatically select all executors belonging to the same worker." data-toggle="tooltip" data-placement="top">
+            Actions
+          </span>
+        </th>
+        <th class="header">
+          <span data-original-title="The number of Tuples emitted." data-toggle="tooltip" data-placement="top">
             Emitted
           </span>
         </th>
         <th class="header">
-          <span data-toggle="tooltip" data-placement="above" title="The number of Tuples emitted that sent to one or more bolts.">
+          <span data-toggle="tooltip" data-placement="top" title="The number of Tuples emitted that sent to one or more bolts.">
             Transferred
           </span>
         </th>
         <th class="header">
-          <span data-toggle="tooltip" data-placement="above" title="The average time a Tuple &quot;tree&quot; takes to be completely processed by the Topology. A value of 0 is expected if no acking is done.">
+          <span data-toggle="tooltip" data-placement="top" title="The average time a Tuple &quot;tree&quot; takes to be completely processed by the Topology. A value of 0 is expected if no acking is done.">
             Complete latency (ms)
           </span>
         </th>
         <th class="header">
-          <span data-toggle="tooltip" data-placement="above" title="The number of Tuple &quot;trees&quot; successfully processed. A value of 0 is expected if no acking is done.">
+          <span data-toggle="tooltip" data-placement="top" title="The number of Tuple &quot;trees&quot; successfully processed. A value of 0 is expected if no acking is done.">
             Acked
           </span>
         </th>
@@ -217,6 +222,7 @@
         <td>{{uptime}}</td>
         <td>{{host}}</td>
         <td><a href="{{workerLogLink}}">{{port}}</a></td>
+        <td></td>
         <td>{{emitted}}</td>
         <td>{{transferred}}</td>
         <td>{{completeLatency}}</td>
@@ -233,7 +239,6 @@
   <table class="table table-striped compact">
     <thead>
       <tr>
-        <th class="header">Component</th>
         <th class="header">
           <span data-original-title="The status of a running profiler or the timeout for one you're starting (in minutes)" data-toggle="tooltip">
             Status / Timeout (Minutes)
@@ -245,20 +250,15 @@
     <tbody id="profiler-table-body">
       <tr>
         <td>
-          <select id="selected_worker">
-            {{#hosts}}
-            <option value="{{name}}">{{name}}</option>
-            {{/hosts}}
-          </select>
-        </td>
-        <td>
           <input id="timeout" class="timeout_input" type="text" value="" placeholder="10"/>
         </td>
         <td>
-          <input type="button" value="Start" name="start" onClick="start_profiling(profiler_selected_worker())" class="btn btn-secondary"/>
-          <input type="button" value="JStack" name="jstack" onClick="dump_jstack(profiler_selected_worker())" class="btn btn-secondary"/>
-          <input type="button" value="Restart Worker" name="jvmrestart" onClick="restart_worker_jvm(profiler_selected_worker())" class="btn btn-secondary"/>
-          <input type="button" value="Heap" name="heap" onClick="dump_heap(profiler_selected_worker())" class="btn btn-secondary"/>
+          <span id="workerActionButtons">
+            <input type="button" value="Start" name="start" onClick="start_profiling()" class="btn btn-secondary" disabled/>
+            <input type="button" value="JStack" name="jstack" onClick="dump_jstacks()" class="btn btn-secondary" disabled/>
+            <input type="button" value="Restart Worker" name="jvmrestart" onClick="restart_worker_jvms()" class="btn btn-secondary" disabled/>
+            <input type="button" value="Heap" name="heap" onClick="dump_heaps()" class="btn btn-secondary" disabled/>
+          </span>
         </td>
       </tr>
       {{> profilerActive}}
@@ -268,13 +268,12 @@
 <script id="profiler-active-partial" type="text/html">
   {{#profilerActive}}
   <tr>
-    <td>{{host}}:{{port}}</td>
-    <td>Active until {{timestamp}}</td>
+    <td>{{host}}:{{port}}<br/>Active until {{timestamp}}</td>
     <td>
       <input id="stop_{{host}}:{{port}}" type="button" value="Stop" name="stop" onClick="stop_profiling('{{host}}:{{port}}')" class="btn btn-secondary"/>
       <input id="dump_profile_{{host}}:{{port}}" type="button" value="Dump Profile" name="dumpjprofile" onClick="dump_profile('{{host}}:{{port}}')" class="btn btn-secondary"/>
       <input id="dump_jstack_{{host}}:{{port}}" type="button" value="JStack" name="jstack" onClick="dump_jstack('{{host}}:{{port}}')" class="btn btn-secondary"/>
-      <input id="restart_worker_jvm_{{host}}:{{port}}" type="button" value="Restart Worker" name="jvmrestart" onClick="restart_worker_jvm('{{host}}:{{port}}')" class="btn btn-secondary"/>
+      <input id="restart_worker_jvm_{{host}}:{{port}}" type="button" value="Restart Worker" name="jvmrestart" onClick="restart_worker_jvms(['{{host}}:{{port}}'])" class="btn btn-secondary"/>
       <input id="dump_heap_{{host}}:{{port}}" type="button" value="Heap" name="heap" onClick="dump_heap('{{host}}:{{port}}')" class="btn btn-secondary"/> <a href="{{dumplink}}">My Dump Files</a>
     </td>
   </tr>
@@ -291,32 +290,32 @@
           </span>
         </th>
         <th class="header">
-          <span data-toggle="tooltip" data-placement="above" title="The number of Tuples emitted.">
+          <span data-toggle="tooltip" data-placement="top" title="The number of Tuples emitted.">
             Emitted
           </span>
         </th>
         <th class="header">
-          <span data-toggle="tooltip" data-placement="above" title="The number of Tuples emitted that sent to one or more bolts.">
+          <span data-toggle="tooltip" data-placement="top" title="The number of Tuples emitted that sent to one or more bolts.">
             Transferred
           </span>
         </th>
         <th class="header">
-          <span data-original-title="The average time a Tuple spends in the execute method. The execute method may complete without sending an Ack for the tuple." data-toggle="tooltip" data-placement="above">
+          <span data-original-title="The average time a Tuple spends in the execute method. The execute method may complete without sending an Ack for the tuple." data-toggle="tooltip" data-placement="top">
             Execute latency (ms)
           </span>
         </th>
         <th class="header">
-          <span data-toggle="tooltip" data-placement="above" title="The number of incoming Tuples processed.">
+          <span data-toggle="tooltip" data-placement="top" title="The number of incoming Tuples processed.">
             Executed
           </span>
         </th>
         <th class="header">
-          <span data-original-title="The average time it takes to Ack a Tuple after it is first received.  Bolts that join, aggregate or batch may not Ack a tuple until a number of other Tuples have been received." data-toggle="tooltip" data-placement="above">
+          <span data-original-title="The average time it takes to Ack a Tuple after it is first received.  Bolts that join, aggregate or batch may not Ack a tuple until a number of other Tuples have been received." data-toggle="tooltip" data-placement="top">
             Process latency (ms)
           </span>
         </th>
         <th class="header">
-          <span data-original-title="The number of Tuples acknowledged by this Bolt." data-toggle="tooltip" data-placement="above">
+          <span data-original-title="The number of Tuples acknowledged by this Bolt." data-toggle="tooltip" data-placement="top">
             Acked
           </span>
         </th>
@@ -359,22 +358,22 @@
           </span>
         </th>
         <th class="header">
-          <span data-toggle="tooltip" data-placement="above" title="The average time a Tuple spends in the execute method. The execute method may complete without sending an Ack for the tuple.">
+          <span data-toggle="tooltip" data-placement="top" title="The average time a Tuple spends in the execute method. The execute method may complete without sending an Ack for the tuple.">
             Execute latency (ms)
           </span>
         </th>
         <th class="header">
-          <span data-toggle="tooltip" data-placement="above" title="The number of incoming Tuples processed.">
+          <span data-toggle="tooltip" data-placement="top" title="The number of incoming Tuples processed.">
             Executed
           </span>
         </th>
         <th class="header">
-          <span data-original-title="The average time it takes to Ack a Tuple after it is first received.  Bolts that join, aggregate or batch may not Ack a tuple until a number of other Tuples have been received." data-toggle="tooltip" data-placement="above">
+          <span data-original-title="The average time it takes to Ack a Tuple after it is first received.  Bolts that join, aggregate or batch may not Ack a tuple until a number of other Tuples have been received." data-toggle="tooltip" data-placement="top">
             Process latency (ms)
           </span>
         </th>
         <th class="header">
-          <span data-toggle="tooltip" data-placement="above" title="The number of Tuples acknowledged by this Bolt.">
+          <span data-toggle="tooltip" data-placement="top" title="The number of Tuples acknowledged by this Bolt.">
             Acked
           </span>
         </th>
@@ -411,12 +410,12 @@
           </span>
         </th>
         <th class="header">
-          <span data-toggle="tooltip" data-placement="above" title="The number of Tuples emitted.">
+          <span data-toggle="tooltip" data-placement="top" title="The number of Tuples emitted.">
             Emitted
           </span>
         </th>
         <th class="header">
-          <span data-toggle="tooltip" data-placement="above" title="The number of Tuples emitted that sent to one or more bolts.">
+          <span data-toggle="tooltip" data-placement="top" title="The number of Tuples emitted that sent to one or more bolts.">
             Transferred
           </span>
         </th>
@@ -435,7 +434,7 @@
 </script>
 <script id="bolt-executor-template" type="text/html">
   <h2>Executors ({{windowHint}})</h2>
-  <table class="table table-striped compact" id="bolt-executor-table">
+  <table class="table table-striped compact" id="executor-stats-table">
     <thead>
       <tr>
         <th class="header headerSortDown">
@@ -449,47 +448,52 @@
           </span>
         </th>
         <th class="header">
-          <span data-toggle="tooltip" data-placement="above" title="The hostname reported by the remote host. (Note that this hostname is not the result of a reverse lookup at the Nimbus node.)">
+          <span data-toggle="tooltip" data-placement="top" title="The hostname reported by the remote host. (Note that this hostname is not the result of a reverse lookup at the Nimbus node.)">
             Host
           </span>
         </th>
         <th class="header">
-          <span data-toggle="tooltip" data-placement="above" title="The port number used by the Worker to which an Executor is assigned. Click on the port number to open the logviewer page for this Worker.">
+          <span data-toggle="tooltip" data-placement="top" title="The port number used by the Worker to which an Executor is assigned. Click on the port number to open the logviewer page for this Worker.">
             Port
           </span>
         </th>
         <th class="header">
-          <span data-toggle="tooltip" data-placement="above" title="The number of Tuples emitted.">
+          <span data-original-title="Select workers on which to perform actions. Selecting any row will automatically select all executors belonging to the same worker." data-toggle="tooltip" data-placement="top">
+            Debug
+          </span>
+        </th>
+        <th class="header">
+          <span data-toggle="tooltip" data-placement="top" title="The number of Tuples emitted.">
             Emitted
           </span>
         </th>
         <th class="header">
-          <span data-toggle="tooltip" data-placement="above" title="The number of Tuples emitted that sent to one or more bolts.">
+          <span data-toggle="tooltip" data-placement="top" title="The number of Tuples emitted that sent to one or more bolts.">
             Transferred
           </span>
         </th>
         <th class="header">
-          <span data-toggle="tooltip" data-placement="above" title="If this is around 1.0, the corresponding Bolt is running as fast as it can, so you may want to increase the Bolt's parallelism. This is (number executed * average execute latency) / measurement time.">
+          <span data-toggle="tooltip" data-placement="top" title="If this is around 1.0, the corresponding Bolt is running as fast as it can, so you may want to increase the Bolt's parallelism. This is (number executed * average execute latency) / measurement time.">
             Capacity (last 10m)
           </span>
         </th>
         <th class="header">
-          <span data-original-title="The average time a Tuple spends in the execute method. The execute method may complete without sending an Ack for the tuple." data-toggle="tooltip" data-placement="above">
+          <span data-original-title="The average time a Tuple spends in the execute method. The execute method may complete without sending an Ack for the tuple." data-toggle="tooltip" data-placement="top">
             Execute latency (ms)
           </span>
         </th>
         <th class="header">
-          <span data-toggle="tooltip" data-placement="above" title="The number of incoming Tuples processed.">
+          <span data-toggle="tooltip" data-placement="top" title="The number of incoming Tuples processed.">
             Executed
           </span>
         </th>
         <th class="header">
-          <span data-original-title="The average time it takes to Ack a Tuple after it is first received.  Bolts that join, aggregate or batch may not Ack a tuple until a number of other Tuples have been received." data-toggle="tooltip" data-placement="above">
+          <span data-original-title="The average time it takes to Ack a Tuple after it is first received.  Bolts that join, aggregate or batch may not Ack a tuple until a number of other Tuples have been received." data-toggle="tooltip" data-placement="top">
             Process latency (ms)
           </span>
         </th>
         <th class="header">
-          <span data-original-title="The number of Tuples acknowledged by this Bolt." data-toggle="tooltip" data-placement="above">
+          <span data-original-title="The number of Tuples acknowledged by this Bolt." data-toggle="tooltip" data-placement="top">
             Acked
           </span>
         </th>
@@ -507,6 +511,7 @@
         <td>{{uptime}}</td>
         <td>{{host}}</td>
         <td><a href="{{workerLogLink}}">{{port}}</a></td>
+        <td></td>
         <td>{{emitted}}</td>
         <td>{{transferred}}</td>
         <td>{{capacity}}</td>

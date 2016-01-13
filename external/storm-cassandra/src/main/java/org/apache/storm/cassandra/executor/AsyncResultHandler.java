@@ -18,7 +18,7 @@
  */
 package org.apache.storm.cassandra.executor;
 
-import backtype.storm.task.OutputCollector;
+import org.apache.storm.task.OutputCollector;
 
 import java.io.Serializable;
 

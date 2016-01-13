@@ -17,9 +17,9 @@
  */
 package org.apache.storm.pacemaker.codec;
 
-import backtype.storm.messaging.netty.KerberosSaslClientHandler;
-import backtype.storm.messaging.netty.SaslStormClientHandler;
-import backtype.storm.security.auth.AuthUtils;
+import org.apache.storm.messaging.netty.KerberosSaslClientHandler;
+import org.apache.storm.messaging.netty.SaslStormClientHandler;
+import org.apache.storm.security.auth.AuthUtils;
 import java.io.IOException;
 import java.util.Map;
 import org.apache.storm.pacemaker.PacemakerClient;

@@ -17,9 +17,9 @@
  */
 package org.apache.storm.sql.runtime;
 
-import storm.trident.operation.Function;
-import storm.trident.spout.IBatchSpout;
-import storm.trident.spout.ITridentDataSource;
+import org.apache.storm.trident.operation.Function;
+import org.apache.storm.trident.spout.IBatchSpout;
+import org.apache.storm.trident.spout.ITridentDataSource;
 
 /**
  * A ISqlTridentDataSource specifies how an external data source produces and consumes data.

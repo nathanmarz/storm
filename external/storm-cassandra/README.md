@@ -39,17 +39,24 @@ import static org.apache.storm.cassandra.DynamicStatementBuilder.*
 ```java
 
     new CassandraWriterBolt(
-        insertInto("album")
-            .values(
-                with(fields("title", "year", "performer", "genre", "tracks")
-                ).build());
+        async(
+            simpleQuery("INSERT INTO album (title,year,performer,genre,tracks) VALUES (?, ?, ?, ?, ?);")
+                .with(
+                    fields("title", "year", "performer", "genre", "tracks")
+                 )
+            )
+    );
 ```
+
 ##### Insert query including all tuple fields.
 ```java
 
     new CassandraWriterBolt(
-        insertInto("album")
-            .values(all()).build());
+        async(
+            simpleQuery("INSERT INTO album (title,year,performer,genre,tracks) VALUES (?, ?, ?, ?, ?);")
+                .with( all() )
+            )
+    );
 ```
 
 ##### Insert multiple queries from one input tuple.
@@ -57,32 +64,49 @@ import static org.apache.storm.cassandra.DynamicStatementBuilder.*
 
     new CassandraWriterBolt(
         async(
-        insertInto("titles_per_album").values(all()),
-        insertInto("titles_per_performer").values(all())
+            simpleQuery("INSERT INTO titles_per_album (title,year,performer,genre,tracks) VALUES (?, ?, ?, ?, ?);").with(all())),
+            simpleQuery("INSERT INTO titles_per_performer (title,year,performer,genre,tracks) VALUES (?, ?, ?, ?, ?);").with(all()))
         )
     );
 ```
 
-##### Insert query including some fields with aliases
+##### Insert query using QueryBuilder
 ```java
 
     new CassandraWriterBolt(
-        insertInto("album")
-            .values(
-                with(field("ti"),as("title",
-                     field("ye").as("year")),
-                     field("pe").as("performer")),
-                     field("ge").as("genre")),
-                     field("tr").as("tracks")),
-                     ).build());
+        async(
+            simpleQuery("INSERT INTO album (title,year,perfomer,genre,tracks) VALUES (?, ?, ?, ?, ?);")
+                .with(all()))
+            )
+    )
 ```
 
 ##### Insert query with static bound query
 ```java
 
     new CassandraWriterBolt(
-         boundQuery("INSERT INTO album (\"title\", \"year\", \"performer\", \"genre\", \"tracks\") VALUES(?, ?, ?, ?, ?);")
-            .bind(all());
+         async(
+            boundQuery("INSERT INTO album (title,year,performer,genre,tracks) VALUES (?, ?, ?, ?, ?);")
+                .bind(all());
+         )
+    );
+```
+
+##### Insert query with static bound query using named setters and aliases
+```java
+
+    new CassandraWriterBolt(
+         async(
+            boundQuery("INSERT INTO album (title,year,performer,genre,tracks) VALUES (:ti, :ye, :pe, :ge, :tr);")
+                .bind(
+                    field("ti"),as("title"),
+                    field("ye").as("year")),
+                    field("pe").as("performer")),
+                    field("ge").as("genre")),
+                    field("tr").as("tracks"))
+                ).byNamedSetters()
+         )
+    );
 ```
 
 ##### Insert query with bound statement load from storm configuration
@@ -106,14 +130,14 @@ import static org.apache.storm.cassandra.DynamicStatementBuilder.*
 
     // Logged
     new CassandraWriterBolt(loggedBatch(
-        insertInto("title_per_album").values(all())
-        insertInto("title_per_performer").values(all())
+            simpleQuery("INSERT INTO titles_per_album (title,year,performer,genre,tracks) VALUES (?, ?, ?, ?, ?);").with(all())),
+            simpleQuery("INSERT INTO titles_per_performer (title,year,performer,genre,tracks) VALUES (?, ?, ?, ?, ?);").with(all()))
         )
     );
 // UnLogged
     new CassandraWriterBolt(unLoggedBatch(
-        insertInto("title_per_album").values(all())
-        insertInto("title_per_performer").values(all())
+            simpleQuery("INSERT INTO titles_per_album (title,year,performer,genre,tracks) VALUES (?, ?, ?, ?, ?);").with(all())),
+            simpleQuery("INSERT INTO titles_per_performer (title,year,performer,genre,tracks) VALUES (?, ?, ?, ?, ?);").with(all()))
         )
     );
 ```

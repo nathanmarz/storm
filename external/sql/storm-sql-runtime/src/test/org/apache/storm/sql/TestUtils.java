@@ -19,20 +19,20 @@
  */
 package org.apache.storm.sql;
 
-import backtype.storm.ILocalCluster;
-import backtype.storm.LocalCluster;
-import backtype.storm.task.TopologyContext;
-import backtype.storm.tuple.Fields;
-import backtype.storm.tuple.Values;
+import org.apache.storm.ILocalCluster;
+import org.apache.storm.LocalCluster;
+import org.apache.storm.task.TopologyContext;
+import org.apache.storm.tuple.Fields;
+import org.apache.storm.tuple.Values;
 import org.apache.storm.sql.runtime.ChannelContext;
 import org.apache.storm.sql.runtime.ChannelHandler;
 import org.apache.storm.sql.runtime.DataSource;
 import org.apache.storm.sql.runtime.ISqlTridentDataSource;
-import storm.trident.operation.BaseFunction;
-import storm.trident.operation.Function;
-import storm.trident.operation.TridentCollector;
-import storm.trident.spout.IBatchSpout;
-import storm.trident.tuple.TridentTuple;
+import org.apache.storm.trident.operation.BaseFunction;
+import org.apache.storm.trident.operation.Function;
+import org.apache.storm.trident.operation.TridentCollector;
+import org.apache.storm.trident.spout.IBatchSpout;
+import org.apache.storm.trident.tuple.TridentTuple;
 
 import java.util.ArrayList;
 import java.util.List;

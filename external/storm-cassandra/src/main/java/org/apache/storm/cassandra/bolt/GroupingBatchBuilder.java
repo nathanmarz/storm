@@ -18,7 +18,7 @@
  */
 package org.apache.storm.cassandra.bolt;
 
-import backtype.storm.tuple.Tuple;
+import org.apache.storm.tuple.Tuple;
 import com.datastax.driver.core.BatchStatement;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;

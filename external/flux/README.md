@@ -236,7 +236,7 @@ sentence-spout[1](org.apache.storm.flux.spouts.GenericShellSpout)
 ---------------- BOLTS ---------------
 splitsentence[1](org.apache.storm.flux.bolts.GenericShellBolt)
 log[1](org.apache.storm.flux.wrappers.bolts.LogInfoBolt)
-count[1](backtype.storm.testing.TestWordCounter)
+count[1](org.apache.storm.testing.TestWordCounter)
 --------------- STREAMS ---------------
 sentence-spout --SHUFFLE--> splitsentence
 splitsentence --FIELDS--> count
@@ -255,7 +255,7 @@ definition consists of the following:
       * A list of spouts, each identified by a unique ID
       * A list of bolts, each identified by a unique ID
       * A list of "stream" objects representing a flow of tuples between spouts and bolts
-  4. **OR** (A JVM class that can produce a `backtype.storm.generated.StormTopology` instance:
+  4. **OR** (A JVM class that can produce a `org.apache.storm.generated.StormTopology` instance:
       * A `topologySource` definition.
 
 
@@ -270,13 +270,13 @@ config:
 # spout definitions
 spouts:
   - id: "spout-1"
-    className: "backtype.storm.testing.TestWordSpout"
+    className: "org.apache.storm.testing.TestWordSpout"
     parallelism: 1
 
 # bolt definitions
 bolts:
   - id: "bolt-1"
-    className: "backtype.storm.testing.TestWordCounter"
+    className: "org.apache.storm.testing.TestWordCounter"
     parallelism: 1
   - id: "bolt-2"
     className: "org.apache.storm.flux.wrappers.bolts.LogInfoBolt"
@@ -324,7 +324,7 @@ You would then be able to reference those properties by key in your `.yaml` file
 
 ```yaml
   - id: "zkHosts"
-    className: "storm.kafka.ZkHosts"
+    className: "org.apache.storm.kafka.ZkHosts"
     constructorArgs:
       - "${kafka.zookeeper.hosts}"
 ```
@@ -344,13 +344,13 @@ Components are essentially named object instances that are made available as con
 bolts. If you are familiar with the Spring framework, components are roughly analagous to Spring beans.
 
 Every component is identified, at a minimum, by a unique identifier (String) and a class name (String). For example,
-the following will make an instance of the `storm.kafka.StringScheme` class available as a reference under the key
-`"stringScheme"` . This assumes the `storm.kafka.StringScheme` has a default constructor.
+the following will make an instance of the `org.apache.storm.kafka.StringScheme` class available as a reference under the key
+`"stringScheme"` . This assumes the `org.apache.storm.kafka.StringScheme` has a default constructor.
 
 ```yaml
 components:
   - id: "stringScheme"
-    className: "storm.kafka.StringScheme"
+    className: "org.apache.storm.kafka.StringScheme"
 ```
 
 ### Contructor Arguments, References, Properties and Configuration Methods
@@ -362,7 +362,7 @@ object by calling the constructor that takes a single string as an argument:
 
 ```yaml
   - id: "zkHosts"
-    className: "storm.kafka.ZkHosts"
+    className: "org.apache.storm.kafka.ZkHosts"
     constructorArgs:
       - "localhost:2181"
       - true
@@ -378,10 +378,10 @@ to another component's constructor:
 ```yaml
 components:
   - id: "stringScheme"
-    className: "storm.kafka.StringScheme"
+    className: "org.apache.storm.kafka.StringScheme"
 
   - id: "stringMultiScheme"
-    className: "backtype.storm.spout.SchemeAsMultiScheme"
+    className: "org.apache.storm.spout.SchemeAsMultiScheme"
     constructorArgs:
       - ref: "stringScheme" # component with id "stringScheme" must be declared above.
 ```
@@ -393,7 +393,7 @@ JavaBean-like setter methods and fields declared as `public`:
 
 ```yaml
   - id: "spoutConfig"
-    className: "storm.kafka.SpoutConfig"
+    className: "org.apache.storm.kafka.SpoutConfig"
     constructorArgs:
       # brokerHosts
       - ref: "zkHosts"
@@ -492,7 +492,7 @@ FileRotationPolicy rotationPolicy = new FileSizeRotationPolicy(5.0f, Units.MB);
 
 ## Topology Config
 The `config` section is simply a map of Storm topology configuration parameters that will be passed to the
-`backtype.storm.StormSubmitter` as an instance of the `backtype.storm.Config` class:
+`org.apache.storm.StormSubmitter` as an instance of the `org.apache.storm.Config` class:
 
 ```yaml
 config:
@@ -537,7 +537,7 @@ topologySource:
 ```
 
 __N.B.:__ The specified method must accept a single argument of type `java.util.Map<String, Object>` or
-`backtype.storm.Config`, and return a `backtype.storm.generated.StormTopology` object.
+`org.apache.storm.Config`, and return a `org.apache.storm.generated.StormTopology` object.
 
 # YAML DSL
 ## Spouts and Bolts
@@ -568,21 +568,21 @@ Kafka spout example:
 ```yaml
 components:
   - id: "stringScheme"
-    className: "storm.kafka.StringScheme"
+    className: "org.apache.storm.kafka.StringScheme"
 
   - id: "stringMultiScheme"
-    className: "backtype.storm.spout.SchemeAsMultiScheme"
+    className: "org.apache.storm.spout.SchemeAsMultiScheme"
     constructorArgs:
       - ref: "stringScheme"
 
   - id: "zkHosts"
-    className: "storm.kafka.ZkHosts"
+    className: "org.apache.storm.kafka.ZkHosts"
     constructorArgs:
       - "localhost:2181"
 
 # Alternative kafka config
 #  - id: "kafkaConfig"
-#    className: "storm.kafka.KafkaConfig"
+#    className: "org.apache.storm.kafka.KafkaConfig"
 #    constructorArgs:
 #      # brokerHosts
 #      - ref: "zkHosts"
@@ -592,7 +592,7 @@ components:
 #      - "myKafkaClientId"
 
   - id: "spoutConfig"
-    className: "storm.kafka.SpoutConfig"
+    className: "org.apache.storm.kafka.SpoutConfig"
     constructorArgs:
       # brokerHosts
       - ref: "zkHosts"
@@ -614,7 +614,7 @@ config:
 # spout definitions
 spouts:
   - id: "kafka-spout"
-    className: "storm.kafka.KafkaSpout"
+    className: "org.apache.storm.kafka.KafkaSpout"
     constructorArgs:
       - ref: "spoutConfig"
 
@@ -641,7 +641,7 @@ bolts:
     # ...
 
   - id: "count"
-    className: "backtype.storm.testing.TestWordCounter"
+    className: "org.apache.storm.testing.TestWordCounter"
     parallelism: 1
     # ...
 ```
@@ -708,7 +708,7 @@ Custom stream groupings are defined by setting the grouping type to `CUSTOM` and
 that tells Flux how to instantiate the custom class. The `customClass` definition extends `component`, so it supports
 constructor arguments, references, and properties as well.
 
-The example below creates a Stream with an instance of the `backtype.storm.testing.NGrouping` custom stream grouping
+The example below creates a Stream with an instance of the `org.apache.storm.testing.NGrouping` custom stream grouping
 class.
 
 ```yaml
@@ -718,7 +718,7 @@ class.
     grouping:
       type: CUSTOM
       customClass:
-        className: "backtype.storm.testing.NGrouping"
+        className: "org.apache.storm.testing.NGrouping"
         constructorArgs:
           - 1
 ```
@@ -786,7 +786,7 @@ bolts:
     parallelism: 1
 
   - id: "count"
-    className: "backtype.storm.testing.TestWordCounter"
+    className: "org.apache.storm.testing.TestWordCounter"
     parallelism: 1
 
 #stream definitions

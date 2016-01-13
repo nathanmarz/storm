@@ -17,10 +17,10 @@
   (:require [clojure.test :refer :all]
             [conjure.core :refer :all]
             [org.apache.storm.pacemaker [pacemaker-state-factory :as psf]])
-  (:import [backtype.storm.generated
+  (:import [org.apache.storm.generated
             HBExecutionException HBNodes HBRecords
             HBServerMessageType HBMessage HBMessageData HBPulse]
-           [backtype.storm.cluster ClusterStateContext]
+           [org.apache.storm.cluster ClusterStateContext]
            [org.mockito Mockito Matchers]))
 
 (defn- string-to-bytes [string]

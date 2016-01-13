@@ -17,22 +17,22 @@
  */
 package org.apache.storm.sql.kafka;
 
-import backtype.storm.spout.SchemeAsMultiScheme;
+import org.apache.storm.spout.SchemeAsMultiScheme;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import org.apache.storm.sql.runtime.*;
-import storm.kafka.ZkHosts;
-import storm.kafka.trident.OpaqueTridentKafkaSpout;
-import storm.kafka.trident.TridentKafkaConfig;
-import storm.kafka.trident.TridentKafkaState;
-import storm.kafka.trident.mapper.TridentTupleToKafkaMapper;
-import storm.kafka.trident.selector.KafkaTopicSelector;
-import storm.trident.operation.BaseFunction;
-import storm.trident.operation.Function;
-import storm.trident.operation.TridentCollector;
-import storm.trident.operation.TridentOperationContext;
-import storm.trident.spout.ITridentDataSource;
-import storm.trident.tuple.TridentTuple;
+import org.apache.storm.kafka.ZkHosts;
+import org.apache.storm.kafka.trident.OpaqueTridentKafkaSpout;
+import org.apache.storm.kafka.trident.TridentKafkaConfig;
+import org.apache.storm.kafka.trident.TridentKafkaState;
+import org.apache.storm.kafka.trident.mapper.TridentTupleToKafkaMapper;
+import org.apache.storm.kafka.trident.selector.KafkaTopicSelector;
+import org.apache.storm.trident.operation.BaseFunction;
+import org.apache.storm.trident.operation.Function;
+import org.apache.storm.trident.operation.TridentCollector;
+import org.apache.storm.trident.operation.TridentOperationContext;
+import org.apache.storm.trident.spout.ITridentDataSource;
+import org.apache.storm.trident.tuple.TridentTuple;
 
 import java.io.IOException;
 import java.net.URI;

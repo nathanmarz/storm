@@ -17,8 +17,8 @@
  */
 package org.apache.storm.flux.test;
 
-import backtype.storm.generated.StormTopology;
-import backtype.storm.topology.TopologyBuilder;
+import org.apache.storm.generated.StormTopology;
+import org.apache.storm.topology.TopologyBuilder;
 import org.apache.storm.flux.api.TopologySource;
 import org.apache.storm.flux.wrappers.bolts.LogInfoBolt;
 import org.apache.storm.flux.wrappers.spouts.FluxShellSpout;

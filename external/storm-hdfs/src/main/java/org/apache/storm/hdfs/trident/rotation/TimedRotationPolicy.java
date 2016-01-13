@@ -17,7 +17,7 @@
  */
 package org.apache.storm.hdfs.trident.rotation;
 
-import storm.trident.tuple.TridentTuple;
+import org.apache.storm.trident.tuple.TridentTuple;
 
 import java.util.Timer;
 import java.util.TimerTask;

@@ -18,15 +18,15 @@
 
 package org.apache.storm.hive.bolt;
 
-import backtype.storm.Config;
-import backtype.storm.task.GeneralTopologyContext;
-import backtype.storm.task.OutputCollector;
-import backtype.storm.topology.TopologyBuilder;
-import backtype.storm.tuple.Fields;
-import backtype.storm.tuple.Tuple;
-import backtype.storm.tuple.TupleImpl;
-import backtype.storm.tuple.Values;
-import backtype.storm.utils.MockTupleHelpers;
+import org.apache.storm.Config;
+import org.apache.storm.task.GeneralTopologyContext;
+import org.apache.storm.task.OutputCollector;
+import org.apache.storm.topology.TopologyBuilder;
+import org.apache.storm.tuple.Fields;
+import org.apache.storm.tuple.Tuple;
+import org.apache.storm.tuple.TupleImpl;
+import org.apache.storm.tuple.Values;
+import org.apache.storm.utils.MockTupleHelpers;
 
 import org.apache.storm.hive.common.HiveOptions;
 import org.apache.storm.hive.bolt.mapper.DelimitedRecordHiveMapper;
@@ -380,10 +380,10 @@ public class TestHiveBolt {
         bolt = new HiveBolt(hiveOptions);
         bolt.prepare(config, null, new OutputCollector(collector));
 
-        //The tick should NOT cause any acks since the batch was empty
+        //The tick should NOT cause any acks since the batch was empty except for acking itself
         Tuple mockTick = MockTupleHelpers.mockTickTuple();
         bolt.execute(mockTick);
-        verifyZeroInteractions(collector);
+        verify(collector).ack(mockTick);
 
         bolt.cleanup();
     }

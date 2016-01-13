@@ -20,7 +20,7 @@ package org.apache.storm.solr.mapper;
 
 import static org.apache.storm.solr.schema.SolrFieldTypeFinder.FieldTypeWrapper;
 
-import backtype.storm.tuple.ITuple;
+import org.apache.storm.tuple.ITuple;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrRequest;
 import org.apache.solr.client.solrj.impl.CloudSolrClient;

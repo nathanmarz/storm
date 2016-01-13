@@ -39,7 +39,7 @@ public class PlanCompiler {
   private static final String PROLOGUE = NEW_LINE_JOINER.join(
       "// GENERATED CODE", "package " + PACKAGE_NAME + ";", "",
       "import java.util.Iterator;", "import java.util.Map;",
-      "import backtype.storm.tuple.Values;",
+      "import org.apache.storm.tuple.Values;",
       "import org.apache.storm.sql.runtime.AbstractChannelHandler;",
       "import org.apache.storm.sql.runtime.Channels;",
       "import org.apache.storm.sql.runtime.ChannelContext;",

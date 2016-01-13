@@ -17,11 +17,11 @@
  */
 package org.apache.storm.elasticsearch.bolt;
 
-import backtype.storm.testing.IntegrationTest;
-import backtype.storm.tuple.Fields;
-import backtype.storm.tuple.ITuple;
-import backtype.storm.tuple.Tuple;
-import backtype.storm.tuple.Values;
+import org.apache.storm.testing.IntegrationTest;
+import org.apache.storm.tuple.Fields;
+import org.apache.storm.tuple.ITuple;
+import org.apache.storm.tuple.Tuple;
+import org.apache.storm.tuple.Values;
 import org.apache.storm.elasticsearch.ElasticsearchGetRequest;
 import org.apache.storm.elasticsearch.EsLookupResultOutput;
 import org.apache.storm.elasticsearch.common.EsConfig;

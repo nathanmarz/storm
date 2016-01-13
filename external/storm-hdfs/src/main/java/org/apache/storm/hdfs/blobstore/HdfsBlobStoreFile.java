@@ -17,8 +17,8 @@
  */
 package org.apache.storm.hdfs.blobstore;
 
-import backtype.storm.blobstore.BlobStoreFile;
-import backtype.storm.generated.SettableBlobMeta;
+import org.apache.storm.blobstore.BlobStoreFile;
+import org.apache.storm.generated.SettableBlobMeta;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileContext;
 import org.apache.hadoop.fs.FileSystem;

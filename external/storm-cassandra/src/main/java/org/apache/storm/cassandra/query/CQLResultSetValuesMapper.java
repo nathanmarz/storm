@@ -18,8 +18,8 @@
  */
 package org.apache.storm.cassandra.query;
 
-import backtype.storm.tuple.ITuple;
-import backtype.storm.tuple.Values;
+import org.apache.storm.tuple.ITuple;
+import org.apache.storm.tuple.Values;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 

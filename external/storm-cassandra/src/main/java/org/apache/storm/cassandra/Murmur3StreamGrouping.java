@@ -18,16 +18,14 @@
  */
 package org.apache.storm.cassandra;
 
-import backtype.storm.generated.GlobalStreamId;
-import backtype.storm.grouping.CustomStreamGrouping;
-import backtype.storm.task.WorkerTopologyContext;
-import backtype.storm.topology.FailedException;
-import backtype.storm.tuple.Fields;
+import org.apache.storm.generated.GlobalStreamId;
+import org.apache.storm.grouping.CustomStreamGrouping;
+import org.apache.storm.task.WorkerTopologyContext;
+import org.apache.storm.topology.FailedException;
+import org.apache.storm.tuple.Fields;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.hash.Hashing;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -38,7 +36,7 @@ import java.util.List;
 
 /**
  *
- * Simple {@link backtype.storm.grouping.CustomStreamGrouping} that uses Murmur3 algorithm to choose the target task of a tuple.
+ * Simple {@link org.apache.storm.grouping.CustomStreamGrouping} that uses Murmur3 algorithm to choose the target task of a tuple.
  *
  * This stream grouping may be used to optimise writes to Apache Cassandra.
  */

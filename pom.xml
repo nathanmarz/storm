@@ -27,7 +27,7 @@
 
     <groupId>org.apache.storm</groupId>
     <artifactId>storm</artifactId>
-    <version>0.11.0-SNAPSHOT</version>
+    <version>2.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Storm</name>
     <description>Distributed and fault-tolerant realtime computation</description>
@@ -227,7 +227,7 @@
         <clojure-data-codec.version>0.1.0</clojure-data-codec.version>
         <clojure-contrib.version>1.2.0</clojure-contrib.version>
         <hive.version>0.14.0</hive.version>
-        <hadoop.version>2.6.0</hadoop.version>
+        <hadoop.version>2.7.1</hadoop.version>
         <kryo.version>2.21</kryo.version>
         <servlet.version>2.5</servlet.version>
         <joda-time.version>2.3</joda-time.version>
@@ -241,7 +241,7 @@
         <maven-surefire.version>2.18.1</maven-surefire.version>
 
         <!-- Java and clojure build lifecycle test properties are defined here to avoid having to create a default profile -->
-        <java.unit.test.exclude>backtype.storm.testing.IntegrationTest</java.unit.test.exclude>
+        <java.unit.test.exclude>org.apache.storm.testing.IntegrationTest</java.unit.test.exclude>
         <java.unit.test.include>**/Test*.java, **/*Test.java, **/*TestCase.java</java.unit.test.include>    <!--maven surefire plugin default test list-->
         <!-- by default the clojure test set are all clojure tests that are not integration tests. This property is overridden in the profiles -->
         <clojure.test.set>!integration.*</clojure.test.set>
@@ -254,6 +254,7 @@
         <module>storm-buildtools/maven-shade-clojure-transformer</module>
         <module>storm-buildtools/storm-maven-plugins</module>
         <module>storm-core</module>
+        <module>storm-rename-hack</module>
         <module>external/storm-kafka</module>
         <module>external/storm-hdfs</module>
         <module>external/storm-hbase</module>
@@ -363,7 +364,7 @@
             <id>all-tests</id>
             <properties>
                 <java.integration.test.include>**/*.java</java.integration.test.include>
-                <java.integration.test.group>backtype.storm.testing.IntegrationTest</java.integration.test.group>
+                <java.integration.test.group>org.apache.storm.testing.IntegrationTest</java.integration.test.group>
                 <clojure.test.set>*.*</clojure.test.set>
             </properties>
         </profile>
@@ -373,7 +374,7 @@
                 <!--Java-->
                 <java.unit.test.include>no.unit.tests</java.unit.test.include>
                 <java.integration.test.include>**/*.java</java.integration.test.include>
-                <java.integration.test.group>backtype.storm.testing.IntegrationTest</java.integration.test.group>
+                <java.integration.test.group>org.apache.storm.testing.IntegrationTest</java.integration.test.group>
                 <!--Clojure-->
                 <clojure.test.set>integration.*</clojure.test.set>
                 <clojure.test.declared.namespace.only>true</clojure.test.declared.namespace.only>

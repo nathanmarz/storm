@@ -30,8 +30,8 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.ArgumentMatcher;
 import org.mockito.internal.util.reflection.Whitebox;
-import storm.kafka.trident.TridentKafkaState;
-import storm.trident.tuple.TridentTuple;
+import org.apache.storm.kafka.trident.TridentKafkaState;
+import org.apache.storm.trident.tuple.TridentTuple;
 
 import java.net.URI;
 import java.nio.ByteBuffer;

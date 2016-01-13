@@ -35,13 +35,15 @@ storm.zookeeper.retry.interval: 1000
 storm.zookeeper.retry.intervalceiling.millis: 30000
 storm.zookeeper.auth.user: null
 storm.zookeeper.auth.password: null
+storm.exhibitor.port: 8080
+storm.exhibitor.poll.uripath: "/exhibitor/v1/cluster/list"
 storm.cluster.mode: "distributed" # can be distributed or local
 storm.local.mode.zmq: false
-storm.thrift.transport: "backtype.storm.security.auth.SimpleTransportPlugin"
-storm.principal.tolocal: "backtype.storm.security.auth.DefaultPrincipalToLocal"
-storm.group.mapping.service: "backtype.storm.security.auth.ShellBasedGroupsMapping"
+storm.thrift.transport: "org.apache.storm.security.auth.SimpleTransportPlugin"
+storm.principal.tolocal: "org.apache.storm.security.auth.DefaultPrincipalToLocal"
+storm.group.mapping.service: "org.apache.storm.security.auth.ShellBasedGroupsMapping"
 storm.group.mapping.service.params: null
-storm.messaging.transport: "backtype.storm.messaging.netty.Context"
+storm.messaging.transport: "org.apache.storm.messaging.netty.Context"
 storm.nimbus.retry.times: 5
 storm.nimbus.retry.interval.millis: 2000
 storm.nimbus.retry.intervalceiling.millis: 60000
@@ -49,9 +51,9 @@ storm.auth.simple-white-list.users: []
 storm.auth.simple-acl.users: []
 storm.auth.simple-acl.users.commands: []
 storm.auth.simple-acl.admins: []
-storm.cluster.state.store: "backtype.storm.cluster_state.zookeeper_state_factory"
-storm.meta.serialization.delegate: "backtype.storm.serialization.GzipThriftSerializationDelegate"
-storm.codedistributor.class: "backtype.storm.codedistributor.LocalFileSystemCodeDistributor"
+storm.cluster.state.store: "org.apache.storm.cluster_state.zookeeper_state_factory"
+storm.meta.serialization.delegate: "org.apache.storm.serialization.GzipThriftSerializationDelegate"
+storm.codedistributor.class: "org.apache.storm.codedistributor.LocalFileSystemCodeDistributor"
 storm.workers.artifacts.dir: "workers-artifacts"
 storm.health.check.dir: "healthchecks"
 storm.health.check.timeout.ms: 5000
@@ -70,11 +72,11 @@ nimbus.inbox.jar.expiration.secs: 3600
 nimbus.code.sync.freq.secs: 120
 nimbus.task.launch.secs: 120
 nimbus.file.copy.expiration.secs: 600
-nimbus.topology.validator: "backtype.storm.nimbus.DefaultTopologyValidator"
+nimbus.topology.validator: "org.apache.storm.nimbus.DefaultTopologyValidator"
 topology.min.replication.count: 1
 topology.max.replication.wait.time.sec: 60
 nimbus.credential.renewers.freq.secs: 600
-nimbus.impersonation.authorizer: "backtype.storm.security.auth.authorizer.ImpersonationAuthorizer"
+nimbus.impersonation.authorizer: "org.apache.storm.security.auth.authorizer.ImpersonationAuthorizer"
 
 scheduler.display.resource: false
 
@@ -87,7 +89,7 @@ ui.filter: null
 ui.filter.params: null
 ui.users: null
 ui.header.buffer.bytes: 4096
-ui.http.creds.plugin: backtype.storm.security.auth.DefaultHttpCredentialsPlugin
+ui.http.creds.plugin: org.apache.storm.security.auth.DefaultHttpCredentialsPlugin
 
 logviewer.port: 8000
 logviewer.childopts: "-Xmx128m"
@@ -110,7 +112,7 @@ drpc.http.port: 3774
 drpc.https.port: -1
 drpc.https.keystore.password: ""
 drpc.https.keystore.type: "JKS"
-drpc.http.creds.plugin: backtype.storm.security.auth.DefaultHttpCredentialsPlugin
+drpc.http.creds.plugin: org.apache.storm.security.auth.DefaultHttpCredentialsPlugin
 drpc.authorizer.acl.filename: "drpc-auth-acl.yaml"
 drpc.authorizer.acl.strict: false
 
@@ -119,17 +121,17 @@ transactional.zookeeper.servers: null
 transactional.zookeeper.port: null
 
 ## blobstore configs
-supervisor.blobstore.class: "backtype.storm.blobstore.NimbusBlobStore"
+supervisor.blobstore.class: "org.apache.storm.blobstore.NimbusBlobStore"
 supervisor.blobstore.download.thread.count: 5
 supervisor.blobstore.download.max_retries: 3
 supervisor.localizer.cache.target.size.mb: 10240
 supervisor.localizer.cleanup.interval.ms: 600000
 
-nimbus.blobstore.class: "backtype.storm.blobstore.LocalFsBlobStore"
+nimbus.blobstore.class: "org.apache.storm.blobstore.LocalFsBlobStore"
 nimbus.blobstore.expiration.secs: 600
 
 storm.blobstore.inputstream.buffer.size.bytes: 65536
-client.blobstore.class: "backtype.storm.blobstore.NimbusBlobStore"
+client.blobstore.class: "org.apache.storm.blobstore.NimbusBlobStore"
 storm.blobstore.replication.factor: 3
 
 ### supervisor.* configs are for node supervisors
@@ -206,7 +208,7 @@ storm.messaging.netty.socket.backlog: 500
 storm.messaging.netty.authentication: false
 
 # Default plugin to use for automatic network topology discovery
-storm.network.topography.plugin: backtype.storm.networktopography.DefaultRackDNSToSwitchMapping
+storm.network.topography.plugin: org.apache.storm.networktopography.DefaultRackDNSToSwitchMapping
 
 # default number of seconds group mapping service will cache user group
 storm.group.mapping.service.cache.duration.secs: 120
@@ -220,7 +222,7 @@ topology.eventlogger.executors: null
 topology.tasks: null
 # maximum amount of time a message has to complete before it's considered failed
 topology.message.timeout.secs: 30
-topology.multilang.serializer: "backtype.storm.multilang.JsonSerializer"
+topology.multilang.serializer: "org.apache.storm.multilang.JsonSerializer"
 topology.shellbolt.max.pending: 100
 topology.skip.missing.kryo.registrations: false
 topology.max.task.parallelism: null
@@ -236,12 +238,12 @@ topology.executor.send.buffer.size: 1024 #individual messages
 topology.transfer.buffer.size: 1024 # batched
 topology.tick.tuple.freq.secs: null
 topology.worker.shared.thread.pool.size: 4
-topology.spout.wait.strategy: "backtype.storm.spout.SleepSpoutWaitStrategy"
+topology.spout.wait.strategy: "org.apache.storm.spout.SleepSpoutWaitStrategy"
 topology.sleep.spout.wait.strategy.time.ms: 1
 topology.error.throttle.interval.secs: 10
 topology.max.error.report.per.interval: 5
-topology.kryo.factory: "backtype.storm.serialization.DefaultKryoFactory"
-topology.tuple.serializer: "backtype.storm.serialization.types.ListDelegateSerializer"
+topology.kryo.factory: "org.apache.storm.serialization.DefaultKryoFactory"
+topology.tuple.serializer: "org.apache.storm.serialization.types.ListDelegateSerializer"
 topology.trident.batch.emit.interval.millis: 500
 topology.testing.always.try.serialize: false
 topology.classpath: null
@@ -251,6 +253,7 @@ topology.disruptor.wait.timeout.millis: 1000
 topology.disruptor.batch.size: 100
 topology.disruptor.batch.timeout.millis: 1
 topology.disable.loadaware: false
+topology.state.checkpoint.interval.ms: 1000
 
 # Configs for Resource Aware Scheduler
 # topology priority describing the importance of the topology in decreasing importance starting from 0 (i.e. 0 is the highest priority and the priority importance decreases as the priority number increases).
@@ -260,9 +263,9 @@ topology.component.resources.onheap.memory.mb: 128.0
 topology.component.resources.offheap.memory.mb: 0.0
 topology.component.cpu.pcore.percent: 10.0
 topology.worker.max.heap.size.mb: 768.0
-topology.scheduler.strategy: "backtype.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy"
-resource.aware.scheduler.eviction.strategy: "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
-resource.aware.scheduler.priority.strategy: "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
+topology.scheduler.strategy: "org.apache.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy"
+resource.aware.scheduler.eviction.strategy: "org.apache.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
+resource.aware.scheduler.priority.strategy: "org.apache.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
 
 dev.zookeeper.path: "/tmp/dev-storm-zookeeper"
 

@@ -18,8 +18,8 @@
 
 package org.apache.storm.solr.mapper;
 
-import backtype.storm.tuple.ITuple;
-import backtype.storm.tuple.Tuple;
+import org.apache.storm.tuple.ITuple;
+import org.apache.storm.tuple.Tuple;
 import org.apache.solr.client.solrj.SolrRequest;
 
 import java.io.Serializable;

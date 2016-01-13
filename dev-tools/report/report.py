@@ -113,14 +113,15 @@ class GitHubReport(Report):
         print "%s (Count = %s) " % (self.header, len(self.pull_requests))
 
         fields_tuple = self._build_tuple(('URL', 'Title', 'Created', 'Last Updated (Days)', 'User'), '')
-        row_tuple = self._row_tuple(self.pull_requests[0])
+        if len(self.pull_requests) > 0:
+            row_tuple = self._row_tuple(self.pull_requests[0])
 
-        formatter = Formatter(fields_tuple, row_tuple, self._min_width_tuple())
+            formatter = Formatter(fields_tuple, row_tuple, self._min_width_tuple())
 
-        self.print_(formatter, fields_tuple)
-        for pull in self.pull_requests:
-            row_tuple = self._row_tuple(pull)
-            self.print_(formatter, row_tuple)
+            self.print_(formatter, fields_tuple)
+            for pull in self.pull_requests:
+                row_tuple = self._row_tuple(pull)
+                self.print_(formatter, row_tuple)
 
     def jira_ids(self):
         """

@@ -17,7 +17,7 @@
  */
 package org.apache.storm.jdbc.bolt;
 
-import backtype.storm.tuple.Fields;
+import org.apache.storm.tuple.Fields;
 import com.google.common.collect.Lists;
 import org.apache.storm.jdbc.common.Column;
 import org.apache.storm.jdbc.common.ConnectionProvider;

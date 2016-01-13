@@ -35,6 +35,8 @@ import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
 import org.apache.storm.utils.Utils;
 import org.apache.storm.windowing.TupleWindow;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
@@ -51,6 +53,7 @@ import static org.apache.storm.topology.base.BaseWindowedBolt.Count;
  * </p>
  */
 public class StatefulWindowingTopology {
+    private static final Logger LOG = LoggerFactory.getLogger(StatefulWindowingTopology.class);
 
     private static class WindowSumBolt extends BaseStatefulWindowedBolt<KeyValueState<String, Long>> {
         private KeyValueState<String, Long> state;
@@ -67,7 +70,7 @@ public class StatefulWindowingTopology {
         public void initState(KeyValueState<String, Long> state) {
             this.state = state;
             sum = state.get("sum", 0L);
-            System.out.println("initState with state [" + state + "] current sum [" + sum + "]");
+            LOG.debug("initState with state [" + state + "] current sum [" + sum + "]");
         }
 
         @Override

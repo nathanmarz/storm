@@ -167,7 +167,7 @@ worker.heap.memory.mb: 768
 worker.childopts: "-Xmx%HEAP-MEM%m -XX:+PrintGCDetails -Xloggc:artifacts/gc.log -XX:+PrintGCDateStamps -XX:+PrintGCTimeStamps -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=10 -XX:GCLogFileSize=1M -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=artifacts/heapdump"
 worker.gc.childopts: ""
 worker.profiler.childopts: "-XX:+UnlockCommercialFeatures -XX:+FlightRecorder"
-worker.profiler.enabled: true
+worker.profiler.enabled: false
 worker.profiler.command: "flight.bash"
 worker.heartbeat.frequency.secs: 1
 

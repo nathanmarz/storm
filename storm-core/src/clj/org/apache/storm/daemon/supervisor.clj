@@ -709,7 +709,10 @@
             stormid->profiler-actions @(:stormid->profiler-actions supervisor)
             storm-cluster-state (:storm-cluster-state supervisor)
             hostname (:my-hostname supervisor)
-            profile-cmd (conf WORKER-PROFILER-COMMAND)
+            storm-home (System/getProperty "storm.home")
+            profile-cmd (str (clojure.java.io/file storm-home
+                                                   "bin"
+                                                   (conf WORKER-PROFILER-COMMAND)))
             new-assignment @(:curr-assignment supervisor)
             assigned-storm-ids (assigned-storm-ids-from-port-assignments new-assignment)]
         (doseq [[storm-id profiler-actions] stormid->profiler-actions]

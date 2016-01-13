@@ -219,7 +219,7 @@ $(document).ready(function() {
               componentActions.append(Mustache.render($(template).filter("#component-actions-template").html(),buttonJsonData));
             });
 
-            if(response["profileActionEnabled"] == true) {
+            if (response["profilingAndDebuggingCapable"] == true) {
                 jsError(function () {
                     var part = $(template).filter('#profiler-active-partial').html();
                     var partials = {"profilerActive": part};

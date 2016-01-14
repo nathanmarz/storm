@@ -16,11 +16,13 @@
 (ns org.apache.storm.drpc-test
   (:use [clojure test])
   (:import [org.apache.storm.drpc ReturnResults DRPCSpout
-            LinearDRPCTopologyBuilder])
+            LinearDRPCTopologyBuilder]
+           [org.apache.storm.utils ConfigUtils])
   (:import [org.apache.storm.topology FailedException])
   (:import [org.apache.storm.coordination CoordinatedBolt$FinishedCallback])
   (:import [org.apache.storm LocalDRPC LocalCluster])
   (:import [org.apache.storm.tuple Fields])
+  (:import [org.apache.storm.utils.ConfigUtils])
   (:import [org.apache.storm.generated DRPCExecutionException])
   (:import [java.util.concurrent ConcurrentLinkedQueue])
   (:use [org.apache.storm config testing clojure])
@@ -221,21 +223,21 @@
   (let [queue (ConcurrentLinkedQueue.)
         delay-seconds 2
         conf {DRPC-REQUEST-TIMEOUT-SECS delay-seconds}]
-    (stubbing [acquire-queue queue
-               read-storm-config conf]
-      (let [drpc-handler (service-handler conf)]
-        (is (thrown? DRPCExecutionException
-          (.execute drpc-handler "ArbitraryDRPCFunctionName" "")))
-        (is (= 0 (.size queue)))))))
+    (with-open [mock (org.apache.storm.utils.ConfigUtils$SetMockedStormConfig. conf)]
+      (stubbing [acquire-queue queue]
+        (let [drpc-handler (service-handler conf)]
+          (is (thrown? DRPCExecutionException
+            (.execute drpc-handler "ArbitraryDRPCFunctionName" "")))
+          (is (= 0 (.size queue))))))))
 
 (deftest test-drpc-timeout-cleanup 
   (let [queue (ConcurrentLinkedQueue.)
         delay-seconds 1
         conf {DRPC-REQUEST-TIMEOUT-SECS delay-seconds}]
-    (stubbing [acquire-queue queue
-               read-storm-config conf
+      (with-open [mock (org.apache.storm.utils.ConfigUtils$SetMockedStormConfig. conf)]
+          (stubbing [acquire-queue queue
                timeout-check-secs delay-seconds]
               (let [drpc-handler (service-handler conf)]
                 (is (thrown? DRPCExecutionException 
-                             (.execute drpc-handler "ArbitraryDRPCFunctionName" "no-args")))))))
+                             (.execute drpc-handler "ArbitraryDRPCFunctionName" "no-args"))))))))
 

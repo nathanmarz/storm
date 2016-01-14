@@ -945,76 +945,6 @@ public class TestResourceAwareScheduler {
      * If users are above his or her guarantee, check if topology eviction works correct
      */
     @Test
-    public void Test() {
-        INimbus iNimbus = new TestUtilsForResourceAwareScheduler.INimbusTest();
-        Map<String, Number> resourceMap = new HashMap<String, Number>();
-        resourceMap.put(Config.SUPERVISOR_CPU_CAPACITY, 200.0);
-        resourceMap.put(Config.SUPERVISOR_MEMORY_CAPACITY_MB, 2000.0);
-        Map<String, SupervisorDetails> supMap = TestUtilsForResourceAwareScheduler.genSupervisors(4, 4, resourceMap);
-        Config config = new Config();
-        config.putAll(Utils.readDefaultConfig());
-        config.put(Config.RESOURCE_AWARE_SCHEDULER_EVICTION_STRATEGY, org.apache.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy.class.getName());
-        config.put(Config.RESOURCE_AWARE_SCHEDULER_PRIORITY_STRATEGY, org.apache.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy.class.getName());
-        config.put(Config.TOPOLOGY_SCHEDULER_STRATEGY, org.apache.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy.class.getName());
-        config.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, 100.0);
-        config.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, 500);
-        config.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, 500);
-        Map<String, Map<String, Number>> resourceUserPool = new HashMap<String, Map<String, Number>>();
-        resourceUserPool.put("jerry", new HashMap<String, Number>());
-        resourceUserPool.get("jerry").put("cpu", 70.0);
-        resourceUserPool.get("jerry").put("memory", 700.0);
-
-        resourceUserPool.put("bobby", new HashMap<String, Number>());
-        resourceUserPool.get("bobby").put("cpu", 100.0);
-        resourceUserPool.get("bobby").put("memory", 1000.0);
-
-        resourceUserPool.put("derek", new HashMap<String, Number>());
-        resourceUserPool.get("derek").put("cpu", 25.0);
-        resourceUserPool.get("derek").put("memory", 250.0);
-
-        config.put(Config.RESOURCE_AWARE_SCHEDULER_USER_POOLS, resourceUserPool);
-        Cluster cluster = new Cluster(iNimbus, supMap, new HashMap<String, SchedulerAssignmentImpl>(), config);
-
-        config.put(Config.TOPOLOGY_SUBMITTER_USER, "jerry");
-
-        TopologyDetails topo1 = TestUtilsForResourceAwareScheduler.getTopology("topo-1", config, 1, 0, 2, 0, currentTime - 2, 20);
-
-        config.put(Config.TOPOLOGY_SUBMITTER_USER, "bobby");
-
-        TopologyDetails topo3 = TestUtilsForResourceAwareScheduler.getTopology("topo-3", config, 1, 0, 2, 0, currentTime - 2, 10);
-        TopologyDetails topo4 = TestUtilsForResourceAwareScheduler.getTopology("topo-4", config, 1, 0, 2, 0, currentTime - 2, 10);
-
-        config.put(Config.TOPOLOGY_SUBMITTER_USER, "derek");
-
-        TopologyDetails topo5 = TestUtilsForResourceAwareScheduler.getTopology("topo-5", config, 1, 0, 2, 0, currentTime - 2, 29);
-
-        Map<String, TopologyDetails> topoMap = new HashMap<String, TopologyDetails>();
-        topoMap.put(topo1.getId(), topo1);
-        topoMap.put(topo3.getId(), topo3);
-        topoMap.put(topo4.getId(), topo4);
-        topoMap.put(topo5.getId(), topo5);
-
-        Topologies topologies = new Topologies(topoMap);
-
-        ResourceAwareScheduler rs = new ResourceAwareScheduler();
-
-        rs.prepare(config);
-        rs.schedule(topologies, cluster);
-
-        LOG.info("Assignments: {}", cluster.getAssignments());
-        for (Map.Entry<String, SchedulerAssignment> entry : cluster.getAssignments().entrySet()) {
-            LOG.info("Topology id: {}", entry.getKey());
-            for(WorkerSlot target: entry.getValue().getSlots()) {
-                LOG.info("target resources onheap: {} offheap: {} cpu: {}", target.getAllocatedMemOnHeap(), target.getAllocatedMemOffHeap(), target.getAllocatedCpu());
-            }
-
-        }
-    }
-
-    /**
-     * If users are above his or her guarantee, check if topology eviction works correct
-     */
-    @Test
     public void TestOverGuaranteeEviction() {
         INimbus iNimbus = new TestUtilsForResourceAwareScheduler.INimbusTest();
         Map<String, Number> resourceMap = new HashMap<String, Number>();
@@ -1159,15 +1089,6 @@ public class TestResourceAwareScheduler {
         Assert.assertEquals("# of pending topologies", 0, rs.getUser("bobby").getTopologiesPending().size());
         Assert.assertEquals("# of attempted topologies", 0, rs.getUser("bobby").getTopologiesAttempted().size());
         Assert.assertEquals("# of invalid topologies", 0, rs.getUser("bobby").getTopologiesInvalid().size());
-
-        LOG.info("Assignments: {}", cluster.getAssignments());
-        for (Map.Entry<String, SchedulerAssignment> entry : cluster.getAssignments().entrySet()) {
-            LOG.info("Topology id: {}", entry.getKey());
-            for(WorkerSlot target: entry.getValue().getSlots()) {
-                LOG.info("target resources onheap: {} offheap: {} cpu: {}", target.getAllocatedMemOnHeap(), target.getAllocatedMemOffHeap(), target.getAllocatedCpu());
-            }
-
-        }
     }
 
     /**

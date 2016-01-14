@@ -29,7 +29,7 @@
             LogConfig LogLevel LogLevelAction])
   (:import [java.util HashMap])
   (:import [java.io File])
-  (:import [org.apache.storm.utils Time Utils])
+  (:import [org.apache.storm.utils Time Utils ConfigUtils])
   (:import [org.apache.commons.io FileUtils])
   (:use [org.apache.storm testing MockAutoCred util config log timer zookeeper])
   (:use [org.apache.storm.daemon common])
@@ -1020,7 +1020,7 @@
     (with-local-tmp [nimbus-dir]
       (stubbing [zk-leader-elector (mock-leader-elector)]
         (letlocals
-         (bind conf (merge (read-storm-config)
+         (bind conf (merge (clojurify-structure (ConfigUtils/readStormConfig))
                            {STORM-ZOOKEEPER-SERVERS ["localhost"]
                             STORM-CLUSTER-MODE "local"
                             STORM-ZOOKEEPER-PORT zk-port
@@ -1091,7 +1091,7 @@
     (with-local-tmp [nimbus-dir]
       (stubbing [zk-leader-elector (mock-leader-elector)]
         (letlocals
-          (bind conf (merge (read-storm-config)
+          (bind conf (merge (clojurify-structure (ConfigUtils/readStormConfig))
                        {STORM-ZOOKEEPER-SERVERS ["localhost"]
                         STORM-CLUSTER-MODE "local"
                         STORM-ZOOKEEPER-PORT zk-port
@@ -1334,7 +1334,7 @@
   (testing "nimbus-data uses correct ACLs"
     (let [scheme "digest"
           digest "storm:thisisapoorpassword"
-          auth-conf (merge (read-storm-config)
+          auth-conf (merge (clojurify-structure (ConfigUtils/readStormConfig))
                     {STORM-ZOOKEEPER-AUTH-SCHEME scheme
                      STORM-ZOOKEEPER-AUTH-PAYLOAD digest
                      STORM-PRINCIPAL-TO-LOCAL-PLUGIN "org.apache.storm.security.auth.DefaultPrincipalToLocal"
@@ -1381,7 +1381,7 @@
   (with-inprocess-zookeeper zk-port
     (with-local-tmp [nimbus-dir]
       (letlocals
-        (bind conf (merge (read-storm-config)
+        (bind conf (merge (clojurify-structure (ConfigUtils/readStormConfig))
                      {STORM-ZOOKEEPER-SERVERS ["localhost"]
                       STORM-CLUSTER-MODE "local"
                       STORM-ZOOKEEPER-PORT zk-port
@@ -1411,7 +1411,7 @@
     (with-local-tmp [nimbus-dir]
       (stubbing [zk-leader-elector (mock-leader-elector)]
         (letlocals
-          (bind conf (merge (read-storm-config)
+          (bind conf (merge (clojurify-structure (ConfigUtils/readStormConfig))
                        {STORM-ZOOKEEPER-SERVERS ["localhost"]
                         STORM-CLUSTER-MODE "local"
                         STORM-ZOOKEEPER-PORT zk-port

@@ -1181,7 +1181,7 @@
 (defn -launch
   [supervisor]
   (log-message "Starting supervisor for storm version '" STORM-VERSION "'")
-  (let [conf (read-storm-config)]
+  (let [conf (clojurify-structure (ConfigUtils/readStormConfig))]
     (validate-distributed-mode! conf)
     (let [supervisor (mk-supervisor conf nil supervisor)]
       (add-shutdown-hook-with-force-kill-in-1-sec #(.shutdown supervisor)))

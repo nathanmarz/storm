@@ -2226,7 +2226,7 @@
 
 (defn -launch [nimbus]
   (let [conf (merge
-               (read-storm-config)
+               (clojurify-structure (ConfigUtils/readStormConfig))
                (read-yaml-config "storm-cluster-auth.yaml" false))]
   (launch-server! conf nimbus)))
 

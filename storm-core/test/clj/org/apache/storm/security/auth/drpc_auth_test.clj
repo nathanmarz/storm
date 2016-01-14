@@ -21,7 +21,7 @@
             DistributedRPCInvocations$Processor])
   (:import [org.apache.storm Config])
   (:import [org.apache.storm.security.auth ReqContext SingleUserPrincipal ThriftServer ThriftConnectionType])
-  (:import [org.apache.storm.utils DRPCClient])
+  (:import [org.apache.storm.utils DRPCClient ConfigUtils])
   (:import [org.apache.storm.drpc DRPCInvocationsClient])
   (:import [java.util.concurrent TimeUnit])
   (:import [javax.security.auth Subject])
@@ -65,7 +65,7 @@
 (deftest deny-drpc-test
   (let [client-port (available-port)
         invocations-port (available-port (inc client-port))
-        storm-conf (read-storm-config)]
+        storm-conf (clojurify-structure (ConfigUtils/readStormConfig))]
     (with-server [storm-conf "org.apache.storm.security.auth.authorizer.DenyAuthorizer"
                   nil nil client-port invocations-port]
       (let [drpc (DRPCClient. storm-conf "localhost" client-port)
@@ -80,7 +80,7 @@
 (deftest deny-drpc-digest-test
   (let [client-port (available-port)
         invocations-port (available-port (inc client-port))
-        storm-conf (read-storm-config)]
+        storm-conf (clojurify-structure (ConfigUtils/readStormConfig))]
     (with-server [storm-conf "org.apache.storm.security.auth.authorizer.DenyAuthorizer"
                   "org.apache.storm.security.auth.digest.DigestSaslTransportPlugin"
                   "test/clj/org/apache/storm/security/auth/jaas_digest.conf"
@@ -100,7 +100,7 @@
   [[strict? alice-client bob-client charlie-client alice-invok charlie-invok] & body]
   (let [client-port (available-port)
         invocations-port (available-port (inc client-port))
-        storm-conf (merge (read-storm-config)
+        storm-conf (merge (clojurify-structure (ConfigUtils/readStormConfig))
                           {DRPC-AUTHORIZER-ACL-STRICT strict?
                            DRPC-AUTHORIZER-ACL-FILENAME "drpc-simple-acl-test-scenario.yaml"
                            STORM-THRIFT-TRANSPORT-PLUGIN "org.apache.storm.security.auth.digest.DigestSaslTransportPlugin"})]

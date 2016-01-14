@@ -18,18 +18,20 @@
 
 package storm.starter;
 
-import backtype.storm.Config;
-import backtype.storm.StormSubmitter;
-import backtype.storm.generated.Nimbus;
-import backtype.storm.topology.TopologyBuilder;
-import backtype.storm.utils.NimbusClient;
-import backtype.storm.utils.Utils;
+import org.apache.storm.Config;
+import org.apache.storm.StormSubmitter;
+import org.apache.storm.generated.Nimbus;
+import org.apache.storm.metric.LoggingMetricsConsumer;
+import org.apache.storm.starter.FastWordCountTopology;
+import org.apache.storm.topology.TopologyBuilder;
+import org.apache.storm.utils.NimbusClient;
+import org.apache.storm.utils.Utils;
 import org.apache.storm.hdfs.spout.Configs;
 import org.apache.storm.hdfs.spout.HdfsSpout;
-import backtype.storm.topology.base.BaseRichBolt;
-import backtype.storm.topology.*;
-import backtype.storm.tuple.*;
-import backtype.storm.task.*;
+import org.apache.storm.topology.base.BaseRichBolt;
+import org.apache.storm.topology.*;
+import org.apache.storm.tuple.*;
+import org.apache.storm.task.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -121,7 +123,7 @@ public class HdfsSpoutTopology {
     // 3 - Create and configure topology
     conf.setDebug(true);
     conf.setNumWorkers(WORKER_NUM);
-    conf.registerMetricsConsumer(backtype.storm.metric.LoggingMetricsConsumer.class);
+    conf.registerMetricsConsumer(LoggingMetricsConsumer.class);
 
     TopologyBuilder builder = new TopologyBuilder();
     builder.setSpout(SPOUT_ID, spout, spoutNum);

@@ -112,8 +112,7 @@ public class FileLock {
   /** returns lock on file or null if file is already locked. throws if unexpected problem */
   public static FileLock tryLock(FileSystem fs, Path fileToLock, Path lockDirPath, String spoutId)
           throws IOException {
-    String lockFileName = lockDirPath.toString() + Path.SEPARATOR_CHAR + fileToLock.getName();
-    Path lockFile = new Path(lockFileName);
+    Path lockFile = new Path(lockDirPath, fileToLock.getName());
 
     try {
       FSDataOutputStream ostream = HdfsUtils.tryCreateFile(fs, lockFile);
@@ -148,7 +147,13 @@ public class FileLock {
       // timestamp in last line of file to see when the last update was made
       LogEntry lastEntry =  getLastEntry(fs, lockFile);
       if(lastEntry==null) {
-        throw new RuntimeException(lockFile.getName() + " is empty. this file is invalid.");
+        LOG.warn("Empty lock file found. Deleting it. {}", lockFile);
+        try {
+          if(!fs.delete(lockFile, false))
+            throw new IOException("Empty lock file deletion failed");
+        } catch (Exception e) {
+          LOG.error("Unable to delete empty lock file " + lockFile, e);
+        }
       }
       if( lastEntry.eventTime <= olderThan )
         return lastEntry;

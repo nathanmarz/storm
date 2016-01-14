@@ -18,7 +18,6 @@
 
 package org.apache.storm.hdfs.spout;
 
-import backtype.storm.tuple.Fields;
 import org.apache.hadoop.fs.Path;
 
 import java.io.IOException;

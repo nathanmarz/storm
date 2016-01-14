@@ -18,9 +18,9 @@
 
 package org.apache.storm.hdfs.spout;
 
-import backtype.storm.Config;
-import backtype.storm.spout.SpoutOutputCollector;
-import backtype.storm.task.TopologyContext;
+import org.apache.storm.Config;
+import org.apache.storm.spout.SpoutOutputCollector;
+import org.apache.storm.task.TopologyContext;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.io.Writable;
@@ -44,7 +44,6 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -58,6 +57,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.storm.hdfs.common.HdfsUtils.Pair;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 
 public class TestHdfsSpout {
@@ -557,6 +557,7 @@ public class TestHdfsSpout {
     conf.put(Configs.ARCHIVE_DIR, archive.toString());
     conf.put(Configs.BAD_DIR, badfiles.toString());
     conf.put(Configs.HDFS_URI, hdfsCluster.getURI().toString());
+    conf.put(Config.TOPOLOGY_ACKER_EXECUTORS, "0");
     return conf;
   }
 

@@ -32,11 +32,13 @@ import org.apache.storm.utils.Utils;
 public class Cluster {
 
     /**
-     * key: supervisor id, value: supervisor details
+     * key: supervisor id,
+     * value: supervisor's total and used resources, i.e. {totalMem, totalCpu, usedMem, usedCpu}
      */
     private Map<String, SupervisorDetails> supervisors;
     /**
      * key: supervisor id, value: supervisor's total and used resources
+     * value: {requestedMemOnHeap, requestedMemOffHeap, requestedCpu, assignedMemOnHeap, assignedMemOffHeap, assignedCpu}
      */
     private Map<String, Double[]> supervisorsResources;
 

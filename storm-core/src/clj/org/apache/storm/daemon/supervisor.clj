@@ -338,7 +338,7 @@
                                            (log-error t "Error when processing event")
                                            (exit-process! 20 "Error when processing a event"))
                                 :timer-name "blob-update-timer")
-   :localizer (Utils/createLocalizer conf (supervisor-local-dir conf))
+   :localizer (Utils/createLocalizer conf (ConfigUtils/supervisorLocalDir conf))
    :assignment-versions (atom {})
    :sync-retry (atom 0)
    :download-lock (Object.)
@@ -763,7 +763,7 @@
 ;; another thread launches events to restart any dead processes if necessary
 (defserverfn mk-supervisor [conf shared-context ^ISupervisor isupervisor]
   (log-message "Starting Supervisor with conf " conf)
-  (.prepare isupervisor conf (supervisor-isupervisor-dir conf))
+  (.prepare isupervisor conf (ConfigUtils/supervisorIsupervisorDir conf))
   (FileUtils/cleanDirectory (File. (supervisor-tmp-dir conf)))
   (let [supervisor (supervisor-data conf shared-context isupervisor)
         [event-manager processes-event-manager :as managers] [(event/event-manager false) (event/event-manager false)]
@@ -878,7 +878,7 @@
 (defn download-blobs-for-topology!
   "Download all blobs listed in the topology configuration for a given topology."
   [conf stormconf-path localizer tmproot]
-  (let [storm-conf (read-supervisor-storm-conf-given-path conf stormconf-path)
+  (let [storm-conf (ConfigUtils/readSupervisorStormConfGivenPath conf stormconf-path)
         blobstore-map (storm-conf TOPOLOGY-BLOBSTORE-MAP)
         user (storm-conf TOPOLOGY-SUBMITTER-USER)
         topo-name (storm-conf TOPOLOGY-NAME)
@@ -930,11 +930,11 @@
       (Utils/restrictPermissions tmproot)
       (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
         (throw-runtime (str "ERROR: Windows doesn't implement setting the correct permissions"))))
-    (Utils/downloadResourcesAsSupervisor (master-stormjar-key storm-id)
+    (Utils/downloadResourcesAsSupervisor (ConfigUtils/masterStormJarKey storm-id)
       (supervisor-stormjar-path tmproot) blobstore)
-    (Utils/downloadResourcesAsSupervisor (master-stormcode-key storm-id)
+    (Utils/downloadResourcesAsSupervisor (ConfigUtils/masterStormCodeKey storm-id)
       (supervisor-stormcode-path tmproot) blobstore)
-    (Utils/downloadResourcesAsSupervisor (master-stormconf-key storm-id)
+    (Utils/downloadResourcesAsSupervisor (ConfigUtils/masterStormConfKey storm-id)
       (supervisor-stormconf-path tmproot) blobstore)
     (.shutdown blobstore)
     (extract-dir-from-jar (supervisor-stormjar-path tmproot) RESOURCES-SUBDIR tmproot)
@@ -1143,8 +1143,8 @@
         blob-store (Utils/getNimbusBlobStore conf master-code-dir nil)]
     (try
       (FileUtils/forceMkdir (File. tmproot))
-      (.readBlobTo blob-store (master-stormcode-key storm-id) (FileOutputStream. (supervisor-stormcode-path tmproot)) nil)
-      (.readBlobTo blob-store (master-stormconf-key storm-id) (FileOutputStream. (supervisor-stormconf-path tmproot)) nil)
+      (.readBlobTo blob-store (ConfigUtils/masterStormCodeKey storm-id) (FileOutputStream. (supervisor-stormcode-path tmproot)) nil)
+      (.readBlobTo blob-store (ConfigUtils/masterStormConfKey storm-id) (FileOutputStream. (supervisor-stormconf-path tmproot)) nil)
       (finally
         (.shutdown blob-store)))
     (FileUtils/moveDirectory (File. tmproot) (File. stormroot))

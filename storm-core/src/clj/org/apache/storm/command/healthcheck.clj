@@ -62,7 +62,7 @@
       (finally (.interrupt interrupter-thread)))))
 
 (defn health-check [conf]
-  (let [health-dir (absolute-healthcheck-dir conf)
+  (let [health-dir (ConfigUtils/absoluteHealthCheckDir conf)
         health-files (file-seq (io/file health-dir))
         health-scripts (filter #(and (.canExecute %)
                                      (not (.isDirectory %)))

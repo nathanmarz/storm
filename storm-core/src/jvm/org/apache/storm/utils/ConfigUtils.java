@@ -232,6 +232,7 @@ public class ConfigUtils {
         return stormRoot + FILE_SEPARATOR + "tmp";
     }
 
+    /* Never get used TODO : delete it*/
     public static String masterTmpDir(Map conf) throws IOException {
         String ret = stormTmpPath(masterLocalDir(conf));
         FileUtils.forceMkdir(new File(ret));
@@ -244,6 +245,7 @@ public class ConfigUtils {
         return ret;
     }
 
+    /* Never get used TODO : may delete it*/
     public static String masterStormMetaFilePath(String stormRoot) {
         return (stormRoot + FILE_SEPARATOR + "storm-code-distributor.meta");
     }
@@ -252,10 +254,12 @@ public class ConfigUtils {
         return (stormRoot + FILE_SEPARATOR + "stormjar.jar");
     }
 
+    /* Never get used TODO : may delete it*/
     public static String masterStormCodePath(String stormRoot) {
         return (stormRoot + FILE_SEPARATOR + "stormcode.ser");
     }
 
+    /* Never get used TODO : may delete it*/
     public static String masterStormConfPath(String stormRoot) {
         return (stormRoot + FILE_SEPARATOR + "stormconf.ser");
     }

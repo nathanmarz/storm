@@ -129,10 +129,8 @@ public class ConfigUtils {
     // }
     //
     // for clojure
-    // (let [something (SetMockedStormConfig. conf)]
-    //   (try
-    //     run test ...
-    //     (finally (.close something))))
+    // (with-open [mock (SetMockedStormConfig. conf)]
+    //     run test ...)
     public static class SetMockedStormConfig implements Closeable {
         public SetMockedStormConfig(Map conf) {
             mockedStormConfig = conf;
@@ -162,11 +160,14 @@ public class ConfigUtils {
     }
 
     public static String absoluteStormLocalDir(Map conf) {
+        LOG.info("zliu conf map is " + conf);
         String stormHome = System.getProperty("storm.home");
-        String localDir = String.valueOf(conf.get(Config.STORM_LOCAL_DIR));
-        if (localDir.equals("null")) {
+        LOG.info("zliu stormhome is " + stormHome);
+        String localDir = (String) conf.get(Config.STORM_LOCAL_DIR);
+        if (localDir == null) {
             return (stormHome + FILE_SEPARATOR + "storm-local");
         } else {
+            LOG.info("zliu java local dir is " + localDir + ", isAbsolute:" + (new File(localDir).isAbsolute()));
             if (new File(localDir).isAbsolute()) {
                 return localDir;
             } else {
@@ -225,7 +226,12 @@ public class ConfigUtils {
     }
 
     public static String stormDistPath(String stormRoot) {
-        return stormRoot + FILE_SEPARATOR + "stormdist";
+        String ret = "";
+        // we do this since to concat a null String will actually concat a "null", which is not the expected: ""
+        if (stormRoot != null) {
+            ret = stormRoot;
+        }
+        return ret + FILE_SEPARATOR + "stormdist";
     }
 
     public static String stormTmpPath(String stormRoot) {
@@ -280,7 +286,7 @@ public class ConfigUtils {
     }
 
     public static String supervisorLocalDir(Map conf) throws IOException {
-        String ret = String.valueOf(conf.get(Config.STORM_LOCAL_DIR)) + FILE_SEPARATOR + "supervisor";
+        String ret = absoluteStormLocalDir(conf) + FILE_SEPARATOR + "supervisor";
         FileUtils.forceMkdir(new File(ret));
         return ret;
     }
@@ -289,28 +295,74 @@ public class ConfigUtils {
         return ((supervisorLocalDir(conf) + FILE_SEPARATOR + "isupervisor"));
     }
 
+    //For testing only
+    // for java
+    // try (SetMockedSupervisorStormDistRoot mocked = new SetMockedSupervisorStormDistRoot(conf)) {
+    //    run test ...
+    // }
+    //
+    // for clojure
+    // (with-open [mock (SetMockedSupervisorStormDistRoot. conf)]
+    //     run test ...)
+    public static class SetMockedSupervisorStormDistRoot implements Closeable {
+        public SetMockedSupervisorStormDistRoot(Map conf) {
+            mockedSupervisorStormDistRoot = conf;
+        }
+        @Override
+        public void close() {
+            mockedSupervisorStormDistRoot = null;
+        }
+    }
+    private static Map mockedSupervisorStormDistRoot = null;
     public static String supervisorStormDistRoot(Map conf) throws IOException {
+        LOG.info("zliu supervisorStormDistRoot resl is: " + stormDistPath(supervisorLocalDir(conf)) + "mocked set is " + mockedSupervisorStormDistRoot);
+        if (mockedSupervisorStormDistRoot != null) {
+            return null;
+        }
         return stormDistPath(supervisorLocalDir(conf)); // TODO: no need to forceMake here?, clj does not.
     }
 
     public static String supervisorStormDistRoot(Map conf, String stormId) throws IOException {
+        if (mockedSupervisorStormDistRoot != null) {
+            return null;
+        }
         return supervisorStormDistRoot(conf) + FILE_SEPARATOR + stormId; // TODO: need to (url-encode storm-id)? Not.
     }
 
     public static String supervisorStormJarPath(String stormRoot) {
-        return (stormRoot + FILE_SEPARATOR + "stormjar.jar");
+        String ret = "";
+        // we do this since to concat a null String will actually concat a "null", which is not the expected: ""
+        if (stormRoot != null) {
+            ret = stormRoot;
+        }
+        return (ret + FILE_SEPARATOR + "stormjar.jar");
     }
 
     public static String supervisorStormMetaFilePath(String stormRoot) {
-        return (stormRoot + FILE_SEPARATOR + "storm-code-distributor.meta");
+        String ret = "";
+        // we do this since to concat a null String will actually concat a "null", which is not the expected: ""
+        if (stormRoot != null) {
+            ret = stormRoot;
+        }
+        return (ret + FILE_SEPARATOR + "storm-code-distributor.meta");
     }
 
     public static String supervisorStormCodePath(String stormRoot) {
-        return (stormRoot + FILE_SEPARATOR + "stormcode.ser");
+        String ret = "";
+        // we do this since to concat a null String will actually concat a "null", which is not the expected: ""
+        if (stormRoot != null) {
+            ret = stormRoot;
+        }
+        return (ret + FILE_SEPARATOR + "stormcode.ser");
     }
 
     public static String supervisorStormConfPath(String stormRoot) {
-        return (stormRoot + FILE_SEPARATOR + "stormconf.ser");
+        String ret = "";
+        // we do this since to concat a null String will actually concat a "null", which is not the expected: ""
+        if (stormRoot != null) {
+            ret = stormRoot;
+        }
+        return (ret + FILE_SEPARATOR + "stormconf.ser");
     }
 
     public static String supervisorTmpDir(Map conf) throws IOException {
@@ -320,7 +372,12 @@ public class ConfigUtils {
     }
 
     public static String supervisorStormResourcesPath(String stormRoot) {
-        return (stormRoot + FILE_SEPARATOR + RESOURCES_SUBDIR);
+        String ret = "";
+        // we do this since to concat a null String will actually concat a "null", which is not the expected: ""
+        if (stormRoot != null) {
+            ret = stormRoot;
+        }
+        return (ret + FILE_SEPARATOR + RESOURCES_SUBDIR);
     }
 
     public static LocalState supervisorState(Map conf) throws IOException {

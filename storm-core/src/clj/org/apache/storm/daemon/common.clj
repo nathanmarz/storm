@@ -376,7 +376,7 @@
                           (:component->stream->fields worker)
                           (:storm-id worker)
                           (supervisor-storm-resources-path
-                            (supervisor-stormdist-root (:conf worker) (:storm-id worker)))
+                            (ConfigUtils/supervisorStormDistRoot (:conf worker) (:storm-id worker)))
                           (worker-pids-root (:conf worker) (:worker-id worker))
                           (:port worker)
                           (:task-ids worker)

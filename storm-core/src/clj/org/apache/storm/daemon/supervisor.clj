@@ -118,7 +118,11 @@
   (map-val :master-code-dir assignments-snapshot))
 
 (defn- read-downloaded-storm-ids [conf]
-  (map #(url-decode %) (read-dir-contents (supervisor-stormdist-root conf)))
+  (let [dir (ConfigUtils/supervisorStormDistRoot conf)
+        _ (log-message "zliu java supervisorLocalDir " (ConfigUtils/supervisorLocalDir conf))
+        cdir (supervisor-stormdist-root conf)
+        _ (log-message "zliu jdir is:" dir ",cdir is"  cdir ",clj dir equals to nil? " (nil? cdir) "jdir = cdir?" (= dir cdir))]
+  (map #(url-decode %) (read-dir-contents dir))) ; (supervisor-stormdist-root conf)));
   )
 
 (defn read-worker-heartbeat [conf id]
@@ -347,8 +351,8 @@
 
 (defn required-topo-files-exist?
   [conf storm-id]
-  (let [stormroot (supervisor-stormdist-root conf storm-id)
-        stormjarpath (supervisor-stormjar-path stormroot)
+  (let [stormroot (ConfigUtils/supervisorStormDistRoot conf storm-id)
+        stormjarpath (ConfigUtils/supervisorStormJarPath stormroot)
         stormcodepath (supervisor-stormcode-path stormroot)
         stormconfpath (supervisor-stormconf-path stormroot)]
     (and (every? exists-file? [stormroot stormconfpath stormcodepath])
@@ -501,13 +505,13 @@
 
 (defn rm-topo-files
   [conf storm-id localizer rm-blob-refs?]
-  (let [path (supervisor-stormdist-root conf storm-id)]
+  (let [path (ConfigUtils/supervisorStormDistRoot conf storm-id)]
     (try
       (if rm-blob-refs?
         (remove-blob-references localizer storm-id conf))
       (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
         (rmr-as-user conf storm-id path)
-        (rmr (supervisor-stormdist-root conf storm-id)))
+        (rmr (ConfigUtils/supervisorStormDistRoot conf storm-id)))
       (catch Exception e
         (log-message e (str "Exception removing: " storm-id))))))
 
@@ -632,7 +636,7 @@
             new-assignment @(:curr-assignment supervisor)
             assigned-storm-ids (assigned-storm-ids-from-port-assignments new-assignment)]
         (doseq [topology-id downloaded-storm-ids]
-          (let [storm-root (supervisor-stormdist-root conf topology-id)]
+          (let [storm-root (ConfigUtils/supervisorStormDistRoot conf topology-id)]
             (when (assigned-storm-ids topology-id)
               (log-debug "Checking Blob updates for storm topology id " topology-id " With target_dir: " storm-root)
               (update-blobs-for-topology! conf topology-id (:localizer supervisor))))))
@@ -923,7 +927,7 @@
   :distributed [conf storm-id master-code-dir localizer]
   ;; Downloading to permanent location is atomic
   (let [tmproot (str (supervisor-tmp-dir conf) file-path-separator (uuid))
-        stormroot (supervisor-stormdist-root conf storm-id)
+        stormroot (ConfigUtils/supervisorStormDistRoot conf storm-id)
         blobstore (Utils/getClientBlobStoreForSupervisor conf)]
     (FileUtils/forceMkdir (File. tmproot))
     (if-not on-windows?
@@ -931,13 +935,13 @@
       (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
         (throw-runtime (str "ERROR: Windows doesn't implement setting the correct permissions"))))
     (Utils/downloadResourcesAsSupervisor (ConfigUtils/masterStormJarKey storm-id)
-      (supervisor-stormjar-path tmproot) blobstore)
+      (ConfigUtils/supervisorStormJarPath tmproot) blobstore)
     (Utils/downloadResourcesAsSupervisor (ConfigUtils/masterStormCodeKey storm-id)
       (supervisor-stormcode-path tmproot) blobstore)
     (Utils/downloadResourcesAsSupervisor (ConfigUtils/masterStormConfKey storm-id)
       (supervisor-stormconf-path tmproot) blobstore)
     (.shutdown blobstore)
-    (extract-dir-from-jar (supervisor-stormjar-path tmproot) RESOURCES-SUBDIR tmproot)
+    (extract-dir-from-jar (ConfigUtils/supervisorStormJarPath tmproot) RESOURCES-SUBDIR tmproot)
     (download-blobs-for-topology! conf (supervisor-stormconf-path tmproot) localizer
       tmproot)
     (if (download-blobs-for-topology-succeed? (supervisor-stormconf-path tmproot) tmproot)
@@ -1008,7 +1012,7 @@
 (defn create-blobstore-links
   "Create symlinks in worker launch directory for all blobs"
   [conf storm-id worker-id]
-  (let [stormroot (supervisor-stormdist-root conf storm-id)
+  (let [stormroot (ConfigUtils/supervisorStormDistRoot conf storm-id)
         storm-conf (read-supervisor-storm-conf conf storm-id)
         workerroot (worker-root conf worker-id)
         blobstore-map (storm-conf TOPOLOGY-BLOBSTORE-MAP)
@@ -1044,16 +1048,22 @@
                                     storm-log-conf-dir
                                     (str storm-home file-path-separator storm-log-conf-dir))
                                   (str storm-home file-path-separator "log4j2"))
-          stormroot (supervisor-stormdist-root conf storm-id)
+          stormroot (ConfigUtils/supervisorStormDistRoot conf storm-id)
+          _ (log-message "zliu stormroot: " stormroot)
           jlp (jlp stormroot conf)
-          stormjar (supervisor-stormjar-path stormroot)
+          stormjar (ConfigUtils/supervisorStormJarPath stormroot)
+          _ (log-message "zliu stormjar: " stormjar)
           storm-conf (read-supervisor-storm-conf conf storm-id)
           topo-classpath (if-let [cp (storm-conf TOPOLOGY-CLASSPATH)]
                            [cp]
                            [])
+          _ (log-message "zliu worker-classpath: " (worker-classpath))
+          _ (log-message "zliu stormjar: " stormjar)
+          _ (log-message "zliu topo-classpath: " topo-classpath)
           classpath (-> (worker-classpath)
                         (add-to-classpath [stormjar])
                         (add-to-classpath topo-classpath))
+          _ (log-message "zliu classpath" classpath)
           top-gc-opts (storm-conf TOPOLOGY-WORKER-GC-CHILDOPTS)
           mem-onheap (if (and mem-onheap (> mem-onheap 0)) ;; not nil and not zero
                        (int (Math/ceil mem-onheap)) ;; round up
@@ -1139,7 +1149,7 @@
 (defmethod download-storm-code
   :local [conf storm-id master-code-dir localizer]
   (let [tmproot (str (supervisor-tmp-dir conf) file-path-separator (uuid))
-        stormroot (supervisor-stormdist-root conf storm-id)
+        stormroot (ConfigUtils/supervisorStormDistRoot conf storm-id)
         blob-store (Utils/getNimbusBlobStore conf master-code-dir nil)]
     (try
       (FileUtils/forceMkdir (File. tmproot))

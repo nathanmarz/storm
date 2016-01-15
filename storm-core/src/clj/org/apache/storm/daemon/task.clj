@@ -23,7 +23,7 @@
   (:import [org.apache.storm.hooks.info SpoutAckInfo SpoutFailInfo
             EmitInfo BoltFailInfo BoltAckInfo])
   (:import [org.apache.storm.task TopologyContext ShellBolt WorkerTopologyContext])
-  (:import [org.apache.storm.utils Utils])
+  (:import [org.apache.storm.utils Utils ConfigUtils])
   (:import [org.apache.storm.generated ShellComponent JavaObject])
   (:import [org.apache.storm.spout ShellSpout])
   (:import [java.util Collection List ArrayList])
@@ -42,7 +42,7 @@
       (:component->stream->fields worker)
       (:storm-id worker)
       (supervisor-storm-resources-path
-        (supervisor-stormdist-root conf (:storm-id worker)))
+        (ConfigUtils/supervisorStormDistRoot conf (:storm-id worker)))
       (worker-pids-root conf (:worker-id worker))
       (int %)
       (:port worker)

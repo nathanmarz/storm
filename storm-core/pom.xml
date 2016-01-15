@@ -579,7 +579,7 @@
                         <relocation>
                             <pattern>org.apache.thrift</pattern>
                             <!-- This pattern is inconsistent for backwards compatibility purposes. -->
-                            <shadedPattern>org.apache.thrift7</shadedPattern>
+                            <shadedPattern>org.apache.storm.thrift</shadedPattern>
                         </relocation>
                         <relocation>
                             <pattern>org.jboss.netty</pattern>

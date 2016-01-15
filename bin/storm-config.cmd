@@ -125,7 +125,11 @@ FOR /F "delims=" %%i in (%CMD_TEMP_FILE%) do (
 
 
 :storm_opts
- set STORM_OPTS=-Dstorm.options= -Dstorm.home=%STORM_HOME% -Djava.library.path=%JAVA_LIBRARY_PATH%;%JAVA_HOME%\bin;%JAVA_HOME%\lib;%JAVA_HOME%\jre\bin;%JAVA_HOME%\jre\lib
+ if "%set_storm_options%"=="true" (
+  set STORM_OPTS=-Dstorm.options=
+ )
+
+ set STORM_OPTS=%STORM_OPTS% -Dstorm.home=%STORM_HOME% -Djava.library.path=%JAVA_LIBRARY_PATH%;%JAVA_HOME%\bin;%JAVA_HOME%\lib;%JAVA_HOME%\jre\bin;%JAVA_HOME%\jre\lib
  set STORM_OPTS=%STORM_OPTS% -Dlog4j.configurationFile=%STORM_LOG4J2_CONFIGURATION_FILE%
  set STORM_OPTS=%STORM_OPTS% -Dstorm.log.dir=%STORM_LOG_DIR%
  del /F %CMD_TEMP_FILE%

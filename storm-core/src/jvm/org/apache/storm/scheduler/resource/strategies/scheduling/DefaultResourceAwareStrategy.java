@@ -114,23 +114,7 @@ public class DefaultResourceAwareStrategy implements IStrategy {
                     LOG.debug("\n\nAttempting to schedule: {} of component {}[avail {}] with rank {}",
                             new Object[] { exec, td.getExecutorToComponent().get(exec),
                     td.getTaskResourceReqList(exec), entry.getKey() });
-                    WorkerSlot targetSlot = this.findWorkerForExec(exec, td, schedulerAssignmentMap);
-                    if (targetSlot != null) {
-                        NodeDetails targetNode = this.idToNode(targetSlot.getNodeId());
-                        if(!schedulerAssignmentMap.containsKey(targetSlot)) {
-                            schedulerAssignmentMap.put(targetSlot, new LinkedList<ExecutorDetails>());
-                        }
-                       
-                        schedulerAssignmentMap.get(targetSlot).add(exec);
-                        targetNode.consumeResourcesforTask(exec, td);
-                        scheduledTasks.add(exec);
-                        LOG.debug("TASK {} assigned to Node: {} avail [mem: {} cpu: {}] total [mem: {} cpu: {}] on slot: {}", exec,
-                                targetNode, targetNode.getAvailableMemoryResources(),
-                                targetNode.getAvailableCpuResources(), targetNode.getTotalMemoryResources(),
-                                targetNode.getTotalCpuResources(), targetSlot);
-                    } else {
-                        LOG.error("Not Enough Resources to schedule Task {}", exec);
-                    }
+                    scheduleExecutor(exec, td, schedulerAssignmentMap, scheduledTasks);
                     it.remove();
                 }
             }
@@ -140,23 +124,7 @@ public class DefaultResourceAwareStrategy implements IStrategy {
         LOG.debug("/* Scheduling left over task (most likely sys tasks) */");
         // schedule left over system tasks
         for (ExecutorDetails exec : executorsNotScheduled) {
-            WorkerSlot targetSlot = this.findWorkerForExec(exec, td, schedulerAssignmentMap);
-            if (targetSlot != null) {
-                NodeDetails targetNode = this.idToNode(targetSlot.getNodeId());
-                if(!schedulerAssignmentMap.containsKey(targetSlot)) {
-                    schedulerAssignmentMap.put(targetSlot, new LinkedList<ExecutorDetails>());
-                }
-               
-                schedulerAssignmentMap.get(targetSlot).add(exec);
-                targetNode.consumeResourcesforTask(exec, td);
-                scheduledTasks.add(exec);
-                LOG.debug("TASK {} assigned to Node: {} avail [mem: {} cpu: {}] total [mem: {} cpu: {}] on slot: {}", exec,
-                        targetNode, targetNode.getAvailableMemoryResources(),
-                        targetNode.getAvailableCpuResources(), targetNode.getTotalMemoryResources(),
-                        targetNode.getTotalCpuResources(), targetSlot);
-            } else {
-                LOG.error("Not Enough Resources to schedule Task {}", exec);
-            }
+            scheduleExecutor(exec, td, schedulerAssignmentMap, scheduledTasks);
         }
 
         SchedulingResult result;
@@ -175,6 +143,27 @@ public class DefaultResourceAwareStrategy implements IStrategy {
             LOG.error("Topology {} not successfully scheduled!", td.getId());
         }
         return result;
+    }
+
+    private void scheduleExecutor(ExecutorDetails exec, TopologyDetails td, Map<WorkerSlot,
+            Collection<ExecutorDetails>> schedulerAssignmentMap, Collection<ExecutorDetails> scheduledTasks) {
+        WorkerSlot targetSlot = this.findWorkerForExec(exec, td, schedulerAssignmentMap);
+        if (targetSlot != null) {
+            NodeDetails targetNode = this.idToNode(targetSlot.getNodeId());
+            if (!schedulerAssignmentMap.containsKey(targetSlot)) {
+                schedulerAssignmentMap.put(targetSlot, new LinkedList<ExecutorDetails>());
+            }
+
+            schedulerAssignmentMap.get(targetSlot).add(exec);
+            targetNode.consumeResourcesforTask(exec, td);
+            scheduledTasks.add(exec);
+            LOG.debug("TASK {} assigned to Node: {} avail [mem: {} cpu: {}] total [mem: {} cpu: {}] on slot: {}", exec,
+                    targetNode, targetNode.getAvailableMemoryResources(),
+                    targetNode.getAvailableCpuResources(), targetNode.getTotalMemoryResources(),
+                    targetNode.getTotalCpuResources(), targetSlot);
+        } else {
+            LOG.error("Not Enough Resources to schedule Task {}", exec);
+        }
     }
 
     private WorkerSlot findWorkerForExec(ExecutorDetails exec, TopologyDetails td, Map<WorkerSlot, Collection<ExecutorDetails>> scheduleAssignmentMap) {

@@ -48,7 +48,7 @@ public class WorkerSlot {
     }
 
     public String getId() {
-        return this.getNodeId() + ":" + this.getPort();
+        return getNodeId() + ":" + getPort();
     }
 
     public double getAllocatedMemOnHeap() {

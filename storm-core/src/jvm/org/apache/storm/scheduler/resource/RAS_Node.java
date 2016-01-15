@@ -99,7 +99,7 @@ public class RAS_Node {
     }
 
     /**
-     * intializes resource usages on node
+     * initializes resource usages on node
      */
     private void intializeResources() {
         for (Entry<String, Map<String, Collection<ExecutorDetails>>> entry : _topIdToUsedSlots.entrySet()) {
@@ -204,7 +204,7 @@ public class RAS_Node {
     /**
      * Free all slots on this node.  This will update the Cluster too.
      */
-     public void freeAllSlots() {
+    public void freeAllSlots() {
         if (!_isAlive) {
             LOG.warn("Freeing all slots on a dead node {} ", _nodeId);
         }
@@ -269,7 +269,6 @@ public class RAS_Node {
             return 0.0;
         }
         Collection<ExecutorDetails> execs = getExecutors(ws, _cluster);
-        LOG.info("getMemoryUsedByWorker executors: {}", execs);
         double totalMemoryUsed = 0.0;
         for (ExecutorDetails exec : execs) {
             totalMemoryUsed += topo.getTotalMemReqTask(exec);

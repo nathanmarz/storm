@@ -31,7 +31,7 @@ public interface IStrategy {
     /**
      * initialize prior to scheduling
      */
-    public void prepare(ClusterStateData clusterStateData);
+    void prepare(ClusterStateData clusterStateData);
 
     /**
      * This method is invoked to calcuate a scheduling for topology td
@@ -41,5 +41,5 @@ public interface IStrategy {
      * this map is the worker slot that the value (collection of executors) should be assigned to.
      * if a scheduling is calculated successfully, put the scheduling map in the SchedulingResult object.
      */
-    public SchedulingResult schedule(TopologyDetails td);
+    SchedulingResult schedule(TopologyDetails td);
 }

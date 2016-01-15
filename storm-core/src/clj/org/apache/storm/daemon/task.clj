@@ -41,7 +41,7 @@
       (:component->sorted-tasks worker)
       (:component->stream->fields worker)
       (:storm-id worker)
-      (supervisor-storm-resources-path
+      (ConfigUtils/supervisorStormResourcesPath
         (ConfigUtils/supervisorStormDistRoot conf (:storm-id worker)))
       (worker-pids-root conf (:worker-id worker))
       (int %)

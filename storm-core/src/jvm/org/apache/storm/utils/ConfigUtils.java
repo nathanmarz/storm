@@ -338,9 +338,9 @@ public class ConfigUtils {
         return (ret + FILE_SEPARATOR + "stormjar.jar");
     }
 
+    /* Never get used TODO : may delete it*/
     public static String supervisorStormMetaFilePath(String stormRoot) {
         String ret = "";
-        // we do this since to concat a null String will actually concat a "null", which is not the expected: ""
         if (stormRoot != null) {
             ret = stormRoot;
         }
@@ -349,7 +349,6 @@ public class ConfigUtils {
 
     public static String supervisorStormCodePath(String stormRoot) {
         String ret = "";
-        // we do this since to concat a null String will actually concat a "null", which is not the expected: ""
         if (stormRoot != null) {
             ret = stormRoot;
         }
@@ -358,7 +357,6 @@ public class ConfigUtils {
 
     public static String supervisorStormConfPath(String stormRoot) {
         String ret = "";
-        // we do this since to concat a null String will actually concat a "null", which is not the expected: ""
         if (stormRoot != null) {
             ret = stormRoot;
         }

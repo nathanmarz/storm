@@ -353,8 +353,8 @@
   [conf storm-id]
   (let [stormroot (ConfigUtils/supervisorStormDistRoot conf storm-id)
         stormjarpath (ConfigUtils/supervisorStormJarPath stormroot)
-        stormcodepath (supervisor-stormcode-path stormroot)
-        stormconfpath (supervisor-stormconf-path stormroot)]
+        stormcodepath (ConfigUtils/supervisorStormCodePath stormroot)
+        stormconfpath (ConfigUtils/supervisorStormConfPath stormroot)]
     (and (every? exists-file? [stormroot stormconfpath stormcodepath])
          (or (ConfigUtils/isLocalMode conf)
              (exists-file? stormjarpath)))))
@@ -768,7 +768,7 @@
 (defserverfn mk-supervisor [conf shared-context ^ISupervisor isupervisor]
   (log-message "Starting Supervisor with conf " conf)
   (.prepare isupervisor conf (ConfigUtils/supervisorIsupervisorDir conf))
-  (FileUtils/cleanDirectory (File. (supervisor-tmp-dir conf)))
+  (FileUtils/cleanDirectory (File. (ConfigUtils/supervisorTmpDir conf)))
   (let [supervisor (supervisor-data conf shared-context isupervisor)
         [event-manager processes-event-manager :as managers] [(event/event-manager false) (event/event-manager false)]
         sync-processes (partial sync-processes supervisor)
@@ -926,7 +926,7 @@
 (defmethod download-storm-code
   :distributed [conf storm-id master-code-dir localizer]
   ;; Downloading to permanent location is atomic
-  (let [tmproot (str (supervisor-tmp-dir conf) file-path-separator (uuid))
+  (let [tmproot (str (ConfigUtils/supervisorTmpDir conf) file-path-separator (uuid))
         stormroot (ConfigUtils/supervisorStormDistRoot conf storm-id)
         blobstore (Utils/getClientBlobStoreForSupervisor conf)]
     (FileUtils/forceMkdir (File. tmproot))
@@ -937,14 +937,14 @@
     (Utils/downloadResourcesAsSupervisor (ConfigUtils/masterStormJarKey storm-id)
       (ConfigUtils/supervisorStormJarPath tmproot) blobstore)
     (Utils/downloadResourcesAsSupervisor (ConfigUtils/masterStormCodeKey storm-id)
-      (supervisor-stormcode-path tmproot) blobstore)
+      (ConfigUtils/supervisorStormCodePath tmproot) blobstore)
     (Utils/downloadResourcesAsSupervisor (ConfigUtils/masterStormConfKey storm-id)
-      (supervisor-stormconf-path tmproot) blobstore)
+      (ConfigUtils/supervisorStormConfPath tmproot) blobstore)
     (.shutdown blobstore)
     (extract-dir-from-jar (ConfigUtils/supervisorStormJarPath tmproot) RESOURCES-SUBDIR tmproot)
-    (download-blobs-for-topology! conf (supervisor-stormconf-path tmproot) localizer
+    (download-blobs-for-topology! conf (ConfigUtils/supervisorStormConfPath tmproot) localizer
       tmproot)
-    (if (download-blobs-for-topology-succeed? (supervisor-stormconf-path tmproot) tmproot)
+    (if (download-blobs-for-topology-succeed? (ConfigUtils/supervisorStormConfPath tmproot) tmproot)
       (do
         (log-message "Successfully downloaded blob resources for storm-id " storm-id)
         (FileUtils/forceMkdir (File. stormroot))
@@ -1148,13 +1148,13 @@
 
 (defmethod download-storm-code
   :local [conf storm-id master-code-dir localizer]
-  (let [tmproot (str (supervisor-tmp-dir conf) file-path-separator (uuid))
+  (let [tmproot (str (ConfigUtils/supervisorTmpDir conf) file-path-separator (uuid))
         stormroot (ConfigUtils/supervisorStormDistRoot conf storm-id)
         blob-store (Utils/getNimbusBlobStore conf master-code-dir nil)]
     (try
       (FileUtils/forceMkdir (File. tmproot))
-      (.readBlobTo blob-store (ConfigUtils/masterStormCodeKey storm-id) (FileOutputStream. (supervisor-stormcode-path tmproot)) nil)
-      (.readBlobTo blob-store (ConfigUtils/masterStormConfKey storm-id) (FileOutputStream. (supervisor-stormconf-path tmproot)) nil)
+      (.readBlobTo blob-store (ConfigUtils/masterStormCodeKey storm-id) (FileOutputStream. (ConfigUtils/supervisorStormCodePath tmproot)) nil)
+      (.readBlobTo blob-store (ConfigUtils/masterStormConfKey storm-id) (FileOutputStream. (ConfigUtils/supervisorStormConfPath tmproot)) nil)
       (finally
         (.shutdown blob-store)))
     (FileUtils/moveDirectory (File. tmproot) (File. stormroot))

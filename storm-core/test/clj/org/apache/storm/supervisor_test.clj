@@ -552,16 +552,16 @@
           fake-isupervisor (reify ISupervisor
                              (getSupervisorId [this] nil)
                              (getAssignmentId [this] nil))]
-      (stubbing [uptime-computer nil
+      (with-open [mock (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorState. {})]
+        (stubbing [uptime-computer nil
                  cluster/mk-storm-cluster-state nil
-                 supervisor-state nil
                  local-hostname nil
                  mk-timer nil
                  supervisor-local-dir nil]
-        (supervisor/supervisor-data auth-conf nil fake-isupervisor)
-        (verify-call-times-for cluster/mk-storm-cluster-state 1)
-        (verify-first-call-args-for-indices cluster/mk-storm-cluster-state [2]
-                                            expected-acls)))))
+          (supervisor/supervisor-data auth-conf nil fake-isupervisor)
+          (verify-call-times-for cluster/mk-storm-cluster-state 1)
+          (verify-first-call-args-for-indices cluster/mk-storm-cluster-state [2]
+                                              expected-acls))))))
 
 (deftest test-write-log-metadata
   (testing "supervisor writes correct data to logs metadata file"

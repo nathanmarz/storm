@@ -350,13 +350,13 @@
 
 (defn find-worker-id
   [supervisor-conf port]
-  (let [supervisor-state (supervisor-state supervisor-conf)
+  (let [supervisor-state (ConfigUtils/supervisorState supervisor-conf)
         worker->port (ls-approved-workers supervisor-state)]
     (first ((reverse-map worker->port) port))))
 
 (defn find-worker-port
   [supervisor-conf worker-id]
-  (let [supervisor-state (supervisor-state supervisor-conf)
+  (let [supervisor-state (ConfigUtils/supervisorState supervisor-conf)
         worker->port (ls-approved-workers supervisor-state)]
     (worker->port worker-id)))
 

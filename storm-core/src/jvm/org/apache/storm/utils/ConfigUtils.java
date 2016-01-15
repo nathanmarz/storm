@@ -378,11 +378,55 @@ public class ConfigUtils {
         return (ret + FILE_SEPARATOR + RESOURCES_SUBDIR);
     }
 
+    //For testing only
+    // for java
+    // try (SetMockedSupervisorState mocked = new SetMockedSupervisorState(conf)) {
+    //    run test ...
+    // }
+    //
+    // for clojure
+    // (with-open [mock (SetMockedSupervisorState. conf)]
+    //     run test ...)
+    public static class SetMockedSupervisorState implements Closeable {
+        public SetMockedSupervisorState(Map conf) {
+            mockedSupervisorState = conf;
+        }
+        @Override
+        public void close() {
+            mockedSupervisorState = null;
+        }
+    }
+    private static Map mockedSupervisorState = null;
     public static LocalState supervisorState(Map conf) throws IOException {
+        if (mockedSupervisorState != null) {
+            return null;
+        }
         return new LocalState((supervisorLocalDir(conf) + FILE_SEPARATOR + "localstate"));
     }
 
+    //For testing only
+    // for java
+    // try (SetMockedNimbusTopoHistoryState mocked = new SetMockedNimbusTopoHistoryState(conf)) {
+    //    run test ...
+    // }
+    //
+    // for clojure
+    // (with-open [mock (SetMockedNimbusTopoHistoryState. conf)]
+    //     run test ...)
+    public static class SetMockedNimbusTopoHistoryState implements Closeable {
+        public SetMockedNimbusTopoHistoryState(Map conf) {
+            mockedNimbusTopoHistoryState = conf;
+        }
+        @Override
+        public void close() {
+            mockedNimbusTopoHistoryState = null;
+        }
+    }
+    private static Map mockedNimbusTopoHistoryState = null;
     public static LocalState nimbusTopoHistoryState(Map conf) throws IOException {
+        if (mockedNimbusTopoHistoryState != null) {
+            return null;
+        }
         return new LocalState((masterLocalDir(conf) + FILE_SEPARATOR + "history"));
     }
 

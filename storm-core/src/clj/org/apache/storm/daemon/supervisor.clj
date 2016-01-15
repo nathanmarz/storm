@@ -324,7 +324,7 @@
                                                                        conf)
                                                                      SUPERVISOR-ZK-ACLS)
                                                         :context (ClusterStateContext. DaemonType/SUPERVISOR))
-   :local-state (supervisor-state conf)
+   :local-state (ConfigUtils/supervisorState conf)
    :supervisor-id (.getSupervisorId isupervisor)
    :assignment-id (.getAssignmentId isupervisor)
    :my-hostname (hostname conf)

@@ -200,7 +200,7 @@
      :id->resources (atom {}) ;;resources of topologies
      :cred-renewers (AuthUtils/GetCredentialRenewers conf)
      :topology-history-lock (Object.)
-     :topo-history-state (nimbus-topo-history-state conf)
+     :topo-history-state (ConfigUtils/nimbusTopoHistoryState conf)
      :nimbus-autocred-plugins (AuthUtils/getNimbusAutoCredPlugins conf)
      :nimbus-topology-action-notifier (create-tology-action-notifier conf)
      }))

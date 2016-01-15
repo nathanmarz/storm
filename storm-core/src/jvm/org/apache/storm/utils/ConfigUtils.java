@@ -430,7 +430,30 @@ public class ConfigUtils {
         return new LocalState((masterLocalDir(conf) + FILE_SEPARATOR + "history"));
     }
 
+    //For testing only
+    // for java
+    // try (SetMockedSupervisorStormConf mocked = new SetMockedSupervisorStormConf(conf)) {
+    //    run test ...
+    // }
+    //
+    // for clojure
+    // (with-open [mock (SetMockedSupervisorStormConf. conf)]
+    //     run test ...)
+    public static class SetMockedSupervisorStormConf implements Closeable {
+        public SetMockedSupervisorStormConf(Map conf) {
+            mockedSupervisorStormConf = conf;
+        }
+
+        @Override
+        public void close() {
+            mockedSupervisorStormConf = null;
+        }
+    }
+    private static Map mockedSupervisorStormConf = null;
     public static Map readSupervisorStormConf(Map conf, String stormId) throws IOException {
+        if (mockedSupervisorStormConf != null) {
+            return mockedSupervisorStormConf;
+        }
         String stormRoot = supervisorStormDistRoot(conf, stormId);
         String confPath = supervisorStormConfPath(stormRoot);
         return readSupervisorStormConfGivenPath(conf, confPath);

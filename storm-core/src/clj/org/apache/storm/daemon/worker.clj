@@ -590,7 +590,7 @@
   (def latest-log-config (atom {}))
   (def original-log-levels (atom {}))
 
-  (let [storm-conf (read-supervisor-storm-conf conf storm-id)
+  (let [storm-conf (clojurify-structure (ConfigUtils/readSupervisorStormConf conf storm-id))
         storm-conf (override-login-config-with-system-property storm-conf)
         acls (Utils/getWorkerACL storm-conf)
         cluster-state (cluster/mk-distributed-cluster-state conf :auth-conf storm-conf :acls acls :context (ClusterStateContext. DaemonType/WORKER))

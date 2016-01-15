@@ -472,7 +472,7 @@
 (defn remove-blob-references
   "Remove a reference to a blob when its no longer needed."
   [localizer storm-id conf]
-  (let [storm-conf (read-supervisor-storm-conf conf storm-id)
+  (let [storm-conf (clojurify-structure (ConfigUtils/readSupervisorStormConf conf storm-id))
         blobstore-map (storm-conf TOPOLOGY-BLOBSTORE-MAP)
         user (storm-conf TOPOLOGY-SUBMITTER-USER)
         topo-name (storm-conf TOPOLOGY-NAME)]
@@ -495,7 +495,7 @@
   "For each of the downloaded topologies, adds references to the blobs that the topologies are
   using. This is used to reconstruct the cache on restart."
   [localizer storm-id conf]
-  (let [storm-conf (read-supervisor-storm-conf conf storm-id)
+  (let [storm-conf (clojurify-structure (ConfigUtils/readSupervisorStormConf conf storm-id))
         blobstore-map (storm-conf TOPOLOGY-BLOBSTORE-MAP)
         user (storm-conf TOPOLOGY-SUBMITTER-USER)
         topo-name (storm-conf TOPOLOGY-NAME)
@@ -613,7 +613,7 @@
   "Update each blob listed in the topology configuration if the latest version of the blob
    has not been downloaded."
   [conf storm-id localizer]
-  (let [storm-conf (read-supervisor-storm-conf conf storm-id)
+  (let [storm-conf (clojurify-structure (ConfigUtils/readSupervisorStormConf conf storm-id))
         blobstore-map (storm-conf TOPOLOGY-BLOBSTORE-MAP)
         user (storm-conf TOPOLOGY-SUBMITTER-USER)
         localresources (blobstore-map-to-localresources blobstore-map)]
@@ -724,7 +724,7 @@
                       action ^ProfileAction (:action pro-action)
                       stop? (> (System/currentTimeMillis) (:timestamp pro-action))
                       target-dir (worker-artifacts-root conf storm-id port)
-                      storm-conf (read-supervisor-storm-conf conf storm-id)
+                      storm-conf (clojurify-structure (ConfigUtils/readSupervisorStormConf conf storm-id))
                       user (storm-conf TOPOLOGY-SUBMITTER-USER)
                       environment (if-let [env (storm-conf TOPOLOGY-ENVIRONMENT)] env {})
                       worker-pid (slurp (worker-artifacts-pid-path conf storm-id port))
@@ -950,7 +950,7 @@
         (FileUtils/forceMkdir (File. stormroot))
         (Files/move (.toPath (File. tmproot)) (.toPath (File. stormroot))
           (doto (make-array StandardCopyOption 1) (aset 0 StandardCopyOption/ATOMIC_MOVE)))
-        (setup-storm-code-dir conf (read-supervisor-storm-conf conf storm-id) stormroot))
+        (setup-storm-code-dir conf (clojurify-structure (ConfigUtils/readSupervisorStormConf conf storm-id)) stormroot))
       (do
         (log-message "Failed to download blob resources for storm-id " storm-id)
         (rmr tmproot)))))
@@ -962,7 +962,10 @@
     (when (not (.exists (.getParentFile file)))
       (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
         (do (FileUtils/forceMkdir (.getParentFile file))
-            (setup-storm-code-dir conf (read-supervisor-storm-conf conf storm-id) (.getCanonicalPath (.getParentFile file))))
+            (setup-storm-code-dir
+              conf
+              (clojurify-structure (ConfigUtils/readSupervisorStormConf conf storm-id))
+              (.getCanonicalPath (.getParentFile file))))
         (.mkdirs (.getParentFile file))))
     (let [writer (java.io.FileWriter. file)
           yaml (Yaml.)]
@@ -1013,7 +1016,7 @@
   "Create symlinks in worker launch directory for all blobs"
   [conf storm-id worker-id]
   (let [stormroot (ConfigUtils/supervisorStormDistRoot conf storm-id)
-        storm-conf (read-supervisor-storm-conf conf storm-id)
+        storm-conf (clojurify-structure (ConfigUtils/readSupervisorStormConf conf storm-id))
         workerroot (worker-root conf worker-id)
         blobstore-map (storm-conf TOPOLOGY-BLOBSTORE-MAP)
         blob-file-names (get-blob-file-names blobstore-map)
@@ -1053,7 +1056,7 @@
           jlp (jlp stormroot conf)
           stormjar (ConfigUtils/supervisorStormJarPath stormroot)
           _ (log-message "zliu stormjar: " stormjar)
-          storm-conf (read-supervisor-storm-conf conf storm-id)
+          storm-conf (clojurify-structure (ConfigUtils/readSupervisorStormConf conf storm-id))
           topo-classpath (if-let [cp (storm-conf TOPOLOGY-CLASSPATH)]
                            [cp]
                            [])
@@ -1158,7 +1161,7 @@
       (finally
         (.shutdown blob-store)))
     (FileUtils/moveDirectory (File. tmproot) (File. stormroot))
-    (setup-storm-code-dir conf (read-supervisor-storm-conf conf storm-id) stormroot)
+    (setup-storm-code-dir conf (clojurify-structure (ConfigUtils/readSupervisorStormConf conf storm-id)) stormroot)
     (let [classloader (.getContextClassLoader (Thread/currentThread))
           resources-jar (resources-jar)
           url (.getResource classloader RESOURCES-SUBDIR)

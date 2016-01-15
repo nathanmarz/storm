@@ -1,4 +1,5 @@
 ## 1.0.0
+ * STORM-1470: Applies shading to hadoop-auth, cleaner exclusions
  * STORM-1467: Switch apache-rat plugin off by default, but enable for Travis-CI
  * STORM-1468: move documentation to asf-site branch
  * STORM-1199: HDFS Spout Implementation.

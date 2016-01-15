@@ -1,5 +1,6 @@
 ## 2.0.0
 ## 1.0.0
+ * STORM-1468: move documentation to asf-site branch
  * STORM-1199: HDFS Spout Implementation.
  * STORM-1453: nimbus.clj/wait-for-desired-code-replication prints wrong log message
  * STORM-1419: Solr bolt should handle tick tuples

@@ -94,6 +94,7 @@ public class RedisStoreBolt extends AbstractRedisBolt {
 
                 case SORTED_SET:
                     jedisCommand.zadd(additionalKey, Double.valueOf(value), key);
+                    break;
 
                 case HYPER_LOG_LOG:
                     jedisCommand.pfadd(key, value);

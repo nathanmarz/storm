@@ -126,7 +126,7 @@
   )
 
 (defn read-worker-heartbeat [conf id]
-  (let [local-state (worker-state conf id)]
+  (let [local-state (ConfigUtils/workerState conf id)]
     (try
       (ls-worker-heartbeat local-state)
       (catch Exception e
@@ -135,12 +135,13 @@
 
 
 (defn my-worker-ids [conf]
-  (read-dir-contents (worker-root conf)))
+  (filter #(not= "null" %) (read-dir-contents (ConfigUtils/workerRoot conf))))
 
 (defn read-worker-heartbeats
   "Returns map from worker id to heartbeat"
   [conf]
-  (let [ids (my-worker-ids conf)]
+  (let [ids (my-worker-ids conf)
+        _ (log-message "zliu my-worker-ids are" (prn-str ids))]
     (into {}
       (dofor [id ids]
         [id (read-worker-heartbeat conf id)]))
@@ -172,7 +173,9 @@
   (let [conf (:conf supervisor)
         ^LocalState local-state (:local-state supervisor)
         id->heartbeat (read-worker-heartbeats conf)
-        approved-ids (set (keys (ls-approved-workers local-state)))]
+        _ (log-message "zliu id->heartbeat is:" (prn-str id->heartbeat))
+        approved-ids (set (keys (ls-approved-workers local-state)))
+        _ (log-message "zliu approved-ids is:" (prn-str approved-ids))]
     (into
      {}
      (dofor [[id hb] id->heartbeat]
@@ -196,7 +199,7 @@
      )))
 
 (defn- wait-for-worker-launch [conf id start-time]
-  (let [state (worker-state conf id)]
+  (let [state (ConfigUtils/workerState conf id)]
     (loop []
       (let [hb (ls-worker-heartbeat state)]
         (when (and
@@ -258,16 +261,16 @@
 
 (defn try-cleanup-worker [conf id]
   (try
-    (if (.exists (File. (worker-root conf id)))
+    (if (.exists (File. (ConfigUtils/workerRoot conf id)))
       (do
         (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
-          (rmr-as-user conf id (worker-root conf id))
+          (rmr-as-user conf id (ConfigUtils/workerRoot conf id))
           (do
-            (rmr (worker-heartbeats-root conf id))
+            (rmr (ConfigUtils/workerHeartbeatsRoot conf id))
             ;; this avoids a race condition with worker or subprocess writing pid around same time
-            (rmr (worker-pids-root conf id))
-            (rmr (worker-root conf id))))
-        (remove-worker-user! conf id)
+            (rmr (ConfigUtils/workerPidsRoot conf id))
+            (rmr (ConfigUtils/workerRoot conf id))))
+        (ConfigUtils/removeWorkerUserWSE conf id)
         (remove-dead-worker id)
       ))
   (catch IOException e
@@ -281,11 +284,12 @@
 (defn shutdown-worker [supervisor id]
   (log-message "Shutting down " (:supervisor-id supervisor) ":" id)
   (let [conf (:conf supervisor)
-        pids (read-dir-contents (worker-pids-root conf id))
+        pids (read-dir-contents (ConfigUtils/workerPidsRoot conf id))
+        _ (log-message "zliu pids are:" (pr-str pids) ", worker-pids-root is:" (ConfigUtils/workerPidsRoot conf id))
         thread-pid (@(:worker-thread-pids-atom supervisor) id)
         shutdown-sleep-secs (conf SUPERVISOR-WORKER-SHUTDOWN-SLEEP-SECS)
         as-user (conf SUPERVISOR-RUN-WORKER-AS-USER)
-        user (get-worker-user conf id)]
+        user (ConfigUtils/getWorkerUser conf id)]
     (when thread-pid
       (psim/kill-process thread-pid))
     (doseq [pid pids]
@@ -300,9 +304,9 @@
         (worker-launcher-and-wait conf user ["signal" pid "9"] :log-prefix (str "kill -9 " pid))
         (force-kill-process pid))
       (if as-user
-        (rmr-as-user conf id (worker-pid-path conf id pid))
+        (rmr-as-user conf id (ConfigUtils/workerPidPath conf id pid))
         (try
-          (rmpath (worker-pid-path conf id pid))
+          (rmpath (ConfigUtils/workerPidPath conf id pid))
           (catch Exception e)))) ;; on windows, the supervisor may still holds the lock on the worker directory
     (try-cleanup-worker conf id))
   (log-message "Shut down " (:supervisor-id supervisor) ":" id))
@@ -378,8 +382,9 @@
             (do
               (log-message "Launching worker with assignment "
                 (get-worker-assignment-helper-msg assignment supervisor port id))
-              (local-mkdirs (worker-pids-root conf id))
-              (local-mkdirs (worker-heartbeats-root conf id))
+              (local-mkdirs (ConfigUtils/workerPidsRoot conf id))
+              (log-message "zliu create worker heartbeatroot as " (ConfigUtils/workerHeartbeatsRoot conf id))
+              (local-mkdirs (ConfigUtils/workerHeartbeatsRoot conf id))
               (launch-worker supervisor
                 (:storm-id assignment)
                 port
@@ -396,6 +401,9 @@
         ^LocalState local-state (:local-state supervisor)
         storm-cluster-state (:storm-cluster-state supervisor)
         assigned-executors (defaulted (ls-local-assignments local-state) {})
+        _ (log-message "zliu storm-cluster-state is " (prn-str storm-cluster-state))
+        _ (log-message "zliu local-state is " (prn-str local-state))
+        _ (log-message "zliu assigned-executors is " (prn-str assigned-executors))
         now (current-time-secs)
         allocated (read-allocated-workers supervisor assigned-executors now)
         keepers (filter-val
@@ -420,6 +428,9 @@
     (log-debug "Syncing processes")
     (log-debug "Assigned executors: " assigned-executors)
     (log-debug "Allocated: " allocated)
+    (log-message "zliu Syncing processes")
+    (log-message "zliu allocated is " (prn-str allocated))
+    (log-message "zliu new-worker-ids is " (prn-str new-worker-ids))
     (doseq [[id [state heartbeat]] allocated]
       (when (not= :valid state)
         (log-message
@@ -1017,7 +1028,7 @@
   [conf storm-id worker-id]
   (let [stormroot (ConfigUtils/supervisorStormDistRoot conf storm-id)
         storm-conf (clojurify-structure (ConfigUtils/readSupervisorStormConf conf storm-id))
-        workerroot (worker-root conf worker-id)
+        workerroot (ConfigUtils/workerRoot conf worker-id)
         blobstore-map (storm-conf TOPOLOGY-BLOBSTORE-MAP)
         blob-file-names (get-blob-file-names blobstore-map)
         resource-file-names (cons RESOURCES-SUBDIR blob-file-names)]
@@ -1030,7 +1041,7 @@
 (defn create-artifacts-link
   "Create a symlink from workder directory to its port artifacts directory"
   [conf storm-id port worker-id]
-  (let [worker-dir (worker-root conf worker-id)
+  (let [worker-dir (ConfigUtils/workerRoot conf worker-id)
         topo-dir (worker-artifacts-root conf storm-id)]
     (log-message "Creating symlinks for worker-id: " worker-id " storm-id: "
                  storm-id " to its port artifacts directory")
@@ -1127,13 +1138,13 @@
           command (->> command (map str) (filter (complement empty?)))]
       (log-message "Launching worker with command: " (shell-cmd command))
       (write-log-metadata! storm-conf user worker-id storm-id port conf)
-      (set-worker-user! conf worker-id user)
+      (ConfigUtils/setWorkerUserWSE conf worker-id user)
       (create-artifacts-link conf storm-id port worker-id)
       (let [log-prefix (str "Worker Process " worker-id)
             callback (fn [exit-code]
                        (log-message log-prefix " exited with code: " exit-code)
                        (add-dead-worker worker-id))
-            worker-dir (worker-root conf worker-id)]
+            worker-dir (ConfigUtils/workerRoot conf worker-id)]
         (remove-dead-worker worker-id)
         (create-blobstore-links conf storm-id worker-id)
         (if run-worker-as-user
@@ -1186,7 +1197,7 @@
                                    (:assignment-id supervisor)
                                    port
                                    worker-id)]
-      (set-worker-user! conf worker-id "")
+      (ConfigUtils/setWorkerUserWSE conf worker-id "")
       (psim/register-process pid worker)
       (swap! (:worker-thread-pids-atom supervisor) assoc worker-id pid)
       ))

@@ -21,15 +21,11 @@ package org.apache.storm.utils;
 import org.apache.storm.Config;
 import org.apache.storm.validation.ConfigValidation;
 import org.apache.storm.generated.StormTopology;
-import org.apache.storm.utils.LocalState;
-import org.apache.storm.utils.Utils;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -469,13 +465,16 @@ public class ConfigUtils {
         return (absoluteStormLocalDir(conf) + FILE_SEPARATOR + "/workers-users");
     }
 
+    /* Never get used TODO : may delete it*/
     public static String workerUserFile(Map conf, String workerId) {
         return (workerUserRoot(conf) + FILE_SEPARATOR + workerId);
     }
 
-    public static String getWorkerUser(Map conf, String workerId) throws IOException {
+    public static String getWorkerUser(Map conf, String workerId) {
         LOG.info("GET worker-user for {}", workerId);
         File file = new File(workerUserFile(conf, workerId));
+        //LOG.info("zliu to read access worker user file: " + (file.getCanonicalPath()));
+        LOG.info("zliu this file is existed?" + file.exists());
 
         try (InputStream in = new FileInputStream(file);
              Reader reader = new InputStreamReader(in);
@@ -488,6 +487,9 @@ public class ConfigUtils {
             }
             String ret = sb.toString().trim();
             return ret;
+        } catch (IOException e) {
+            LOG.error("Failed to get worker user for " + workerId + ".");
+            return null;
         }
     }
 
@@ -504,9 +506,33 @@ public class ConfigUtils {
         return ret;
     }
 
+    //For testing only
+    // for java
+    // try (SetMockedWorkerUserWSE mocked = new SetMockedWorkerUserWSE(conf)) {
+    //    run test ...
+    // }
+    //
+    // for clojure
+    // (with-open [mock (SetMockedWorkerUserWSE. conf)]
+    //     run test ...)
+    public static class SetMockedWorkerUserWSE implements Closeable {
+        public SetMockedWorkerUserWSE(Map conf) {
+            mockedWorkerUserWSE = conf;
+        }
+
+        @Override
+        public void close() {
+            mockedWorkerUserWSE = null;
+        }
+    }
+    private static Map mockedWorkerUserWSE = null;
     public static void setWorkerUserWSE(Map conf, String workerId, String user) throws IOException {
+        if (mockedWorkerUserWSE != null) {
+            return;
+        }
         LOG.info("SET worker-user {} {}", workerId, user);
         File file = new File(workerUserFile(conf, workerId));
+        LOG.info("zliu  SET worker-user to create worker file:" + file.getCanonicalPath());
         file.getParentFile().mkdirs();
 
         try (FileWriter fw = new FileWriter(file);
@@ -562,6 +588,9 @@ public class ConfigUtils {
     }
 
     public static String workerRoot(Map conf) {
+        LOG.info("zliu workers root's current listFiles are:");
+        File r = new File((absoluteStormLocalDir(conf) + FILE_SEPARATOR + "workers")); //TODO delete me
+        if (r.exists()) for (File f : r.listFiles()) {LOG.info(f.getName());} //TODO delete me
         return (absoluteStormLocalDir(conf) + FILE_SEPARATOR + "workers");
     }
 
@@ -573,16 +602,16 @@ public class ConfigUtils {
         return (workerRoot(conf, id) + FILE_SEPARATOR + "pids");
     }
 
-    public static String workerPidsRoot(Map conf, String id, String pid) {
+    public static String workerPidPath(Map conf, String id, String pid) {
         return (workerPidsRoot(conf, id) + FILE_SEPARATOR + pid);
     }
 
-    public static String workerHeartbeatRoot(Map conf, String id) {
+    public static String workerHeartbeatsRoot(Map conf, String id) {
         return (workerRoot(conf, id) + FILE_SEPARATOR + "heartbeats");
     }
 
     public static LocalState workerState(Map conf, String id) throws IOException {
-        return new LocalState(workerHeartbeatRoot(conf, id));
+        return new LocalState(workerHeartbeatsRoot(conf, id));
     }
 
     public static void overrideLoginConfigWithSystemProperty(Map conf) { // note that we delete the return value

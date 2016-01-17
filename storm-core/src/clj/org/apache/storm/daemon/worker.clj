@@ -77,7 +77,7 @@
 
 (defn do-heartbeat [worker]
   (let [conf (:conf worker)
-        state (worker-state conf (:worker-id worker))]
+        state (ConfigUtils/workerState conf (:worker-id worker))]
     ;; do the local-file-system heartbeat.
     (ls-worker-heartbeat! state (current-time-secs) (:storm-id worker) (:executors worker) (:port worker))
     (.cleanup state 60) ; this is just in case supervisor is down so that disk doesn't fill up.
@@ -252,7 +252,7 @@
                                (mapcat (fn [[e queue]] (for [t (executor-id->tasks e)] [t queue])))
                                (into {}))
 
-        topology (read-supervisor-topology conf storm-id)
+        topology (ConfigUtils/readSupervisorTopology conf storm-id)
         mq-context  (if mq-context
                       mq-context
                       (TransportFactory/makeContext storm-conf))]
@@ -581,7 +581,7 @@
   ;; process. supervisor will register it in this case
   (when (= :distributed (ConfigUtils/clusterMode conf))
     (let [pid (process-pid)]
-      (touch (worker-pid-path conf worker-id pid))
+      (touch (ConfigUtils/workerPidPath conf worker-id pid))
       (spit (worker-artifacts-pid-path conf storm-id port) pid)))
 
   (declare establish-log-setting-callback)

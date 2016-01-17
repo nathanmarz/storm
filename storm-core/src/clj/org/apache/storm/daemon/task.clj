@@ -43,7 +43,7 @@
       (:storm-id worker)
       (ConfigUtils/supervisorStormResourcesPath
         (ConfigUtils/supervisorStormDistRoot conf (:storm-id worker)))
-      (worker-pids-root conf (:worker-id worker))
+      (ConfigUtils/workerPidsRoot conf (:worker-id worker))
       (int %)
       (:port worker)
       (:task-ids worker)

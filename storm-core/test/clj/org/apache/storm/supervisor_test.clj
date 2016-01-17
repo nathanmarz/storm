@@ -320,10 +320,10 @@
               mocked-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
                                             topo-string-opts}]
           (with-open [mock1 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorStormDistRoot. {})
-                      mock2 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorStormConf. mocked-supervisor-storm-conf)]
+                      mock2 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorStormConf. mocked-supervisor-storm-conf)
+                      mock3 (org.apache.storm.utils.ConfigUtils$SetMockedWorkerUserWSE. {})]
               (stubbing [add-to-classpath mock-cp
                      launch-process nil
-                     set-worker-user! nil
                      supervisor/jlp nil
                      worker-artifacts-root "/tmp/workers-artifacts"
                      supervisor/write-log-metadata! nil
@@ -346,10 +346,10 @@
               mocked-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
                                             topo-list-opts}]
             (with-open [mock1 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorStormDistRoot. {})
-                        mock2 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorStormConf. mocked-supervisor-storm-conf)]
+                        mock2 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorStormConf. mocked-supervisor-storm-conf)
+                        mock3 (org.apache.storm.utils.ConfigUtils$SetMockedWorkerUserWSE. {})]
                 (stubbing [add-to-classpath mock-cp
                      launch-process nil
-                     set-worker-user! nil
                      supervisor/jlp nil
                      supervisor/write-log-metadata! nil
                      supervisor/create-blobstore-links nil
@@ -369,10 +369,10 @@
               mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed}}
               mocked-supervisor-storm-conf {TOPOLOGY-CLASSPATH topo-cp}]
           (with-open [mock1 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorStormDistRoot. {})
-                      mock2 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorStormConf. mocked-supervisor-storm-conf)]
+                      mock2 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorStormConf. mocked-supervisor-storm-conf)
+                      mock3 (org.apache.storm.utils.ConfigUtils$SetMockedWorkerUserWSE. {})]
                 (stubbing [supervisor/jlp nil
                      worker-artifacts-root "/tmp/workers-artifacts"
-                     set-worker-user! nil
                      supervisor/write-log-metadata! nil
                      launch-process nil
                      current-classpath (str file-path-separator "base")
@@ -393,11 +393,11 @@
               mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed}}
               mocked-supervisor-storm-conf {TOPOLOGY-ENVIRONMENT topo-env}]
           (with-open [mock1 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorStormDistRoot. {})
-                      mock2 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorStormConf. mocked-supervisor-storm-conf)]
+                      mock2 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorStormConf. mocked-supervisor-storm-conf)
+                      mock3 (org.apache.storm.utils.ConfigUtils$SetMockedWorkerUserWSE. {})]
             (stubbing [supervisor/jlp nil
                      worker-artifacts-root "/tmp/workers-artifacts"
                      launch-process nil
-                     set-worker-user! nil
                      supervisor/write-log-metadata! nil
                      current-classpath (str file-path-separator "base")
                      supervisor/create-blobstore-links nil]
@@ -476,10 +476,10 @@
                                               topo-string-opts
                                               TOPOLOGY-SUBMITTER-USER "me"}]
             (with-open [mock1 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorStormDistRoot. {})
-                        mock2 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorStormConf. mocked-supervisor-storm-conf)]
+                        mock2 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorStormConf. mocked-supervisor-storm-conf)
+                        mock3 (org.apache.storm.utils.ConfigUtils$SetMockedWorkerUserWSE. {})]
               (stubbing [add-to-classpath mock-cp
                        launch-process nil
-                       set-worker-user! nil
                        supervisor/java-cmd "java"
                        supervisor/jlp nil
                        supervisor/write-log-metadata! nil]
@@ -508,10 +508,10 @@
                                                                       topo-list-opts
                                                                       TOPOLOGY-SUBMITTER-USER "me"}]
             (with-open [mock1 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorStormDistRoot. {})
-                        mock2 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorStormConf. mocked-supervisor-storm-conf)]
+                        mock2 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorStormConf. mocked-supervisor-storm-conf)
+                        mock3 (org.apache.storm.utils.ConfigUtils$SetMockedWorkerUserWSE. {})]
               (stubbing [add-to-classpath mock-cp
                        launch-process nil
-                       set-worker-user! nil
                        supervisor/java-cmd "java"
                        supervisor/jlp nil
                        supervisor/write-log-metadata! nil]

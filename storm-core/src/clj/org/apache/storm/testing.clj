@@ -345,7 +345,7 @@
     (let [supervisor-id (:supervisor-id supervisor)
           conf (:conf supervisor)
           existing (get @capture-atom [supervisor-id port] [])]
-      (set-worker-user! conf worker-id "")
+      (ConfigUtils/setWorkerUserWSE conf worker-id "")
       (swap! capture-atom assoc [supervisor-id port] (conj existing storm-id)))))
 
 (defn find-worker-id

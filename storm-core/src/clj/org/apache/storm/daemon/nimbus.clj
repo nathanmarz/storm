@@ -1040,7 +1040,7 @@
 
 (defn code-ids [blob-store]
   (let [to-id (reify KeyFilter
-                (filter [this key] (get-id-from-blob-key key)))]
+                (filter [this key] (ConfigUtils/getIdFromBlobKey key)))]
     (set (.filterAndListKeys blob-store to-id))))
 
 (defn cleanup-storm-ids [conf storm-cluster-state blob-store]

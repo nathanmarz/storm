@@ -651,20 +651,23 @@ public class ConfigUtils {
         return conf;
     }
 
-
+    /* TODO: make sure test these two functions in manual tests */
     public List<String> getTopoLogsUsers(Map topologyConf) {
         List<String> logsUsers = (List<String>)topologyConf.get(Config.LOGS_USERS);
-        // TODO: can we do force type trans? how about "userA, userB" format
         List<String> topologyUsers = (List<String>)topologyConf.get(Config.TOPOLOGY_USERS);
         Set<String> mergedUsers = new HashSet<String>();
-        for (String user : logsUsers) {
-            if (!user.equals("null")) {
-                mergedUsers.add(user);
+        if (logsUsers != null) {
+            for (String user : logsUsers) {
+                if (user != null) {
+                    mergedUsers.add(user);
+                }
             }
         }
-        for (String user : topologyUsers) {
-            if (!user.equals("null")) {
-                mergedUsers.add(user);
+        if (topologyUsers != null) {
+            for (String user : topologyUsers) {
+                if (user != null) {
+                    mergedUsers.add(user);
+                }
             }
         }
         List<String> ret = new ArrayList<String>(mergedUsers);
@@ -675,17 +678,20 @@ public class ConfigUtils {
 
     public List<String> getTopoLogsGroups(Map topologyConf) {
         List<String> logsGroups = (List<String>)topologyConf.get(Config.LOGS_GROUPS);
-        // TODO: can we do force type trans? how about "groupA, groupB" format // better tested it by changes at called side
         List<String> topologyGroups = (List<String>)topologyConf.get(Config.TOPOLOGY_GROUPS);
         Set<String> mergedGroups = new HashSet<String>();
-        for (String user : logsGroups) {
-            if (!user.equals("null")) {
-                mergedGroups.add(user);
+        if (logsGroups != null) {
+            for (String group : logsGroups) {
+                if (group != null) {
+                    mergedGroups.add(group);
+                }
             }
         }
-        for (String user : topologyGroups) {
-            if (!user.equals("null")) {
-                mergedGroups.add(user);
+        if (topologyGroups != null) {
+            for (String group : topologyGroups) {
+                if (group != null) {
+                    mergedGroups.add(group);
+                }
             }
         }
         List<String> ret = new ArrayList<String>(mergedGroups);

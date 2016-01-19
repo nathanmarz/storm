@@ -39,7 +39,6 @@ import javax.security.sasl.AuthorizeCallback;
 import javax.security.sasl.Sasl;
 import javax.security.sasl.SaslException;
 import javax.security.sasl.SaslServer;
-import org.apache.zookeeper.Login;
 import org.apache.zookeeper.server.auth.KerberosName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,7 +77,7 @@ class KerberosSaslNettyServer {
             Configuration.setConfiguration(login_conf);
             //now login
             LOG.debug("Trying to login.");
-            Login login = new Login(jaas_section, ch);
+            ZookeeperSaslLogin login = new ZookeeperSaslLogin(jaas_section, ch);
             subject = login.getSubject();
             LOG.debug("Got Subject: {}", subject.toString());
         } catch (LoginException ex) {

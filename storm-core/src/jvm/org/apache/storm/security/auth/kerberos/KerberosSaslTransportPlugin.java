@@ -33,13 +33,13 @@ import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
 import javax.security.sasl.Sasl;
 
+import org.apache.storm.messaging.netty.ZookeeperSaslLogin;
 import org.apache.commons.lang.StringUtils;
 import org.apache.thrift.transport.TSaslClientTransport;
 import org.apache.thrift.transport.TSaslServerTransport;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.thrift.transport.TTransportFactory;
-import org.apache.zookeeper.Login;
 import org.apache.zookeeper.server.auth.KerberosName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,7 +61,7 @@ public class KerberosSaslTransportPlugin extends SaslTransportPlugin {
             //specify a configuration object to be used
             Configuration.setConfiguration(login_conf); 
             //now login
-            Login login = new Login(AuthUtils.LOGIN_CONTEXT_SERVER, server_callback_handler);
+            ZookeeperSaslLogin login = new ZookeeperSaslLogin(AuthUtils.LOGIN_CONTEXT_SERVER, server_callback_handler);
             subject = login.getSubject();
         } catch (LoginException ex) {
             LOG.error("Server failed to login in principal:" + ex, ex);
@@ -100,12 +100,12 @@ public class KerberosSaslTransportPlugin extends SaslTransportPlugin {
         ClientCallbackHandler client_callback_handler = new ClientCallbackHandler(login_conf);
         
         //login our user
-        Login login = null;
+        ZookeeperSaslLogin login = null;
         try { 
             //specify a configuration object to be used
             Configuration.setConfiguration(login_conf); 
             //now login
-            login  = new Login(AuthUtils.LOGIN_CONTEXT_CLIENT, client_callback_handler);
+            login  = new ZookeeperSaslLogin(AuthUtils.LOGIN_CONTEXT_CLIENT, client_callback_handler);
         } catch (LoginException ex) {
             LOG.error("Server failed to login in principal:" + ex, ex);
             throw new RuntimeException(ex);

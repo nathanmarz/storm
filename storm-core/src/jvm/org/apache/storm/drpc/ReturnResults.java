@@ -83,35 +83,40 @@ public class ReturnResults extends BaseRichBolt {
                 client = _clients.get(server);
             }
  
-            try {
-                client.result(id, result);
-                _collector.ack(input);
-            } catch (AuthorizationException aze) {
-                LOG.error("Not authorized to return results to DRPC server", aze);
-                _collector.fail(input);
-                if (client instanceof DRPCInvocationsClient) {
-                    try {
-                        LOG.info("reconnecting... ");
-                        ((DRPCInvocationsClient)client).reconnectClient(); //Blocking call
-                    } catch (TException e2) {
-                        throw new RuntimeException(e2);
+
+            int retryCnt = 0;
+            int maxRetries = 3;
+            while (retryCnt < maxRetries) {
+                retryCnt++;
+                try {
+                    client.result(id, result);
+                    _collector.ack(input);
+                    break;
+                } catch (AuthorizationException aze) {
+                    LOG.error("Not authorized to return results to DRPC server", aze);
+                    _collector.fail(input);
+                    throw new RuntimeException(aze);
+                } catch (TException tex) {
+                    if (retryCnt >= maxRetries) {
+                        LOG.error("Failed to return results to DRPC server", tex);
+                        _collector.fail(input);
                     }
-                }
-            } catch(TException e) {
-                LOG.error("Failed to return results to DRPC server", e);
-                _collector.fail(input);
-                if (client instanceof DRPCInvocationsClient) {
-                    try {
-                        LOG.info("reconnecting... ");
-                        ((DRPCInvocationsClient)client).reconnectClient(); //Blocking call
-                    } catch (TException e2) {
-                        throw new RuntimeException(e2);
-                    }
+                    reconnectClient((DRPCInvocationsClient) client);
                 }
             }
         }
     }    
 
+    private void reconnectClient(DRPCInvocationsClient client) {
+        if (client instanceof DRPCInvocationsClient) {
+            try {
+                LOG.info("reconnecting... ");
+                client.reconnectClient(); //Blocking call
+            } catch (TException e2) {
+                LOG.error("Failed to connect to DRPC server", e2);
+            }
+        }
+    }
     @Override
     public void cleanup() {
         for(DRPCInvocationsClient c: _clients.values()) {

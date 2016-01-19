@@ -17,9 +17,23 @@
  */
 package org.apache.storm.kafka;
 
-import org.apache.storm.metric.api.IMetric;
-import org.apache.storm.utils.Utils;
 import com.google.common.base.Preconditions;
+
+import org.apache.storm.kafka.trident.GlobalPartitionInformation;
+import org.apache.storm.kafka.trident.IBrokerReader;
+import org.apache.storm.kafka.trident.StaticBrokerReader;
+import org.apache.storm.kafka.trident.ZkBrokerReader;
+import org.apache.storm.metric.api.IMetric;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.net.ConnectException;
+import java.net.SocketTimeoutException;
+import java.nio.ByteBuffer;
+import java.nio.channels.UnresolvedAddressException;
+import java.util.*;
+
 import kafka.api.FetchRequest;
 import kafka.api.FetchRequestBuilder;
 import kafka.api.PartitionOffsetRequestInfo;
@@ -29,19 +43,6 @@ import kafka.javaapi.OffsetRequest;
 import kafka.javaapi.consumer.SimpleConsumer;
 import kafka.javaapi.message.ByteBufferMessageSet;
 import kafka.message.Message;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.apache.storm.kafka.trident.GlobalPartitionInformation;
-import org.apache.storm.kafka.trident.IBrokerReader;
-import org.apache.storm.kafka.trident.StaticBrokerReader;
-import org.apache.storm.kafka.trident.ZkBrokerReader;
-
-import java.io.IOException;
-import java.net.ConnectException;
-import java.net.SocketTimeoutException;
-import java.nio.ByteBuffer;
-import java.nio.channels.UnresolvedAddressException;
-import java.util.*;
 
 
 public class KafkaUtils {
@@ -80,7 +81,7 @@ public class KafkaUtils {
     }
 
     public static class KafkaOffsetMetric implements IMetric {
-        Map<Partition, Long> _partitionToOffset = new HashMap<Partition, Long>();
+        Map<Partition, PartitionManager.OffsetData> _partitionToOffset = new HashMap<Partition, PartitionManager.OffsetData>();
         Set<Partition> _partitions;
         DynamicPartitionConnections _connections;
 
@@ -88,8 +89,8 @@ public class KafkaUtils {
             _connections = connections;
         }
 
-        public void setLatestEmittedOffset(Partition partition, long offset) {
-            _partitionToOffset.put(partition, offset);
+        public void setOffsetData(Partition partition, PartitionManager.OffsetData offsetData) {
+            _partitionToOffset.put(partition, offsetData);
         }
 
         private class TopicMetrics {
@@ -97,6 +98,7 @@ public class KafkaUtils {
             long totalEarliestTimeOffset = 0;
             long totalLatestTimeOffset = 0;
             long totalLatestEmittedOffset = 0;
+            long totalLatestCompletedOffset = 0;
         }
 
         @Override
@@ -105,7 +107,7 @@ public class KafkaUtils {
                 HashMap ret = new HashMap();
                 if (_partitions != null && _partitions.size() == _partitionToOffset.size()) {
                     Map<String,TopicMetrics> topicMetricsMap = new TreeMap<String, TopicMetrics>();
-                    for (Map.Entry<Partition, Long> e : _partitionToOffset.entrySet()) {
+                    for (Map.Entry<Partition, PartitionManager.OffsetData> e : _partitionToOffset.entrySet()) {
                         Partition partition = e.getKey();
                         SimpleConsumer consumer = _connections.getConnection(partition);
                         if (consumer == null) {
@@ -118,8 +120,9 @@ public class KafkaUtils {
                             LOG.warn("No data found in Kafka Partition " + partition.getId());
                             return null;
                         }
-                        long latestEmittedOffset = e.getValue();
-                        long spoutLag = latestTimeOffset - latestEmittedOffset;
+                        long latestEmittedOffset = e.getValue().latestEmittedOffset;
+                        long latestCompletedOffset = e.getValue().latestCompletedOffset;
+                        long spoutLag = latestTimeOffset - latestCompletedOffset;
                         String topic = partition.topic;
                         String metricPath = partition.getId();
                         //Handle the case where Partition Path Id does not contain topic name Partition.getId() == "partition_" + partition
@@ -130,6 +133,7 @@ public class KafkaUtils {
                         ret.put(metricPath + "/" + "earliestTimeOffset", earliestTimeOffset);
                         ret.put(metricPath + "/" + "latestTimeOffset", latestTimeOffset);
                         ret.put(metricPath + "/" + "latestEmittedOffset", latestEmittedOffset);
+                        ret.put(metricPath + "/" + "latestCompletedOffset", latestCompletedOffset);
 
                         if (!topicMetricsMap.containsKey(partition.topic)) {
                             topicMetricsMap.put(partition.topic,new TopicMetrics());
@@ -140,6 +144,7 @@ public class KafkaUtils {
                         topicMetrics.totalEarliestTimeOffset += earliestTimeOffset;
                         topicMetrics.totalLatestTimeOffset += latestTimeOffset;
                         topicMetrics.totalLatestEmittedOffset += latestEmittedOffset;
+                        topicMetrics.totalLatestCompletedOffset += latestCompletedOffset;
                     }
 
                     for(Map.Entry<String, TopicMetrics> e : topicMetricsMap.entrySet()) {
@@ -149,6 +154,7 @@ public class KafkaUtils {
                         ret.put(topic + "/" + "totalEarliestTimeOffset", topicMetrics.totalEarliestTimeOffset);
                         ret.put(topic + "/" + "totalLatestTimeOffset", topicMetrics.totalLatestTimeOffset);
                         ret.put(topic + "/" + "totalLatestEmittedOffset", topicMetrics.totalLatestEmittedOffset);
+                        ret.put(topic + "/" + "totalLatestCompletedOffset", topicMetrics.totalLatestCompletedOffset);
                     }
 
                     return ret;

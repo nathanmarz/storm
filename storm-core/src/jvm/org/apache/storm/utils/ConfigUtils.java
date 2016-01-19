@@ -635,30 +635,30 @@ public class ConfigUtils {
         return (workerArtifactsRoot(conf) + FILE_SEPARATOR + id);
     }
 
-    public static String workerArtifactsRoot(Map conf, String id, String port) {
+    public static String workerArtifactsRoot(Map conf, String id, Integer port) {
         if (mockedWorkerArtifactsRoot != null) {
             return mockedWorkerArtifactsRoot;
         }
         return (workerArtifactsRoot(conf, id) + FILE_SEPARATOR + port);
     }
 
-    public static String workerArtifactsPidPath(Map conf, String id, String port) {
+    public static String workerArtifactsPidPath(Map conf, String id, Integer port) {
         return (workerArtifactsRoot(conf, id, port) + FILE_SEPARATOR +  "worker.pid");
     }
 
     public static File getLogMetaDataFile(String fname) {
         String[] subStrings = fname.split(FILE_SEPARATOR); // TODO: does this work well on windows?
         String id = subStrings[0];
-        String port = subStrings[1];
+        Integer port = Integer.parseInt(subStrings[1]);
         return getLogMetaDataFile(Utils.readStormConfig(), id, port);
     }
 
-    public static File getLogMetaDataFile(Map conf, String id, String port) {
+    public static File getLogMetaDataFile(Map conf, String id, Integer port) {
         String fname = workerArtifactsRoot(conf, id, port) + FILE_SEPARATOR + "worker.yaml";
         return new File(fname);
     }
 
-    public static File getWorkerDirFromRoot(String logRoot, String id, String port) {
+    public static File getWorkerDirFromRoot(String logRoot, String id, Integer port) {
         return new File((logRoot + FILE_SEPARATOR + id + FILE_SEPARATOR + port));
     }
 

@@ -893,7 +893,7 @@
 (defn download-blobs-for-topology!
   "Download all blobs listed in the topology configuration for a given topology."
   [conf stormconf-path localizer tmproot]
-  (let [storm-conf (ConfigUtils/readSupervisorStormConfGivenPath conf stormconf-path)
+  (let [storm-conf (clojurify-structure (ConfigUtils/readSupervisorStormConfGivenPath conf stormconf-path))
         blobstore-map (storm-conf TOPOLOGY-BLOBSTORE-MAP)
         user (storm-conf TOPOLOGY-SUBMITTER-USER)
         topo-name (storm-conf TOPOLOGY-NAME)

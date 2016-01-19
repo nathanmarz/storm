@@ -37,6 +37,7 @@ public class DRPCClient extends ThriftClient implements DistributedRPC.Iface {
 
     public DRPCClient(Map conf, String host, int port) throws TTransportException {
         this(conf, host, port, null);
+        _retryForever = true;
     }
 
     public DRPCClient(Map conf, String host, int port, Integer timeout) throws TTransportException {
@@ -44,6 +45,7 @@ public class DRPCClient extends ThriftClient implements DistributedRPC.Iface {
         this.host = host;
         this.port = port;
         this.client = new DistributedRPC.Client(_protocol);
+        _retryForever = true;
     }
         
     public String getHost() {

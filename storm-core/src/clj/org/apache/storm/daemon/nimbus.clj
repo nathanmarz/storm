@@ -701,11 +701,7 @@
                        ;; making a map from node+port to WorkerSlot with allocated resources
                        node+port->slot (into {} (for [[[node port] [mem-on-heap mem-off-heap cpu]] worker->resources]
                                                   {[node port]
-                                                   (doto (WorkerSlot. node port)
-                                                     (.allocateResource
-                                                       mem-on-heap
-                                                       mem-off-heap
-                                                       cpu))}))
+                                                   (WorkerSlot. node port mem-on-heap mem-off-heap cpu)}))
                        executor->slot (into {} (for [[executor [node port]] executor->node+port]
                                                  ;; filter out the dead executors
                                                  (if (contains? alive-executors executor)
@@ -851,12 +847,12 @@
         ;; call scheduler.schedule to schedule all the topologies
         ;; the new assignments for all the topologies are in the cluster object.
         _ (.schedule (:scheduler nimbus) topologies cluster)
-        _ (.setResourcesMap cluster @(:id->resources nimbus))
+        _ (.setTopologyResourcesMap cluster @(:id->resources nimbus))
         _ (if-not (conf SCHEDULER-DISPLAY-RESOURCE) (.updateAssignedMemoryForTopologyAndSupervisor cluster topologies))
         ;;merge with existing statuses
         _ (reset! (:id->sched-status nimbus) (merge (deref (:id->sched-status nimbus)) (.getStatusMap cluster)))
         _ (reset! (:node-id->resources nimbus) (.getSupervisorsResourcesMap cluster))
-        _ (reset! (:id->resources nimbus) (.getResourcesMap cluster))]
+        _ (reset! (:id->resources nimbus) (.getTopologyResourcesMap cluster))]
     (.getAssignments cluster)))
 
 (defn changed-executors [executor->node+port new-executor->node+port]
@@ -917,7 +913,6 @@
                                        existing-assignments
                                        topologies
                                        scratch-topology-id)
-
         topology->executor->node+port (compute-new-topology->executor->node+port new-scheduler-assignments existing-assignments)
 
         topology->executor->node+port (merge (into {} (for [id assigned-topology-ids] {id nil})) topology->executor->node+port)

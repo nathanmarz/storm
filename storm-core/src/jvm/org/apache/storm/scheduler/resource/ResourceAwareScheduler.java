@@ -33,7 +33,6 @@ import org.apache.storm.scheduler.Topologies;
 import org.apache.storm.scheduler.TopologyDetails;
 import org.apache.storm.scheduler.WorkerSlot;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -120,7 +119,11 @@ public class ResourceAwareScheduler implements IScheduler {
                 break;
             }
             scheduleTopology(td);
+
+            LOG.debug("Nodes after scheduling:\n{}", this.nodes);
         }
+        //updating resources used by supervisor
+        updateSupervisorsResources(this.cluster, this.topologies);
     }
 
     public void scheduleTopology(TopologyDetails td) {
@@ -146,7 +149,7 @@ public class ResourceAwareScheduler implements IScheduler {
                 SchedulingResult result = null;
                 try {
                     //Need to re prepare scheduling strategy with cluster and topologies in case scheduling state was restored
-                    rasStrategy.prepare(this.topologies, this.cluster, this.userMap, this.nodes);
+                    rasStrategy.prepare(new ClusterStateData(this.cluster, this.topologies));
                     result = rasStrategy.schedule(td);
                 } catch (Exception ex) {
                     LOG.error(String.format("Exception thrown when running strategy %s to schedule topology %s. Topology will not be scheduled!"
@@ -253,9 +256,17 @@ public class ResourceAwareScheduler implements IScheduler {
                 WorkerSlot targetSlot = workerToTasksEntry.getKey();
                 Collection<ExecutorDetails> execsNeedScheduling = workerToTasksEntry.getValue();
                 RAS_Node targetNode = this.nodes.getNodeById(targetSlot.getNodeId());
+
+                targetSlot = allocateResourceToSlot(td, execsNeedScheduling, targetSlot);
+
                 targetNode.assign(targetSlot, td, execsNeedScheduling);
+
                 LOG.debug("ASSIGNMENT    TOPOLOGY: {}  TASKS: {} To Node: {} on Slot: {}",
                         td.getName(), execsNeedScheduling, targetNode.getHostname(), targetSlot.getPort());
+
+                for (ExecutorDetails exec : execsNeedScheduling) {
+                    targetNode.consumeResourcesforTask(exec, td);
+                }
                 if (!nodesUsed.contains(targetNode.getId())) {
                     nodesUsed.add(targetNode.getId());
                 }
@@ -266,17 +277,38 @@ public class ResourceAwareScheduler implements IScheduler {
 
             Double[] resources = {requestedMemOnHeap, requestedMemOffHeap, requestedCpu,
                     assignedMemOnHeap, assignedMemOffHeap, assignedCpu};
-            LOG.debug("setResources for {}: requested on-heap mem, off-heap mem, cpu: {} {} {} " +
+            LOG.debug("setTopologyResources for {}: requested on-heap mem, off-heap mem, cpu: {} {} {} " +
                             "assigned on-heap mem, off-heap mem, cpu: {} {} {}",
                     td.getId(), requestedMemOnHeap, requestedMemOffHeap, requestedCpu,
                     assignedMemOnHeap, assignedMemOffHeap, assignedCpu);
-            this.cluster.setResources(td.getId(), resources);
-            updateSupervisorsResources(this.cluster, this.topologies);
+            //updating resources used for a topology
+            this.cluster.setTopologyResources(td.getId(), resources);
             return true;
         } else {
             LOG.warn("schedulerAssignmentMap for topo {} is null. This shouldn't happen!", td.getName());
             return false;
         }
+    }
+
+    private WorkerSlot allocateResourceToSlot (TopologyDetails td, Collection<ExecutorDetails> executors, WorkerSlot slot) {
+        double onHeapMem = 0.0;
+        double offHeapMem = 0.0;
+        double cpu = 0.0;
+        for (ExecutorDetails exec : executors) {
+            Double onHeapMemForExec = td.getOnHeapMemoryRequirement(exec);
+            if (onHeapMemForExec != null) {
+                onHeapMem += onHeapMemForExec;
+            }
+            Double offHeapMemForExec = td.getOffHeapMemoryRequirement(exec);
+            if (offHeapMemForExec != null) {
+                offHeapMem += offHeapMemForExec;
+            }
+            Double cpuForExec = td.getTotalCpuReqTask(exec);
+            if (cpuForExec != null) {
+                cpu += cpuForExec;
+            }
+        }
+        return new WorkerSlot(slot.getNodeId(), slot.getPort(), onHeapMem, offHeapMem, cpu);
     }
 
     private void updateSupervisorsResources(Cluster cluster, Topologies topologies) {
@@ -396,7 +428,7 @@ public class ResourceAwareScheduler implements IScheduler {
         this.cluster.setAssignments(schedulingState.cluster.getAssignments());
         this.cluster.setSupervisorsResourcesMap(schedulingState.cluster.getSupervisorsResourcesMap());
         this.cluster.setStatusMap(schedulingState.cluster.getStatusMap());
-        this.cluster.setResourcesMap(schedulingState.cluster.getResourcesMap());
+        this.cluster.setTopologyResourcesMap(schedulingState.cluster.getTopologyResourcesMap());
         //don't need to explicitly set data structues like Cluster since nothing can really be changed
         //unless this.topologies is set to another object
         this.topologies = schedulingState.topologies;

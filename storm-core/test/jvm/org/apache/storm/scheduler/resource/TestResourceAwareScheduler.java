@@ -19,6 +19,7 @@
 package org.apache.storm.scheduler.resource;
 
 import org.apache.storm.Config;
+import org.apache.storm.generated.StormTopology;
 import org.apache.storm.scheduler.Cluster;
 import org.apache.storm.scheduler.ExecutorDetails;
 import org.apache.storm.scheduler.INimbus;
@@ -28,8 +29,10 @@ import org.apache.storm.scheduler.SupervisorDetails;
 import org.apache.storm.scheduler.Topologies;
 import org.apache.storm.scheduler.TopologyDetails;
 import org.apache.storm.scheduler.WorkerSlot;
+import org.apache.storm.topology.TopologyBuilder;
 import org.apache.storm.utils.Utils;
 import org.apache.storm.validation.ConfigValidation;
+
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -37,8 +40,11 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 
 public class TestResourceAwareScheduler {
 
@@ -1223,5 +1229,160 @@ public class TestResourceAwareScheduler {
         Assert.assertEquals("# of pending topologies", 0, rs.getUser("bobby").getTopologiesPending().size());
         Assert.assertEquals("# of invalid topologies", 0, rs.getUser("bobby").getTopologiesInvalid().size());
         Assert.assertEquals("# of attempted topologies", 0, rs.getUser("bobby").getTopologiesAttempted().size());
+    }
+
+    /**
+     * test if the scheduling logic for the DefaultResourceAwareStrategy is correct
+     */
+    @Test
+    public void testDefaultResourceAwareStrategy() {
+        int spoutParallelism = 1;
+        int boltParallelism = 2;
+        TopologyBuilder builder = new TopologyBuilder();
+        builder.setSpout("spout", new TestUtilsForResourceAwareScheduler.TestSpout(),
+                spoutParallelism);
+        builder.setBolt("bolt-1", new TestUtilsForResourceAwareScheduler.TestBolt(),
+                boltParallelism).shuffleGrouping("spout");
+        builder.setBolt("bolt-2", new TestUtilsForResourceAwareScheduler.TestBolt(),
+                boltParallelism).shuffleGrouping("bolt-1");
+        builder.setBolt("bolt-3", new TestUtilsForResourceAwareScheduler.TestBolt(),
+                boltParallelism).shuffleGrouping("bolt-2");
+
+        StormTopology stormToplogy = builder.createTopology();
+
+        Config conf = new Config();
+        INimbus iNimbus = new TestUtilsForResourceAwareScheduler.INimbusTest();
+        Map<String, Number> resourceMap = new HashMap<String, Number>();
+        resourceMap.put(Config.SUPERVISOR_CPU_CAPACITY, 150.0);
+        resourceMap.put(Config.SUPERVISOR_MEMORY_CAPACITY_MB, 1500.0);
+        Map<String, SupervisorDetails> supMap = TestUtilsForResourceAwareScheduler.genSupervisors(4, 4, resourceMap);
+        conf.putAll(Utils.readDefaultConfig());
+        conf.put(Config.RESOURCE_AWARE_SCHEDULER_EVICTION_STRATEGY, org.apache.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy.class.getName());
+        conf.put(Config.RESOURCE_AWARE_SCHEDULER_PRIORITY_STRATEGY, org.apache.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy.class.getName());
+        conf.put(Config.TOPOLOGY_SCHEDULER_STRATEGY, org.apache.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy.class.getName());
+        conf.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, 50.0);
+        conf.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, 250);
+        conf.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, 250);
+        conf.put(Config.TOPOLOGY_PRIORITY, 0);
+        conf.put(Config.TOPOLOGY_NAME, "testTopology");
+        conf.put(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB, Double.MAX_VALUE);
+
+        TopologyDetails topo = new TopologyDetails("testTopology-id", conf, stormToplogy, 0,
+                TestUtilsForResourceAwareScheduler.genExecsAndComps(stormToplogy, spoutParallelism, boltParallelism)
+                , this.currentTime);
+
+        Map<String, TopologyDetails> topoMap = new HashMap<String, TopologyDetails>();
+        topoMap.put(topo.getId(), topo);
+        Topologies topologies = new Topologies(topoMap);
+        Cluster cluster = new Cluster(iNimbus, supMap, new HashMap<String, SchedulerAssignmentImpl>(), conf);
+
+        ResourceAwareScheduler rs = new ResourceAwareScheduler();
+
+        rs.prepare(conf);
+        rs.schedule(topologies, cluster);
+
+        Map<String, List<String>> nodeToComps = new HashMap<String, List<String>>();
+        for (Map.Entry<ExecutorDetails, WorkerSlot> entry : cluster.getAssignments().get("testTopology-id").getExecutorToSlot().entrySet()) {
+            WorkerSlot ws = entry.getValue();
+            ExecutorDetails exec = entry.getKey();
+            if (!nodeToComps.containsKey(ws.getNodeId())) {
+                nodeToComps.put(ws.getNodeId(), new LinkedList<String>());
+            }
+            nodeToComps.get(ws.getNodeId()).add(topo.getExecutorToComponent().get(exec));
+        }
+
+        /**
+         * check for correct scheduling
+         * Since all the resource availabilites on nodes are the same in the beginining
+         * DefaultResourceAwareStrategy can arbitrarily pick one thus we must find if a particular scheduling
+         * exists on a node the the cluster.
+         */
+
+        //one node should have the below scheduling
+        List<String> node1 = new LinkedList<>();
+        node1.add("spout");
+        node1.add("bolt-1");
+        node1.add("bolt-2");
+        Assert.assertTrue("Check DefaultResourceAwareStrategy scheduling", checkDefaultStrategyScheduling(nodeToComps, node1));
+
+        //one node should have the below scheduling
+        List<String> node2 = new LinkedList<>();
+        node2.add("bolt-3");
+        node2.add("bolt-1");
+        node2.add("bolt-2");
+
+        Assert.assertTrue("Check DefaultResourceAwareStrategy scheduling", checkDefaultStrategyScheduling(nodeToComps, node2));
+
+        //one node should have the below scheduling
+        List<String> node3 = new LinkedList<>();
+        node3.add("bolt-3");
+
+        Assert.assertTrue("Check DefaultResourceAwareStrategy scheduling", checkDefaultStrategyScheduling(nodeToComps, node3));
+
+        //three used and one node should be empty
+        Assert.assertEquals("only three nodes should be used", 3, nodeToComps.size());
+    }
+
+    private boolean checkDefaultStrategyScheduling(Map<String, List<String>> nodeToComps, List<String> schedulingToFind) {
+        for (List<String> entry : nodeToComps.values()) {
+            if (schedulingToFind.containsAll(entry) && entry.containsAll(schedulingToFind)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * test if free slots on nodes work correctly
+     */
+    @Test
+    public void TestNodeFreeSlot() {
+        INimbus iNimbus = new TestUtilsForResourceAwareScheduler.INimbusTest();
+        Map<String, Number> resourceMap = new HashMap<String, Number>();
+        resourceMap.put(Config.SUPERVISOR_CPU_CAPACITY, 100.0);
+        resourceMap.put(Config.SUPERVISOR_MEMORY_CAPACITY_MB, 1000.0);
+        Map<String, SupervisorDetails> supMap = TestUtilsForResourceAwareScheduler.genSupervisors(4, 4, resourceMap);
+        Config config = new Config();
+        config.putAll(Utils.readDefaultConfig());
+        config.put(Config.RESOURCE_AWARE_SCHEDULER_EVICTION_STRATEGY, org.apache.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy.class.getName());
+        config.put(Config.RESOURCE_AWARE_SCHEDULER_PRIORITY_STRATEGY, org.apache.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy.class.getName());
+        config.put(Config.TOPOLOGY_SCHEDULER_STRATEGY, org.apache.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy.class.getName());
+        config.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, 100.0);
+        config.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, 500);
+        config.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, 500);
+
+        Cluster cluster = new Cluster(iNimbus, supMap, new HashMap<String, SchedulerAssignmentImpl>(), config);
+        TopologyDetails topo1 = TestUtilsForResourceAwareScheduler.getTopology("topo-1", config, 1, 0, 2, 0, currentTime - 2, 29);
+        TopologyDetails topo2 = TestUtilsForResourceAwareScheduler.getTopology("topo-2", config, 1, 0, 2, 0, currentTime - 2, 10);
+
+        Map<String, TopologyDetails> topoMap = new HashMap<String, TopologyDetails>();
+        topoMap.put(topo1.getId(), topo1);
+        topoMap.put(topo2.getId(), topo2);
+
+        Topologies topologies = new Topologies(topoMap);
+
+        ResourceAwareScheduler rs = new ResourceAwareScheduler();
+
+        rs.prepare(config);
+        rs.schedule(topologies, cluster);
+
+        Map<String, RAS_Node> nodes = RAS_Nodes.getAllNodesFrom(cluster, topologies);
+
+        for (SchedulerAssignment entry : cluster.getAssignments().values()) {
+            for (WorkerSlot ws : entry.getSlots()) {
+                double memoryBefore = nodes.get(ws.getNodeId()).getAvailableMemoryResources();
+                double cpuBefore = nodes.get(ws.getNodeId()).getAvailableCpuResources();
+                double memoryUsedByWorker = nodes.get(ws.getNodeId()).getMemoryUsedByWorker(ws);
+                Assert.assertEquals("Check if memory used by worker is calculated correctly", 1000.0, memoryUsedByWorker, 0.001);
+                double cpuUsedByWorker = nodes.get(ws.getNodeId()).getCpuUsedByWorker(ws);
+                Assert.assertEquals("Check if CPU used by worker is calculated correctly", 100.0, cpuUsedByWorker, 0.001);
+                nodes.get(ws.getNodeId()).free(ws);
+                double memoryAfter = nodes.get(ws.getNodeId()).getAvailableMemoryResources();
+                double cpuAfter = nodes.get(ws.getNodeId()).getAvailableCpuResources();
+                Assert.assertEquals("Check if free correctly frees amount of memory", memoryBefore + memoryUsedByWorker,  memoryAfter, 0.001);
+                Assert.assertEquals("Check if free correctly frees amount of memory", cpuBefore + cpuUsedByWorker,  cpuAfter, 0.001);
+                Assert.assertFalse("Check if worker was removed from assignments", entry.getSlotToExecutors().containsKey(ws));
+            }
+        }
     }
 }

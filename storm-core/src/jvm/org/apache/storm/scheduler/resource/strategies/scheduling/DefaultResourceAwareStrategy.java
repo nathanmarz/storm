@@ -30,44 +30,39 @@ import java.util.TreeMap;
 import java.util.HashSet;
 import java.util.Iterator;
 
-import org.apache.storm.scheduler.resource.RAS_Nodes;
+import org.apache.storm.scheduler.resource.ClusterStateData.NodeDetails;
+import org.apache.storm.scheduler.resource.ClusterStateData;
 import org.apache.storm.scheduler.resource.SchedulingResult;
 import org.apache.storm.scheduler.resource.SchedulingStatus;
-import org.apache.storm.scheduler.resource.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.storm.scheduler.Cluster;
 import org.apache.storm.scheduler.ExecutorDetails;
-import org.apache.storm.scheduler.Topologies;
 import org.apache.storm.scheduler.TopologyDetails;
 import org.apache.storm.scheduler.WorkerSlot;
 import org.apache.storm.scheduler.resource.Component;
-import org.apache.storm.scheduler.resource.RAS_Node;
 
 public class DefaultResourceAwareStrategy implements IStrategy {
     private static final Logger LOG = LoggerFactory.getLogger(DefaultResourceAwareStrategy.class);
-    private Topologies _topologies;
-    private Cluster _cluster;
-    //Map key is the supervisor id and the value is the corresponding RAS_Node Object 
-    private Map<String, RAS_Node> _availNodes;
-    private RAS_Node refNode = null;
+    private ClusterStateData _clusterStateData;
+    //Map key is the supervisor id and the value is the corresponding RAS_Node Object
+    private Map<String, NodeDetails> _availNodes;
+    private NodeDetails refNode = null;
     /**
      * supervisor id -> Node
      */
-    private Map<String, RAS_Node> _nodes;
+    private Map<String, NodeDetails> _nodes;
     private Map<String, List<String>> _clusterInfo;
 
     private final double CPU_WEIGHT = 1.0;
     private final double MEM_WEIGHT = 1.0;
     private final double NETWORK_WEIGHT = 1.0;
 
-    public void prepare (Topologies topologies, Cluster cluster, Map<String, User> userMap, RAS_Nodes nodes) {
-        _topologies = topologies;
-        _cluster = cluster;
-        _nodes = RAS_Nodes.getAllNodesFrom(cluster, _topologies);
+    public void prepare (ClusterStateData clusterStateData) {
+        _clusterStateData = clusterStateData;
+        _nodes = clusterStateData.nodes;
         _availNodes = this.getAvailNodes();
-        _clusterInfo = cluster.getNetworkTopography();
+        _clusterInfo = _clusterStateData.getNetworkTopography();
         LOG.debug(this.getClusterInfo());
     }
 
@@ -93,18 +88,18 @@ public class DefaultResourceAwareStrategy implements IStrategy {
             LOG.warn("No available nodes to schedule tasks on!");
             return SchedulingResult.failure(SchedulingStatus.FAIL_NOT_ENOUGH_RESOURCES, "No available nodes to schedule tasks on!");
         }
-        Collection<ExecutorDetails> unassignedExecutors = _cluster.getUnassignedExecutors(td);
+        Collection<ExecutorDetails> unassignedExecutors = _clusterStateData.getUnassignedExecutors(td.getId());
         Map<WorkerSlot, Collection<ExecutorDetails>> schedulerAssignmentMap = new HashMap<>();
         LOG.debug("ExecutorsNeedScheduling: {}", unassignedExecutors);
         Collection<ExecutorDetails> scheduledTasks = new ArrayList<>();
-        List<Component> spouts = this.getSpouts(_topologies, td);
+        List<Component> spouts = this.getSpouts(td);
 
         if (spouts.size() == 0) {
             LOG.error("Cannot find a Spout!");
             return SchedulingResult.failure(SchedulingStatus.FAIL_INVALID_TOPOLOGY, "Cannot find a Spout!");
         }
 
-        Queue<Component> ordered__Component_list = bfs(_topologies, td, spouts);
+        Queue<Component> ordered__Component_list = bfs(td, spouts);
 
         Map<Integer, List<ExecutorDetails>> priorityToExecutorMap = getPriorityToExecutorDetailsListMap(ordered__Component_list, unassignedExecutors);
         Collection<ExecutorDetails> executorsNotScheduled = new HashSet<>(unassignedExecutors);
@@ -119,23 +114,7 @@ public class DefaultResourceAwareStrategy implements IStrategy {
                     LOG.debug("\n\nAttempting to schedule: {} of component {}[avail {}] with rank {}",
                             new Object[] { exec, td.getExecutorToComponent().get(exec),
                     td.getTaskResourceReqList(exec), entry.getKey() });
-                    WorkerSlot targetSlot = this.findWorkerForExec(exec, td, schedulerAssignmentMap);
-                    if (targetSlot != null) {
-                        RAS_Node targetNode = this.idToNode(targetSlot.getNodeId());
-                        if(!schedulerAssignmentMap.containsKey(targetSlot)) {
-                            schedulerAssignmentMap.put(targetSlot, new LinkedList<ExecutorDetails>());
-                        }
-                       
-                        schedulerAssignmentMap.get(targetSlot).add(exec);
-                        targetNode.consumeResourcesforTask(exec, td);
-                        scheduledTasks.add(exec);
-                        LOG.debug("TASK {} assigned to Node: {} avail [mem: {} cpu: {}] total [mem: {} cpu: {}] on slot: {}", exec,
-                                targetNode, targetNode.getAvailableMemoryResources(),
-                                targetNode.getAvailableCpuResources(), targetNode.getTotalMemoryResources(),
-                                targetNode.getTotalCpuResources(), targetSlot);
-                    } else {
-                        LOG.error("Not Enough Resources to schedule Task {}", exec);
-                    }
+                    scheduleExecutor(exec, td, schedulerAssignmentMap, scheduledTasks);
                     it.remove();
                 }
             }
@@ -145,23 +124,7 @@ public class DefaultResourceAwareStrategy implements IStrategy {
         LOG.debug("/* Scheduling left over task (most likely sys tasks) */");
         // schedule left over system tasks
         for (ExecutorDetails exec : executorsNotScheduled) {
-            WorkerSlot targetSlot = this.findWorkerForExec(exec, td, schedulerAssignmentMap);
-            if (targetSlot != null) {
-                RAS_Node targetNode = this.idToNode(targetSlot.getNodeId());
-                if(!schedulerAssignmentMap.containsKey(targetSlot)) {
-                    schedulerAssignmentMap.put(targetSlot, new LinkedList<ExecutorDetails>());
-                }
-               
-                schedulerAssignmentMap.get(targetSlot).add(exec);
-                targetNode.consumeResourcesforTask(exec, td);
-                scheduledTasks.add(exec);
-                LOG.debug("TASK {} assigned to Node: {} avail [mem: {} cpu: {}] total [mem: {} cpu: {}] on slot: {}", exec,
-                        targetNode, targetNode.getAvailableMemoryResources(),
-                        targetNode.getAvailableCpuResources(), targetNode.getTotalMemoryResources(),
-                        targetNode.getTotalCpuResources(), targetSlot);
-            } else {
-                LOG.error("Not Enough Resources to schedule Task {}", exec);
-            }
+            scheduleExecutor(exec, td, schedulerAssignmentMap, scheduledTasks);
         }
 
         SchedulingResult result;
@@ -180,6 +143,27 @@ public class DefaultResourceAwareStrategy implements IStrategy {
             LOG.error("Topology {} not successfully scheduled!", td.getId());
         }
         return result;
+    }
+
+    private void scheduleExecutor(ExecutorDetails exec, TopologyDetails td, Map<WorkerSlot,
+            Collection<ExecutorDetails>> schedulerAssignmentMap, Collection<ExecutorDetails> scheduledTasks) {
+        WorkerSlot targetSlot = this.findWorkerForExec(exec, td, schedulerAssignmentMap);
+        if (targetSlot != null) {
+            NodeDetails targetNode = this.idToNode(targetSlot.getNodeId());
+            if (!schedulerAssignmentMap.containsKey(targetSlot)) {
+                schedulerAssignmentMap.put(targetSlot, new LinkedList<ExecutorDetails>());
+            }
+
+            schedulerAssignmentMap.get(targetSlot).add(exec);
+            targetNode.consumeResourcesforTask(exec, td);
+            scheduledTasks.add(exec);
+            LOG.debug("TASK {} assigned to Node: {} avail [mem: {} cpu: {}] total [mem: {} cpu: {}] on slot: {}", exec,
+                    targetNode, targetNode.getAvailableMemoryResources(),
+                    targetNode.getAvailableCpuResources(), targetNode.getTotalMemoryResources(),
+                    targetNode.getTotalCpuResources(), targetSlot);
+        } else {
+            LOG.error("Not Enough Resources to schedule Task {}", exec);
+        }
     }
 
     private WorkerSlot findWorkerForExec(ExecutorDetails exec, TopologyDetails td, Map<WorkerSlot, Collection<ExecutorDetails>> scheduleAssignmentMap) {
@@ -205,7 +189,7 @@ public class DefaultResourceAwareStrategy implements IStrategy {
     private WorkerSlot getBestWorker(ExecutorDetails exec, TopologyDetails td, String clusterId, Map<WorkerSlot, Collection<ExecutorDetails>> scheduleAssignmentMap) {
         double taskMem = td.getTotalMemReqTask(exec);
         double taskCPU = td.getTotalCpuReqTask(exec);
-        List<RAS_Node> nodes;
+        List<NodeDetails> nodes;
         if(clusterId != null) {
             nodes = this.getAvailableNodesFromCluster(clusterId);
             
@@ -213,8 +197,8 @@ public class DefaultResourceAwareStrategy implements IStrategy {
             nodes = this.getAvailableNodes();
         }
         //First sort nodes by distance
-        TreeMap<Double, RAS_Node> nodeRankMap = new TreeMap<>();
-        for (RAS_Node n : nodes) {
+        TreeMap<Double, NodeDetails> nodeRankMap = new TreeMap<>();
+        for (NodeDetails n : nodes) {
             if(n.getFreeSlots().size()>0) {
                 if (n.getAvailableMemoryResources() >= taskMem
                         && n.getAvailableCpuResources() >= taskCPU) {
@@ -233,8 +217,8 @@ public class DefaultResourceAwareStrategy implements IStrategy {
             }
         }
         //Then, pick worker from closest node that satisfy constraints
-        for(Map.Entry<Double, RAS_Node> entry : nodeRankMap.entrySet()) {
-            RAS_Node n = entry.getValue();
+        for(Map.Entry<Double, NodeDetails> entry : nodeRankMap.entrySet()) {
+            NodeDetails n = entry.getValue();
             for(WorkerSlot ws : n.getFreeSlots()) {
                 if(checkWorkerConstraints(exec, ws, td, scheduleAssignmentMap)) {
                     return ws;
@@ -269,7 +253,7 @@ public class DefaultResourceAwareStrategy implements IStrategy {
         return res;
     }
 
-    private Double distToNode(RAS_Node src, RAS_Node dest) {
+    private Double distToNode(NodeDetails src, NodeDetails dest) {
         if (src.getId().equals(dest.getId())) {
             return 0.0;
         } else if (this.NodeToCluster(src).equals(this.NodeToCluster(dest))) {
@@ -279,7 +263,7 @@ public class DefaultResourceAwareStrategy implements IStrategy {
         }
     }
 
-    private String NodeToCluster(RAS_Node node) {
+    private String NodeToCluster(NodeDetails node) {
         for (Entry<String, List<String>> entry : _clusterInfo
                 .entrySet()) {
             if (entry.getValue().contains(node.getHostname())) {
@@ -290,16 +274,16 @@ public class DefaultResourceAwareStrategy implements IStrategy {
         return null;
     }
     
-    private List<RAS_Node> getAvailableNodes() {
-        LinkedList<RAS_Node> nodes = new LinkedList<>();
+    private List<NodeDetails> getAvailableNodes() {
+        LinkedList<NodeDetails> nodes = new LinkedList<>();
         for (String clusterId : _clusterInfo.keySet()) {
             nodes.addAll(this.getAvailableNodesFromCluster(clusterId));
         }
         return nodes;
     }
 
-    private List<RAS_Node> getAvailableNodesFromCluster(String clus) {
-        List<RAS_Node> retList = new ArrayList<>();
+    private List<NodeDetails> getAvailableNodesFromCluster(String clus) {
+        List<NodeDetails> retList = new ArrayList<>();
         for (String node_id : _clusterInfo.get(clus)) {
             retList.add(_availNodes.get(this
                     .NodeHostnameToId(node_id)));
@@ -308,9 +292,9 @@ public class DefaultResourceAwareStrategy implements IStrategy {
     }
 
     private List<WorkerSlot> getAvailableWorkersFromCluster(String clusterId) {
-        List<RAS_Node> nodes = this.getAvailableNodesFromCluster(clusterId);
+        List<NodeDetails> nodes = this.getAvailableNodesFromCluster(clusterId);
         List<WorkerSlot> workers = new LinkedList<>();
-        for(RAS_Node node : nodes) {
+        for(NodeDetails node : nodes) {
             workers.addAll(node.getFreeSlots());
         }
         return workers;
@@ -327,18 +311,17 @@ public class DefaultResourceAwareStrategy implements IStrategy {
     /**
      * In case in the future RAS can only use a subset of nodes
      */
-    private Map<String, RAS_Node> getAvailNodes() {
+    private Map<String, NodeDetails> getAvailNodes() {
         return _nodes;
     }
 
     /**
      * Breadth first traversal of the topology DAG
-     * @param topologies
      * @param td
      * @param spouts
      * @return A partial ordering of components
      */
-    private Queue<Component> bfs(Topologies topologies, TopologyDetails td, List<Component> spouts) {
+    private Queue<Component> bfs(TopologyDetails td, List<Component> spouts) {
         // Since queue is a interface
         Queue<Component> ordered__Component_list = new LinkedList<Component>();
         HashMap<String, Component> visited = new HashMap<>();
@@ -357,7 +340,7 @@ public class DefaultResourceAwareStrategy implements IStrategy {
                     neighbors.addAll(comp.parents);
                     for (String nbID : neighbors) {
                         if (!visited.containsKey(nbID)) {
-                            Component child = topologies.getAllComponents().get(td.getId()).get(nbID);
+                            Component child = td.getComponents().get(nbID);
                             queue.offer(child);
                         }
                     }
@@ -367,10 +350,10 @@ public class DefaultResourceAwareStrategy implements IStrategy {
         return ordered__Component_list;
     }
 
-    private List<Component> getSpouts(Topologies topologies, TopologyDetails td) {
+    private List<Component> getSpouts(TopologyDetails td) {
         List<Component> spouts = new ArrayList<>();
-        for (Component c : topologies.getAllComponents().get(td.getId())
-                .values()) {
+
+        for (Component c : td.getComponents().values()) {
             if (c.type == Component.ComponentType.SPOUT) {
                 spouts.add(c);
             }
@@ -446,7 +429,7 @@ public class DefaultResourceAwareStrategy implements IStrategy {
             String clusterId = clusterEntry.getKey();
             retVal += "Rack: " + clusterId + "\n";
             for(String nodeHostname : clusterEntry.getValue()) {
-                RAS_Node node = this.idToNode(this.NodeHostnameToId(nodeHostname));
+                NodeDetails node = this.idToNode(this.NodeHostnameToId(nodeHostname));
                 retVal += "-> Node: " + node.getHostname() + " " + node.getId() + "\n";
                 retVal += "--> Avail Resources: {Mem " + node.getAvailableMemoryResources() + ", CPU " + node.getAvailableCpuResources() + "}\n";
                 retVal += "--> Total Resources: {Mem " + node.getTotalMemoryResources() + ", CPU " + node.getTotalCpuResources() + "}\n";
@@ -461,7 +444,7 @@ public class DefaultResourceAwareStrategy implements IStrategy {
      * @return the id of a node
      */
     public String NodeHostnameToId(String hostname) {
-        for (RAS_Node n : _nodes.values()) {
+        for (NodeDetails n : _nodes.values()) {
             if (n.getHostname() == null) {
                 continue;
             }
@@ -478,7 +461,7 @@ public class DefaultResourceAwareStrategy implements IStrategy {
      * @param id
      * @return a RAS_Node object
      */
-    public RAS_Node idToNode(String id) {
+    public NodeDetails idToNode(String id) {
         if(_nodes.containsKey(id) == false) {
             LOG.error("Cannot find Node with Id: {}", id);
             return null;

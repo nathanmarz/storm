@@ -308,7 +308,7 @@
         (.toString output))))))
 
 (defn get-log-user-group-whitelist [fname]
-  (let [wl-file (get-log-metadata-file fname)
+  (let [wl-file (ConfigUtils/getLogMetaDataFile fname)
         m (clojure-from-yaml-file wl-file)]
     (if (not-nil? m)
       (do
@@ -949,7 +949,7 @@
                   (for [port-dir (.listFiles topo-dir)]
                     (into [] (DirectoryCleaner/getFilesForDir port-dir))))
                 []))
-            (let [port-dir (get-worker-dir-from-root log-root topoId port)]
+            (let [port-dir (ConfigUtils/getWorkerDirFromRoot log-root topoId port)]
               (if (.exists port-dir)
                 (into [] (DirectoryCleaner/getFilesForDir port-dir))
                 []))))
@@ -1188,7 +1188,7 @@
 
 (defn -main []
   (let [conf (clojurify-structure (ConfigUtils/readStormConfig))
-        log-root (worker-artifacts-root conf)
+        log-root (ConfigUtils/workerArtifactsRoot conf)
         daemonlog-root (log-root-dir (conf LOGVIEWER-APPENDER-NAME))]
     (setup-default-uncaught-exception-handler)
     (start-log-cleaner! conf log-root)

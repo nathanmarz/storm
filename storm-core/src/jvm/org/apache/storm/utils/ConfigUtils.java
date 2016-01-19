@@ -546,7 +546,30 @@ public class ConfigUtils {
         new File(workerUserFile(conf, workerId)).delete();
     }
 
+    //For testing only
+    // for java
+    // try (SetMockedWorkerArtifactsRoot mocked = new SetMockedWorkerArtifactsRoot(conf)) {
+    //    run test ...
+    // }
+    //
+    // for clojure
+    // (with-open [mock (SetMockedWorkerArtifactsRoot. root)]
+    //     run test ...)
+    public static class SetMockedWorkerArtifactsRoot implements Closeable {
+        public SetMockedWorkerArtifactsRoot(String root) {
+            mockedWorkerArtifactsRoot = root;
+        }
+
+        @Override
+        public void close() {
+            mockedWorkerArtifactsRoot = null;
+        }
+    }
+    private static String mockedWorkerArtifactsRoot = null;
     public static String workerArtifactsRoot(Map conf) {
+        if (mockedWorkerArtifactsRoot != null) {
+            return mockedWorkerArtifactsRoot;
+        }
         String artifactsDir = (String)conf.get(Config.STORM_WORKERS_ARTIFACTS_DIR);
         if (artifactsDir == null) {
             return (LOG_DIR + FILE_SEPARATOR + "workers-artifacts");
@@ -560,10 +583,16 @@ public class ConfigUtils {
     }
 
     public static String workerArtifactsRoot(Map conf, String id) {
+        if (mockedWorkerArtifactsRoot != null) {
+            return mockedWorkerArtifactsRoot;
+        }
         return (workerArtifactsRoot(conf) + FILE_SEPARATOR + id);
     }
 
     public static String workerArtifactsRoot(Map conf, String id, String port) {
+        if (mockedWorkerArtifactsRoot != null) {
+            return mockedWorkerArtifactsRoot;
+        }
         return (workerArtifactsRoot(conf, id) + FILE_SEPARATOR + port);
     }
 
@@ -614,11 +643,12 @@ public class ConfigUtils {
         return new LocalState(workerHeartbeatsRoot(conf, id));
     }
 
-    public static void overrideLoginConfigWithSystemProperty(Map conf) { // note that we delete the return value
+    public static Map overrideLoginConfigWithSystemProperty(Map conf) { // note that we delete the return value
         String loginConfFile = System.getProperty("java.security.auth.login.config");
         if (loginConfFile != null) {
              conf.put("java.security.auth.login.config", loginConfFile);
         }
+        return conf;
     }
 
 

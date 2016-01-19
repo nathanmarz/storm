@@ -135,7 +135,7 @@
 
 
 (defn my-worker-ids [conf]
-  (filter #(not= "null" %) (read-dir-contents (ConfigUtils/workerRoot conf))))
+  (read-dir-contents (ConfigUtils/workerRoot conf)))
 
 (defn read-worker-heartbeats
   "Returns map from worker id to heartbeat"
@@ -734,11 +734,11 @@
                 (let [port (:port pro-action)
                       action ^ProfileAction (:action pro-action)
                       stop? (> (System/currentTimeMillis) (:timestamp pro-action))
-                      target-dir (worker-artifacts-root conf storm-id port)
+                      target-dir (ConfigUtils/workerArtifactsRoot conf storm-id port)
                       storm-conf (clojurify-structure (ConfigUtils/readSupervisorStormConf conf storm-id))
                       user (storm-conf TOPOLOGY-SUBMITTER-USER)
                       environment (if-let [env (storm-conf TOPOLOGY-ENVIRONMENT)] env {})
-                      worker-pid (slurp (worker-artifacts-pid-path conf storm-id port))
+                      worker-pid (slurp (ConfigUtils/workerArtifactsPidPath conf storm-id port))
                       log-prefix (str "ProfilerAction process " storm-id ":" port " PROFILER_ACTION: " action " ")
                       ;; Until PROFILER_STOP action is invalid, keep launching profiler start in case worker restarted
                       ;; The profiler plugin script validates if JVM is recording before starting another recording.
@@ -1042,7 +1042,7 @@
   "Create a symlink from workder directory to its port artifacts directory"
   [conf storm-id port worker-id]
   (let [worker-dir (ConfigUtils/workerRoot conf worker-id)
-        topo-dir (worker-artifacts-root conf storm-id)]
+        topo-dir (ConfigUtils/workerArtifactsRoot conf storm-id)]
     (log-message "Creating symlinks for worker-id: " worker-id " storm-id: "
                  storm-id " to its port artifacts directory")
     (if (.exists (File. worker-dir))
@@ -1086,7 +1086,7 @@
           topo-worker-logwriter-childopts (storm-conf TOPOLOGY-WORKER-LOGWRITER-CHILDOPTS)
           user (storm-conf TOPOLOGY-SUBMITTER-USER)
           logfilename "worker.log"
-          workers-artifacts (worker-artifacts-root conf)
+          workers-artifacts (ConfigUtils/workerArtifactsRoot conf)
           logging-sensitivity (storm-conf TOPOLOGY-LOGGING-SENSITIVITY "S3")
           worker-childopts (when-let [s (conf WORKER-CHILDOPTS)]
                              (substitute-childopts s worker-id storm-id port mem-onheap))

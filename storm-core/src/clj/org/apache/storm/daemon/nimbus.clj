@@ -47,6 +47,7 @@
             BeginDownloadResult ListBlobsResult ComponentPageInfo TopologyPageInfo LogConfig LogLevel LogLevelAction
             ProfileRequest ProfileAction NodeInfo])
   (:import [org.apache.storm.daemon Shutdownable])
+  (:import [org.apache.storm.validation ConfigValidation])
   (:import [org.apache.storm.cluster ClusterStateContext DaemonType])
   (:use [org.apache.storm util config log timer zookeeper local-state])
   (:require [org.apache.storm [cluster :as cluster]
@@ -1250,8 +1251,8 @@
   (log-message "Adding topo to history log: " storm-id)
   (locking (:topology-history-lock nimbus)
     (let [topo-history-state (:topo-history-state nimbus)
-          users (get-topo-logs-users topology-conf)
-          groups (get-topo-logs-groups topology-conf)
+          users (ConfigUtils/getTopoLogsUsers topology-conf)
+          groups (ConfigUtils/getTopoLogsGroups topology-conf)
           curr-history (vec (ls-topo-hist topo-history-state))
           new-history (conj curr-history {:topoid storm-id :timestamp (current-time-secs)
                                           :users users :groups groups})]
@@ -1417,7 +1418,7 @@
                         0
                         (conf NIMBUS-MONITOR-FREQ-SECS)
                         (fn []
-                          (when-not (conf NIMBUS-DO-NOT-REASSIGN)
+                          (when-not (conf ConfigUtils/NIMBUS_DO_NOT_REASSIGN)
                             (locking (:submit-lock nimbus)
                               (mk-assignments nimbus)))
                           (do-cleanup nimbus)))
@@ -1465,7 +1466,7 @@
           (check-storm-active! nimbus storm-name false)
           (let [topo-conf (from-json serializedConf)]
             (try
-              (validate-configs-with-schemas topo-conf)
+              (ConfigValidation/validateFields topo-conf)
               (catch IllegalArgumentException ex
                 (throw (InvalidTopologyException. (.getMessage ex)))))
             (.validate ^org.apache.storm.nimbus.ITopologyValidator (:validator nimbus)
@@ -2159,11 +2160,11 @@
               assigned-topology-ids (.assignments storm-cluster-state nil)
               user-group-match-fn (fn [topo-id user conf]
                                     (let [topology-conf (try-read-storm-conf conf topo-id (:blob-store nimbus))
-                                          groups (get-topo-logs-groups topology-conf)]
+                                          groups (ConfigUtils/getTopoLogsGroups topology-conf)]
                                       (or (nil? user)
                                           (some #(= % user) admin-users)
                                           (does-users-group-intersect? user groups conf)
-                                          (some #(= % user) (get-topo-logs-users topology-conf)))))
+                                          (some #(= % user) (ConfigUtils/getTopoLogsUsers topology-conf)))))
               active-ids-for-user (filter #(user-group-match-fn % user (:conf nimbus)) assigned-topology-ids)
               topo-history-list (read-topology-history nimbus user admin-users)]
           (TopologyHistoryInfo. (distinct (concat active-ids-for-user topo-history-list)))))

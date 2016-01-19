@@ -21,6 +21,7 @@
   (:require [clojure [string :as string] [set :as set]])
   (:import [org.apache.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter TestPlannerSpout])
   (:import [org.apache.storm.scheduler ISupervisor])
+  (:import [org.apache.storm.utils ConfigUtils])
   (:import [org.apache.storm.generated RebalanceOptions])
   (:import [java.util UUID])
   (:import [java.io File])
@@ -78,7 +79,7 @@
 
 (deftest launches-assignment
   (with-simulated-time-local-cluster [cluster :supervisors 0
-    :daemon-conf {NIMBUS-DO-NOT-REASSIGN true
+    :daemon-conf {ConfigUtils/NIMBUS_DO_NOT_REASSIGN true
                   SUPERVISOR-WORKER-START-TIMEOUT-SECS 5
                   SUPERVISOR-WORKER-TIMEOUT-SECS 15
                   SUPERVISOR-MONITOR-FREQUENCY-SECS 3}]
@@ -131,7 +132,7 @@
 
 (deftest test-multiple-active-storms-multiple-supervisors
   (with-simulated-time-local-cluster [cluster :supervisors 0
-    :daemon-conf {NIMBUS-DO-NOT-REASSIGN true
+    :daemon-conf {ConfigUtils/NIMBUS_DO_NOT_REASSIGN true
                   SUPERVISOR-WORKER-START-TIMEOUT-SECS 5
                   SUPERVISOR-WORKER-TIMEOUT-SECS 15
                   SUPERVISOR-MONITOR-FREQUENCY-SECS 3}]
@@ -552,12 +553,12 @@
           fake-isupervisor (reify ISupervisor
                              (getSupervisorId [this] nil)
                              (getAssignmentId [this] nil))]
-      (with-open [mock (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorState. {})]
+      (with-open [mock1 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorState. {})
+                  mock2 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorLocalDir. "")]
         (stubbing [uptime-computer nil
                  cluster/mk-storm-cluster-state nil
                  local-hostname nil
-                 mk-timer nil
-                 supervisor-local-dir nil]
+                 mk-timer nil]
           (supervisor/supervisor-data auth-conf nil fake-isupervisor)
           (verify-call-times-for cluster/mk-storm-cluster-state 1)
           (verify-first-call-args-for-indices cluster/mk-storm-cluster-state [2]
@@ -683,7 +684,7 @@
   (with-simulated-time-local-cluster [cluster
                                       :supervisors 0
                                       :ports-per-supervisor 2
-                                      :daemon-conf {NIMBUS-DO-NOT-REASSIGN true
+                                      :daemon-conf {ConfigUtils/NIMBUS_DO_NOT_REASSIGN true
                                                     NIMBUS-MONITOR-FREQ-SECS 10
                                                     TOPOLOGY-MESSAGE-TIMEOUT-SECS 30
                                                     TOPOLOGY-ACKER-EXECUTORS 0}]

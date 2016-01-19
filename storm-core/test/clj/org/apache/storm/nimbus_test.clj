@@ -1342,8 +1342,7 @@
           expected-acls nimbus/NIMBUS-ZK-ACLS
           fake-inimbus (reify INimbus (getForcedScheduler [this] nil))]
       (with-open [mock (org.apache.storm.utils.ConfigUtils$SetMockedNimbusTopoHistoryState. {})]
-        (stubbing [nimbus-topo-history-state nil
-                 mk-authorization-handler nil
+        (stubbing [mk-authorization-handler nil
                  cluster/mk-storm-cluster-state nil
                  nimbus/file-cache-map nil
                  nimbus/mk-blob-cache-map nil

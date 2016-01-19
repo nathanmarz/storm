@@ -18,14 +18,14 @@
   (:import [java.io FileReader File IOException]
            [org.apache.storm.generated StormTopology])
   (:import [org.apache.storm Config])
-  (:import [org.apache.storm.utils Utils LocalState])
+  (:import [org.apache.storm.utils Utils LocalState ConfigUtils])
   (:import [org.apache.storm.validation ConfigValidation])
   (:import [org.apache.commons.io FileUtils])
   (:require [clojure [string :as str]])
   (:use [org.apache.storm log util]))
 
-(def RESOURCES-SUBDIR "resources")
-(def NIMBUS-DO-NOT-REASSIGN "NIMBUS-DO-NOT-REASSIGN")
+;; (def RESOURCES-SUBDIR "resources")
+;; (def NIMBUS-DO-NOT-REASSIGN "NIMBUS-DO-NOT-REASSIGN")
 
 (defn- clojure-config-name [name]
   (.replace (.toUpperCase name) "_" "-"))
@@ -41,11 +41,30 @@
   (dofor [f (seq (.getFields Config))]
          (.get f nil)))
 
-
+;; TODO this function and its callings will be replace when nimbus and supervisor move to Java
 (defn cluster-mode
   [conf & args]
   (keyword (conf STORM-CLUSTER-MODE)))
 
+(defn sampling-rate
+  [conf]
+  (->> (conf TOPOLOGY-STATS-SAMPLE-RATE)
+    (/ 1)
+    int))
+
+;; TODO this function together with sampling-rate are to be replaced with Java version when util.clj is in
+(defn mk-stats-sampler
+  [conf]
+  (even-sampler (sampling-rate conf)))
+
+;; TODO this function is to be replaced with Java version when util.clj is in
+(defn read-default-config
+  []
+  (clojurify-structure (Utils/readDefaultConfig)))
+
+
+
+(comment
 (defn local-mode?
   [conf]
   (let [mode (conf STORM-CLUSTER-MODE)]
@@ -332,3 +351,4 @@
                       (topology-conf LOGS-GROUPS)
                       (topology-conf TOPOLOGY-GROUPS))))))
 
+)

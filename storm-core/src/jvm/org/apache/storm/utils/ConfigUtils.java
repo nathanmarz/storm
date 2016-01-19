@@ -42,6 +42,7 @@ public class ConfigUtils {
     public static final String FILE_SEPARATOR = File.separator;
     public final static String LOG_DIR;
 
+    // TODO: what is the different between ConfigUtils/LOG_DIR and config/LOG-DIR, the first fails tests
     static {
         String dir;
         Map conf;
@@ -50,7 +51,11 @@ public class ConfigUtils {
         } else if ((conf = readStormConfig()).get("storm.log.dir") != null) {
             dir = String.valueOf(conf.get("storm.log.dir"));
         } else {
-            dir = System.getProperty("storm.log.dir") + FILE_SEPARATOR + "logs";
+            if (System.getProperty("storm.home") != null) {
+                dir = System.getProperty("storm.home") + FILE_SEPARATOR + "logs";
+            } else {
+                dir = FILE_SEPARATOR + "logs";
+            }
         }
         try {
             LOG_DIR = new File(dir).getCanonicalPath();
@@ -60,6 +65,25 @@ public class ConfigUtils {
     }
 
     //public final static String WORKER_DATA_SUBDIR = "worker_shared_data";
+
+    /*
+    public static String getLogDir() {
+        String dir;
+        Map conf;
+        if (System.getProperty("storm.log.dir") != null) {
+            dir = System.getProperty("storm.log.dir");
+        } else if ((conf = readStormConfig()).get("storm.log.dir") != null) {
+            dir = String.valueOf(conf.get("storm.log.dir"));
+        } else {
+            dir = System.getProperty("storm.home") + FILE_SEPARATOR + "logs";
+        }
+        try {
+            return new File(dir).getCanonicalPath();
+        } catch (IOException ex) {
+            throw new IllegalArgumentException("Illegal storm.log.dir in conf: " + dir);
+        }
+    }
+    */
 
 
     public static String clojureConfigName(String name) {
@@ -281,7 +305,29 @@ public class ConfigUtils {
         return (masterLocalDir(conf) + FILE_SEPARATOR + "inimbus");
     }
 
+    //For testing only
+    // for java
+    // try (SetMockedSupervisorLocalDir mocked = new SetMockedSupervisorLocalDir(dir)) {
+    //    run test ...
+    // }
+    //
+    // for clojure
+    // (with-open [mock (SetMockedSupervisorLocalDir. dir)]
+    //     run test ...)
+    public static class SetMockedSupervisorLocalDir implements Closeable {
+        public SetMockedSupervisorLocalDir(String dir) {
+            mockedSupervisorLocalDir = dir;
+        }
+        @Override
+        public void close() {
+            mockedSupervisorLocalDir = null;
+        }
+    }
+    private static String mockedSupervisorLocalDir = null;
     public static String supervisorLocalDir(Map conf) throws IOException {
+        if (mockedSupervisorLocalDir != null) {
+            return null;
+        }
         String ret = absoluteStormLocalDir(conf) + FILE_SEPARATOR + "supervisor";
         FileUtils.forceMkdir(new File(ret));
         return ret;
@@ -652,7 +698,7 @@ public class ConfigUtils {
     }
 
     /* TODO: make sure test these two functions in manual tests */
-    public List<String> getTopoLogsUsers(Map topologyConf) {
+    public static List<String> getTopoLogsUsers(Map topologyConf) {
         List<String> logsUsers = (List<String>)topologyConf.get(Config.LOGS_USERS);
         List<String> topologyUsers = (List<String>)topologyConf.get(Config.TOPOLOGY_USERS);
         Set<String> mergedUsers = new HashSet<String>();
@@ -675,8 +721,7 @@ public class ConfigUtils {
         return ret;
     }
 
-
-    public List<String> getTopoLogsGroups(Map topologyConf) {
+    public static List<String> getTopoLogsGroups(Map topologyConf) {
         List<String> logsGroups = (List<String>)topologyConf.get(Config.LOGS_GROUPS);
         List<String> topologyGroups = (List<String>)topologyConf.get(Config.TOPOLOGY_GROUPS);
         Set<String> mergedGroups = new HashSet<String>();
@@ -698,5 +743,4 @@ public class ConfigUtils {
         Collections.sort(ret);
         return ret;
     }
-
 }

@@ -120,7 +120,7 @@
 (defn- read-downloaded-storm-ids [conf]
   (let [dir (ConfigUtils/supervisorStormDistRoot conf)
         _ (log-message "zliu java supervisorLocalDir " (ConfigUtils/supervisorLocalDir conf))
-        cdir (supervisor-stormdist-root conf)
+        cdir (ConfigUtils/supervisorStormDistRoot conf)
         _ (log-message "zliu jdir is:" dir ",cdir is"  cdir ",clj dir equals to nil? " (nil? cdir) "jdir = cdir?" (= dir cdir))]
   (map #(url-decode %) (read-dir-contents dir))) ; (supervisor-stormdist-root conf)));
   )
@@ -952,7 +952,7 @@
     (Utils/downloadResourcesAsSupervisor (ConfigUtils/masterStormConfKey storm-id)
       (ConfigUtils/supervisorStormConfPath tmproot) blobstore)
     (.shutdown blobstore)
-    (extract-dir-from-jar (ConfigUtils/supervisorStormJarPath tmproot) RESOURCES-SUBDIR tmproot)
+    (extract-dir-from-jar (ConfigUtils/supervisorStormJarPath tmproot) ConfigUtils/RESOURCES_SUBDIR tmproot)
     (download-blobs-for-topology! conf (ConfigUtils/supervisorStormConfPath tmproot) localizer
       tmproot)
     (if (download-blobs-for-topology-succeed? (ConfigUtils/supervisorStormConfPath tmproot) tmproot)
@@ -967,7 +967,7 @@
         (rmr tmproot)))))
 
 (defn write-log-metadata-to-yaml-file! [storm-id port data conf]
-  (let [file (get-log-metadata-file conf storm-id port)]
+  (let [file (ConfigUtils/getLogMetaDataFile conf storm-id port)]
     ;;run worker as user needs the directory to have special permissions
     ;; or it is insecure
     (when (not (.exists (.getParentFile file)))
@@ -999,7 +999,7 @@
     (write-log-metadata-to-yaml-file! storm-id port data conf)))
 
 (defn jlp [stormroot conf]
-  (let [resource-root (str stormroot File/separator RESOURCES-SUBDIR)
+  (let [resource-root (str stormroot File/separator ConfigUtils/RESOURCES_SUBDIR)
         os (clojure.string/replace (System/getProperty "os.name") #"\s+" "_")
         arch (System/getProperty "os.arch")
         arch-resource-root (str resource-root File/separator os "-" arch)]
@@ -1031,10 +1031,10 @@
         workerroot (ConfigUtils/workerRoot conf worker-id)
         blobstore-map (storm-conf TOPOLOGY-BLOBSTORE-MAP)
         blob-file-names (get-blob-file-names blobstore-map)
-        resource-file-names (cons RESOURCES-SUBDIR blob-file-names)]
+        resource-file-names (cons ConfigUtils/RESOURCES_SUBDIR blob-file-names)]
     (log-message "Creating symlinks for worker-id: " worker-id " storm-id: "
       storm-id " for files(" (count resource-file-names) "): " (pr-str resource-file-names))
-    (create-symlink! workerroot stormroot RESOURCES-SUBDIR)
+    (create-symlink! workerroot stormroot ConfigUtils/RESOURCES_SUBDIR)
     (doseq [file-name blob-file-names]
       (create-symlink! workerroot stormroot file-name file-name))))
 
@@ -1055,7 +1055,7 @@
           storm-home (System/getProperty "storm.home")
           storm-options (System/getProperty "storm.options")
           storm-conf-file (System/getProperty "storm.conf.file")
-          storm-log-dir LOG-DIR
+          storm-log-dir ConfigUtils/LOG_DIR
           storm-log-conf-dir (conf STORM-LOG4J2-CONF-DIR)
           storm-log4j2-conf-dir (if storm-log-conf-dir
                                   (if (is-absolute-path? storm-log-conf-dir)
@@ -1157,7 +1157,7 @@
 (defn resources-jar []
   (->> (.split (current-classpath) File/pathSeparator)
        (filter #(.endsWith  % ".jar"))
-       (filter #(zip-contains-dir? % RESOURCES-SUBDIR))
+       (filter #(zip-contains-dir? % ConfigUtils/RESOURCES_SUBDIR))
        first ))
 
 (defmethod download-storm-code
@@ -1175,13 +1175,13 @@
     (setup-storm-code-dir conf (clojurify-structure (ConfigUtils/readSupervisorStormConf conf storm-id)) stormroot)
     (let [classloader (.getContextClassLoader (Thread/currentThread))
           resources-jar (resources-jar)
-          url (.getResource classloader RESOURCES-SUBDIR)
-          target-dir (str stormroot file-path-separator RESOURCES-SUBDIR)]
+          url (.getResource classloader ConfigUtils/RESOURCES_SUBDIR)
+          target-dir (str stormroot file-path-separator ConfigUtils/RESOURCES_SUBDIR)]
       (cond
         resources-jar
         (do
           (log-message "Extracting resources from jar at " resources-jar " to " target-dir)
-          (extract-dir-from-jar resources-jar RESOURCES-SUBDIR stormroot))
+          (extract-dir-from-jar resources-jar ConfigUtils/RESOURCES_SUBDIR stormroot))
         url
         (do
           (log-message "Copying resources at " (str url) " to " target-dir)

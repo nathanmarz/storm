@@ -233,7 +233,7 @@
   (log-message "Starting pacemaker server for storm version '"
                STORM-VERSION
                "'")
-  (let [conf (override-login-config-with-system-property (clojurify-structure (ConfigUtils/readStormConfig)))]
+  (let [conf (ConfigUtils/overrideLoginConfigWithSystemProperty (clojurify-structure (ConfigUtils/readStormConfig)))]
     (PacemakerServer. (mk-handler conf) conf)))
 
 (defn -main []

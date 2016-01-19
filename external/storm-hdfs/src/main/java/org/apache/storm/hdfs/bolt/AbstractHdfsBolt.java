@@ -216,16 +216,7 @@ public abstract class AbstractHdfsBolt extends BaseRichBolt {
 
     @Override
     public Map<String, Object> getComponentConfiguration() {
-        Map<String, Object> conf = super.getComponentConfiguration();
-        if (conf == null)
-            conf = new Config();
-
-        if (tickTupleInterval > 0) {
-            LOG.info("Enabling tick tuple with interval [{}]", tickTupleInterval);
-            conf.put(Config.TOPOLOGY_TICK_TUPLE_FREQ_SECS, tickTupleInterval);
-        }
-
-        return conf;
+        return TupleUtils.putTickFrequencyIntoComponentConfig(super.getComponentConfiguration(), tickTupleInterval);
     }
 
     @Override

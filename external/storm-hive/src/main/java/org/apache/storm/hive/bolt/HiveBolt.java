@@ -188,14 +188,8 @@ public class HiveBolt extends  BaseRichBolt {
 
     @Override
     public Map<String, Object> getComponentConfiguration() {
-        Map<String, Object> conf = super.getComponentConfiguration();
-        if (conf == null)
-            conf = new Config();
-
-        if (options.getTickTupleInterval() > 0)
-            conf.put(Config.TOPOLOGY_TICK_TUPLE_FREQ_SECS, options.getTickTupleInterval());
-
-        return conf;
+        return TupleUtils.putTickFrequencyIntoComponentConfig(super.getComponentConfiguration(),
+                options.getTickTupleInterval());
     }
 
     private void setupHeartBeatTimer() {

@@ -153,7 +153,7 @@ public class SolrUpdateBolt extends BaseRichBolt {
 
     @Override
     public Map<String, Object> getComponentConfiguration() {
-        return TupleUtils.putTickFreqencyIntoComponentConfig(super.getComponentConfiguration(), tickTupleInterval);
+        return TupleUtils.putTickFrequencyIntoComponentConfig(super.getComponentConfiguration(), tickTupleInterval);
     }
 
     @Override

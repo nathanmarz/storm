@@ -188,7 +188,7 @@ public class HiveBolt extends  BaseRichBolt {
 
     @Override
     public Map<String, Object> getComponentConfiguration() {
-        return TupleUtils.putTickFreqencyIntoComponentConfig(super.getComponentConfiguration(),
+        return TupleUtils.putTickFrequencyIntoComponentConfig(super.getComponentConfiguration(),
                 options.getTickTupleInterval());
     }
 

@@ -48,7 +48,7 @@ public final class TupleUtils {
       }
     }
 
-    public static Map<String, Object> putTickFreqencyIntoComponentConfig(Map<String, Object> conf, int tickFreqSecs) {
+    public static Map<String, Object> putTickFrequencyIntoComponentConfig(Map<String, Object> conf, int tickFreqSecs) {
       if (conf == null) {
           conf = new Config();
       }

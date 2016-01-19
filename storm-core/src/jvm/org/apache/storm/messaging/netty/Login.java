@@ -43,8 +43,8 @@ import java.util.Date;
 import java.util.Random;
 import java.util.Set;
 
-public class ZookeeperSaslLogin {
-    Logger LOG = Logger.getLogger(ZookeeperSaslLogin.class);
+public class Login {
+    Logger LOG = Logger.getLogger(Login.class);
     public CallbackHandler callbackHandler;
 
     // LoginThread will sleep until 80% of time from last refresh to
@@ -90,7 +90,7 @@ public class ZookeeperSaslLogin {
      * @throws javax.security.auth.login.LoginException
      *               Thrown if authentication fails.
      */
-    public ZookeeperSaslLogin(final String loginContextName, CallbackHandler callbackHandler)
+    public Login(final String loginContextName, CallbackHandler callbackHandler)
         throws LoginException {
         this.callbackHandler = callbackHandler;
         login = login(loginContextName);
@@ -257,7 +257,7 @@ public class ZookeeperSaslLogin {
                 }
             }
         });
-        t.setName("ZK-Refresh-TGT-fromAutoTGT");
+        t.setName("Refresh-TGT");
         t.setDaemon(true);
     }
 
@@ -395,7 +395,7 @@ public class ZookeeperSaslLogin {
         }
         sleepUntilSufficientTimeElapsed();
         LOG.info("Initiating logout for " + principal);
-        synchronized (ZookeeperSaslLogin.class) {
+        synchronized (Login.class) {
             //clear up the kerberos state. But the tokens are not cleared! As per
             //the Java kerberos login module code, only the kerberos credentials
             //are cleared

@@ -77,7 +77,7 @@ class KerberosSaslNettyServer {
             Configuration.setConfiguration(login_conf);
             //now login
             LOG.debug("Trying to login.");
-            ZookeeperSaslLogin login = new ZookeeperSaslLogin(jaas_section, ch);
+            Login login = new Login(jaas_section, ch);
             subject = login.getSubject();
             LOG.debug("Got Subject: {}", subject.toString());
         } catch (LoginException ex) {

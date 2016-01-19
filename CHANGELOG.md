@@ -1,5 +1,6 @@
 ## 2.0.0
 ## 1.0.0
+ * STORM-1450: Fix minor bugs and refactor code in ResourceAwareScheduler
  * STORM-1478: make bolts getComponentConfiguration method cleaner/simpler
  * STORM-1482: add missing 'break' for RedisStoreBolt
  * STORM-1466: Move the org.apache.thrift7 namespace to something correct/sensible

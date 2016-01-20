@@ -1,5 +1,7 @@
 ## 2.0.0
+
 ## 1.0.0
+ * STORM-1472: Fix the errorTime bug and show the time to be readable
  * STORM-1450: Fix minor bugs and refactor code in ResourceAwareScheduler
  * STORM-1478: make bolts getComponentConfiguration method cleaner/simpler
  * STORM-1482: add missing 'break' for RedisStoreBolt

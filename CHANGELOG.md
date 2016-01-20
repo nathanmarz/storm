@@ -6,10 +6,8 @@
 ## 1.0.0
  * STORM-1452: Fixes profiling/debugging out of the box
  * STORM-1406: Add MQTT Support
- * STORM-1481: avoid Math.abs(Integer) get a negative value
  * STORM-1473: enable log search for daemon logs
  * STORM-1472: Fix the errorTime bug and show the time to be readable
- * STORM-1482: add missing 'break' for RedisStoreBolt
  * STORM-1466: Move the org.apache.thrift7 namespace to something correct/sensible
  * STORM-1470: Applies shading to hadoop-auth, cleaner exclusions
  * STORM-1467: Switch apache-rat plugin off by default, but enable for Travis-CI
@@ -122,7 +120,6 @@
  * STORM-1182: Removing and wrapping some exceptions in ConfigValidation to make code cleaner
  * STORM-1134. Windows: Fix log4j config.
  * STORM-1127: allow for boolean arguments (Flux)
- * STORM-1180: FLUX logo wasn't appearing quite right
  * STORM-1138: Storm-hdfs README should be updated with Avro Bolt information
  * STORM-1154: SequenceFileBolt needs unit tests
  * STORM-162: Load Aware Shuffle Grouping
@@ -245,6 +242,13 @@
  * STORM-901: Worker Artifacts Directory
  * STORM-1144: Display requested and assigned cpu/mem resources for schedulers in UI
  * STORM-1217: making small fixes in RAS
+
+## 0.10.1
+
+ * STORM-1481: avoid Math.abs(Integer) get a negative value
+ * STORM-1121: Deprecate test only configuraton nimbus.reassign
+ * STORM-1180: FLUX logo wasn't appearing quite right
+ * STORM-1482: add missing 'break' for RedisStoreBolt
 
 ## 0.10.0-beta2
  * STORM-581: Add rebalance params to Storm REST API

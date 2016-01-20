@@ -646,7 +646,7 @@
                     reverse)]
     {"componentErrors"
      (for [^ErrorInfo e errors]
-       {"time" (* 1000 (long (.get_error_time_secs e)))
+       {"errorTime" (* 1000 (long (.get_error_time_secs e)))
         "errorHost" (.get_host e)
         "errorPort"  (.get_port e)
         "errorWorkerLogLink"  (worker-log-link (.get_host e)

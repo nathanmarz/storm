@@ -281,6 +281,28 @@
             </includes>
         </fileSet>
 
+        <fileSet>
+            <directory>${project.basedir}/../../external/storm-mqtt</directory>
+            <outputDirectory>external/storm-mqtt</outputDirectory>
+            <includes>
+                <include>README.*</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/storm-mqtt/core/target</directory>
+            <outputDirectory>external/storm-mqtt</outputDirectory>
+            <includes>
+                <include>storm*jar</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/storm-mqtt/examples/target</directory>
+            <outputDirectory>external/storm-mqtt</outputDirectory>
+            <includes>
+                <include>storm*jar</include>
+            </includes>
+        </fileSet>
+
         <!-- $STORM_HOME/extlib -->
         <fileSet>
             <directory></directory>

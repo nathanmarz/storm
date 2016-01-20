@@ -29,12 +29,12 @@ import java.util.Map;
  *
  * ### Configuration
  * If your `Filter` implementation has configuration requirements, you will typically want to extend
- * {@link storm.trident.operation.BaseFilter} and override the
- * {@link storm.trident.operation.Operation#prepare(Map, TridentOperationContext)} method to perform your custom
+ * {@link org.apache.storm.trident.operation.BaseFilter} and override the
+ * {@link org.apache.storm.trident.operation.Operation#prepare(Map, TridentOperationContext)} method to perform your custom
  * initialization.
 
  *
- * @see storm.trident.Stream
+ * @see org.apache.storm.trident.Stream
  */
 public interface Filter extends EachOperation {
 

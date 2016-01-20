@@ -31,8 +31,8 @@ import java.util.List;
  * ```java
  *      collector.emit(new Values("a", "b", "c"));
  * ```
- * @see storm.trident.Stream
- * @see backtype.storm.tuple.Values
+ * @see org.apache.storm.trident.Stream
+ * @see org.apache.storm.tuple.Values
  */
 public interface TridentCollector {
     /**
@@ -45,7 +45,7 @@ public interface TridentCollector {
      * Reports an error. The corresponding stack trace will be visible in the Storm UI.
      *
      * Note that calling this method does not alter the processing of a batch. To explicitly fail a batch and trigger
-     * a replay, components should throw {@link backtype.storm.topology.FailedException}.
+     * a replay, components should throw {@link org.apache.storm.topology.FailedException}.
      * @param t The instance of the error (Throwable) being reported.
      */
     void reportError(Throwable t);

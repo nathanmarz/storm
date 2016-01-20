@@ -68,15 +68,16 @@ import java.util.Map;
  *
  * ### Configuration
  * If your `Function` implementation has configuration requirements, you will typically want to extend
- * {@link storm.trident.operation.BaseFunction} and override the
- * {@link storm.trident.operation.Operation#prepare(Map, TridentOperationContext)} method to perform your custom
+ * {@link org.apache.storm.trident.operation.BaseFunction} and override the
+ * {@link org.apache.storm.trident.operation.Operation#prepare(Map, TridentOperationContext)} method to perform your custom
  * initialization.
  *
  * ### Performance Considerations
  * Because Trident Functions perform logic on individual tuples -- as opposed to batches -- it is advisable
  * to avoid expensive operations such as database operations in a Function, if possible. For data store interactions
- * it is better to use a {@link storm.trident.state.State} or {@link storm.trident.state.QueryFunction} implementation
- * since Trident states operate on batch partitions and can perform bulk updates to a database.
+ * it is better to use a {@link org.apache.storm.trident.state.State} or
+ * {@link org.apache.storm.trident.state.QueryFunction} implementation since Trident states operate on batch partitions
+ * and can perform bulk updates to a database.
  *
  *
  */

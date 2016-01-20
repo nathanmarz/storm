@@ -20,7 +20,7 @@ package org.apache.storm.trident.operation;
 import java.util.Map;
 
 /**
- * Convenience implementation of the {@link storm.trident.operation.Operation} interface.
+ * Convenience implementation of the {@link org.apache.storm.trident.operation.Operation} interface.
  *
  * Provides no-op implementations of the `prepare()` and `cleanup()` methods.
  */

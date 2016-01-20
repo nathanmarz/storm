@@ -34,7 +34,7 @@ public interface Operation extends Serializable {
      * @param context the operation context which provides information such as the number of partitions in the stream,
      *                and the current partition index. It also provides methods for registering operation-specific
      *                metrics.
-     * @see storm.trident.operation.TridentOperationContext
+     * @see org.apache.storm.trident.operation.TridentOperationContext
      */
     void prepare(Map conf, TridentOperationContext context);
 

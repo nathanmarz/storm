@@ -234,7 +234,7 @@ public class Stream implements IAggregatableStream {
      * ## Repartitioning Operation
      *
      * This method takes in a custom partitioning function that implements
-     * {@link backtype.storm.grouping.CustomStreamGrouping}
+     * {@link org.apache.storm.grouping.CustomStreamGrouping}
      *
      * @param grouping
      * @return

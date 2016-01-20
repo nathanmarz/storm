@@ -30,7 +30,7 @@ import org.apache.storm.trident.tuple.TridentTuple;
 
 /**
  *
- * An {@link storm.trident.operation.Assembly} implementation
+ * An {@link org.apache.storm.trident.operation.Assembly} implementation
  *
  */
 public class FirstN implements Assembly {

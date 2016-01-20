@@ -21,7 +21,7 @@ import org.apache.storm.trident.Stream;
 
 
 /**
- * The `Assembly` interface provides a means to encapsulate logic applied to a {@link storm.trident.Stream}.
+ * The `Assembly` interface provides a means to encapsulate logic applied to a {@link org.apache.storm.trident.Stream}.
  *
  * Usage:
  *
@@ -30,13 +30,13 @@ import org.apache.storm.trident.Stream;
  * Stream assemblyStream = mystream.applyAssembly(myAssembly);
  * ```
  *
- * @see storm.trident.Stream
- * @see storm.trident.operation.builtin.FirstN
+ * @see org.apache.storm.trident.Stream
+ * @see org.apache.storm.trident.operation.builtin.FirstN
  *
  */
 public interface Assembly {
     /**
-     * Applies the `Assembly` to a given {@link storm.trident.Stream}
+     * Applies the `Assembly` to a given {@link org.apache.storm.trident.Stream}
      *
      * @param input
      * @return

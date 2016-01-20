@@ -20,15 +20,17 @@ package org.apache.storm.trident.partition;
 import org.apache.storm.generated.GlobalStreamId;
 import org.apache.storm.grouping.CustomStreamGrouping;
 import org.apache.storm.task.WorkerTopologyContext;
+import org.apache.storm.utils.Utils;
+
 import java.util.Arrays;
 import java.util.List;
 
 public class IndexHashGrouping implements CustomStreamGrouping {
     public static int objectToIndex(Object val, int numPartitions) {
-        if(val==null) return 0;
-        else {
-            return Math.abs(val.hashCode()) % numPartitions;
+        if(val == null) {
+            return 0;
         }
+        return Utils.toPositive(val.hashCode()) % numPartitions;
     }
     
     int _index;

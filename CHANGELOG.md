@@ -2,6 +2,7 @@
  * STORM-1484: ignore subproject .classpath & .project file
 
 ## 1.0.0
+ * STORM-1452: Fixes profiling/debugging out of the box
  * STORM-1406: Add MQTT Support
  * STORM-1481: avoid Math.abs(Integer) get a negative value
  * STORM-1473: enable log search for daemon logs

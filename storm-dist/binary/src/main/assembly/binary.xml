@@ -42,6 +42,7 @@
             <outputDirectory>bin</outputDirectory>
             <includes>
                 <include>storm*</include>
+                <include>flight.bash</include>
             </includes>
             <fileMode>0755</fileMode>
         </fileSet>

@@ -166,8 +166,12 @@ supervisor.cpu.capacity: 400.0
 worker.heap.memory.mb: 768
 worker.childopts: "-Xmx%HEAP-MEM%m -XX:+PrintGCDetails -Xloggc:artifacts/gc.log -XX:+PrintGCDateStamps -XX:+PrintGCTimeStamps -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=10 -XX:GCLogFileSize=1M -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=artifacts/heapdump"
 worker.gc.childopts: ""
+
+# Unlocking commercial features requires a special license from Oracle.
+# See http://www.oracle.com/technetwork/java/javase/terms/products/index.html
+# For this reason, profiler features are disabled by default.
+worker.profiler.enabled: false
 worker.profiler.childopts: "-XX:+UnlockCommercialFeatures -XX:+FlightRecorder"
-worker.profiler.enabled: true
 worker.profiler.command: "flight.bash"
 worker.heartbeat.frequency.secs: 1
 

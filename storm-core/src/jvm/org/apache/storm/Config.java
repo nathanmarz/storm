@@ -1374,7 +1374,9 @@ public class Config extends HashMap<String, Object> {
     public static final String WORKER_PROFILER_CHILDOPTS = "worker.profiler.childopts";
 
     /**
-     * This configuration would enable or disable component page profiing and debugging for workers.
+     * Enable profiling of worker JVMs using Oracle's Java Flight Recorder.
+     * Unlocking commercial features requires a special license from Oracle.
+     * See http://www.oracle.com/technetwork/java/javase/terms/products/index.html
      */
     @isBoolean
     public static final String WORKER_PROFILER_ENABLED = "worker.profiler.enabled";

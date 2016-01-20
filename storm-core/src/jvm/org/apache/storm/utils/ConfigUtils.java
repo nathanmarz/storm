@@ -40,9 +40,8 @@ public class ConfigUtils {
     public final static String RESOURCES_SUBDIR = "resources";
     public final static String NIMBUS_DO_NOT_REASSIGN = "NIMBUS-DO-NOT-REASSIGN";
     public static final String FILE_SEPARATOR = File.separator;
-    public final static String LOG_DIR;
 
-    static {
+    public static String getLogDir() {
         String dir;
         Map conf;
         if (System.getProperty("storm.log.dir") != null) {
@@ -57,7 +56,7 @@ public class ConfigUtils {
             }
         }
         try {
-            LOG_DIR = new File(dir).getCanonicalPath();
+            return new File(dir).getCanonicalPath();
         } catch (IOException ex) {
             throw new IllegalArgumentException("Illegal storm.log.dir in conf: " + dir);
         }
@@ -87,13 +86,12 @@ public class ConfigUtils {
     }
 
     public static String clusterMode(Map conf) {
-        String mode = (String) conf.get(Config.STORM_CLUSTER_MODE);
+        String mode = (String)conf.get(Config.STORM_CLUSTER_MODE);
         return mode;
-
     }
 
     public static boolean isLocalMode(Map conf) {
-        String mode = (String) conf.get(Config.STORM_CLUSTER_MODE);
+        String mode = (String)conf.get(Config.STORM_CLUSTER_MODE);
         if (mode != null) {
             if ("local".equals(mode)) {
                 return true;
@@ -166,13 +164,12 @@ public class ConfigUtils {
                 return (stormHome + FILE_SEPARATOR + localDir);
             }
         }
-
     }
 
     public static String absoluteHealthCheckDir(Map conf) {
         String stormHome = System.getProperty("storm.home");
-        String healthCheckDir = String.valueOf(conf.get(Config.STORM_HEALTH_CHECK_DIR));
-        if (healthCheckDir.equals("null")) {
+        String healthCheckDir = (String)conf.get(Config.STORM_HEALTH_CHECK_DIR);
+        if (healthCheckDir == null) {
             return (stormHome + FILE_SEPARATOR + "healthchecks");
         } else {
             if (new File(healthCheckDir).isAbsolute()) {
@@ -185,15 +182,9 @@ public class ConfigUtils {
 
     public static String masterLocalDir(Map conf) throws IOException {
         String ret = String.valueOf(conf.get(Config.STORM_LOCAL_DIR)) + FILE_SEPARATOR + "nimbus";
-        try {
-            FileUtils.forceMkdir(new File(ret));
-        } catch (IOException e) {
-            LOG.error("Failed to create dir " + ret, e);
-            throw e;
-        }
+        FileUtils.forceMkdir(new File(ret));
         return ret;
     }
-
 
     public static String masterStormJarKey(String topologyId) {
         return (topologyId + "-stormjar.jar");
@@ -226,50 +217,19 @@ public class ConfigUtils {
         return ret + FILE_SEPARATOR + "stormdist";
     }
 
-    public static String stormTmpPath(String stormRoot) {
-        return stormRoot + FILE_SEPARATOR + "tmp";
-    }
-
-    /* Never get used TODO : delete it*/
-    public static String masterTmpDir(Map conf) throws IOException {
-        String ret = stormTmpPath(masterLocalDir(conf));
-        FileUtils.forceMkdir(new File(ret));
-        return ret;
-    }
-
     public static Map readSupervisorStormConfGivenPath(Map conf, String stormConfPath) throws  IOException {
         Map ret = new HashMap(conf);
         ret.putAll(Utils.fromCompressedJsonConf(FileUtils.readFileToByteArray(new File(stormConfPath))));
         return ret;
     }
 
-    /* Never get used TODO : may delete it*/
-    public static String masterStormMetaFilePath(String stormRoot) {
-        return (stormRoot + FILE_SEPARATOR + "storm-code-distributor.meta");
-    }
-
     public static String masterStormJarPath(String stormRoot) {
         return (stormRoot + FILE_SEPARATOR + "stormjar.jar");
     }
 
-    /* Never get used TODO : may delete it*/
-    public static String masterStormCodePath(String stormRoot) {
-        return (stormRoot + FILE_SEPARATOR + "stormcode.ser");
-    }
-
-    /* Never get used TODO : may delete it*/
-    public static String masterStormConfPath(String stormRoot) {
-        return (stormRoot + FILE_SEPARATOR + "stormconf.ser");
-    }
-
     public static String masterInbox(Map conf) throws IOException {
         String ret = masterLocalDir(conf) + FILE_SEPARATOR + "inbox";
-        try {
-            FileUtils.forceMkdir(new File(ret));
-        } catch (IOException e) {
-            LOG.error("Failed to create dir " + ret, e);
-            throw e;
-        }
+        FileUtils.forceMkdir(new File(ret));
         return ret;
     }
 
@@ -332,7 +292,7 @@ public class ConfigUtils {
         if (mockedSupervisorStormDistRoot != null) {
             return null;
         }
-        return stormDistPath(supervisorLocalDir(conf)); // TODO: no need to forceMake here?, clj does not.
+        return stormDistPath(supervisorLocalDir(conf));
     }
 
     public static String supervisorStormDistRoot(Map conf, String stormId) throws IOException {
@@ -586,12 +546,12 @@ public class ConfigUtils {
         }
         String artifactsDir = (String)conf.get(Config.STORM_WORKERS_ARTIFACTS_DIR);
         if (artifactsDir == null) {
-            return (LOG_DIR + FILE_SEPARATOR + "workers-artifacts");
+            return (getLogDir() + FILE_SEPARATOR + "workers-artifacts");
         } else {
             if (new File(artifactsDir).isAbsolute()) {
                 return artifactsDir;
             } else {
-                return (LOG_DIR + FILE_SEPARATOR + artifactsDir);
+                return (getLogDir() + FILE_SEPARATOR + artifactsDir);
             }
         }
     }

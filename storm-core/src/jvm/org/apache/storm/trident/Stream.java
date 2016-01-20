@@ -246,7 +246,14 @@ public class Stream implements IAggregatableStream {
             return _topology.addSourcedNode(this, new PartitionNode(_node.streamId, _name, getOutputFields(), grouping));       
         }
     }
-    
+
+    /**
+     * Applies an `Assembly` to this `Stream`.
+     *
+     * @see org.apache.storm.trident.operation.Assembly
+     * @param assembly
+     * @return
+     */
     public Stream applyAssembly(Assembly assembly) {
         return assembly.apply(this);
     }
@@ -261,27 +268,6 @@ public class Stream implements IAggregatableStream {
                         functionFields,
                         new EachProcessor(inputFields, function)));
     }
-
-    public Stream each(Function function, Fields functionFields) {
-        return each(null, function, functionFields);
-    }
-
-    public Stream each(Fields inputFields, Filter filter) {
-        return each(inputFields, new FilterExecutor(filter), new Fields());
-    }
-
-
-    /**
-     * Applies an `Assembly` to this `Stream`.
-     *
-     * @see storm.trident.operation.Assembly
-     * @param assembly
-     * @return
-     */
-    public Stream applyAssembly(Assembly assembly) {
-        return assembly.apply(this);
-    }
-
     //creates brand new tuples with brand new fields
     @Override
     public Stream partitionAggregate(Fields inputFields, Aggregator agg, Fields functionFields) {

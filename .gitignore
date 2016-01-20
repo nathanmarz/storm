@@ -36,5 +36,5 @@ dependency-reduced-pom.xml
 derby.log
 metastore_db
 .settings/
-**/.project
-**/.classpath
+.project
+.classpath

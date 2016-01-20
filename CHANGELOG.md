@@ -2,6 +2,7 @@
  * STORM-1484: ignore subproject .classpath & .project file
 
 ## 1.0.0
+ * STORM-1473: enable log search for daemon logs
  * STORM-1472: Fix the errorTime bug and show the time to be readable
  * STORM-1450: Fix minor bugs and refactor code in ResourceAwareScheduler
  * STORM-1478: make bolts getComponentConfiguration method cleaner/simpler

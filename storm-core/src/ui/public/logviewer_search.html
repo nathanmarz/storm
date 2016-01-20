@@ -47,6 +47,7 @@ $(document).ready(function() {
     var file = $.url("?file");
     var search = $.url("?search");
     var offset = $.url("?offset") || 0;
+    var isDaemon = $.url("?is-daemon");
     file = decodeURIComponent(file);
     search = decodeURIComponent(search);
 
@@ -54,7 +55,7 @@ $(document).ready(function() {
         $("#search-form").append(Mustache.render($(template).filter("#search-single-file").html(),{file: file, search: search}));
 
         var result = $("#result");
-        var url = "/search/"+encodeURIComponent(file)+"?search-string="+search+"&start-byte-offset="+offset;
+        var url = "/search/"+encodeURIComponent(file)+"?search-string="+search+"&start-byte-offset="+offset+"&is-daemon="+isDaemon;
         $.getJSON(url,function(response,status,jqXHR) {
            response.file = file;
            result.append(Mustache.render($(template).filter("#logviewer-search-result-template").html(),response));

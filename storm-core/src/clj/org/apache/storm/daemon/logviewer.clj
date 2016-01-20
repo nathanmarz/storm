@@ -353,10 +353,11 @@
   [:a {:href (java.net.URI. url)
        :class (str "btn btn-default " (if enabled "enabled" "disabled"))} text])
 
-(defn search-file-form [fname]
+(defn search-file-form [fname is-daemon]
   [[:form {:action "logviewer_search.html" :id "search-box"}
     "Search this file:"
     [:input {:type "text" :name "search"}]
+    [:input {:type "hidden" :name "is-daemon" :value is-daemon}]
     [:input {:type "hidden" :name "file" :value fname}]
     [:input {:type "submit" :value "Search"}]]])
 
@@ -439,7 +440,7 @@
                           (string/join "\n"))
                      log-string)])
             (let [pager-data (if (is-txt-file fname) (pager-links fname start length file-length) nil)]
-              (html (concat (search-file-form fname)
+              (html (concat (search-file-form fname "no")
                             (log-file-selection-form reordered-files-str "log") ; list all files for this topology
                             pager-data
                             (download-link fname)
@@ -483,7 +484,8 @@
                         (string/join "\n"))
                    log-string)])
           (let [pager-data (if (is-txt-file fname) (pager-links fname start length file-length) nil)]
-            (html (concat (log-file-selection-form reordered-files-str "daemonlog") ; list all daemon logs
+            (html (concat (search-file-form fname "yes")
+                          (log-file-selection-form reordered-files-str "daemonlog") ; list all daemon logs
                           pager-data
                           (daemon-download-link fname)
                           [[:pre#logContent log-string]]
@@ -1070,7 +1072,7 @@
       (catch InvalidRequestException ex
         (log-error ex)
         (ring-response-from-exception ex))))
-  (GET "/search/:file" [:as {:keys [servlet-request servlet-response log-root]} file & m]
+  (GET "/search/:file" [:as {:keys [servlet-request servlet-response log-root daemonlog-root]} file & m]
     ;; We do not use servlet-response here, but do not remove it from the
     ;; :keys list, or this rule could stop working when an authentication
     ;; filter is configured.
@@ -1078,7 +1080,7 @@
       (let [user (.getUserName http-creds-handler servlet-request)]
         (search-log-file (url-decode file)
           user
-          log-root
+          (if (= (:is-daemon m) "yes") daemonlog-root log-root)
           (:search-string m)
           (:num-matches m)
           (:start-byte-offset m)

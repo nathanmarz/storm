@@ -1,5 +1,7 @@
 ## 2.0.0
  * STORM-1484: ignore subproject .classpath & .project file
+ * STORM-1450: Fix minor bugs and refactor code in ResourceAwareScheduler
+ * STORM-1478: make bolts getComponentConfiguration method cleaner/simpler
 
 ## 1.0.0
  * STORM-1452: Fixes profiling/debugging out of the box
@@ -7,8 +9,6 @@
  * STORM-1481: avoid Math.abs(Integer) get a negative value
  * STORM-1473: enable log search for daemon logs
  * STORM-1472: Fix the errorTime bug and show the time to be readable
- * STORM-1450: Fix minor bugs and refactor code in ResourceAwareScheduler
- * STORM-1478: make bolts getComponentConfiguration method cleaner/simpler
  * STORM-1482: add missing 'break' for RedisStoreBolt
  * STORM-1466: Move the org.apache.thrift7 namespace to something correct/sensible
  * STORM-1470: Applies shading to hadoop-auth, cleaner exclusions

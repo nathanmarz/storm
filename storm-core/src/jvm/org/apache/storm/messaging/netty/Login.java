@@ -47,7 +47,7 @@ public class Login {
     Logger LOG = Logger.getLogger(Login.class);
     public CallbackHandler callbackHandler;
 
-    // LoginThread will sleep until 80% of time from last refresh to
+    // Login will sleep until 80% of time from last refresh to
     // ticket's expiry has been reached, at which time it will wake
     // and try to renew the ticket.
     private static final float TICKET_RENEW_WINDOW = 0.80f;
@@ -79,7 +79,7 @@ public class Login {
     private long lastLogin = 0;
 
     /**
-     * LoginThread constructor. The constructor starts the thread used
+     * Login constructor. The constructor starts the thread used
      * to periodically re-login to the Kerberos Ticket Granting Server.
      * @param loginContextName
      *               name of section in JAAS file that will be use to login.

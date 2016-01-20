@@ -315,7 +315,6 @@
               exp-args (exp-args-fn ["-Dfoo=bar" "-Xmx1024m"]
                                     ["-Dkau=aux" "-Xmx2048m"]
                                     mock-cp)
-              _ (log-message "zliu testing 1, exp-args is: " exp-args)
               mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed
                                       WORKER-CHILDOPTS string-opts}}
               mocked-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
@@ -341,7 +340,6 @@
         (let [list-opts '("-Dopt1='this has a space in it'" "-Xmx1024m")
               topo-list-opts '("-Dopt2='val with spaces'" "-Xmx2048m")
               exp-args (exp-args-fn list-opts topo-list-opts mock-cp)
-              _ (log-message "zliu testing 2, exp-args is: " exp-args)
               mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed
                                       WORKER-CHILDOPTS list-opts}}
               mocked-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
@@ -366,7 +364,6 @@
       (testing "testing topology.classpath is added to classpath"
         (let [topo-cp (str file-path-separator "any" file-path-separator "path")
               exp-args (exp-args-fn [] [] (add-to-classpath mock-cp [topo-cp]))
-              _ (log-message "zliu testing 3, exp-args is: " exp-args ", str is " (pr-str exp-args))
               mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed}}
               mocked-supervisor-storm-conf {TOPOLOGY-CLASSPATH topo-cp}]
           (with-open [mock1 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorStormDistRoot. {})
@@ -390,7 +387,6 @@
         (let [topo-env {"THISVAR" "somevalue" "THATVAR" "someothervalue"}
               full-env (merge topo-env {"LD_LIBRARY_PATH" nil})
               exp-args (exp-args-fn [] [] mock-cp)
-              _ (log-message "zliu testing  4, exp-args is: " exp-args)
               mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed}}
               mocked-supervisor-storm-conf {TOPOLOGY-ENVIRONMENT topo-env}]
           (with-open [mock1 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorStormDistRoot. {})

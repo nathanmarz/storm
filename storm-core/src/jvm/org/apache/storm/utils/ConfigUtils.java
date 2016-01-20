@@ -42,7 +42,6 @@ public class ConfigUtils {
     public static final String FILE_SEPARATOR = File.separator;
     public final static String LOG_DIR;
 
-    // TODO: what is the different between ConfigUtils/LOG_DIR and config/LOG-DIR, the first fails tests
     static {
         String dir;
         Map conf;
@@ -63,28 +62,6 @@ public class ConfigUtils {
             throw new IllegalArgumentException("Illegal storm.log.dir in conf: " + dir);
         }
     }
-
-    //public final static String WORKER_DATA_SUBDIR = "worker_shared_data";
-
-    /*
-    public static String getLogDir() {
-        String dir;
-        Map conf;
-        if (System.getProperty("storm.log.dir") != null) {
-            dir = System.getProperty("storm.log.dir");
-        } else if ((conf = readStormConfig()).get("storm.log.dir") != null) {
-            dir = String.valueOf(conf.get("storm.log.dir"));
-        } else {
-            dir = System.getProperty("storm.home") + FILE_SEPARATOR + "logs";
-        }
-        try {
-            return new File(dir).getCanonicalPath();
-        } catch (IOException ex) {
-            throw new IllegalArgumentException("Illegal storm.log.dir in conf: " + dir);
-        }
-    }
-    */
-
 
     public static String clojureConfigName(String name) {
         return name.toUpperCase().replace("_", "-");
@@ -136,11 +113,9 @@ public class ConfigUtils {
         throw new IllegalArgumentException("Illegal topology.stats.sample.rate in conf: " + rate);
     }
 
-    // public static mkStatsSampler // depends on Utils.evenSampler() TODO, this is sth we have to do
-
+    // public static mkStatsSampler // depends on Utils.evenSampler() TODO, this is sth we need to do after util
     // public static readDefaultConfig // depends on Utils.clojurifyStructure and Utils.readDefaultConfig // TODO
-
-    // validate-configs-with-schemas is just a wrapper of ConfigValidation.validateFields(conf) TODO
+    // validate-configs-with-schemas is just a wrapper of ConfigValidation.validateFields(conf)
 
     //For testing only
     // for java
@@ -166,7 +141,7 @@ public class ConfigUtils {
         if (mockedStormConfig != null) return mockedStormConfig;
         Map conf = Utils.readStormConfig();
         ConfigValidation.validateFields(conf);
-        return conf; // TODO, should this be clojurify-sturecture and then return? Otherwise, the clj files who call it fail
+        return conf;
     }
 
     public static Map readYamlConfig(String name, boolean mustExist) {
@@ -180,14 +155,11 @@ public class ConfigUtils {
     }
 
     public static String absoluteStormLocalDir(Map conf) {
-        LOG.info("zliu conf map is " + conf);
         String stormHome = System.getProperty("storm.home");
-        LOG.info("zliu stormhome is " + stormHome);
         String localDir = (String) conf.get(Config.STORM_LOCAL_DIR);
         if (localDir == null) {
             return (stormHome + FILE_SEPARATOR + "storm-local");
         } else {
-            LOG.info("zliu java local dir is " + localDir + ", isAbsolute:" + (new File(localDir).isAbsolute()));
             if (new File(localDir).isAbsolute()) {
                 return localDir;
             } else {
@@ -267,7 +239,7 @@ public class ConfigUtils {
 
     public static Map readSupervisorStormConfGivenPath(Map conf, String stormConfPath) throws  IOException {
         Map ret = new HashMap(conf);
-        ret.putAll(Utils.fromCompressedJsonConf(FileUtils.readFileToByteArray(new File(stormConfPath)))); // TODO we do not need clojurify-structure, right?
+        ret.putAll(Utils.fromCompressedJsonConf(FileUtils.readFileToByteArray(new File(stormConfPath))));
         return ret;
     }
 
@@ -357,7 +329,6 @@ public class ConfigUtils {
     }
     private static Map mockedSupervisorStormDistRoot = null;
     public static String supervisorStormDistRoot(Map conf) throws IOException {
-        LOG.info("zliu supervisorStormDistRoot resl is: " + stormDistPath(supervisorLocalDir(conf)) + "mocked set is " + mockedSupervisorStormDistRoot);
         if (mockedSupervisorStormDistRoot != null) {
             return null;
         }
@@ -519,8 +490,6 @@ public class ConfigUtils {
     public static String getWorkerUser(Map conf, String workerId) {
         LOG.info("GET worker-user for {}", workerId);
         File file = new File(workerUserFile(conf, workerId));
-        //LOG.info("zliu to read access worker user file: " + (file.getCanonicalPath()));
-        LOG.info("zliu this file is existed?" + file.exists());
 
         try (InputStream in = new FileInputStream(file);
              Reader reader = new InputStreamReader(in);
@@ -578,7 +547,6 @@ public class ConfigUtils {
         }
         LOG.info("SET worker-user {} {}", workerId, user);
         File file = new File(workerUserFile(conf, workerId));
-        LOG.info("zliu  SET worker-user to create worker file:" + file.getCanonicalPath());
         file.getParentFile().mkdirs();
 
         try (FileWriter fw = new FileWriter(file);
@@ -663,9 +631,6 @@ public class ConfigUtils {
     }
 
     public static String workerRoot(Map conf) {
-        LOG.info("zliu workers root's current listFiles are:");
-        File r = new File((absoluteStormLocalDir(conf) + FILE_SEPARATOR + "workers")); //TODO delete me
-        if (r.exists()) for (File f : r.listFiles()) {LOG.info(f.getName());} //TODO delete me
         return (absoluteStormLocalDir(conf) + FILE_SEPARATOR + "workers");
     }
 

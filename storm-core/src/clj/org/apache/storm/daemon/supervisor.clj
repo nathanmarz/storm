@@ -118,11 +118,8 @@
   (map-val :master-code-dir assignments-snapshot))
 
 (defn- read-downloaded-storm-ids [conf]
-  (let [dir (ConfigUtils/supervisorStormDistRoot conf)
-        _ (log-message "zliu java supervisorLocalDir " (ConfigUtils/supervisorLocalDir conf))
-        cdir (ConfigUtils/supervisorStormDistRoot conf)
-        _ (log-message "zliu jdir is:" dir ",cdir is"  cdir ",clj dir equals to nil? " (nil? cdir) "jdir = cdir?" (= dir cdir))]
-  (map #(url-decode %) (read-dir-contents dir))) ; (supervisor-stormdist-root conf)));
+  (let [dir (ConfigUtils/supervisorStormDistRoot conf)]
+  (map #(url-decode %) (read-dir-contents dir)))
   )
 
 (defn read-worker-heartbeat [conf id]
@@ -140,8 +137,7 @@
 (defn read-worker-heartbeats
   "Returns map from worker id to heartbeat"
   [conf]
-  (let [ids (my-worker-ids conf)
-        _ (log-message "zliu my-worker-ids are" (prn-str ids))]
+  (let [ids (my-worker-ids conf)]
     (into {}
       (dofor [id ids]
         [id (read-worker-heartbeat conf id)]))
@@ -173,9 +169,7 @@
   (let [conf (:conf supervisor)
         ^LocalState local-state (:local-state supervisor)
         id->heartbeat (read-worker-heartbeats conf)
-        _ (log-message "zliu id->heartbeat is:" (prn-str id->heartbeat))
-        approved-ids (set (keys (ls-approved-workers local-state)))
-        _ (log-message "zliu approved-ids is:" (prn-str approved-ids))]
+        approved-ids (set (keys (ls-approved-workers local-state)))]
     (into
      {}
      (dofor [[id hb] id->heartbeat]
@@ -285,7 +279,6 @@
   (log-message "Shutting down " (:supervisor-id supervisor) ":" id)
   (let [conf (:conf supervisor)
         pids (read-dir-contents (ConfigUtils/workerPidsRoot conf id))
-        _ (log-message "zliu pids are:" (pr-str pids) ", worker-pids-root is:" (ConfigUtils/workerPidsRoot conf id))
         thread-pid (@(:worker-thread-pids-atom supervisor) id)
         shutdown-sleep-secs (conf SUPERVISOR-WORKER-SHUTDOWN-SLEEP-SECS)
         as-user (conf SUPERVISOR-RUN-WORKER-AS-USER)
@@ -383,7 +376,6 @@
               (log-message "Launching worker with assignment "
                 (get-worker-assignment-helper-msg assignment supervisor port id))
               (local-mkdirs (ConfigUtils/workerPidsRoot conf id))
-              (log-message "zliu create worker heartbeatroot as " (ConfigUtils/workerHeartbeatsRoot conf id))
               (local-mkdirs (ConfigUtils/workerHeartbeatsRoot conf id))
               (launch-worker supervisor
                 (:storm-id assignment)
@@ -401,9 +393,6 @@
         ^LocalState local-state (:local-state supervisor)
         storm-cluster-state (:storm-cluster-state supervisor)
         assigned-executors (defaulted (ls-local-assignments local-state) {})
-        _ (log-message "zliu storm-cluster-state is " (prn-str storm-cluster-state))
-        _ (log-message "zliu local-state is " (prn-str local-state))
-        _ (log-message "zliu assigned-executors is " (prn-str assigned-executors))
         now (current-time-secs)
         allocated (read-allocated-workers supervisor assigned-executors now)
         keepers (filter-val
@@ -428,9 +417,6 @@
     (log-debug "Syncing processes")
     (log-debug "Assigned executors: " assigned-executors)
     (log-debug "Allocated: " allocated)
-    (log-message "zliu Syncing processes")
-    (log-message "zliu allocated is " (prn-str allocated))
-    (log-message "zliu new-worker-ids is " (prn-str new-worker-ids))
     (doseq [[id [state heartbeat]] allocated]
       (when (not= :valid state)
         (log-message
@@ -1063,21 +1049,15 @@
                                     (str storm-home file-path-separator storm-log-conf-dir))
                                   (str storm-home file-path-separator "log4j2"))
           stormroot (ConfigUtils/supervisorStormDistRoot conf storm-id)
-          _ (log-message "zliu stormroot: " stormroot)
           jlp (jlp stormroot conf)
           stormjar (ConfigUtils/supervisorStormJarPath stormroot)
-          _ (log-message "zliu stormjar: " stormjar)
           storm-conf (clojurify-structure (ConfigUtils/readSupervisorStormConf conf storm-id))
           topo-classpath (if-let [cp (storm-conf TOPOLOGY-CLASSPATH)]
                            [cp]
                            [])
-          _ (log-message "zliu worker-classpath: " (worker-classpath))
-          _ (log-message "zliu stormjar: " stormjar)
-          _ (log-message "zliu topo-classpath: " topo-classpath)
           classpath (-> (worker-classpath)
                         (add-to-classpath [stormjar])
                         (add-to-classpath topo-classpath))
-          _ (log-message "zliu classpath" classpath)
           top-gc-opts (storm-conf TOPOLOGY-WORKER-GC-CHILDOPTS)
           mem-onheap (if (and mem-onheap (> mem-onheap 0)) ;; not nil and not zero
                        (int (Math/ceil mem-onheap)) ;; round up

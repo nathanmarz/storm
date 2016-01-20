@@ -108,9 +108,7 @@
 
 (defn absolute-storm-local-dir [conf]
   (let [storm-home (System/getProperty "storm.home")
-        _ (log-message "zliu clojure storm.home is " storm-home)
-        path (conf STORM-LOCAL-DIR)
-        _ (log-message "zliu clojure path is " path)]
+        path (conf STORM-LOCAL-DIR)]
     (if path
       (if (is-absolute-path? path) path (str storm-home file-path-separator path))
       (str storm-home file-path-separator "storm-local"))))
@@ -189,8 +187,7 @@
 
 (defn supervisor-local-dir
   [conf]
-  (let [ret (str (absolute-storm-local-dir conf) file-path-separator "supervisor")
-        _ (log-message "zliu supervisor-local-dir ret is " ret)]
+  (let [ret (str (absolute-storm-local-dir conf) file-path-separator "supervisor")]
     (FileUtils/forceMkdir (File. ret))
     ret))
 

@@ -1,4 +1,5 @@
 ## 1.0.0
+ * STORM-1472: Fix the errorTime bug and show the time to be readable
  * STORM-1466: Move the org.apache.thrift7 namespace to something correct/sensible
  * STORM-1470: Applies shading to hadoop-auth, cleaner exclusions
  * STORM-1467: Switch apache-rat plugin off by default, but enable for Travis-CI

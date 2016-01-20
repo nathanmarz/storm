@@ -539,7 +539,9 @@
     <tbody>
       {{#componentErrors}}
       <tr>
-        <td>{{errorTime}}</td>
+        <td>
+          <span id="{{errorTime}}" class="errorTimeSpan">{{errorTime}}</span>
+        </td>
         <td>{{errorHost}}</td>
         <td><a href="{{errorWorkerLogLink}}">{{errorPort}}</a></td>
         <td>

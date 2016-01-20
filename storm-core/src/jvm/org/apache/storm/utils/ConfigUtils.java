@@ -439,7 +439,7 @@ public class ConfigUtils {
     }
 
     public static String workerUserRoot(Map conf) {
-        return (absoluteStormLocalDir(conf) + FILE_SEPARATOR + "/workers-users");
+        return (absoluteStormLocalDir(conf) + FILE_SEPARATOR + "workers-users");
     }
 
     /* Never get used TODO : may delete it*/
@@ -463,20 +463,24 @@ public class ConfigUtils {
             String ret = sb.toString().trim();
             return ret;
         } catch (IOException e) {
-            LOG.error("Failed to get worker user for " + workerId + ".");
+            LOG.error("Failed to get worker user for {}.", workerId);
             return null;
         }
     }
 
     public static String getIdFromBlobKey(String key) {
         if (key == null) return null;
+        final String STORM_JAR_SUFFIX = "-stormjar.jar";
+        final String STORM_CODE_SUFFIX = "-stormcode.ser";
+        final String STORM_CONF_SUFFIX = "-stormconf.ser";
+
         String ret = null;
-        if (key.endsWith("-stormjar.jar")) {
-            ret = key.substring(0, key.length() - 13);
-        } else if (key.endsWith("-stormcode.ser")) {
-            ret = key.substring(0, key.length() - 14);
-        } else if (key.endsWith("-stormconf.ser")) {
-            ret = key.substring(0, key.length() - 14);
+        if (key.endsWith(STORM_JAR_SUFFIX)) {
+            ret = key.substring(0, key.length() - STORM_JAR_SUFFIX.length());
+        } else if (key.endsWith(STORM_CODE_SUFFIX)) {
+            ret = key.substring(0, key.length() - STORM_CODE_SUFFIX.length());
+        } else if (key.endsWith(STORM_CONF_SUFFIX)) {
+            ret = key.substring(0, key.length() - STORM_CONF_SUFFIX.length());
         }
         return ret;
     }
@@ -558,6 +562,7 @@ public class ConfigUtils {
 
     public static String workerArtifactsRoot(Map conf, String id) {
         if (mockedWorkerArtifactsRoot != null) {
+            // if the mockedWorkerArtifactsRoot is set, return its value no matter what
             return mockedWorkerArtifactsRoot;
         }
         return (workerArtifactsRoot(conf) + FILE_SEPARATOR + id);
@@ -565,6 +570,7 @@ public class ConfigUtils {
 
     public static String workerArtifactsRoot(Map conf, String id, Integer port) {
         if (mockedWorkerArtifactsRoot != null) {
+            // if the mockedWorkerArtifactsRoot is set, return its value no matter what
             return mockedWorkerArtifactsRoot;
         }
         return (workerArtifactsRoot(conf, id) + FILE_SEPARATOR + port);

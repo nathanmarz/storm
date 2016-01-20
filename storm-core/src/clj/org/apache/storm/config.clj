@@ -53,8 +53,3 @@
 (defn mk-stats-sampler
   [conf]
   (even-sampler (sampling-rate conf)))
-
-;; TODO this function is to be replaced with Java version when util.clj is in
-(defn read-default-config
-  []
-  (clojurify-structure (Utils/readDefaultConfig)))

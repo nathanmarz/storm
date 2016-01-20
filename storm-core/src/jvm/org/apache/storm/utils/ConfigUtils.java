@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.Collections;
+import java.net.URLEncoder;
 
 public class ConfigUtils {
     private final static Logger LOG = LoggerFactory.getLogger(ConfigUtils.class);
@@ -299,7 +300,7 @@ public class ConfigUtils {
         if (mockedSupervisorStormDistRoot != null) {
             return null;
         }
-        return supervisorStormDistRoot(conf) + FILE_SEPARATOR + stormId; // TODO: need to (url-encode storm-id)? Not.
+        return supervisorStormDistRoot(conf) + FILE_SEPARATOR + URLEncoder.encode(stormId, "UTF-8");
     }
 
     public static String supervisorStormJarPath(String stormRoot) {

@@ -1,4 +1,5 @@
 ## 2.0.0
+ * STORM-1484: ignore subproject .classpath & .project file
 
 ## 1.0.0
  * STORM-1472: Fix the errorTime bug and show the time to be readable

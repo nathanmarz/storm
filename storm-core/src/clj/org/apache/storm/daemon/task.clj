@@ -150,6 +150,8 @@
            (when debug?
              (log-message "Emitting: " component-id " " stream " " values))
            (let [out-tasks (ArrayList.)]
+             (if (not (.containsKey stream->component->grouper stream))
+               (throw (IllegalArgumentException. (str "Unknown stream ID: " stream))))
              (fast-map-iter [[out-component grouper] (get stream->component->grouper stream)]
                (when (= :direct grouper)
                   ;;  TODO: this is wrong, need to check how the stream was declared

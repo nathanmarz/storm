@@ -142,7 +142,7 @@
                   (.getComponentOutputFields worker-context component-id stream-id)
                   component->grouping
                   topo-conf)]))
-         (into {})
+         (into (apply merge (map #(hash-map % nil) (.keySet (.get_streams (.getComponentCommon worker-context component-id))))))
          (HashMap.)))
 
 (defn executor-type [^WorkerTopologyContext context component-id]

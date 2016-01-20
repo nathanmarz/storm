@@ -22,7 +22,7 @@
   (:use [org.apache.storm util config]))
 
 (defn mk-conf [extra]
-  (merge (read-default-config) extra))
+  (merge (clojurify-structure (Utils/readDefaultConfig)) extra))
 
 (defn serialize [vals conf]
   (let [serializer (KryoValuesSerializer. (mk-conf conf))]

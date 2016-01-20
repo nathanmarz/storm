@@ -23,7 +23,7 @@
 
 (deftest test-ctor-throws-if-port-invalid
   (let [conf (merge
-              (read-default-config)
+               (clojurify-structure (Utils/readDefaultConfig))
               {STORM-NIMBUS-RETRY-TIMES 0})]
     (is (thrown-cause? java.lang.IllegalArgumentException
       (ThriftClient. conf
@@ -42,7 +42,7 @@
 
 (deftest test-ctor-throws-if-host-not-set
   (let [conf (merge
-              (read-default-config)
+               (clojurify-structure (Utils/readDefaultConfig))
               {STORM-NIMBUS-RETRY-TIMES 0})]
     (is (thrown-cause? TTransportException
          (ThriftClient. conf

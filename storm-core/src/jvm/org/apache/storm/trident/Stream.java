@@ -59,14 +59,14 @@ import org.apache.storm.trident.util.TridentUtils;
 
 /**
  * A Stream represents the core data model in Trident, and can be thought of as a "stream" of tuples that are processed
- * as a series of small batches. A stream is partitioned accross the nodes in the in the cluster, and operations are
+ * as a series of small batches. A stream is partitioned accross the nodes in the cluster, and operations are
  * applied to a stream in parallel accross each partition.
  *
  * There are five types of operations that can be performed on streams in Trident
  *
  * 1. **Partiton-Local Operations** - Operations that are applied locally to each partition and do not involve network
  * transfer
- * 2. **Repartitioning Operations** - Operations that that change how tuples are partitioned across tasks(thus causing
+ * 2. **Repartitioning Operations** - Operations that change how tuples are partitioned across tasks(thus causing
  * network transfer), but do not change the content of the stream.
  * 3. **Aggregation Operations** - Operations that *may* repartition a stream (thus causing network transfer)
  * 4. **Grouping Operations** - Operations that may repartition a stream on specific fields and group together tuples whose

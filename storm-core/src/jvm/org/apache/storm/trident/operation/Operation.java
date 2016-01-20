@@ -25,7 +25,8 @@ import java.util.Map;
  *
  * `Operation` defines two lifecycle methods for Trident components. The `prepare()` method is called once when the
  * `Operation` is first initialized. The `cleanup()` method is called in local mode when the local cluster is
- * being shut down.
+ * being shut down. In distributed mode, the `cleanup()` method is not guaranteed to be called in every situation, but
+ * Storm will make a best effort call `cleanup()` whenever possible.
  */
 public interface Operation extends Serializable {
     /**

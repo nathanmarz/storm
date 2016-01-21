@@ -250,7 +250,8 @@
  * STORM-1180: FLUX logo wasn't appearing quite right
  * STORM-1482: add missing 'break' for RedisStoreBolt
 
-## 0.10.0-beta2
+## 0.10.0
+ * STORM-1096: Fix some issues with impersonation on the UI
  * STORM-581: Add rebalance params to Storm REST API
  * STORM-1108: Fix NPE in simulated time
  * STORM-1099: Fix worker childopts as arraylist of strings
@@ -284,9 +285,6 @@
  * STORM-966: ConfigValidation.DoubleValidator doesn't really validate whether the type of the object is a double
  * STORM-742: Let ShellBolt treat all messages to update heartbeat
  * STORM-992: A bug in the timer.clj might cause unexpected delay to schedule new event
-
-## 0.10.0
- * STORM-1096: Fix some issues with impersonation on the UI
 
 ## 0.10.0-beta1
  * STORM-873: Flux does not handle diamond topologies

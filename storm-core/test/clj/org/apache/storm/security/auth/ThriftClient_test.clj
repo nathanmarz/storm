@@ -19,6 +19,7 @@
   (:require [org.apache.storm.security.auth [auth-test :refer [nimbus-timeout]]])
   (:import [org.apache.storm.security.auth ThriftClient ThriftConnectionType])
   (:import [org.apache.thrift.transport TTransportException])
+  (:import [org.apache.storm.utils Utils])
 )
 
 (deftest test-ctor-throws-if-port-invalid

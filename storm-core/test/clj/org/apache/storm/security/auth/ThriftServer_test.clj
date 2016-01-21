@@ -18,6 +18,7 @@
   (:use [clojure test])
   (:import [org.apache.storm.security.auth ThriftServer ThriftConnectionType])
   (:import [org.apache.thrift.transport TTransportException])
+  (:import [org.apache.storm.utils Utils])
 )
 
 (deftest test-stop-checks-for-null

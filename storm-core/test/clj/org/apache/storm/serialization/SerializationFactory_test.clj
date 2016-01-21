@@ -17,7 +17,7 @@
   (:import [org.apache.storm Config])
   (:import [org.apache.storm.security.serialization BlowfishTupleSerializer])
   (:import [org.apache.storm.serialization SerializationFactory])
-  (:import [org.apache.storm.utils ListDelegate])
+  (:import [org.apache.storm.utils ListDelegate Utils])
   (:use [org.apache.storm util config])
   (:use [clojure test])
 )

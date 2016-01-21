@@ -19,6 +19,7 @@
             KryoValuesSerializer KryoValuesDeserializer])
   (:import [org.apache.storm.testing TestSerObject TestKryoDecorator])
   (:import [org.apache.storm.validation ConfigValidation$KryoRegValidator])
+  (:import [org.apache.storm.utils Utils])
   (:use [org.apache.storm util config]))
 
 (defn mk-conf [extra]

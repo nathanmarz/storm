@@ -20,6 +20,9 @@ package org.apache.storm.trident.operation.builtin;
 import org.apache.storm.trident.operation.BaseFilter;
 import org.apache.storm.trident.tuple.TridentTuple;
 
+/**
+ * Filter for debugging purposes. The `isKeep()` method simply prints the tuple to `System.out` and returns `true`.
+ */
 public class Debug extends BaseFilter {
     private final String name;
 
@@ -27,6 +30,10 @@ public class Debug extends BaseFilter {
         name = "DEBUG: ";
     }
 
+    /**
+     * Creates a `Debug` filter with a string identifier.
+     * @param name
+     */
     public Debug(String name) {
         this.name = "DEBUG(" + name + "): ";
     }

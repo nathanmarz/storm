@@ -57,6 +57,23 @@ import org.apache.storm.trident.state.StateSpec;
 import org.apache.storm.trident.state.StateUpdater;
 import org.apache.storm.trident.util.TridentUtils;
 
+/**
+ * A Stream represents the core data model in Trident, and can be thought of as a "stream" of tuples that are processed
+ * as a series of small batches. A stream is partitioned accross the nodes in the cluster, and operations are
+ * applied to a stream in parallel accross each partition.
+ *
+ * There are five types of operations that can be performed on streams in Trident
+ *
+ * 1. **Partiton-Local Operations** - Operations that are applied locally to each partition and do not involve network
+ * transfer
+ * 2. **Repartitioning Operations** - Operations that change how tuples are partitioned across tasks(thus causing
+ * network transfer), but do not change the content of the stream.
+ * 3. **Aggregation Operations** - Operations that *may* repartition a stream (thus causing network transfer)
+ * 4. **Grouping Operations** - Operations that may repartition a stream on specific fields and group together tuples whose
+ * fields values are equal.
+ * 5. **Merge and Join Operations** - Operations that combine different streams together.
+ *
+ */
 // TODO: need to be able to replace existing fields with the function fields (like Cascading Fields.REPLACE)
 public class Stream implements IAggregatableStream {
     Node _node;
@@ -68,61 +85,160 @@ public class Stream implements IAggregatableStream {
         _node = node;
         _name = name;
     }
-    
+
+    /**
+     * Applies a label to the stream. Naming a stream will append the label to the name of the bolt(s) created by
+     * Trident and will be visible in the Storm UI.
+     *
+     * @param name - The label to apply to the stream
+     * @return
+     */
     public Stream name(String name) {
         return new Stream(_topology, name, _node);
     }
-    
+
+    /**
+     * Applies a parallelism hint to a stream.
+     *
+     * @param hint
+     * @return
+     */
     public Stream parallelismHint(int hint) {
         _node.parallelismHint = hint;
         return this;
     }
-        
+
+    /**
+     * Filters out fields from a stream, resulting in a Stream containing only the fields specified by `keepFields`.
+     *
+     * For example, if you had a Stream `mystream` containing the fields `["a", "b", "c","d"]`, calling"
+     *
+     * ```java
+     * mystream.project(new Fields("b", "d"))
+     * ```
+     *
+     * would produce a stream containing only the fields `["b", "d"]`.
+     *
+     *
+     * @param keepFields The fields in the Stream to keep
+     * @return
+     */
     public Stream project(Fields keepFields) {
         projectionValidation(keepFields);
         return _topology.addSourcedNode(this, new ProcessorNode(_topology.getUniqueStreamId(), _name, keepFields, new Fields(), new ProjectedProcessor(keepFields)));
     }
 
+    /**
+     * ## Grouping Operation
+     *
+     * @param fields
+     * @return
+     */
     public GroupedStream groupBy(Fields fields) {
         projectionValidation(fields);
         return new GroupedStream(this, fields);        
     }
-    
+
+    /**
+     * ## Repartitioning Operation
+     *
+     * @param fields
+     * @return
+     */
     public Stream partitionBy(Fields fields) {
         projectionValidation(fields);
         return partition(Grouping.fields(fields.toList()));
     }
-    
+
+    /**
+     * ## Repartitioning Operation
+     *
+     * @param partitioner
+     * @return
+     */
     public Stream partition(CustomStreamGrouping partitioner) {
         return partition(Grouping.custom_serialized(Utils.javaSerialize(partitioner)));
     }
-    
+
+    /**
+     * ## Repartitioning Operation
+     *
+     * Use random round robin algorithm to evenly redistribute tuples across all target partitions
+     *
+     * @return
+     */
     public Stream shuffle() {
         return partition(Grouping.shuffle(new NullStruct()));
     }
 
+    /**
+     * ## Repartitioning Operation
+     *
+     * Use random round robin algorithm to evenly redistribute tuples across all target partitions, with a preference
+     * for local tasks.
+     *
+     * @return
+     */
     public Stream localOrShuffle() {
         return partition(Grouping.local_or_shuffle(new NullStruct()));
     }
+
+
+    /**
+     * ## Repartitioning Operation
+     *
+     * All tuples are sent to the same partition. The same partition is chosen for all batches in the stream.
+     * @return
+     */
     public Stream global() {
         // use this instead of storm's built in one so that we can specify a singleemitbatchtopartition
         // without knowledge of storm's internals
         return partition(new GlobalGrouping());
     }
-    
+
+    /**
+     * ## Repartitioning Operation
+     *
+     *  All tuples in the batch are sent to the same partition. Different batches in the stream may go to different
+     *  partitions.
+     *
+     * @return
+     */
     public Stream batchGlobal() {
         // the first field is the batch id
         return partition(new IndexHashGrouping(0));
     }
-        
+
+    /**
+     * ## Repartitioning Operation
+     *
+     * Every tuple is replicated to all target partitions. This can useful during DRPC – for example, if you need to do
+     * a stateQuery on every partition of data.
+     *
+     * @return
+     */
     public Stream broadcast() {
         return partition(Grouping.all(new NullStruct()));
     }
-    
+
+    /**
+     * ## Repartitioning Operation
+     *
+     * @return
+     */
     public Stream identityPartition() {
         return partition(new IdentityGrouping());
     }
-    
+
+    /**
+     * ## Repartitioning Operation
+     *
+     * This method takes in a custom partitioning function that implements
+     * {@link org.apache.storm.grouping.CustomStreamGrouping}
+     *
+     * @param grouping
+     * @return
+     */
     public Stream partition(Grouping grouping) {
         if(_node instanceof PartitionNode) {
             return each(new Fields(), new TrueFilter()).partition(grouping);
@@ -130,22 +246,28 @@ public class Stream implements IAggregatableStream {
             return _topology.addSourcedNode(this, new PartitionNode(_node.streamId, _name, getOutputFields(), grouping));       
         }
     }
-    
+
+    /**
+     * Applies an `Assembly` to this `Stream`.
+     *
+     * @see org.apache.storm.trident.operation.Assembly
+     * @param assembly
+     * @return
+     */
     public Stream applyAssembly(Assembly assembly) {
         return assembly.apply(this);
     }
-    
+
     @Override
     public Stream each(Fields inputFields, Function function, Fields functionFields) {
         projectionValidation(inputFields);
         return _topology.addSourcedNode(this,
                 new ProcessorNode(_topology.getUniqueStreamId(),
-                    _name,
-                    TridentUtils.fieldsConcat(getOutputFields(), functionFields),
-                    functionFields,
-                    new EachProcessor(inputFields, function)));
+                        _name,
+                        TridentUtils.fieldsConcat(getOutputFields(), functionFields),
+                        functionFields,
+                        new EachProcessor(inputFields, function)));
     }
-
     //creates brand new tuples with brand new fields
     @Override
     public Stream partitionAggregate(Fields inputFields, Aggregator agg, Fields functionFields) {

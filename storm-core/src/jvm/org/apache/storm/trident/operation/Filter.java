@@ -19,6 +19,30 @@ package org.apache.storm.trident.operation;
 
 import org.apache.storm.trident.tuple.TridentTuple;
 
+import java.util.Map;
+
+/**
+ * Filters take in a tuple as input and decide whether or not to keep that tuple or not.
+ *
+ * If the `isKeep()` method of a Filter returns `false` for a tuple, that tuple will be filtered out of the Stream
+ *
+ *
+ * ### Configuration
+ * If your `Filter` implementation has configuration requirements, you will typically want to extend
+ * {@link org.apache.storm.trident.operation.BaseFilter} and override the
+ * {@link org.apache.storm.trident.operation.Operation#prepare(Map, TridentOperationContext)} method to perform your custom
+ * initialization.
+
+ *
+ * @see org.apache.storm.trident.Stream
+ */
 public interface Filter extends EachOperation {
+
+    /**
+     * Determines if a tuple should be filtered out of a stream
+     *
+     * @param tuple the tuple being evaluated
+     * @return `false` to drop the tuple, `true` to keep the tuple
+     */
     boolean isKeep(TridentTuple tuple);
 }

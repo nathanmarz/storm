@@ -30,13 +30,19 @@ public class TBackoffConnect {
     private int _completedRetries = 0;
     private int _retryTimes;
     private StormBoundedExponentialBackoffRetry waitGrabber;
+    private boolean _retryForever = false;
 
-    public TBackoffConnect(int retryTimes, int retryInterval, int retryIntervalCeiling) {
+    public TBackoffConnect(int retryTimes, int retryInterval, int retryIntervalCeiling, boolean retryForever) {
 
+        _retryForever = retryForever;
         _retryTimes = retryTimes;
         waitGrabber = new StormBoundedExponentialBackoffRetry(retryInterval,
                                                               retryIntervalCeiling,
                                                               retryTimes);
+    }
+
+    public TBackoffConnect(int retryTimes, int retryInterval, int retryIntervalCeiling) {
+        this(retryTimes, retryInterval, retryIntervalCeiling, false);
     }
 
     public TTransport doConnectWithRetry(ITransportPlugin transportPlugin, TTransport underlyingTransport, String host, String asUser) throws IOException {
@@ -71,6 +77,6 @@ public class TBackoffConnect {
     }
 
     private boolean canRetry() {
-        return (_completedRetries < _retryTimes);
+        return _retryForever || (_completedRetries < _retryTimes);
     }
 }

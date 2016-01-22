@@ -74,12 +74,8 @@ public class ConfigUtils {
             dir = System.getProperty("storm.log.dir");
         } else if ((conf = readStormConfig()).get("storm.log.dir") != null) {
             dir = String.valueOf(conf.get("storm.log.dir"));
-        } else {
-            if (System.getProperty("storm.home") != null) {
-                dir = System.getProperty("storm.home") + FILE_SEPARATOR + "logs";
-            } else {
-                dir = FILE_SEPARATOR + "logs";
-            }
+        } else  {
+            dir = concatIfNotNull(System.getProperty("storm.home")) + FILE_SEPARATOR + "logs";
         }
         try {
             return new File(dir).getCanonicalPath();
@@ -278,29 +274,25 @@ public class ConfigUtils {
         return supervisorStormDistRoot(conf) + FILE_SEPARATOR + URLEncoder.encode(stormId, "UTF-8");
     }
 
-    public static String supervisorStormJarPath(String stormRoot) {
+    public static String concatIfNotNull(String dir) {
         String ret = "";
         // we do this since to concat a null String will actually concat a "null", which is not the expected: ""
-        if (stormRoot != null) {
-            ret = stormRoot;
+        if (dir != null) {
+            ret = dir;
         }
-        return (ret + FILE_SEPARATOR + "stormjar.jar");
+        return ret;
+    }
+
+    public static String supervisorStormJarPath(String stormRoot) {
+        return (concatIfNotNull(stormRoot) + FILE_SEPARATOR + "stormjar.jar");
     }
 
     public static String supervisorStormCodePath(String stormRoot) {
-        String ret = "";
-        if (stormRoot != null) {
-            ret = stormRoot;
-        }
-        return (ret + FILE_SEPARATOR + "stormcode.ser");
+        return (concatIfNotNull(stormRoot) + FILE_SEPARATOR + "stormcode.ser");
     }
 
     public static String supervisorStormConfPath(String stormRoot) {
-        String ret = "";
-        if (stormRoot != null) {
-            ret = stormRoot;
-        }
-        return (ret + FILE_SEPARATOR + "stormconf.ser");
+        return (concatIfNotNull(stormRoot) + FILE_SEPARATOR + "stormconf.ser");
     }
 
     public static String supervisorTmpDir(Map conf) throws IOException {
@@ -310,12 +302,7 @@ public class ConfigUtils {
     }
 
     public static String supervisorStormResourcesPath(String stormRoot) {
-        String ret = "";
-        // we do this since to concat a null String will actually concat a "null", which is not the expected: ""
-        if (stormRoot != null) {
-            ret = stormRoot;
-        }
-        return (ret + FILE_SEPARATOR + RESOURCES_SUBDIR);
+        return (concatIfNotNull(stormRoot) + FILE_SEPARATOR + RESOURCES_SUBDIR);
     }
 
     // we use this "wired" wrapper pattern temporarily for mocking in clojure test

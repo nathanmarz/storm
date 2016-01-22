@@ -3,6 +3,7 @@
  * STORM-1478: make bolts getComponentConfiguration method cleaner/simpler
 
 ## 1.0.0
+ * STORM-1214: add javadoc for Trident Streams and Operations
  * STORM-1450: Fix minor bugs and refactor code in ResourceAwareScheduler
  * STORM-1452: Fixes profiling/debugging out of the box
  * STORM-1406: Add MQTT Support

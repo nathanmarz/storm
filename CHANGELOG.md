@@ -3,6 +3,7 @@
  * STORM-1478: make bolts getComponentConfiguration method cleaner/simpler
 
 ## 1.0.0
+ * STORM-1485: DRPC Connectivity Issues
  * STORM-1486: Fix storm-kafa documentation
  * STORM-1214: add javadoc for Trident Streams and Operations
  * STORM-1450: Fix minor bugs and refactor code in ResourceAwareScheduler

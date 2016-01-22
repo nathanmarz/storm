@@ -23,6 +23,7 @@
            [org.apache.storm.nimbus InMemoryTopologyActionNotifier])
   (:import [org.apache.storm.scheduler INimbus])
   (:import [org.apache.storm.nimbus ILeaderElector NimbusInfo])
+  (:import [org.apache.storm.testing.staticmocking MockedConfigUtils])
   (:import [org.apache.storm.generated Credentials NotAliveException SubmitOptions
             TopologyInitialStatus TopologyStatus AlreadyAliveException KillOptions RebalanceOptions
             InvalidTopologyException AuthorizationException
@@ -1341,7 +1342,8 @@
                      NIMBUS-THRIFT-PORT 6666})
           expected-acls nimbus/NIMBUS-ZK-ACLS
           fake-inimbus (reify INimbus (getForcedScheduler [this] nil))]
-      (with-open [mock (org.apache.storm.utils.ConfigUtils$SetMockedNimbusTopoHistoryState. {})]
+      (with-open [_ (proxy [MockedConfigUtils] []
+                      (nimbusTopoHistoryStateImpl [conf] nil))]
         (stubbing [mk-authorization-handler nil
                  cluster/mk-storm-cluster-state nil
                  nimbus/file-cache-map nil

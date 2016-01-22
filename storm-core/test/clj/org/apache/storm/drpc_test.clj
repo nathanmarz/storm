@@ -25,6 +25,7 @@
   (:import [org.apache.storm.utils.ConfigUtils])
   (:import [org.apache.storm.generated DRPCExecutionException])
   (:import [java.util.concurrent ConcurrentLinkedQueue])
+  (:import [org.apache.storm.testing.staticmocking MockedConfigUtils])
   (:use [org.apache.storm config testing clojure])
   (:use [org.apache.storm.daemon common drpc])
   (:use [conjure core]))
@@ -223,7 +224,8 @@
   (let [queue (ConcurrentLinkedQueue.)
         delay-seconds 2
         conf {DRPC-REQUEST-TIMEOUT-SECS delay-seconds}]
-    (with-open [mock (org.apache.storm.utils.ConfigUtils$SetMockedStormConfig. conf)]
+    (with-open [_ (proxy [MockedConfigUtils] []
+                      (readStormConfigImpl [] conf))]
       (stubbing [acquire-queue queue]
         (let [drpc-handler (service-handler conf)]
           (is (thrown? DRPCExecutionException
@@ -234,7 +236,8 @@
   (let [queue (ConcurrentLinkedQueue.)
         delay-seconds 1
         conf {DRPC-REQUEST-TIMEOUT-SECS delay-seconds}]
-      (with-open [mock (org.apache.storm.utils.ConfigUtils$SetMockedStormConfig. conf)]
+    (with-open [_ (proxy [MockedConfigUtils] []
+                    (readStormConfigImpl [] conf))]
           (stubbing [acquire-queue queue
                timeout-check-secs delay-seconds]
               (let [drpc-handler (service-handler conf)]

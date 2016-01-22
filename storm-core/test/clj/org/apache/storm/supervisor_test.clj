@@ -23,6 +23,7 @@
   (:import [org.apache.storm.scheduler ISupervisor])
   (:import [org.apache.storm.utils ConfigUtils])
   (:import [org.apache.storm.generated RebalanceOptions])
+  (:import [org.apache.storm.testing.staticmocking MockedConfigUtils])
   (:import [java.util UUID])
   (:import [java.io File])
   (:import [java.nio.file Files])
@@ -319,10 +320,12 @@
                                       WORKER-CHILDOPTS string-opts}}
               mocked-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
                                             topo-string-opts}]
-          (with-open [mock1 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorStormDistRoot. {})
-                      mock2 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorStormConf. mocked-supervisor-storm-conf)
-                      mock3 (org.apache.storm.utils.ConfigUtils$SetMockedWorkerUserWSE. {})
-                      mock4 (org.apache.storm.utils.ConfigUtils$SetMockedWorkerArtifactsRoot. "/tmp/workers-artifacts")]
+          (with-open [_ (proxy [MockedConfigUtils] []
+                          (supervisorStormDistRootImpl ([conf] nil)
+                                                       ([conf storm-id] nil))
+                          (readSupervisorStormConfImpl [conf storm-id] mocked-supervisor-storm-conf)
+                          (setWorkerUserWSEImpl [conf worker-id user] nil)
+                          (workerArtifactsRootImpl [conf] "/tmp/workers-artifacts"))]
               (stubbing [add-to-classpath mock-cp
                      launch-process nil
                      supervisor/jlp nil
@@ -344,10 +347,12 @@
                                       WORKER-CHILDOPTS list-opts}}
               mocked-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
                                             topo-list-opts}]
-            (with-open [mock1 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorStormDistRoot. {})
-                        mock2 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorStormConf. mocked-supervisor-storm-conf)
-                        mock3 (org.apache.storm.utils.ConfigUtils$SetMockedWorkerUserWSE. {})
-                        mock4 (org.apache.storm.utils.ConfigUtils$SetMockedWorkerArtifactsRoot. "/tmp/workers-artifacts")]
+            (with-open [_ (proxy [MockedConfigUtils] []
+                            (supervisorStormDistRootImpl ([conf] nil)
+                                                         ([conf storm-id] nil))
+                            (readSupervisorStormConfImpl [conf storm-id] mocked-supervisor-storm-conf)
+                            (setWorkerUserWSEImpl [conf worker-id user] nil)
+                            (workerArtifactsRootImpl [conf] "/tmp/workers-artifacts"))]
                 (stubbing [add-to-classpath mock-cp
                      launch-process nil
                      supervisor/jlp nil
@@ -366,10 +371,12 @@
               exp-args (exp-args-fn [] [] (add-to-classpath mock-cp [topo-cp]))
               mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed}}
               mocked-supervisor-storm-conf {TOPOLOGY-CLASSPATH topo-cp}]
-          (with-open [mock1 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorStormDistRoot. {})
-                      mock2 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorStormConf. mocked-supervisor-storm-conf)
-                      mock3 (org.apache.storm.utils.ConfigUtils$SetMockedWorkerUserWSE. {})
-                      mock4 (org.apache.storm.utils.ConfigUtils$SetMockedWorkerArtifactsRoot. "/tmp/workers-artifacts")]
+          (with-open [_ (proxy [MockedConfigUtils] []
+                          (supervisorStormDistRootImpl ([conf] nil)
+                                                       ([conf storm-id] nil))
+                          (readSupervisorStormConfImpl [conf storm-id] mocked-supervisor-storm-conf)
+                          (setWorkerUserWSEImpl [conf worker-id user] nil)
+                          (workerArtifactsRootImpl [conf] "/tmp/workers-artifacts"))]
                 (stubbing [supervisor/jlp nil
                      supervisor/write-log-metadata! nil
                      launch-process nil
@@ -389,10 +396,12 @@
               exp-args (exp-args-fn [] [] mock-cp)
               mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed}}
               mocked-supervisor-storm-conf {TOPOLOGY-ENVIRONMENT topo-env}]
-          (with-open [mock1 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorStormDistRoot. {})
-                      mock2 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorStormConf. mocked-supervisor-storm-conf)
-                      mock3 (org.apache.storm.utils.ConfigUtils$SetMockedWorkerUserWSE. {})
-                      mock4 (org.apache.storm.utils.ConfigUtils$SetMockedWorkerArtifactsRoot. "/tmp/workers-artifacts")]
+          (with-open [_ (proxy [MockedConfigUtils] []
+                          (supervisorStormDistRootImpl ([conf] nil)
+                                                       ([conf storm-id] nil))
+                          (readSupervisorStormConfImpl [conf storm-id] mocked-supervisor-storm-conf)
+                          (setWorkerUserWSEImpl [conf worker-id user] nil)
+                          (workerArtifactsRootImpl [conf] "/tmp/workers-artifacts"))]
             (stubbing [supervisor/jlp nil
                      launch-process nil
                      supervisor/write-log-metadata! nil
@@ -472,9 +481,11 @@
                 mocked-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
                                               topo-string-opts
                                               TOPOLOGY-SUBMITTER-USER "me"}]
-            (with-open [mock1 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorStormDistRoot. {})
-                        mock2 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorStormConf. mocked-supervisor-storm-conf)
-                        mock3 (org.apache.storm.utils.ConfigUtils$SetMockedWorkerUserWSE. {})]
+            (with-open [_ (proxy [MockedConfigUtils] []
+                            (supervisorStormDistRootImpl ([conf] nil)
+                                                         ([conf storm-id] nil))
+                            (readSupervisorStormConfImpl [conf storm-id] mocked-supervisor-storm-conf)
+                            (setWorkerUserWSEImpl [conf worker-id user] nil))]
               (stubbing [add-to-classpath mock-cp
                        launch-process nil
                        supervisor/java-cmd "java"
@@ -504,9 +515,11 @@
                                         mocked-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
                                                                       topo-list-opts
                                                                       TOPOLOGY-SUBMITTER-USER "me"}]
-            (with-open [mock1 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorStormDistRoot. {})
-                        mock2 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorStormConf. mocked-supervisor-storm-conf)
-                        mock3 (org.apache.storm.utils.ConfigUtils$SetMockedWorkerUserWSE. {})]
+            (with-open [_ (proxy [MockedConfigUtils] []
+                            (supervisorStormDistRootImpl ([conf] nil)
+                              ([conf storm-id] nil))
+                            (readSupervisorStormConfImpl [conf storm-id] mocked-supervisor-storm-conf)
+                            (setWorkerUserWSEImpl [conf worker-id user] nil))]
               (stubbing [add-to-classpath mock-cp
                        launch-process nil
                        supervisor/java-cmd "java"
@@ -549,8 +562,9 @@
           fake-isupervisor (reify ISupervisor
                              (getSupervisorId [this] nil)
                              (getAssignmentId [this] nil))]
-      (with-open [mock1 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorState. {})
-                  mock2 (org.apache.storm.utils.ConfigUtils$SetMockedSupervisorLocalDir. "")]
+      (with-open [_ (proxy [MockedConfigUtils] []
+                      (supervisorStateImpl [conf] nil)
+                      (supervisorLocalDirImpl [conf] nil))]
         (stubbing [uptime-computer nil
                  cluster/mk-storm-cluster-state nil
                  local-hostname nil

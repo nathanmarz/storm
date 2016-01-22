@@ -42,6 +42,31 @@ public class ConfigUtils {
     public final static String NIMBUS_DO_NOT_REASSIGN = "NIMBUS-DO-NOT-REASSIGN";
     public static final String FILE_SEPARATOR = File.separator;
 
+    // A singleton instance allows us to mock delegated static methods in our
+    // tests by subclassing.
+    private static final ConfigUtils INSTANCE = new ConfigUtils();
+    private static ConfigUtils _instance = INSTANCE;
+
+    /**
+     * Provide an instance of this class for delegates to use.  To mock out
+     * delegated methods, provide an instance of a subclass that overrides the
+     * implementation of the delegated method.
+     *
+     * @param u a ConfigUtils instance
+     */
+    public static void setInstance(ConfigUtils u) {
+        _instance = u;
+    }
+
+    /**
+     * Resets the singleton instance to the default. This is helpful to reset
+     * the class to its original functionality when mocking is no longer
+     * desired.
+     */
+    public static void resetInstance() {
+        _instance = INSTANCE;
+    }
+
     public static String getLogDir() {
         String dir;
         Map conf;
@@ -87,12 +112,12 @@ public class ConfigUtils {
     }
 
     public static String clusterMode(Map conf) {
-        String mode = (String)conf.get(Config.STORM_CLUSTER_MODE);
+        String mode = (String) conf.get(Config.STORM_CLUSTER_MODE);
         return mode;
     }
 
     public static boolean isLocalMode(Map conf) {
-        String mode = (String)conf.get(Config.STORM_CLUSTER_MODE);
+        String mode = (String) conf.get(Config.STORM_CLUSTER_MODE);
         if (mode != null) {
             if ("local".equals(mode)) {
                 return true;
@@ -113,31 +138,13 @@ public class ConfigUtils {
     }
 
     // public static mkStatsSampler // depends on Utils.evenSampler() TODO, this is sth we need to do after util
-    // public static readDefaultConfig // depends on Utils.clojurifyStructure and Utils.readDefaultConfig // TODO
-    // validate-configs-with-schemas is just a wrapper of ConfigValidation.validateFields(conf)
 
-    //For testing only
-    // for java
-    // try (SetMockedStormConfig mocked = new SetMockedStormConfig(conf)) {
-    //    run test ...
-    // }
-    //
-    // for clojure
-    // (with-open [mock (SetMockedStormConfig. conf)]
-    //     run test ...)
-    public static class SetMockedStormConfig implements Closeable {
-        public SetMockedStormConfig(Map conf) {
-            mockedStormConfig = conf;
-        }
-
-        @Override
-        public void close() {
-            mockedStormConfig = null;
-        }
-    }
-    private static Map mockedStormConfig = null;
+    // we use this "wired" wrapper pattern temporarily for mocking in clojure test
     public static Map readStormConfig() {
-        if (mockedStormConfig != null) return mockedStormConfig;
+        return _instance.readStormConfigImpl();
+    }
+
+    public Map readStormConfigImpl() {
         Map conf = Utils.readStormConfig();
         ConfigValidation.validateFields(conf);
         return conf;
@@ -150,7 +157,7 @@ public class ConfigUtils {
     }
 
     public static Map readYamlConfig(String name) {
-        return  readYamlConfig(name, true);
+        return readYamlConfig(name, true);
     }
 
     public static String absoluteStormLocalDir(Map conf) {
@@ -169,7 +176,7 @@ public class ConfigUtils {
 
     public static String absoluteHealthCheckDir(Map conf) {
         String stormHome = System.getProperty("storm.home");
-        String healthCheckDir = (String)conf.get(Config.STORM_HEALTH_CHECK_DIR);
+        String healthCheckDir = (String) conf.get(Config.STORM_HEALTH_CHECK_DIR);
         if (healthCheckDir == null) {
             return (stormHome + FILE_SEPARATOR + "healthchecks");
         } else {
@@ -218,7 +225,7 @@ public class ConfigUtils {
         return ret + FILE_SEPARATOR + "stormdist";
     }
 
-    public static Map readSupervisorStormConfGivenPath(Map conf, String stormConfPath) throws  IOException {
+    public static Map readSupervisorStormConfGivenPath(Map conf, String stormConfPath) throws IOException {
         Map ret = new HashMap(conf);
         ret.putAll(Utils.fromCompressedJsonConf(FileUtils.readFileToByteArray(new File(stormConfPath))));
         return ret;
@@ -238,68 +245,36 @@ public class ConfigUtils {
         return (masterLocalDir(conf) + FILE_SEPARATOR + "inimbus");
     }
 
-    //For testing only
-    // for java
-    // try (SetMockedSupervisorLocalDir mocked = new SetMockedSupervisorLocalDir(dir)) {
-    //    run test ...
-    // }
-    //
-    // for clojure
-    // (with-open [mock (SetMockedSupervisorLocalDir. dir)]
-    //     run test ...)
-    public static class SetMockedSupervisorLocalDir implements Closeable {
-        public SetMockedSupervisorLocalDir(String dir) {
-            mockedSupervisorLocalDir = dir;
-        }
-        @Override
-        public void close() {
-            mockedSupervisorLocalDir = null;
-        }
-    }
-    private static String mockedSupervisorLocalDir = null;
+    // we use this "wired" wrapper pattern temporarily for mocking in clojure test
     public static String supervisorLocalDir(Map conf) throws IOException {
-        if (mockedSupervisorLocalDir != null) {
-            return null;
-        }
+        return _instance.supervisorLocalDirImpl(conf);
+    }
+
+    public String supervisorLocalDirImpl(Map conf) throws IOException {
         String ret = absoluteStormLocalDir(conf) + FILE_SEPARATOR + "supervisor";
         FileUtils.forceMkdir(new File(ret));
         return ret;
     }
 
     public static String supervisorIsupervisorDir(Map conf) throws IOException {
-        return ((supervisorLocalDir(conf) + FILE_SEPARATOR + "isupervisor"));
+        return (supervisorLocalDir(conf) + FILE_SEPARATOR + "isupervisor");
     }
 
-    //For testing only
-    // for java
-    // try (SetMockedSupervisorStormDistRoot mocked = new SetMockedSupervisorStormDistRoot(conf)) {
-    //    run test ...
-    // }
-    //
-    // for clojure
-    // (with-open [mock (SetMockedSupervisorStormDistRoot. conf)]
-    //     run test ...)
-    public static class SetMockedSupervisorStormDistRoot implements Closeable {
-        public SetMockedSupervisorStormDistRoot(Map conf) {
-            mockedSupervisorStormDistRoot = conf;
-        }
-        @Override
-        public void close() {
-            mockedSupervisorStormDistRoot = null;
-        }
-    }
-    private static Map mockedSupervisorStormDistRoot = null;
+    // we use this "wired" wrapper pattern temporarily for mocking in clojure test
     public static String supervisorStormDistRoot(Map conf) throws IOException {
-        if (mockedSupervisorStormDistRoot != null) {
-            return null;
-        }
+        return _instance.supervisorStormDistRootImpl(conf);
+    }
+
+    public String supervisorStormDistRootImpl(Map conf) throws IOException {
         return stormDistPath(supervisorLocalDir(conf));
     }
 
+    // we use this "wired" wrapper pattern temporarily for mocking in clojure test
     public static String supervisorStormDistRoot(Map conf, String stormId) throws IOException {
-        if (mockedSupervisorStormDistRoot != null) {
-            return null;
-        }
+        return _instance.supervisorStormDistRootImpl(conf, stormId);
+    }
+
+    public String supervisorStormDistRootImpl(Map conf, String stormId) throws IOException {
         return supervisorStormDistRoot(conf) + FILE_SEPARATOR + URLEncoder.encode(stormId, "UTF-8");
     }
 
@@ -310,15 +285,6 @@ public class ConfigUtils {
             ret = stormRoot;
         }
         return (ret + FILE_SEPARATOR + "stormjar.jar");
-    }
-
-    /* Never get used TODO : may delete it*/
-    public static String supervisorStormMetaFilePath(String stormRoot) {
-        String ret = "";
-        if (stormRoot != null) {
-            ret = stormRoot;
-        }
-        return (ret + FILE_SEPARATOR + "storm-code-distributor.meta");
     }
 
     public static String supervisorStormCodePath(String stormRoot) {
@@ -352,82 +318,30 @@ public class ConfigUtils {
         return (ret + FILE_SEPARATOR + RESOURCES_SUBDIR);
     }
 
-    //For testing only
-    // for java
-    // try (SetMockedSupervisorState mocked = new SetMockedSupervisorState(conf)) {
-    //    run test ...
-    // }
-    //
-    // for clojure
-    // (with-open [mock (SetMockedSupervisorState. conf)]
-    //     run test ...)
-    public static class SetMockedSupervisorState implements Closeable {
-        public SetMockedSupervisorState(Map conf) {
-            mockedSupervisorState = conf;
-        }
-        @Override
-        public void close() {
-            mockedSupervisorState = null;
-        }
-    }
-    private static Map mockedSupervisorState = null;
+    // we use this "wired" wrapper pattern temporarily for mocking in clojure test
     public static LocalState supervisorState(Map conf) throws IOException {
-        if (mockedSupervisorState != null) {
-            return null;
-        }
+        return _instance.supervisorStateImpl(conf);
+    }
+
+    public LocalState supervisorStateImpl(Map conf) throws IOException {
         return new LocalState((supervisorLocalDir(conf) + FILE_SEPARATOR + "localstate"));
     }
 
-    //For testing only
-    // for java
-    // try (SetMockedNimbusTopoHistoryState mocked = new SetMockedNimbusTopoHistoryState(conf)) {
-    //    run test ...
-    // }
-    //
-    // for clojure
-    // (with-open [mock (SetMockedNimbusTopoHistoryState. conf)]
-    //     run test ...)
-    public static class SetMockedNimbusTopoHistoryState implements Closeable {
-        public SetMockedNimbusTopoHistoryState(Map conf) {
-            mockedNimbusTopoHistoryState = conf;
-        }
-        @Override
-        public void close() {
-            mockedNimbusTopoHistoryState = null;
-        }
-    }
-    private static Map mockedNimbusTopoHistoryState = null;
+    // we use this "wired" wrapper pattern temporarily for mocking in clojure test
     public static LocalState nimbusTopoHistoryState(Map conf) throws IOException {
-        if (mockedNimbusTopoHistoryState != null) {
-            return null;
-        }
+        return _instance.nimbusTopoHistoryStateImpl(conf);
+    }
+
+    public LocalState nimbusTopoHistoryStateImpl(Map conf) throws IOException {
         return new LocalState((masterLocalDir(conf) + FILE_SEPARATOR + "history"));
     }
 
-    //For testing only
-    // for java
-    // try (SetMockedSupervisorStormConf mocked = new SetMockedSupervisorStormConf(conf)) {
-    //    run test ...
-    // }
-    //
-    // for clojure
-    // (with-open [mock (SetMockedSupervisorStormConf. conf)]
-    //     run test ...)
-    public static class SetMockedSupervisorStormConf implements Closeable {
-        public SetMockedSupervisorStormConf(Map conf) {
-            mockedSupervisorStormConf = conf;
-        }
-
-        @Override
-        public void close() {
-            mockedSupervisorStormConf = null;
-        }
-    }
-    private static Map mockedSupervisorStormConf = null;
+    // we use this "wired" wrapper pattern temporarily for mocking in clojure test
     public static Map readSupervisorStormConf(Map conf, String stormId) throws IOException {
-        if (mockedSupervisorStormConf != null) {
-            return mockedSupervisorStormConf;
-        }
+        return _instance.readSupervisorStormConfImpl(conf, stormId);
+    }
+
+    public Map readSupervisorStormConfImpl(Map conf, String stormId) throws IOException {
         String stormRoot = supervisorStormDistRoot(conf, stormId);
         String confPath = supervisorStormConfPath(stormRoot);
         return readSupervisorStormConfGivenPath(conf, confPath);
@@ -443,7 +357,6 @@ public class ConfigUtils {
         return (absoluteStormLocalDir(conf) + FILE_SEPARATOR + "workers-users");
     }
 
-    /* Never get used TODO : may delete it*/
     public static String workerUserFile(Map conf, String workerId) {
         return (workerUserRoot(conf) + FILE_SEPARATOR + workerId);
     }
@@ -458,7 +371,7 @@ public class ConfigUtils {
             StringBuilder sb = new StringBuilder();
             int r;
             while ((r = br.read()) != -1) {
-                char ch = (char)r;
+                char ch = (char) r;
                 sb.append(ch);
             }
             String ret = sb.toString().trim();
@@ -486,30 +399,12 @@ public class ConfigUtils {
         return ret;
     }
 
-    //For testing only
-    // for java
-    // try (SetMockedWorkerUserWSE mocked = new SetMockedWorkerUserWSE(conf)) {
-    //    run test ...
-    // }
-    //
-    // for clojure
-    // (with-open [mock (SetMockedWorkerUserWSE. conf)]
-    //     run test ...)
-    public static class SetMockedWorkerUserWSE implements Closeable {
-        public SetMockedWorkerUserWSE(Map conf) {
-            mockedWorkerUserWSE = conf;
-        }
-
-        @Override
-        public void close() {
-            mockedWorkerUserWSE = null;
-        }
-    }
-    private static Map mockedWorkerUserWSE = null;
+    // we use this "wired" wrapper pattern temporarily for mocking in clojure test
     public static void setWorkerUserWSE(Map conf, String workerId, String user) throws IOException {
-        if (mockedWorkerUserWSE != null) {
-            return;
-        }
+        _instance.setWorkerUserWSEImpl(conf, workerId, user);
+    }
+
+    public void setWorkerUserWSEImpl(Map conf, String workerId, String user) throws IOException {
         LOG.info("SET worker-user {} {}", workerId, user);
         File file = new File(workerUserFile(conf, workerId));
         file.getParentFile().mkdirs();
@@ -525,30 +420,12 @@ public class ConfigUtils {
         new File(workerUserFile(conf, workerId)).delete();
     }
 
-    //For testing only
-    // for java
-    // try (SetMockedWorkerArtifactsRoot mocked = new SetMockedWorkerArtifactsRoot(conf)) {
-    //    run test ...
-    // }
-    //
-    // for clojure
-    // (with-open [mock (SetMockedWorkerArtifactsRoot. root)]
-    //     run test ...)
-    public static class SetMockedWorkerArtifactsRoot implements Closeable {
-        public SetMockedWorkerArtifactsRoot(String root) {
-            mockedWorkerArtifactsRoot = root;
-        }
-
-        @Override
-        public void close() {
-            mockedWorkerArtifactsRoot = null;
-        }
-    }
-    private static String mockedWorkerArtifactsRoot = null;
+    // we use this "wired" wrapper pattern temporarily for mocking in clojure test
     public static String workerArtifactsRoot(Map conf) {
-        if (mockedWorkerArtifactsRoot != null) {
-            return mockedWorkerArtifactsRoot;
-        }
+        return _instance.workerArtifactsRootImpl(conf);
+    }
+
+    public String workerArtifactsRootImpl(Map conf) {
         String artifactsDir = (String)conf.get(Config.STORM_WORKERS_ARTIFACTS_DIR);
         if (artifactsDir == null) {
             return (getLogDir() + FILE_SEPARATOR + "workers-artifacts");
@@ -562,18 +439,10 @@ public class ConfigUtils {
     }
 
     public static String workerArtifactsRoot(Map conf, String id) {
-        if (mockedWorkerArtifactsRoot != null) {
-            // if the mockedWorkerArtifactsRoot is set, return its value no matter what
-            return mockedWorkerArtifactsRoot;
-        }
         return (workerArtifactsRoot(conf) + FILE_SEPARATOR + id);
     }
 
     public static String workerArtifactsRoot(Map conf, String id, Integer port) {
-        if (mockedWorkerArtifactsRoot != null) {
-            // if the mockedWorkerArtifactsRoot is set, return its value no matter what
-            return mockedWorkerArtifactsRoot;
-        }
         return (workerArtifactsRoot(conf, id) + FILE_SEPARATOR + port);
     }
 

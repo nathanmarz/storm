@@ -3,6 +3,7 @@
  * STORM-1478: make bolts getComponentConfiguration method cleaner/simpler
 
 ## 1.0.0
+ * STORM-1499: fix wrong package name for storm trident
  * STORM-1463: added file scehma to log4j config files for windows env
  * STORM-1485: DRPC Connectivity Issues
  * STORM-1486: Fix storm-kafa documentation

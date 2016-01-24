@@ -269,6 +269,7 @@
         <module>external/storm-metrics</module>
         <module>external/storm-cassandra</module>
         <module>external/storm-mqtt</module>
+        <module>external/storm-mongodb</module>
         <module>examples/storm-starter</module>
     </modules>
 

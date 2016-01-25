@@ -1,6 +1,7 @@
 ## 2.0.0
 
 ## 1.0.0
+ * STORM-1496: Nimbus periodically throws blobstore-related exception
  * STORM-1484: ignore subproject .classpath & .project file
  * STORM-1478: make bolts getComponentConfiguration method cleaner/simpler
  * STORM-1499: fix wrong package name for storm trident

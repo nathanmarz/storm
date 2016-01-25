@@ -1768,7 +1768,7 @@
         (let [topology-conf (try-read-storm-conf conf id (:blob-store nimbus))
               storm-name (topology-conf TOPOLOGY-NAME)]
               (check-authorization! nimbus storm-name topology-conf "getTopology")
-              (system-topology! topology-conf (try-read-storm-topology conf id))))
+              (system-topology! topology-conf (try-read-storm-topology id (:blob-store nimbus)))))
 
       (^StormTopology getUserTopology [this ^String id]
         (mark! nimbus:num-getUserTopology-calls)

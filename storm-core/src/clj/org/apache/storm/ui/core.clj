@@ -105,14 +105,6 @@
            (throw (AuthorizationException.
                    (str "UI request '" op "' for '" user "' user is not authorized")))))))))
 
-
-(defn assert-authorized-profiler-action
-  [op]
-  (if-not (*STORM-CONF* WORKER-PROFILER-ENABLED)
-    (throw (AuthorizationException.
-             (str "UI request for profiler action '" op "' is disabled.")))))
-
-
 (defn executor-summary-type
   [topology ^ExecutorSummary s]
   (component-type topology (.get_component_id s)))
@@ -646,7 +638,7 @@
                     reverse)]
     {"componentErrors"
      (for [^ErrorInfo e errors]
-       {"time" (* 1000 (long (.get_error_time_secs e)))
+       {"errorTime" (* 1000 (long (.get_error_time_secs e)))
         "errorHost" (.get_host e)
         "errorPort"  (.get_port e)
         "errorWorkerLogLink"  (worker-log-link (.get_host e)
@@ -863,6 +855,7 @@
                                       (.get_eventlog_host comp-page-info)
                                       (.get_eventlog_port comp-page-info)
                                       secure?)
+       "profilingAndDebuggingCapable" (not on-windows?)
        "profileActionEnabled" (*STORM-CONF* WORKER-PROFILER-ENABLED)
        "profilerActive" (if (*STORM-CONF* WORKER-PROFILER-ENABLED)
                           (get-active-profile-actions nimbus topology-id component)
@@ -920,6 +913,15 @@
 (defn get-user-name
   [servlet-request]
   (.getUserName http-creds-handler servlet-request))
+
+(defn json-profiling-disabled
+  "Return a JSON response communicating that profiling is disabled and
+  therefore unavailable."
+  [callback]
+  (json-response {"status" "disabled",
+                  "message" "Profiling is not enabled on this server"}
+                 callback
+                 :status 501))
 
 (defroutes main-routes
   (GET "/api/v1/cluster/configuration" [& m]
@@ -1107,62 +1109,71 @@
 
   (GET "/api/v1/topology/:id/profiling/start/:host-port/:timeout"
        [:as {:keys [servlet-request]} id host-port timeout & m]
-       (thrift/with-configured-nimbus-connection nimbus
-         (assert-authorized-user "setWorkerProfiler" (topology-config id))
-         (assert-authorized-profiler-action "start")
-         (let [[host, port] (split host-port #":")
-               nodeinfo (NodeInfo. host (set [(Long. port)]))
-               timestamp (+ (System/currentTimeMillis) (* 60000 (Long. timeout)))
-               request (ProfileRequest. nodeinfo
-                                        ProfileAction/JPROFILE_STOP)]
-           (.set_time_stamp request timestamp)
-           (.setWorkerProfiler nimbus id request)
-           (json-response {"status" "ok"
-                           "id" host-port
-                           "timeout" timeout
-                           "dumplink" (worker-dump-link
-                                       host
-                                       port
-                                       id)}
-                          (m "callback")))))
+       (if (get *STORM-CONF* WORKER-PROFILER-ENABLED)
+         (do
+           (populate-context! servlet-request)
+           (thrift/with-configured-nimbus-connection nimbus
+             (assert-authorized-user "setWorkerProfiler" (topology-config id))
+             (let [[host, port] (split host-port #":")
+                   nodeinfo (NodeInfo. host (set [(Long. port)]))
+                   timestamp (+ (System/currentTimeMillis) (* 60000 (Long. timeout)))
+                   request (ProfileRequest. nodeinfo
+                                            ProfileAction/JPROFILE_STOP)]
+               (.set_time_stamp request timestamp)
+               (.setWorkerProfiler nimbus id request)
+               (json-response {"status" "ok"
+                               "id" host-port
+                               "timeout" timeout
+                               "dumplink" (worker-dump-link
+                                           host
+                                           port
+                                           id)}
+                              (m "callback")))))
+         (json-profiling-disabled (m "callback"))))
 
   (GET "/api/v1/topology/:id/profiling/stop/:host-port"
        [:as {:keys [servlet-request]} id host-port & m]
-       (thrift/with-configured-nimbus-connection nimbus
-         (assert-authorized-user "setWorkerProfiler" (topology-config id))
-         (assert-authorized-profiler-action "stop")
-         (let [[host, port] (split host-port #":")
-               nodeinfo (NodeInfo. host (set [(Long. port)]))
-               timestamp 0
-               request (ProfileRequest. nodeinfo
-                                        ProfileAction/JPROFILE_STOP)]
-           (.set_time_stamp request timestamp)
-           (.setWorkerProfiler nimbus id request)
-           (json-response {"status" "ok"
-                           "id" host-port}
-                          (m "callback")))))
-  
+       (if (get *STORM-CONF* WORKER-PROFILER-ENABLED)
+         (do
+           (populate-context! servlet-request)
+           (thrift/with-configured-nimbus-connection nimbus
+             (assert-authorized-user "setWorkerProfiler" (topology-config id))
+             (let [[host, port] (split host-port #":")
+                   nodeinfo (NodeInfo. host (set [(Long. port)]))
+                   timestamp 0
+                   request (ProfileRequest. nodeinfo
+                                            ProfileAction/JPROFILE_STOP)]
+               (.set_time_stamp request timestamp)
+               (.setWorkerProfiler nimbus id request)
+               (json-response {"status" "ok"
+                               "id" host-port}
+                              (m "callback")))))
+         (json-profiling-disabled (m "callback"))))
+
   (GET "/api/v1/topology/:id/profiling/dumpprofile/:host-port"
        [:as {:keys [servlet-request]} id host-port & m]
-       (thrift/with-configured-nimbus-connection nimbus
-         (assert-authorized-user "setWorkerProfiler" (topology-config id))
-         (assert-authorized-profiler-action "dumpprofile")
-         (let [[host, port] (split host-port #":")
-               nodeinfo (NodeInfo. host (set [(Long. port)]))
-               timestamp (System/currentTimeMillis)
-               request (ProfileRequest. nodeinfo
-                                        ProfileAction/JPROFILE_DUMP)]
-           (.set_time_stamp request timestamp)
-           (.setWorkerProfiler nimbus id request)
-           (json-response {"status" "ok"
-                           "id" host-port}
-                          (m "callback")))))
+       (if (get *STORM-CONF* WORKER-PROFILER-ENABLED)
+         (do
+           (populate-context! servlet-request)
+           (thrift/with-configured-nimbus-connection nimbus
+             (assert-authorized-user "setWorkerProfiler" (topology-config id))
+             (let [[host, port] (split host-port #":")
+                   nodeinfo (NodeInfo. host (set [(Long. port)]))
+                   timestamp (System/currentTimeMillis)
+                   request (ProfileRequest. nodeinfo
+                                            ProfileAction/JPROFILE_DUMP)]
+               (.set_time_stamp request timestamp)
+               (.setWorkerProfiler nimbus id request)
+               (json-response {"status" "ok"
+                               "id" host-port}
+                              (m "callback")))))
+         (json-profiling-disabled (m "callback"))))
 
   (GET "/api/v1/topology/:id/profiling/dumpjstack/:host-port"
        [:as {:keys [servlet-request]} id host-port & m]
+       (populate-context! servlet-request)
        (thrift/with-configured-nimbus-connection nimbus
          (assert-authorized-user "setWorkerProfiler" (topology-config id))
-         (assert-authorized-profiler-action "dumpjstack")
          (let [[host, port] (split host-port #":")
                nodeinfo (NodeInfo. host (set [(Long. port)]))
                timestamp (System/currentTimeMillis)
@@ -1176,9 +1187,9 @@
 
   (GET "/api/v1/topology/:id/profiling/restartworker/:host-port"
        [:as {:keys [servlet-request]} id host-port & m]
+       (populate-context! servlet-request)
        (thrift/with-configured-nimbus-connection nimbus
          (assert-authorized-user "setWorkerProfiler" (topology-config id))
-         (assert-authorized-profiler-action "restartworker")
          (let [[host, port] (split host-port #":")
                nodeinfo (NodeInfo. host (set [(Long. port)]))
                timestamp (System/currentTimeMillis)
@@ -1192,9 +1203,9 @@
        
   (GET "/api/v1/topology/:id/profiling/dumpheap/:host-port"
        [:as {:keys [servlet-request]} id host-port & m]
+       (populate-context! servlet-request)
        (thrift/with-configured-nimbus-connection nimbus
          (assert-authorized-user "setWorkerProfiler" (topology-config id))
-         (assert-authorized-profiler-action "dumpheap")
          (let [[host, port] (split host-port #":")
                nodeinfo (NodeInfo. host (set [(Long. port)]))
                timestamp (System/currentTimeMillis)

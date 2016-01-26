@@ -17,6 +17,7 @@
  */
 package org.apache.storm.scheduler;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
@@ -55,4 +56,6 @@ public interface SchedulerAssignment {
     public Set<ExecutorDetails> getExecutors();
     
     public Set<WorkerSlot> getSlots();
+
+    public Map<WorkerSlot, Collection<ExecutorDetails>> getSlotToExecutors();
 }

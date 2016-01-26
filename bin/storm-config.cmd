@@ -102,7 +102,7 @@ FOR /F "delims=" %%i in (%CMD_TEMP_FILE%) do (
 @rem
 
 if not %STORM_LOG4J2_CONFIGURATION_DIR% == nil (
-	set STORM_LOG4J2_CONFIGURATION_FILE="file://%STORM_LOG4J2_CONFIGURATION_DIR%\cluster.xml"
+	set STORM_LOG4J2_CONFIGURATION_FILE="file:///%STORM_LOG4J2_CONFIGURATION_DIR%\cluster.xml"
 )
 
 @rem
@@ -110,7 +110,7 @@ if not %STORM_LOG4J2_CONFIGURATION_DIR% == nil (
 @rem
 
 if not defined STORM_LOG4J2_CONFIGURATION_FILE (
-  set STORM_LOG4J2_CONFIGURATION_FILE="file://%STORM_HOME%\log4j2\cluster.xml"
+  set STORM_LOG4J2_CONFIGURATION_FILE="file:///%STORM_HOME%\log4j2\cluster.xml"
 )
 
 "%JAVA%" -client -Dstorm.options= -Dstorm.conf.file= -cp "%CLASSPATH%" org.apache.storm.command.config_value java.library.path > %CMD_TEMP_FILE%

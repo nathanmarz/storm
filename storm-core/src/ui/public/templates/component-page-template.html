@@ -254,7 +254,9 @@
         </td>
         <td>
           <span id="workerActionButtons">
+            {{#profileActionEnabled}}
             <input type="button" value="Start" name="start" onClick="start_profiling()" class="btn btn-secondary" disabled/>
+            {{/profileActionEnabled}}
             <input type="button" value="JStack" name="jstack" onClick="dump_jstacks()" class="btn btn-secondary" disabled/>
             <input type="button" value="Restart Worker" name="jvmrestart" onClick="restart_worker_jvms()" class="btn btn-secondary" disabled/>
             <input type="button" value="Heap" name="heap" onClick="dump_heaps()" class="btn btn-secondary" disabled/>
@@ -539,7 +541,9 @@
     <tbody>
       {{#componentErrors}}
       <tr>
-        <td>{{errorTime}}</td>
+        <td>
+          <span id="{{errorTime}}" class="errorTimeSpan">{{errorTime}}</span>
+        </td>
         <td>{{errorHost}}</td>
         <td><a href="{{errorWorkerLogLink}}">{{errorPort}}</a></td>
         <td>

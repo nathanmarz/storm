@@ -1369,5 +1369,18 @@ public class Utils {
         }
         return topologyInfo;
     }
+
+    /**
+     * A cheap way to deterministically convert a number to a positive value. When the input is
+     * positive, the original value is returned. When the input number is negative, the returned
+     * positive value is the original value bit AND against Integer.MAX_VALUE(0x7fffffff) which
+     * is not its absolutely value.
+     *
+     * @param number a given number
+     * @return a positive number.
+     */
+    public static int toPositive(int number) {
+        return number & Integer.MAX_VALUE;
+    }
 }
 

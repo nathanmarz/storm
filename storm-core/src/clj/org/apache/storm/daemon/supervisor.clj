@@ -709,7 +709,10 @@
             stormid->profiler-actions @(:stormid->profiler-actions supervisor)
             storm-cluster-state (:storm-cluster-state supervisor)
             hostname (:my-hostname supervisor)
-            profile-cmd (conf WORKER-PROFILER-COMMAND)
+            storm-home (System/getProperty "storm.home")
+            profile-cmd (str (clojure.java.io/file storm-home
+                                                   "bin"
+                                                   (conf WORKER-PROFILER-COMMAND)))
             new-assignment @(:curr-assignment supervisor)
             assigned-storm-ids (assigned-storm-ids-from-port-assignments new-assignment)]
         (doseq [[storm-id profiler-actions] stormid->profiler-actions]
@@ -1074,6 +1077,13 @@
           topology-worker-environment (if-let [env (storm-conf TOPOLOGY-ENVIRONMENT)]
                                         (merge env {"LD_LIBRARY_PATH" jlp})
                                         {"LD_LIBRARY_PATH" jlp})
+
+          log4j-configuration-file (str (if (.startsWith (System/getProperty "os.name") "Windows")
+                                          (if (.startsWith storm-log4j2-conf-dir "file:")
+                                            storm-log4j2-conf-dir
+                                            (str "file:///" storm-log4j2-conf-dir))
+                                          storm-log4j2-conf-dir)
+                                     file-path-separator "worker.xml")
           command (concat
                     [(java-cmd) "-cp" classpath 
                      topo-worker-logwriter-childopts
@@ -1084,7 +1094,7 @@
                      (str "-Dworker.id=" worker-id)
                      (str "-Dworker.port=" port)
                      (str "-Dstorm.log.dir=" storm-log-dir)
-                     (str "-Dlog4j.configurationFile=" storm-log4j2-conf-dir file-path-separator "worker.xml")
+                     (str "-Dlog4j.configurationFile=" log4j-configuration-file)
                      (str "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector")
                      "org.apache.storm.LogWriter"]
                     [(java-cmd) "-server"]
@@ -1100,7 +1110,7 @@
                      (str "-Dstorm.options=" storm-options)
                      (str "-Dstorm.log.dir=" storm-log-dir)
                      (str "-Dlogging.sensitivity=" logging-sensitivity)
-                     (str "-Dlog4j.configurationFile=" storm-log4j2-conf-dir file-path-separator "worker.xml")
+                     (str "-Dlog4j.configurationFile=" log4j-configuration-file)
                      (str "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector")
                      (str "-Dstorm.id=" storm-id)
                      (str "-Dworker.id=" worker-id)

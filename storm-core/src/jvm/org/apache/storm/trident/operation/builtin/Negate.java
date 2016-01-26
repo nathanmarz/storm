@@ -22,6 +22,34 @@ import org.apache.storm.trident.operation.Filter;
 import org.apache.storm.trident.operation.TridentOperationContext;
 import org.apache.storm.trident.tuple.TridentTuple;
 
+/**
+ * A `Filter` implementation that inverts another delegate `Filter`.
+ *
+ * The `Negate.isKeep()` method simply returns the opposite of the delegate's `isKeep()` method:
+ *
+ * ```java
+ * public boolean isKeep(TridentTuple tuple) {
+ *      return !this.delegate.isKeep(tuple);
+ * }
+ * ```
+ *
+ * The `Negate` filter is useful for dividing a Stream in two based on some boolean condition.
+ *
+ * Suppose we had a Stream named `userStream` containing information about users, and a custom `Filter` implementation,
+ * `RegisteredUserFilter` that filtered out unregistered users. We could divide the `userStream` Stream into two
+ * separate Streams -- one for registered users, and one for unregistered users -- by doing the following:
+ *
+ * ```java
+ * Stream userStream = ...
+ *
+ * Filter registeredFilter = new ResisteredUserFilter();
+ * Filter unregisteredFilter = new Negate(registeredFilter);
+ *
+ * Stream registeredUserStream = userStream.each(userStream.getOutputFields(), registeredFilter);
+ * Stream unregisteredUserStream = userStream.each(userStream.getOutputFields(), unregisteredFilter);
+ * ```
+ *
+ */
 public class Negate implements Filter {
     
     Filter _delegate;

@@ -18,7 +18,6 @@
 
 package org.apache.storm.scheduler.resource;
 
-import org.apache.storm.Config;
 import org.apache.storm.scheduler.Cluster;
 import org.apache.storm.scheduler.ExecutorDetails;
 import org.apache.storm.scheduler.SchedulerAssignment;
@@ -30,6 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
 
 public class RAS_Nodes {
@@ -43,97 +43,75 @@ public class RAS_Nodes {
     }
 
     public static Map<String, RAS_Node> getAllNodesFrom(Cluster cluster, Topologies topologies) {
+
+        //A map of node ids to node objects
         Map<String, RAS_Node> nodeIdToNode = new HashMap<String, RAS_Node>();
-        for (SupervisorDetails sup : cluster.getSupervisors().values()) {
-            //Node ID and supervisor ID are the same.
-            String id = sup.getId();
-            boolean isAlive = !cluster.isBlackListed(id);
-            LOG.debug("Found a {} Node {} {}",
-                    isAlive ? "living" : "dead", id, sup.getAllPorts());
-            LOG.debug("resources_mem: {}, resources_CPU: {}", sup.getTotalMemory(), sup.getTotalCPU());
-            nodeIdToNode.put(sup.getId(), new RAS_Node(id, sup.getAllPorts(), isAlive, sup, cluster, topologies));
-        }
+        //A map of assignments organized by node with the following format:
+        //{nodeId -> {topologyId -> {workerId -> {execs}}}}
+        Map<String, Map<String, Map<String, Collection<ExecutorDetails>>>> assignmentRelationshipMap
+                = new HashMap<String, Map<String, Map<String, Collection<ExecutorDetails>>>>();
+
+        Map<String, Map<String, WorkerSlot>> workerIdToWorker = new HashMap<String, Map<String, WorkerSlot>>();
         for (SchedulerAssignment assignment : cluster.getAssignments().values()) {
             String topId = assignment.getTopologyId();
-            for (WorkerSlot workerSlot : assignment.getSlots()) {
-                String id = workerSlot.getNodeId();
-                RAS_Node node = nodeIdToNode.get(id);
-                if (node == null) {
-                    LOG.info("Found an assigned slot on a dead supervisor {} with executors {}",
-                            workerSlot, RAS_Node.getExecutors(workerSlot, cluster));
-                    node = new RAS_Node(id, null, false, null, cluster, topologies);
-                    nodeIdToNode.put(id, node);
+
+            for (Map.Entry<WorkerSlot, Collection<ExecutorDetails>> entry : assignment.getSlotToExecutors().entrySet()) {
+                WorkerSlot slot = entry.getKey();
+                String nodeId = slot.getNodeId();
+                Collection<ExecutorDetails> execs = entry.getValue();
+                if (!assignmentRelationshipMap.containsKey(nodeId)) {
+                    assignmentRelationshipMap.put(nodeId, new HashMap<String, Map<String, Collection<ExecutorDetails>>>());
+                    workerIdToWorker.put(nodeId, new HashMap<String, WorkerSlot>());
                 }
-                if (!node.isAlive()) {
-                    //The supervisor on the node is down so add an orphaned slot to hold the unsupervised worker
-                    node.addOrphanedSlot(workerSlot);
+                workerIdToWorker.get(nodeId).put(slot.getId(), slot);
+                if (!assignmentRelationshipMap.get(nodeId).containsKey(topId)) {
+                    assignmentRelationshipMap.get(nodeId).put(topId, new HashMap<String, Collection<ExecutorDetails>>());
                 }
-                if (node.assignInternal(workerSlot, topId, true)) {
-                    LOG.warn("Bad scheduling state, {} assigned multiple workers, unassigning everything...", workerSlot);
-                    node.free(workerSlot);
+                if (!assignmentRelationshipMap.get(nodeId).get(topId).containsKey(slot.getId())) {
+                    assignmentRelationshipMap.get(nodeId).get(topId).put(slot.getId(), new LinkedList<ExecutorDetails>());
                 }
+                assignmentRelationshipMap.get(nodeId).get(topId).get(slot.getId()).addAll(execs);
             }
         }
-        updateAvailableResources(cluster, topologies, nodeIdToNode);
+
+        for (SupervisorDetails sup : cluster.getSupervisors().values()) {
+            //Initialize a worker slot for every port even if there is no assignment to it
+            for (int port : sup.getAllPorts()) {
+                WorkerSlot worker = new WorkerSlot(sup.getId(), port);
+                if (!workerIdToWorker.containsKey(sup.getId())) {
+                    workerIdToWorker.put(sup.getId(), new HashMap<String, WorkerSlot>());
+                }
+                if (!workerIdToWorker.get(sup.getId()).containsKey(worker.getId())) {
+                    workerIdToWorker.get(sup.getId()).put(worker.getId(), worker);
+                }
+            }
+            nodeIdToNode.put(sup.getId(), new RAS_Node(sup.getId(), sup, cluster, topologies, workerIdToWorker.get(sup.getId()), assignmentRelationshipMap.get(sup.getId())));
+        }
+
+        //Add in supervisors that might have crashed but workers are still alive
+        for(Map.Entry<String, Map<String, Map<String, Collection<ExecutorDetails>>>> entry : assignmentRelationshipMap.entrySet()) {
+            String nodeId = entry.getKey();
+            Map<String, Map<String, Collection<ExecutorDetails>>> assignments = entry.getValue();
+            if (!nodeIdToNode.containsKey(nodeId)) {
+                LOG.info("Found an assigned slot(s) on a dead supervisor {} with assignments {}",
+                        nodeId, assignments);
+                nodeIdToNode.put(nodeId, new RAS_Node(nodeId, null, cluster, topologies, workerIdToWorker.get(nodeId), assignments));
+            }
+        }
         return nodeIdToNode;
     }
 
     /**
-     * updates the available resources for every node in a cluster
-     * by recalculating memory requirements.
-     *
-     * @param cluster      the cluster used in this calculation
-     * @param topologies   container of all topologies
-     * @param nodeIdToNode a map between node id and node
+     * get node object from nodeId
      */
-    private static void updateAvailableResources(Cluster cluster,
-                                                 Topologies topologies,
-                                                 Map<String, RAS_Node> nodeIdToNode) {
-        //recompute memory
-        if (cluster.getAssignments().size() > 0) {
-            for (Map.Entry<String, SchedulerAssignment> entry : cluster.getAssignments()
-                    .entrySet()) {
-                Map<ExecutorDetails, WorkerSlot> executorToSlot = entry.getValue()
-                        .getExecutorToSlot();
-                Map<ExecutorDetails, Double> topoMemoryResourceList = topologies.getById(entry.getKey()).getTotalMemoryResourceList();
-
-                if (topoMemoryResourceList == null || topoMemoryResourceList.size() == 0) {
-                    continue;
-                }
-                for (Map.Entry<ExecutorDetails, WorkerSlot> execToSlot : executorToSlot
-                        .entrySet()) {
-                    WorkerSlot slot = execToSlot.getValue();
-                    ExecutorDetails exec = execToSlot.getKey();
-                    RAS_Node node = nodeIdToNode.get(slot.getNodeId());
-                    if (!node.isAlive()) {
-                        continue;
-                        // We do not free the assigned slots (the orphaned slots) on the inactive supervisors
-                        // The inactive node will be treated as a 0-resource node and not available for other unassigned workers
-                    }
-                    if (topoMemoryResourceList.containsKey(exec)) {
-                        node.consumeResourcesforTask(exec, topologies.getById(entry.getKey()));
-                    } else {
-                        LOG.warn("Resource Req not found...Scheduling Task {} with memory requirement as on heap - {} " +
-                                        "and off heap - {} and CPU requirement as {}",
-                                exec,
-                                Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB,
-                                Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT);
-                        topologies.getById(entry.getKey()).addDefaultResforExec(exec);
-                        node.consumeResourcesforTask(exec, topologies.getById(entry.getKey()));
-                    }
-                }
-            }
-        } else {
-            for (RAS_Node n : nodeIdToNode.values()) {
-                n.setAvailableMemory(n.getAvailableMemoryResources());
-            }
-        }
-    }
-
     public RAS_Node getNodeById(String nodeId) {
         return this.nodeMap.get(nodeId);
     }
 
+    /**
+     *
+     * @param workerSlots
+     */
     public void freeSlots(Collection<WorkerSlot> workerSlots) {
         for (RAS_Node node : nodeMap.values()) {
             for (WorkerSlot ws : node.getUsedSlots()) {

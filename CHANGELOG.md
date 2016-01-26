@@ -1,7 +1,19 @@
 ## 2.0.0
+
 ## 1.0.0
+ * STORM-1496: Nimbus periodically throws blobstore-related exception
+ * STORM-1484: ignore subproject .classpath & .project file
  * STORM-1478: make bolts getComponentConfiguration method cleaner/simpler
- * STORM-1482: add missing 'break' for RedisStoreBolt
+ * STORM-1499: fix wrong package name for storm trident
+ * STORM-1463: added file scehma to log4j config files for windows env
+ * STORM-1485: DRPC Connectivity Issues
+ * STORM-1486: Fix storm-kafa documentation
+ * STORM-1214: add javadoc for Trident Streams and Operations
+ * STORM-1450: Fix minor bugs and refactor code in ResourceAwareScheduler
+ * STORM-1452: Fixes profiling/debugging out of the box
+ * STORM-1406: Add MQTT Support
+ * STORM-1473: enable log search for daemon logs
+ * STORM-1472: Fix the errorTime bug and show the time to be readable
  * STORM-1466: Move the org.apache.thrift7 namespace to something correct/sensible
  * STORM-1470: Applies shading to hadoop-auth, cleaner exclusions
  * STORM-1467: Switch apache-rat plugin off by default, but enable for Travis-CI
@@ -114,7 +126,6 @@
  * STORM-1182: Removing and wrapping some exceptions in ConfigValidation to make code cleaner
  * STORM-1134. Windows: Fix log4j config.
  * STORM-1127: allow for boolean arguments (Flux)
- * STORM-1180: FLUX logo wasn't appearing quite right
  * STORM-1138: Storm-hdfs README should be updated with Avro Bolt information
  * STORM-1154: SequenceFileBolt needs unit tests
  * STORM-162: Load Aware Shuffle Grouping
@@ -238,7 +249,15 @@
  * STORM-1144: Display requested and assigned cpu/mem resources for schedulers in UI
  * STORM-1217: making small fixes in RAS
 
-## 0.10.0-beta2
+## 0.10.1
+
+ * STORM-1481: avoid Math.abs(Integer) get a negative value
+ * STORM-1121: Deprecate test only configuraton nimbus.reassign
+ * STORM-1180: FLUX logo wasn't appearing quite right
+ * STORM-1482: add missing 'break' for RedisStoreBolt
+
+## 0.10.0
+ * STORM-1096: Fix some issues with impersonation on the UI
  * STORM-581: Add rebalance params to Storm REST API
  * STORM-1108: Fix NPE in simulated time
  * STORM-1099: Fix worker childopts as arraylist of strings
@@ -272,9 +291,6 @@
  * STORM-966: ConfigValidation.DoubleValidator doesn't really validate whether the type of the object is a double
  * STORM-742: Let ShellBolt treat all messages to update heartbeat
  * STORM-992: A bug in the timer.clj might cause unexpected delay to schedule new event
-
-## 0.10.0
- * STORM-1096: Fix some issues with impersonation on the UI
 
 ## 0.10.0-beta1
  * STORM-873: Flux does not handle diamond topologies

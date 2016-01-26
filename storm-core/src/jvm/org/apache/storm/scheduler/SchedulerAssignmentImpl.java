@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -101,5 +102,18 @@ public class SchedulerAssignmentImpl implements SchedulerAssignment {
      */
     public Set<ExecutorDetails> getExecutors() {
         return this.executorToSlot.keySet();
+    }
+
+    public Map<WorkerSlot, Collection<ExecutorDetails>> getSlotToExecutors() {
+        Map<WorkerSlot, Collection<ExecutorDetails>> ret = new HashMap<WorkerSlot, Collection<ExecutorDetails>>();
+        for (Map.Entry<ExecutorDetails, WorkerSlot> entry : executorToSlot.entrySet()) {
+            ExecutorDetails exec = entry.getKey();
+            WorkerSlot ws = entry.getValue();
+            if (!ret.containsKey(ws)) {
+                ret.put(ws, new LinkedList<ExecutorDetails>());
+            }
+            ret.get(ws).add(exec);
+        }
+        return ret;
     }
 }

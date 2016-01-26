@@ -19,12 +19,27 @@ package org.apache.storm.trident.operation;
 
 import java.util.Map;
 
+/**
+ * Convenience implementation of the {@link org.apache.storm.trident.operation.Operation} interface.
+ *
+ * Provides no-op implementations of the `prepare()` and `cleanup()` methods.
+ */
 public class BaseOperation implements Operation {
 
+    /**
+     * No-op implementation.
+     * @param conf the Storm configuration map
+     * @param context the operation context which provides information such as the number of partitions in the stream,
+     *                and the current partition index. It also provides methods for registering operation-specific
+     *                metrics.
+     */
     @Override
     public void prepare(Map conf, TridentOperationContext context) {
     }
 
+    /**
+     * No-op implemnation.
+     */
     @Override
     public void cleanup() {
     }

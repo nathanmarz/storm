@@ -72,8 +72,10 @@
                :time-secs (current-time-secs)
                }]
     ;; do the zookeeper heartbeat
-    (.worker-heartbeat! (:storm-cluster-state worker) (:storm-id worker) (:assignment-id worker) (:port worker) zk-hb)
-    ))
+    (try
+      (.worker-heartbeat! (:storm-cluster-state worker) (:storm-id worker) (:assignment-id worker) (:port worker) zk-hb)
+      (catch Exception exc
+        (log-error exc "Worker failed to write heatbeats to ZK or Pacemaker...will retry")))))
 
 (defn do-heartbeat [worker]
   (let [conf (:conf worker)

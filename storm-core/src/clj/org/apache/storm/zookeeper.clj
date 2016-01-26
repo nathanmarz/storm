@@ -30,6 +30,7 @@
   (:import [org.apache.storm.nimbus ILeaderElector NimbusInfo])
   (:import [java.io File])
   (:import [java.util List Map])
+  (:import [org.apache.storm.zookeeper Zookeeper ZkKeeperStates ZkEventTypes])
   (:import [org.apache.storm.utils Utils ZookeeperAuthInfo])
   (:use [org.apache.storm util log config]))
 
@@ -71,5 +72,4 @@
     ;;             ))))
     (.start fk)
     fk))
-
 

@@ -320,7 +320,7 @@ public class PartitionManager {
         }
     }
 
-    static class OffsetData {
+    public static class OffsetData {
         public long latestEmittedOffset;
         public long latestCompletedOffset;
 

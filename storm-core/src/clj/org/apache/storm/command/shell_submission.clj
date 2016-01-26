@@ -14,7 +14,8 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns org.apache.storm.command.shell-submission
-  (:import [org.apache.storm StormSubmitter])
+  (:import [org.apache.storm StormSubmitter]
+           [org.apache.storm.zookeeper Zookeeper])
   (:use [org.apache.storm thrift util config log zookeeper])
   (:require [clojure.string :as str])
   (:gen-class))

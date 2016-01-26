@@ -17,7 +17,7 @@
 (ns org.apache.storm.cluster-state.zookeeper-state-factory
   (:import [org.apache.curator.framework.state ConnectionStateListener]
            [org.apache.storm.zookeeper Zookeeper])
-  (:import [org.apache.zookeeper KeeperException$NoNodeException]
+  (:import [org.apache.zookeeper KeeperException$NoNodeException CreateMode]
            [org.apache.storm.cluster ClusterState DaemonType])
   (:use [org.apache.storm cluster config log util])
   (:require [org.apache.storm [zookeeper :as zk]])
@@ -92,7 +92,7 @@
          (Zookeeper/setData zk-writer path data)
          (do
            (Zookeeper/mkdirs zk-writer (parent-path path) acls)
-           (Zookeeper/createNode zk-writer path data CreateMode/PERSISTENT acls))
+           (Zookeeper/createNode zk-writer path data CreateMode/PERSISTENT acls))))
 
      (set-worker-hb
        [this path data acls]

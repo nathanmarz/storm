@@ -30,6 +30,7 @@
   (:import [java.util HashMap])
   (:import [java.io File])
   (:import [org.apache.storm.utils Time Utils])
+  (:import [org.apache.storm.zookeeper Zookeeper])
   (:import [org.apache.commons.io FileUtils])
   (:use [org.apache.storm testing MockAutoCred util config log timer zookeeper])
   (:use [org.apache.storm.daemon common])

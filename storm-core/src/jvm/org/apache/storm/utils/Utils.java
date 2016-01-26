@@ -1041,9 +1041,9 @@ public class Utils {
             .connectionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_CONNECTION_TIMEOUT)))
             .sessionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT)))
             .retryPolicy(new StormBoundedExponentialBackoffRetry(
-                        Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL)),
-                        Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL_CEILING)),
-                        Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES))));
+                    Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL)),
+                    Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL_CEILING)),
+                    Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES))));
 
         if (auth != null && auth.scheme != null && auth.payload != null) {
             builder.authorization(auth.scheme, auth.payload);
@@ -1381,6 +1381,44 @@ public class Utils {
      */
     public static int toPositive(int number) {
         return number & Integer.MAX_VALUE;
+    }
+
+    public static RuntimeException wrapInRuntime(Exception e){
+        if (e instanceof RuntimeException){
+            return (RuntimeException)e;
+        }else {
+            return new RuntimeException(e);
+        }
+    }
+
+    public static List<String> tokenizePath(String path) {
+        String[] toks = path.split(File.separator);
+        java.util.ArrayList<String> rtn = new ArrayList<String>();
+        for (String str : toks) {
+            if (!str.isEmpty()) {
+                rtn.add(str);
+            }
+        }
+        return rtn;
+    }
+
+    public static String toksToPath(List<String> toks) {
+        StringBuffer buff = new StringBuffer();
+        buff.append(File.separator);
+        int size = toks.size();
+        for (int i = 0; i < size; i++) {
+            buff.append(toks.get(i));
+            if (i < (size - 1)) {
+                buff.append(File.separator);
+            }
+
+        }
+        return buff.toString();
+    }
+
+    public static String normalizePath(String path) {
+        String rtn = toksToPath(tokenizePath(path));
+        return rtn;
     }
 }
 

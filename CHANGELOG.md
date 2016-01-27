@@ -1,6 +1,7 @@
 ## 2.0.0
 
 ## 1.0.0
+ * STORM-1494: Add link to supervisor log in Storm UI
  * STORM-1496: Nimbus periodically throws blobstore-related exception
  * STORM-1484: ignore subproject .classpath & .project file
  * STORM-1478: make bolts getComponentConfiguration method cleaner/simpler

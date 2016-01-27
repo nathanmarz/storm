@@ -289,7 +289,7 @@
 (defmacro with-inprocess-zookeeper
   [port-sym & body]
   `(with-local-tmp [tmp#]
-                   (let [[~port-sym zks#] (zk/mk-inprocess-zookeeper tmp#)]
+                   (let [[~port-sym zks#] (Zookeeper/mkInprocessZookeeper tmp# nil)]
                      (try
                        ~@body
                        (finally

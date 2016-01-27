@@ -36,7 +36,7 @@ public class ZkEventTypes {
 
     }
 
-    public static String getStateName(Watcher.Event.EventType type) {
+    public static String getTypeName(Watcher.Event.EventType type) {
         return map.get(type);
     }
 

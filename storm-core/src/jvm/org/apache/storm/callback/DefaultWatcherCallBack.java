@@ -29,7 +29,7 @@ public class DefaultWatcherCallBack implements WatcherCallBack {
 
     @Override
     public void execute(Watcher.Event.KeeperState state, Watcher.Event.EventType type, String path) {
-        LOG.info("Zookeeper state update:" + ZkKeeperStates.getStateName(state) + "," + ZkEventTypes.getStateName(type) + "," + path);
+        LOG.debug("Zookeeper state update:  {}, {}, {}", ZkKeeperStates.getStateName(state), ZkEventTypes.getTypeName(type), path);
     }
 
 }

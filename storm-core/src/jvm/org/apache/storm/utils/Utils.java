@@ -17,6 +17,7 @@
  */
 package org.apache.storm.utils;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.storm.Config;
 import org.apache.storm.blobstore.BlobStore;
 import org.apache.storm.blobstore.BlobStoreAclHandler;
@@ -48,6 +49,7 @@ import org.apache.thrift.TSerializer;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Id;
+import org.eclipse.jetty.util.log.Log;
 import org.json.simple.JSONValue;
 import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
@@ -55,25 +57,7 @@ import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.PrintStream;
-import java.io.RandomAccessFile;
-import java.io.Serializable;
+import java.io.*;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;
@@ -1389,36 +1373,6 @@ public class Utils {
         }else {
             return new RuntimeException(e);
         }
-    }
-
-    public static List<String> tokenizePath(String path) {
-        String[] toks = path.split(File.separator);
-        java.util.ArrayList<String> rtn = new ArrayList<String>();
-        for (String str : toks) {
-            if (!str.isEmpty()) {
-                rtn.add(str);
-            }
-        }
-        return rtn;
-    }
-
-    public static String toksToPath(List<String> toks) {
-        StringBuffer buff = new StringBuffer();
-        buff.append(File.separator);
-        int size = toks.size();
-        for (int i = 0; i < size; i++) {
-            buff.append(toks.get(i));
-            if (i < (size - 1)) {
-                buff.append(File.separator);
-            }
-
-        }
-        return buff.toString();
-    }
-
-    public static String normalizePath(String path) {
-        String rtn = toksToPath(tokenizePath(path));
-        return rtn;
     }
 }
 

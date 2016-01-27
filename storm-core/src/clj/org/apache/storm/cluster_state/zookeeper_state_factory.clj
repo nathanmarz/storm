@@ -152,7 +152,7 @@
 
       (delete-node-blobstore
         [this path nimbus-host-port-info]
-        (Zookeeper/deleteDodeBlobstore zk-writer path nimbus-host-port-info))
+        (Zookeeper/deleteNodeBlobstore zk-writer path nimbus-host-port-info))
 
      (close
        [this]

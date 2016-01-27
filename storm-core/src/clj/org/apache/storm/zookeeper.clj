@@ -53,7 +53,7 @@
             (when (= (.getType e) CuratorEventType/WATCHED)
               (let [^WatchedEvent event (.getWatchedEvent e)]
                 (watcher (ZkKeeperStates/getStateName (.getState event))
-                  (ZkEventTypes/getStateName (.getType event))
+                  (ZkEventTypes/getTypeName (.getType event))
                   (.getPath event))))))))
     ;;    (.. fk
     ;;        (getUnhandledErrorListenable)

@@ -1,6 +1,7 @@
 ## 2.0.0
 
 ## 1.0.0
+ * STORM-1503] Worker should not crash on failure to send heartbeats to Pacemaker/ZK
  * STORM-1176: Checkpoint window evaluated/expired state
  * STORM-1494: Add link to supervisor log in Storm UI
  * STORM-1496: Nimbus periodically throws blobstore-related exception

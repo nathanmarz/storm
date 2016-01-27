@@ -44,7 +44,8 @@ public class WaterMarkEventGenerator<T> implements Runnable {
     private final Set<GlobalStreamId> inputStreams;
     private final Map<GlobalStreamId, Long> streamToTs;
     private final ScheduledExecutorService executorService;
-    private final ScheduledFuture<?> executorFuture;
+    private final int interval;
+    private ScheduledFuture<?> executorFuture;
     private long lastWaterMarkTs = 0;
 
     public WaterMarkEventGenerator(WindowManager<T> windowManager, int interval,
@@ -52,7 +53,7 @@ public class WaterMarkEventGenerator<T> implements Runnable {
         this.windowManager = windowManager;
         streamToTs = new ConcurrentHashMap<>();
         executorService = Executors.newSingleThreadScheduledExecutor();
-        this.executorFuture = executorService.scheduleAtFixedRate(this, interval, interval, TimeUnit.MILLISECONDS);
+        this.interval = interval;
         this.eventTsLag = eventTsLag;
         this.inputStreams = inputStreams;
     }
@@ -91,7 +92,7 @@ public class WaterMarkEventGenerator<T> implements Runnable {
     private long computeWaterMarkTs() {
         long ts = 0;
         // only if some data has arrived on each input stream
-        if(streamToTs.size() >= inputStreams.size()) {
+        if (streamToTs.size() >= inputStreams.size()) {
             ts = Long.MAX_VALUE;
             for (Map.Entry<GlobalStreamId, Long> entry : streamToTs.entrySet()) {
                 ts = Math.min(ts, entry.getValue());
@@ -101,7 +102,7 @@ public class WaterMarkEventGenerator<T> implements Runnable {
     }
 
     private void checkFailures() {
-        if (executorFuture.isDone()) {
+        if (executorFuture != null && executorFuture.isDone()) {
             try {
                 executorFuture.get();
             } catch (InterruptedException ex) {
@@ -112,5 +113,9 @@ public class WaterMarkEventGenerator<T> implements Runnable {
                 throw new FailedException(ex.getCause());
             }
         }
+    }
+
+    public void start() {
+        this.executorFuture = executorService.scheduleAtFixedRate(this, interval, interval, TimeUnit.MILLISECONDS);
     }
 }

@@ -15,35 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.storm.windowing;
+package org.apache.storm.topology;
+
+import org.apache.storm.state.State;
 
 /**
- * Triggers the window calculations based on the policy.
- *
- * @param <T> the type of the event that is tracked
+ * A windowed bolt abstraction for supporting windowing operation with state
  */
-public interface TriggerPolicy<T> {
-    /**
-     * Tracks the event and could use this to invoke the trigger.
-     *
-     * @param event the input event
-     */
-    void track(Event<T> event);
-
-    /**
-     * resets the trigger policy
-     */
-    void reset();
-
-    /**
-     * Starts the trigger policy. This can be used
-     * during recovery to start the triggers after
-     * recovery is complete.
-     */
-    void start();
-
-    /**
-     * Any clean up could be handled here.
-     */
-    void shutdown();
+public interface IStatefulWindowedBolt<T extends State> extends IStatefulComponent<T>, IWindowedBolt {
 }

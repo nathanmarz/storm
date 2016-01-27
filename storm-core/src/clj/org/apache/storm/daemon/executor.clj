@@ -174,6 +174,7 @@
                         TOPOLOGY-BOLTS-SLIDING-INTERVAL-DURATION-MS
                         TOPOLOGY-BOLTS-TUPLE-TIMESTAMP-FIELD-NAME
                         TOPOLOGY-BOLTS-TUPLE-TIMESTAMP-MAX-LAG-MS
+                        TOPOLOGY-BOLTS-MESSAGE-ID-FIELD-NAME
                         TOPOLOGY-STATE-PROVIDER
                         TOPOLOGY-STATE-PROVIDER-CONFIG
                         )

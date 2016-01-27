@@ -31,6 +31,7 @@ public class WatermarkTimeTriggerPolicy<T> implements TriggerPolicy<T> {
     private final EvictionPolicy<T> evictionPolicy;
     private final WindowManager<T> windowManager;
     private long nextWindowEndTs = 0;
+    private boolean started;
 
     public WatermarkTimeTriggerPolicy(long slidingIntervalMs, TriggerHandler handler, EvictionPolicy<T> evictionPolicy,
                                       WindowManager<T> windowManager) {
@@ -38,11 +39,12 @@ public class WatermarkTimeTriggerPolicy<T> implements TriggerPolicy<T> {
         this.handler = handler;
         this.evictionPolicy = evictionPolicy;
         this.windowManager = windowManager;
+        this.started = false;
     }
 
     @Override
     public void track(Event<T> event) {
-        if (event.isWatermark()) {
+        if (started && event.isWatermark()) {
             handleWaterMarkEvent(event);
         }
     }
@@ -50,6 +52,11 @@ public class WatermarkTimeTriggerPolicy<T> implements TriggerPolicy<T> {
     @Override
     public void reset() {
         // NOOP
+    }
+
+    @Override
+    public void start() {
+        started = true;
     }
 
     @Override
@@ -105,5 +112,14 @@ public class WatermarkTimeTriggerPolicy<T> implements TriggerPolicy<T> {
             return nextTs;
         }
         return nextTs + (slidingIntervalMs - (nextTs % slidingIntervalMs));
+    }
+
+    @Override
+    public String toString() {
+        return "WatermarkTimeTriggerPolicy{" +
+                "slidingIntervalMs=" + slidingIntervalMs +
+                ", nextWindowEndTs=" + nextWindowEndTs +
+                ", started=" + started +
+                '}';
     }
 }

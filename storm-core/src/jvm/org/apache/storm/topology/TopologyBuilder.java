@@ -244,6 +244,24 @@ public class TopologyBuilder {
     }
 
     /**
+     * Define a new bolt in this topology. This defines a stateful windowed bolt, intended for stateful
+     * windowing operations. The {@link IStatefulWindowedBolt#execute(TupleWindow)} method is triggered
+     * for each window interval with the list of current events in the window. During initialization of
+     * this bolt {@link IStatefulWindowedBolt#initState(State)} is invoked with its previously saved state.
+     *
+     * @param id the id of this component. This id is referenced by other components that want to consume this bolt's outputs.
+     * @param bolt the stateful windowed bolt
+     * @param parallelism_hint the number of tasks that should be assigned to execute this bolt. Each task will run on a thread in a process somwehere around the cluster.
+     * @param <T> the type of the state (e.g. {@link org.apache.storm.state.KeyValueState})
+     * @return use the returned object to declare the inputs to this component
+     * @throws IllegalArgumentException if {@code parallelism_hint} is not positive
+     */
+    public <T extends State> BoltDeclarer setBolt(String id, IStatefulWindowedBolt<T> bolt, Number parallelism_hint) throws IllegalArgumentException {
+        hasStatefulBolt = true;
+        return setBolt(id, new StatefulBoltExecutor<T>(new StatefulWindowedBoltExecutor<T>(bolt)), parallelism_hint);
+    }
+
+    /**
      * Define a new spout in this topology.
      *
      * @param id the id of this component. This id is referenced by other components that want to consume this spout's outputs.

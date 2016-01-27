@@ -32,7 +32,7 @@ public interface StateProvider {
      * @param namespace a namespace of the state
      * @param stormConf the storm topology configuration
      * @param context   the {@link TopologyContext}
-     * @return a previously saved state instance
+     * @return a previously saved state if one exists otherwise a newly initialized state.
      */
     State newState(String namespace, Map stormConf, TopologyContext context);
 }

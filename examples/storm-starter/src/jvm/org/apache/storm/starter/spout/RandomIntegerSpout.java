@@ -35,10 +35,11 @@ import java.util.Random;
 public class RandomIntegerSpout extends BaseRichSpout {
     private SpoutOutputCollector collector;
     private Random rand;
+    private long msgId = 0;
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        declarer.declare(new Fields("value", "ts"));
+        declarer.declare(new Fields("value", "ts", "msgid"));
     }
 
     @Override
@@ -50,6 +51,6 @@ public class RandomIntegerSpout extends BaseRichSpout {
     @Override
     public void nextTuple() {
         Utils.sleep(100);
-        collector.emit(new Values(rand.nextInt(1000), System.currentTimeMillis() - (24 * 60 * 60 * 1000)));
+        collector.emit(new Values(rand.nextInt(1000), System.currentTimeMillis() - (24 * 60 * 60 * 1000), ++msgId));
     }
 }

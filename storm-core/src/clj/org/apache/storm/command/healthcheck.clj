@@ -15,10 +15,12 @@
 ;; limitations under the License.
 (ns org.apache.storm.command.healthcheck
   (:require [org.apache.storm
-             [config :refer :all]
-             [log :refer :all]]
+              [config :refer :all]
+              [util :refer :all]
+              [log :refer :all]]
             [clojure.java [io :as io]]
             [clojure [string :refer [split]]])
+  (:import [org.apache.storm.utils ConfigUtils])
   (:gen-class))
 
 (defn interrupter
@@ -60,7 +62,7 @@
       (finally (.interrupt interrupter-thread)))))
 
 (defn health-check [conf]
-  (let [health-dir (absolute-healthcheck-dir conf)
+  (let [health-dir (ConfigUtils/absoluteHealthCheckDir conf)
         health-files (file-seq (io/file health-dir))
         health-scripts (filter #(and (.canExecute %)
                                      (not (.isDirectory %)))
@@ -83,6 +85,6 @@
       1)))
 
 (defn -main [& args]
-  (let [conf (read-storm-config)]
+  (let [conf (clojurify-structure (ConfigUtils/readStormConfig))]
     (System/exit
      (health-check conf))))

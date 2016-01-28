@@ -21,12 +21,14 @@
   (:require [clojure [string :as string] [set :as set]])
   (:import [org.apache.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter TestPlannerSpout])
   (:import [org.apache.storm.scheduler ISupervisor])
+  (:import [org.apache.storm.utils ConfigUtils])
   (:import [org.apache.storm.generated RebalanceOptions])
+  (:import [org.apache.storm.testing.staticmocking MockedConfigUtils])
   (:import [java.util UUID])
   (:import [java.io File])
   (:import [java.nio.file Files])
   (:import [java.nio.file.attribute FileAttribute])
-  (:use [org.apache.storm config testing util timer])
+  (:use [org.apache.storm config testing util timer log])
   (:use [org.apache.storm.daemon common])
   (:require [org.apache.storm.daemon [worker :as worker] [supervisor :as supervisor]]
             [org.apache.storm [thrift :as thrift] [cluster :as cluster]])
@@ -78,7 +80,7 @@
 
 (deftest launches-assignment
   (with-simulated-time-local-cluster [cluster :supervisors 0
-    :daemon-conf {NIMBUS-DO-NOT-REASSIGN true
+    :daemon-conf {ConfigUtils/NIMBUS_DO_NOT_REASSIGN true
                   SUPERVISOR-WORKER-START-TIMEOUT-SECS 5
                   SUPERVISOR-WORKER-TIMEOUT-SECS 15
                   SUPERVISOR-MONITOR-FREQUENCY-SECS 3}]
@@ -131,7 +133,7 @@
 
 (deftest test-multiple-active-storms-multiple-supervisors
   (with-simulated-time-local-cluster [cluster :supervisors 0
-    :daemon-conf {NIMBUS-DO-NOT-REASSIGN true
+    :daemon-conf {ConfigUtils/NIMBUS_DO_NOT_REASSIGN true
                   SUPERVISOR-WORKER-START-TIMEOUT-SECS 5
                   SUPERVISOR-WORKER-TIMEOUT-SECS 15
                   SUPERVISOR-MONITOR-FREQUENCY-SECS 3}]
@@ -315,58 +317,67 @@
                                     ["-Dkau=aux" "-Xmx2048m"]
                                     mock-cp)
               mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed
-                                      WORKER-CHILDOPTS string-opts}}]
-          (stubbing [read-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
-                                                   topo-string-opts}
-                     add-to-classpath mock-cp
-                     supervisor-stormdist-root nil
+                                      WORKER-CHILDOPTS string-opts}}
+              mocked-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
+                                            topo-string-opts}]
+          (with-open [_ (proxy [MockedConfigUtils] []
+                          (supervisorStormDistRootImpl ([conf] nil)
+                                                       ([conf storm-id] nil))
+                          (readSupervisorStormConfImpl [conf storm-id] mocked-supervisor-storm-conf)
+                          (setWorkerUserWSEImpl [conf worker-id user] nil)
+                          (workerArtifactsRootImpl [conf] "/tmp/workers-artifacts"))]
+              (stubbing [add-to-classpath mock-cp
                      launch-process nil
-                     set-worker-user! nil
                      supervisor/jlp nil
-                     worker-artifacts-root "/tmp/workers-artifacts"
                      supervisor/write-log-metadata! nil
                      supervisor/create-blobstore-links nil]
-            (supervisor/launch-worker mock-supervisor
+                (supervisor/launch-worker mock-supervisor
                                       mock-storm-id
                                       mock-port
                                       mock-worker-id
                                       mock-mem-onheap)
-            (verify-first-call-args-for-indices launch-process
+                (verify-first-call-args-for-indices launch-process
                                                 [0]
-                                                exp-args))))
+                                                exp-args)))))
       (testing "testing *.worker.childopts as list of strings, with spaces in values"
         (let [list-opts '("-Dopt1='this has a space in it'" "-Xmx1024m")
               topo-list-opts '("-Dopt2='val with spaces'" "-Xmx2048m")
               exp-args (exp-args-fn list-opts topo-list-opts mock-cp)
               mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed
-                                      WORKER-CHILDOPTS list-opts}}]
-          (stubbing [read-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
-                                                   topo-list-opts}
-                     add-to-classpath mock-cp
-                     supervisor-stormdist-root nil
+                                      WORKER-CHILDOPTS list-opts}}
+              mocked-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
+                                            topo-list-opts}]
+            (with-open [_ (proxy [MockedConfigUtils] []
+                            (supervisorStormDistRootImpl ([conf] nil)
+                                                         ([conf storm-id] nil))
+                            (readSupervisorStormConfImpl [conf storm-id] mocked-supervisor-storm-conf)
+                            (setWorkerUserWSEImpl [conf worker-id user] nil)
+                            (workerArtifactsRootImpl [conf] "/tmp/workers-artifacts"))]
+                (stubbing [add-to-classpath mock-cp
                      launch-process nil
-                     set-worker-user! nil
                      supervisor/jlp nil
                      supervisor/write-log-metadata! nil
-                     supervisor/create-blobstore-links nil
-                     worker-artifacts-root "/tmp/workers-artifacts"]
-            (supervisor/launch-worker mock-supervisor
+                     supervisor/create-blobstore-links nil]
+                (supervisor/launch-worker mock-supervisor
                                       mock-storm-id
                                       mock-port
                                       mock-worker-id
                                       mock-mem-onheap)
-            (verify-first-call-args-for-indices launch-process
+                (verify-first-call-args-for-indices launch-process
                                                 [0]
-                                                exp-args))))
+                                                exp-args)))))
       (testing "testing topology.classpath is added to classpath"
         (let [topo-cp (str file-path-separator "any" file-path-separator "path")
               exp-args (exp-args-fn [] [] (add-to-classpath mock-cp [topo-cp]))
-              mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed}}]
-          (stubbing [read-supervisor-storm-conf {TOPOLOGY-CLASSPATH topo-cp}
-                     supervisor-stormdist-root nil
-                     supervisor/jlp nil
-                     worker-artifacts-root "/tmp/workers-artifacts"
-                     set-worker-user! nil
+              mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed}}
+              mocked-supervisor-storm-conf {TOPOLOGY-CLASSPATH topo-cp}]
+          (with-open [_ (proxy [MockedConfigUtils] []
+                          (supervisorStormDistRootImpl ([conf] nil)
+                                                       ([conf storm-id] nil))
+                          (readSupervisorStormConfImpl [conf storm-id] mocked-supervisor-storm-conf)
+                          (setWorkerUserWSEImpl [conf worker-id user] nil)
+                          (workerArtifactsRootImpl [conf] "/tmp/workers-artifacts"))]
+                (stubbing [supervisor/jlp nil
                      supervisor/write-log-metadata! nil
                      launch-process nil
                      current-classpath (str file-path-separator "base")
@@ -378,18 +389,21 @@
                                               mock-mem-onheap)
                     (verify-first-call-args-for-indices launch-process
                                                         [0]
-                                                        exp-args))))
+                                                        exp-args)))))
       (testing "testing topology.environment is added to environment for worker launch"
         (let [topo-env {"THISVAR" "somevalue" "THATVAR" "someothervalue"}
               full-env (merge topo-env {"LD_LIBRARY_PATH" nil})
               exp-args (exp-args-fn [] [] mock-cp)
-              mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed}}]
-          (stubbing [read-supervisor-storm-conf {TOPOLOGY-ENVIRONMENT topo-env}
-                     supervisor-stormdist-root nil
-                     supervisor/jlp nil
-                     worker-artifacts-root "/tmp/workers-artifacts"
+              mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed}}
+              mocked-supervisor-storm-conf {TOPOLOGY-ENVIRONMENT topo-env}]
+          (with-open [_ (proxy [MockedConfigUtils] []
+                          (supervisorStormDistRootImpl ([conf] nil)
+                                                       ([conf storm-id] nil))
+                          (readSupervisorStormConfImpl [conf storm-id] mocked-supervisor-storm-conf)
+                          (setWorkerUserWSEImpl [conf worker-id user] nil)
+                          (workerArtifactsRootImpl [conf] "/tmp/workers-artifacts"))]
+            (stubbing [supervisor/jlp nil
                      launch-process nil
-                     set-worker-user! nil
                      supervisor/write-log-metadata! nil
                      current-classpath (str file-path-separator "base")
                      supervisor/create-blobstore-links nil]
@@ -400,7 +414,7 @@
                                               mock-mem-onheap)
                     (verify-first-call-args-for-indices launch-process
                                                         [2]
-                                                        full-env)))))))
+                                                        full-env))))))))
 
 (deftest test-worker-launch-command-run-as-user
   (testing "*.worker.childopts configuration"
@@ -463,14 +477,17 @@
                                         STORM-LOCAL-DIR storm-local
                                         STORM-WORKERS-ARTIFACTS-DIR (str storm-local "/workers-artifacts")
                                         SUPERVISOR-RUN-WORKER-AS-USER true
-                                        WORKER-CHILDOPTS string-opts}}]
-            (stubbing [read-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
-                                                   topo-string-opts
-                                                   TOPOLOGY-SUBMITTER-USER "me"}
-                       add-to-classpath mock-cp
-                       supervisor-stormdist-root nil
+                                        WORKER-CHILDOPTS string-opts}}
+                mocked-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
+                                              topo-string-opts
+                                              TOPOLOGY-SUBMITTER-USER "me"}]
+            (with-open [_ (proxy [MockedConfigUtils] []
+                            (supervisorStormDistRootImpl ([conf] nil)
+                                                         ([conf storm-id] nil))
+                            (readSupervisorStormConfImpl [conf storm-id] mocked-supervisor-storm-conf)
+                            (setWorkerUserWSEImpl [conf worker-id user] nil))]
+              (stubbing [add-to-classpath mock-cp
                        launch-process nil
-                       set-worker-user! nil
                        supervisor/java-cmd "java"
                        supervisor/jlp nil
                        supervisor/write-log-metadata! nil]
@@ -481,7 +498,7 @@
                                                 mock-mem-onheap)
                       (verify-first-call-args-for-indices launch-process
                                                           [0]
-                                                          exp-launch))
+                                                          exp-launch)))
             (is (= (slurp worker-script) exp-script))))
         (finally (rmr storm-local)))
       (.mkdirs (io/file storm-local "workers" mock-worker-id))
@@ -494,14 +511,17 @@
                                         STORM-LOCAL-DIR storm-local
                                         STORM-WORKERS-ARTIFACTS-DIR (str storm-local "/workers-artifacts")
                                         SUPERVISOR-RUN-WORKER-AS-USER true
-                                        WORKER-CHILDOPTS list-opts}}]
-            (stubbing [read-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
-                                                   topo-list-opts
-                                                   TOPOLOGY-SUBMITTER-USER "me"}
-                       add-to-classpath mock-cp
-                       supervisor-stormdist-root nil
+                                        WORKER-CHILDOPTS list-opts}}
+                                        mocked-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
+                                                                      topo-list-opts
+                                                                      TOPOLOGY-SUBMITTER-USER "me"}]
+            (with-open [_ (proxy [MockedConfigUtils] []
+                            (supervisorStormDistRootImpl ([conf] nil)
+                              ([conf storm-id] nil))
+                            (readSupervisorStormConfImpl [conf storm-id] mocked-supervisor-storm-conf)
+                            (setWorkerUserWSEImpl [conf worker-id user] nil))]
+              (stubbing [add-to-classpath mock-cp
                        launch-process nil
-                       set-worker-user! nil
                        supervisor/java-cmd "java"
                        supervisor/jlp nil
                        supervisor/write-log-metadata! nil]
@@ -512,7 +532,7 @@
                                                 mock-mem-onheap)
                       (verify-first-call-args-for-indices launch-process
                                                           [0]
-                                                          exp-launch))
+                                                          exp-launch)))
             (is (= (slurp worker-script) exp-script))))
         (finally (rmr storm-local))))))
 
@@ -542,16 +562,17 @@
           fake-isupervisor (reify ISupervisor
                              (getSupervisorId [this] nil)
                              (getAssignmentId [this] nil))]
-      (stubbing [uptime-computer nil
+      (with-open [_ (proxy [MockedConfigUtils] []
+                      (supervisorStateImpl [conf] nil)
+                      (supervisorLocalDirImpl [conf] nil))]
+        (stubbing [uptime-computer nil
                  cluster/mk-storm-cluster-state nil
-                 supervisor-state nil
                  local-hostname nil
-                 mk-timer nil
-                 supervisor-local-dir nil]
-        (supervisor/supervisor-data auth-conf nil fake-isupervisor)
-        (verify-call-times-for cluster/mk-storm-cluster-state 1)
-        (verify-first-call-args-for-indices cluster/mk-storm-cluster-state [2]
-                                            expected-acls)))))
+                 mk-timer nil]
+          (supervisor/supervisor-data auth-conf nil fake-isupervisor)
+          (verify-call-times-for cluster/mk-storm-cluster-state 1)
+          (verify-first-call-args-for-indices cluster/mk-storm-cluster-state [2]
+                                              expected-acls))))))
 
 (deftest test-write-log-metadata
   (testing "supervisor writes correct data to logs metadata file"
@@ -673,7 +694,7 @@
   (with-simulated-time-local-cluster [cluster
                                       :supervisors 0
                                       :ports-per-supervisor 2
-                                      :daemon-conf {NIMBUS-DO-NOT-REASSIGN true
+                                      :daemon-conf {ConfigUtils/NIMBUS_DO_NOT_REASSIGN true
                                                     NIMBUS-MONITOR-FREQ-SECS 10
                                                     TOPOLOGY-MESSAGE-TIMEOUT-SECS 30
                                                     TOPOLOGY-ACKER-EXECUTORS 0}]

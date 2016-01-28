@@ -21,7 +21,7 @@
   (:require [org.apache.storm.security.auth [auth-test :refer [nimbus-timeout]]])
   (:import [java.nio ByteBuffer])
   (:import [org.apache.storm Config])
-  (:import [org.apache.storm.utils NimbusClient])
+  (:import [org.apache.storm.utils NimbusClient ConfigUtils])
   (:import [org.apache.storm.generated NotAliveException])
   (:import [org.apache.storm.security.auth AuthUtils ThriftServer ThriftClient 
                                          ReqContext ThriftConnectionType])
@@ -58,7 +58,7 @@
 (deftest Simple-authentication-test
   (let [port (available-port)]
     (with-test-cluster [port nil nil "org.apache.storm.security.auth.SimpleTransportPlugin"]
-      (let [storm-conf (merge (read-storm-config)
+      (let [storm-conf (merge (clojurify-structure (ConfigUtils/readStormConfig))
                               {STORM-THRIFT-TRANSPORT-PLUGIN "org.apache.storm.security.auth.SimpleTransportPlugin"
                                STORM-NIMBUS-RETRY-TIMES 0})
             client (NimbusClient. storm-conf "localhost" port nimbus-timeout)
@@ -73,7 +73,7 @@
     (with-test-cluster [port nil
                   "org.apache.storm.security.auth.authorizer.NoopAuthorizer"
                   "org.apache.storm.security.auth.SimpleTransportPlugin"]
-      (let [storm-conf (merge (read-storm-config)
+      (let [storm-conf (merge (clojurify-structure (ConfigUtils/readStormConfig))
                                {STORM-THRIFT-TRANSPORT-PLUGIN "org.apache.storm.security.auth.SimpleTransportPlugin"
                                 STORM-NIMBUS-RETRY-TIMES 0})
             client (NimbusClient. storm-conf "localhost" port nimbus-timeout)
@@ -88,7 +88,7 @@
     (with-test-cluster [port nil
                   "org.apache.storm.security.auth.authorizer.DenyAuthorizer"
                   "org.apache.storm.security.auth.SimpleTransportPlugin"]
-      (let [storm-conf (merge (read-storm-config)
+      (let [storm-conf (merge (clojurify-structure (ConfigUtils/readStormConfig))
                                {STORM-THRIFT-TRANSPORT-PLUGIN "org.apache.storm.security.auth.SimpleTransportPlugin"
                                Config/NIMBUS_THRIFT_PORT port
                                STORM-NIMBUS-RETRY-TIMES 0})
@@ -127,7 +127,7 @@
                   "test/clj/org/apache/storm/security/auth/jaas_digest.conf"
                   "org.apache.storm.security.auth.authorizer.NoopAuthorizer"
                   "org.apache.storm.security.auth.digest.DigestSaslTransportPlugin"]
-      (let [storm-conf (merge (read-storm-config)
+      (let [storm-conf (merge (clojurify-structure (ConfigUtils/readStormConfig))
                               {STORM-THRIFT-TRANSPORT-PLUGIN "org.apache.storm.security.auth.digest.DigestSaslTransportPlugin"
                                "java.security.auth.login.config" "test/clj/org/apache/storm/security/auth/jaas_digest.conf"
                                Config/NIMBUS_THRIFT_PORT port
@@ -145,7 +145,7 @@
                   "test/clj/org/apache/storm/security/auth/jaas_digest.conf"
                   "org.apache.storm.security.auth.authorizer.DenyAuthorizer"
                   "org.apache.storm.security.auth.digest.DigestSaslTransportPlugin"]
-      (let [storm-conf (merge (read-storm-config)
+      (let [storm-conf (merge (clojurify-structure (ConfigUtils/readStormConfig))
                               {STORM-THRIFT-TRANSPORT-PLUGIN "org.apache.storm.security.auth.digest.DigestSaslTransportPlugin"
                                "java.security.auth.login.config" "test/clj/org/apache/storm/security/auth/jaas_digest.conf"
                                Config/NIMBUS_THRIFT_PORT port

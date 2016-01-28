@@ -14,11 +14,12 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns org.apache.storm.command.config-value
-  (:use [org.apache.storm config log])
+  (:use [org.apache.storm config log util])
+  (:import [org.apache.storm.utils ConfigUtils])
   (:gen-class))
 
 
 (defn -main [^String name]
-  (let [conf (read-storm-config)]
+  (let [conf (clojurify-structure (ConfigUtils/readStormConfig))]
     (println "VALUE:" (conf name))
     ))

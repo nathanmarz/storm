@@ -27,7 +27,7 @@
   (:import [java.util HashMap ArrayList])
   (:import [java.util.concurrent.atomic AtomicInteger])
   (:import [java.util.concurrent ConcurrentHashMap])
-  (:import [org.apache.storm.utils Time Utils RegisteredGlobalState])
+  (:import [org.apache.storm.utils Time Utils RegisteredGlobalState ConfigUtils])
   (:import [org.apache.storm.tuple Fields Tuple TupleImpl])
   (:import [org.apache.storm.task TopologyContext])
   (:import [org.apache.storm.generated GlobalStreamId Bolt KillOptions])
@@ -135,7 +135,7 @@
   (let [zk-tmp (local-temp-path)
         [zk-port zk-handle] (if-not (contains? daemon-conf STORM-ZOOKEEPER-SERVERS)
                               (zk/mk-inprocess-zookeeper zk-tmp))
-        daemon-conf (merge (read-storm-config)
+        daemon-conf (merge (clojurify-structure (ConfigUtils/readStormConfig))
                            {TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS true
                             ZMQ-LINGER-MILLIS 0
                             TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS false
@@ -345,18 +345,18 @@
     (let [supervisor-id (:supervisor-id supervisor)
           conf (:conf supervisor)
           existing (get @capture-atom [supervisor-id port] [])]
-      (set-worker-user! conf worker-id "")
+      (ConfigUtils/setWorkerUserWSE conf worker-id "")
       (swap! capture-atom assoc [supervisor-id port] (conj existing storm-id)))))
 
 (defn find-worker-id
   [supervisor-conf port]
-  (let [supervisor-state (supervisor-state supervisor-conf)
+  (let [supervisor-state (ConfigUtils/supervisorState supervisor-conf)
         worker->port (ls-approved-workers supervisor-state)]
     (first ((reverse-map worker->port) port))))
 
 (defn find-worker-port
   [supervisor-conf worker-id]
-  (let [supervisor-state (supervisor-state supervisor-conf)
+  (let [supervisor-state (ConfigUtils/supervisorState supervisor-conf)
         worker->port (ls-approved-workers supervisor-state)]
     (worker->port worker-id)))
 
@@ -676,7 +676,7 @@
         topology (StormTopology. {component spout-spec} {} {})
         context (TopologyContext.
                   topology
-                  (read-storm-config)
+                  (clojurify-structure (ConfigUtils/readStormConfig))
                   {(int 1) component}
                   {component [(int 1)]}
                   {component {stream (Fields. fields)}}

@@ -19,12 +19,13 @@
   (:use [org.apache.storm util config])
   (:require [org.apache.storm.daemon
              [supervisor :as supervisor]])
+  (:import [org.apache.storm.utils ConfigUtils])
   (:gen-class))
 
 (defn -main 
   "Construct the supervisor-data from scratch and kill the workers on this supervisor"
   [& args]
-  (let [conf (read-storm-config)
+  (let [conf (clojurify-structure (ConfigUtils/readStormConfig))
         conf (assoc conf STORM-LOCAL-DIR (. (File. (conf STORM-LOCAL-DIR)) getCanonicalPath))
         isupervisor (supervisor/standalone-supervisor)
         supervisor-data (supervisor/supervisor-data conf nil isupervisor)

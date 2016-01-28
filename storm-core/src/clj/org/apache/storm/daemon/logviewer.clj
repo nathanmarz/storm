@@ -20,7 +20,7 @@
   (:use [hiccup core page-helpers form-helpers])
   (:use [org.apache.storm config util log timer])
   (:use [org.apache.storm.ui helpers])
-  (:import [org.apache.storm.utils Utils VersionInfo])
+  (:import [org.apache.storm.utils Utils VersionInfo ConfigUtils])
   (:import [org.slf4j LoggerFactory])
   (:import [java.util Arrays ArrayList HashSet])
   (:import [java.util.zip GZIPInputStream])
@@ -48,7 +48,7 @@
   (:use [org.apache.storm.daemon.common :only [start-metrics-reporters]])
   (:gen-class))
 
-(def ^:dynamic *STORM-CONF* (read-storm-config))
+(def ^:dynamic *STORM-CONF* (clojurify-structure (ConfigUtils/readStormConfig)))
 (def STORM-VERSION (VersionInfo/getVersion))
 
 (defmeter logviewer:num-log-page-http-requests)
@@ -308,7 +308,7 @@
         (.toString output))))))
 
 (defn get-log-user-group-whitelist [fname]
-  (let [wl-file (get-log-metadata-file fname)
+  (let [wl-file (ConfigUtils/getLogMetaDataFile fname)
         m (clojure-from-yaml-file wl-file)]
     (if (not-nil? m)
       (do
@@ -951,7 +951,7 @@
                   (for [port-dir (.listFiles topo-dir)]
                     (into [] (DirectoryCleaner/getFilesForDir port-dir))))
                 []))
-            (let [port-dir (get-worker-dir-from-root log-root topoId port)]
+            (let [port-dir (ConfigUtils/getWorkerDirFromRoot log-root topoId port)]
               (if (.exists port-dir)
                 (into [] (DirectoryCleaner/getFilesForDir port-dir))
                 []))))
@@ -1189,8 +1189,8 @@
     (log-error ex))))
 
 (defn -main []
-  (let [conf (read-storm-config)
-        log-root (worker-artifacts-root conf)
+  (let [conf (clojurify-structure (ConfigUtils/readStormConfig))
+        log-root (ConfigUtils/workerArtifactsRoot conf)
         daemonlog-root (log-root-dir (conf LOGVIEWER-APPENDER-NAME))]
     (setup-default-uncaught-exception-handler)
     (start-log-cleaner! conf log-root)

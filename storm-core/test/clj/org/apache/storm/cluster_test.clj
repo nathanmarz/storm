@@ -22,7 +22,7 @@
   (:import [org.mockito Mockito])
   (:import [org.mockito.exceptions.base MockitoAssertionError])
   (:import [org.apache.curator.framework CuratorFramework CuratorFrameworkFactory CuratorFrameworkFactory$Builder])
-  (:import [org.apache.storm.utils Utils TestUtils ZookeeperAuthInfo])
+  (:import [org.apache.storm.utils Utils TestUtils ZookeeperAuthInfo ConfigUtils])
   (:import [org.apache.storm.cluster ClusterState])
   (:require [org.apache.storm [zookeeper :as zk]])
   (:require [conjure.core])
@@ -31,7 +31,7 @@
   (:use [org.apache.storm cluster config util testing thrift log]))
 
 (defn mk-config [zk-port]
-  (merge (read-storm-config)
+  (merge (clojurify-structure (ConfigUtils/readStormConfig))
          {STORM-ZOOKEEPER-PORT zk-port
           STORM-ZOOKEEPER-SERVERS ["localhost"]}))
 

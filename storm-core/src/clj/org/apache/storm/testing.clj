@@ -22,7 +22,8 @@
              [worker :as worker]
              [executor :as executor]])
   (:require [org.apache.storm [process-simulator :as psim]])
-  (:import [org.apache.commons.io FileUtils])
+  (:import [org.apache.commons.io FileUtils]
+           [org.apache.storm.zookeeper Zookeeper])
   (:import [java.io File])
   (:import [java.util HashMap ArrayList])
   (:import [java.util.concurrent.atomic AtomicInteger])
@@ -134,7 +135,7 @@
 (defnk mk-local-storm-cluster [:supervisors 2 :ports-per-supervisor 3 :daemon-conf {} :inimbus nil :supervisor-slot-port-min 1024 :nimbus-daemon false]
   (let [zk-tmp (local-temp-path)
         [zk-port zk-handle] (if-not (contains? daemon-conf STORM-ZOOKEEPER-SERVERS)
-                              (zk/mk-inprocess-zookeeper zk-tmp))
+                              (Zookeeper/mkInprocessZookeeper zk-tmp nil))
         daemon-conf (merge (clojurify-structure (ConfigUtils/readStormConfig))
                            {TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS true
                             ZMQ-LINGER-MILLIS 0
@@ -203,7 +204,7 @@
   (if (not-nil? (:zookeeper cluster-map))
     (do
       (log-message "Shutting down in process zookeeper")
-      (zk/shutdown-inprocess-zookeeper (:zookeeper cluster-map))
+      (Zookeeper/shutdownInprocessZookeeper (:zookeeper cluster-map))
       (log-message "Done shutting down in process zookeeper")))
   (doseq [t @(:tmp-dirs cluster-map)]
     (log-message "Deleting temporary path " t)
@@ -288,11 +289,11 @@
 (defmacro with-inprocess-zookeeper
   [port-sym & body]
   `(with-local-tmp [tmp#]
-                   (let [[~port-sym zks#] (zk/mk-inprocess-zookeeper tmp#)]
+                   (let [[~port-sym zks#] (Zookeeper/mkInprocessZookeeper tmp# nil)]
                      (try
                        ~@body
                        (finally
-                         (zk/shutdown-inprocess-zookeeper zks#))))))
+                         (Zookeeper/shutdownInprocessZookeeper zks#))))))
 
 (defn submit-local-topology
   [nimbus storm-name conf topology]

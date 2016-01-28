@@ -55,6 +55,7 @@
                             [stats :as stats]])
   (:require [clojure.set :as set])
   (:import [org.apache.storm.daemon.common StormBase Assignment])
+  (:import [org.apache.storm.zookeeper Zookeeper])
   (:use [org.apache.storm.daemon common])
   (:use [org.apache.storm config])
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
@@ -195,7 +196,7 @@
                                  (exit-process! 20 "Error when processing an event")
                                  ))
      :scheduler (mk-scheduler conf inimbus)
-     :leader-elector (zk-leader-elector conf)
+     :leader-elector (Zookeeper/zkLeaderElector conf)
      :id->sched-status (atom {})
      :node-id->resources (atom {}) ;;resources of supervisors
      :id->resources (atom {}) ;;resources of topologies

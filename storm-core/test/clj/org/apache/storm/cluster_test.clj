@@ -24,6 +24,7 @@
   (:import [org.apache.curator.framework CuratorFramework CuratorFrameworkFactory CuratorFrameworkFactory$Builder])
   (:import [org.apache.storm.utils Utils TestUtils ZookeeperAuthInfo ConfigUtils])
   (:import [org.apache.storm.cluster ClusterState])
+  (:import [org.apache.storm.zookeeper Zookeeper])
   (:require [org.apache.storm [zookeeper :as zk]])
   (:require [conjure.core])
   (:use [conjure core])
@@ -308,11 +309,11 @@
 
 (deftest test-cluster-state-default-acls
   (testing "The default ACLs are empty."
-    (stubbing [zk/mkdirs nil
+    (stubbing [Zookeeper/mkdirs nil
                zk/mk-client (reify CuratorFramework (^void close [this] nil))]
       (mk-distributed-cluster-state {})
-      (verify-call-times-for zk/mkdirs 1)
-      (verify-first-call-args-for-indices zk/mkdirs [2] nil))
+      (verify-call-times-for Zookeeper/mkdirs 1)
+      (verify-first-call-args-for-indices Zookeeper/mkdirs [2] nil))
     (stubbing [mk-distributed-cluster-state (reify ClusterState
                                               (register [this callback] nil)
                                               (mkdirs [this path acls] nil))]

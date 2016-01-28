@@ -340,6 +340,10 @@ public class Zookeeper {
     }
 
     public static ILeaderElector zkLeaderElector(Map conf) throws UnknownHostException {
+        return _instance.zkLeaderElectorImpl(conf);
+    }
+
+    protected ILeaderElector zkLeaderElectorImpl(Map conf) throws UnknownHostException {
         List<String> servers = (List<String>) conf.get(Config.STORM_ZOOKEEPER_SERVERS);
         Object port = conf.get(Config.STORM_ZOOKEEPER_PORT);
         CuratorFramework zk = mkClient(conf, servers, port, "", conf);

@@ -25,6 +25,7 @@
   (:import [org.apache.storm.utils Utils TestUtils ZookeeperAuthInfo ConfigUtils])
   (:import [org.apache.storm.cluster ClusterState])
   (:import [org.apache.storm.zookeeper Zookeeper])
+  (:import [org.apache.storm.testing.staticmocking MockedZookeeper])
   (:require [org.apache.storm [zookeeper :as zk]])
   (:require [conjure.core])
   (:use [conjure core])
@@ -309,14 +310,15 @@
 
 (deftest test-cluster-state-default-acls
   (testing "The default ACLs are empty."
-    (stubbing [Zookeeper/mkdirs nil
-               zk/mk-client (reify CuratorFramework (^void close [this] nil))]
-      (mk-distributed-cluster-state {})
-      (verify-call-times-for Zookeeper/mkdirs 1)
-      (verify-first-call-args-for-indices Zookeeper/mkdirs [2] nil))
+    (let [zk-mock (Mockito/mock Zookeeper)]
+      ;; No need for when clauses because we just want to return nil
+      (with-open [_ (MockedZookeeper. zk-mock)]
+        (stubbing [zk/mk-client (reify CuratorFramework (^void close [this] nil))]
+          (mk-distributed-cluster-state {})
+          (.mkdirs (Mockito/verify zk-mock (Mockito/times 1)) (Mockito/any) (Mockito/anyString) nil))))
     (stubbing [mk-distributed-cluster-state (reify ClusterState
                                               (register [this callback] nil)
                                               (mkdirs [this path acls] nil))]
-      (mk-storm-cluster-state {})
-      (verify-call-times-for mk-distributed-cluster-state 1)
-      (verify-first-call-args-for-indices mk-distributed-cluster-state [4] nil))))
+     (mk-storm-cluster-state {})
+     (verify-call-times-for mk-distributed-cluster-state 1)
+     (verify-first-call-args-for-indices mk-distributed-cluster-state [4] nil))))

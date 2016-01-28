@@ -58,8 +58,32 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class Zookeeper {
-
     private static Logger LOG = LoggerFactory.getLogger(Zookeeper.class);
+
+    // A singleton instance allows us to mock delegated static methods in our
+    // tests by subclassing.
+    private static final Zookeeper INSTANCE = new Zookeeper();
+    private static Zookeeper _instance = INSTANCE;
+
+    /**
+     * Provide an instance of this class for delegates to use.  To mock out
+     * delegated methods, provide an instance of a subclass that overrides the
+     * implementation of the delegated method.
+     *
+     * @param u a Zookeeper instance
+     */
+    public static void setInstance(Zookeeper u) {
+        _instance = u;
+    }
+
+    /**
+     * Resets the singleton instance to the default. This is helpful to reset
+     * the class to its original functionality when mocking is no longer
+     * desired.
+     */
+    public static void resetInstance() {
+        _instance = INSTANCE;
+    }
 
     public static CuratorFramework mkClient(Map conf, List<String> servers, Object port, String root) {
         return mkClient(conf, servers, port, root, new DefaultWatcherCallBack());
@@ -148,7 +172,11 @@ public class Zookeeper {
         }
     }
 
-    public static void mkdirs(CuratorFramework zk, String path, List<ACL> acls){
+    public static void mkdirs(CuratorFramework zk, String path, List<ACL> acls) {
+        _instance.mkdirsImpl(zk, path, acls);
+    }
+
+    protected void mkdirsImpl(CuratorFramework zk, String path, List<ACL> acls) {
         String npath = normalizePath(path);
         if (npath.equals("/")) {
             return;

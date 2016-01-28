@@ -315,7 +315,7 @@
       (with-open [_ (MockedZookeeper. zk-mock)]
         (stubbing [zk/mk-client (reify CuratorFramework (^void close [this] nil))]
           (mk-distributed-cluster-state {})
-          (.mkdirs (Mockito/verify zk-mock (Mockito/times 1)) (Mockito/any) (Mockito/anyString) nil))))
+          (.mkdirsImpl (Mockito/verify zk-mock (Mockito/times 1)) (Mockito/any) (Mockito/anyString) (Mockito/eq nil)))))
     (stubbing [mk-distributed-cluster-state (reify ClusterState
                                               (register [this callback] nil)
                                               (mkdirs [this path acls] nil))]

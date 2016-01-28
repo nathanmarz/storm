@@ -132,7 +132,7 @@ public class Zookeeper {
         String ret = null;
         try {
             String npath = normalizePath(path);
-            ret = zk.create().withMode(mode).withACL(acls).forPath(npath, data);
+            ret = zk.create().creatingParentsIfNeeded().withMode(mode).withACL(acls).forPath(npath, data);
         } catch (Exception e) {
             throw Utils.wrapInRuntime(e);
         }
@@ -177,7 +177,7 @@ public class Zookeeper {
         _instance.mkdirsImpl(zk, path, acls);
     }
 
-    protected void mkdirsImpl(CuratorFramework zk, String path, List<ACL> acls) {
+    public void mkdirsImpl(CuratorFramework zk, String path, List<ACL> acls) {
         String npath = normalizePath(path);
         if (npath.equals("/")) {
             return;
@@ -284,7 +284,6 @@ public class Zookeeper {
     }
 
     public static List mkInprocessZookeeper(String localdir, Integer port) throws Exception {
-        LOG.info("Starting inprocess zookeeper at port {} and dir {}", port, localdir);
         File localfile = new File(localdir);
         ZooKeeperServer zk = new ZooKeeperServer(localfile, localfile, 2000);
         NIOServerCnxnFactory factory = null;
@@ -306,11 +305,12 @@ public class Zookeeper {
                 }
             }
         }
+        LOG.info("Starting inprocess zookeeper at port {} and dir {}", report, localdir);
         factory.startup(zk);
         return Arrays.asList((Object)new Long(report), (Object)factory);
     }
 
-    public static void shutdownInprocessZookeeper(Factory handle) {
+    public static void shutdownInprocessZookeeper(NIOServerCnxnFactory handle) {
         handle.shutdown();
     }
 

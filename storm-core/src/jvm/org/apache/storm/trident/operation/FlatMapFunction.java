@@ -17,6 +17,7 @@
  */
 package org.apache.storm.trident.operation;
 
+import org.apache.storm.trident.tuple.TridentTuple;
 import org.apache.storm.tuple.Values;
 
 import java.io.Serializable;
@@ -27,10 +28,10 @@ import java.util.List;
  */
 public interface FlatMapFunction extends Serializable {
     /**
-     * Invoked by the framework for each value in a stream.
+     * Invoked by the framework for each trident tuple in a stream.
      *
-     * @param input the input value
+     * @param input the input trident tuple
      * @return an iterable over the resultant values
      */
-    Iterable<Values> execute(Values input);
+    Iterable<Values> execute(TridentTuple input);
 }

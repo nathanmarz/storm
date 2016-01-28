@@ -17,6 +17,7 @@
  */
 package org.apache.storm.trident.operation;
 
+import org.apache.storm.trident.tuple.TridentTuple;
 import org.apache.storm.tuple.Values;
 
 import java.io.Serializable;
@@ -26,10 +27,10 @@ import java.io.Serializable;
  */
 public interface MapFunction extends Serializable {
     /**
-     * Invoked by the framework for each value in a stream.
+     * Invoked by the framework for each trident tuple in a stream.
      *
-     * @param input the input value
-     * @return the transformed value
+     * @param input the input trident tuple
+     * @return the transformed values
      */
-    Values execute(Values input);
+    Values execute(TridentTuple input);
 }

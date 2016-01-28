@@ -51,7 +51,7 @@ public class MapProcessor implements TridentProcessor {
     public void prepare(Map conf, TopologyContext context, TridentContext tridentContext) {
         List<TridentTuple.Factory> parents = tridentContext.getParentTupleFactories();
         if(parents.size()!=1) {
-            throw new RuntimeException("Each operation can only have one parent");
+            throw new RuntimeException("Map operation can only have one parent");
         }
         _context = tridentContext;
         _collector = new FreshCollector(tridentContext);

@@ -32,6 +32,7 @@ import org.apache.storm.trident.operation.builtin.MapGet;
 import org.apache.storm.trident.operation.builtin.Sum;
 import org.apache.storm.trident.testing.FixedBatchSpout;
 import org.apache.storm.trident.testing.MemoryMapState;
+import org.apache.storm.trident.tuple.TridentTuple;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Values;
 
@@ -46,16 +47,16 @@ public class TridentMapExample {
 
     private static MapFunction toUpper = new MapFunction() {
         @Override
-        public Values execute(Values input) {
-            return new Values(((String) input.get(0)).toUpperCase());
+        public Values execute(TridentTuple input) {
+            return new Values(input.getStringByField("word").toUpperCase());
         }
     };
 
     private static FlatMapFunction split = new FlatMapFunction() {
         @Override
-        public Iterable<Values> execute(Values input) {
+        public Iterable<Values> execute(TridentTuple input) {
             List<Values> valuesList = new ArrayList<>();
-            for (String word : ((String) input.get(0)).split(" ")) {
+            for (String word : input.getString(0).split(" ")) {
                 valuesList.add(new Values(word));
             }
             return valuesList;

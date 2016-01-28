@@ -17,6 +17,7 @@
  */
 package org.apache.storm.trident.operation.impl;
 
+import org.apache.storm.trident.operation.BaseOperation;
 import org.apache.storm.trident.operation.FlatMapFunction;
 import org.apache.storm.trident.operation.Function;
 import org.apache.storm.trident.operation.TridentCollector;
@@ -26,7 +27,7 @@ import org.apache.storm.tuple.Values;
 
 import java.util.Map;
 
-public class FlatMapFunctionExecutor implements Function {
+public class FlatMapFunctionExecutor extends BaseOperation implements Function {
     private final FlatMapFunction function;
 
     public FlatMapFunctionExecutor(FlatMapFunction function) {
@@ -35,18 +36,8 @@ public class FlatMapFunctionExecutor implements Function {
 
     @Override
     public void execute(TridentTuple tuple, TridentCollector collector) {
-        for (Values values : function.execute(new Values(tuple.getValues().toArray()))) {
+        for (Values values : function.execute(tuple)) {
             collector.emit(values);
         }
-    }
-
-    @Override
-    public void prepare(Map conf, TridentOperationContext context) {
-        // NOOP
-    }
-
-    @Override
-    public void cleanup() {
-        // NOOP
     }
 }

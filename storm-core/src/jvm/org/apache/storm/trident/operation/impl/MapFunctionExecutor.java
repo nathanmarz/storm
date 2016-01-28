@@ -17,6 +17,7 @@
  */
 package org.apache.storm.trident.operation.impl;
 
+import org.apache.storm.trident.operation.BaseOperation;
 import org.apache.storm.trident.operation.Function;
 import org.apache.storm.trident.operation.MapFunction;
 import org.apache.storm.trident.operation.TridentCollector;
@@ -26,7 +27,7 @@ import org.apache.storm.tuple.Values;
 
 import java.util.Map;
 
-public class MapFunctionExecutor implements Function {
+public class MapFunctionExecutor extends BaseOperation implements Function {
     private final MapFunction function;
 
     public MapFunctionExecutor(MapFunction function) {
@@ -35,16 +36,6 @@ public class MapFunctionExecutor implements Function {
 
     @Override
     public void execute(TridentTuple tuple, TridentCollector collector) {
-        collector.emit(function.execute(new Values(tuple.getValues().toArray())));
-    }
-
-    @Override
-    public void prepare(Map conf, TridentOperationContext context) {
-        // NOOP
-    }
-
-    @Override
-    public void cleanup() {
-        // NOOP
+        collector.emit(function.execute(tuple));
     }
 }

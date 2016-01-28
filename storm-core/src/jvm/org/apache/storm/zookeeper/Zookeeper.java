@@ -52,6 +52,7 @@ import java.net.BindException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -282,7 +283,7 @@ public class Zookeeper {
         return existsNode(zk, path, watch);
     }
 
-    public static NIOServerCnxnFactory mkInprocessZookeeper(String localdir, Integer port) throws Exception {
+    public static List mkInprocessZookeeper(String localdir, Integer port) throws Exception {
         LOG.info("Starting inprocess zookeeper at port {} and dir {}", port, localdir);
         File localfile = new File(localdir);
         ZooKeeperServer zk = new ZooKeeperServer(localfile, localfile, 2000);
@@ -306,7 +307,7 @@ public class Zookeeper {
             }
         }
         factory.startup(zk);
-        return factory;
+        return Arrays.asList((Object)new Long(report), (Object)factory);
     }
 
     public static void shutdownInprocessZookeeper(Factory handle) {

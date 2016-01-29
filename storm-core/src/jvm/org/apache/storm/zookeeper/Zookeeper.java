@@ -166,7 +166,7 @@ public class Zookeeper {
         } catch (Exception e) {
             if (exceptionCause(KeeperException.NodeExistsException.class, e)) {
                 // do nothing
-                LOG.info("exception", e);
+                LOG.info("delete {} failed.", path, e);
             } else {
                 throw Utils.wrapInRuntime(e);
             }

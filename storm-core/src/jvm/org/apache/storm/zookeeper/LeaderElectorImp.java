@@ -36,13 +36,13 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class LeaderElectorImp implements ILeaderElector {
     private static Logger LOG = LoggerFactory.getLogger(LeaderElectorImp.class);
-    final private Map conf;
-    final private List<String> servers;
-    final private CuratorFramework zk;
-    final private String leaderlockPath;
-    final private String id;
-    final private AtomicReference<LeaderLatch> leaderLatch;
-    final private AtomicReference<LeaderLatchListener> leaderLatchListener;
+     private final Map conf;
+     private final List<String> servers;
+     private final CuratorFramework zk;
+     private final String leaderlockPath;
+     private final String id;
+     private final AtomicReference<LeaderLatch> leaderLatch;
+     private final AtomicReference<LeaderLatchListener> leaderLatchListener;
 
     public LeaderElectorImp(Map conf, List<String> servers, CuratorFramework zk, String leaderlockPath, String id, AtomicReference<LeaderLatch> leaderLatch,
             AtomicReference<LeaderLatchListener> leaderLatchListener) {

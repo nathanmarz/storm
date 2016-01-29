@@ -194,7 +194,7 @@ public class BlobStoreUtils {
         }
 
         if (!isSuccess) {
-            LOG.error("Could not update the blob with key" + key);
+            LOG.error("Could not update the blob with key: {}", key);
         }
         return isSuccess;
     }

@@ -15,23 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.storm.zookeeper;
+package org.apache.storm.topology;
 
-import org.apache.zookeeper.server.NIOServerCnxnFactory;
-import org.apache.zookeeper.server.ZooKeeperServer;
+import org.apache.storm.state.State;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-
-public class Factory extends NIOServerCnxnFactory {
-
-    public Factory(InetSocketAddress addr, int maxcc) throws IOException {
-        super();
-        this.configure(addr, maxcc);
-    }
-
-    public ZooKeeperServer getZooKeeperServer() {
-        return zkServer;
-    }
-
+/**
+ * A windowed bolt abstraction for supporting windowing operation with state
+ */
+public interface IStatefulWindowedBolt<T extends State> extends IStatefulComponent<T>, IWindowedBolt {
 }

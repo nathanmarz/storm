@@ -41,7 +41,7 @@
   (:import [org.apache.storm.security.auth AuthUtils ReqContext])
   (:import [org.apache.storm.generated AuthorizationException ProfileRequest ProfileAction NodeInfo])
   (:import [org.apache.storm.security.auth AuthUtils])
-  (:import [org.apache.storm.utils VersionInfo])
+  (:import [org.apache.storm.utils VersionInfo ConfigUtils])
   (:import [org.apache.storm Config])
   (:import [java.io File])
   (:require [compojure.route :as route]
@@ -53,7 +53,7 @@
   (:import [org.apache.logging.log4j Level])
   (:gen-class))
 
-(def ^:dynamic *STORM-CONF* (read-storm-config))
+(def ^:dynamic *STORM-CONF* (clojurify-structure (ConfigUtils/readStormConfig)))
 (def ^:dynamic *UI-ACL-HANDLER* (mk-authorization-handler (*STORM-CONF* NIMBUS-AUTHORIZER) *STORM-CONF*))
 (def ^:dynamic *UI-IMPERSONATION-HANDLER* (mk-authorization-handler (*STORM-CONF* NIMBUS-IMPERSONATION-AUTHORIZER) *STORM-CONF*))
 (def http-creds-handler (AuthUtils/GetUiHttpCredentialsPlugin *STORM-CONF*))
@@ -149,8 +149,11 @@
   (let [fname (logs-filename topology-id port)]
     (logviewer-link host fname secure?)))
 
-(defn nimbus-log-link [host port]
-  (url-format "http://%s:%s/daemonlog?file=nimbus.log" host (*STORM-CONF* LOGVIEWER-PORT) port))
+(defn nimbus-log-link [host]
+  (url-format "http://%s:%s/daemonlog?file=nimbus.log" host (*STORM-CONF* LOGVIEWER-PORT)))
+
+(defn supervisor-log-link [host]
+  (url-format "http://%s:%s/daemonlog?file=supervisor.log" host (*STORM-CONF* LOGVIEWER-PORT)))
 
 (defn get-error-time
   [error]
@@ -407,7 +410,7 @@
          {
           "host" (.get_host n)
           "port" (.get_port n)
-          "nimbusLogLink" (nimbus-log-link (.get_host n) (.get_port n))
+          "nimbusLogLink" (nimbus-log-link (.get_host n))
           "status" (if (.is_isLeader n) "Leader" "Not a Leader")
           "version" (.get_version n)
           "nimbusUpTime" (pretty-uptime-sec uptime)
@@ -431,6 +434,7 @@
        "totalCpu" (get (.get_total_resources s) Config/SUPERVISOR_CPU_CAPACITY)
        "usedMem" (.get_used_mem s)
        "usedCpu" (.get_used_cpu s)
+       "logLink" (supervisor-log-link (.get_host s))
        "version" (.get_version s)})
     "schedulerDisplayResource" (*STORM-CONF* Config/SCHEDULER_DISPLAY_RESOURCE)}))
 

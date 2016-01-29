@@ -22,7 +22,6 @@ import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.IWindowedBolt;
 import org.apache.storm.topology.OutputFieldsDeclarer;
-import org.apache.storm.windowing.TupleWindow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,7 +32,7 @@ import java.util.concurrent.TimeUnit;
 public abstract class BaseWindowedBolt implements IWindowedBolt {
     private static final Logger LOG = LoggerFactory.getLogger(BaseWindowedBolt.class);
 
-    private final transient Map<String, Object> windowConfiguration;
+    protected final transient Map<String, Object> windowConfiguration;
 
     /**
      * Holds a count value for count based windows and sliding intervals.

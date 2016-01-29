@@ -17,7 +17,7 @@
 (ns org.apache.storm.LocalDRPC
   (:require [org.apache.storm.daemon [drpc :as drpc]])
   (:use [org.apache.storm config util])
-  (:import [org.apache.storm.utils InprocMessaging ServiceRegistry])
+  (:import [org.apache.storm.utils InprocMessaging ServiceRegistry ConfigUtils])
   (:gen-class
    :init init
    :implements [org.apache.storm.ILocalDRPC]
@@ -25,7 +25,7 @@
    :state state ))
 
 (defn -init []
-  (let [handler (drpc/service-handler (read-storm-config))
+  (let [handler (drpc/service-handler (clojurify-structure (ConfigUtils/readStormConfig)))
         id (ServiceRegistry/registerService handler)
         ]
     [[] {:service-id id :handler handler}]

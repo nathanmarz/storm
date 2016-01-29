@@ -21,15 +21,17 @@
   (:import [org.apache.storm.testing TestWordCounter TestWordSpout TestGlobalCount
             TestAggregatesCounter TestPlannerSpout TestPlannerBolt]
            [org.apache.storm.nimbus InMemoryTopologyActionNotifier])
+  (:import [org.apache.storm.testing.staticmocking MockedZookeeper])
   (:import [org.apache.storm.scheduler INimbus])
   (:import [org.apache.storm.nimbus ILeaderElector NimbusInfo])
+  (:import [org.apache.storm.testing.staticmocking MockedConfigUtils])
   (:import [org.apache.storm.generated Credentials NotAliveException SubmitOptions
             TopologyInitialStatus TopologyStatus AlreadyAliveException KillOptions RebalanceOptions
             InvalidTopologyException AuthorizationException
             LogConfig LogLevel LogLevelAction])
   (:import [java.util HashMap])
   (:import [java.io File])
-  (:import [org.apache.storm.utils Time Utils])
+  (:import [org.apache.storm.utils Time Utils ConfigUtils])
   (:import [org.apache.storm.zookeeper Zookeeper])
   (:import [org.apache.commons.io FileUtils])
   (:use [org.apache.storm testing MockAutoCred util config log timer zookeeper])
@@ -1019,9 +1021,10 @@
 (deftest test-cleans-corrupt
   (with-inprocess-zookeeper zk-port
     (with-local-tmp [nimbus-dir]
-      (stubbing [zk-leader-elector (mock-leader-elector)]
+      (with-open [_ (MockedZookeeper. (proxy [Zookeeper] []
+                      (zkLeaderElectorImpl [conf] (mock-leader-elector))))]
         (letlocals
-         (bind conf (merge (read-storm-config)
+         (bind conf (merge (clojurify-structure (ConfigUtils/readStormConfig))
                            {STORM-ZOOKEEPER-SERVERS ["localhost"]
                             STORM-CLUSTER-MODE "local"
                             STORM-ZOOKEEPER-PORT zk-port
@@ -1090,9 +1093,10 @@
   "Tests that leader actions can only be performed by master and non leader fails to perform the same actions."
   (with-inprocess-zookeeper zk-port
     (with-local-tmp [nimbus-dir]
-      (stubbing [zk-leader-elector (mock-leader-elector)]
+      (with-open [_ (MockedZookeeper. (proxy [Zookeeper] []
+                      (zkLeaderElectorImpl [conf] (mock-leader-elector))))]
         (letlocals
-          (bind conf (merge (read-storm-config)
+          (bind conf (merge (clojurify-structure (ConfigUtils/readStormConfig))
                        {STORM-ZOOKEEPER-SERVERS ["localhost"]
                         STORM-CLUSTER-MODE "local"
                         STORM-ZOOKEEPER-PORT zk-port
@@ -1103,7 +1107,9 @@
                            {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
                            {}))
 
-          (stubbing [zk-leader-elector (mock-leader-elector :is-leader false)]
+          (with-open [_ (MockedZookeeper. (proxy [Zookeeper] []
+                          (zkLeaderElectorImpl [conf] (mock-leader-elector :is-leader false))))]
+
             (letlocals
               (bind non-leader-cluster-state (cluster/mk-storm-cluster-state conf))
               (bind non-leader-nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
@@ -1335,15 +1341,18 @@
   (testing "nimbus-data uses correct ACLs"
     (let [scheme "digest"
           digest "storm:thisisapoorpassword"
-          auth-conf (merge (read-storm-config)
+          auth-conf (merge (clojurify-structure (ConfigUtils/readStormConfig))
                     {STORM-ZOOKEEPER-AUTH-SCHEME scheme
                      STORM-ZOOKEEPER-AUTH-PAYLOAD digest
                      STORM-PRINCIPAL-TO-LOCAL-PLUGIN "org.apache.storm.security.auth.DefaultPrincipalToLocal"
                      NIMBUS-THRIFT-PORT 6666})
           expected-acls nimbus/NIMBUS-ZK-ACLS
           fake-inimbus (reify INimbus (getForcedScheduler [this] nil))]
-      (stubbing [nimbus-topo-history-state nil
-                 mk-authorization-handler nil
+      (with-open [_ (proxy [MockedConfigUtils] []
+                      (nimbusTopoHistoryStateImpl [conf] nil))
+                  zk-le (MockedZookeeper. (proxy [Zookeeper] []
+                          (zkLeaderElectorImpl [conf] nil)))]
+        (stubbing [mk-authorization-handler nil
                  cluster/mk-storm-cluster-state nil
                  nimbus/file-cache-map nil
                  nimbus/mk-blob-cache-map nil
@@ -1351,12 +1360,11 @@
                  uptime-computer nil
                  new-instance nil
                  mk-timer nil
-                 zk-leader-elector nil
                  nimbus/mk-scheduler nil]
-        (nimbus/nimbus-data auth-conf fake-inimbus)
-        (verify-call-times-for cluster/mk-storm-cluster-state 1)
-        (verify-first-call-args-for-indices cluster/mk-storm-cluster-state [2]
-                                            expected-acls)))))
+          (nimbus/nimbus-data auth-conf fake-inimbus)
+          (verify-call-times-for cluster/mk-storm-cluster-state 1)
+          (verify-first-call-args-for-indices cluster/mk-storm-cluster-state [2]
+                                              expected-acls))))))
 
 (deftest test-file-bogus-download
   (with-local-cluster [cluster :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0 TOPOLOGY-EVENTLOGGER-EXECUTORS 0}]
@@ -1382,7 +1390,7 @@
   (with-inprocess-zookeeper zk-port
     (with-local-tmp [nimbus-dir]
       (letlocals
-        (bind conf (merge (read-storm-config)
+        (bind conf (merge (clojurify-structure (ConfigUtils/readStormConfig))
                      {STORM-ZOOKEEPER-SERVERS ["localhost"]
                       STORM-CLUSTER-MODE "local"
                       STORM-ZOOKEEPER-PORT zk-port
@@ -1410,9 +1418,10 @@
 (deftest test-topology-action-notifier
   (with-inprocess-zookeeper zk-port
     (with-local-tmp [nimbus-dir]
-      (stubbing [zk-leader-elector (mock-leader-elector)]
+      (with-open [_ (MockedZookeeper. (proxy [Zookeeper] []
+                      (zkLeaderElectorImpl [conf] (mock-leader-elector))))]
         (letlocals
-          (bind conf (merge (read-storm-config)
+          (bind conf (merge (clojurify-structure (ConfigUtils/readStormConfig))
                        {STORM-ZOOKEEPER-SERVERS ["localhost"]
                         STORM-CLUSTER-MODE "local"
                         STORM-ZOOKEEPER-PORT zk-port

@@ -1833,6 +1833,14 @@ public class Config extends HashMap<String, Object> {
     @isPositiveNumber
     public static final String TOPOLOGY_BOLTS_WATERMARK_EVENT_INTERVAL_MS = "topology.bolts.watermark.event.interval.ms";
 
+    /*
+     * Bolt-specific configuration for windowed bolts to specify the name of the field in the tuple that holds
+     * the message id. This is used to track the windowing boundaries and avoid re-evaluating the windows
+     * during recovery of IStatefulWindowedBolt
+     */
+    @isString
+    public static final String TOPOLOGY_BOLTS_MESSAGE_ID_FIELD_NAME = "topology.bolts.message.id.field.name";
+
     /**
      * This config is available for TransactionalSpouts, and contains the id ( a String) for
      * the transactional topology. This id is used to store the state of the transactional

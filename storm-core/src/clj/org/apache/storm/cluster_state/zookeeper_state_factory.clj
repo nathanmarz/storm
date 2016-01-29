@@ -17,7 +17,8 @@
 (ns org.apache.storm.cluster-state.zookeeper-state-factory
   (:import [org.apache.curator.framework.state ConnectionStateListener]
            [org.apache.storm.zookeeper Zookeeper])
-  (:import [org.apache.zookeeper KeeperException$NoNodeException CreateMode]
+  (:import [org.apache.zookeeper KeeperException$NoNodeException CreateMode
+             Watcher$Event$EventType Watcher$Event$KeeperState]
            [org.apache.storm.cluster ClusterState DaemonType])
   (:use [org.apache.storm cluster config log util])
   (:require [org.apache.storm [zookeeper :as zk]])
@@ -37,9 +38,9 @@
                          :root (conf STORM-ZOOKEEPER-ROOT)
                          :watcher (fn [state type path]
                                     (when @active
-                                      (when-not (= :connected state)
+                                      (when-not (= Watcher$Event$KeeperState/SyncConnected state)
                                         (log-warn "Received event " state ":" type ":" path " with disconnected Writer Zookeeper."))
-                                      (when-not (= :none type)
+                                      (when-not (= Watcher$Event$EventType/None type)
                                         (doseq [callback (vals @callbacks)]
                                           (callback type path))))))
         is-nimbus? (= (.getDaemonType context) DaemonType/NIMBUS)
@@ -51,9 +52,9 @@
                          :root (conf STORM-ZOOKEEPER-ROOT)
                          :watcher (fn [state type path]
                                     (when @active
-                                      (when-not (= :connected state)
+                                      (when-not (= Watcher$Event$KeeperState/SyncConnected state)
                                         (log-warn "Received event " state ":" type ":" path " with disconnected Reader Zookeeper."))
-                                      (when-not (= :none type)
+                                      (when-not (= Watcher$Event$EventType/None type)
                                         (doseq [callback (vals @callbacks)]
                                           (callback type path))))))
                     zk-writer)]

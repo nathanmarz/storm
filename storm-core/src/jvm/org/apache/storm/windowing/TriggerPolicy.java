@@ -36,6 +36,13 @@ public interface TriggerPolicy<T> {
     void reset();
 
     /**
+     * Starts the trigger policy. This can be used
+     * during recovery to start the triggers after
+     * recovery is complete.
+     */
+    void start();
+
+    /**
      * Any clean up could be handled here.
      */
     void shutdown();

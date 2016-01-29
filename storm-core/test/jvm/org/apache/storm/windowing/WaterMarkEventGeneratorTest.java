@@ -53,6 +53,7 @@ public class WaterMarkEventGeneratorTest {
         // set watermark interval to a high value and trigger manually to fix timing issues
         waterMarkEventGenerator = new WaterMarkEventGenerator<>(windowManager, 100000, 5,
                                                                 Collections.singleton(streamId("s1")));
+        waterMarkEventGenerator.start();
     }
 
     @Test

@@ -339,7 +339,7 @@
       (setup-blobstore!
         [this key nimbusInfo versionInfo]
         (let [path (str (blobstore-path key) "/" (.toHostPortString nimbusInfo) "-" versionInfo)]
-          (log-message "setup-path" path)
+          (log-message "setup-path: " path)
           (.mkdirs cluster-state (blobstore-path key) acls)
           ;we delete the node first to ensure the node gets created as part of this session only.
           (.delete_node_blobstore cluster-state (str (blobstore-path key)) (.toHostPortString nimbusInfo))

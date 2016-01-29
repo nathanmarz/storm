@@ -23,7 +23,7 @@
             ComponentCommon Grouping$_Fields SpoutSpec NullStruct StreamInfo
             GlobalStreamId ComponentObject ComponentObject$_Fields
             ShellComponent SupervisorInfo])
-  (:import [org.apache.storm.utils Utils NimbusClient])
+  (:import [org.apache.storm.utils Utils NimbusClient ConfigUtils])
   (:import [org.apache.storm Constants])
   (:import [org.apache.storm.security.auth ReqContext])
   (:import [org.apache.storm.grouping CustomStreamGrouping])
@@ -73,7 +73,7 @@
     (nimbus-client-and-conn host port nil))
   ([host port as-user]
   (log-message "Connecting to Nimbus at " host ":" port " as user: " as-user)
-  (let [conf (read-storm-config)
+  (let [conf (clojurify-structure (ConfigUtils/readStormConfig))
         nimbusClient (NimbusClient. conf host port nil as-user)
         client (.getClient nimbusClient)
         transport (.transport nimbusClient)]
@@ -88,7 +88,7 @@
 
 (defmacro with-configured-nimbus-connection
   [client-sym & body]
-  `(let [conf# (read-storm-config)
+  `(let [conf# (clojurify-structure (ConfigUtils/readStormConfig))
          context# (ReqContext/context)
          user# (if (.principal context#) (.getName (.principal context#)))
          nimbusClient# (NimbusClient/getConfiguredClientAs conf# user#)

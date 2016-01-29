@@ -52,14 +52,39 @@ import java.net.BindException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class Zookeeper {
-
     private static Logger LOG = LoggerFactory.getLogger(Zookeeper.class);
+
+    // A singleton instance allows us to mock delegated static methods in our
+    // tests by subclassing.
+    private static final Zookeeper INSTANCE = new Zookeeper();
+    private static Zookeeper _instance = INSTANCE;
+
+    /**
+     * Provide an instance of this class for delegates to use.  To mock out
+     * delegated methods, provide an instance of a subclass that overrides the
+     * implementation of the delegated method.
+     *
+     * @param u a Zookeeper instance
+     */
+    public static void setInstance(Zookeeper u) {
+        _instance = u;
+    }
+
+    /**
+     * Resets the singleton instance to the default. This is helpful to reset
+     * the class to its original functionality when mocking is no longer
+     * desired.
+     */
+    public static void resetInstance() {
+        _instance = INSTANCE;
+    }
 
     public static CuratorFramework mkClient(Map conf, List<String> servers, Object port, String root) {
         return mkClient(conf, servers, port, root, new DefaultWatcherCallBack());
@@ -107,7 +132,7 @@ public class Zookeeper {
         String ret = null;
         try {
             String npath = normalizePath(path);
-            ret = zk.create().withMode(mode).withACL(acls).forPath(npath, data);
+            ret = zk.create().creatingParentsIfNeeded().withMode(mode).withACL(acls).forPath(npath, data);
         } catch (Exception e) {
             throw Utils.wrapInRuntime(e);
         }
@@ -148,7 +173,11 @@ public class Zookeeper {
         }
     }
 
-    public static void mkdirs(CuratorFramework zk, String path, List<ACL> acls){
+    public static void mkdirs(CuratorFramework zk, String path, List<ACL> acls) {
+        _instance.mkdirsImpl(zk, path, acls);
+    }
+
+    public void mkdirsImpl(CuratorFramework zk, String path, List<ACL> acls) {
         String npath = normalizePath(path);
         if (npath.equals("/")) {
             return;
@@ -254,8 +283,7 @@ public class Zookeeper {
         return existsNode(zk, path, watch);
     }
 
-    public static NIOServerCnxnFactory mkInprocessZookeeper(String localdir, Integer port) throws Exception {
-        LOG.info("Starting inprocess zookeeper at port {} and dir {}", port, localdir);
+    public static List mkInprocessZookeeper(String localdir, Integer port) throws Exception {
         File localfile = new File(localdir);
         ZooKeeperServer zk = new ZooKeeperServer(localfile, localfile, 2000);
         NIOServerCnxnFactory factory = null;
@@ -277,11 +305,12 @@ public class Zookeeper {
                 }
             }
         }
+        LOG.info("Starting inprocess zookeeper at port {} and dir {}", report, localdir);
         factory.startup(zk);
-        return factory;
+        return Arrays.asList((Object)new Long(report), (Object)factory);
     }
 
-    public static void shutdownInprocessZookeeper(Factory handle) {
+    public static void shutdownInprocessZookeeper(NIOServerCnxnFactory handle) {
         handle.shutdown();
     }
 
@@ -312,6 +341,10 @@ public class Zookeeper {
     }
 
     public static ILeaderElector zkLeaderElector(Map conf) throws UnknownHostException {
+        return _instance.zkLeaderElectorImpl(conf);
+    }
+
+    protected ILeaderElector zkLeaderElectorImpl(Map conf) throws UnknownHostException {
         List<String> servers = (List<String>) conf.get(Config.STORM_ZOOKEEPER_SERVERS);
         Object port = conf.get(Config.STORM_ZOOKEEPER_PORT);
         CuratorFramework zk = mkClient(conf, servers, port, "", conf);

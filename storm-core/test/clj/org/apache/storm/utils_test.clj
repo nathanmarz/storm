@@ -18,6 +18,7 @@
   (:import [org.apache.storm.utils NimbusClient Utils])
   (:import [org.apache.curator.retry ExponentialBackoffRetry])
   (:import [org.apache.thrift.transport TTransportException])
+  (:import [org.apache.storm.utils ConfigUtils])
   (:use [org.apache.storm config util])
   (:use [clojure test])
 )
@@ -44,7 +45,7 @@
 
 (deftest test-getConfiguredClient-throws-RunTimeException-on-bad-args
   (let [storm-conf (merge
-                    (read-storm-config)
+                     (clojurify-structure (ConfigUtils/readStormConfig))
                     {STORM-NIMBUS-RETRY-TIMES 0})]
     (is (thrown-cause? TTransportException
       (NimbusClient. storm-conf "" 65535)

@@ -18,6 +18,8 @@
 package org.apache.storm.topology;
 
 import org.apache.storm.Config;
+import org.apache.storm.generated.GlobalStreamId;
+import org.apache.storm.spout.CheckpointSpout;
 import org.apache.storm.task.IOutputCollector;
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
@@ -39,8 +41,10 @@ import org.apache.storm.windowing.WindowManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.storm.topology.base.BaseWindowedBolt.Count;
@@ -59,6 +63,8 @@ public class WindowedBoltExecutor implements IRichBolt {
     private transient WindowManager<Tuple> windowManager;
     private transient int maxLagMs;
     private transient String tupleTsFieldName;
+    private transient TriggerPolicy<Tuple> triggerPolicy;
+    private transient EvictionPolicy<Tuple> evictionPolicy;
     // package level for unit tests
     transient WaterMarkEventGenerator<Tuple> waterMarkEventGenerator;
 
@@ -171,18 +177,40 @@ public class WindowedBoltExecutor implements IRichBolt {
                 watermarkInterval = DEFAULT_WATERMARK_EVENT_INTERVAL_MS;
             }
             waterMarkEventGenerator = new WaterMarkEventGenerator<>(manager, watermarkInterval,
-                                                                    maxLagMs, context.getThisSources().keySet());
+                                                                    maxLagMs, getComponentStreams(context));
         }
         // validate
         validate(stormConf, windowLengthCount, windowLengthDuration,
                  slidingIntervalCount, slidingIntervalDuration);
-        EvictionPolicy<Tuple> evictionPolicy = getEvictionPolicy(windowLengthCount, windowLengthDuration,
+        evictionPolicy = getEvictionPolicy(windowLengthCount, windowLengthDuration,
                                                                  manager);
-        TriggerPolicy<Tuple> triggerPolicy = getTriggerPolicy(slidingIntervalCount, slidingIntervalDuration,
+        triggerPolicy = getTriggerPolicy(slidingIntervalCount, slidingIntervalDuration,
                                                               manager, evictionPolicy);
         manager.setEvictionPolicy(evictionPolicy);
         manager.setTriggerPolicy(triggerPolicy);
         return manager;
+    }
+
+    private Set<GlobalStreamId> getComponentStreams(TopologyContext context) {
+        Set<GlobalStreamId> streams = new HashSet<>();
+        for (GlobalStreamId streamId : context.getThisSources().keySet()) {
+            if (!streamId.get_streamId().equals(CheckpointSpout.CHECKPOINT_STREAM_ID)) {
+                streams.add(streamId);
+            }
+        }
+        return streams;
+    }
+
+    /**
+     * Start the trigger policy and waterMarkEventGenerator if set
+     */
+    protected void start() {
+        if (waterMarkEventGenerator != null) {
+            LOG.debug("Starting waterMarkEventGenerator");
+            waterMarkEventGenerator.start();
+        }
+        LOG.debug("Starting trigger policy");
+        triggerPolicy.start();
     }
 
     private boolean isTupleTs() {
@@ -229,6 +257,7 @@ public class WindowedBoltExecutor implements IRichBolt {
         bolt.prepare(stormConf, context, windowedOutputCollector);
         this.listener = newWindowLifecycleListener();
         this.windowManager = initWindowManager(listener, stormConf, context);
+        start();
         LOG.debug("Initialized window manager {} ", this.windowManager);
     }
 
@@ -262,7 +291,7 @@ public class WindowedBoltExecutor implements IRichBolt {
         return bolt.getComponentConfiguration();
     }
 
-    private WindowLifecycleListener<Tuple> newWindowLifecycleListener() {
+    protected WindowLifecycleListener<Tuple> newWindowLifecycleListener() {
         return new WindowLifecycleListener<Tuple>() {
             @Override
             public void onExpiry(List<Tuple> tuples) {

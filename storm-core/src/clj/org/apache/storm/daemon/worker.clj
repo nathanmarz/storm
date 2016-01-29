@@ -25,7 +25,7 @@
   (:import [java.util.concurrent Executors]
            [org.apache.storm.hooks IWorkerHook BaseWorkerHook])
   (:import [java.util ArrayList HashMap])
-  (:import [org.apache.storm.utils Utils TransferDrainer ThriftTopologyUtils WorkerBackpressureThread DisruptorQueue])
+  (:import [org.apache.storm.utils Utils ConfigUtils TransferDrainer ThriftTopologyUtils WorkerBackpressureThread DisruptorQueue])
   (:import [org.apache.storm.grouping LoadMapping])
   (:import [org.apache.storm.messaging TransportFactory])
   (:import [org.apache.storm.messaging TaskMessage IContext IConnection ConnectionWithStatus ConnectionWithStatus$Status])
@@ -72,12 +72,14 @@
                :time-secs (current-time-secs)
                }]
     ;; do the zookeeper heartbeat
-    (.worker-heartbeat! (:storm-cluster-state worker) (:storm-id worker) (:assignment-id worker) (:port worker) zk-hb)
-    ))
+    (try
+      (.worker-heartbeat! (:storm-cluster-state worker) (:storm-id worker) (:assignment-id worker) (:port worker) zk-hb)
+      (catch Exception exc
+        (log-error exc "Worker failed to write heatbeats to ZK or Pacemaker...will retry")))))
 
 (defn do-heartbeat [worker]
   (let [conf (:conf worker)
-        state (worker-state conf (:worker-id worker))]
+        state (ConfigUtils/workerState conf (:worker-id worker))]
     ;; do the local-file-system heartbeat.
     (ls-worker-heartbeat! state (current-time-secs) (:storm-id worker) (:executors worker) (:port worker))
     (.cleanup state 60) ; this is just in case supervisor is down so that disk doesn't fill up.
@@ -252,7 +254,7 @@
                                (mapcat (fn [[e queue]] (for [t (executor-id->tasks e)] [t queue])))
                                (into {}))
 
-        topology (read-supervisor-topology conf storm-id)
+        topology (ConfigUtils/readSupervisorTopology conf storm-id)
         mq-context  (if mq-context
                       mq-context
                       (TransportFactory/makeContext storm-conf))]
@@ -575,14 +577,14 @@
 (defserverfn mk-worker [conf shared-mq-context storm-id assignment-id port worker-id]
   (log-message "Launching worker for " storm-id " on " assignment-id ":" port " with id " worker-id
                " and conf " conf)
-  (if-not (local-mode? conf)
+  (if-not (ConfigUtils/isLocalMode conf)
     (redirect-stdio-to-slf4j!))
   ;; because in local mode, its not a separate
   ;; process. supervisor will register it in this case
-  (when (= :distributed (cluster-mode conf))
+  (when (= :distributed (ConfigUtils/clusterMode conf))
     (let [pid (process-pid)]
-      (touch (worker-pid-path conf worker-id pid))
-      (spit (worker-artifacts-pid-path conf storm-id port) pid)))
+      (touch (ConfigUtils/workerPidPath conf worker-id pid))
+      (spit (ConfigUtils/workerArtifactsPidPath conf storm-id port) pid)))
 
   (declare establish-log-setting-callback)
 
@@ -590,8 +592,8 @@
   (def latest-log-config (atom {}))
   (def original-log-levels (atom {}))
 
-  (let [storm-conf (read-supervisor-storm-conf conf storm-id)
-        storm-conf (override-login-config-with-system-property storm-conf)
+  (let [storm-conf (ConfigUtils/readSupervisorStormConf conf storm-id)
+        storm-conf (clojurify-structure (ConfigUtils/overrideLoginConfigWithSystemProperty storm-conf))
         acls (Utils/getWorkerACL storm-conf)
         cluster-state (cluster/mk-distributed-cluster-state conf :auth-conf storm-conf :acls acls :context (ClusterStateContext. DaemonType/WORKER))
         storm-cluster-state (cluster/mk-storm-cluster-state cluster-state :acls acls)
@@ -756,7 +758,7 @@
   (fn [] (exit-process! 1 "Worker died")))
 
 (defn -main [storm-id assignment-id port-str worker-id]
-  (let [conf (read-storm-config)]
+  (let [conf (clojurify-structure (ConfigUtils/readStormConfig))]
     (setup-default-uncaught-exception-handler)
     (validate-distributed-mode! conf)
     (let [worker (mk-worker conf nil storm-id assignment-id (Integer/parseInt port-str) worker-id)]

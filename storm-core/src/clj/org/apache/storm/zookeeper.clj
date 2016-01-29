@@ -52,8 +52,8 @@
           (^void eventReceived [this ^CuratorFramework _fk ^CuratorEvent e]
             (when (= (.getType e) CuratorEventType/WATCHED)
               (let [^WatchedEvent event (.getWatchedEvent e)]
-                (watcher (ZkKeeperStates/getStateName (.getState event))
-                  (ZkEventTypes/getTypeName (.getType event))
+                (watcher (.getState event)
+                  (.getType event)
                   (.getPath event))))))))
     ;;    (.. fk
     ;;        (getUnhandledErrorListenable)

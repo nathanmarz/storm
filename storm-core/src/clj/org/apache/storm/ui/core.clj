@@ -386,7 +386,7 @@
     {
       "host" host
       "port" port
-      "nimbusLogLink" (nimbus-log-link host port)
+      "nimbusLogLink" (nimbus-log-link host)
       "status" "Offline"
       "version" "Not applicable"
       "nimbusUpTime" "Not applicable"

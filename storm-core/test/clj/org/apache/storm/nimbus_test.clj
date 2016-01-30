@@ -21,6 +21,7 @@
   (:import [org.apache.storm.testing TestWordCounter TestWordSpout TestGlobalCount
             TestAggregatesCounter TestPlannerSpout TestPlannerBolt]
            [org.apache.storm.nimbus InMemoryTopologyActionNotifier])
+  (:import [org.apache.storm.testing.staticmocking MockedZookeeper])
   (:import [org.apache.storm.scheduler INimbus])
   (:import [org.apache.storm.nimbus ILeaderElector NimbusInfo])
   (:import [org.apache.storm.testing.staticmocking MockedConfigUtils])
@@ -31,6 +32,7 @@
   (:import [java.util HashMap])
   (:import [java.io File])
   (:import [org.apache.storm.utils Time Utils ConfigUtils])
+  (:import [org.apache.storm.zookeeper Zookeeper])
   (:import [org.apache.commons.io FileUtils])
   (:use [org.apache.storm testing MockAutoCred util config log timer zookeeper])
   (:use [org.apache.storm.daemon common])
@@ -1019,7 +1021,8 @@
 (deftest test-cleans-corrupt
   (with-inprocess-zookeeper zk-port
     (with-local-tmp [nimbus-dir]
-      (stubbing [zk-leader-elector (mock-leader-elector)]
+      (with-open [_ (MockedZookeeper. (proxy [Zookeeper] []
+                      (zkLeaderElectorImpl [conf] (mock-leader-elector))))]
         (letlocals
          (bind conf (merge (clojurify-structure (ConfigUtils/readStormConfig))
                            {STORM-ZOOKEEPER-SERVERS ["localhost"]
@@ -1090,7 +1093,8 @@
   "Tests that leader actions can only be performed by master and non leader fails to perform the same actions."
   (with-inprocess-zookeeper zk-port
     (with-local-tmp [nimbus-dir]
-      (stubbing [zk-leader-elector (mock-leader-elector)]
+      (with-open [_ (MockedZookeeper. (proxy [Zookeeper] []
+                      (zkLeaderElectorImpl [conf] (mock-leader-elector))))]
         (letlocals
           (bind conf (merge (clojurify-structure (ConfigUtils/readStormConfig))
                        {STORM-ZOOKEEPER-SERVERS ["localhost"]
@@ -1103,7 +1107,9 @@
                            {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
                            {}))
 
-          (stubbing [zk-leader-elector (mock-leader-elector :is-leader false)]
+          (with-open [_ (MockedZookeeper. (proxy [Zookeeper] []
+                          (zkLeaderElectorImpl [conf] (mock-leader-elector :is-leader false))))]
+
             (letlocals
               (bind non-leader-cluster-state (cluster/mk-storm-cluster-state conf))
               (bind non-leader-nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
@@ -1343,7 +1349,9 @@
           expected-acls nimbus/NIMBUS-ZK-ACLS
           fake-inimbus (reify INimbus (getForcedScheduler [this] nil))]
       (with-open [_ (proxy [MockedConfigUtils] []
-                      (nimbusTopoHistoryStateImpl [conf] nil))]
+                      (nimbusTopoHistoryStateImpl [conf] nil))
+                  zk-le (MockedZookeeper. (proxy [Zookeeper] []
+                          (zkLeaderElectorImpl [conf] nil)))]
         (stubbing [mk-authorization-handler nil
                  cluster/mk-storm-cluster-state nil
                  nimbus/file-cache-map nil
@@ -1352,7 +1360,6 @@
                  uptime-computer nil
                  new-instance nil
                  mk-timer nil
-                 zk-leader-elector nil
                  nimbus/mk-scheduler nil]
           (nimbus/nimbus-data auth-conf fake-inimbus)
           (verify-call-times-for cluster/mk-storm-cluster-state 1)
@@ -1411,7 +1418,8 @@
 (deftest test-topology-action-notifier
   (with-inprocess-zookeeper zk-port
     (with-local-tmp [nimbus-dir]
-      (stubbing [zk-leader-elector (mock-leader-elector)]
+      (with-open [_ (MockedZookeeper. (proxy [Zookeeper] []
+                      (zkLeaderElectorImpl [conf] (mock-leader-elector))))]
         (letlocals
           (bind conf (merge (clojurify-structure (ConfigUtils/readStormConfig))
                        {STORM-ZOOKEEPER-SERVERS ["localhost"]

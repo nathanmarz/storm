@@ -18,12 +18,14 @@
            [org.apache.storm.nimbus NimbusInfo])
   (:import [org.apache.storm.daemon.common Assignment StormBase SupervisorInfo])
   (:import [org.apache.storm.generated NimbusSummary])
-  (:import [org.apache.zookeeper ZooDefs ZooDefs$Ids])
+  (:import [org.apache.zookeeper ZooDefs ZooDefs$Ids Watcher$Event$EventType])
   (:import [org.mockito Mockito])
   (:import [org.mockito.exceptions.base MockitoAssertionError])
   (:import [org.apache.curator.framework CuratorFramework CuratorFrameworkFactory CuratorFrameworkFactory$Builder])
   (:import [org.apache.storm.utils Utils TestUtils ZookeeperAuthInfo ConfigUtils])
   (:import [org.apache.storm.cluster ClusterState])
+  (:import [org.apache.storm.zookeeper Zookeeper])
+  (:import [org.apache.storm.testing.staticmocking MockedZookeeper])
   (:require [org.apache.storm [zookeeper :as zk]])
   (:require [conjure.core])
   (:use [conjure core])
@@ -128,7 +130,7 @@
       (is (= nil @state1-last-cb))
       (is (= nil @state2-last-cb))
       (.set-data state2 "/root" (barr 2) ZooDefs$Ids/OPEN_ACL_UNSAFE)
-      (is (= {:type :node-data-changed :path "/root"} (read-and-reset! state2-last-cb)))
+      (is (= {:type Watcher$Event$EventType/NodeDataChanged :path "/root"} (read-and-reset! state2-last-cb)))
       (is (= nil @state1-last-cb))
 
       (.set-data state2 "/root" (barr 3) ZooDefs$Ids/OPEN_ACL_UNSAFE)
@@ -136,34 +138,34 @@
       (.get-data state2 "/root" true)
       (.get-data state2 "/root" false)
       (.delete-node state1 "/root")
-      (is (= {:type :node-deleted :path "/root"} (read-and-reset! state2-last-cb)))
+      (is (= {:type Watcher$Event$EventType/NodeDeleted :path "/root"} (read-and-reset! state2-last-cb)))
       (.get-data state2 "/root" true)
       (.set-ephemeral-node state1 "/root" (barr 1 2 3 4) ZooDefs$Ids/OPEN_ACL_UNSAFE)
-      (is (= {:type :node-created :path "/root"} (read-and-reset! state2-last-cb)))
+      (is (= {:type Watcher$Event$EventType/NodeCreated :path "/root"} (read-and-reset! state2-last-cb)))
 
       (.get-children state1 "/" true)
       (.set-data state2 "/a" (barr 9) ZooDefs$Ids/OPEN_ACL_UNSAFE)
       (is (= nil @state2-last-cb))
-      (is (= {:type :node-children-changed :path "/"} (read-and-reset! state1-last-cb)))
+      (is (= {:type Watcher$Event$EventType/NodeChildrenChanged :path "/"} (read-and-reset! state1-last-cb)))
 
       (.get-data state2 "/root" true)
       (.set-ephemeral-node state1 "/root" (barr 1 2) ZooDefs$Ids/OPEN_ACL_UNSAFE)
-      (is (= {:type :node-data-changed :path "/root"} (read-and-reset! state2-last-cb)))
+      (is (= {:type Watcher$Event$EventType/NodeDataChanged :path "/root"} (read-and-reset! state2-last-cb)))
 
       (.mkdirs state1 "/ccc" ZooDefs$Ids/OPEN_ACL_UNSAFE)
       (.get-children state1 "/ccc" true)
       (.get-data state2 "/ccc/b" true)
       (.set-data state2 "/ccc/b" (barr 8) ZooDefs$Ids/OPEN_ACL_UNSAFE)
-      (is (= {:type :node-created :path "/ccc/b"} (read-and-reset! state2-last-cb)))
-      (is (= {:type :node-children-changed :path "/ccc"} (read-and-reset! state1-last-cb)))
+      (is (= {:type Watcher$Event$EventType/NodeCreated :path "/ccc/b"} (read-and-reset! state2-last-cb)))
+      (is (= {:type Watcher$Event$EventType/NodeChildrenChanged :path "/ccc"} (read-and-reset! state1-last-cb)))
 
       (.get-data state2 "/root" true)
       (.get-data state2 "/root2" true)
       (.close state1)
 
-      (is (= {:type :node-deleted :path "/root"} (read-and-reset! state2-last-cb)))
+      (is (= {:type Watcher$Event$EventType/NodeDeleted :path "/root"} (read-and-reset! state2-last-cb)))
       (.set-data state2 "/root2" (barr 9) ZooDefs$Ids/OPEN_ACL_UNSAFE)
-      (is (= {:type :node-created :path "/root2"} (read-and-reset! state2-last-cb)))
+      (is (= {:type Watcher$Event$EventType/NodeCreated :path "/root2"} (read-and-reset! state2-last-cb)))
       (.close state2)
       )))
 
@@ -308,14 +310,15 @@
 
 (deftest test-cluster-state-default-acls
   (testing "The default ACLs are empty."
-    (stubbing [zk/mkdirs nil
-               zk/mk-client (reify CuratorFramework (^void close [this] nil))]
-      (mk-distributed-cluster-state {})
-      (verify-call-times-for zk/mkdirs 1)
-      (verify-first-call-args-for-indices zk/mkdirs [2] nil))
+    (let [zk-mock (Mockito/mock Zookeeper)]
+      ;; No need for when clauses because we just want to return nil
+      (with-open [_ (MockedZookeeper. zk-mock)]
+        (stubbing [zk/mk-client (reify CuratorFramework (^void close [this] nil))]
+          (mk-distributed-cluster-state {})
+          (.mkdirsImpl (Mockito/verify zk-mock (Mockito/times 1)) (Mockito/any) (Mockito/anyString) (Mockito/eq nil)))))
     (stubbing [mk-distributed-cluster-state (reify ClusterState
                                               (register [this callback] nil)
                                               (mkdirs [this path acls] nil))]
-      (mk-storm-cluster-state {})
-      (verify-call-times-for mk-distributed-cluster-state 1)
-      (verify-first-call-args-for-indices mk-distributed-cluster-state [4] nil))))
+     (mk-storm-cluster-state {})
+     (verify-call-times-for mk-distributed-cluster-state 1)
+     (verify-first-call-args-for-indices mk-distributed-cluster-state [4] nil))))

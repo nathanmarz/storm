@@ -37,14 +37,14 @@ public interface ILeaderElector extends Closeable {
      * check isLeader() to perform any leadership action. This method can be called
      * multiple times so it needs to be idempotent.
      */
-    void addToLeaderLockQueue();
+    void addToLeaderLockQueue() throws Exception;
 
     /**
      * Removes the caller from the leader lock queue. If the caller is leader
      * also releases the lock. This method can be called multiple times so it needs
      * to be idempotent.
      */
-    void removeFromLeaderLockQueue();
+    void removeFromLeaderLockQueue() throws Exception;
 
     /**
      *
@@ -62,7 +62,7 @@ public interface ILeaderElector extends Closeable {
      *
      * @return list of current nimbus addresses, includes leader.
      */
-    List<NimbusInfo> getAllNimbuses();
+    List<NimbusInfo> getAllNimbuses()throws Exception;
 
     /**
      * Method called to allow for cleanup. once close this object can not be reused.

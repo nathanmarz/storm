@@ -16,6 +16,7 @@
 (ns org.apache.storm.command.dev-zookeeper
   (:use [org.apache.storm zookeeper util config])
   (:import [org.apache.storm.utils ConfigUtils])
+  (:import [org.apache.storm.zookeeper Zookeeper])
   (:gen-class))
 
 (defn -main [& args]
@@ -23,5 +24,5 @@
         port (conf STORM-ZOOKEEPER-PORT)
         localpath (conf DEV-ZOOKEEPER-PATH)]
     (rmr localpath)
-    (mk-inprocess-zookeeper localpath :port port)
+    (Zookeeper/mkInprocessZookeeper localpath port)
     ))

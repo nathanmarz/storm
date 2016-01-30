@@ -249,7 +249,8 @@ under the License.
 * Satish Duggana ([@satishd](https://github.com/satishd))
 * Seth Ammons ([@sethgrid](https://github.com/sethgrid))
 * Aaron Dixon ([@atdixon](https://github.com/atdixon))
-* Roshan Naik([@roshannaik](https://github.com/roshannaik))
+* Roshan Naik ([@roshannaik](https://github.com/roshannaik))
+* John Fang ([@hustfxj](https://github.com/hustfxj))
 
 ## Acknowledgements
 

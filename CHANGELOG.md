@@ -1,4 +1,5 @@
 ## 2.0.0
+ * STORM-1257: port backtype.storm.zookeeper to java
 
 ## 1.0.0
  * STORM-1503] Worker should not crash on failure to send heartbeats to Pacemaker/ZK

@@ -1374,5 +1374,61 @@ public class Utils {
             return new RuntimeException(e);
         }
     }
+
+    public static <T> long bitXorValsSets(java.util.Set<T> vals) {
+        long rtn = 0l;
+        for (T n : vals) {
+            rtn = bitXor(rtn, n);
+        }
+        return rtn;
+    }
+
+    public static long bitXor(Object a, Object b) {
+        long rtn;
+
+        if (a instanceof Long && b instanceof Long) {
+            rtn = ((Long) a) ^ ((Long) b);
+            return rtn;
+        } else if (b instanceof Set) {
+            long bs = bitXorValsSets((Set) b);
+            return bitXor(a, bs);
+        } else if (a instanceof Set) {
+            long as = bitXorValsSets((Set) a);
+            return bitXor(as, b);
+        } else {
+            long ai = Long.parseLong(String.valueOf(a));
+            long bi = Long.parseLong(String.valueOf(b));
+            rtn = ai ^ bi;
+            return rtn;
+        }
+    }
+
+    public static <V> List<V> mkList(V... args) {
+        ArrayList<V> rtn = new ArrayList<V>();
+        for (V o : args) {
+            rtn.add(o);
+        }
+        return rtn;
+    }
+
+    public static <V> List<V> mkList(java.util.Set<V> args) {
+        ArrayList<V> rtn = new ArrayList<V>();
+        if (args != null) {
+            for (V o : args) {
+                rtn.add(o);
+            }
+        }
+        return rtn;
+    }
+
+    public static <V> List<V> mkList(Collection<V> args) {
+        ArrayList<V> rtn = new ArrayList<V>();
+        if (args != null) {
+            for (V o : args) {
+                rtn.add(o);
+            }
+        }
+        return rtn;
+    }
 }
 

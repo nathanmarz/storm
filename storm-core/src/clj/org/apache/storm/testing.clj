@@ -45,9 +45,9 @@
   (:import [org.apache.storm.tuple Tuple])
   (:import [org.apache.storm.generated StormTopology])
   (:import [org.apache.storm.task TopologyContext])
+  (:import [org.apache.storm.daemon Acker])
   (:require [org.apache.storm [zookeeper :as zk]])
   (:require [org.apache.storm.messaging.loader :as msg-loader])
-  (:require [org.apache.storm.daemon.acker :as acker])
   (:use [org.apache.storm cluster util thrift config log local-state]))
 
 (defn feeder-spout
@@ -612,6 +612,11 @@
       (get key)
       .get))
 
+;; Temporary solution. It should be removed after migration.
+(defn mk-acker-bolt
+  []
+  (Acker.))
+
 (defmacro with-tracked-cluster
   [[cluster-sym & cluster-args] & body]
   `(let [id# (uuid)]
@@ -622,8 +627,8 @@
          (.put "transferred" (AtomicInteger. 0))
          (.put "processed" (AtomicInteger. 0))))
      (with-var-roots
-       [acker/mk-acker-bolt
-        (let [old# acker/mk-acker-bolt]
+       [mk-acker-bolt
+        (let [old# mk-acker-bolt]
           (fn [& args#] (NonRichBoltTracker. (apply old# args#) id#)))
         ;; critical that this particular function is overridden here,
         ;; since the transferred stat needs to be incremented at the moment

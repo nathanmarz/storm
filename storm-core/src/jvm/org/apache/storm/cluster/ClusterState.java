@@ -20,6 +20,9 @@ package org.apache.storm.cluster;
 import clojure.lang.APersistentMap;
 import clojure.lang.IFn;
 import java.util.List;
+
+import org.apache.curator.framework.state.ConnectionStateListener;
+import org.apache.storm.callback.Callback;
 import org.apache.zookeeper.data.ACL;
 
 /**
@@ -47,7 +50,7 @@ public interface ClusterState {
      * @return is an id that can be passed to unregister(...) to unregister the
      * callback.
      */
-    String register(IFn callback);
+    String register(Callback callback);
 
     /**
      * Unregisters a callback function that was registered with register(...).
@@ -73,7 +76,7 @@ public interface ClusterState {
      * @param acls The acls to apply to the path. May be null.
      * @return path
      */
-    String mkdirs(String path, List<ACL> acls);
+    void mkdirs(String path, List<ACL> acls);
 
     /**
      * Deletes the node at a given path, and any child nodes that may exist.
@@ -99,7 +102,7 @@ public interface ClusterState {
      * register method. Very useful for catching updates to nodes.
      * @return The integer version of this node.
      */
-    Integer get_version(String path, boolean watch);
+    Integer get_version(String path, boolean watch) throws Exception;
 
     /**
      * Check if a node exists and optionally set a watch on the path.
@@ -197,7 +200,7 @@ public interface ClusterState {
      * @param listener A ClusterStateListener to handle changing cluster state
      * events.
      */
-    void add_listener(ClusterStateListener listener);
+    void add_listener(final ConnectionStateListener listener);
 
     /**
      * Force consistency on a path. Any writes committed on the path before

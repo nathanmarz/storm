@@ -24,6 +24,8 @@ import org.apache.storm.StormSubmitter;
 import org.apache.storm.generated.StormTopology;
 import org.apache.storm.trident.TridentState;
 import org.apache.storm.trident.TridentTopology;
+import org.apache.storm.trident.operation.BaseFilter;
+import org.apache.storm.trident.operation.Filter;
 import org.apache.storm.trident.operation.FlatMapFunction;
 import org.apache.storm.trident.operation.MapFunction;
 import org.apache.storm.trident.operation.builtin.Count;
@@ -63,6 +65,13 @@ public class TridentMapExample {
         }
     };
 
+    private static Filter theFilter = new BaseFilter() {
+        @Override
+        public boolean isKeep(TridentTuple tuple) {
+            return tuple.getString(0).equals("THE");
+        }
+    };
+
     public static StormTopology buildTopology(LocalDRPC drpc) {
         FixedBatchSpout spout = new FixedBatchSpout(
                 new Fields("word"), 3, new Values("the cow jumped over the moon"),
@@ -74,6 +83,7 @@ public class TridentMapExample {
         TridentState wordCounts = topology.newStream("spout1", spout).parallelismHint(16)
                 .flatMap(split)
                 .map(toUpper)
+                .filter(theFilter)
                 .groupBy(new Fields("word"))
                 .persistentAggregate(new MemoryMapState.Factory(), new Count(), new Fields("count"))
                 .parallelismHint(16);
@@ -82,7 +92,7 @@ public class TridentMapExample {
                 .flatMap(split)
                 .groupBy(new Fields("args"))
                 .stateQuery(wordCounts, new Fields("args"), new MapGet(), new Fields("count"))
-                .each(new Fields("count"), new FilterNull())
+                .filter(new FilterNull())
                 .aggregate(new Fields("count"), new Sum(), new Fields("sum"));
         return topology.build();
     }

@@ -331,6 +331,27 @@ public class Stream implements IAggregatableStream {
     }
 
     /**
+     * Returns a stream consisting of the elements of this stream that match the given filter.
+     *
+     * @param filter the filter to apply to each trident tuple to determine if it should be included.
+     * @return the new stream
+     */
+    public Stream filter(Filter filter) {
+        return each(getOutputFields(), filter);
+    }
+
+    /**
+     * Returns a stream consisting of the elements of this stream that match the given filter.
+     *
+     * @param inputFields the fields of the input trident tuple to be selected.
+     * @param filter      the filter to apply to each trident tuple to determine if it should be included.
+     * @return the new stream
+     */
+    public Stream filter(Fields inputFields, Filter filter) {
+        return each(inputFields, filter);
+    }
+
+    /**
      * Returns a stream consisting of the result of applying the given mapping function to the values of this stream.
      *
      * @param function a mapping function to be applied to each value in this stream.
@@ -365,7 +386,7 @@ public class Stream implements IAggregatableStream {
                                                 getOutputFields(),
                                                 new MapProcessor(getOutputFields(), new FlatMapFunctionExecutor(function))));
     }
-    
+
     public ChainedAggregatorDeclarer chainedAgg() {
         return new ChainedAggregatorDeclarer(this, new BatchGlobalAggScheme());
     }

@@ -25,6 +25,7 @@ import org.apache.storm.generated.StormTopology;
 import org.apache.storm.trident.TridentState;
 import org.apache.storm.trident.TridentTopology;
 import org.apache.storm.trident.operation.BaseFilter;
+import org.apache.storm.trident.operation.Consumer;
 import org.apache.storm.trident.operation.Filter;
 import org.apache.storm.trident.operation.FlatMapFunction;
 import org.apache.storm.trident.operation.MapFunction;
@@ -84,6 +85,12 @@ public class TridentMapExample {
                 .flatMap(split)
                 .map(toUpper)
                 .filter(theFilter)
+                .peek(new Consumer() {
+                    @Override
+                    public void accept(TridentTuple input) {
+                        System.out.println(input.getString(0));
+                    }
+                })
                 .groupBy(new Fields("word"))
                 .persistentAggregate(new MemoryMapState.Factory(), new Count(), new Fields("count"))
                 .parallelismHint(16);

@@ -23,14 +23,13 @@
   (:import [org.mockito.exceptions.base MockitoAssertionError])
   (:import [org.apache.curator.framework CuratorFramework CuratorFrameworkFactory CuratorFrameworkFactory$Builder])
   (:import [org.apache.storm.utils Utils TestUtils ZookeeperAuthInfo ConfigUtils])
-  (:import [org.apache.storm.cluster ClusterState])
+  (:import [org.apache.storm.cluster ClusterState DistributedClusterState ClusterStateContext StormZkClusterState])
   (:import [org.apache.storm.zookeeper Zookeeper])
   (:import [org.apache.storm.testing.staticmocking MockedZookeeper])
-  (:require [org.apache.storm [zookeeper :as zk]])
   (:require [conjure.core])
   (:use [conjure core])
   (:use [clojure test])
-  (:use [org.apache.storm cluster config util testing thrift log]))
+  (:use [org.apache.storm config util testing thrift log converter]))
 
 (defn mk-config [zk-port]
   (merge (clojurify-structure (ConfigUtils/readStormConfig))
@@ -39,13 +38,13 @@
 
 (defn mk-state
   ([zk-port] (let [conf (mk-config zk-port)]
-               (mk-distributed-cluster-state conf :auth-conf conf)))
+               (DistributedClusterState. conf conf nil (ClusterStateContext.))))
   ([zk-port cb]
      (let [ret (mk-state zk-port)]
        (.register ret cb)
        ret )))
 
-(defn mk-storm-state [zk-port] (mk-storm-cluster-state (mk-config zk-port)))
+(defn mk-storm-state [zk-port] (StormZkClusterState. (mk-config zk-port) nil (ClusterStateContext.)))
 
 (deftest test-basics
   (with-inprocess-zookeeper zk-port
@@ -182,48 +181,48 @@
           base1 (StormBase. "/tmp/storm1" 1 {:type :active} 2 {} "" nil nil {})
           base2 (StormBase. "/tmp/storm2" 2 {:type :active} 2 {} "" nil nil {})]
       (is (= [] (.assignments state nil)))
-      (.set-assignment! state "storm1" assignment1)
-      (is (= assignment1 (.assignment-info state "storm1" nil)))
-      (is (= nil (.assignment-info state "storm3" nil)))
-      (.set-assignment! state "storm1" assignment2)
-      (.set-assignment! state "storm3" assignment1)
+      (.setAssignment state "storm1" (thriftify-assignment assignment1))
+      (is (= assignment1 (clojurify-assignment (.assignmentInfo state "storm1" nil))))
+      (is (= nil (clojurify-assignment (.assignmentInfo state "storm3" nil))))
+      (.setAssignment state "storm1" (thriftify-assignment assignment2))
+      (.setAssignment state "storm3" (thriftify-assignment assignment1))
       (is (= #{"storm1" "storm3"} (set (.assignments state nil))))
-      (is (= assignment2 (.assignment-info state "storm1" nil)))
-      (is (= assignment1 (.assignment-info state "storm3" nil)))
+      (is (= assignment2 (clojurify-assignment (.assignmentInfo state "storm1" nil))))
+      (is (= assignment1 (clojurify-assignment (.assignmentInfo state "storm3" nil))))
       
       (is (= [] (.active-storms state)))
-      (.activate-storm! state "storm1" base1)
+      (.activateStorm state "storm1" (thriftify-storm-base base1))
       (is (= ["storm1"] (.active-storms state)))
-      (is (= base1 (.storm-base state "storm1" nil)))
-      (is (= nil (.storm-base state "storm2" nil)))
-      (.activate-storm! state "storm2" base2)
-      (is (= base1 (.storm-base state "storm1" nil)))
-      (is (= base2 (.storm-base state "storm2" nil)))
+      (is (= base1 (clojurify-storm-base (.stormBase state "storm1" nil))))
+      (is (= nil (clojurify-storm-base (.stormBase state "storm2" nil))))
+      (.activateStorm state "storm2" (thriftify-storm-base base2))
+      (is (= base1 (clojurify-storm-base (.stormBase state "storm1" nil))))
+      (is (= base2 (clojurify-storm-base (.stormBase state "storm2" nil))))
       (is (= #{"storm1" "storm2"} (set (.active-storms state))))
-      (.remove-storm-base! state "storm1")
-      (is (= base2 (.storm-base state "storm2" nil)))
+      (.removeStormBase state "storm1")
+      (is (= base2 (clojurify-storm-base (.stormBase state "storm2" nil))))
       (is (= #{"storm2"} (set (.active-storms state))))
 
-      (is (nil? (.credentials state "storm1" nil)))
-      (.set-credentials! state "storm1" {"a" "a"} {})
-      (is (= {"a" "a"} (.credentials state "storm1" nil)))
-      (.set-credentials! state "storm1" {"b" "b"} {})
-      (is (= {"b" "b"} (.credentials state "storm1" nil)))
+      (is (nil? (clojurify-crdentials (.credentials state "storm1" nil))))
+      (.setCredentials! state "storm1" (thriftify-credentials {"a" "a"}) {})
+      (is (= {"a" "a"} (clojurify-crdentials (.credentials state "storm1" nil))))
+      (.setCredentials state "storm1" (thriftify-credentials {"b" "b"}) {})
+      (is (= {"b" "b"} (clojurify-crdentials (.credentials state "storm1" nil))))
 
-      (is (= [] (.blobstore-info state nil)))
-      (.setup-blobstore! state "key1" nimbusInfo1 "1")
-      (is (= ["key1"] (.blobstore-info state nil)))
-      (is (= [(str (.toHostPortString nimbusInfo1) "-1")] (.blobstore-info state "key1")))
-      (.setup-blobstore! state "key1" nimbusInfo2 "1")
+      (is (= [] (.blobstoreInfo state nil)))
+      (.setupBlobstore state "key1" nimbusInfo1 "1")
+      (is (= ["key1"] (.blobstoreInfo state nil)))
+      (is (= [(str (.toHostPortString nimbusInfo1) "-1")] (.blobstoreInfo state "key1")))
+      (.setupBlobstore state "key1" nimbusInfo2 "1")
       (is (= #{(str (.toHostPortString nimbusInfo1) "-1")
-               (str (.toHostPortString nimbusInfo2) "-1")} (set (.blobstore-info state "key1"))))
-      (.remove-blobstore-key! state "key1")
-      (is (= [] (.blobstore-info state nil)))
+               (str (.toHostPortString nimbusInfo2) "-1")} (set (.blobstoreInfo state "key1"))))
+      (.removeBlobstoreKey state "key1")
+      (is (= [] (.blobstoreInfo state nil)))
 
       (is (= [] (.nimbuses state)))
-      (.add-nimbus-host! state "nimbus1:port" nimbusSummary1)
+      (.addNimbusHost state "nimbus1:port" nimbusSummary1)
       (is (= [nimbusSummary1] (.nimbuses state)))
-      (.add-nimbus-host! state "nimbus2:port" nimbusSummary2)
+      (.addNimbusHost state "nimbus2:port" nimbusSummary2)
       (is (= #{nimbusSummary1 nimbusSummary2} (set (.nimbuses state))))
 
       ;; TODO add tests for task info and task heartbeat setting and getting
@@ -231,7 +230,7 @@
       )))
 
 (defn- validate-errors! [state storm-id component errors-list]
-  (let [errors (.errors state storm-id component)]
+  (let [errors (clojurify-error (.errors state storm-id component))]
     ;;(println errors)
     (is (= (count errors) (count errors-list)))
     (doseq [[error target] (map vector errors errors-list)]
@@ -245,17 +244,17 @@
   (with-inprocess-zookeeper zk-port
     (with-simulated-time
       (let [state (mk-storm-state zk-port)]
-        (.report-error state "a" "1" (local-hostname) 6700 (RuntimeException.))
+        (.reportError state "a" "1" (local-hostname) 6700 (stringify-error (RuntimeException.)))
         (validate-errors! state "a" "1" ["RuntimeException"])
         (advance-time-secs! 1)
-        (.report-error state "a" "1" (local-hostname) 6700 (IllegalArgumentException.))
+        (.reportError state "a" "1" (local-hostname) 6700 (stringify-error (IllegalArgumentException.)))
         (validate-errors! state "a" "1" ["IllegalArgumentException" "RuntimeException"])
         (doseq [i (range 10)]
-          (.report-error state "a" "2" (local-hostname) 6700 (RuntimeException.))
+          (.reportError state "a" "2" (local-hostname) 6700 (stringify-error (RuntimeException.)))
           (advance-time-secs! 2))
         (validate-errors! state "a" "2" (repeat 10 "RuntimeException"))
         (doseq [i (range 5)]
-          (.report-error state "a" "2" (local-hostname) 6700 (IllegalArgumentException.))
+          (.reportError state "a" "2" (local-hostname) 6700 (stringify-error (IllegalArgumentException.)))
           (advance-time-secs! 2))
         (validate-errors! state "a" "2" (concat (repeat 5 "IllegalArgumentException")
                                                 (repeat 5 "RuntimeException")
@@ -271,10 +270,10 @@
           supervisor-info1 (SupervisorInfo. 10 "hostname-1" "id1" [1 2] [] {} 1000 "0.9.2" nil)
           supervisor-info2 (SupervisorInfo. 10 "hostname-2" "id2" [1 2] [] {} 1000 "0.9.2" nil)]
       (is (= [] (.supervisors state1 nil)))
-      (.supervisor-heartbeat! state2 "2" supervisor-info2)
-      (.supervisor-heartbeat! state1 "1" supervisor-info1)
-      (is (= supervisor-info2 (.supervisor-info state1 "2")))
-      (is (= supervisor-info1 (.supervisor-info state1 "1")))
+      (.supervisorHeartbeat state2 "2" (thriftify-supervisor-info supervisor-info2))
+      (.supervisorHeartbeat state1 "1" (thriftify-supervisor-info supervisor-info1))
+      (is (= supervisor-info2 (clojurify-supervisor-info (.supervisorInfo state1 "2"))))
+      (is (= supervisor-info1 (clojurify-supervisor-info (.supervisorInfo state1 "1"))))
       (is (= #{"1" "2"} (set (.supervisors state1 nil))))
       (is (= #{"1" "2"} (set (.supervisors state2 nil))))
       (.disconnect state2)
@@ -313,12 +312,10 @@
     (let [zk-mock (Mockito/mock Zookeeper)]
       ;; No need for when clauses because we just want to return nil
       (with-open [_ (MockedZookeeper. zk-mock)]
-        (stubbing [zk/mk-client (reify CuratorFramework (^void close [this] nil))]
-          (mk-distributed-cluster-state {})
-          (.mkdirsImpl (Mockito/verify zk-mock (Mockito/times 1)) (Mockito/any) (Mockito/anyString) (Mockito/eq nil)))))
-    (stubbing [mk-distributed-cluster-state (reify ClusterState
-                                              (register [this callback] nil)
-                                              (mkdirs [this path acls] nil))]
-     (mk-storm-cluster-state {})
-     (verify-call-times-for mk-distributed-cluster-state 1)
-     (verify-first-call-args-for-indices mk-distributed-cluster-state [4] nil))))
+          (. (Mockito/when (Mockito/mock Zookeeper)) (thenReturn (reify CuratorFramework (^void close [this] nil))))
+          (. (Mockito/when (Mockito/mock DistributedClusterState)) (thenReturn {}))
+          (. (Mockito/when (Mockito/mock StormZkClusterState)) (thenReturn (reify ClusterState
+                                                                             (register [this callback] nil)
+                                                                             (mkdirs [this path acls] nil))))
+          (.mkdirsImpl (Mockito/verify zk-mock (Mockito/times 1)) (Mockito/any) (Mockito/anyString) (Mockito/eq nil))))))
+

@@ -30,7 +30,7 @@
   (:import [org.apache.storm.topology TopologyBuilder])
   (:import [org.apache.storm.clojure RichShellBolt RichShellSpout])
   (:import [org.apache.thrift.transport TTransport])
-  (:use [org.apache.storm util config log zookeeper]))
+  (:use [org.apache.storm util config log]))
 
 (defn instantiate-java-object
   [^JavaObject obj]

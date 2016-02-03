@@ -23,15 +23,18 @@
   (:import [org.apache.storm.scheduler ISupervisor])
   (:import [org.apache.storm.utils ConfigUtils])
   (:import [org.apache.storm.generated RebalanceOptions])
-  (:import [org.apache.storm.testing.staticmocking MockedConfigUtils])
+  (:import [org.apache.storm.testing.staticmocking MockedConfigUtils MockedCluster])
   (:import [java.util UUID])
+  (:import [org.mockito Mockito])
+  (:import [org.mockito.exceptions.base MockitoAssertionError])
   (:import [java.io File])
   (:import [java.nio.file Files])
+  (:import [org.apache.storm.cluster StormZkClusterState Cluster ClusterStateContext])
   (:import [java.nio.file.attribute FileAttribute])
-  (:use [org.apache.storm config testing util timer log])
+  (:use [org.apache.storm config testing util timer log converter])
   (:use [org.apache.storm.daemon common])
   (:require [org.apache.storm.daemon [worker :as worker] [supervisor :as supervisor]]
-            [org.apache.storm [thrift :as thrift] [cluster :as cluster]])
+            [org.apache.storm [thrift :as thrift]])
   (:use [conjure core])
   (:require [clojure.java.io :as io]))
 
@@ -40,7 +43,7 @@
   [cluster supervisor-id port]
   (let [state (:storm-cluster-state cluster)
         slot-assigns (for [storm-id (.assignments state nil)]
-                        (let [executors (-> (.assignment-info state storm-id nil)
+                        (let [executors (-> (clojurify-assignment (.assignmentInfo state storm-id nil))
                                         :executor->node+port
                                         reverse-map
                                         (get [supervisor-id port] ))]
@@ -225,7 +228,7 @@
       )))
 
 (defn get-heartbeat [cluster supervisor-id]
-  (.supervisor-info (:storm-cluster-state cluster) supervisor-id))
+  (clojurify-supervisor-info (.supervisorInfo (:storm-cluster-state cluster) supervisor-id)))
 
 (defn check-heartbeat [cluster supervisor-id within-secs]
   (let [hb (get-heartbeat cluster supervisor-id)
@@ -561,18 +564,22 @@
           expected-acls supervisor/SUPERVISOR-ZK-ACLS
           fake-isupervisor (reify ISupervisor
                              (getSupervisorId [this] nil)
-                             (getAssignmentId [this] nil))]
+                             (getAssignmentId [this] nil))
+          storm-zk (Mockito/mock Cluster)]
       (with-open [_ (proxy [MockedConfigUtils] []
                       (supervisorStateImpl [conf] nil)
-                      (supervisorLocalDirImpl [conf] nil))]
+                      (supervisorLocalDirImpl [conf] nil))
+                  storm-zk-le (MockedCluster. storm-zk)]
         (stubbing [uptime-computer nil
-                 cluster/mk-storm-cluster-state nil
+              ;   cluster/mk-storm-cluster-state nil
                  local-hostname nil
                  mk-timer nil]
           (supervisor/supervisor-data auth-conf nil fake-isupervisor)
-          (verify-call-times-for cluster/mk-storm-cluster-state 1)
-          (verify-first-call-args-for-indices cluster/mk-storm-cluster-state [2]
-                                              expected-acls))))))
+          (.mkStormClusterStateImpl (Mockito/verify storm-zk (Mockito/times 1)) (Mockito/any) (Mockito/eq expected-acls) (Mockito/any))
+        ;  (verify-call-times-for cluster/mk-storm-cluster-state 1)
+        ;  (verify-first-call-args-for-indices cluster/mk-storm-cluster-state [2]
+        ;                                     expected-acls)
+         )))))
 
 (deftest test-write-log-metadata
   (testing "supervisor writes correct data to logs metadata file"

@@ -34,11 +34,10 @@
   (:import [org.apache.storm.daemon Shutdownable])
   (:import [org.apache.storm.metric.api IMetric IMetricsConsumer$TaskInfo IMetricsConsumer$DataPoint StateMetric])
   (:import [org.apache.storm Config Constants])
-  (:import [org.apache.storm.cluster ClusterStateContext DaemonType])
+  (:import [org.apache.storm.cluster ClusterStateContext DaemonType StormZkClusterState Cluster])
   (:import [org.apache.storm.grouping LoadAwareCustomStreamGrouping LoadAwareShuffleGrouping LoadMapping ShuffleGrouping])
   (:import [java.util.concurrent ConcurrentLinkedQueue])
-  (:require [org.apache.storm [thrift :as thrift]
-             [cluster :as cluster] [disruptor :as disruptor] [stats :as stats]])
+  (:require [org.apache.storm [thrift :as thrift] [disruptor :as disruptor] [stats :as stats]])
   (:require [org.apache.storm.daemon [task :as task]])
   (:require [org.apache.storm.daemon.builtin-metrics :as builtin-metrics])
   (:require [clojure.set :as set]))
@@ -207,7 +206,7 @@
       (swap! interval-errors inc)
 
       (when (<= @interval-errors max-per-interval)
-        (cluster/report-error (:storm-cluster-state executor) (:storm-id executor) (:component-id executor)
+        (.reportError (:storm-cluster-state executor) (:storm-id executor) (:component-id executor)
                               (hostname storm-conf)
                               (.getThisWorkerPort (:worker-context executor)) error)
         ))))
@@ -252,9 +251,8 @@
      :batch-transfer-queue batch-transfer->worker
      :transfer-fn (mk-executor-transfer-fn batch-transfer->worker storm-conf)
      :suicide-fn (:suicide-fn worker)
-     :storm-cluster-state (cluster/mk-storm-cluster-state (:cluster-state worker) 
-                                                          :acls (Utils/getWorkerACL storm-conf)
-                                                          :context (ClusterStateContext. DaemonType/WORKER))
+     :storm-cluster-state (StormZkClusterState. (:cluster-state worker) (Utils/getWorkerACL storm-conf)
+                            (ClusterStateContext. DaemonType/WORKER))
      :type executor-type
      ;; TODO: should refactor this to be part of the executor specific map (spout or bolt with :common field)
      :stats (mk-executor-stats <> (ConfigUtils/samplingRate storm-conf))

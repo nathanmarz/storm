@@ -27,8 +27,7 @@ import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Id;
 import org.apache.zookeeper.server.auth.DigestAuthenticationProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -84,10 +83,36 @@ public class Cluster {
         PROFILERCONFIG_SUBTREE = ZK_SEPERATOR + PROFILERCONFIG_ROOT;
     }
 
+    // A singleton instance allows us to mock delegated static methods in our
+    // tests by subclassing.
+    private static final Cluster INSTANCE = new Cluster();
+    private static Cluster _instance = INSTANCE;
+
+    /**
+     * Provide an instance of this class for delegates to use.  To mock out
+     * delegated methods, provide an instance of a subclass that overrides the
+     * implementation of the delegated method.
+     *
+     * @param u a Zookeeper instance
+     */
+    public static void setInstance(Cluster u) {
+        _instance = u;
+    }
+
+    /**
+     * Resets the singleton instance to the default. This is helpful to reset
+     * the class to its original functionality when mocking is no longer
+     * desired.
+     */
+    public static void resetInstance() {
+        _instance = INSTANCE;
+    }
+
     public static List<ACL> mkTopoOnlyAcls(Map topoConf) throws NoSuchAlgorithmException {
-        List<ACL> aclList = new ArrayList<>();
+        List<ACL> aclList = null;
         String payload = (String)topoConf.get(Config.STORM_ZOOKEEPER_AUTH_PAYLOAD);
         if (Utils.isZkAuthenticationConfiguredStormServer(topoConf)){
+            aclList = new ArrayList<>();
             ACL acl1 = ZooDefs.Ids.CREATOR_ALL_ACL.get(0);
             aclList.add(acl1);
             ACL acl2 = new ACL(ZooDefs.Perms.READ, new Id("digest", DigestAuthenticationProvider.generateDigest(payload)));
@@ -181,6 +206,13 @@ public class Cluster {
             }
         }
         return executorWhb;
+    }
+
+    public  StormClusterState mkStormClusterStateImpl(Object clusterState, List<ACL> acls, ClusterStateContext context) throws Exception{
+        return new StormZkClusterState(clusterState, acls, context);
+    }
+    public static StormClusterState mkStormClusterState(Object clusterState, List<ACL> acls, ClusterStateContext context) throws Exception{
+        return _instance.mkStormClusterStateImpl(clusterState, acls, context);
     }
     
     // TO be remove

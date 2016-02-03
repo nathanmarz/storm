@@ -18,7 +18,7 @@
 package org.apache.storm.cluster;
 
 import clojure.lang.APersistentMap;
-import org.apache.storm.callback.Callback;
+import clojure.lang.IFn;
 import org.apache.storm.generated.*;
 import org.apache.storm.nimbus.NimbusInfo;
 
@@ -27,13 +27,13 @@ import java.util.List;
 import java.util.Map;
 
 public interface StormClusterState {
-    public List<String> assignments(Callback callback);
+    public List<String> assignments(IFn callback);
 
-    public Assignment assignmentInfo(String stormId, Callback callback);
+    public Assignment assignmentInfo(String stormId, IFn callback);
 
-    public APersistentMap assignmentInfoWithVersion(String stormId, Callback callback);
+    public APersistentMap assignmentInfoWithVersion(String stormId, IFn callback);
 
-    public Integer assignmentVersion(String stormId, Callback callback) throws Exception;
+    public Integer assignmentVersion(String stormId, IFn callback) throws Exception;
 
     // returns key information under /storm/blobstore/key
     public List<String> blobstoreInfo(String blobKey);
@@ -46,27 +46,27 @@ public interface StormClusterState {
 
     public List<String> activeStorms();
 
-    public StormBase stormBase(String stormId, Callback callback);
+    public StormBase stormBase(String stormId, IFn callback);
 
     public ClusterWorkerHeartbeat getWorkerHeartbeat(String stormId, String node, Long port);
 
-    public List<ProfileRequest> getWorkerProfileRequets(String stormId, NodeInfo nodeInfo, boolean isThrift);
+    public List<ProfileRequest> getWorkerProfileRequests(String stormId, NodeInfo nodeInfo, boolean isThrift);
 
-    public List<ProfileRequest> getTopologyProfileRequets(String stormId, boolean isThrift);
+    public List<ProfileRequest> getTopologyProfileRequests(String stormId, boolean isThrift);
 
-    public void setWorkerProfileRequests(String stormId, ProfileRequest profileRequest);
+    public void setWorkerProfileRequest(String stormId, ProfileRequest profileRequest);
 
     public void deleteTopologyProfileRequests(String stormId, ProfileRequest profileRequest);
 
     public Map<ExecutorInfo, ClusterWorkerHeartbeat> executorBeats(String stormId, Map<List<Long>, NodeInfo> executorNodePort);
 
-    public List<String> supervisors(Callback callback);
+    public List<String> supervisors(IFn callback);
 
     public SupervisorInfo supervisorInfo(String supervisorId); // returns nil if doesn't exist
 
     public void setupHeatbeats(String stormId);
 
-    public void teardownHeatbeats(String stormId);
+    public void teardownHeartbeats(String stormId);
 
     public void teardownTopologyErrors(String stormId);
 
@@ -76,7 +76,7 @@ public interface StormClusterState {
 
     public void setTopologyLogConfig(String stormId, LogConfig logConfig);
 
-    public LogConfig topologyLogConfig(String stormId, Callback cb);
+    public LogConfig topologyLogConfig(String stormId, IFn cb);
 
     public void workerHeartbeat(String stormId, String node, Long port, ClusterWorkerHeartbeat info);
 
@@ -86,7 +86,7 @@ public interface StormClusterState {
 
     public void workerBackpressure(String stormId, String node, Long port, boolean on);
 
-    public boolean topologyBackpressure(String stormId, Callback callback);
+    public boolean topologyBackpressure(String stormId, IFn callback);
 
     public void setupBackpressure(String stormId);
 
@@ -102,11 +102,11 @@ public interface StormClusterState {
 
     // sets up information related to key consisting of nimbus
     // host:port and version info of the blob
-    public void setupBlobstore(String key, NimbusInfo nimbusInfo, String versionInfo);
+    public void setupBlobstore(String key, NimbusInfo nimbusInfo, Integer versionInfo);
 
     public List<String> activeKeys();
 
-    public List<String> blobstore(Callback callback);
+    public List<String> blobstore(IFn callback);
 
     public void removeStorm(String stormId);
 
@@ -114,7 +114,7 @@ public interface StormClusterState {
 
     public void removeKeyVersion(String blobKey);
 
-    public void reportError(String stormId, String componentId, String node, Long port, String error);
+    public void reportError(String stormId, String componentId, String node, Integer port, String error);
 
     public List<ErrorInfo> errors(String stormId, String componentId);
 
@@ -122,7 +122,7 @@ public interface StormClusterState {
 
     public void setCredentials(String stormId, Credentials creds, Map topoConf) throws NoSuchAlgorithmException;
 
-    public Credentials credentials(String stormId, Callback callback);
+    public Credentials credentials(String stormId, IFn callback);
 
     public void disconnect();
 

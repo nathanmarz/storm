@@ -20,6 +20,7 @@
   (:import [java.io FileReader FileNotFoundException])
   (:import [java.nio.file Paths])
   (:import [org.apache.storm Config])
+  (:import [org.apache.storm.generated ErrorInfo])
   (:import [org.apache.storm.utils Time Container ClojureTimerTask Utils
             MutableObject MutableInt])
   (:import [org.apache.storm.security.auth NimbusPrincipal])
@@ -261,6 +262,16 @@
                    (instance? Boolean x) (boolean x)
                    true x))
            s))
+; move this func form convert.clj due to cyclic load dependency
+(defn clojurify-error [^ErrorInfo error]
+  (if error
+    {
+      :error (.get_error error)
+      :time-secs (.get_error_time_secs error)
+      :host (.get_host error)
+      :port (.get_port error)
+      }
+    ))
 
 (defmacro with-file-lock
   [path & body]

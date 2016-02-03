@@ -18,6 +18,7 @@
 package org.apache.storm.cluster;
 
 import clojure.lang.APersistentMap;
+import clojure.lang.IFn;
 import clojure.lang.PersistentArrayMap;
 import clojure.lang.RT;
 import org.apache.commons.lang.StringUtils;
@@ -47,17 +48,17 @@ public class StormZkClusterState implements StormClusterState {
 
     private ClusterState clusterState;
 
-    private ConcurrentHashMap<String, Callback> assignmentInfoCallback;
-    private ConcurrentHashMap<String, Callback> assignmentInfoWithVersionCallback;
-    private ConcurrentHashMap<String, Callback> assignmentVersionCallback;
-    private AtomicReference<Callback> supervisorsCallback;
+    private ConcurrentHashMap<String, IFn> assignmentInfoCallback;
+    private ConcurrentHashMap<String, IFn> assignmentInfoWithVersionCallback;
+    private ConcurrentHashMap<String, IFn> assignmentVersionCallback;
+    private AtomicReference<IFn> supervisorsCallback;
     // we want to reigister a topo directory getChildren callback for all workers of this dir
-    private ConcurrentHashMap<String, Callback> backPressureCallback;
-    private AtomicReference<Callback> assignmentsCallback;
-    private ConcurrentHashMap<String, Callback> stormBaseCallback;
-    private AtomicReference<Callback> blobstoreCallback;
-    private ConcurrentHashMap<String, Callback> credentialsCallback;
-    private ConcurrentHashMap<String, Callback> logConfigCallback;
+    private ConcurrentHashMap<String, IFn> backPressureCallback;
+    private AtomicReference<IFn> assignmentsCallback;
+    private ConcurrentHashMap<String, IFn> stormBaseCallback;
+    private AtomicReference<IFn> blobstoreCallback;
+    private ConcurrentHashMap<String, IFn> credentialsCallback;
+    private ConcurrentHashMap<String, IFn> logConfigCallback;
 
     private List<ACL> acls;
     private String stateId;
@@ -102,7 +103,7 @@ public class StormZkClusterState implements StormClusterState {
                 if (size >= 1) {
                     String params = null;
                     String root = toks.get(0);
-                    Callback fn = null;
+                    IFn fn = null;
                     if (root.equals(Cluster.ASSIGNMENTS_ROOT)) {
                         if (size == 1) {
                             // set null and get the old value
@@ -145,18 +146,18 @@ public class StormZkClusterState implements StormClusterState {
 
     }
 
-    protected void issueCallback(AtomicReference<Callback> cb) {
-        Callback callback = cb.getAndSet(null);
-        callback.execute();
+    protected void issueCallback(AtomicReference<IFn> cb) {
+        IFn callback = cb.getAndSet(null);
+        callback.invoke();
     }
 
-    protected void issueMapCallback(ConcurrentHashMap<String, Callback> callbackConcurrentHashMap, String key) {
-        Callback callback = callbackConcurrentHashMap.remove(key);
-        callback.execute();
+    protected void issueMapCallback(ConcurrentHashMap<String, IFn> callbackConcurrentHashMap, String key) {
+        IFn callback = callbackConcurrentHashMap.remove(key);
+        callback.invoke();
     }
 
     @Override
-    public List<String> assignments(Callback callback) {
+    public List<String> assignments(IFn callback) {
         if (callback != null) {
             assignmentsCallback.set(callback);
         }
@@ -164,7 +165,7 @@ public class StormZkClusterState implements StormClusterState {
     }
 
     @Override
-    public Assignment assignmentInfo(String stormId, Callback callback) {
+    public Assignment assignmentInfo(String stormId, IFn callback) {
         if (callback != null) {
             assignmentInfoCallback.put(stormId, callback);
         }
@@ -173,7 +174,7 @@ public class StormZkClusterState implements StormClusterState {
     }
 
     @Override
-    public APersistentMap assignmentInfoWithVersion(String stormId, Callback callback) {
+    public APersistentMap assignmentInfoWithVersion(String stormId, IFn callback) {
         if (callback != null) {
             assignmentInfoWithVersionCallback.put(stormId, callback);
         }
@@ -185,7 +186,7 @@ public class StormZkClusterState implements StormClusterState {
     }
 
     @Override
-    public Integer assignmentVersion(String stormId, Callback callback) throws Exception {
+    public Integer assignmentVersion(String stormId, IFn callback) throws Exception {
         if (callback != null) {
             assignmentVersionCallback.put(stormId, callback);
         }
@@ -237,7 +238,7 @@ public class StormZkClusterState implements StormClusterState {
     }
 
     @Override
-    public StormBase stormBase(String stormId, Callback callback) {
+    public StormBase stormBase(String stormId, IFn callback) {
         if (callback != null) {
             stormBaseCallback.put(stormId, callback);
         }
@@ -254,9 +255,9 @@ public class StormZkClusterState implements StormClusterState {
     }
 
     @Override
-    public List<ProfileRequest> getWorkerProfileRequets(String stormId, NodeInfo nodeInfo, boolean isThrift) {
+    public List<ProfileRequest> getWorkerProfileRequests(String stormId, NodeInfo nodeInfo, boolean isThrift) {
         List<ProfileRequest> requests = new ArrayList<>();
-        List<ProfileRequest> profileRequests = getTopologyProfileRequets(stormId, isThrift);
+        List<ProfileRequest> profileRequests = getTopologyProfileRequests(stormId, isThrift);
         for (ProfileRequest profileRequest : profileRequests) {
             NodeInfo nodeInfo1 = profileRequest.get_nodeInfo();
             if (nodeInfo1.equals(nodeInfo))
@@ -266,7 +267,7 @@ public class StormZkClusterState implements StormClusterState {
     }
 
     @Override
-    public List<ProfileRequest> getTopologyProfileRequets(String stormId, boolean isThrift) {
+    public List<ProfileRequest> getTopologyProfileRequests(String stormId, boolean isThrift) {
         List<ProfileRequest> profileRequests = new ArrayList<>();
         String path = Cluster.profilerConfigPath(stormId);
         if (clusterState.node_exists(path, false)) {
@@ -283,7 +284,7 @@ public class StormZkClusterState implements StormClusterState {
     }
 
     @Override
-    public void setWorkerProfileRequests(String stormId, ProfileRequest profileRequest) {
+    public void setWorkerProfileRequest(String stormId, ProfileRequest profileRequest) {
         ProfileAction profileAction = profileRequest.get_action();
         String host = profileRequest.get_nodeInfo().get_node();
         Long port = profileRequest.get_nodeInfo().get_port_iterator().next();
@@ -300,11 +301,18 @@ public class StormZkClusterState implements StormClusterState {
         clusterState.delete_node(path);
     }
 
+    // need to take executor->node+port in explicitly so that we don't run into a situation where a
+    // long dead worker with a skewed clock overrides all the timestamps. By only checking heartbeats
+    // with an assigned node+port, and only reading executors from that heartbeat that are actually assigned,
+    // we avoid situations like that
     @Override
     public Map<ExecutorInfo, ClusterWorkerHeartbeat> executorBeats(String stormId, Map<List<Long>, NodeInfo> executorNodePort) {
         Map<ExecutorInfo, ClusterWorkerHeartbeat> executorWhbs = new HashMap<>();
 
+        LOG.info(executorNodePort.toString());
         Map<NodeInfo, List<List<Long>>> nodePortExecutors = Cluster.reverseMap(executorNodePort);
+        LOG.info(nodePortExecutors.toString());
+
         for (Map.Entry<NodeInfo, List<List<Long>>> entry : nodePortExecutors.entrySet()) {
 
             String node = entry.getKey().get_node();
@@ -320,7 +328,7 @@ public class StormZkClusterState implements StormClusterState {
     }
 
     @Override
-    public List<String> supervisors(Callback callback) {
+    public List<String> supervisors(IFn callback) {
         if (callback != null) {
             supervisorsCallback.set(callback);
         }
@@ -339,7 +347,7 @@ public class StormZkClusterState implements StormClusterState {
     }
 
     @Override
-    public void teardownHeatbeats(String stormId) {
+    public void teardownHeartbeats(String stormId) {
         try {
             clusterState.delete_worker_hb(Cluster.workerbeatStormRoot(stormId));
         } catch (Exception e) {
@@ -382,7 +390,7 @@ public class StormZkClusterState implements StormClusterState {
     }
 
     @Override
-    public LogConfig topologyLogConfig(String stormId, Callback cb) {
+    public LogConfig topologyLogConfig(String stormId, IFn cb) {
         String path = Cluster.logConfigPath(stormId);
         return Cluster.maybeDeserialize(clusterState.get_data(path, cb != null), LogConfig.class);
     }
@@ -426,7 +434,7 @@ public class StormZkClusterState implements StormClusterState {
 
     // if the backpresure/storm-id dir is empty, this topology has throttle-on, otherwise not.
     @Override
-    public boolean topologyBackpressure(String stormId, Callback callback) {
+    public boolean topologyBackpressure(String stormId, IFn callback) {
         if (callback != null) {
             backPressureCallback.put(stormId, callback);
         }
@@ -458,26 +466,27 @@ public class StormZkClusterState implements StormClusterState {
 
         StormBase stormBase = stormBase(stormId, null);
         if (stormBase.get_component_executors() != null) {
+
+            Map<String, Integer> newComponentExecutors = new HashMap<>();
             Map<String, Integer> componentExecutors = newElems.get_component_executors();
-            if (componentExecutors == null) {
-                componentExecutors = new HashMap<>();
+            //componentExecutors maybe be APersistentMap, which don't support put
+            for (Map.Entry<String, Integer> entry : componentExecutors.entrySet()) {
+                    newComponentExecutors.put(entry.getKey(), entry.getValue());
             }
             for (Map.Entry<String, Integer> entry : stormBase.get_component_executors().entrySet()) {
                 if (!componentExecutors.containsKey(entry.getKey())) {
-                    componentExecutors.put(entry.getKey(), entry.getValue());
+                    newComponentExecutors.put(entry.getKey(), entry.getValue());
                 }
             }
-            if (componentExecutors.size() > 0)
-                newElems.set_component_executors(componentExecutors);
+            if (newComponentExecutors.size() > 0)
+                newElems.set_component_executors(newComponentExecutors);
         }
 
         Map<String, DebugOptions> ComponentDebug = new HashMap<>();
         Map<String, DebugOptions> oldComponentDebug = stormBase.get_component_debug();
-        if (oldComponentDebug == null)
-            oldComponentDebug = new HashMap<>();
+
         Map<String, DebugOptions> newComponentDebug = newElems.get_component_debug();
-        if (newComponentDebug == null)
-            newComponentDebug = new HashMap<>();
+
         Set<String> debugOptionsKeys = oldComponentDebug.keySet();
         debugOptionsKeys.addAll(newComponentDebug.keySet());
         for (String key : debugOptionsKeys) {
@@ -499,7 +508,17 @@ public class StormZkClusterState implements StormClusterState {
         if (ComponentDebug.size() > 0) {
             newElems.set_component_debug(ComponentDebug);
         }
-        // only merge some parameters which are optional
+
+
+        if (StringUtils.isBlank(newElems.get_name())) {
+            newElems.set_name(stormBase.get_name());
+        }
+        if (newElems.get_status() == null){
+            newElems.set_status(stormBase.get_status());
+        }
+        if (newElems.get_num_workers() == 0){
+            newElems.set_num_workers(stormBase.get_num_workers());
+        }
         if (newElems.get_launch_time_secs() == 0) {
             newElems.set_launch_time_secs(stormBase.get_launch_time_secs());
         }
@@ -526,8 +545,8 @@ public class StormZkClusterState implements StormClusterState {
     }
 
     @Override
-    public void setupBlobstore(String key, NimbusInfo nimbusInfo, String versionInfo) {
-        String path = Cluster.blobstorePath(key) + Cluster.ZK_SEPERATOR + nimbusInfo.toHostPortString() + "_" + versionInfo;
+    public void setupBlobstore(String key, NimbusInfo nimbusInfo, Integer versionInfo) {
+        String path = Cluster.blobstorePath(key) + Cluster.ZK_SEPERATOR + nimbusInfo.toHostPortString() + "-" + versionInfo;
         LOG.info("set-path: {}", path);
         clusterState.mkdirs(Cluster.blobstorePath(key), acls);
         clusterState.delete_node_blobstore(Cluster.blobstorePath(key), nimbusInfo.toHostPortString());
@@ -541,7 +560,7 @@ public class StormZkClusterState implements StormClusterState {
 
     // blobstore state
     @Override
-    public List<String> blobstore(Callback callback) {
+    public List<String> blobstore(IFn callback) {
         if (callback != null) {
             blobstoreCallback.set(callback);
         }
@@ -571,7 +590,7 @@ public class StormZkClusterState implements StormClusterState {
     }
 
     @Override
-    public void reportError(String stormId, String componentId, String node, Long port, String error) {
+    public void reportError(String stormId, String componentId, String node, Integer port, String error) {
 
         try {
             String path = Cluster.errorPath(stormId, componentId);
@@ -644,7 +663,7 @@ public class StormZkClusterState implements StormClusterState {
     }
 
     @Override
-    public Credentials credentials(String stormId, Callback callback) {
+    public Credentials credentials(String stormId, IFn callback) {
         if (callback != null) {
             credentialsCallback.put(stormId, callback);
         }

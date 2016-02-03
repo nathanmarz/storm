@@ -16,27 +16,23 @@
 
 (ns org.apache.storm.pacemaker.pacemaker-state-factory
   (:require [org.apache.storm.pacemaker pacemaker]
-            [org.apache.storm.cluster-state [zookeeper-state-factory :as zk-factory]]
             [org.apache.storm
              [config :refer :all]
-             [cluster :refer :all]
              [log :refer :all]
              [util :as util]])
   (:import [org.apache.storm.generated
             HBExecutionException HBServerMessageType HBMessage
             HBMessageData HBPulse]
-           [org.apache.storm.cluster_state zookeeper_state_factory]
-           [org.apache.storm.cluster ClusterState]
+           [org.apache.storm.cluster ClusterState DistributedClusterState]
            [org.apache.storm.pacemaker PacemakerClient])
-  (:gen-class
-   :implements [org.apache.storm.cluster.ClusterStateFactory]))
+  (:gen-class))
 
 ;; So we can mock the client for testing
 (defn makeClient [conf]
   (PacemakerClient. conf))
 
 (defn makeZKState [conf auth-conf acls context]
-  (.mkState (zookeeper_state_factory.) conf auth-conf acls context))
+  (DistributedClusterState. conf auth-conf acls context))
 
 (def max-retries 10)
 
@@ -47,7 +43,7 @@
     (reify
       ClusterState
       ;; Let these pass through to the zk-state. We only want to handle heartbeats.
-      (register [this callback] (.register zk-state callback))
+      (register [this callback] (.register zk-state callback))  ; need update callback, have questions?? callback is IFn here
       (unregister [this callback] (.unregister zk-state callback))
       (set_ephemeral_node [this path data acls] (.set_ephemeral_node zk-state path data acls))
       (create_sequential [this path data acls] (.create_sequential zk-state path data acls))

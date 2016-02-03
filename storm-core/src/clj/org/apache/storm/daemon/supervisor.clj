@@ -19,11 +19,11 @@
            [org.apache.storm.utils LocalState Time Utils ConfigUtils]
            [org.apache.storm.daemon Shutdownable]
            [org.apache.storm Constants]
-           [org.apache.storm.cluster ClusterStateContext DaemonType]
+           [org.apache.storm.cluster ClusterStateContext DaemonType StormZkClusterState Cluster]
            [java.net JarURLConnection]
            [java.net URI]
            [org.apache.commons.io FileUtils])
-  (:use [org.apache.storm config util log timer local-state])
+  (:use [org.apache.storm config util log timer local-state converter])
   (:import [org.apache.storm.generated AuthorizationException KeyNotFoundException WorkerResources])
   (:import [org.apache.storm.utils NimbusLeaderNotFoundException VersionInfo])
   (:import [java.nio.file Files StandardCopyOption])
@@ -33,7 +33,7 @@
   (:use [org.apache.storm.daemon common])
   (:require [org.apache.storm.command [healthcheck :as healthcheck]])
   (:require [org.apache.storm.daemon [worker :as worker]]
-            [org.apache.storm [process-simulator :as psim] [cluster :as cluster] [event :as event]]
+            [org.apache.storm [process-simulator :as psim] [event :as event]]
             [clojure.set :as set])
   (:import [org.apache.thrift.transport TTransportException])
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
@@ -63,21 +63,22 @@
           (->>
            (dofor [sid storm-ids]
                   (let [recorded-version (:version (get assignment-versions sid))]
-                    (if-let [assignment-version (.assignment-version storm-cluster-state sid callback)]
+                    (if-let [assignment-version (.assignmentVersion storm-cluster-state sid callback)]
                       (if (= assignment-version recorded-version)
                         {sid (get assignment-versions sid)}
-                        {sid (.assignment-info-with-version storm-cluster-state sid callback)})
+                        {sid (.assignmentInfoWithVersion storm-cluster-state sid callback)})
                       {sid nil})))
            (apply merge)
            (filter-val not-nil?))
           new-profiler-actions
           (->>
             (dofor [sid (distinct storm-ids)]
-                   (if-let [topo-profile-actions (.get-topology-profile-requests storm-cluster-state sid false)]
+
+                   (if-let [topo-profile-actions (into [] (for [request (.getTopologyProfileRequests storm-cluster-state sid false)] (clojurify-profile-request request)))]
                       {sid topo-profile-actions}))
            (apply merge))]
-         
-      {:assignments (into {} (for [[k v] new-assignments] [k (:data v)]))
+
+      {:assignments (into {} (for [[k v] new-assignments] [k (clojurify-assignment (:data v))]))
        :profiler-actions new-profiler-actions
        :versions new-assignments})))
 
@@ -316,11 +317,9 @@
    :uptime (uptime-computer)
    :version STORM-VERSION
    :worker-thread-pids-atom (atom {})
-   :storm-cluster-state (cluster/mk-storm-cluster-state conf :acls (when
-                                                                     (Utils/isZkAuthenticationConfiguredStormServer
-                                                                       conf)
-                                                                     SUPERVISOR-ZK-ACLS)
-                                                        :context (ClusterStateContext. DaemonType/SUPERVISOR))
+   :storm-cluster-state (Cluster/mkStormClusterState conf (when (Utils/isZkAuthenticationConfiguredStormServer conf)
+                                                     SUPERVISOR-ZK-ACLS)
+                                                        (ClusterStateContext. DaemonType/SUPERVISOR))
    :local-state (ConfigUtils/supervisorState conf)
    :supervisor-id (.getSupervisorId isupervisor)
    :assignment-id (.getAssignmentId isupervisor)
@@ -675,7 +674,7 @@
 
 (defn- delete-topology-profiler-action [storm-cluster-state storm-id profile-action]
   (log-message "Deleting profiler action.." profile-action)
-  (.delete-topology-profile-requests storm-cluster-state storm-id profile-action))
+  (.deleteTopologyProfileRequests storm-cluster-state storm-id (thriftify-profile-request profile-action)))
 
 (defnk launch-profiler-action-for-worker
   "Launch profiler action for a worker"
@@ -743,7 +742,7 @@
                       action-on-exit (fn [exit-code]
                                        (log-message log-prefix " profile-action exited for code: " exit-code)
                                        (if (and (= exit-code 0) stop?)
-                                         (delete-topology-profiler-action storm-cluster-state storm-id pro-action)))
+                                         (delete-topology-profiler-action storm-cluster-state storm-id (thriftify-profile-request pro-action))))
                       command (->> command (map str) (filter (complement empty?)))]
 
                   (try
@@ -776,10 +775,10 @@
         synchronize-blobs-fn (update-blobs-for-all-topologies-fn supervisor)
         downloaded-storm-ids (set (read-downloaded-storm-ids conf))
         run-profiler-actions-fn (mk-run-profiler-actions-for-all-topologies supervisor)
-        heartbeat-fn (fn [] (.supervisor-heartbeat!
+        heartbeat-fn (fn [] (.supervisorHeartbeat
                                (:storm-cluster-state supervisor)
                                (:supervisor-id supervisor)
-                               (->SupervisorInfo (current-time-secs)
+                              (thriftify-supervisor-info (->SupervisorInfo (current-time-secs)
                                                  (:my-hostname supervisor)
                                                  (:assignment-id supervisor)
                                                  (keys @(:curr-assignment supervisor))
@@ -788,7 +787,7 @@
                                                  (conf SUPERVISOR-SCHEDULER-META)
                                                  ((:uptime supervisor))
                                                  (:version supervisor)
-                                                 (mk-supervisor-capacities conf))))]
+                                                 (mk-supervisor-capacities conf)))))]
     (heartbeat-fn)
 
     ;; should synchronize supervisor so it doesn't launch anything after being down (optimization)

@@ -56,8 +56,7 @@ public class DistributedClusterState implements ClusterState {
     public DistributedClusterState(Map<Object, Object> conf, Map authConf, List<ACL> acls, ClusterStateContext context) throws Exception {
         this.conf = conf;
         this.authConf = authConf;
-        if (context.getDaemonType().equals(DaemonType.NIMBUS))
-            this.isNimbus = true;
+        if (context.getDaemonType().equals(DaemonType.NIMBUS)) this.isNimbus = true;
 
         // just mkdir STORM_ZOOKEEPER_ROOT dir
         CuratorFramework zkTemp = mkZk();
@@ -128,9 +127,9 @@ public class DistributedClusterState implements ClusterState {
     }
 
     @Override
-    public String register(Callback callback) {
+    public String register( Callback callback) {
         String id = UUID.randomUUID().toString();
-        this.callbacks.put(id, callback);
+        this.callbacks.put(id,callback);
         return id;
     }
 

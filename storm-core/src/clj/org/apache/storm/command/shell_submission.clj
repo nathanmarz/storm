@@ -16,7 +16,7 @@
 (ns org.apache.storm.command.shell-submission
   (:import [org.apache.storm StormSubmitter]
            [org.apache.storm.zookeeper Zookeeper])
-  (:use [org.apache.storm thrift util config log zookeeper])
+  (:use [org.apache.storm thrift util config log])
   (:require [clojure.string :as str])
   (:import [org.apache.storm.utils ConfigUtils])
   (:gen-class))

@@ -46,7 +46,7 @@ public interface ClusterState {
     /**
      * Registers a callback function that gets called when CuratorEvents happen.
      * @param callback is a clojure IFn that accepts the type - translated to
-     * clojure keyword as in zookeeper.clj - and the path: (callback type path)
+     * clojure keyword as in zookeeper - and the path: (callback type path)
      * @return is an id that can be passed to unregister(...) to unregister the
      * callback.
      */

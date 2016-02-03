@@ -15,12 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.storm;
 
-package org.apache.storm.callback;
 
-import clojure.lang.IFn;
-
-// To remove IFn after porting all callbacks to java
-public interface Callback {
-    public <T> Object execute(T... args);
+public class ClusterTest {
 }

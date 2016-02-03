@@ -21,7 +21,8 @@
   (:import [org.apache.storm.testing TestWordCounter TestWordSpout TestGlobalCount
             TestAggregatesCounter TestConfBolt AckFailMapTracker AckTracker TestPlannerSpout])
   (:import [org.apache.storm.tuple Fields])
-  (:use [org.apache.storm testing config clojure util])
+  (:import [org.apache.storm.cluster StormZkClusterState])
+  (:use [org.apache.storm testing config clojure util converter])
   (:use [org.apache.storm.daemon common])
   (:require [org.apache.storm [thrift :as thrift]]))
 
@@ -575,34 +576,34 @@
                                              (:topology tracked))
             _ (advance-cluster-time cluster 11)
             storm-id (get-storm-id state "test-errors")
-            errors-count (fn [] (count (.errors state storm-id "2")))]
+            errors-count (fn [] (count (clojurify-error (.errors state storm-id "2"))))]
 
-        (is (nil? (.last-error state storm-id "2")))
+        (is (nil? (clojurify-error (.lastError state storm-id "2"))))
 
         ;; so it launches the topology
         (advance-cluster-time cluster 2)
         (.feed feeder [6])
         (tracked-wait tracked 1)
         (is (= 4 (errors-count)))
-        (is (.last-error state storm-id "2"))
+        (is (clojurify-error (.lastError state storm-id "2")))
         
         (advance-time-secs! 5)
         (.feed feeder [2])
         (tracked-wait tracked 1)
         (is (= 4 (errors-count)))
-        (is (.last-error state storm-id "2"))
+        (is (clojurify-error (.lastError state storm-id "2")))
         
         (advance-time-secs! 6)
         (.feed feeder [2])
         (tracked-wait tracked 1)
         (is (= 6 (errors-count)))
-        (is (.last-error state storm-id "2"))
+        (is (clojurify-error (.lastError state storm-id "2")))
         
         (advance-time-secs! 6)
         (.feed feeder [3])
         (tracked-wait tracked 1)
         (is (= 8 (errors-count)))
-        (is (.last-error state storm-id "2"))))))
+        (is  (clojurify-error (.lastError state storm-id "2")))))))
 
 
 (deftest test-acking-branching-complex

@@ -14,7 +14,7 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns org.apache.storm.command.dev-zookeeper
-  (:use [org.apache.storm zookeeper util config])
+  (:use [org.apache.storm util config])
   (:import [org.apache.storm.utils ConfigUtils])
   (:import [org.apache.storm.zookeeper Zookeeper])
   (:gen-class))

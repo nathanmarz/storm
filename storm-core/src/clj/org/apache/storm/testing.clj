@@ -45,10 +45,10 @@
   (:import [org.apache.storm.tuple Tuple])
   (:import [org.apache.storm.generated StormTopology])
   (:import [org.apache.storm.task TopologyContext])
-  (:require [org.apache.storm [zookeeper :as zk]])
+  (:import [org.apache.storm.cluster DistributedClusterState ClusterStateContext StormZkClusterState])
   (:require [org.apache.storm.messaging.loader :as msg-loader])
   (:require [org.apache.storm.daemon.acker :as acker])
-  (:use [org.apache.storm cluster util thrift config log local-state]))
+  (:use [org.apache.storm util thrift config log local-state converter]))
 
 (defn feeder-spout
   [fields]
@@ -158,8 +158,8 @@
                      :port-counter port-counter
                      :daemon-conf daemon-conf
                      :supervisors (atom [])
-                     :state (mk-distributed-cluster-state daemon-conf)
-                     :storm-cluster-state (mk-storm-cluster-state daemon-conf)
+                     :state (DistributedClusterState. daemon-conf nil nil (ClusterStateContext.))
+                     :storm-cluster-state (StormZkClusterState. daemon-conf nil (ClusterStateContext.))
                      :tmp-dirs (atom [nimbus-tmp zk-tmp])
                      :zookeeper (if (not-nil? zk-handle) zk-handle)
                      :shared-context context
@@ -403,8 +403,8 @@
                            (select-keys component->tasks component-ids)
                            component->tasks)
         task-ids (apply concat (vals component->tasks))
-        assignment (.assignment-info state storm-id nil)
-        taskbeats (.taskbeats state storm-id (:task->node+port assignment))
+        assignment (clojurify-assignment (.assignmentInfo state storm-id nil))
+        taskbeats (.taskbeats state storm-id (:task->node+port assignment))  ;hava question?
         heartbeats (dofor [id task-ids] (get taskbeats id))
         stats (dofor [hb heartbeats] (if hb (stat-key (:stats hb)) 0))]
     (reduce + stats)))
@@ -551,7 +551,7 @@
                      (simulate-wait cluster-map))
 
       (.killTopologyWithOpts (:nimbus cluster-map) storm-name (doto (KillOptions.) (.set_wait_secs 0)))
-      (while-timeout timeout-ms (.assignment-info state storm-id nil)
+      (while-timeout timeout-ms (clojurify-assignment (.assignmentInfo state storm-id nil))
                      (simulate-wait cluster-map))
       (when cleanup-state
         (doseq [spout (spout-objects spouts)]

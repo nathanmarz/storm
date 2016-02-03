@@ -13,14 +13,16 @@
 ;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
+;TopologyActionOptions TopologyStatus StormBase RebalanceOptions KillOptions
 (ns org.apache.storm.daemon.common
   (:use [org.apache.storm log config util])
-  (:import [org.apache.storm.generated StormTopology
+  (:import [org.apache.storm.generated StormTopology NodeInfo
             InvalidTopologyException GlobalStreamId]
            [org.apache.storm.utils ThriftTopologyUtils])
   (:import [org.apache.storm.utils Utils ConfigUtils])
   (:import [org.apache.storm.task WorkerTopologyContext])
   (:import [org.apache.storm Constants])
+  (:import [org.apache.storm.cluster StormZkClusterState])
   (:import [org.apache.storm.metric SystemBolt])
   (:import [org.apache.storm.metric EventLoggerBolt])
   (:import [org.apache.storm.security.auth IAuthorizer]) 
@@ -72,18 +74,19 @@
 (defn new-executor-stats []
   (ExecutorStats. 0 0 0 0 0))
 
+
 (defn get-storm-id [storm-cluster-state storm-name]
-  (let [active-storms (.active-storms storm-cluster-state)]
+  (let [active-storms (.activeStorms storm-cluster-state)]
     (find-first
-      #(= storm-name (:storm-name (.storm-base storm-cluster-state % nil)))
+      #(= storm-name (.get_name (.stormBase storm-cluster-state % nil)))
       active-storms)
     ))
 
 (defn topology-bases [storm-cluster-state]
-  (let [active-topologies (.active-storms storm-cluster-state)]
+  (let [active-topologies (.activeStorms storm-cluster-state)]
     (into {} 
           (dofor [id active-topologies]
-                 [id (.storm-base storm-cluster-state id nil)]
+                 [id  (.stormBase storm-cluster-state id nil)]
                  ))
     ))
 

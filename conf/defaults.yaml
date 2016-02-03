@@ -51,7 +51,7 @@ storm.auth.simple-white-list.users: []
 storm.auth.simple-acl.users: []
 storm.auth.simple-acl.users.commands: []
 storm.auth.simple-acl.admins: []
-storm.cluster.state.store: "org.apache.storm.cluster_state.zookeeper_state_factory"
+storm.cluster.state.store: "org.apache.storm.cluster.StormZkClusterState"
 storm.meta.serialization.delegate: "org.apache.storm.serialization.GzipThriftSerializationDelegate"
 storm.codedistributor.class: "org.apache.storm.codedistributor.LocalFileSystemCodeDistributor"
 storm.workers.artifacts.dir: "workers-artifacts"

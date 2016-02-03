@@ -21,6 +21,11 @@ import org.apache.storm.generated.Grouping;
 import org.apache.storm.generated.NullStruct;
 import org.apache.storm.trident.fluent.ChainedAggregatorDeclarer;
 import org.apache.storm.grouping.CustomStreamGrouping;
+import org.apache.storm.trident.operation.FlatMapFunction;
+import org.apache.storm.trident.operation.MapFunction;
+import org.apache.storm.trident.operation.impl.FlatMapFunctionExecutor;
+import org.apache.storm.trident.operation.impl.MapFunctionExecutor;
+import org.apache.storm.trident.planner.processor.MapProcessor;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.utils.Utils;
 import org.apache.storm.trident.fluent.GlobalAggregationScheme;
@@ -323,8 +328,65 @@ public class Stream implements IAggregatableStream {
     
     public Stream each(Fields inputFields, Filter filter) {
         return each(inputFields, new FilterExecutor(filter), new Fields());
-    }    
-    
+    }
+
+    /**
+     * Returns a stream consisting of the elements of this stream that match the given filter.
+     *
+     * @param filter the filter to apply to each trident tuple to determine if it should be included.
+     * @return the new stream
+     */
+    public Stream filter(Filter filter) {
+        return each(getOutputFields(), filter);
+    }
+
+    /**
+     * Returns a stream consisting of the elements of this stream that match the given filter.
+     *
+     * @param inputFields the fields of the input trident tuple to be selected.
+     * @param filter      the filter to apply to each trident tuple to determine if it should be included.
+     * @return the new stream
+     */
+    public Stream filter(Fields inputFields, Filter filter) {
+        return each(inputFields, filter);
+    }
+
+    /**
+     * Returns a stream consisting of the result of applying the given mapping function to the values of this stream.
+     *
+     * @param function a mapping function to be applied to each value in this stream.
+     * @return the new stream
+     */
+    public Stream map(MapFunction function) {
+        projectionValidation(getOutputFields());
+        return _topology.addSourcedNode(this,
+                                        new ProcessorNode(
+                                                _topology.getUniqueStreamId(),
+                                                _name,
+                                                getOutputFields(),
+                                                getOutputFields(),
+                                                new MapProcessor(getOutputFields(), new MapFunctionExecutor(function))));
+    }
+
+    /**
+     * Returns a stream consisting of the results of replacing each value of this stream with the contents
+     * produced by applying the provided mapping function to each value. This has the effect of applying
+     * a one-to-many transformation to the values of the stream, and then flattening the resulting elements into a new stream.
+     *
+     * @param function a mapping function to be applied to each value in this stream which produces new values.
+     * @return the new stream
+     */
+    public Stream flatMap(FlatMapFunction function) {
+        projectionValidation(getOutputFields());
+        return _topology.addSourcedNode(this,
+                                        new ProcessorNode(
+                                                _topology.getUniqueStreamId(),
+                                                _name,
+                                                getOutputFields(),
+                                                getOutputFields(),
+                                                new MapProcessor(getOutputFields(), new FlatMapFunctionExecutor(function))));
+    }
+
     public ChainedAggregatorDeclarer chainedAgg() {
         return new ChainedAggregatorDeclarer(this, new BatchGlobalAggScheme());
     }

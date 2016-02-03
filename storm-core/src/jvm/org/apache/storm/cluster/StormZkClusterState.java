@@ -148,12 +148,14 @@ public class StormZkClusterState implements StormClusterState {
 
     protected void issueCallback(AtomicReference<IFn> cb) {
         IFn callback = cb.getAndSet(null);
-        callback.invoke();
+        if (callback != null)
+            callback.invoke();
     }
 
     protected void issueMapCallback(ConcurrentHashMap<String, IFn> callbackConcurrentHashMap, String key) {
         IFn callback = callbackConcurrentHashMap.remove(key);
-        callback.invoke();
+        if (callback != null)
+            callback.invoke();
     }
 
     @Override

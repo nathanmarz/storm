@@ -20,7 +20,7 @@
   (:import [java.util List Map])
   (:import [org.apache.storm Constants]
            (org.apache.storm.daemon AckerBolt))
-  (:use [org.apache.storm config util log])
+  (:use [org.apache.storm config util])
   (:gen-class
     :init init
     :implements [org.apache.storm.task.IBolt]
@@ -35,7 +35,6 @@
 (defn mk-acker-bolt []
   (let [output-collector (MutableObject.)
         pending (MutableObject.)]
-    (log-message "Symbol AckerBolt"  (symbol "AckerBolt") )
     (AckerBolt.)))
 
 (defn -init []

@@ -67,6 +67,7 @@ public class AckerBolt implements IBolt {
         if (TupleUtils.isTick(input)) {
             Map<Object, AckObject> tmp = pending.rotate();
             LOG.debug("Number of timeout tuples:{}", tmp.size());
+            return;
         }
 
         String streamId = input.getSourceStreamId();
@@ -115,8 +116,6 @@ public class AckerBolt implements IBolt {
                     collector.emitDirect(task, ACKER_FAIL_STREAM_ID, values);
                 }
             }
-        } else {
-
         }
 
         collector.ack(input);

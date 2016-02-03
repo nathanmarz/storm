@@ -30,8 +30,8 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Map;
 
-public class Acker implements IBolt {
-    private static final Logger LOG = LoggerFactory.getLogger(Acker.class);
+public class AckerBolt implements IBolt {
+    private static final Logger LOG = LoggerFactory.getLogger(AckerBolt.class);
 
     private static final long serialVersionUID = 4430906880683183091L;
 
@@ -54,10 +54,6 @@ public class Acker implements IBolt {
         public void updateAck(Object value) {
             val = Utils.bitXor(val, value);
         }
-    }
-
-    public Acker() {
-
     }
 
     @Override

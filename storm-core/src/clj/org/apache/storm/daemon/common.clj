@@ -15,7 +15,6 @@
 ;; limitations under the License.
 (ns org.apache.storm.daemon.common
   (:use [org.apache.storm log config util])
-  (:import [org.apache.storm.daemon Acker])
   (:import [org.apache.storm.generated StormTopology
             InvalidTopologyException GlobalStreamId]
            [org.apache.storm.utils ThriftTopologyUtils])
@@ -24,19 +23,20 @@
   (:import [org.apache.storm Constants])
   (:import [org.apache.storm.metric SystemBolt])
   (:import [org.apache.storm.metric EventLoggerBolt])
-  (:import [org.apache.storm.security.auth IAuthorizer]) 
+  (:import [org.apache.storm.security.auth IAuthorizer])
   (:import [java.io InterruptedIOException])
-  (:require [clojure.set :as set])  
+  (:require [clojure.set :as set])
+  (:require [org.apache.storm.daemon.acker :as acker])
   (:require [org.apache.storm.thrift :as thrift])
   (:require [metrics.reporters.jmx :as jmx]))
 
 (defn start-metrics-reporters []
   (jmx/start (jmx/reporter {})))
 
-(def ACKER-COMPONENT-ID Acker/ACKER_COMPONENT_ID)
-(def ACKER-INIT-STREAM-ID Acker/ACKER_INIT_STREAM_ID)
-(def ACKER-ACK-STREAM-ID Acker/ACKER_ACK_STREAM_ID)
-(def ACKER-FAIL-STREAM-ID Acker/ACKER_FAIL_STREAM_ID)
+(def ACKER-COMPONENT-ID acker/ACKER-COMPONENT-ID)
+(def ACKER-INIT-STREAM-ID acker/ACKER-INIT-STREAM-ID)
+(def ACKER-ACK-STREAM-ID acker/ACKER-ACK-STREAM-ID)
+(def ACKER-FAIL-STREAM-ID acker/ACKER-FAIL-STREAM-ID)
 
 (def SYSTEM-STREAM-ID "__system")
 
@@ -207,7 +207,7 @@
 (defn add-acker! [storm-conf ^StormTopology ret]
   (let [num-executors (if (nil? (storm-conf TOPOLOGY-ACKER-EXECUTORS)) (storm-conf TOPOLOGY-WORKERS) (storm-conf TOPOLOGY-ACKER-EXECUTORS))
         acker-bolt (thrift/mk-bolt-spec* (acker-inputs ret)
-                                         (Acker. )
+                                         (new org.apache.storm.daemon.acker)
                                          {ACKER-ACK-STREAM-ID (thrift/direct-output-fields ["id"])
                                           ACKER-FAIL-STREAM-ID (thrift/direct-output-fields ["id"])
                                           }

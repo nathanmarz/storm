@@ -1198,4 +1198,4 @@
                  STORM-VERSION
                  "'")
     (start-logviewer! conf log-root daemonlog-root)
-    (start-metrics-reporters)))
+    (start-metrics-reporters conf)))

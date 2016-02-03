@@ -1200,7 +1200,7 @@
     (let [supervisor (mk-supervisor conf nil supervisor)]
       (add-shutdown-hook-with-force-kill-in-1-sec #(.shutdown supervisor)))
     (defgauge supervisor:num-slots-used-gauge #(count (my-worker-ids conf)))
-    (start-metrics-reporters)))
+    (start-metrics-reporters conf)))
 
 (defn standalone-supervisor []
   (let [conf-atom (atom nil)

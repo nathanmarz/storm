@@ -357,6 +357,9 @@
                                 <!-- StormSQL -->
                                 <exclude>**/src/codegen/config.fmpp</exclude>
                                 <exclude>**/src/codegen/data/Parser.tdd</exclude>
+
+                                <!-- Avro Serializer Test Resource -->
+                                <exclude>**/src/test/resources/FixedAvroSerializer.config</exclude>
                             </excludes>
                         </configuration>
                     </plugin>

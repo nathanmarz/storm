@@ -307,13 +307,24 @@ The `org.apache.storm.hdfs.bolt.AvroGenericRecordBolt` class allows you to write
                 .withRotationPolicy(rotationPolicy)
                 .withSyncPolicy(syncPolicy);
 ```
-
 The setup is very similar to the `SequenceFileBolt` example above.  The key difference is that instead of specifying a
 `SequenceFormat` you must provide a string representation of an Avro schema through the `withSchemaAsString()` method.
 An `org.apache.avro.Schema` object cannot be directly provided since it does not implement `Serializable`.
 
 The AvroGenericRecordBolt expects to receive tuples containing an Avro GenericRecord that conforms to the provided
 schema.
+
+To use this bolt you **must** register the appropriate Kryo serializers with your topology configuration.  A convenience
+method is provided for this:
+
+`AvroGenericRecordBolt.addAvroKryoSerializations(conf);`
+
+By default Storm will use the ```GenericAvroSerializer``` to handle serialization.  This will work, but there are much 
+faster options available if you can pre-define the schemas you will be using or utilize an external schema registry. An
+implementation using the Confluent Schema Registry is provided, but others can be implemented and provided to Storm.
+Please see the javadoc for classes in org.apache.storm.hdfs.avro for information about using the built-in options or
+creating your own.
+
 
 ## HDFS Bolt support for Trident API
 storm-hdfs also includes a Trident `state` implementation for writing data to HDFS, with an API that closely mirrors

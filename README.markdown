@@ -91,6 +91,7 @@ under the License.
 * Boyang Jerry Peng ([@jerrypeng](https://github.com/jerrypeng))
 * Zhuo Liu ([@zhuoliu](https://github.com/zhuoliu))
 * Haohui Mai ([@haohui](https://github.com/haohui))
+* Sanket Chintapalli ([@redsanket](https://github.com/redsanket))
 
 ## Contributors
 

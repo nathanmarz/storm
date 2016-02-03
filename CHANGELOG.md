@@ -1,5 +1,6 @@
 ## 2.0.0
  * STORM-1257: port backtype.storm.zookeeper to java
+ * STORM-1504: Add Serializer and instruction for AvroGenericRecordBolt
 
 ## 1.0.0
  * STORM-1510: Fix broken nimbus log link

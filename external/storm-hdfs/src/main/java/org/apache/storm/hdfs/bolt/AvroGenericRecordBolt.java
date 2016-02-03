@@ -17,8 +17,6 @@
  */
 package org.apache.storm.hdfs.bolt;
 
-import org.apache.storm.Config;
-import org.apache.storm.Constants;
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.tuple.Tuple;
@@ -41,8 +39,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.URI;
 import java.util.EnumSet;
-import java.util.List;
-import java.util.LinkedList;
 import java.util.Map;
 
 public class AvroGenericRecordBolt extends AbstractHdfsBolt{

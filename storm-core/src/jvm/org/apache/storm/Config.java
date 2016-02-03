@@ -143,7 +143,7 @@ public class Config extends HashMap<String, Object> {
      * A list of statistics  preparable reporter class names.
      */
     @NotNull
-    @isImplementationOfClass(implementsClass = org.apache.storm.statistics.reporters.PreparableReporter.class)
+    @isStringList
     public static final String STORM_STATISTICS_PREPARABLE_REPORTER_PLUGIN = "storm.statistics.preparable.reporter.plugin";
 
     /**

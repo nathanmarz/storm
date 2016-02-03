@@ -10,9 +10,8 @@ import org.slf4j.LoggerFactory;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-public class JMXPreparableReporter implements PreparableReporter<JmxReporter> {
-    private final static Logger LOG = LoggerFactory.getLogger(JMXPreparableReporter.class);
-
+public class JmxPreparableReporter implements PreparableReporter<JmxReporter> {
+    private final static Logger LOG = LoggerFactory.getLogger(JmxPreparableReporter.class);
     JmxReporter reporter = null;
 
     @Override
@@ -37,13 +36,21 @@ public class JMXPreparableReporter implements PreparableReporter<JmxReporter> {
 
     @Override
     public void start() {
-        LOG.info("Starting...");
-        reporter.start();
+        if (reporter != null ) {
+            LOG.info("Starting...");
+            reporter.start();
+        } else {
+            throw new IllegalStateException("Attempt to start without preparing " + getClass().getSimpleName());
+        }
     }
 
     @Override
     public void stop() {
-        LOG.info("Stopping...");
-        reporter.stop();
+        if (reporter !=null) {
+            LOG.info("Stopping...");
+            reporter.stop();
+        } else {
+            throw new IllegalStateException("Attempt to stop without preparing " + getClass().getSimpleName());
+        }
     }
 }

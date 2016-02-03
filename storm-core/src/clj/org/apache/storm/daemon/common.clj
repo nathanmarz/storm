@@ -33,11 +33,16 @@
   (:require [org.apache.storm.thrift :as thrift])
   (:require [metrics.core  :refer [default-registry]]))
 
-(defn start-metrics-reporters [conf]
-  (doto (StatisticsUtils/getPreparableReporter conf)
+(defn start-metrics-reporter [reporter conf]
+  (doto reporter
     (.prepare default-registry conf)
     (.start))
   (log-message "Started statistics report plugin..."))
+
+(defn start-metrics-reporters [conf]
+  (doseq [reporter (StatisticsUtils/getPreparableReporters conf)]
+    (start-metrics-reporter reporter conf)))
+
 
 (def ACKER-COMPONENT-ID acker/ACKER-COMPONENT-ID)
 (def ACKER-INIT-STREAM-ID acker/ACKER-INIT-STREAM-ID)

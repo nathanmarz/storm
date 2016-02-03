@@ -25,8 +25,8 @@ import java.util.Map;
 
 
 public interface PreparableReporter<T extends Reporter & Closeable> {
-  public abstract void prepare(MetricRegistry metricsRegistry, Map stormConf);
-  public abstract void start();
-  public abstract void stop();
+  public void prepare(MetricRegistry metricsRegistry, Map stormConf);
+  public void start();
+  public void stop();
 
 }

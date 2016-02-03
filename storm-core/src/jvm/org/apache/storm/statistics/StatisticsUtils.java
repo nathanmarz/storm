@@ -33,7 +33,7 @@ public class StatisticsUtils {
 
     public static List<PreparableReporter> getPreparableReporters(Map stormConf) {
         PreparableReporter reporter = new JmxPreparableReporter();
-        List<String> clazzes = (List<String>) stormConf.get(Config.STORM_STATISTICS_PREPARABLE_REPORTER_PLUGIN);
+        List<String> clazzes = (List<String>) stormConf.get(Config.STORM_STATISTICS_PREPARABLE_REPORTER_PLUGINS);
         List<PreparableReporter> reporterList = new ArrayList<>();
 
         if (clazzes != null) {

@@ -150,7 +150,7 @@ public class Config extends HashMap<String, Object> {
      * Use the specified IETF BCP 47 language tag string for a Locale.
      */
     @isString
-    public static final String STORM_DAEMON_METRICS_REPORTER_PLUGIN_LOCALE = "storm.daemon.metrics.reporter.plugin.local";
+    public static final String STORM_DAEMON_METRICS_REPORTER_PLUGIN_LOCALE = "storm.daemon.metrics.reporter.plugin.locale";
 
     /**
      * A specify domain for daemon metrics reporter plugin to limit reporting to specific domain.
@@ -169,6 +169,14 @@ public class Config extends HashMap<String, Object> {
      */
     @isString
     public static final String STORM_DAEMON_METRICS_REPORTER_PLUGIN_DURATION_UNIT = "storm.daemon.metrics.reporter.plugin.duration.unit";
+
+
+    /**
+     * A specify csv reporter directory for CvsPreparableReporter daemon metrics reporter.
+     */
+    @isString
+    public static final String STORM_DAEMON_METRICS_REPORTER_CSV_LOG_DIR = "storm.daemon.metrics.reporter.csv.log.dir";
+
     /**
      * A list of hosts of ZooKeeper servers used to manage the cluster.
      */

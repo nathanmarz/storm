@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.storm.statistics.reporters;
+package org.apache.storm.daemon.metrics.reporters;
 
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Reporter;

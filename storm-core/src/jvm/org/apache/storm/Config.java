@@ -140,10 +140,10 @@ public class Config extends HashMap<String, Object> {
     public static final String STORM_META_SERIALIZATION_DELEGATE = "storm.meta.serialization.delegate";
 
     /**
-     * A list of daemon statistics  reporter plugin class names.
+     * A list of daemon metrics  reporter plugin class names.
      */
     @isStringList
-    public static final String STORM_STATISTICS_PREPARABLE_REPORTER_PLUGINS = "storm.statistics.preparable.reporter.plugins";
+    public static final String STORM_DAEMON_METRICS_REPORTER_PLUGINS = "storm.daemon.metrics.reporter.plugins";
 
     /**
      * A list of hosts of ZooKeeper servers used to manage the cluster.

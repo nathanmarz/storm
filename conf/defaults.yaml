@@ -282,6 +282,6 @@ pacemaker.childopts: "-Xmx1024m"
 pacemaker.auth.method: "NONE"
 pacemaker.kerberos.users: []
 
-#default plugin for daemon statistics reporter
-storm.statistics.preparable.reporter.plugins:
-     - "org.apache.storm.statistics.reporters.JmxPreparableReporter"
+#default storm daemon metrics reporter plugins
+storm.daemon.metrics.reporter.plugins:
+     - "org.apache.storm.daemon.metrics.reporters.JmxPreparableReporter"

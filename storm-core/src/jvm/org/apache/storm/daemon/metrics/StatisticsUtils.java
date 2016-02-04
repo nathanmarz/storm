@@ -15,11 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.storm.statistics;
+package org.apache.storm.daemon.metrics;
 
 import org.apache.storm.Config;
-import org.apache.storm.statistics.reporters.JmxPreparableReporter;
-import org.apache.storm.statistics.reporters.PreparableReporter;
+import org.apache.storm.daemon.metrics.reporters.JmxPreparableReporter;
+import org.apache.storm.daemon.metrics.reporters.PreparableReporter;
 import org.apache.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +33,7 @@ public class StatisticsUtils {
 
     public static List<PreparableReporter> getPreparableReporters(Map stormConf) {
         PreparableReporter reporter = new JmxPreparableReporter();
-        List<String> clazzes = (List<String>) stormConf.get(Config.STORM_STATISTICS_PREPARABLE_REPORTER_PLUGINS);
+        List<String> clazzes = (List<String>) stormConf.get(Config.STORM_DAEMON_METRICS_REPORTER_PLUGINS);
         List<PreparableReporter> reporterList = new ArrayList<>();
 
         if (clazzes != null) {

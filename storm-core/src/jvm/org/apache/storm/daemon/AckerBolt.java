@@ -107,12 +107,12 @@ public class AckerBolt implements IBolt {
         if (task != null) {
             if (curr.val == 0) {
                 pending.remove(id);
-                List values = Utils.mkList(id);
+                List values = Utils.makeList(id);
                 collector.emitDirect(task, ACKER_ACK_STREAM_ID, values);
             } else {
                 if (curr.failed) {
                     pending.remove(id);
-                    List values = Utils.mkList(id);
+                    List values = Utils.makeList(id);
                     collector.emitDirect(task, ACKER_FAIL_STREAM_ID, values);
                 }
             }

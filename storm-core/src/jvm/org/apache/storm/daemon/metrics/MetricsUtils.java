@@ -26,13 +26,14 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
-public class StatisticsUtils {
-    private final static Logger LOG = LoggerFactory.getLogger(StatisticsUtils.class);
+public class MetricsUtils {
+    private final static Logger LOG = LoggerFactory.getLogger(MetricsUtils.class);
 
     public static List<PreparableReporter> getPreparableReporters(Map stormConf) {
-        PreparableReporter reporter = new JmxPreparableReporter();
         List<String> clazzes = (List<String>) stormConf.get(Config.STORM_DAEMON_METRICS_REPORTER_PLUGINS);
         List<PreparableReporter> reporterList = new ArrayList<>();
 
@@ -54,5 +55,29 @@ public class StatisticsUtils {
             reporter = (PreparableReporter) Utils.newInstance(clazz);
         }
         return reporter;
+    }
+
+    public static Locale getMetricsReporterLocale(Map stormConf) {
+        String languageTag = Utils.getString(stormConf.get(Config.STORM_DAEMON_METRICS_REPORTER_PLUGIN_LOCALE), null);
+        if(languageTag != null) {
+            return Locale.forLanguageTag(languageTag);
+        }
+        return null;
+    }
+
+    public static TimeUnit getMetricsRateUnit(Map stormConf) {
+        return getTimeUnitForCofig(stormConf, Config.STORM_DAEMON_METRICS_REPORTER_PLUGIN_RATE_UNIT);
+    }
+
+    public static TimeUnit getMetricsDurationUnit(Map stormConf) {
+        return getTimeUnitForCofig(stormConf, Config.STORM_DAEMON_METRICS_REPORTER_PLUGIN_DURATION_UNIT);
+    }
+
+    private static TimeUnit getTimeUnitForCofig(Map stormConf, String configName) {
+        String rateUnitString = Utils.getString(stormConf.get(configName), null);
+        if(rateUnitString != null) {
+            return TimeUnit.valueOf(rateUnitString);
+        }
+        return null;
     }
 }

@@ -146,6 +146,30 @@ public class Config extends HashMap<String, Object> {
     public static final String STORM_DAEMON_METRICS_REPORTER_PLUGINS = "storm.daemon.metrics.reporter.plugins";
 
     /**
+     * A specify Locale for daemon metrics reporter plugin.
+     * Use the specified IETF BCP 47 language tag string for a Locale.
+     */
+    @isString
+    public static final String STORM_DAEMON_METRICS_REPORTER_PLUGIN_LOCALE = "storm.daemon.metrics.reporter.plugin.local";
+
+    /**
+     * A specify domain for daemon metrics reporter plugin to limit reporting to specific domain.
+     */
+    @isString
+    public static final String STORM_DAEMON_METRICS_REPORTER_PLUGIN_DOMAIN = "storm.daemon.metrics.reporter.plugin.domain";
+
+    /**
+     * A specify rate-unit in TimeUnit to specify reporting frequency for daemon metrics reporter plugin.
+     */
+    @isString
+    public static final String STORM_DAEMON_METRICS_REPORTER_PLUGIN_RATE_UNIT = "storm.daemon.metrics.reporter.plugin.rate.unit";
+
+    /**
+     * A specify duration-unit in TimeUnit to specify reporting window for daemon metrics reporter plugin.
+     */
+    @isString
+    public static final String STORM_DAEMON_METRICS_REPORTER_PLUGIN_DURATION_UNIT = "storm.daemon.metrics.reporter.plugin.duration.unit";
+    /**
      * A list of hosts of ZooKeeper servers used to manage the cluster.
      */
     @isStringList

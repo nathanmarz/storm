@@ -18,10 +18,10 @@
   (:import [org.apache.storm.generated StormTopology
             InvalidTopologyException GlobalStreamId]
            [org.apache.storm.utils ThriftTopologyUtils]
-           [org.apache.storm.statistics.reporters PreparableReporter]
+           [org.apache.storm.daemon.metrics.reporters PreparableReporter]
            [com.codahale.metrics MetricRegistry])
   (:import [org.apache.storm.utils Utils ConfigUtils])
-  (:import [org.apache.storm.statistics StatisticsUtils])
+  (:import [org.apache.storm.daemon.metrics MetricsUtils])
   (:import [org.apache.storm.task WorkerTopologyContext])
   (:import [org.apache.storm Constants])
   (:import [org.apache.storm.metric SystemBolt])
@@ -40,7 +40,7 @@
   (log-message "Started statistics report plugin..."))
 
 (defn start-metrics-reporters [conf]
-  (doseq [reporter (StatisticsUtils/getPreparableReporters conf)]
+  (doseq [reporter (MetricsUtils/getPreparableReporters conf)]
     (start-metrics-reporter reporter conf)))
 
 

@@ -18,9 +18,9 @@
 package org.apache.storm.daemon.metrics.reporters;
 
 import com.codahale.metrics.CsvReporter;
-import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
 import org.apache.storm.Config;
+import org.apache.storm.daemon.metrics.MetricsUtils;
 import org.apache.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,35 +36,35 @@ public class CsvPreparableReporter implements PreparableReporter<CsvReporter> {
 
     @Override
     public void prepare(MetricRegistry metricsRegistry, Map stormConf) {
-        LOG.info("Preparing...");
+        LOG.debug("Preparing...");
         CsvReporter.Builder builder = CsvReporter.forRegistry(metricsRegistry);
 
-        Locale locale = (Locale) stormConf.get(":locale");
+        Locale locale = MetricsUtils.getMetricsReporterLocale(stormConf);
         if (locale != null) {
             builder.formatFor(locale);
         }
-        String rateUnit = Utils.getString(stormConf.get(":rate-unit"), null);
+
+        TimeUnit rateUnit = MetricsUtils.getMetricsRateUnit(stormConf);
         if (rateUnit != null) {
-            builder.convertRatesTo(TimeUnit.valueOf(rateUnit));
+            builder.convertRatesTo(rateUnit);
         }
-        String durationUnit = Utils.getString(stormConf.get(":duration-unit"), null);
+
+        TimeUnit durationUnit = MetricsUtils.getMetricsDurationUnit(stormConf);
         if (durationUnit != null) {
-            builder.convertDurationsTo(TimeUnit.valueOf(durationUnit));
+            builder.convertDurationsTo(durationUnit);
         }
-        MetricFilter filter = (MetricFilter) stormConf.get(":filter");
-        if (filter != null) {
-            builder.filter(filter);
-        }
+
         String localStormDirLocation = Utils.getString(stormConf.get(Config.STORM_LOCAL_DIR), ".");
-        File logDir = new File(localStormDirLocation + "csvmetrics" );
-        validateCreateOutputDir(logDir);
-        reporter = builder.build(logDir);
+        File csvMetricsDir = new File(localStormDirLocation + System.getProperty("file.separator") + "csvmetrics" );
+        validateCreateOutputDir(csvMetricsDir);
+
+        reporter = builder.build(csvMetricsDir);
     }
 
     @Override
     public void start() {
         if (reporter != null) {
-            LOG.info("Starting...");
+            LOG.debug("Starting...");
             reporter.start(10, TimeUnit.SECONDS);
         } else {
             throw new IllegalStateException("Attempt to start without preparing " + getClass().getSimpleName());
@@ -74,7 +74,7 @@ public class CsvPreparableReporter implements PreparableReporter<CsvReporter> {
     @Override
     public void stop() {
         if (reporter != null) {
-            LOG.info("Stopping...");
+            LOG.debug("Stopping...");
             reporter.stop();
         } else {
             throw new IllegalStateException("Attempt to stop without preparing " + getClass().getSimpleName());

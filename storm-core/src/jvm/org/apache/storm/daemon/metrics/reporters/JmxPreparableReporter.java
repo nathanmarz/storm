@@ -18,8 +18,9 @@
 package org.apache.storm.daemon.metrics.reporters;
 
 import com.codahale.metrics.JmxReporter;
-import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
+import org.apache.storm.Config;
+import org.apache.storm.daemon.metrics.MetricsUtils;
 import org.apache.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,17 +36,13 @@ public class JmxPreparableReporter implements PreparableReporter<JmxReporter> {
     public void prepare(MetricRegistry metricsRegistry, Map stormConf) {
         LOG.info("Preparing...");
         JmxReporter.Builder builder = JmxReporter.forRegistry(metricsRegistry);
-        String domain = Utils.getString(stormConf.get(":domain"), null);
+        String domain = Utils.getString(stormConf.get(Config.STORM_DAEMON_METRICS_REPORTER_PLUGIN_DOMAIN), null);
         if (domain != null) {
             builder.inDomain(domain);
         }
-        String rateUnit = Utils.getString(stormConf.get(":rate-unit"), null);
+        TimeUnit rateUnit = MetricsUtils.getMetricsRateUnit(stormConf);
         if (rateUnit != null) {
-            builder.convertRatesTo(TimeUnit.valueOf(rateUnit));
-        }
-        MetricFilter filter = (MetricFilter) stormConf.get(":filter");
-        if (filter != null) {
-            builder.filter(filter);
+            builder.convertRatesTo(rateUnit);
         }
         reporter = builder.build();
 
@@ -54,7 +51,7 @@ public class JmxPreparableReporter implements PreparableReporter<JmxReporter> {
     @Override
     public void start() {
         if (reporter != null ) {
-            LOG.info("Starting...");
+            LOG.debug("Starting...");
             reporter.start();
         } else {
             throw new IllegalStateException("Attempt to start without preparing " + getClass().getSimpleName());
@@ -64,7 +61,7 @@ public class JmxPreparableReporter implements PreparableReporter<JmxReporter> {
     @Override
     public void stop() {
         if (reporter !=null) {
-            LOG.info("Stopping...");
+            LOG.debug("Stopping...");
             reporter.stop();
         } else {
             throw new IllegalStateException("Attempt to stop without preparing " + getClass().getSimpleName());

@@ -23,7 +23,6 @@ import org.apache.storm.daemon.metrics.MetricsUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.PrintStream;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -37,11 +36,7 @@ public class ConsolePreparableReporter implements PreparableReporter<ConsoleRepo
         LOG.debug("Preparing...");
         ConsoleReporter.Builder builder = ConsoleReporter.forRegistry(metricsRegistry);
 
-        PrintStream stream = System.out;
-        if (stream != null) {
-            builder.outputTo(stream);
-        }
-
+        builder.outputTo(System.out);
         Locale locale = MetricsUtils.getMetricsReporterLocale(stormConf);
         if (locale != null) {
             builder.formattedFor(locale);

@@ -21,8 +21,10 @@ import org.apache.storm.generated.Grouping;
 import org.apache.storm.generated.NullStruct;
 import org.apache.storm.trident.fluent.ChainedAggregatorDeclarer;
 import org.apache.storm.grouping.CustomStreamGrouping;
+import org.apache.storm.trident.operation.Consumer;
 import org.apache.storm.trident.operation.FlatMapFunction;
 import org.apache.storm.trident.operation.MapFunction;
+import org.apache.storm.trident.operation.impl.ConsumerExecutor;
 import org.apache.storm.trident.operation.impl.FlatMapFunctionExecutor;
 import org.apache.storm.trident.operation.impl.MapFunctionExecutor;
 import org.apache.storm.trident.planner.processor.MapProcessor;
@@ -385,6 +387,25 @@ public class Stream implements IAggregatableStream {
                                                 getOutputFields(),
                                                 getOutputFields(),
                                                 new MapProcessor(getOutputFields(), new FlatMapFunctionExecutor(function))));
+    }
+
+    /**
+     * Returns a stream consisting of the trident tuples of this stream, additionally performing the provided action on
+     * each trident tuple as they are consumed from the resulting stream. This is mostly useful for debugging
+     * to see the tuples as they flow past a certain point in a pipeline.
+     *
+     * @param action the action to perform on the trident tuple as they are consumed from the stream
+     * @return the new stream
+     */
+    public Stream peek(Consumer action) {
+        projectionValidation(getOutputFields());
+        return _topology.addSourcedNode(this,
+                                        new ProcessorNode(
+                                                _topology.getUniqueStreamId(),
+                                                _name,
+                                                getOutputFields(),
+                                                getOutputFields(),
+                                                new MapProcessor(getOutputFields(), new ConsumerExecutor(action))));
     }
 
     public ChainedAggregatorDeclarer chainedAgg() {

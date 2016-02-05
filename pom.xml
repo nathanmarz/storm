@@ -27,7 +27,7 @@
 
     <groupId>org.apache.storm</groupId>
     <artifactId>storm</artifactId>
-    <version>0.11.0-SNAPSHOT</version>
+    <version>2.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Storm</name>
     <description>Distributed and fault-tolerant realtime computation</description>
@@ -156,6 +156,15 @@
             </roles>
             <timezone>-6</timezone>
         </developer>
+        <developer>
+            <id>jerrypeng</id>
+            <name>Boyang Jerry Peng</name>
+            <email>jerrypeng@apache.org</email>
+            <roles>
+                <role>Committer</role>
+            </roles>
+            <timezone>-6</timezone>
+        </developer>
     </developers>
 
 
@@ -218,7 +227,7 @@
         <clojure-data-codec.version>0.1.0</clojure-data-codec.version>
         <clojure-contrib.version>1.2.0</clojure-contrib.version>
         <hive.version>0.14.0</hive.version>
-        <hadoop.version>2.6.0</hadoop.version>
+        <hadoop.version>2.6.1</hadoop.version>
         <kryo.version>2.21</kryo.version>
         <servlet.version>2.5</servlet.version>
         <joda-time.version>2.3</joda-time.version>
@@ -229,6 +238,13 @@
         <hdrhistogram.version>2.1.7</hdrhistogram.version>
         <calcite.version>1.4.0-incubating</calcite.version>
         <jackson.version>2.6.3</jackson.version>
+        <maven-surefire.version>2.18.1</maven-surefire.version>
+
+        <!-- Java and clojure build lifecycle test properties are defined here to avoid having to create a default profile -->
+        <java.unit.test.exclude>org.apache.storm.testing.IntegrationTest</java.unit.test.exclude>
+        <java.unit.test.include>**/Test*.java, **/*Test.java, **/*TestCase.java</java.unit.test.include>    <!--maven surefire plugin default test list-->
+        <!-- by default the clojure test set are all clojure tests that are not integration tests. This property is overridden in the profiles -->
+        <clojure.test.set>!integration.*</clojure.test.set>
     </properties>
 
     <modules>
@@ -238,6 +254,7 @@
         <module>storm-buildtools/maven-shade-clojure-transformer</module>
         <module>storm-buildtools/storm-maven-plugins</module>
         <module>storm-core</module>
+        <module>storm-rename-hack</module>
         <module>external/storm-kafka</module>
         <module>external/storm-hdfs</module>
         <module>external/storm-hbase</module>
@@ -251,11 +268,104 @@
         <module>external/storm-solr</module>
         <module>external/storm-metrics</module>
         <module>external/storm-cassandra</module>
+        <module>external/storm-mqtt</module>
         <module>examples/storm-starter</module>
     </modules>
 
+    <dependencies>
+        <!-- The JUnit dependency is required for submodules by the maven-surefire-plugin <excludedGroups> configuration -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 
     <profiles>
+        <profile>
+            <id>rat</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.rat</groupId>
+                        <artifactId>apache-rat-plugin</artifactId>
+                        <version>0.11</version>
+                        <executions>
+                            <execution>
+                                <phase>test</phase>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <excludeSubProjects>false</excludeSubProjects>
+                            <excludes>
+                                <!-- exclude maven artifacts -->
+                                <exclude>**/target/**</exclude>
+                                <!-- exclude intellij projects -->
+                                <exclude>**/*.iml</exclude>
+                                <exclude>**/.idea/**</exclude>
+                                <!-- module specific testing artifacts -->
+                                <exclude>**/metastore_db/**</exclude>
+                                <!-- anything written into build should be ignored -->
+                                <exclude>**/build/**</exclude>
+
+                                <!-- exclude CHANGELOG, VERSION, AND TODO files -->
+                                <exclude>**/CHANGELOG.md</exclude>
+                                <exclude>**/README.md</exclude>
+                                <exclude>**/README.markdown</exclude>
+                                <exclude>**/DEVELOPER.md</exclude>
+                                <exclude>**/BYLAWS.md</exclude>
+                                <exclude>**/STORM-UI-REST-API.md</exclude>
+                                <exclude>SECURITY.md</exclude>
+                                <exclude>VERSION</exclude>
+                                <exclude>TODO</exclude>
+                                <!-- thrift-generated code -->
+                                <exclude>**/src/py/**</exclude>
+
+                                <!-- the following are in the LICENSE file -->
+                                <exclude>**/src/ui/public/js/jquery.dataTables.1.10.4.min.js</exclude>
+                                <exclude>**/src/ui/public/css/jquery.dataTables.1.10.4.min.css</exclude>
+                                <exclude>**/src/ui/public/images/*</exclude>
+                                <exclude>**/src/ui/public/js/bootstrap-3.3.1.min.js</exclude>
+                                <exclude>**/src/ui/public/css/bootstrap-3.3.1.min.css</exclude>
+                                <exclude>**/src/ui/public/js/dataTables.bootstrap.min.js</exclude>
+                                <exclude>**/src/ui/public/css/dataTables.bootstrap.css</exclude>
+                                <exclude>**/src/ui/public/js/jsonFormatter.min.js</exclude>
+                                <exclude>**/src/ui/public/css/jsonFormatter.min.css</exclude>
+                                <exclude>**/src/ui/public/js/jquery-1.11.1.min.js</exclude>
+                                <exclude>**/src/ui/public/js/jquery.cookies.2.2.0.min.js</exclude>
+                                <exclude>**/src/ui/public/js/moment.min.js</exclude>
+                                <exclude>**/src/ui/public/js/jquery.blockUI.min.js</exclude>
+                                <exclude>**/src/ui/public/js/url.min.js</exclude>
+                                <exclude>**/src/ui/public/js/arbor.js</exclude>
+                                <exclude>**/src/ui/public/js/arbor-graphics.js</exclude>
+                                <exclude>**/src/ui/public/js/arbor-tween.js</exclude>
+                                <exclude>**/src/ui/public/js/jquery.mustache.js</exclude>
+                                <exclude>**/src/ui/public/js/typeahead.jquery.min.js</exclude>
+
+                                <!-- generated by shade plugin -->
+                                <exclude>**/dependency-reduced-pom.xml</exclude>
+
+                                <exclude>**/docs/**</exclude>
+                                <exclude>**/.git/**</exclude>
+                                <exclude>**/derby.log</exclude>
+                                <exclude>**/src/dev/**</exclude>
+
+                                <!-- StormSQL -->
+                                <exclude>**/src/codegen/config.fmpp</exclude>
+                                <exclude>**/src/codegen/data/Parser.tdd</exclude>
+
+                                <!-- Avro Serializer Test Resource -->
+                                <exclude>**/src/test/resources/FixedAvroSerializer.config</exclude>
+                            </excludes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
         <profile>
             <id>sign</id>
             <build>
@@ -334,7 +444,26 @@
                 </plugins>
             </build>
         </profile>
-
+        <profile>
+            <id>all-tests</id>
+            <properties>
+                <java.integration.test.include>**/*.java</java.integration.test.include>
+                <java.integration.test.group>org.apache.storm.testing.IntegrationTest</java.integration.test.group>
+                <clojure.test.set>*.*</clojure.test.set>
+            </properties>
+        </profile>
+        <profile>
+            <id>integration-tests-only</id>
+            <properties>
+                <!--Java-->
+                <java.unit.test.include>no.unit.tests</java.unit.test.include>
+                <java.integration.test.include>**/*.java</java.integration.test.include>
+                <java.integration.test.group>org.apache.storm.testing.IntegrationTest</java.integration.test.group>
+                <!--Clojure-->
+                <clojure.test.set>integration.*</clojure.test.set>
+                <clojure.test.declared.namespace.only>true</clojure.test.declared.namespace.only>
+            </properties>
+        </profile>
     </profiles>
 
     <distributionManagement>
@@ -727,16 +856,38 @@
     </repositories>
 
     <build>
-
         <pluginManagement>
             <plugins>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
-                    <version>2.18.1</version>
+                    <version>${maven-surefire.version}</version>
                     <configuration>
-                      <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                        <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                        <excludedGroups>${java.unit.test.exclude}</excludedGroups>
+                        <includes>
+                            <include>${java.unit.test.include}</include>
+                        </includes>
                     </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>${maven-surefire.version}</version>
+                    <configuration>
+                        <includes>
+                            <include>${java.integration.test.include}</include>
+                        </includes>
+                        <groups>${java.integration.test.group}</groups>  <!--set in integration-test the profile-->
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>integration-test</goal>
+                                <goal>verify</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -830,79 +981,6 @@
                 <groupId>com.theoryinpractise</groupId>
                 <artifactId>clojure-maven-plugin</artifactId>
                 <extensions>true</extensions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.rat</groupId>
-                <artifactId>apache-rat-plugin</artifactId>
-                <version>0.11</version>
-                <executions>
-                    <execution>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <excludeSubProjects>false</excludeSubProjects>
-                    <excludes>
-                        <!-- exclude maven artifacts -->
-                        <exclude>**/target/**</exclude>
-                        <!-- exclude intellij projects -->
-                        <exclude>**/*.iml</exclude>
-                        <exclude>**/.idea/**</exclude>
-                        <!-- module specific testing artifacts -->
-                        <exclude>**/metastore_db/**</exclude>
-                        <!-- anything written into build should be ignored -->
-                        <exclude>**/build/**</exclude>
-
-                        <!-- exclude CHANGELOG, VERSION, AND TODO files -->
-                        <exclude>**/CHANGELOG.md</exclude>
-                        <exclude>**/README.md</exclude>
-                        <exclude>**/README.markdown</exclude>
-                        <exclude>**/DEVELOPER.md</exclude>
-                        <exclude>**/BYLAWS.md</exclude>
-                        <exclude>**/STORM-UI-REST-API.md</exclude>
-                        <exclude>SECURITY.md</exclude>
-                        <exclude>VERSION</exclude>
-                        <exclude>TODO</exclude>
-                        <!-- thrift-generated code -->
-                        <exclude>**/src/py/**</exclude>
-
-                        <!-- the following are in the LICENSE file -->
-                        <exclude>**/src/ui/public/js/jquery.dataTables.1.10.4.min.js</exclude>
-                        <exclude>**/src/ui/public/css/jquery.dataTables.1.10.4.min.css</exclude>
-                        <exclude>**/src/ui/public/images/*</exclude>
-                        <exclude>**/src/ui/public/js/bootstrap-3.3.1.min.js</exclude>
-                        <exclude>**/src/ui/public/css/bootstrap-3.3.1.min.css</exclude>
-                        <exclude>**/src/ui/public/js/dataTables.bootstrap.min.js</exclude>
-                        <exclude>**/src/ui/public/css/dataTables.bootstrap.css</exclude>
-                        <exclude>**/src/ui/public/js/jsonFormatter.min.js</exclude>
-                        <exclude>**/src/ui/public/css/jsonFormatter.min.css</exclude>
-                        <exclude>**/src/ui/public/js/jquery-1.11.1.min.js</exclude>
-                        <exclude>**/src/ui/public/js/jquery.cookies.2.2.0.min.js</exclude>
-                        <exclude>**/src/ui/public/js/moment.min.js</exclude>
-                        <exclude>**/src/ui/public/js/jquery.blockUI.min.js</exclude>
-                        <exclude>**/src/ui/public/js/url.min.js</exclude>
-                        <exclude>**/src/ui/public/js/arbor.js</exclude>
-                        <exclude>**/src/ui/public/js/arbor-graphics.js</exclude>
-                        <exclude>**/src/ui/public/js/arbor-tween.js</exclude>
-                        <exclude>**/src/ui/public/js/jquery.mustache.js</exclude>
-                        <exclude>**/src/ui/public/js/typeahead.jquery.min.js</exclude>
-
-                        <!-- generated by shade plugin -->
-                        <exclude>**/dependency-reduced-pom.xml</exclude>
-
-                        <exclude>**/docs/**</exclude>
-                        <exclude>**/.git/**</exclude>
-                        <exclude>**/derby.log</exclude>
-                        <exclude>**/src/dev/**</exclude>
-
-                        <!-- StormSQL -->
-                        <exclude>**/src/codegen/config.fmpp</exclude>
-                        <exclude>**/src/codegen/data/Parser.tdd</exclude>
-                    </excludes>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

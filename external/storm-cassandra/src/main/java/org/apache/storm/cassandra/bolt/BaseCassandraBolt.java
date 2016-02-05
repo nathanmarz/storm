@@ -18,15 +18,15 @@
  */
 package org.apache.storm.cassandra.bolt;
 
-import backtype.storm.Config;
-import backtype.storm.task.OutputCollector;
-import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.OutputFieldsDeclarer;
-import backtype.storm.topology.base.BaseRichBolt;
-import backtype.storm.tuple.Fields;
-import backtype.storm.tuple.Tuple;
-import backtype.storm.utils.TupleUtils;
-import backtype.storm.utils.Utils;
+import org.apache.storm.Config;
+import org.apache.storm.task.OutputCollector;
+import org.apache.storm.task.TopologyContext;
+import org.apache.storm.topology.OutputFieldsDeclarer;
+import org.apache.storm.topology.base.BaseRichBolt;
+import org.apache.storm.tuple.Fields;
+import org.apache.storm.tuple.Tuple;
+import org.apache.storm.utils.TupleUtils;
+import org.apache.storm.utils.Utils;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import org.apache.storm.cassandra.BaseExecutionResultHandler;
@@ -48,7 +48,7 @@ import java.util.Map;
 /**
  * A base cassandra bolt.
  *
- * Default {@link backtype.storm.topology.base.BaseRichBolt}
+ * Default {@link org.apache.storm.topology.base.BaseRichBolt}
  */
 public abstract class BaseCassandraBolt<T> extends BaseRichBolt {
 

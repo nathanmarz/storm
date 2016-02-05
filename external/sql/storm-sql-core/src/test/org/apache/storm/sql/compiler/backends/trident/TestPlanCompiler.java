@@ -19,13 +19,13 @@
  */
 package org.apache.storm.sql.compiler.backends.trident;
 
-import backtype.storm.Config;
-import backtype.storm.ILocalCluster;
-import backtype.storm.LocalCluster;
-import backtype.storm.generated.StormTopology;
-import backtype.storm.tuple.Fields;
-import backtype.storm.tuple.Values;
-import backtype.storm.utils.Utils;
+import org.apache.storm.Config;
+import org.apache.storm.ILocalCluster;
+import org.apache.storm.LocalCluster;
+import org.apache.storm.generated.StormTopology;
+import org.apache.storm.tuple.Fields;
+import org.apache.storm.tuple.Values;
+import org.apache.storm.utils.Utils;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -37,7 +37,7 @@ import org.apache.storm.sql.runtime.trident.AbstractTridentProcessor;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import storm.trident.TridentTopology;
+import org.apache.storm.trident.TridentTopology;
 
 import java.util.HashMap;
 import java.util.Map;

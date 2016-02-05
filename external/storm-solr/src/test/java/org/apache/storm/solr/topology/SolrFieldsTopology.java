@@ -18,8 +18,8 @@
 
 package org.apache.storm.solr.topology;
 
-import backtype.storm.generated.StormTopology;
-import backtype.storm.topology.TopologyBuilder;
+import org.apache.storm.generated.StormTopology;
+import org.apache.storm.topology.TopologyBuilder;
 import org.apache.storm.solr.bolt.SolrUpdateBolt;
 import org.apache.storm.solr.config.CountBasedCommit;
 import org.apache.storm.solr.config.SolrCommitStrategy;

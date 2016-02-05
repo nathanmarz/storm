@@ -17,8 +17,8 @@
  */
 package org.apache.storm.hdfs.blobstore;
 
-import backtype.storm.blobstore.BlobStoreFile;
-import backtype.storm.generated.SettableBlobMeta;
+import org.apache.storm.blobstore.BlobStoreFile;
+import org.apache.storm.generated.SettableBlobMeta;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -68,6 +68,7 @@ public class HdfsBlobStoreImplTest {
 
     @BeforeClass
     public static void init() {
+        System.setProperty("test.build.data", "target/test/data");
         if (hadoopConf == null) {
             hadoopConf = new Configuration();
         }

@@ -17,7 +17,7 @@
  */
 package org.apache.storm.hdfs.common.security;
 
-import backtype.storm.security.auth.kerberos.AutoTGT;
+import org.apache.storm.security.auth.kerberos.AutoTGT;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.SecurityUtil;
@@ -29,7 +29,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import static backtype.storm.Config.TOPOLOGY_AUTO_CREDENTIALS;
+import static org.apache.storm.Config.TOPOLOGY_AUTO_CREDENTIALS;
 
 /**
  * This class provides util methods for storm-hdfs connector communicating

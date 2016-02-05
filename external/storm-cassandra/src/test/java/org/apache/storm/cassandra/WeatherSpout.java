@@ -18,12 +18,12 @@
  */
 package org.apache.storm.cassandra;
 
-import backtype.storm.spout.SpoutOutputCollector;
-import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.OutputFieldsDeclarer;
-import backtype.storm.topology.base.BaseRichSpout;
-import backtype.storm.tuple.Fields;
-import backtype.storm.tuple.Values;
+import org.apache.storm.spout.SpoutOutputCollector;
+import org.apache.storm.task.TopologyContext;
+import org.apache.storm.topology.OutputFieldsDeclarer;
+import org.apache.storm.topology.base.BaseRichSpout;
+import org.apache.storm.tuple.Fields;
+import org.apache.storm.tuple.Values;
 import org.junit.Assert;
 
 import java.util.Map;
@@ -52,7 +52,7 @@ public class WeatherSpout extends BaseRichSpout {
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer outputFieldsDeclarer) {
-        outputFieldsDeclarer.declare(new Fields("weatherstation_id", "temperature"));
+        outputFieldsDeclarer.declare(new Fields("weather_station_id", "temperature"));
     }
 
     @Override
@@ -77,7 +77,7 @@ public class WeatherSpout extends BaseRichSpout {
 
     @Override
     public void nextTuple() {
-        if(  emit.get() < maxQueries.get() ) {
+        if (emit.get() < maxQueries.get()) {
             spoutOutputCollector.emit(new Values(stationID, "38°C"), emit.incrementAndGet());
         }
     }

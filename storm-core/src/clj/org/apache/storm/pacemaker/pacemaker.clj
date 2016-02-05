@@ -18,11 +18,11 @@
   (:import [org.apache.storm.pacemaker PacemakerServer IServerMessageHandler]
            [java.util.concurrent ConcurrentHashMap]
            [java.util.concurrent.atomic AtomicInteger]
-           [backtype.storm.generated HBNodes
+           [org.apache.storm.generated HBNodes
                                      HBServerMessageType HBMessage HBMessageData HBPulse]
-           [backtype.storm.utils VersionInfo])
+           [org.apache.storm.utils VersionInfo ConfigUtils])
   (:use [clojure.string :only [replace-first split]]
-        [backtype.storm log config util])
+        [org.apache.storm log config util])
   (:require [clojure.java.jmx :as jmx])
   (:gen-class))
 
@@ -233,7 +233,7 @@
   (log-message "Starting pacemaker server for storm version '"
                STORM-VERSION
                "'")
-  (let [conf (override-login-config-with-system-property (read-storm-config))]
+  (let [conf (clojurify-structure (ConfigUtils/overrideLoginConfigWithSystemProperty (ConfigUtils/readStormConfig)))]
     (PacemakerServer. (mk-handler conf) conf)))
 
 (defn -main []

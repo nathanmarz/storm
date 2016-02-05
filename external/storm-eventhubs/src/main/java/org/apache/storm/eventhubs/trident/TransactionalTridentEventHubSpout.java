@@ -22,9 +22,9 @@ import java.util.Map;
 import org.apache.storm.eventhubs.spout.EventHubSpoutConfig;
 import org.apache.storm.eventhubs.spout.IEventDataScheme;
 
-import backtype.storm.task.TopologyContext;
-import backtype.storm.tuple.Fields;
-import storm.trident.spout.IPartitionedTridentSpout;
+import org.apache.storm.task.TopologyContext;
+import org.apache.storm.tuple.Fields;
+import org.apache.storm.trident.spout.IPartitionedTridentSpout;
 import org.apache.storm.eventhubs.trident.Partition;
 
 /**

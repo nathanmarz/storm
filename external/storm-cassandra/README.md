@@ -39,17 +39,24 @@ import static org.apache.storm.cassandra.DynamicStatementBuilder.*
 ```java
 
     new CassandraWriterBolt(
-        insertInto("album")
-            .values(
-                with(fields("title", "year", "performer", "genre", "tracks")
-                ).build());
+        async(
+            simpleQuery("INSERT INTO album (title,year,performer,genre,tracks) VALUES (?, ?, ?, ?, ?);")
+                .with(
+                    fields("title", "year", "performer", "genre", "tracks")
+                 )
+            )
+    );
 ```
+
 ##### Insert query including all tuple fields.
 ```java
 
     new CassandraWriterBolt(
-        insertInto("album")
-            .values(all()).build());
+        async(
+            simpleQuery("INSERT INTO album (title,year,performer,genre,tracks) VALUES (?, ?, ?, ?, ?);")
+                .with( all() )
+            )
+    );
 ```
 
 ##### Insert multiple queries from one input tuple.
@@ -57,32 +64,49 @@ import static org.apache.storm.cassandra.DynamicStatementBuilder.*
 
     new CassandraWriterBolt(
         async(
-        insertInto("titles_per_album").values(all()),
-        insertInto("titles_per_performer").values(all())
+            simpleQuery("INSERT INTO titles_per_album (title,year,performer,genre,tracks) VALUES (?, ?, ?, ?, ?);").with(all())),
+            simpleQuery("INSERT INTO titles_per_performer (title,year,performer,genre,tracks) VALUES (?, ?, ?, ?, ?);").with(all()))
         )
     );
 ```
 
-##### Insert query including some fields with aliases
+##### Insert query using QueryBuilder
 ```java
 
     new CassandraWriterBolt(
-        insertInto("album")
-            .values(
-                with(field("ti"),as("title",
-                     field("ye").as("year")),
-                     field("pe").as("performer")),
-                     field("ge").as("genre")),
-                     field("tr").as("tracks")),
-                     ).build());
+        async(
+            simpleQuery("INSERT INTO album (title,year,perfomer,genre,tracks) VALUES (?, ?, ?, ?, ?);")
+                .with(all()))
+            )
+    )
 ```
 
 ##### Insert query with static bound query
 ```java
 
     new CassandraWriterBolt(
-         boundQuery("INSERT INTO album (\"title\", \"year\", \"performer\", \"genre\", \"tracks\") VALUES(?, ?, ?, ?, ?);")
-            .bind(all());
+         async(
+            boundQuery("INSERT INTO album (title,year,performer,genre,tracks) VALUES (?, ?, ?, ?, ?);")
+                .bind(all());
+         )
+    );
+```
+
+##### Insert query with static bound query using named setters and aliases
+```java
+
+    new CassandraWriterBolt(
+         async(
+            boundQuery("INSERT INTO album (title,year,performer,genre,tracks) VALUES (:ti, :ye, :pe, :ge, :tr);")
+                .bind(
+                    field("ti"),as("title"),
+                    field("ye").as("year")),
+                    field("pe").as("performer")),
+                    field("ge").as("genre")),
+                    field("tr").as("tracks"))
+                ).byNamedSetters()
+         )
+    );
 ```
 
 ##### Insert query with bound statement load from storm configuration
@@ -106,14 +130,14 @@ import static org.apache.storm.cassandra.DynamicStatementBuilder.*
 
     // Logged
     new CassandraWriterBolt(loggedBatch(
-        insertInto("title_per_album").values(all())
-        insertInto("title_per_performer").values(all())
+            simpleQuery("INSERT INTO titles_per_album (title,year,performer,genre,tracks) VALUES (?, ?, ?, ?, ?);").with(all())),
+            simpleQuery("INSERT INTO titles_per_performer (title,year,performer,genre,tracks) VALUES (?, ?, ?, ?, ?);").with(all()))
         )
     );
 // UnLogged
     new CassandraWriterBolt(unLoggedBatch(
-        insertInto("title_per_album").values(all())
-        insertInto("title_per_performer").values(all())
+            simpleQuery("INSERT INTO titles_per_album (title,year,performer,genre,tracks) VALUES (?, ?, ?, ?, ?);").with(all())),
+            simpleQuery("INSERT INTO titles_per_performer (title,year,performer,genre,tracks) VALUES (?, ?, ?, ?, ?);").with(all()))
         )
     );
 ```
@@ -176,6 +200,34 @@ CassandraWriterBolt bolt = new CassandraWriterBolt(
             ).build());
 builder.setBolt("BOLT_WRITER", bolt, 4)
         .customGrouping("spout", new Murmur3StreamGrouping("title"))
+```
+
+### Trident API support
+storm-cassandra support Trident `state` API for `inserting` data into Cassandra. 
+```java
+        CassandraState.Options options = new CassandraState.Options(new CassandraContext());
+        CQLStatementTupleMapper insertTemperatureValues = boundQuery(
+                "INSERT INTO weather.temperature(weather_station_id, weather_station_name, event_time, temperature) VALUES(?, ?, ?, ?)")
+                .bind(with(field("weather_station_id"), field("name").as("weather_station_name"), field("event_time").now(), field("temperature")));
+        options.withCQLStatementTupleMapper(insertTemperatureValues);
+        CassandraStateFactory insertValuesStateFactory =  new CassandraStateFactory(options);
+        TridentState selectState = topology.newStaticState(selectWeatherStationStateFactory);
+        stream = stream.stateQuery(selectState, new Fields("weather_station_id"), new CassandraQuery(), new Fields("name"));
+        stream = stream.each(new Fields("name"), new PrintFunction(), new Fields("name_x"));
+        stream.partitionPersist(insertValuesStateFactory, new Fields("weather_station_id", "name", "event_time", "temperature"), new CassandraStateUpdater(), new Fields());
+```
+
+Below `state` API for `querying` data from Cassandra.
+```java
+        CassandraState.Options options = new CassandraState.Options(new CassandraContext());
+        CQLStatementTupleMapper insertTemperatureValues = boundQuery("SELECT name FROM weather.station WHERE id = ?")
+                 .bind(with(field("weather_station_id").as("id")));
+        options.withCQLStatementTupleMapper(insertTemperatureValues);
+        options.withCQLResultSetValuesMapper(new TridentResultSetValuesMapper(new Fields("name")));
+        CassandraStateFactory selectWeatherStationStateFactory =  new CassandraStateFactory(options);
+        CassandraStateFactory selectWeatherStationStateFactory = getSelectWeatherStationStateFactory();
+        TridentState selectState = topology.newStaticState(selectWeatherStationStateFactory);
+        stream = stream.stateQuery(selectState, new Fields("weather_station_id"), new CassandraQuery(), new Fields("name"));         
 ```
 
 ## License

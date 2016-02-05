@@ -17,17 +17,20 @@
  */
 package org.apache.storm.elasticsearch.bolt;
 
-import backtype.storm.tuple.Tuple;
-import backtype.storm.tuple.Values;
+import org.apache.storm.testing.IntegrationTest;
+import org.apache.storm.tuple.Tuple;
+import org.apache.storm.tuple.Values;
 import org.apache.storm.elasticsearch.common.EsConfig;
 import org.apache.storm.elasticsearch.common.EsTestUtil;
 import org.apache.storm.elasticsearch.common.EsTupleMapper;
 import org.elasticsearch.action.percolate.PercolateResponse;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
-import static org.mockito.Mockito.verify;
 import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.verify;
 
+@Category(IntegrationTest.class)
 public class EsPercolateBoltTest extends AbstractEsBoltIntegrationTest<EsPercolateBolt> {
 
     @Override

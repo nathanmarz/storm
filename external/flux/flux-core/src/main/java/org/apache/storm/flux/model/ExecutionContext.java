@@ -17,9 +17,9 @@
  */
 package org.apache.storm.flux.model;
 
-import backtype.storm.Config;
-import backtype.storm.task.IBolt;
-import backtype.storm.topology.IRichSpout;
+import org.apache.storm.Config;
+import org.apache.storm.task.IBolt;
+import org.apache.storm.topology.IRichSpout;
 
 import java.util.HashMap;
 import java.util.List;

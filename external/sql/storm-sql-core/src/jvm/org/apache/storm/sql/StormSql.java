@@ -17,8 +17,8 @@
  */
 package org.apache.storm.sql;
 
-import backtype.storm.StormSubmitter;
-import backtype.storm.generated.SubmitOptions;
+import org.apache.storm.StormSubmitter;
+import org.apache.storm.generated.SubmitOptions;
 import org.apache.storm.sql.runtime.ChannelHandler;
 
 import java.util.Map;

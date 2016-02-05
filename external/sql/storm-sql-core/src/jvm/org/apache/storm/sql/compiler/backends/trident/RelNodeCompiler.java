@@ -19,7 +19,7 @@
  */
 package org.apache.storm.sql.compiler.backends.trident;
 
-import backtype.storm.tuple.Fields;
+import org.apache.storm.tuple.Fields;
 import com.google.common.base.Joiner;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.rel.RelNode;

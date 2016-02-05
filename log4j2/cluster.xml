@@ -73,15 +73,15 @@
 </appenders>
 <loggers>
 
-    <Logger name="backtype.storm.logging.filters.AccessLoggingFilter" level="info" additivity="false">
+    <Logger name="org.apache.storm.logging.filters.AccessLoggingFilter" level="info" additivity="false">
         <AppenderRef ref="WEB-ACCESS"/>
         <AppenderRef ref="syslog"/>
     </Logger>
-    <Logger name="backtype.storm.logging.ThriftAccessLogger" level="info" additivity="false">
+    <Logger name="org.apache.storm.logging.ThriftAccessLogger" level="info" additivity="false">
         <AppenderRef ref="THRIFT-ACCESS"/>
         <AppenderRef ref="syslog"/>
     </Logger>
-    <Logger name="backtype.storm.metric.LoggingMetricsConsumer" level="info">
+    <Logger name="org.apache.storm.metric.LoggingMetricsConsumer" level="info">
         <AppenderRef ref="METRICS"/>
     </Logger>
     <root level="info"> <!-- We log everything -->

@@ -27,16 +27,31 @@ import java.io.Serializable;
  * the bolts should be put in this class.
  */
 public class SolrConfig implements Serializable {
-    private String zkHostString;
+    private final String zkHostString;
+    private final int tickTupleInterval;
 
     /**
      * @param zkHostString Zookeeper host string as defined in the {@link CloudSolrClient} constructor
      * */
     public SolrConfig(String zkHostString) {
+       this(zkHostString, 0);
+    }
+
+    /**
+     * @param zkHostString Zookeeper host string as defined in the {@link CloudSolrClient} constructor
+     * @param tickTupleInterval interval for tick tuples
+     * */
+    public SolrConfig(String zkHostString, int tickTupleInterval) {
         this.zkHostString = zkHostString;
+        this.tickTupleInterval = tickTupleInterval;
     }
 
     public String getZkHostString() {
         return zkHostString;
     }
+
+    public int getTickTupleInterval() {
+        return tickTupleInterval;
+    }
+
 }

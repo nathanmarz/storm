@@ -42,6 +42,7 @@
             <outputDirectory>bin</outputDirectory>
             <includes>
                 <include>storm*</include>
+                <include>flight.bash</include>
             </includes>
             <fileMode>0755</fileMode>
         </fileSet>
@@ -278,6 +279,28 @@
             <outputDirectory>external/sql</outputDirectory>
             <includes>
                 <include>README.*</include>
+            </includes>
+        </fileSet>
+
+        <fileSet>
+            <directory>${project.basedir}/../../external/storm-mqtt</directory>
+            <outputDirectory>external/storm-mqtt</outputDirectory>
+            <includes>
+                <include>README.*</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/storm-mqtt/core/target</directory>
+            <outputDirectory>external/storm-mqtt</outputDirectory>
+            <includes>
+                <include>storm*jar</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../../external/storm-mqtt/examples/target</directory>
+            <outputDirectory>external/storm-mqtt</outputDirectory>
+            <includes>
+                <include>storm*jar</include>
             </includes>
         </fileSet>
 

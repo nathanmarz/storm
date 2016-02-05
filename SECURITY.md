@@ -172,7 +172,7 @@ Each jaas file may have multiple sections for different interfaces being used.
 
 To enable Kerberos authentication in storm you need to set the following `storm.yaml` configs
 ```yaml
-storm.thrift.transport: "backtype.storm.security.auth.kerberos.KerberosSaslTransportPlugin"
+storm.thrift.transport: "org.apache.storm.security.auth.kerberos.KerberosSaslTransportPlugin"
 java.security.auth.login.config: "/path/to/jaas.conf"
 ```
 
@@ -275,7 +275,7 @@ Server {
 Nimbus also will translate the principal into a local user name, so that other services can use this name.  To configure this for Kerberos authentication set
 
 ```
-storm.principal.tolocal: "backtype.storm.security.auth.KerberosPrincipalToLocal"
+storm.principal.tolocal: "org.apache.storm.security.auth.KerberosPrincipalToLocal"
 ```
 
 This only needs to be done on nimbus, but it will not hurt on any node.
@@ -324,7 +324,7 @@ The end user can override this if they have a headless user that has a keytab.
 The preferred authorization plug-in for nimbus is The *SimpleACLAuthorizer*.  To use the *SimpleACLAuthorizer*, set the following:
 
 ```yaml
-nimbus.authorizer: "backtype.storm.security.auth.authorizer.SimpleACLAuthorizer"
+nimbus.authorizer: "org.apache.storm.security.auth.authorizer.SimpleACLAuthorizer"
 ```
 
 DRPC has a separate authorizer configuration for it.  Do not use SimpleACLAuthorizer for DRPC.
@@ -349,7 +349,7 @@ To ensure isolation of users in multi-tenancy, the supervisors must run under a 
 
 To support multi-tenancy better we have written a new scheduler.  To enable this scheduler set:
 ```yaml
-storm.scheduler: "backtype.storm.scheduler.multitenant.MultitenantScheduler"
+storm.scheduler: "org.apache.storm.scheduler.multitenant.MultitenantScheduler"
 ```
 Be aware that many of the features of this scheduler rely on storm authentication.  Without storm authentication, the scheduler will not know what the user is, and thus will not isolate topologies properly.
 
@@ -392,11 +392,11 @@ A storm client may submit requests on behalf of another user. For example, if a 
 it can do so by leveraging the impersonation feature. In order to submit a topology as some other user, you can use the `StormSubmitter.submitTopologyAs` API. Alternatively you can use `NimbusClient.getConfiguredClientAs`
 to get a nimbus client as some other user and perform any nimbus action (i.e., kill/rebalance/activate/deactivate) using this client.
 
-To ensure only authorized users can perform impersonation, you should start nimbus with `nimbus.impersonation.authorizer` set to `backtype.storm.security.auth.authorizer.ImpersonationAuthorizer`.
+To ensure only authorized users can perform impersonation, you should start nimbus with `nimbus.impersonation.authorizer` set to `org.apache.storm.security.auth.authorizer.ImpersonationAuthorizer`.
 The `ImpersonationAuthorizer` uses `nimbus.impersonation.acl` as the acl to authorize users. Following is a sample nimbus config for supporting impersonation:
 
 ```yaml
-nimbus.impersonation.authorizer: backtype.storm.security.auth.authorizer.ImpersonationAuthorizer
+nimbus.impersonation.authorizer: org.apache.storm.security.auth.authorizer.ImpersonationAuthorizer
 nimbus.impersonation.acl:
     impersonating_user1:
         hosts:
@@ -425,7 +425,7 @@ Individual topologies have the ability to push credentials (tickets and tokens) 
 To hide this from them, in the common case plugins can be used to populate the credentials, unpack them on the other side into a java Subject, and also allow Nimbus to renew the credentials if needed.
 These are controlled by the following configs:
 
-* `topology.auto-credentials`: a list of java plugins, all of which must implement IAutoCredentials interface, that populate the credentials on gateway and unpack them on the worker side. On a kerberos secure cluster they should be set by default to point to `backtype.storm.security.auth.kerberos.AutoTGT`.  `nimbus.credential.renewers.classes` should also be set to this value so that nimbus can periodically renew the TGT on behalf of the user.
+* `topology.auto-credentials`: a list of java plugins, all of which must implement IAutoCredentials interface, that populate the credentials on gateway and unpack them on the worker side. On a kerberos secure cluster they should be set by default to point to `org.apache.storm.security.auth.kerberos.AutoTGT`.  `nimbus.credential.renewers.classes` should also be set to this value so that nimbus can periodically renew the TGT on behalf of the user.
 * `nimbus.credential.renewers.freq.secs`: controls how often the renewer will poll to see if anything needs to be renewed, but the default should be fine.
 
 In addition Nimbus itself can be used to get credentials on behalf of the user submitting topologies. This can be configures using:

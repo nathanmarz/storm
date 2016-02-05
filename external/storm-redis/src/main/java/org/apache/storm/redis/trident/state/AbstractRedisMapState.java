@@ -19,12 +19,12 @@ package org.apache.storm.redis.trident.state;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import storm.trident.state.JSONNonTransactionalSerializer;
-import storm.trident.state.JSONOpaqueSerializer;
-import storm.trident.state.JSONTransactionalSerializer;
-import storm.trident.state.Serializer;
-import storm.trident.state.StateType;
-import storm.trident.state.map.IBackingMap;
+import org.apache.storm.trident.state.JSONNonTransactionalSerializer;
+import org.apache.storm.trident.state.JSONOpaqueSerializer;
+import org.apache.storm.trident.state.JSONTransactionalSerializer;
+import org.apache.storm.trident.state.Serializer;
+import org.apache.storm.trident.state.StateType;
+import org.apache.storm.trident.state.map.IBackingMap;
 
 import java.util.ArrayList;
 import java.util.Collections;

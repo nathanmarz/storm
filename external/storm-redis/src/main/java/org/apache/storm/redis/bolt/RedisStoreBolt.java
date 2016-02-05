@@ -17,8 +17,8 @@
  */
 package org.apache.storm.redis.bolt;
 
-import backtype.storm.topology.OutputFieldsDeclarer;
-import backtype.storm.tuple.Tuple;
+import org.apache.storm.topology.OutputFieldsDeclarer;
+import org.apache.storm.tuple.Tuple;
 import org.apache.storm.redis.common.config.JedisClusterConfig;
 import org.apache.storm.redis.common.config.JedisPoolConfig;
 import org.apache.storm.redis.common.mapper.RedisDataTypeDescription;
@@ -94,6 +94,7 @@ public class RedisStoreBolt extends AbstractRedisBolt {
 
                 case SORTED_SET:
                     jedisCommand.zadd(additionalKey, Double.valueOf(value), key);
+                    break;
 
                 case HYPER_LOG_LOG:
                     jedisCommand.pfadd(key, value);

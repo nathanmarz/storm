@@ -17,7 +17,7 @@
  *******************************************************************************/
 package org.apache.storm.eventhubs.spout;
 
-import backtype.storm.tuple.Fields;
+import org.apache.storm.tuple.Fields;
 import java.io.Serializable;
 import java.util.List;
 import org.apache.qpid.amqp_1_0.client.Message;

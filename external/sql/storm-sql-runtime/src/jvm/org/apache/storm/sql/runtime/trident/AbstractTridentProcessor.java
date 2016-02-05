@@ -21,8 +21,8 @@
 package org.apache.storm.sql.runtime.trident;
 
 import org.apache.storm.sql.runtime.ISqlTridentDataSource;
-import storm.trident.Stream;
-import storm.trident.TridentTopology;
+import org.apache.storm.trident.Stream;
+import org.apache.storm.trident.TridentTopology;
 
 import java.util.Map;
 

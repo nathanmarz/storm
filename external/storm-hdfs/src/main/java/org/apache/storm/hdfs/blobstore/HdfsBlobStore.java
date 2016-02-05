@@ -17,19 +17,19 @@
  */
 package org.apache.storm.hdfs.blobstore;
 
-import backtype.storm.Config;
-import backtype.storm.blobstore.AtomicOutputStream;
-import backtype.storm.blobstore.BlobStore;
-import backtype.storm.blobstore.BlobStoreAclHandler;
-import backtype.storm.blobstore.BlobStoreFile;
-import backtype.storm.blobstore.InputStreamWithMeta;
-import backtype.storm.generated.AuthorizationException;
-import backtype.storm.generated.KeyNotFoundException;
-import backtype.storm.generated.KeyAlreadyExistsException;
-import backtype.storm.generated.ReadableBlobMeta;
-import backtype.storm.generated.SettableBlobMeta;
-import backtype.storm.nimbus.NimbusInfo;
-import backtype.storm.utils.Utils;
+import org.apache.storm.Config;
+import org.apache.storm.blobstore.AtomicOutputStream;
+import org.apache.storm.blobstore.BlobStore;
+import org.apache.storm.blobstore.BlobStoreAclHandler;
+import org.apache.storm.blobstore.BlobStoreFile;
+import org.apache.storm.blobstore.InputStreamWithMeta;
+import org.apache.storm.generated.AuthorizationException;
+import org.apache.storm.generated.KeyNotFoundException;
+import org.apache.storm.generated.KeyAlreadyExistsException;
+import org.apache.storm.generated.ReadableBlobMeta;
+import org.apache.storm.generated.SettableBlobMeta;
+import org.apache.storm.nimbus.NimbusInfo;
+import org.apache.storm.utils.Utils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -46,9 +46,9 @@ import java.security.PrivilegedAction;
 import java.util.Iterator;
 import java.util.Map;
 
-import static backtype.storm.blobstore.BlobStoreAclHandler.ADMIN;
-import static backtype.storm.blobstore.BlobStoreAclHandler.READ;
-import static backtype.storm.blobstore.BlobStoreAclHandler.WRITE;
+import static org.apache.storm.blobstore.BlobStoreAclHandler.ADMIN;
+import static org.apache.storm.blobstore.BlobStoreAclHandler.READ;
+import static org.apache.storm.blobstore.BlobStoreAclHandler.WRITE;
 
 /**
  * Provides a HDFS file system backed blob store implementation.

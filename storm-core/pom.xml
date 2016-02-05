@@ -20,7 +20,7 @@
     <parent>
         <artifactId>storm</artifactId>
         <groupId>org.apache.storm</groupId>
-        <version>0.11.0-SNAPSHOT</version>
+        <version>2.0.0-SNAPSHOT</version>
         <relativePath>..</relativePath>
     </parent>
     <groupId>org.apache.storm</groupId>
@@ -332,6 +332,33 @@
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
         </dependency>
+        <dependency>
+            <!--
+            hadoop-auth is needed in storm-core because ui in a secured storm cluster needs it for authentication.
+            Please DO NOT REMOVE this dependency
+            -->
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-auth</artifactId>
+            <version>${hadoop.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.directory.server</groupId>
+                    <artifactId>apacheds-kerberos-codec</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
     </dependencies>
     <build>
         <sourceDirectory>src/jvm</sourceDirectory>
@@ -412,6 +439,11 @@
                             <testScript>test/resources/test_runner.clj</testScript>
                             <!-- argLine is set by JaCoCo for code coverage -->
                             <vmargs>${argLine} ${test.extra.args}</vmargs>
+                            <!-- Run clojure unit tests or all tests (including integration tests) depending on the profile enabled -->
+                            <testNamespaces>
+                                <testNamespace>${clojure.test.set}</testNamespace>
+                            </testNamespaces>
+                            <testDeclaredNamespaceOnly>${clojure.test.declared.namespace.only}</testDeclaredNamespaceOnly>
                         </configuration>
                     </execution>
                 </executions>
@@ -423,6 +455,13 @@
                     <reportsDirectories>
                         <file>${project.build.directory}/test-reports</file>
                     </reportsDirectories>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <reportsDirectory>${project.build.directory}/test-reports</reportsDirectory>
                 </configuration>
             </plugin>
             <plugin>
@@ -461,6 +500,7 @@
                             <include>org.jgrapht:jgrapht-core</include>
                             <include>org.apache.commons:commons-exec</include>
                             <include>org.apache.commons:commons-compress</include>
+                            <include>org.apache.hadoop:hadoop-auth</include>
                             <include>commons-io:commons-io</include>
                             <include>commons-codec:commons-codec</include>
                             <include>commons-fileupload:commons-fileupload</include>
@@ -539,7 +579,7 @@
                         <relocation>
                             <pattern>org.apache.thrift</pattern>
                             <!-- This pattern is inconsistent for backwards compatibility purposes. -->
-                            <shadedPattern>org.apache.thrift7</shadedPattern>
+                            <shadedPattern>org.apache.storm.thrift</shadedPattern>
                         </relocation>
                         <relocation>
                             <pattern>org.jboss.netty</pattern>
@@ -939,9 +979,9 @@
                                 <configuration>
                                     <append>true</append>
                                     <excludes>
-                                        <exclude>backtype/storm/metric/api/IMetricsConsumer$DataPointFieldAccess</exclude>
-                                        <exclude>backtype/storm/metric/api/IMetricsConsumer$TaskInfoFieldAccess</exclude>
-                                        <exclude>backtype/storm/testing/TestSerObjectFieldAccess</exclude>
+                                        <exclude>org/apache/storm/metric/api/IMetricsConsumer$DataPointFieldAccess</exclude>
+                                        <exclude>org/apache/storm/metric/api/IMetricsConsumer$TaskInfoFieldAccess</exclude>
+                                        <exclude>org/apache/storm/testing/TestSerObjectFieldAccess</exclude>
                                     </excludes>
                                 </configuration>
                             </execution>
@@ -953,7 +993,7 @@
                                 </goals>
                                 <configuration>
                                     <excludes>
-                                        <exclude>backtype/storm/generated/*</exclude> <!--Thrift generated code-->
+                                        <exclude>org/apache/storm/generated/*</exclude> <!--Thrift generated code-->
                                     </excludes>
                                     <includes>
                                         <include>backtype/*/*/*/*</include>

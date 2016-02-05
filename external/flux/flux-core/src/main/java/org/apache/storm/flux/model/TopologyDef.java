@@ -27,7 +27,7 @@ import java.util.*;
  *
  * It consists of the following:
  *   1. The topology name
- *   2. A `java.util.Map` representing the `backtype.storm.config` for the topology
+ *   2. A `java.util.Map` representing the `org.apache.storm.config` for the topology
  *   3. A list of spout definitions
  *   4. A list of bolt definitions
  *   5. A list of stream definitions that define the flow between spouts and bolts.

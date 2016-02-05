@@ -23,7 +23,7 @@
  * details.
  */
 
-namespace java backtype.storm.generated
+namespace java org.apache.storm.generated
 
 union JavaObjectArg {
   1: i32 int_arg;
@@ -629,7 +629,8 @@ service Nimbus {
   string beginFileUpload() throws (1: AuthorizationException aze);
   void uploadChunk(1: string location, 2: binary chunk) throws (1: AuthorizationException aze);
   void finishFileUpload(1: string location) throws (1: AuthorizationException aze);
-  
+
+  //@deprecated beginBlobDownload does that
   string beginFileDownload(1: string file) throws (1: AuthorizationException aze);
   //can stop downloading chunks when receive 0-length byte array back
   binary downloadChunk(1: string id) throws (1: AuthorizationException aze);

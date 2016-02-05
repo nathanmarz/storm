@@ -17,21 +17,21 @@
  */
 package org.apache.storm.hdfs.blobstore;
 
-import backtype.storm.Config;
-import backtype.storm.blobstore.AtomicOutputStream;
-import backtype.storm.blobstore.BlobStore;
-import backtype.storm.blobstore.BlobStoreAclHandler;
-import backtype.storm.generated.AccessControl;
-import backtype.storm.generated.AuthorizationException;
-import backtype.storm.generated.KeyAlreadyExistsException;
-import backtype.storm.generated.KeyNotFoundException;
-import backtype.storm.generated.ReadableBlobMeta;
-import backtype.storm.generated.SettableBlobMeta;
-import backtype.storm.generated.AccessControlType;
+import org.apache.storm.Config;
+import org.apache.storm.blobstore.AtomicOutputStream;
+import org.apache.storm.blobstore.BlobStore;
+import org.apache.storm.blobstore.BlobStoreAclHandler;
+import org.apache.storm.generated.AccessControl;
+import org.apache.storm.generated.AuthorizationException;
+import org.apache.storm.generated.KeyAlreadyExistsException;
+import org.apache.storm.generated.KeyNotFoundException;
+import org.apache.storm.generated.ReadableBlobMeta;
+import org.apache.storm.generated.SettableBlobMeta;
+import org.apache.storm.generated.AccessControlType;
 
-import backtype.storm.security.auth.NimbusPrincipal;
-import backtype.storm.security.auth.SingleUserPrincipal;
-import backtype.storm.utils.Utils;
+import org.apache.storm.security.auth.NimbusPrincipal;
+import org.apache.storm.security.auth.SingleUserPrincipal;
+import org.apache.storm.utils.Utils;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
@@ -76,6 +76,7 @@ public class BlobStoreTest {
 
   @Before
   public void init() {
+    System.setProperty("test.build.data", "target/test/data");
     initializeConfigs();
     baseFile = new File("/tmp/blob-store-test-"+UUID.randomUUID());
     base = baseFile.toURI();
@@ -171,7 +172,7 @@ public class BlobStoreTest {
     }
     Map conf = new HashMap();
     conf.put(Config.BLOBSTORE_DIR, dirName);
-    conf.put(Config.STORM_PRINCIPAL_TO_LOCAL_PLUGIN,"backtype.storm.security.auth.DefaultPrincipalToLocal");
+    conf.put(Config.STORM_PRINCIPAL_TO_LOCAL_PLUGIN,"org.apache.storm.security.auth.DefaultPrincipalToLocal");
     conf.put(Config.STORM_BLOBSTORE_REPLICATION_FACTOR, 3);
     HdfsBlobStore store = new HdfsBlobStore();
     store.prepareInternal(conf, null, dfscluster.getConfiguration(0));

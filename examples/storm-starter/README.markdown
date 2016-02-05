@@ -72,23 +72,6 @@ the Maven command to build and run storm-starter (see below), Maven will then be
 of Storm in this local Maven repository at `$HOME/.m2/repository`.
 
 
-## Running topologies with Maven
-
-> Note: All following examples require that you run `cd examples/storm-starter` beforehand.
-
-storm-starter topologies which don't use multilang feature can be run with the maven-exec-plugin. 
-For example, to compile and run `ExclamationTopology` in local mode, use the command:
-
-    $ mvn compile exec:java -Dstorm.topology=storm.starter.ExclamationTopology
-
-You can also run clojure topologies with Maven:
-
-    $ mvn compile exec:java -Dstorm.topology=storm.starter.clj.word_count
-
-In Windows parameter should be quoted, like this:
-
-    $ mvn compile exec:java "-Dstorm.topology=storm.starter.clj.word_count"
-
 ## Packaging storm-starter for use on a Storm cluster
 
 You can package a jar suitable for submitting to a Storm cluster with the command:
@@ -104,12 +87,12 @@ Example filename of the uberjar:
 
 You can submit (run) a topology contained in this uberjar to Storm via the `storm` CLI tool:
 
-    # Example 1: Run the RollingTopWords in local mode (LocalCluster)
-    $ storm jar storm-starter-*.jar storm.starter.RollingTopWords
+    # Example 1: Run the ExclamationTopology in local mode (LocalCluster)
+    $ storm jar target/storm-starter-*.jar org.apache.storm.starter.ExclamationTopology
 
     # Example 2: Run the RollingTopWords in remote/cluster mode,
     #            under the name "production-topology"
-    $ storm jar storm-starter-*.jar storm.starter.RollingTopWords production-topology remote
+    $ storm jar storm-starter-*.jar org.apache.storm.starter.RollingTopWords production-topology remote
 
 With submitting you can run topologies which use multilang, for example, `WordCountTopology`.
 
@@ -148,9 +131,10 @@ The following instructions will import storm-starter as a new project in Intelli
 * Select _Import project from external model_, select "Maven", and click _Next_.
 * In the following screen, enable the checkbox _Import Maven projects automatically_.  Leave all other values at their
   defaults.  Click _Next_.
+* Make sure to select the *intellij* profile in the profiles screen.  This is important for making sure dependencies set correctly. 
 * Click _Next_ on the following screen about selecting Maven projects to import.
 * Select the JDK to be used by IDEA for storm-starter, then click _Next_.
-    * At the time of this writing you should use JDK 6.
-    * It is strongly recommended to use Sun/Oracle JDK 6 rather than OpenJDK 6.
+    * At the time of this writing you should use JDK 7 and above.
+    * It is strongly recommended to use Oracle JDK rather than OpenJDK.
 * You may now optionally change the name of the project in IDEA.  The default name suggested by IDEA is "storm-starter".
   Click _Finish_ once you are done.

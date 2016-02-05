@@ -17,10 +17,11 @@
  */
 package org.apache.storm.elasticsearch.bolt;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.UUID;
-
+import org.apache.storm.testing.IntegrationTest;
+import org.apache.storm.tuple.Fields;
+import org.apache.storm.tuple.ITuple;
+import org.apache.storm.tuple.Tuple;
+import org.apache.storm.tuple.Values;
 import org.apache.storm.elasticsearch.ElasticsearchGetRequest;
 import org.apache.storm.elasticsearch.EsLookupResultOutput;
 import org.apache.storm.elasticsearch.common.EsConfig;
@@ -29,21 +30,22 @@ import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
-import backtype.storm.tuple.Fields;
-import backtype.storm.tuple.ITuple;
-import backtype.storm.tuple.Tuple;
-import backtype.storm.tuple.Values;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.verify;
 
+@Category(IntegrationTest.class)
 @RunWith(MockitoJUnitRunner.class)
 public class EsLookupBoltIntegrationTest extends AbstractEsBoltIntegrationTest<EsLookupBolt> {
 

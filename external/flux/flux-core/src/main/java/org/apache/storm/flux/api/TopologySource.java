@@ -18,7 +18,7 @@
 package org.apache.storm.flux.api;
 
 
-import backtype.storm.generated.StormTopology;
+import org.apache.storm.generated.StormTopology;
 
 import java.util.Map;
 

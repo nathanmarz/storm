@@ -17,12 +17,12 @@
  */
 package org.apache.storm.flux;
 
-import backtype.storm.Config;
-import backtype.storm.generated.StormTopology;
-import backtype.storm.grouping.CustomStreamGrouping;
-import backtype.storm.topology.*;
-import backtype.storm.tuple.Fields;
-import backtype.storm.utils.Utils;
+import org.apache.storm.Config;
+import org.apache.storm.generated.StormTopology;
+import org.apache.storm.grouping.CustomStreamGrouping;
+import org.apache.storm.topology.*;
+import org.apache.storm.tuple.Fields;
+import org.apache.storm.utils.Utils;
 import org.apache.storm.flux.api.TopologySource;
 import org.apache.storm.flux.model.*;
 import org.slf4j.Logger;
@@ -35,7 +35,7 @@ public class FluxBuilder {
     private static Logger LOG = LoggerFactory.getLogger(FluxBuilder.class);
 
     /**
-     * Given a topology definition, return a populated `backtype.storm.Config` instance.
+     * Given a topology definition, return a populated `org.apache.storm.Config` instance.
      *
      * @param topologyDef
      * @return
@@ -103,7 +103,7 @@ public class FluxBuilder {
 
     /**
      * Given a `java.lang.Object` instance and a method name, attempt to find a method that matches the input
-     * parameter: `java.util.Map` or `backtype.storm.Config`.
+     * parameter: `java.util.Map` or `org.apache.storm.Config`.
      *
      * @param topologySource object to inspect for the specified method
      * @param methodName name of the method to look for

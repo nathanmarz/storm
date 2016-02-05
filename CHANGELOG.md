@@ -1,4 +1,95 @@
-## 0.11.0
+## 2.0.0
+ * STORM-1257: port backtype.storm.zookeeper to java
+ * STORM-1504: Add Serializer and instruction for AvroGenericRecordBolt
+
+## 1.0.0
+ * STORM-1505: Add map, flatMap and filter functions in trident stream
+ * STORM-1518: Backport of STORM-1504
+ * STORM-1510: Fix broken nimbus log link
+ * STORM-1503: Worker should not crash on failure to send heartbeats to Pacemaker/ZK
+ * STORM-1176: Checkpoint window evaluated/expired state
+ * STORM-1494: Add link to supervisor log in Storm UI
+ * STORM-1496: Nimbus periodically throws blobstore-related exception
+ * STORM-1484: ignore subproject .classpath & .project file
+ * STORM-1478: make bolts getComponentConfiguration method cleaner/simpler
+ * STORM-1499: fix wrong package name for storm trident
+ * STORM-1463: added file scehma to log4j config files for windows env
+ * STORM-1485: DRPC Connectivity Issues
+ * STORM-1486: Fix storm-kafa documentation
+ * STORM-1214: add javadoc for Trident Streams and Operations
+ * STORM-1450: Fix minor bugs and refactor code in ResourceAwareScheduler
+ * STORM-1452: Fixes profiling/debugging out of the box
+ * STORM-1406: Add MQTT Support
+ * STORM-1473: enable log search for daemon logs
+ * STORM-1472: Fix the errorTime bug and show the time to be readable
+ * STORM-1466: Move the org.apache.thrift7 namespace to something correct/sensible
+ * STORM-1470: Applies shading to hadoop-auth, cleaner exclusions
+ * STORM-1467: Switch apache-rat plugin off by default, but enable for Travis-CI
+ * STORM-1468: move documentation to asf-site branch
+ * STORM-1199: HDFS Spout Implementation.
+ * STORM-1453: nimbus.clj/wait-for-desired-code-replication prints wrong log message
+ * STORM-1419: Solr bolt should handle tick tuples
+ * STORM-1175: State store for windowing operations
+ * STORM-1202: Migrate APIs to org.apache.storm, but try to provide some form of backwards compatability
+ * STORM-468: java.io.NotSerializableException should be explained
+ * STORM-1348: refactor API to remove Insert/Update builder in Cassandra connector
+ * STORM-1206: Reduce logviewer memory usage through directory stream
+ * STORM-1219: Fix HDFS and Hive bolt flush/acking
+ * STORM-1150: Fix the authorization of Logviewer in method authorized-log-user?
+ * STORM-1418: improve debug logs for some external modules
+ * STORM-1415: Some improvements for trident map StateUpdater
+ * STORM-1414: Some improvements for multilang JsonSerializer
+ * STORM-1408: clean up the build directory created by tests
+ * STORM-1425: Tick tuples should be acked like normal tuples
+ * STORM-1432: Spurious failure in storm-kafka test 
+ * STORM-1449: Fix Kafka spout to maintain backward compatibility
+ * STORM-1458: Add check to see if nimbus is already running.
+ * STORM-1462: Upgrade HikariCP to 2.4.3
+ * STORM-1457: Avoid collecting pending tuples if topology.debug is off
+ * STORM-1430: ui worker checkboxes
+ * STORM-1423: storm UI in a secure env shows error even when credentials are present
+ * STORM-702: Exhibitor support
+ * STORM-1160: Add hadoop-auth dependency needed for storm-core
+ * STORM-1404: Fix Mockito test failures in storm-kafka.
+ * STORM-1379: Removed Redundant Structure
+ * STORM-706: Clarify examples README for IntelliJ.
+ * STORM-1396: Added backward compatibility method for File Download
+ * STORM-695: storm CLI tool reports zero exit code on error scenario
+ * STORM-1416: Documentation for state store
+ * STORM-1426: keep backtype.storm.tuple.AddressedTuple and delete duplicated backtype.storm.messaging.AddressedTuple
+ * STORM-1417: fixed equals/hashCode contract in CoordType
+ * STORM-1422: broken example in storm-starter tutorial
+ * STORM-1429: LocalizerTest fix
+ * STORM-1401: removes multilang-test
+ * STORM-1424: Removed unused topology-path variable
+ * STORM-1427: add TupleUtils/listHashCode method and delete tuple.clj
+ * STORM-1413: remove unused variables for some tests
+ * STORM-1412: null check should be done in the first place
+ * STORM-1210: Set Output Stream id in KafkaSpout
+ * STORM-1397: Merge conflict from Pacemaker merge
+ * STORM-1373: Blobstore API sample example usage
+ * STORM-1409: StormClientErrorHandler is not used
+ * STORM-1411: Some fixes for storm-windowing
+ * STORM-1399: Blobstore tests should write data to `target` so it gets removed when running `mvn clean`
+ * STORM-1398: Add back in TopologyDetails.getTopology
+ * STORM-898: Add priorities and per user resource guarantees to Resource Aware Scheduler
+ * STORM-1187: Support windowing based on tuple ts.
+ * STORM-1400: Netty Context removeClient() called after term() causes NullPointerException.
+ * STORM-1383: Supervisors should not crash if nimbus is unavailable
+ * STORM-1381: Client side topology submission hook.
+ * STORM-1376: Performance slowdown due excessive zk connections and log-debugging
+ * STORM-1395: Move JUnit dependency to top-level pom
+ * STORM-1372: Merging design and usage documents for distcache
+ * STORM-1393: Update the storm.log.dir function, add doc for logs
+ * STORM-1377: nimbus_auth_test: very short timeouts causing spurious failures
+ * STORM-1388: Fix url and email links in README file
+ * STORM-1389: Removed creation of projection tuples as they are already available
+ * STORM-1179: Create Maven Profiles for Integration Tests.
+ * STORM-1387: workers-artifacts directory configurable, and default to be under storm.log.dir.
+ * STORM-1211: Add trident state and query support for cassandra connector
+ * STORM-1359: Change kryo links from google code to github
+ * STORM-1385: Divide by zero exception in stats.clj
+ * STORM-1370: Bug fixes for MultitenantScheduler
  * STORM-1374: fix random failure on WindowManagerTest
  * STORM-1040: SQL support for Storm.
  * STORM-1364: Log storm version on daemon start
@@ -43,7 +134,6 @@
  * STORM-1182: Removing and wrapping some exceptions in ConfigValidation to make code cleaner
  * STORM-1134. Windows: Fix log4j config.
  * STORM-1127: allow for boolean arguments (Flux)
- * STORM-1180: FLUX logo wasn't appearing quite right
  * STORM-1138: Storm-hdfs README should be updated with Avro Bolt information
  * STORM-1154: SequenceFileBolt needs unit tests
  * STORM-162: Load Aware Shuffle Grouping
@@ -167,7 +257,15 @@
  * STORM-1144: Display requested and assigned cpu/mem resources for schedulers in UI
  * STORM-1217: making small fixes in RAS
 
-## 0.10.0-beta2
+## 0.10.1
+
+ * STORM-1481: avoid Math.abs(Integer) get a negative value
+ * STORM-1121: Deprecate test only configuraton nimbus.reassign
+ * STORM-1180: FLUX logo wasn't appearing quite right
+ * STORM-1482: add missing 'break' for RedisStoreBolt
+
+## 0.10.0
+ * STORM-1096: Fix some issues with impersonation on the UI
  * STORM-581: Add rebalance params to Storm REST API
  * STORM-1108: Fix NPE in simulated time
  * STORM-1099: Fix worker childopts as arraylist of strings
@@ -201,9 +299,6 @@
  * STORM-966: ConfigValidation.DoubleValidator doesn't really validate whether the type of the object is a double
  * STORM-742: Let ShellBolt treat all messages to update heartbeat
  * STORM-992: A bug in the timer.clj might cause unexpected delay to schedule new event
-
-## 0.10.0
- * STORM-1096: Fix some issues with impersonation on the UI
 
 ## 0.10.0-beta1
  * STORM-873: Flux does not handle diamond topologies
@@ -934,4 +1029,3 @@ NOTE: The change from 0.7.0 in which OutputCollector no longer assumes immutable
 ## 0.5.0
  
  * Initial release!
-

@@ -18,7 +18,7 @@
 package org.apache.storm.eventhubs.bolt;
 
 import java.io.Serializable;
-import backtype.storm.tuple.Tuple;
+import org.apache.storm.tuple.Tuple;
 
 /**
  * Serialize a tuple to a byte array to be sent to EventHubs

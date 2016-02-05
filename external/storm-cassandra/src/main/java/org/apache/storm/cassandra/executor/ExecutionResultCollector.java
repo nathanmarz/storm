@@ -18,8 +18,8 @@
  */
 package org.apache.storm.cassandra.executor;
 
-import backtype.storm.task.OutputCollector;
-import backtype.storm.tuple.Tuple;
+import org.apache.storm.task.OutputCollector;
+import org.apache.storm.tuple.Tuple;
 import com.google.common.collect.Lists;
 import org.apache.storm.cassandra.ExecutionResultHandler;
 
@@ -53,7 +53,7 @@ public interface ExecutionResultCollector {
         }
 
         /**
-         * Calls {@link ExecutionResultHandler#onQuerySuccess(backtype.storm.task.OutputCollector, backtype.storm.tuple.Tuple)} before
+         * Calls {@link ExecutionResultHandler#onQuerySuccess(org.apache.storm.task.OutputCollector, org.apache.storm.tuple.Tuple)} before
          * acknowledging an single input tuple.
          */
         @Override
@@ -88,7 +88,7 @@ public interface ExecutionResultCollector {
         }
 
         /**
-         * Calls {@link ExecutionResultHandler#onThrowable(Throwable, backtype.storm.task.OutputCollector, backtype.storm.tuple.Tuple)} .
+         * Calls {@link ExecutionResultHandler#onThrowable(Throwable, org.apache.storm.task.OutputCollector, org.apache.storm.tuple.Tuple)} .
          */
         @Override
         public void handle(OutputCollector collector, ExecutionResultHandler handler) {

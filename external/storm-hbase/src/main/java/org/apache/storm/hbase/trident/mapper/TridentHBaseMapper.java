@@ -19,13 +19,13 @@
 package org.apache.storm.hbase.trident.mapper;
 
 
-import backtype.storm.tuple.Tuple;
+import org.apache.storm.tuple.Tuple;
 import org.apache.storm.hbase.common.ColumnList;
-import storm.trident.tuple.TridentTuple;
+import org.apache.storm.trident.tuple.TridentTuple;
 
 import java.io.Serializable;
 /**
- * Maps a <code>storm.trident.tuple.TridentTuple</code> object
+ * Maps a <code>org.apache.storm.trident.tuple.TridentTuple</code> object
  * to a row in an HBase table.
  */
 public interface TridentHBaseMapper extends Serializable {

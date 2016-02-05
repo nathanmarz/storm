@@ -17,16 +17,16 @@
  */
 package org.apache.storm.hbase.topology;
 
-import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.BasicOutputCollector;
-import backtype.storm.topology.IBasicBolt;
-import backtype.storm.topology.OutputFieldsDeclarer;
-import backtype.storm.tuple.Fields;
-import backtype.storm.tuple.Tuple;
+import org.apache.storm.task.TopologyContext;
+import org.apache.storm.topology.BasicOutputCollector;
+import org.apache.storm.topology.IBasicBolt;
+import org.apache.storm.topology.OutputFieldsDeclarer;
+import org.apache.storm.tuple.Fields;
+import org.apache.storm.tuple.Tuple;
 
 import java.util.Map;
 
-import static backtype.storm.utils.Utils.tuple;
+import static org.apache.storm.utils.Utils.tuple;
 
 public class WordCounter implements IBasicBolt {
 

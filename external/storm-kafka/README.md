@@ -65,14 +65,12 @@ In addition to these parameters, SpoutConfig contains the following fields that 
 
     // Exponential back-off retry settings.  These are used when retrying messages after a bolt
     // calls OutputCollector.fail().
-    // Note: be sure to set backtype.storm.Config.MESSAGE_TIMEOUT_SECS appropriately to prevent
+    // Note: be sure to set org.apache.storm.Config.MESSAGE_TIMEOUT_SECS appropriately to prevent
     // resubmitting the message while still retrying.
     public long retryInitialDelayMs = 0;
     public double retryDelayMultiplier = 1.0;
     public long retryDelayMaxMs = 60 * 1000;
 
-    // if set to true, spout will set Kafka topic as the emitted Stream ID
-    public boolean topicAsStreamId = false;
 ```
 Core KafkaSpout only accepts an instance of SpoutConfig.
 
@@ -95,26 +93,33 @@ The KafkaConfig class also has bunch of public variables that controls your appl
 
 Most of them are self explanatory except MultiScheme.
 ###MultiScheme
-MultiScheme is an interface that dictates how the byte[] consumed from Kafka gets transformed into a storm tuple. It
+MultiScheme is an interface that dictates how the ByteBuffer consumed from Kafka gets transformed into a storm tuple. It
 also controls the naming of your output field.
 
 ```java
-  public Iterable<List<Object>> deserialize(byte[] ser);
+  public Iterable<List<Object>> deserialize(ByteBuffer ser);
   public Fields getOutputFields();
 ```
 
-The default `RawMultiScheme` just takes the `byte[]` and returns a tuple with `byte[]` as is. The name of the outputField is "bytes". There are alternative implementations like `SchemeAsMultiScheme` and `KeyValueSchemeAsMultiScheme` which can convert the `byte[]` to `String`.
+The default `RawMultiScheme` just takes the `ByteBuffer` and returns a tuple with the ByteBuffer converted to a `byte[]`. The name of the outputField is "bytes". There are alternative implementations like `SchemeAsMultiScheme` and `KeyValueSchemeAsMultiScheme` which can convert the `ByteBuffer` to `String`.
 
 There is also an extension of `SchemeAsMultiScheme`, `MessageMetadataSchemeAsMultiScheme`,
-which has an additional deserialize method that accepts the message `byte[]` in addition to the `Partition` and `offset` associated with the message.
+which has an additional deserialize method that accepts the message `ByteBuffer` in addition to the `Partition` and `offset` associated with the message.
 
 ```java
-public Iterable<List<Object>> deserializeMessageWithMetadata(byte[] message, Partition partition, long offset)
+public Iterable<List<Object>> deserializeMessageWithMetadata(ByteBuffer message, Partition partition, long offset)
 
 ```
 
 This is useful for auditing/replaying messages from arbitrary points on a Kafka topic, saving the partition and offset of each message of a discrete stream instead of persisting the entire message.
 
+#### Version incompatibility
+In Storm versions prior to 1.0, the MultiScheme methods accepted a `byte[]` instead of `ByteBuffer`. The `MultScheme` and the related
+Scheme apis were changed in version 1.0 to accept a ByteBuffer instead of a byte[].
+
+This means that pre 1.0 kafka spouts will not work with Storm versions 1.0 and higher. While running topologies in Storm version 1.0
+and higher, it must be ensured that the storm-kafka version is at least 1.0. Pre 1.0 shaded topology jars that bundles
+storm-kafka classes must be rebuilt with storm-kafka version 1.0 for running in clusters with storm 1.0 and higher.
 
 ### Examples
 
@@ -192,9 +197,9 @@ use Kafka 0.8.1.1 built against Scala 2.10, you would use the following dependen
 Note that the ZooKeeper and log4j dependencies are excluded to prevent version conflicts with Storm's dependencies.
 
 ##Writing to Kafka as part of your topology
-You can create an instance of storm.kafka.bolt.KafkaBolt and attach it as a component to your topology or if you
-are using trident you can use storm.kafka.trident.TridentState, storm.kafka.trident.TridentStateFactory and
-storm.kafka.trident.TridentKafkaUpdater.
+You can create an instance of org.apache.storm.kafka.bolt.KafkaBolt and attach it as a component to your topology or if you
+are using trident you can use org.apache.storm.kafka.trident.TridentState, org.apache.storm.kafka.trident.TridentStateFactory and
+org.apache.storm.kafka.trident.TridentKafkaUpdater.
 
 You need to provide implementation of following 2 interfaces
 

@@ -140,7 +140,7 @@ public class Config extends HashMap<String, Object> {
     public static final String STORM_META_SERIALIZATION_DELEGATE = "storm.meta.serialization.delegate";
 
     /**
-     * A list of daemon metrics  reporter plugin class names. The classes should implement
+     * A list of daemon metrics  reporter plugin class names.
      * These plugins must implement {@link org.apache.storm.daemon.metrics.reporters.PreparableReporter} interface.
      */
     @isStringList

@@ -1,6 +1,7 @@
 ## 2.0.0
  * STORM-1257: port backtype.storm.zookeeper to java
  * STORM-1504: Add Serializer and instruction for AvroGenericRecordBolt
+ * STORM-1524: Add Pluggable daemon metrics Reporters
 
 ## 1.0.0
  * STORM-1517: Add peek api in trident stream

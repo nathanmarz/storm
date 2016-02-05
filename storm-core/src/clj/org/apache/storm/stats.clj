@@ -24,7 +24,7 @@
             ExecutorAggregateStats SpecificAggregateStats
             SpoutAggregateStats TopologyPageInfo TopologyStats])
   (:import [org.apache.storm.utils Utils])
-  (:import [org.apache.storm.cluster StormZkClusterState])
+  (:import [org.apache.storm.cluster StormClusterStateImpl])
   (:import [org.apache.storm.metric.internal MultiCountStatAndMetric MultiLatencyStatAndMetric])
   (:use [org.apache.storm log util])
   (:use [clojure.math.numeric-tower :only [ceil]]))

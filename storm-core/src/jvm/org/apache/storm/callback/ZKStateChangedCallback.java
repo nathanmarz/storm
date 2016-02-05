@@ -18,9 +18,8 @@
 
 package org.apache.storm.callback;
 
-import clojure.lang.IFn;
+import org.apache.zookeeper.Watcher;
 
-// To remove IFn after porting all callbacks to java
-public interface Callback {
-    public <T> Object execute(T... args);
+public interface ZKStateChangedCallback {
+    public void changed(Watcher.Event.EventType type, String path);
 }

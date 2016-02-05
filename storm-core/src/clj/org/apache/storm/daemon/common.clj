@@ -13,7 +13,6 @@
 ;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
-;TopologyActionOptions TopologyStatus StormBase RebalanceOptions KillOptions
 (ns org.apache.storm.daemon.common
   (:use [org.apache.storm log config util])
   (:import [org.apache.storm.generated StormTopology NodeInfo
@@ -22,7 +21,7 @@
   (:import [org.apache.storm.utils Utils ConfigUtils])
   (:import [org.apache.storm.task WorkerTopologyContext])
   (:import [org.apache.storm Constants])
-  (:import [org.apache.storm.cluster StormZkClusterState])
+  (:import [org.apache.storm.cluster StormClusterStateImpl])
   (:import [org.apache.storm.metric SystemBolt])
   (:import [org.apache.storm.metric EventLoggerBolt])
   (:import [org.apache.storm.security.auth IAuthorizer]) 
@@ -84,7 +83,7 @@
 
 (defn topology-bases [storm-cluster-state]
   (let [active-topologies (.activeStorms storm-cluster-state)]
-    (into {} 
+    (into {}
           (dofor [id active-topologies]
                  [id  (.stormBase storm-cluster-state id nil)]
                  ))

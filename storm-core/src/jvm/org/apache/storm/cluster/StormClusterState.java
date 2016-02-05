@@ -114,7 +114,7 @@ public interface StormClusterState {
 
     public void removeKeyVersion(String blobKey);
 
-    public void reportError(String stormId, String componentId, String node, Integer port, String error);
+    public void reportError(String stormId, String componentId, String node, Long port, String error);
 
     public List<ErrorInfo> errors(String stormId, String componentId);
 

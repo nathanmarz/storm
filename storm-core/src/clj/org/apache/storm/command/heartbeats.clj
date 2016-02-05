@@ -22,12 +22,12 @@
             [clojure.string :as string])
   (:import [org.apache.storm.generated ClusterWorkerHeartbeat]
            [org.apache.storm.utils Utils ConfigUtils]
-           [org.apache.storm.cluster DistributedClusterState ClusterStateContext])
+           [org.apache.storm.cluster ZKStateStorage ClusterStateContext ClusterUtils])
   (:gen-class))
 
 (defn -main [command path & args]
   (let [conf (clojurify-structure (ConfigUtils/readStormConfig))
-        cluster (DistributedClusterState. conf conf nil (ClusterStateContext.))]
+        cluster (ClusterUtils/mkDistributedClusterState conf conf nil (ClusterStateContext.))]
     (println "Command: [" command "]")
     (condp = command
       "list"

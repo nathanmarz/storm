@@ -29,7 +29,7 @@
   (:import [org.mockito.exceptions.base MockitoAssertionError])
   (:import [java.io File])
   (:import [java.nio.file Files])
-  (:import [org.apache.storm.cluster StormZkClusterState Cluster ClusterStateContext])
+  (:import [org.apache.storm.cluster StormClusterStateImpl ClusterStateContext ClusterUtils])
   (:import [java.nio.file.attribute FileAttribute])
   (:use [org.apache.storm config testing util timer log converter])
   (:use [org.apache.storm.daemon common])
@@ -565,17 +565,17 @@
           fake-isupervisor (reify ISupervisor
                              (getSupervisorId [this] nil)
                              (getAssignmentId [this] nil))
-          storm-zk (Mockito/mock Cluster)]
+          cluster-utils (Mockito/mock ClusterUtils)]
       (with-open [_ (proxy [MockedConfigUtils] []
                       (supervisorStateImpl [conf] nil)
                       (supervisorLocalDirImpl [conf] nil))
-                  storm-zk-le (MockedCluster. storm-zk)]
+                  mocked-cluster (MockedCluster. cluster-utils)]
         (stubbing [uptime-computer nil
               ;   cluster/mk-storm-cluster-state nil
                  local-hostname nil
                  mk-timer nil]
           (supervisor/supervisor-data auth-conf nil fake-isupervisor)
-          (.mkStormClusterStateImpl (Mockito/verify storm-zk (Mockito/times 1)) (Mockito/any) (Mockito/eq expected-acls) (Mockito/any))
+          (.mkStormClusterStateImpl (Mockito/verify cluster-utils (Mockito/times 1)) (Mockito/any) (Mockito/eq expected-acls) (Mockito/any))
         ;  (verify-call-times-for cluster/mk-storm-cluster-state 1)
         ;  (verify-first-call-args-for-indices cluster/mk-storm-cluster-state [2]
         ;                                     expected-acls)

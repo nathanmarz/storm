@@ -36,7 +36,7 @@
   (:import [org.apache.storm.task WorkerTopologyContext])
   (:import [org.apache.storm Constants])
   (:import [org.apache.storm.security.auth AuthUtils])
-  (:import [org.apache.storm.cluster ClusterStateContext DaemonType DistributedClusterState StormZkClusterState])
+  (:import [org.apache.storm.cluster ClusterStateContext DaemonType ZKStateStorage StormClusterStateImpl ClusterUtils])
   (:import [javax.security.auth Subject])
   (:import [java.security PrivilegedExceptionAction])
   (:import [org.apache.logging.log4j LogManager])
@@ -73,7 +73,7 @@
                }]
     ;; do the zookeeper heartbeat
     (try
-      (.workerHeartbeat (:storm-cluster-state worker) (:storm-id worker) (:assignment-id worker) (:port worker) (thriftify-zk-worker-hb zk-hb))
+      (.workerHeartbeat (:storm-cluster-state worker) (:storm-id worker) (:assignment-id worker) (long (:port worker)) (thriftify-zk-worker-hb zk-hb))
       (catch Exception exc
         (log-error exc "Worker failed to write heatbeats to ZK or Pacemaker...will retry")))))
 
@@ -241,7 +241,7 @@
                        )
             :timer-name timer-name))
 
-(defn worker-data [conf mq-context storm-id assignment-id port worker-id storm-conf cluster-state storm-cluster-state]
+(defn worker-data [conf mq-context storm-id assignment-id port worker-id storm-conf state-store storm-cluster-state]
   (let [assignment-versions (atom {})
         executors (set (read-worker-executors storm-conf storm-cluster-state storm-id assignment-id port assignment-versions))
         transfer-queue (disruptor/disruptor-queue "worker-transfer-queue" (storm-conf TOPOLOGY-TRANSFER-BUFFER-SIZE)
@@ -267,7 +267,7 @@
       :assignment-id assignment-id
       :port port
       :worker-id worker-id
-      :cluster-state cluster-state
+      :state-store state-store
       :storm-cluster-state storm-cluster-state
       ;; when worker bootup, worker will start to setup initial connections to
       ;; other workers. When all connection is ready, we will enable this flag
@@ -596,14 +596,14 @@
   (let [storm-conf (ConfigUtils/readSupervisorStormConf conf storm-id)
         storm-conf (clojurify-structure (ConfigUtils/overrideLoginConfigWithSystemProperty storm-conf))
         acls (Utils/getWorkerACL storm-conf)
-        cluster-state (DistributedClusterState. conf storm-conf  acls  (ClusterStateContext. DaemonType/WORKER))
-        storm-cluster-state (StormZkClusterState. cluster-state acls (ClusterStateContext.))
+        state-store (ClusterUtils/mkDistributedClusterState conf storm-conf  acls  (ClusterStateContext. DaemonType/WORKER))
+        storm-cluster-state (ClusterUtils/mkStormClusterState state-store acls (ClusterStateContext.))
         initial-credentials (clojurify-crdentials (.credentials storm-cluster-state storm-id nil))
         auto-creds (AuthUtils/GetAutoCredentials storm-conf)
         subject (AuthUtils/populateSubject nil auto-creds initial-credentials)]
       (Subject/doAs subject (reify PrivilegedExceptionAction
         (run [this]
-          (let [worker (worker-data conf shared-mq-context storm-id assignment-id port worker-id storm-conf cluster-state storm-cluster-state)
+          (let [worker (worker-data conf shared-mq-context storm-id assignment-id port worker-id storm-conf state-store storm-cluster-state)
         heartbeat-fn #(do-heartbeat worker)
 
         ;; do this here so that the worker process dies if this fails
@@ -686,10 +686,10 @@
                     (log-message "Trigger any worker shutdown hooks")
                     (run-worker-shutdown-hooks worker)
 
-                    (.removeWorkerHeartbeat (:storm-cluster-state worker) storm-id assignment-id port)
+                    (.removeWorkerHeartbeat (:storm-cluster-state worker) storm-id assignment-id (long port))
                     (log-message "Disconnecting from storm cluster state context")
                     (.disconnect (:storm-cluster-state worker))
-                    (.close (:cluster-state worker))
+                    (.close (:state-store worker))
                     (log-message "Shut down worker " storm-id " " assignment-id " " port))
         ret (reify
              Shutdownable
@@ -732,7 +732,7 @@
       (.topologyLogConfig (:storm-cluster-state worker) storm-id (fn [args] (check-log-config-changed))))
 
     (establish-log-setting-callback)
-    (clojurify-crdentials (.credentials (:storm-cluster-state worker) storm-id (fn [args] (check-credentials-changed))))
+    (clojurify-crdentials (.credentials (:storm-cluster-state worker) storm-id (fn [] (check-credentials-changed))))
     (schedule-recurring (:refresh-credentials-timer worker) 0 (conf TASK-CREDENTIALS-POLL-SECS)
                         (fn [& args]
                           (check-credentials-changed)

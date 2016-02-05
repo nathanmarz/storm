@@ -16,16 +16,16 @@
  */
 package org.apache.storm.testing.staticmocking;
 
-import org.apache.storm.cluster.Cluster;
+import org.apache.storm.cluster.ClusterUtils;
 
 public class MockedCluster implements AutoCloseable  {
 
-    public MockedCluster(Cluster inst) {
-        Cluster.setInstance(inst);
+    public MockedCluster(ClusterUtils inst) {
+        ClusterUtils.setInstance(inst);
     }
 
     @Override
     public void close() throws Exception {
-        Cluster.resetInstance();
+        ClusterUtils.resetInstance();
     }
 }

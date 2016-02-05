@@ -23,9 +23,10 @@
   (:import [org.mockito.exceptions.base MockitoAssertionError])
   (:import [org.apache.curator.framework CuratorFramework CuratorFrameworkFactory CuratorFrameworkFactory$Builder])
   (:import [org.apache.storm.utils Utils TestUtils ZookeeperAuthInfo ConfigUtils])
-  (:import [org.apache.storm.cluster ClusterState DistributedClusterState ClusterStateContext StormZkClusterState])
+  (:import [org.apache.storm.cluster StateStorage ZKStateStorage ClusterStateContext StormClusterStateImpl ClusterUtils])
   (:import [org.apache.storm.zookeeper Zookeeper])
-  (:import [org.apache.storm.testing.staticmocking MockedZookeeper])
+  (:import [org.apache.storm.callback ZKStateChangedCallback])
+  (:import [org.apache.storm.testing.staticmocking MockedZookeeper MockedCluster])
   (:require [conjure.core])
   (:use [conjure core])
   (:use [clojure test])
@@ -33,18 +34,18 @@
 
 (defn mk-config [zk-port]
   (merge (clojurify-structure (ConfigUtils/readStormConfig))
-         {STORM-ZOOKEEPER-PORT zk-port
-          STORM-ZOOKEEPER-SERVERS ["localhost"]}))
+    {STORM-ZOOKEEPER-PORT zk-port
+     STORM-ZOOKEEPER-SERVERS ["localhost"]}))
 
 (defn mk-state
   ([zk-port] (let [conf (mk-config zk-port)]
-               (DistributedClusterState. conf conf nil (ClusterStateContext.))))
+               (ClusterUtils/mkDistributedClusterState conf conf nil (ClusterStateContext.))))
   ([zk-port cb]
-     (let [ret (mk-state zk-port)]
-       (.register ret cb)
-       ret )))
+    (let [ret (mk-state zk-port)]
+      (.register ret cb)
+      ret)))
 
-(defn mk-storm-state [zk-port] (StormZkClusterState. (mk-config zk-port) nil (ClusterStateContext.)))
+(defn mk-storm-state [zk-port] (ClusterUtils/mkStormClusterState (mk-config zk-port) nil (ClusterStateContext.)))
 
 (deftest test-basics
   (with-inprocess-zookeeper zk-port
@@ -99,24 +100,27 @@
 
 (defn mk-callback-tester []
   (let [last (atom nil)
-        cb (fn [type path]
-              (reset! last {:type type :path path}))]
+        cb (reify
+             ZKStateChangedCallback
+             (changed
+               [this type path]
+               (reset! last {:type type :path path})))]
     [last cb]
     ))
 
 (defn read-and-reset! [aatom]
   (let [time (System/currentTimeMillis)]
-  (loop []
-    (if-let [val @aatom]
-      (do
-        (reset! aatom nil)
-        val)
-      (do
-        (when (> (- (System/currentTimeMillis) time) 30000)
-          (throw (RuntimeException. "Waited too long for atom to change state")))
-        (Thread/sleep 10)
-        (recur))
-      ))))
+    (loop []
+      (if-let [val @aatom]
+        (do
+          (reset! aatom nil)
+          val)
+        (do
+          (when (> (- (System/currentTimeMillis) time) 30000)
+            (throw (RuntimeException. "Waited too long for atom to change state")))
+          (Thread/sleep 10)
+          (recur))
+        ))))
 
 (deftest test-callbacks
   (with-inprocess-zookeeper zk-port
@@ -189,35 +193,35 @@
       (is (= #{"storm1" "storm3"} (set (.assignments state nil))))
       (is (= assignment2 (clojurify-assignment (.assignmentInfo state "storm1" nil))))
       (is (= assignment1 (clojurify-assignment (.assignmentInfo state "storm3" nil))))
-      
-      (is (= [] (.active-storms state)))
+
+      (is (= [] (.activeStorms state)))
       (.activateStorm state "storm1" (thriftify-storm-base base1))
-      (is (= ["storm1"] (.active-storms state)))
+      (is (= ["storm1"] (.activeStorms state)))
       (is (= base1 (clojurify-storm-base (.stormBase state "storm1" nil))))
       (is (= nil (clojurify-storm-base (.stormBase state "storm2" nil))))
       (.activateStorm state "storm2" (thriftify-storm-base base2))
       (is (= base1 (clojurify-storm-base (.stormBase state "storm1" nil))))
       (is (= base2 (clojurify-storm-base (.stormBase state "storm2" nil))))
-      (is (= #{"storm1" "storm2"} (set (.active-storms state))))
+      (is (= #{"storm1" "storm2"} (set (.activeStorms state))))
       (.removeStormBase state "storm1")
       (is (= base2 (clojurify-storm-base (.stormBase state "storm2" nil))))
-      (is (= #{"storm2"} (set (.active-storms state))))
+      (is (= #{"storm2"} (set (.activeStorms state))))
 
       (is (nil? (clojurify-crdentials (.credentials state "storm1" nil))))
-      (.setCredentials! state "storm1" (thriftify-credentials {"a" "a"}) {})
+      (.setCredentials state "storm1" (thriftify-credentials {"a" "a"}) {})
       (is (= {"a" "a"} (clojurify-crdentials (.credentials state "storm1" nil))))
       (.setCredentials state "storm1" (thriftify-credentials {"b" "b"}) {})
       (is (= {"b" "b"} (clojurify-crdentials (.credentials state "storm1" nil))))
 
-      (is (= [] (.blobstoreInfo state nil)))
-      (.setupBlobstore state "key1" nimbusInfo1 "1")
-      (is (= ["key1"] (.blobstoreInfo state nil)))
+      (is (= [] (.blobstoreInfo state "")))
+      (.setupBlobstore state "key1" nimbusInfo1 (Integer/parseInt "1"))
+      (is (= ["key1"] (.blobstoreInfo state "")))
       (is (= [(str (.toHostPortString nimbusInfo1) "-1")] (.blobstoreInfo state "key1")))
-      (.setupBlobstore state "key1" nimbusInfo2 "1")
+      (.setupBlobstore state "key1" nimbusInfo2 (Integer/parseInt "1"))
       (is (= #{(str (.toHostPortString nimbusInfo1) "-1")
                (str (.toHostPortString nimbusInfo2) "-1")} (set (.blobstoreInfo state "key1"))))
       (.removeBlobstoreKey state "key1")
-      (is (= [] (.blobstoreInfo state nil)))
+      (is (= [] (.blobstoreInfo state "")))
 
       (is (= [] (.nimbuses state)))
       (.addNimbusHost state "nimbus1:port" nimbusSummary1)
@@ -230,11 +234,10 @@
       )))
 
 (defn- validate-errors! [state storm-id component errors-list]
-  (let [errors (clojurify-error (.errors state storm-id component))]
-    ;;(println errors)
+  (let [errors (map clojurify-error (.errors state storm-id component))]
     (is (= (count errors) (count errors-list)))
     (doseq [[error target] (map vector errors errors-list)]
-      (when-not  (.contains (:error error) target)
+      (when-not (.contains (:error error) target)
         (println target " => " (:error error)))
       (is (.contains (:error error) target))
       )))
@@ -257,8 +260,9 @@
           (.reportError state "a" "2" (local-hostname) 6700 (stringify-error (IllegalArgumentException.)))
           (advance-time-secs! 2))
         (validate-errors! state "a" "2" (concat (repeat 5 "IllegalArgumentException")
-                                                (repeat 5 "RuntimeException")
-                                                ))
+                                          (repeat 5 "RuntimeException")
+                                          ))
+
         (.disconnect state)
         ))))
 
@@ -285,23 +289,23 @@
   (with-inprocess-zookeeper zk-port
     (let [builder (Mockito/mock CuratorFrameworkFactory$Builder)
           conf (merge
-                (mk-config zk-port)
-                {STORM-ZOOKEEPER-CONNECTION-TIMEOUT 10
-                 STORM-ZOOKEEPER-SESSION-TIMEOUT 10
-                 STORM-ZOOKEEPER-RETRY-INTERVAL 5
-                 STORM-ZOOKEEPER-RETRY-TIMES 2
-                 STORM-ZOOKEEPER-RETRY-INTERVAL-CEILING 15
-                 STORM-ZOOKEEPER-AUTH-SCHEME "digest"
-                 STORM-ZOOKEEPER-AUTH-PAYLOAD "storm:thisisapoorpassword"})]
+                 (mk-config zk-port)
+                 {STORM-ZOOKEEPER-CONNECTION-TIMEOUT 10
+                  STORM-ZOOKEEPER-SESSION-TIMEOUT 10
+                  STORM-ZOOKEEPER-RETRY-INTERVAL 5
+                  STORM-ZOOKEEPER-RETRY-TIMES 2
+                  STORM-ZOOKEEPER-RETRY-INTERVAL-CEILING 15
+                  STORM-ZOOKEEPER-AUTH-SCHEME "digest"
+                  STORM-ZOOKEEPER-AUTH-PAYLOAD "storm:thisisapoorpassword"})]
       (. (Mockito/when (.connectString builder (Mockito/anyString))) (thenReturn builder))
       (. (Mockito/when (.connectionTimeoutMs builder (Mockito/anyInt))) (thenReturn builder))
       (. (Mockito/when (.sessionTimeoutMs builder (Mockito/anyInt))) (thenReturn builder))
       (TestUtils/testSetupBuilder builder (str zk-port "/") conf (ZookeeperAuthInfo. conf))
       (is (nil?
-           (try
-             (. (Mockito/verify builder) (authorization "digest" (.getBytes (conf STORM-ZOOKEEPER-AUTH-PAYLOAD))))
-             (catch MockitoAssertionError e
-               e)))))))
+            (try
+              (. (Mockito/verify builder) (authorization "digest" (.getBytes (conf STORM-ZOOKEEPER-AUTH-PAYLOAD))))
+              (catch MockitoAssertionError e
+                e)))))))
 
 (deftest test-storm-state-callbacks
   ;; TODO finish
@@ -309,13 +313,17 @@
 
 (deftest test-cluster-state-default-acls
   (testing "The default ACLs are empty."
-    (let [zk-mock (Mockito/mock Zookeeper)]
+    (let [zk-mock (Mockito/mock Zookeeper)
+          curator-frameworke (reify CuratorFramework (^void close [this] nil))]
       ;; No need for when clauses because we just want to return nil
       (with-open [_ (MockedZookeeper. zk-mock)]
-          (. (Mockito/when (Mockito/mock Zookeeper)) (thenReturn (reify CuratorFramework (^void close [this] nil))))
-          (. (Mockito/when (Mockito/mock DistributedClusterState)) (thenReturn {}))
-          (. (Mockito/when (Mockito/mock StormZkClusterState)) (thenReturn (reify ClusterState
-                                                                             (register [this callback] nil)
-                                                                             (mkdirs [this path acls] nil))))
-          (.mkdirsImpl (Mockito/verify zk-mock (Mockito/times 1)) (Mockito/any) (Mockito/anyString) (Mockito/eq nil))))))
-
+        (. (Mockito/when (.mkClientImpl zk-mock (Mockito/anyMap) (Mockito/anyList) (Mockito/any) (Mockito/anyString) (Mockito/any) (Mockito/anyMap))) (thenReturn curator-frameworke))
+        (ClusterUtils/mkDistributedClusterState {} nil nil (ClusterStateContext.))
+        (.mkdirsImpl (Mockito/verify zk-mock (Mockito/times 1)) (Mockito/any) (Mockito/anyString) (Mockito/eq nil))))
+    (let [distributed-state-storage (reify StateStorage
+                                      (register [this callback] nil)
+                                      (mkdirs [this path acls] nil))
+          cluster-utils (Mockito/mock ClusterUtils)]
+      (with-open [mocked-cluster (MockedCluster. cluster-utils)]
+        (. (Mockito/when (.mkDistributedClusterStateImpl cluster-utils (Mockito/any) (Mockito/any) (Mockito/eq nil) (Mockito/any))) (thenReturn distributed-state-storage))
+        (ClusterUtils/mkStormClusterState {} nil (ClusterStateContext.))))))

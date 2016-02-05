@@ -34,7 +34,7 @@
   (:import [org.apache.storm.daemon Shutdownable])
   (:import [org.apache.storm.metric.api IMetric IMetricsConsumer$TaskInfo IMetricsConsumer$DataPoint StateMetric])
   (:import [org.apache.storm Config Constants])
-  (:import [org.apache.storm.cluster ClusterStateContext DaemonType StormZkClusterState Cluster])
+  (:import [org.apache.storm.cluster ClusterStateContext DaemonType StormClusterStateImpl ClusterUtils])
   (:import [org.apache.storm.grouping LoadAwareCustomStreamGrouping LoadAwareShuffleGrouping LoadMapping ShuffleGrouping])
   (:import [java.util.concurrent ConcurrentLinkedQueue])
   (:require [org.apache.storm [thrift :as thrift] [disruptor :as disruptor] [stats :as stats]])
@@ -208,7 +208,7 @@
       (when (<= @interval-errors max-per-interval)
         (.reportError (:storm-cluster-state executor) (:storm-id executor) (:component-id executor)
                               (hostname storm-conf)
-                              (.getThisWorkerPort (:worker-context executor)) error)
+          (long (.getThisWorkerPort (:worker-context executor))) error)
         ))))
 
 ;; in its own function so that it can be mocked out by tracked topologies
@@ -251,7 +251,7 @@
      :batch-transfer-queue batch-transfer->worker
      :transfer-fn (mk-executor-transfer-fn batch-transfer->worker storm-conf)
      :suicide-fn (:suicide-fn worker)
-     :storm-cluster-state (StormZkClusterState. (:cluster-state worker) (Utils/getWorkerACL storm-conf)
+     :storm-cluster-state (ClusterUtils/mkStormClusterState (:state-store worker) (Utils/getWorkerACL storm-conf)
                             (ClusterStateContext. DaemonType/WORKER))
      :type executor-type
      ;; TODO: should refactor this to be part of the executor specific map (spout or bolt with :common field)

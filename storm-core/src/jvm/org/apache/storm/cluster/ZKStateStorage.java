@@ -22,8 +22,9 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.state.*;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.storm.Config;
-import org.apache.storm.callback.Callback;
+import org.apache.storm.callback.DefaultWatcherCallBack;
 import org.apache.storm.callback.WatcherCallBack;
+import org.apache.storm.callback.ZKStateChangedCallback;
 import org.apache.storm.utils.Utils;
 import org.apache.storm.zookeeper.Zookeeper;
 import org.apache.zookeeper.CreateMode;
@@ -40,11 +41,11 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class DistributedClusterState implements ClusterState {
+public class ZKStateStorage implements StateStorage {
 
-    private static Logger LOG = LoggerFactory.getLogger(DistributedClusterState.class);
+    private static Logger LOG = LoggerFactory.getLogger(ZKStateStorage.class);
 
-    private ConcurrentHashMap<String, Callback> callbacks = new ConcurrentHashMap<String, Callback>();
+    private ConcurrentHashMap<String, ZKStateChangedCallback> callbacks = new ConcurrentHashMap<String, ZKStateChangedCallback>();
     private CuratorFramework zkWriter;
     private CuratorFramework zkReader;
     private AtomicBoolean active;
@@ -53,10 +54,11 @@ public class DistributedClusterState implements ClusterState {
     private Map authConf;
     private Map<Object, Object> conf;
 
-    public DistributedClusterState(Map<Object, Object> conf, Map authConf, List<ACL> acls, ClusterStateContext context) throws Exception {
+    public ZKStateStorage(Map<Object, Object> conf, Map authConf, List<ACL> acls, ClusterStateContext context) throws Exception {
         this.conf = conf;
         this.authConf = authConf;
-        if (context.getDaemonType().equals(DaemonType.NIMBUS)) this.isNimbus = true;
+        if (context.getDaemonType().equals(DaemonType.NIMBUS))
+            this.isNimbus = true;
 
         // just mkdir STORM_ZOOKEEPER_ROOT dir
         CuratorFramework zkTemp = mkZk();
@@ -76,9 +78,9 @@ public class DistributedClusterState implements ClusterState {
                     }
 
                     if (!type.equals(Watcher.Event.EventType.None)) {
-                        for (Map.Entry<String, Callback> e : callbacks.entrySet()) {
-                            Callback fn = e.getValue();
-                            fn.execute(type, path);
+                        for (Map.Entry<String, ZKStateChangedCallback> e : callbacks.entrySet()) {
+                            ZKStateChangedCallback fn = e.getValue();
+                            fn.changed(type, path);
                         }
                     }
                 }
@@ -92,13 +94,13 @@ public class DistributedClusterState implements ClusterState {
                         if (!(state.equals(Watcher.Event.KeeperState.SyncConnected))) {
                             LOG.warn("Received event {} : {}: {} with disconnected Zookeeper.", state, type, path);
                         } else {
-                            LOG.info("Received event {} : {} : {}", state, type, path);
+                            LOG.debug("Received event {} : {} : {}", state, type, path);
                         }
 
                         if (!type.equals(Watcher.Event.EventType.None)) {
-                            for (Map.Entry<String, Callback> e : callbacks.entrySet()) {
-                                Callback fn = e.getValue();
-                                fn.execute(type, path);
+                            for (Map.Entry<String, ZKStateChangedCallback> e : callbacks.entrySet()) {
+                                ZKStateChangedCallback fn = e.getValue();
+                                fn.changed(type, path);
                             }
                         }
                     }
@@ -112,7 +114,8 @@ public class DistributedClusterState implements ClusterState {
 
     @SuppressWarnings("unchecked")
     private CuratorFramework mkZk() throws IOException {
-        return Zookeeper.mkClient(conf, (List<String>) conf.get(Config.STORM_ZOOKEEPER_SERVERS), conf.get(Config.STORM_ZOOKEEPER_PORT), "", authConf);
+        return Zookeeper.mkClient(conf, (List<String>) conf.get(Config.STORM_ZOOKEEPER_SERVERS), conf.get(Config.STORM_ZOOKEEPER_PORT), "",
+                new DefaultWatcherCallBack(), authConf);
     }
 
     @SuppressWarnings("unchecked")
@@ -127,9 +130,9 @@ public class DistributedClusterState implements ClusterState {
     }
 
     @Override
-    public String register( Callback callback) {
+    public String register(ZKStateChangedCallback callback) {
         String id = UUID.randomUUID().toString();
-        this.callbacks.put(id,callback);
+        this.callbacks.put(id, callback);
         return id;
     }
 
@@ -159,11 +162,11 @@ public class DistributedClusterState implements ClusterState {
         if (Zookeeper.exists(zkWriter, path, false)) {
             try {
                 Zookeeper.setData(zkWriter, path, data);
-            } catch (RuntimeException e) {
-                if (Utils.exceptionCauseIsInstanceOf(KeeperException.NodeExistsException.class, e)) {
+            } catch (Exception e) {
+                if (Utils.exceptionCauseIsInstanceOf(KeeperException.NoNodeException.class, e)) {
                     Zookeeper.createNode(zkWriter, path, data, CreateMode.EPHEMERAL, acls);
                 } else {
-                    throw e;
+                    throw Utils.wrapInRuntime(e);
                 }
             }
 

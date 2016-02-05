@@ -19,7 +19,7 @@
            [org.apache.storm.utils LocalState Time Utils ConfigUtils]
            [org.apache.storm.daemon Shutdownable]
            [org.apache.storm Constants]
-           [org.apache.storm.cluster ClusterStateContext DaemonType StormZkClusterState Cluster]
+           [org.apache.storm.cluster ClusterStateContext DaemonType StormClusterStateImpl ClusterUtils]
            [java.net JarURLConnection]
            [java.net URI]
            [org.apache.commons.io FileUtils])
@@ -66,7 +66,9 @@
                     (if-let [assignment-version (.assignmentVersion storm-cluster-state sid callback)]
                       (if (= assignment-version recorded-version)
                         {sid (get assignment-versions sid)}
-                        {sid (.assignmentInfoWithVersion storm-cluster-state sid callback)})
+                        (let [thriftify-assignment-version (.assignmentInfoWithVersion storm-cluster-state sid callback)
+                              assignment (clojurify-assignment (:data thriftify-assignment-version))]
+                        {sid {:data assignment :version (:version thriftify-assignment-version)}}))
                       {sid nil})))
            (apply merge)
            (filter-val not-nil?))
@@ -77,8 +79,7 @@
                    (if-let [topo-profile-actions (into [] (for [request (.getTopologyProfileRequests storm-cluster-state sid false)] (clojurify-profile-request request)))]
                       {sid topo-profile-actions}))
            (apply merge))]
-
-      {:assignments (into {} (for [[k v] new-assignments] [k (clojurify-assignment (:data v))]))
+      {:assignments (into {} (for [[k v] new-assignments] [k (:data v)]))
        :profiler-actions new-profiler-actions
        :versions new-assignments})))
 
@@ -317,7 +318,7 @@
    :uptime (uptime-computer)
    :version STORM-VERSION
    :worker-thread-pids-atom (atom {})
-   :storm-cluster-state (Cluster/mkStormClusterState conf (when (Utils/isZkAuthenticationConfiguredStormServer conf)
+   :storm-cluster-state (ClusterUtils/mkStormClusterState conf (when (Utils/isZkAuthenticationConfiguredStormServer conf)
                                                      SUPERVISOR-ZK-ACLS)
                                                         (ClusterStateContext. DaemonType/SUPERVISOR))
    :local-state (ConfigUtils/supervisorState conf)
@@ -536,6 +537,7 @@
            storm-id->profiler-actions :profiler-actions
            versions :versions}
           (assignments-snapshot storm-cluster-state sync-callback assignment-versions)
+
           storm-code-map (read-storm-code-locations assignments-snapshot)
           all-downloaded-storm-ids (set (read-downloaded-storm-ids conf))
           existing-assignment (ls-local-assignments local-state)

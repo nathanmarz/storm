@@ -17,6 +17,7 @@
  */
 package org.apache.storm.cluster;
 
+import clojure.lang.APersistentMap;
 import org.apache.storm.Config;
 import org.apache.storm.generated.ClusterWorkerHeartbeat;
 import org.apache.storm.generated.ExecutorInfo;
@@ -28,7 +29,6 @@ import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Id;
 import org.apache.zookeeper.server.auth.DigestAuthenticationProvider;
 
-
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.security.NoSuchAlgorithmException;
@@ -37,7 +37,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Cluster {
+public class ClusterUtils {
 
     public static final String ZK_SEPERATOR = "/";
 
@@ -55,54 +55,36 @@ public class Cluster {
     public static final String LOGCONFIG_ROOT = "logconfigs";
     public static final String PROFILERCONFIG_ROOT = "profilerconfigs";
 
-    public static final String ASSIGNMENTS_SUBTREE;
-    public static final String STORMS_SUBTREE;
-    public static final String SUPERVISORS_SUBTREE;
-    public static final String WORKERBEATS_SUBTREE;
-    public static final String BACKPRESSURE_SUBTREE;
-    public static final String ERRORS_SUBTREE;
-    public static final String BLOBSTORE_SUBTREE;
-    public static final String BLOBSTORE_MAX_KEY_SEQUENCE_NUMBER_SUBTREE;
-    public static final String NIMBUSES_SUBTREE;
-    public static final String CREDENTIALS_SUBTREE;
-    public static final String LOGCONFIG_SUBTREE;
-    public static final String PROFILERCONFIG_SUBTREE;
-
-    static {
-        ASSIGNMENTS_SUBTREE = ZK_SEPERATOR + ASSIGNMENTS_ROOT;
-        STORMS_SUBTREE = ZK_SEPERATOR + STORMS_ROOT;
-        SUPERVISORS_SUBTREE = ZK_SEPERATOR + SUPERVISORS_ROOT;
-        WORKERBEATS_SUBTREE = ZK_SEPERATOR + WORKERBEATS_ROOT;
-        BACKPRESSURE_SUBTREE = ZK_SEPERATOR + BACKPRESSURE_ROOT;
-        ERRORS_SUBTREE = ZK_SEPERATOR + ERRORS_ROOT;
-        BLOBSTORE_SUBTREE = ZK_SEPERATOR + BLOBSTORE_ROOT;
-        BLOBSTORE_MAX_KEY_SEQUENCE_NUMBER_SUBTREE = ZK_SEPERATOR + BLOBSTORE_MAX_KEY_SEQUENCE_NUMBER_ROOT;
-        NIMBUSES_SUBTREE = ZK_SEPERATOR + NIMBUSES_ROOT;
-        CREDENTIALS_SUBTREE = ZK_SEPERATOR + CREDENTIALS_ROOT;
-        LOGCONFIG_SUBTREE = ZK_SEPERATOR + LOGCONFIG_ROOT;
-        PROFILERCONFIG_SUBTREE = ZK_SEPERATOR + PROFILERCONFIG_ROOT;
-    }
+    public static final String ASSIGNMENTS_SUBTREE = ZK_SEPERATOR + ASSIGNMENTS_ROOT;
+    public static final String STORMS_SUBTREE = ZK_SEPERATOR + STORMS_ROOT;
+    public static final String SUPERVISORS_SUBTREE = ZK_SEPERATOR + SUPERVISORS_ROOT;
+    public static final String WORKERBEATS_SUBTREE = ZK_SEPERATOR + WORKERBEATS_ROOT;
+    public static final String BACKPRESSURE_SUBTREE = ZK_SEPERATOR + BACKPRESSURE_ROOT;
+    public static final String ERRORS_SUBTREE = ZK_SEPERATOR + ERRORS_ROOT;
+    public static final String BLOBSTORE_SUBTREE = ZK_SEPERATOR + BLOBSTORE_ROOT;
+    public static final String BLOBSTORE_MAX_KEY_SEQUENCE_NUMBER_SUBTREE = ZK_SEPERATOR + BLOBSTORE_MAX_KEY_SEQUENCE_NUMBER_ROOT;
+    public static final String NIMBUSES_SUBTREE = ZK_SEPERATOR + NIMBUSES_ROOT;
+    public static final String CREDENTIALS_SUBTREE = ZK_SEPERATOR + CREDENTIALS_ROOT;
+    public static final String LOGCONFIG_SUBTREE = ZK_SEPERATOR + LOGCONFIG_ROOT;
+    public static final String PROFILERCONFIG_SUBTREE = ZK_SEPERATOR + PROFILERCONFIG_ROOT;
 
     // A singleton instance allows us to mock delegated static methods in our
     // tests by subclassing.
-    private static final Cluster INSTANCE = new Cluster();
-    private static Cluster _instance = INSTANCE;
+    private static final ClusterUtils INSTANCE = new ClusterUtils();
+    private static ClusterUtils _instance = INSTANCE;
 
     /**
-     * Provide an instance of this class for delegates to use.  To mock out
-     * delegated methods, provide an instance of a subclass that overrides the
+     * Provide an instance of this class for delegates to use. To mock out delegated methods, provide an instance of a subclass that overrides the
      * implementation of the delegated method.
      *
-     * @param u a Zookeeper instance
+     * @param u a Cluster instance
      */
-    public static void setInstance(Cluster u) {
+    public static void setInstance(ClusterUtils u) {
         _instance = u;
     }
 
     /**
-     * Resets the singleton instance to the default. This is helpful to reset
-     * the class to its original functionality when mocking is no longer
-     * desired.
+     * Resets the singleton instance to the default. This is helpful to reset the class to its original functionality when mocking is no longer desired.
      */
     public static void resetInstance() {
         _instance = INSTANCE;
@@ -110,8 +92,8 @@ public class Cluster {
 
     public static List<ACL> mkTopoOnlyAcls(Map topoConf) throws NoSuchAlgorithmException {
         List<ACL> aclList = null;
-        String payload = (String)topoConf.get(Config.STORM_ZOOKEEPER_AUTH_PAYLOAD);
-        if (Utils.isZkAuthenticationConfiguredStormServer(topoConf)){
+        String payload = (String) topoConf.get(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD);
+        if (Utils.isZkAuthenticationConfiguredStormServer(topoConf)) {
             aclList = new ArrayList<>();
             ACL acl1 = ZooDefs.Ids.CREATOR_ALL_ACL.get(0);
             aclList.add(acl1);
@@ -165,11 +147,15 @@ public class Cluster {
         return ERRORS_SUBTREE + ZK_SEPERATOR + stormId;
     }
 
-    public static String errorPath(String stormId, String componentId) throws UnsupportedEncodingException {
-        return errorStormRoot(stormId) + ZK_SEPERATOR + URLEncoder.encode(componentId, "UTF-8");
+    public static String errorPath(String stormId, String componentId) {
+        try {
+            return errorStormRoot(stormId) + ZK_SEPERATOR + URLEncoder.encode(componentId, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw Utils.wrapInRuntime(e);
+        }
     }
 
-    public static String lastErrorPath(String stormId, String componentId) throws UnsupportedEncodingException {
+    public static String lastErrorPath(String stormId, String componentId) {
         return errorPath(stormId, componentId) + "-last-error";
     }
 
@@ -189,32 +175,59 @@ public class Cluster {
         return profilerConfigPath(stormId) + ZK_SEPERATOR + host + "_" + port + "_" + requestType;
     }
 
-    public static <T> T maybeDeserialize(byte[] serialized, Class<T> clazz){
-        if (serialized != null){
+    public static <T> T maybeDeserialize(byte[] serialized, Class<T> clazz) {
+        if (serialized != null) {
             return Utils.deserialize(serialized, clazz);
         }
         return null;
     }
 
-    //Ensures that we only return heartbeats for executors assigned to this worker
-    public static Map<ExecutorInfo, ClusterWorkerHeartbeat> convertExecutorBeats(List<ExecutorInfo> executors, ClusterWorkerHeartbeat workerHeartbeat){
+    // Ensures that we only return heartbeats for executors assigned to this worker
+    public static Map<ExecutorInfo, ClusterWorkerHeartbeat> convertExecutorBeats(List<ExecutorInfo> executors, ClusterWorkerHeartbeat workerHeartbeat) {
         Map<ExecutorInfo, ClusterWorkerHeartbeat> executorWhb = new HashMap<>();
         Map<ExecutorInfo, ExecutorStats> executorStatsMap = workerHeartbeat.get_executor_stats();
-        for (ExecutorInfo executor : executors){
-            if(executorStatsMap.containsKey(executor)){
+        for (ExecutorInfo executor : executors) {
+            if (executorStatsMap.containsKey(executor)) {
                 executorWhb.put(executor, workerHeartbeat);
             }
         }
         return executorWhb;
     }
 
-    public  StormClusterState mkStormClusterStateImpl(Object clusterState, List<ACL> acls, ClusterStateContext context) throws Exception{
-        return new StormZkClusterState(clusterState, acls, context);
+    public StormClusterState mkStormClusterStateImpl(Object StateStorage, List<ACL> acls, ClusterStateContext context) throws Exception {
+        if (StateStorage instanceof StateStorage) {
+            return new StormClusterStateImpl((StateStorage) StateStorage, acls, context, false);
+        } else {
+            StateStorage Storage = _instance.mkDistributedClusterStateImpl((APersistentMap) StateStorage, (APersistentMap) StateStorage, acls, context);
+            return new StormClusterStateImpl(Storage, acls, context, true);
+        }
+
     }
-    public static StormClusterState mkStormClusterState(Object clusterState, List<ACL> acls, ClusterStateContext context) throws Exception{
-        return _instance.mkStormClusterStateImpl(clusterState, acls, context);
+
+    public StateStorage mkDistributedClusterStateImpl(APersistentMap config, APersistentMap auth_conf, List<ACL> acls, ClusterStateContext context)
+            throws Exception {
+        String className = null;
+        StateStorage stateStorage = null;
+        if (config.get(Config.STORM_CLUSTER_STATE_STORE) != null) {
+            className = (String) config.get(Config.STORM_CLUSTER_STATE_STORE);
+        } else {
+            className = "org.apache.storm.cluster.ZKStateStorageFactory";
+        }
+        Class clazz = Class.forName(className);
+        StateStorageFactory storageFactory = (StateStorageFactory) clazz.newInstance();
+        stateStorage = storageFactory.mkState(config, auth_conf, acls, context);
+        return stateStorage;
     }
-    
+
+    public static StateStorage mkDistributedClusterState(APersistentMap config, APersistentMap auth_conf, List<ACL> acls, ClusterStateContext context)
+            throws Exception {
+        return _instance.mkDistributedClusterStateImpl(config, auth_conf, acls, context);
+    }
+
+    public static StormClusterState mkStormClusterState(Object StateStorage, List<ACL> acls, ClusterStateContext context) throws Exception {
+        return _instance.mkStormClusterStateImpl(StateStorage, acls, context);
+    }
+
     // TO be remove
     public static <K, V> HashMap<V, List<K>> reverseMap(Map<K, V> map) {
         HashMap<V, List<K>> rtn = new HashMap<V, List<K>>();

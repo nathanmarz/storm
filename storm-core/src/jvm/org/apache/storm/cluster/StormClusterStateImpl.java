@@ -17,36 +17,33 @@
  */
 package org.apache.storm.cluster;
 
-import clojure.lang.APersistentMap;
-import clojure.lang.IFn;
-import clojure.lang.PersistentArrayMap;
-import clojure.lang.RT;
+import clojure.lang.*;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.state.*;
 import org.apache.curator.framework.state.ConnectionState;
-import org.apache.storm.callback.Callback;
+import org.apache.storm.callback.ZKStateChangedCallback;
 import org.apache.storm.generated.*;
 import org.apache.storm.nimbus.NimbusInfo;
 import org.apache.storm.utils.Time;
 import org.apache.storm.utils.Utils;
 import org.apache.storm.zookeeper.Zookeeper;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.ACL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class StormZkClusterState implements StormClusterState {
+public class StormClusterStateImpl implements StormClusterState {
 
-    private static Logger LOG = LoggerFactory.getLogger(StormZkClusterState.class);
+    private static Logger LOG = LoggerFactory.getLogger(StormClusterStateImpl.class);
 
-    private ClusterState clusterState;
+    private StateStorage stateStorage;
 
     private ConcurrentHashMap<String, IFn> assignmentInfoCallback;
     private ConcurrentHashMap<String, IFn> assignmentInfoWithVersionCallback;
@@ -64,16 +61,10 @@ public class StormZkClusterState implements StormClusterState {
     private String stateId;
     private boolean solo;
 
-    public StormZkClusterState(Object clusterState, List<ACL> acls, ClusterStateContext context) throws Exception {
+    public StormClusterStateImpl(StateStorage StateStorage, List<ACL> acls, ClusterStateContext context, boolean solo) throws Exception {
 
-        if (clusterState instanceof ClusterState) {
-            solo = false;
-            this.clusterState = (ClusterState) clusterState;
-        } else {
-
-            solo = true;
-            this.clusterState = new DistributedClusterState((Map) clusterState, (Map) clusterState, acls, context);
-        }
+        this.stateStorage = StateStorage;
+        this.solo = solo;
 
         assignmentInfoCallback = new ConcurrentHashMap<>();
         assignmentInfoWithVersionCallback = new ConcurrentHashMap<>();
@@ -86,25 +77,16 @@ public class StormZkClusterState implements StormClusterState {
         logConfigCallback = new ConcurrentHashMap<>();
         blobstoreCallback = new AtomicReference<>();
 
-        stateId = this.clusterState.register(new Callback() {
+        stateId = this.stateStorage.register(new ZKStateChangedCallback() {
 
-            public <T> Object execute(T... args) {
-                if (args == null) {
-                    LOG.warn("Input args is null");
-                    return null;
-                } else if (args.length < 2) {
-                    LOG.warn("Input args is invalid, args length:" + args.length);
-                    return null;
-                }
-                String path = (String) args[1];
-
+            public void changed(Watcher.Event.EventType type, String path) {
                 List<String> toks = Zookeeper.tokenizePath(path);
                 int size = toks.size();
                 if (size >= 1) {
                     String params = null;
                     String root = toks.get(0);
                     IFn fn = null;
-                    if (root.equals(Cluster.ASSIGNMENTS_ROOT)) {
+                    if (root.equals(ClusterUtils.ASSIGNMENTS_ROOT)) {
                         if (size == 1) {
                             // set null and get the old value
                             issueCallback(assignmentsCallback);
@@ -114,17 +96,17 @@ public class StormZkClusterState implements StormClusterState {
                             issueMapCallback(assignmentInfoWithVersionCallback, toks.get(1));
                         }
 
-                    } else if (root.equals(Cluster.SUPERVISORS_ROOT)) {
+                    } else if (root.equals(ClusterUtils.SUPERVISORS_ROOT)) {
                         issueCallback(supervisorsCallback);
-                    } else if (root.equals(Cluster.BLOBSTORE_ROOT)) {
+                    } else if (root.equals(ClusterUtils.BLOBSTORE_ROOT)) {
                         issueCallback(blobstoreCallback);
-                    } else if (root.equals(Cluster.STORMS_ROOT) && size > 1) {
+                    } else if (root.equals(ClusterUtils.STORMS_ROOT) && size > 1) {
                         issueMapCallback(stormBaseCallback, toks.get(1));
-                    } else if (root.equals(Cluster.CREDENTIALS_ROOT) && size > 1) {
+                    } else if (root.equals(ClusterUtils.CREDENTIALS_ROOT) && size > 1) {
                         issueMapCallback(credentialsCallback, toks.get(1));
-                    } else if (root.equals(Cluster.LOGCONFIG_ROOT) && size > 1) {
+                    } else if (root.equals(ClusterUtils.LOGCONFIG_ROOT) && size > 1) {
                         issueMapCallback(logConfigCallback, toks.get(1));
-                    } else if (root.equals(Cluster.BACKPRESSURE_ROOT) && size > 1) {
+                    } else if (root.equals(ClusterUtils.BACKPRESSURE_ROOT) && size > 1) {
                         issueMapCallback(logConfigCallback, toks.get(1));
                     } else {
                         LOG.error("{} Unknown callback for subtree {}", new RuntimeException("Unknown callback for this path"), path);
@@ -133,15 +115,15 @@ public class StormZkClusterState implements StormClusterState {
 
                 }
 
-                return null;
+                return;
             }
 
         });
 
-        String[] pathlist = { Cluster.ASSIGNMENTS_SUBTREE, Cluster.STORMS_SUBTREE, Cluster.SUPERVISORS_SUBTREE, Cluster.WORKERBEATS_SUBTREE,
-                Cluster.ERRORS_SUBTREE, Cluster.BLOBSTORE_SUBTREE, Cluster.NIMBUSES_SUBTREE, Cluster.LOGCONFIG_SUBTREE };
+        String[] pathlist = { ClusterUtils.ASSIGNMENTS_SUBTREE, ClusterUtils.STORMS_SUBTREE, ClusterUtils.SUPERVISORS_SUBTREE, ClusterUtils.WORKERBEATS_SUBTREE,
+                ClusterUtils.ERRORS_SUBTREE, ClusterUtils.BLOBSTORE_SUBTREE, ClusterUtils.NIMBUSES_SUBTREE, ClusterUtils.LOGCONFIG_SUBTREE };
         for (String path : pathlist) {
-            this.clusterState.mkdirs(path, acls);
+            this.stateStorage.mkdirs(path, acls);
         }
 
     }
@@ -163,7 +145,7 @@ public class StormZkClusterState implements StormClusterState {
         if (callback != null) {
             assignmentsCallback.set(callback);
         }
-        return clusterState.get_children(Cluster.ASSIGNMENTS_SUBTREE, callback != null);
+        return stateStorage.get_children(ClusterUtils.ASSIGNMENTS_SUBTREE, callback != null);
     }
 
     @Override
@@ -171,8 +153,8 @@ public class StormZkClusterState implements StormClusterState {
         if (callback != null) {
             assignmentInfoCallback.put(stormId, callback);
         }
-        byte[] serialized = clusterState.get_data(Cluster.assignmentPath(stormId), callback != null);
-        return Cluster.maybeDeserialize(serialized, Assignment.class);
+        byte[] serialized = stateStorage.get_data(ClusterUtils.assignmentPath(stormId), callback != null);
+        return ClusterUtils.maybeDeserialize(serialized, Assignment.class);
     }
 
     @Override
@@ -180,9 +162,13 @@ public class StormZkClusterState implements StormClusterState {
         if (callback != null) {
             assignmentInfoWithVersionCallback.put(stormId, callback);
         }
-        APersistentMap aPersistentMap = clusterState.get_data_with_version(Cluster.assignmentPath(stormId), callback != null);
-        Assignment assignment = Cluster.maybeDeserialize((byte[]) aPersistentMap.get("data"), Assignment.class);
-        Integer version = (Integer) aPersistentMap.get("version");
+        Assignment assignment = null;
+        Integer version = 0;
+        APersistentMap aPersistentMap = stateStorage.get_data_with_version(ClusterUtils.assignmentPath(stormId), callback != null);
+        if (aPersistentMap != null) {
+            assignment = ClusterUtils.maybeDeserialize((byte[]) aPersistentMap.get(RT.keyword(null, "data")), Assignment.class);
+            version = (Integer) aPersistentMap.get(RT.keyword(null, "version"));
+        }
         APersistentMap map = new PersistentArrayMap(new Object[] { RT.keyword(null, "data"), assignment, RT.keyword(null, "version"), version });
         return map;
     }
@@ -192,24 +178,24 @@ public class StormZkClusterState implements StormClusterState {
         if (callback != null) {
             assignmentVersionCallback.put(stormId, callback);
         }
-        return clusterState.get_version(Cluster.assignmentPath(stormId), callback != null);
+        return stateStorage.get_version(ClusterUtils.assignmentPath(stormId), callback != null);
     }
 
     // blobstore state
     @Override
     public List<String> blobstoreInfo(String blobKey) {
-        String path = Cluster.blobstorePath(blobKey);
-        clusterState.sync_path(path);
-        return clusterState.get_children(path, false);
+        String path = ClusterUtils.blobstorePath(blobKey);
+        stateStorage.sync_path(path);
+        return stateStorage.get_children(path, false);
     }
 
     @Override
     public List nimbuses() {
         List<NimbusSummary> nimbusSummaries = new ArrayList<>();
-        List<String> nimbusIds = clusterState.get_children(Cluster.NIMBUSES_SUBTREE, false);
+        List<String> nimbusIds = stateStorage.get_children(ClusterUtils.NIMBUSES_SUBTREE, false);
         for (String nimbusId : nimbusIds) {
-            byte[] serialized = clusterState.get_data(Cluster.nimbusPath(nimbusId), false);
-            NimbusSummary nimbusSummary = Cluster.maybeDeserialize(serialized, NimbusSummary.class);
+            byte[] serialized = stateStorage.get_data(ClusterUtils.nimbusPath(nimbusId), false);
+            NimbusSummary nimbusSummary = ClusterUtils.maybeDeserialize(serialized, NimbusSummary.class);
             nimbusSummaries.add(nimbusSummary);
         }
         return nimbusSummaries;
@@ -218,25 +204,25 @@ public class StormZkClusterState implements StormClusterState {
     @Override
     public void addNimbusHost(final String nimbusId, final NimbusSummary nimbusSummary) {
         // explicit delete for ephmeral node to ensure this session creates the entry.
-        clusterState.delete_node(Cluster.nimbusPath(nimbusId));
-        clusterState.add_listener(new ConnectionStateListener() {
+        stateStorage.delete_node(ClusterUtils.nimbusPath(nimbusId));
+        stateStorage.add_listener(new ConnectionStateListener() {
             @Override
             public void stateChanged(CuratorFramework curatorFramework, ConnectionState connectionState) {
                 LOG.info("Connection state listener invoked, zookeeper connection state has changed to {}", connectionState);
                 if (connectionState.equals(ConnectionState.RECONNECTED)) {
                     LOG.info("Connection state has changed to reconnected so setting nimbuses entry one more time");
-                    clusterState.set_ephemeral_node(Cluster.nimbusPath(nimbusId), Utils.serialize(nimbusSummary), acls);
+                    stateStorage.set_ephemeral_node(ClusterUtils.nimbusPath(nimbusId), Utils.serialize(nimbusSummary), acls);
                 }
 
             }
         });
 
-        clusterState.set_ephemeral_node(Cluster.nimbusPath(nimbusId), Utils.serialize(nimbusSummary), acls);
+        stateStorage.set_ephemeral_node(ClusterUtils.nimbusPath(nimbusId), Utils.serialize(nimbusSummary), acls);
     }
 
     @Override
     public List<String> activeStorms() {
-        return clusterState.get_children(Cluster.STORMS_SUBTREE, false);
+        return stateStorage.get_children(ClusterUtils.STORMS_SUBTREE, false);
     }
 
     @Override
@@ -244,16 +230,14 @@ public class StormZkClusterState implements StormClusterState {
         if (callback != null) {
             stormBaseCallback.put(stormId, callback);
         }
-        return Cluster.maybeDeserialize(clusterState.get_data(Cluster.stormPath(stormId), callback != null), StormBase.class);
+        return ClusterUtils.maybeDeserialize(stateStorage.get_data(ClusterUtils.stormPath(stormId), callback != null), StormBase.class);
     }
 
     @Override
     public ClusterWorkerHeartbeat getWorkerHeartbeat(String stormId, String node, Long port) {
-        byte[] bytes = clusterState.get_worker_hb(Cluster.workerbeatPath(stormId, node, port), false);
-        if (bytes != null) {
-            return Cluster.maybeDeserialize(bytes, ClusterWorkerHeartbeat.class);
-        }
-        return null;
+        byte[] bytes = stateStorage.get_worker_hb(ClusterUtils.workerbeatPath(stormId, node, port), false);
+        return ClusterUtils.maybeDeserialize(bytes, ClusterWorkerHeartbeat.class);
+
     }
 
     @Override
@@ -271,13 +255,13 @@ public class StormZkClusterState implements StormClusterState {
     @Override
     public List<ProfileRequest> getTopologyProfileRequests(String stormId, boolean isThrift) {
         List<ProfileRequest> profileRequests = new ArrayList<>();
-        String path = Cluster.profilerConfigPath(stormId);
-        if (clusterState.node_exists(path, false)) {
-            List<String> strs = clusterState.get_children(path, false);
+        String path = ClusterUtils.profilerConfigPath(stormId);
+        if (stateStorage.node_exists(path, false)) {
+            List<String> strs = stateStorage.get_children(path, false);
             for (String str : strs) {
-                String childPath = path + Cluster.ZK_SEPERATOR + str;
-                byte[] raw = clusterState.get_data(childPath, false);
-                ProfileRequest request = Cluster.maybeDeserialize(raw, ProfileRequest.class);
+                String childPath = path + ClusterUtils.ZK_SEPERATOR + str;
+                byte[] raw = stateStorage.get_data(childPath, false);
+                ProfileRequest request = ClusterUtils.maybeDeserialize(raw, ProfileRequest.class);
                 if (request != null)
                     profileRequests.add(request);
             }
@@ -290,8 +274,8 @@ public class StormZkClusterState implements StormClusterState {
         ProfileAction profileAction = profileRequest.get_action();
         String host = profileRequest.get_nodeInfo().get_node();
         Long port = profileRequest.get_nodeInfo().get_port_iterator().next();
-        String path = Cluster.profilerConfigPath(stormId, host, port, profileAction);
-        clusterState.set_data(path, Utils.serialize(profileRequest), acls);
+        String path = ClusterUtils.profilerConfigPath(stormId, host, port, profileAction);
+        stateStorage.set_data(path, Utils.serialize(profileRequest), acls);
     }
 
     @Override
@@ -299,8 +283,8 @@ public class StormZkClusterState implements StormClusterState {
         ProfileAction profileAction = profileRequest.get_action();
         String host = profileRequest.get_nodeInfo().get_node();
         Long port = profileRequest.get_nodeInfo().get_port_iterator().next();
-        String path = Cluster.profilerConfigPath(stormId, host, port, profileAction);
-        clusterState.delete_node(path);
+        String path = ClusterUtils.profilerConfigPath(stormId, host, port, profileAction);
+        stateStorage.delete_node(path);
     }
 
     // need to take executor->node+port in explicitly so that we don't run into a situation where a
@@ -311,9 +295,7 @@ public class StormZkClusterState implements StormClusterState {
     public Map<ExecutorInfo, ClusterWorkerHeartbeat> executorBeats(String stormId, Map<List<Long>, NodeInfo> executorNodePort) {
         Map<ExecutorInfo, ClusterWorkerHeartbeat> executorWhbs = new HashMap<>();
 
-        LOG.info(executorNodePort.toString());
-        Map<NodeInfo, List<List<Long>>> nodePortExecutors = Cluster.reverseMap(executorNodePort);
-        LOG.info(nodePortExecutors.toString());
+        Map<NodeInfo, List<List<Long>>> nodePortExecutors = ClusterUtils.reverseMap(executorNodePort);
 
         for (Map.Entry<NodeInfo, List<List<Long>>> entry : nodePortExecutors.entrySet()) {
 
@@ -324,7 +306,8 @@ public class StormZkClusterState implements StormClusterState {
             for (List<Long> list : entry.getValue()) {
                 executorInfoList.add(new ExecutorInfo(list.get(0).intValue(), list.get(list.size() - 1).intValue()));
             }
-            executorWhbs.putAll(Cluster.convertExecutorBeats(executorInfoList, whb));
+            if (whb != null)
+                executorWhbs.putAll(ClusterUtils.convertExecutorBeats(executorInfoList, whb));
         }
         return executorWhbs;
     }
@@ -334,24 +317,24 @@ public class StormZkClusterState implements StormClusterState {
         if (callback != null) {
             supervisorsCallback.set(callback);
         }
-        return clusterState.get_children(Cluster.SUPERVISORS_SUBTREE, callback != null);
+        return stateStorage.get_children(ClusterUtils.SUPERVISORS_SUBTREE, callback != null);
     }
 
     @Override
     public SupervisorInfo supervisorInfo(String supervisorId) {
-        String path = Cluster.supervisorPath(supervisorId);
-        return Cluster.maybeDeserialize(clusterState.get_data(path, false), SupervisorInfo.class);
+        String path = ClusterUtils.supervisorPath(supervisorId);
+        return ClusterUtils.maybeDeserialize(stateStorage.get_data(path, false), SupervisorInfo.class);
     }
 
     @Override
     public void setupHeatbeats(String stormId) {
-        clusterState.mkdirs(Cluster.workerbeatStormRoot(stormId), acls);
+        stateStorage.mkdirs(ClusterUtils.workerbeatStormRoot(stormId), acls);
     }
 
     @Override
     public void teardownHeartbeats(String stormId) {
         try {
-            clusterState.delete_worker_hb(Cluster.workerbeatStormRoot(stormId));
+            stateStorage.delete_worker_hb(ClusterUtils.workerbeatStormRoot(stormId));
         } catch (Exception e) {
             if (Zookeeper.exceptionCause(KeeperException.class, e)) {
                 // do nothing
@@ -365,7 +348,7 @@ public class StormZkClusterState implements StormClusterState {
     @Override
     public void teardownTopologyErrors(String stormId) {
         try {
-            clusterState.delete_node(Cluster.errorStormRoot(stormId));
+            stateStorage.delete_node(ClusterUtils.errorStormRoot(stormId));
         } catch (Exception e) {
             if (Zookeeper.exceptionCause(KeeperException.class, e)) {
                 // do nothing
@@ -378,58 +361,58 @@ public class StormZkClusterState implements StormClusterState {
 
     @Override
     public List<String> heartbeatStorms() {
-        return clusterState.get_worker_hb_children(Cluster.WORKERBEATS_SUBTREE, false);
+        return stateStorage.get_worker_hb_children(ClusterUtils.WORKERBEATS_SUBTREE, false);
     }
 
     @Override
     public List<String> errorTopologies() {
-        return clusterState.get_children(Cluster.ERRORS_SUBTREE, false);
+        return stateStorage.get_children(ClusterUtils.ERRORS_SUBTREE, false);
     }
 
     @Override
     public void setTopologyLogConfig(String stormId, LogConfig logConfig) {
-        clusterState.set_data(Cluster.logConfigPath(stormId), Utils.serialize(logConfig), acls);
+        stateStorage.set_data(ClusterUtils.logConfigPath(stormId), Utils.serialize(logConfig), acls);
     }
 
     @Override
     public LogConfig topologyLogConfig(String stormId, IFn cb) {
-        String path = Cluster.logConfigPath(stormId);
-        return Cluster.maybeDeserialize(clusterState.get_data(path, cb != null), LogConfig.class);
+        String path = ClusterUtils.logConfigPath(stormId);
+        return ClusterUtils.maybeDeserialize(stateStorage.get_data(path, cb != null), LogConfig.class);
     }
 
     @Override
     public void workerHeartbeat(String stormId, String node, Long port, ClusterWorkerHeartbeat info) {
         if (info != null) {
-            String path = Cluster.workerbeatPath(stormId, node, port);
-            clusterState.set_worker_hb(path, Utils.serialize(info), acls);
+            String path = ClusterUtils.workerbeatPath(stormId, node, port);
+            stateStorage.set_worker_hb(path, Utils.serialize(info), acls);
         }
     }
 
     @Override
     public void removeWorkerHeartbeat(String stormId, String node, Long port) {
-        String path = Cluster.workerbeatPath(stormId, node, port);
-        clusterState.delete_worker_hb(path);
+        String path = ClusterUtils.workerbeatPath(stormId, node, port);
+        stateStorage.delete_worker_hb(path);
     }
 
     @Override
     public void supervisorHeartbeat(String supervisorId, SupervisorInfo info) {
-        String path = Cluster.supervisorPath(supervisorId);
-        clusterState.set_ephemeral_node(path, Utils.serialize(info), acls);
+        String path = ClusterUtils.supervisorPath(supervisorId);
+        stateStorage.set_ephemeral_node(path, Utils.serialize(info), acls);
     }
 
     // if znode exists and to be not on?, delete; if exists and on?, do nothing;
     // if not exists and to be on?, create; if not exists and not on?, do nothing;
     @Override
     public void workerBackpressure(String stormId, String node, Long port, boolean on) {
-        String path = Cluster.backpressurePath(stormId, node, port);
-        boolean existed = clusterState.node_exists(path, false);
+        String path = ClusterUtils.backpressurePath(stormId, node, port);
+        boolean existed = stateStorage.node_exists(path, false);
         if (existed) {
             if (on == false)
-                clusterState.delete_node(path);
+                stateStorage.delete_node(path);
 
         } else {
             if (on == true) {
-                clusterState.set_ephemeral_node(path, null, acls);
+                stateStorage.set_ephemeral_node(path, null, acls);
             }
         }
     }
@@ -440,29 +423,29 @@ public class StormZkClusterState implements StormClusterState {
         if (callback != null) {
             backPressureCallback.put(stormId, callback);
         }
-        String path = Cluster.backpressureStormRoot(stormId);
-        List<String> childrens = clusterState.get_children(path, callback != null);
+        String path = ClusterUtils.backpressureStormRoot(stormId);
+        List<String> childrens = stateStorage.get_children(path, callback != null);
         return childrens.size() > 0;
 
     }
 
     @Override
     public void setupBackpressure(String stormId) {
-        clusterState.mkdirs(Cluster.backpressureStormRoot(stormId), acls);
+        stateStorage.mkdirs(ClusterUtils.backpressureStormRoot(stormId), acls);
     }
 
     @Override
     public void removeWorkerBackpressure(String stormId, String node, Long port) {
-        clusterState.delete_node(Cluster.backpressurePath(stormId, node, port));
+        stateStorage.delete_node(ClusterUtils.backpressurePath(stormId, node, port));
     }
 
     @Override
     public void activateStorm(String stormId, StormBase stormBase) {
-        String path = Cluster.stormPath(stormId);
-        clusterState.set_data(path, Utils.serialize(stormBase), acls);
+        String path = ClusterUtils.stormPath(stormId);
+        stateStorage.set_data(path, Utils.serialize(stormBase), acls);
     }
 
-    // maybe exit some questions for updateStorm
+    // To update this function due to APersistentMap/APersistentSet is clojure's structure
     @Override
     public void updateStorm(String stormId, StormBase newElems) {
 
@@ -471,9 +454,9 @@ public class StormZkClusterState implements StormClusterState {
 
             Map<String, Integer> newComponentExecutors = new HashMap<>();
             Map<String, Integer> componentExecutors = newElems.get_component_executors();
-            //componentExecutors maybe be APersistentMap, which don't support put
+            // componentExecutors maybe be APersistentMap, which don't support "put"
             for (Map.Entry<String, Integer> entry : componentExecutors.entrySet()) {
-                    newComponentExecutors.put(entry.getKey(), entry.getValue());
+                newComponentExecutors.put(entry.getKey(), entry.getValue());
             }
             for (Map.Entry<String, Integer> entry : stormBase.get_component_executors().entrySet()) {
                 if (!componentExecutors.containsKey(entry.getKey())) {
@@ -488,8 +471,9 @@ public class StormZkClusterState implements StormClusterState {
         Map<String, DebugOptions> oldComponentDebug = stormBase.get_component_debug();
 
         Map<String, DebugOptions> newComponentDebug = newElems.get_component_debug();
-
-        Set<String> debugOptionsKeys = oldComponentDebug.keySet();
+        /// oldComponentDebug.keySet()/ newComponentDebug.keySet() maybe be APersistentSet, which don't support addAll
+        Set<String> debugOptionsKeys = new HashSet<>();
+        debugOptionsKeys.addAll(oldComponentDebug.keySet());
         debugOptionsKeys.addAll(newComponentDebug.keySet());
         for (String key : debugOptionsKeys) {
             boolean enable = false;
@@ -511,14 +495,13 @@ public class StormZkClusterState implements StormClusterState {
             newElems.set_component_debug(ComponentDebug);
         }
 
-
         if (StringUtils.isBlank(newElems.get_name())) {
             newElems.set_name(stormBase.get_name());
         }
-        if (newElems.get_status() == null){
+        if (newElems.get_status() == null) {
             newElems.set_status(stormBase.get_status());
         }
-        if (newElems.get_num_workers() == 0){
+        if (newElems.get_num_workers() == 0) {
             newElems.set_num_workers(stormBase.get_num_workers());
         }
         if (newElems.get_launch_time_secs() == 0) {
@@ -533,31 +516,31 @@ public class StormZkClusterState implements StormClusterState {
         if (newElems.get_status() == null) {
             newElems.set_status(stormBase.get_status());
         }
-        clusterState.set_data(Cluster.stormPath(stormId), Utils.serialize(newElems), acls);
+        stateStorage.set_data(ClusterUtils.stormPath(stormId), Utils.serialize(newElems), acls);
     }
 
     @Override
     public void removeStormBase(String stormId) {
-        clusterState.delete_node(Cluster.stormPath(stormId));
+        stateStorage.delete_node(ClusterUtils.stormPath(stormId));
     }
 
     @Override
     public void setAssignment(String stormId, Assignment info) {
-        clusterState.set_data(Cluster.assignmentPath(stormId), Utils.serialize(info), acls);
+        stateStorage.set_data(ClusterUtils.assignmentPath(stormId), Utils.serialize(info), acls);
     }
 
     @Override
     public void setupBlobstore(String key, NimbusInfo nimbusInfo, Integer versionInfo) {
-        String path = Cluster.blobstorePath(key) + Cluster.ZK_SEPERATOR + nimbusInfo.toHostPortString() + "-" + versionInfo;
+        String path = ClusterUtils.blobstorePath(key) + ClusterUtils.ZK_SEPERATOR + nimbusInfo.toHostPortString() + "-" + versionInfo;
         LOG.info("set-path: {}", path);
-        clusterState.mkdirs(Cluster.blobstorePath(key), acls);
-        clusterState.delete_node_blobstore(Cluster.blobstorePath(key), nimbusInfo.toHostPortString());
-        clusterState.set_ephemeral_node(path, null, acls);
+        stateStorage.mkdirs(ClusterUtils.blobstorePath(key), acls);
+        stateStorage.delete_node_blobstore(ClusterUtils.blobstorePath(key), nimbusInfo.toHostPortString());
+        stateStorage.set_ephemeral_node(path, null, acls);
     }
 
     @Override
     public List<String> activeKeys() {
-        return clusterState.get_children(Cluster.BLOBSTORE_SUBTREE, false);
+        return stateStorage.get_children(ClusterUtils.BLOBSTORE_SUBTREE, false);
     }
 
     // blobstore state
@@ -566,53 +549,53 @@ public class StormZkClusterState implements StormClusterState {
         if (callback != null) {
             blobstoreCallback.set(callback);
         }
-        clusterState.sync_path(Cluster.BLOBSTORE_SUBTREE);
-        return clusterState.get_children(Cluster.BLOBSTORE_SUBTREE, callback != null);
+        stateStorage.sync_path(ClusterUtils.BLOBSTORE_SUBTREE);
+        return stateStorage.get_children(ClusterUtils.BLOBSTORE_SUBTREE, callback != null);
 
     }
 
     @Override
     public void removeStorm(String stormId) {
-        clusterState.delete_node(Cluster.assignmentPath(stormId));
-        clusterState.delete_node(Cluster.credentialsPath(stormId));
-        clusterState.delete_node(Cluster.logConfigPath(stormId));
-        clusterState.delete_node(Cluster.profilerConfigPath(stormId));
+        stateStorage.delete_node(ClusterUtils.assignmentPath(stormId));
+        stateStorage.delete_node(ClusterUtils.credentialsPath(stormId));
+        stateStorage.delete_node(ClusterUtils.logConfigPath(stormId));
+        stateStorage.delete_node(ClusterUtils.profilerConfigPath(stormId));
         removeStormBase(stormId);
     }
 
     @Override
     public void removeBlobstoreKey(String blobKey) {
         LOG.debug("remove key {}", blobKey);
-        clusterState.delete_node(Cluster.blobstorePath(blobKey));
+        stateStorage.delete_node(ClusterUtils.blobstorePath(blobKey));
     }
 
     @Override
     public void removeKeyVersion(String blobKey) {
-        clusterState.delete_node(Cluster.blobstoreMaxKeySequenceNumberPath(blobKey));
+        stateStorage.delete_node(ClusterUtils.blobstoreMaxKeySequenceNumberPath(blobKey));
     }
 
     @Override
-    public void reportError(String stormId, String componentId, String node, Integer port, String error) {
+    public void reportError(String stormId, String componentId, String node, Long port, String error) {
 
-        try {
-            String path = Cluster.errorPath(stormId, componentId);
-            String lastErrorPath = Cluster.lastErrorPath(stormId, componentId);
-            ErrorInfo errorInfo = new ErrorInfo(error, Time.currentTimeSecs());
-            errorInfo.set_host(node);
-            errorInfo.set_port(port.intValue());
-            byte[] serData = Utils.serialize(errorInfo);
-            clusterState.mkdirs(path, acls);
-            clusterState.create_sequential(path + Cluster.ZK_SEPERATOR + "e", serData, acls);
-            clusterState.set_data(lastErrorPath, serData, acls);
-            List<String> childrens = clusterState.get_children(path, false);
+        String path = ClusterUtils.errorPath(stormId, componentId);
+        String lastErrorPath = ClusterUtils.lastErrorPath(stormId, componentId);
+        ErrorInfo errorInfo = new ErrorInfo(error, Time.currentTimeSecs());
+        errorInfo.set_host(node);
+        errorInfo.set_port(port.intValue());
+        byte[] serData = Utils.serialize(errorInfo);
+        stateStorage.mkdirs(path, acls);
+        stateStorage.create_sequential(path + ClusterUtils.ZK_SEPERATOR + "e", serData, acls);
+        stateStorage.set_data(lastErrorPath, serData, acls);
+        List<String> childrens = stateStorage.get_children(path, false);
 
-            Collections.sort(childrens);
-
-            while (childrens.size() >= 10) {
-                clusterState.delete_node(path + Cluster.ZK_SEPERATOR + childrens.remove(0));
+        Collections.sort(childrens, new Comparator<String>() {
+            public int compare(String arg0, String arg1) {
+                return Long.compare(Long.parseLong(arg0.substring(1)), Long.parseLong(arg1.substring(1)));
             }
-        } catch (UnsupportedEncodingException e) {
-            throw Utils.wrapInRuntime(e);
+        });
+
+        while (childrens.size() > 10) {
+            stateStorage.delete_node(path + ClusterUtils.ZK_SEPERATOR + childrens.remove(0));
         }
     }
 
@@ -620,19 +603,19 @@ public class StormZkClusterState implements StormClusterState {
     public List<ErrorInfo> errors(String stormId, String componentId) {
         List<ErrorInfo> errorInfos = new ArrayList<>();
         try {
-            String path = Cluster.errorPath(stormId, componentId);
-            if (clusterState.node_exists(path, false)) {
-                List<String> childrens = clusterState.get_children(path, false);
+            String path = ClusterUtils.errorPath(stormId, componentId);
+            if (stateStorage.node_exists(path, false)) {
+                List<String> childrens = stateStorage.get_children(path, false);
                 for (String child : childrens) {
-                    String childPath = path + Cluster.ZK_SEPERATOR + child;
-                    ErrorInfo errorInfo = Cluster.maybeDeserialize(clusterState.get_data(childPath, false), ErrorInfo.class);
+                    String childPath = path + ClusterUtils.ZK_SEPERATOR + child;
+                    ErrorInfo errorInfo = ClusterUtils.maybeDeserialize(stateStorage.get_data(childPath, false), ErrorInfo.class);
                     if (errorInfo != null)
                         errorInfos.add(errorInfo);
                 }
             }
             Collections.sort(errorInfos, new Comparator<ErrorInfo>() {
                 public int compare(ErrorInfo arg0, ErrorInfo arg1) {
-                    return Integer.compare(arg0.get_error_time_secs(), arg1.get_error_time_secs());
+                    return -Integer.compare(arg0.get_error_time_secs(), arg1.get_error_time_secs());
                 }
             });
         } catch (Exception e) {
@@ -644,23 +627,21 @@ public class StormZkClusterState implements StormClusterState {
 
     @Override
     public ErrorInfo lastError(String stormId, String componentId) {
-        try {
-            String path = Cluster.lastErrorPath(stormId, componentId);
-            if (clusterState.node_exists(path, false)) {
-                ErrorInfo errorInfo = Cluster.maybeDeserialize(clusterState.get_data(path, false), ErrorInfo.class);
-                return errorInfo;
-            }
-        } catch (UnsupportedEncodingException e) {
-            throw Utils.wrapInRuntime(e);
+
+        String path = ClusterUtils.lastErrorPath(stormId, componentId);
+        if (stateStorage.node_exists(path, false)) {
+            ErrorInfo errorInfo = ClusterUtils.maybeDeserialize(stateStorage.get_data(path, false), ErrorInfo.class);
+            return errorInfo;
         }
+
         return null;
     }
 
     @Override
     public void setCredentials(String stormId, Credentials creds, Map topoConf) throws NoSuchAlgorithmException {
-        List<ACL> aclList = Cluster.mkTopoOnlyAcls(topoConf);
-        String path = Cluster.credentialsPath(stormId);
-        clusterState.set_data(path, Utils.serialize(creds), aclList);
+        List<ACL> aclList = ClusterUtils.mkTopoOnlyAcls(topoConf);
+        String path = ClusterUtils.credentialsPath(stormId);
+        stateStorage.set_data(path, Utils.serialize(creds), aclList);
 
     }
 
@@ -669,15 +650,15 @@ public class StormZkClusterState implements StormClusterState {
         if (callback != null) {
             credentialsCallback.put(stormId, callback);
         }
-        String path = Cluster.credentialsPath(stormId);
-        return Cluster.maybeDeserialize(clusterState.get_data(path, callback != null), Credentials.class);
+        String path = ClusterUtils.credentialsPath(stormId);
+        return ClusterUtils.maybeDeserialize(stateStorage.get_data(path, callback != null), Credentials.class);
 
     }
 
     @Override
     public void disconnect() {
-        clusterState.unregister(stateId);
+        stateStorage.unregister(stateId);
         if (solo)
-            clusterState.close();
+            stateStorage.close();
     }
 }

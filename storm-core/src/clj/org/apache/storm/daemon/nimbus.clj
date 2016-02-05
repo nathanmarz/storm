@@ -48,7 +48,7 @@
             ProfileRequest ProfileAction NodeInfo])
   (:import [org.apache.storm.daemon Shutdownable])
   (:import [org.apache.storm.validation ConfigValidation])
-  (:import [org.apache.storm.cluster ClusterStateContext DaemonType StormZkClusterState])
+  (:import [org.apache.storm.cluster ClusterStateContext DaemonType StormClusterStateImpl ClusterUtils])
   (:use [org.apache.storm util config log timer local-state converter])
   (:require [org.apache.storm [converter :as converter]
                             [stats :as stats]])
@@ -173,7 +173,7 @@
      :authorization-handler (mk-authorization-handler (conf NIMBUS-AUTHORIZER) conf)
      :impersonation-authorization-handler (mk-authorization-handler (conf NIMBUS-IMPERSONATION-AUTHORIZER) conf)
      :submitted-count (atom 0)
-     :storm-cluster-state (StormZkClusterState. conf  (when
+     :storm-cluster-state (ClusterUtils/mkStormClusterState conf  (when
                                                                        (Utils/isZkAuthenticationConfiguredStormServer
                                                                          conf)
                                                                        NIMBUS-ZK-ACLS)
@@ -586,11 +586,11 @@
 (defn update-heartbeats! [nimbus storm-id all-executors existing-assignment]
   (log-debug "Updating heartbeats for " storm-id " " (pr-str all-executors))
   (let [storm-cluster-state (:storm-cluster-state nimbus)
-        executor-beats (let [executor-stats-java-map (.executorBeats storm-cluster-state storm-id (.get_executor_node_port (thriftify-assignment existing-assignment)))]
-                         (->> (clojurify-structure executor-stats-java-map)
-                           (map (fn [^ExecutorInfo executor-info ^ClusterWorkerHeartbeat cluster-worker-heartbeat]
-                                  {[(.get_task_start executor-info) (.get_task_end executor-info)] (clojurify-zk-worker-hb cluster-worker-heartbeat)}))
-                         (into {})))
+        executor-beats (let [executor-stats-java-map (.executorBeats storm-cluster-state storm-id (.get_executor_node_port (thriftify-assignment existing-assignment)))
+                             executor-stats-clojurify (clojurify-structure executor-stats-java-map)]
+                         (->> (dofor [[^ExecutorInfo executor-info ^ClusterWorkerHeartbeat cluster-worker-heartbeat] executor-stats-clojurify]
+                             {[(.get_task_start executor-info) (.get_task_end executor-info)] (clojurify-zk-worker-hb cluster-worker-heartbeat)})
+                           (apply merge)))
 
         cache (update-heartbeat-cache (@(:heartbeats-cache nimbus) storm-id)
                                       executor-beats
@@ -1332,6 +1332,14 @@
        (InvalidTopologyException.
         (str "Failed to submit topology. Topology requests more than " workers-allowed " workers."))))))
 
+(defn nimbus-topology-bases [storm-cluster-state]
+  (let [active-topologies (.activeStorms storm-cluster-state)]
+    (into {}
+      (dofor [id active-topologies]
+        [id  (clojurify-storm-base (.stormBase storm-cluster-state id nil))]
+        ))
+    ))
+
 (defn- set-logger-timeouts [log-config]
   (let [timeout-secs (.get_reset_log_level_timeout_secs log-config)
        timeout (time/plus (time/now) (time/secs timeout-secs))]
@@ -1617,7 +1625,7 @@
           (log-message "Nimbus setting debug to " enable? " for storm-name '" storm-name "' storm-id '" storm-id "' sampling pct '" spct "'"
             (if (not (clojure.string/blank? component-id)) (str " component-id '" component-id "'")))
           (locking (:submit-lock nimbus)
-            (.updateStorm storm-cluster-state (thriftify-storm-base storm-id storm-base-updates)))))
+            (.updateStorm storm-cluster-state storm-id  (thriftify-storm-base storm-base-updates)))))
 
       (^void setWorkerProfiler
         [this ^String id ^ProfileRequest profileRequest]
@@ -1804,8 +1812,7 @@
                                        (when-let [version (:version info)] (.set_version sup-sum version))
                                        sup-sum))
               nimbus-uptime ((:uptime nimbus))
-              javabases (topology-bases storm-cluster-state)
-              bases (into {} (dofor [[id base] javabases][id (clojurify-storm-base base)]))
+              bases (nimbus-topology-bases storm-cluster-state)
               nimbuses (.nimbuses storm-cluster-state)
 
               ;;update the isLeader field for each nimbus summary
@@ -2162,8 +2169,7 @@
 
       (^TopologyHistoryInfo getTopologyHistory [this ^String user]
         (let [storm-cluster-state (:storm-cluster-state nimbus)
-              javabases (topology-bases storm-cluster-state)
-              bases (into {} (dofor [[id  base] javabases][id (clojurify-storm-base base)]))
+              bases (topology-bases storm-cluster-state)
               assigned-topology-ids (.assignments storm-cluster-state nil)
               user-group-match-fn (fn [topo-id user conf]
                                     (let [topology-conf (try-read-storm-conf conf topo-id (:blob-store nimbus))

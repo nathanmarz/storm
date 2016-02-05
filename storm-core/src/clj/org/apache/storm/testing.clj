@@ -45,7 +45,7 @@
   (:import [org.apache.storm.tuple Tuple])
   (:import [org.apache.storm.generated StormTopology])
   (:import [org.apache.storm.task TopologyContext])
-  (:import [org.apache.storm.cluster DistributedClusterState ClusterStateContext StormZkClusterState])
+  (:import [org.apache.storm.cluster ZKStateStorage ClusterStateContext StormClusterStateImpl ClusterUtils])
   (:require [org.apache.storm.messaging.loader :as msg-loader])
   (:require [org.apache.storm.daemon.acker :as acker])
   (:use [org.apache.storm util thrift config log local-state converter]))
@@ -158,8 +158,8 @@
                      :port-counter port-counter
                      :daemon-conf daemon-conf
                      :supervisors (atom [])
-                     :state (DistributedClusterState. daemon-conf nil nil (ClusterStateContext.))
-                     :storm-cluster-state (StormZkClusterState. daemon-conf nil (ClusterStateContext.))
+                     :state (ClusterUtils/mkDistributedClusterState daemon-conf nil nil (ClusterStateContext.))
+                     :storm-cluster-state (ClusterUtils/mkStormClusterState daemon-conf nil (ClusterStateContext.))
                      :tmp-dirs (atom [nimbus-tmp zk-tmp])
                      :zookeeper (if (not-nil? zk-handle) zk-handle)
                      :shared-context context

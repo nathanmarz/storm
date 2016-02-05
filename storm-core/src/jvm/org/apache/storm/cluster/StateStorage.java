@@ -22,11 +22,11 @@ import clojure.lang.IFn;
 import java.util.List;
 
 import org.apache.curator.framework.state.ConnectionStateListener;
-import org.apache.storm.callback.Callback;
+import org.apache.storm.callback.ZKStateChangedCallback;
 import org.apache.zookeeper.data.ACL;
 
 /**
- * ClusterState provides the API for the pluggable state store used by the
+ * StateStorage provides the API for the pluggable state store used by the
  * Storm daemons. Data is stored in path/value format, and the store supports
  * listing sub-paths at a given path.
  * All data should be available across all nodes with eventual consistency.
@@ -41,7 +41,7 @@ import org.apache.zookeeper.data.ACL;
  * may or may not cause a collision in "/path".
  * Never use the same paths with the *_hb* methods as you do with the others.
  */
-public interface ClusterState {
+public interface StateStorage {
 
     /**
      * Registers a callback function that gets called when CuratorEvents happen.
@@ -50,7 +50,7 @@ public interface ClusterState {
      * @return is an id that can be passed to unregister(...) to unregister the
      * callback.
      */
-    String register(Callback callback);
+    String register(ZKStateChangedCallback callback);
 
     /**
      * Unregisters a callback function that was registered with register(...).
@@ -196,8 +196,8 @@ public interface ClusterState {
     void delete_worker_hb(String path);
 
     /**
-     * Add a ClusterStateListener to the connection.
-     * @param listener A ClusterStateListener to handle changing cluster state
+     * Add a StateStorageListener to the connection.
+     * @param listener A StateStorageListener to handle changing cluster state
      * events.
      */
     void add_listener(final ConnectionStateListener listener);

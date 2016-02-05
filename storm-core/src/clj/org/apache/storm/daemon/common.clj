@@ -17,8 +17,11 @@
   (:use [org.apache.storm log config util])
   (:import [org.apache.storm.generated StormTopology
             InvalidTopologyException GlobalStreamId]
-           [org.apache.storm.utils ThriftTopologyUtils])
+           [org.apache.storm.utils ThriftTopologyUtils]
+           [org.apache.storm.daemon.metrics.reporters PreparableReporter]
+           [com.codahale.metrics MetricRegistry])
   (:import [org.apache.storm.utils Utils ConfigUtils])
+  (:import [org.apache.storm.daemon.metrics MetricsUtils])
   (:import [org.apache.storm.task WorkerTopologyContext])
   (:import [org.apache.storm Constants])
   (:import [org.apache.storm.metric SystemBolt])
@@ -28,10 +31,18 @@
   (:require [clojure.set :as set])  
   (:require [org.apache.storm.daemon.acker :as acker])
   (:require [org.apache.storm.thrift :as thrift])
-  (:require [metrics.reporters.jmx :as jmx]))
+  (:require [metrics.core  :refer [default-registry]]))
 
-(defn start-metrics-reporters []
-  (jmx/start (jmx/reporter {})))
+(defn start-metrics-reporter [reporter conf]
+  (doto reporter
+    (.prepare default-registry conf)
+    (.start))
+  (log-message "Started statistics report plugin..."))
+
+(defn start-metrics-reporters [conf]
+  (doseq [reporter (MetricsUtils/getPreparableReporters conf)]
+    (start-metrics-reporter reporter conf)))
+
 
 (def ACKER-COMPONENT-ID acker/ACKER-COMPONENT-ID)
 (def ACKER-INIT-STREAM-ID acker/ACKER-INIT-STREAM-ID)

@@ -281,3 +281,7 @@ pacemaker.thread.timeout: 10
 pacemaker.childopts: "-Xmx1024m"
 pacemaker.auth.method: "NONE"
 pacemaker.kerberos.users: []
+
+#default storm daemon metrics reporter plugins
+storm.daemon.metrics.reporter.plugins:
+     - "org.apache.storm.daemon.metrics.reporters.JmxPreparableReporter"

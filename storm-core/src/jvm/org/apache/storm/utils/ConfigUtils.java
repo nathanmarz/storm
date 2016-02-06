@@ -453,7 +453,12 @@ public class ConfigUtils {
         return new File((logRoot + FILE_SEPARATOR + id + FILE_SEPARATOR + port));
     }
 
+    // we use this "wired" wrapper pattern temporarily for mocking in clojure test
     public static String workerRoot(Map conf) {
+        return _instance.workerRootImpl(conf);
+    }
+
+    public String workerRootImpl(Map conf) {
         return (absoluteStormLocalDir(conf) + FILE_SEPARATOR + "workers");
     }
 
@@ -464,6 +469,11 @@ public class ConfigUtils {
     public static String workerPidsRoot(Map conf, String id) {
         return (workerRoot(conf, id) + FILE_SEPARATOR + "pids");
     }
+
+    public static String workerTmpRoot(Map conf, String id) {
+        return (workerRoot(conf, id) + FILE_SEPARATOR + "tmp");
+    }
+
 
     public static String workerPidPath(Map conf, String id, String pid) {
         return (workerPidsRoot(conf, id) + FILE_SEPARATOR + pid);

@@ -141,7 +141,6 @@ public class SerializationFactory {
                 ComponentCommon common = Utils.getComponentCommon(topology, name);
                 List<String> streams = new ArrayList<>(common.get_streams().keySet());
                 streamNametoId.put(name, idify(streams));
-                //TODO: Can the call to simpleReverseMap be replaced wih Utils.reverseMap ?
                 streamIdToName.put(name, Utils.simpleReverseMap(streamNametoId.get(name)));
             }
         }

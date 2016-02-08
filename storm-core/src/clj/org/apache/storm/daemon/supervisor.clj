@@ -105,7 +105,7 @@
   "Returns map from port to struct containing :storm-id, :executors and :resources"
   ([assignments-snapshot assignment-id]
      (->> (dofor [sid (keys assignments-snapshot)] (read-my-executors assignments-snapshot sid assignment-id))
-          (apply merge-with (fn [& ignored] (Utils/throwRuntime ["Should not have multiple topologies assigned to one port"])))))
+          (apply merge-with (fn [& ignored] (throw (RuntimeException. (str "Should not have multiple topologies assigned to one port")))))))
   ([assignments-snapshot assignment-id existing-assignment retries]
      (try (let [assignments (read-assignments assignments-snapshot assignment-id)]
             (reset! retries 0)
@@ -949,7 +949,7 @@
     (if-not (Utils/isOnWindows)
       (Utils/restrictPermissions tmproot)
       (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
-        (Utils/throwRuntime (str "ERROR: Windows doesn't implement setting the correct permissions"))))
+        (throw (RuntimeException. (str "ERROR: Windows doesn't implement setting the correct permissions")))))
     (Utils/downloadResourcesAsSupervisor (ConfigUtils/masterStormJarKey storm-id)
       (ConfigUtils/supervisorStormJarPath tmproot) blobstore)
     (Utils/downloadResourcesAsSupervisor (ConfigUtils/masterStormCodeKey storm-id)

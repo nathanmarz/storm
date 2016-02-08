@@ -20,7 +20,7 @@
   (:import [org.apache.storm.utils Container RotatingMap MutableObject])
   (:import [java.util List Map])
   (:import [org.apache.storm Constants])
-  (:use [org.apache.storm config util log])
+  (:use [org.apache.storm config log])
   (:gen-class
    :init init
    :implements [org.apache.storm.task.IBolt]

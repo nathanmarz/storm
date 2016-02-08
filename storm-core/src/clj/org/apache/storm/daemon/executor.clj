@@ -154,7 +154,7 @@
         bolts (.get_bolts topology)]
     (cond (contains? spouts component-id) :spout
           (contains? bolts component-id) :bolt
-          :else (Utils/throwRuntime ["Could not find " component-id " in topology " topology]))))
+          :else (throw (RuntimeException. (str "Could not find " component-id " in topology " topology))))))
 
 (defn executor-selector [executor-data & _] (:type executor-data))
 
@@ -204,7 +204,7 @@
         ]
     (fn [error]
       (log-error error)
-      (when (> (Time/delta @interval-start-time)
+      (when (> (Time/deltaSecs @interval-start-time)
                error-interval-secs)
         (reset! interval-errors 0)
         (reset! interval-start-time (Time/currentTimeSecs)))
@@ -534,7 +534,7 @@
                                     [stored-task-id spout-id tuple-finished-info start-time-ms] (.remove pending id)]
                                 (when spout-id
                                   (when-not (= stored-task-id task-id)
-                                    (Utils/throwRuntime ["Fatal error, mismatched task ids: " task-id " " stored-task-id]))
+                                    (throw (RuntimeException. (str "Fatal error, mismatched task ids: " task-id " " stored-task-id))))
                                   (let [time-delta (if start-time-ms (Time/deltaMs start-time-ms))]
                                     (condp = stream-id
                                       ACKER-ACK-STREAM-ID (ack-spout-msg executor-data (get task-datas task-id)

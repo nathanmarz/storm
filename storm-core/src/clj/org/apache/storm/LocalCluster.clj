@@ -15,7 +15,7 @@
 ;; limitations under the License.
 
 (ns org.apache.storm.LocalCluster
-  (:use [org.apache.storm testing config util])
+  (:use [org.apache.storm testing config])
   (:import [org.apache.storm.utils Utils])
   (:import [java.util Map])
   (:gen-class

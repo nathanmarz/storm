@@ -105,18 +105,15 @@ public class Time {
         }
     }
 
-    public static long toMillis (int secs) {
+    public static long secsToMillis (int secs) {
         return 1000*(long) secs;
-    }
-    public static long toMillis (String secs) {
-        return 1000*Long.parseLong(secs);
     }
 
     public static int currentTimeSecs() {
         return (int) (currentTimeMillis() / 1000);
     }
 
-    public static int delta(int timeInSeconds) {
+    public static int deltaSecs(int timeInSeconds) {
         return Time.currentTimeSecs() - timeInSeconds;
     }
 

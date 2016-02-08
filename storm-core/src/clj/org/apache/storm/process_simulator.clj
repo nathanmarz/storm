@@ -15,7 +15,7 @@
 ;; limitations under the License.
 
 (ns org.apache.storm.process-simulator
-  (:use [org.apache.storm log util]))
+  (:use [org.apache.storm log]))
 
 (def process-map (atom {}))
 

@@ -90,7 +90,7 @@
         clear-thread (Utils/asyncLoop
                        (fn []
                          (doseq [[id start] @id->start]
-                           (when (> (Time/delta start) (conf DRPC-REQUEST-TIMEOUT-SECS))
+                           (when (> (Time/deltaSecs start) (conf DRPC-REQUEST-TIMEOUT-SECS))
                              (when-let [sem (@id->sem id)]
                                (.remove (acquire-queue request-queues (@id->function id)) (@id->request id))
                                (log-warn "Timeout DRPC request id: " id " start at " start)

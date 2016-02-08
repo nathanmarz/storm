@@ -30,7 +30,7 @@
   (:import [org.mockito Matchers Mockito])
   (:import [org.mockito.exceptions.base MockitoAssertionError])
   (:use [org.apache.storm.trident testing])
-  (:use [org.apache.storm config util]))
+  (:use [org.apache.storm config]))
 
 (defn single-remove [map key]
   (-> map (.multiRemove [[key]])))

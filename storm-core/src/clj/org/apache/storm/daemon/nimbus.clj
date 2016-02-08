@@ -349,7 +349,7 @@
                                               ", status: " status,
                                               " storm-id: " storm-id)]
                                  (if error-on-no-transition?
-                                   (Utils/throwRuntime msg)
+                                   (throw (RuntimeException. msg))
                                    (do (when-not (contains? system-events event)
                                          (log-message msg))
                                        nil))
@@ -577,7 +577,7 @@
                       )]
       {:is-timed-out (and
                        nimbus-time
-                       (>= (Time/delta nimbus-time) timeout))
+                       (>= (Time/deltaSecs nimbus-time) timeout))
        :nimbus-time nimbus-time
        :executor-reported-time reported-time
        :heartbeat hb}))
@@ -625,7 +625,7 @@
                 is-timed-out (-> heartbeats-cache (get executor) :is-timed-out)]
             (if (and start-time
                    (or
-                    (< (Time/delta start-time)
+                    (< (Time/deltaSecs start-time)
                        (conf NIMBUS-TASK-LAUNCH-SECS))
                     (not is-timed-out)
                     ))
@@ -656,7 +656,6 @@
          ((fn [ & maps ] (Utils/joinMaps (into-array (into [component->executors] maps)))))
          (clojurify-structure)
          (map-val (partial apply (fn part-fixed [a b] (Utils/partitionFixed a b))))
-         ((fn [whatever] (log-message (pr-str "after-partition-fixed: " whatever)) whatever))
          (mapcat second)
          (map to-executor-id)
          )))
@@ -1160,7 +1159,7 @@
     (log-message "not a leader, skipping cleanup")))
 
 (defn- file-older-than? [now seconds file]
-  (<= (+ (.lastModified file) (Time/toMillis seconds)) (Time/toMillis now)))
+  (<= (+ (.lastModified file) (Time/secsToMillis seconds)) (Time/secsToMillis now)))
 
 (defn clean-inbox [dir-location seconds]
   "Deletes jar files in dir older than seconds."
@@ -1839,7 +1838,7 @@
                       leader-host (.getHost leader)
                       leader-port (.getPort leader)]
                   (doseq [nimbus-summary nimbuses]
-                    (.set_uptime_secs nimbus-summary (Time/delta (.get_uptime_secs nimbus-summary)))
+                    (.set_uptime_secs nimbus-summary (Time/deltaSecs (.get_uptime_secs nimbus-summary)))
                     (.set_isLeader nimbus-summary (and (= leader-host (.get_host nimbus-summary)) (= leader-port (.get_port nimbus-summary))))))
 
               topology-summaries (dofor [[id base] bases :when base]
@@ -1857,7 +1856,7 @@
                                                        vals
                                                        set
                                                        count)
-                                                     (Time/delta (:launch-time-secs base))
+                                                     (Time/deltaSecs (:launch-time-secs base))
                                                      (extract-status-str base))]
                                      (when-let [owner (:owner base)] (.set_owner topo-summ owner))
                                      (when-let [sched-status (.get @(:id->sched-status nimbus) id)] (.set_sched_status topo-summ sched-status))
@@ -1919,7 +1918,7 @@
                                           ))
               topo-info  (TopologyInfo. storm-id
                            storm-name
-                           (Time/delta launch-time-secs)
+                           (Time/deltaSecs launch-time-secs)
                            executor-summaries
                            (extract-status-str base)
                            errors
@@ -1983,9 +1982,8 @@
                   position (.position blob-chunk)]
               (.write os chunk-array (+ array-offset position) remaining)
               (.put uploaders session os))
-            (Utils/throwRuntime ["Blob for session "
-              session
-              " does not exist (or timed out)"]))))
+            (throw (RuntimeException. (str "Blob for session " session
+                                           " does not exist (or timed out)"))))))
 
       (^void finishBlobUpload [this ^String session]
         (if-let [^AtomicOutputStream os (.get (:blob-uploaders nimbus) session)]
@@ -1995,9 +1993,8 @@
               session
               ". Closing session.")
             (.remove (:blob-uploaders nimbus) session))
-          (Utils/throwRuntime ["Blob for session "
-            session
-            " does not exist (or timed out)"])))
+          (throw (RuntimeException. (str "Blob for session " session
+                                         " does not exist (or timed out)")))))
 
       (^void cancelBlobUpload [this ^String session]
         (if-let [^AtomicOutputStream os (.get (:blob-uploaders nimbus) session)]
@@ -2007,9 +2004,8 @@
               session
               ". Closing session.")
             (.remove (:blob-uploaders nimbus) session))
-          (Utils/throwRuntime ["Blob for session "
-            session
-            " does not exist (or timed out)"])))
+          (throw (RuntimeException. (str "Blob for session " session
+                                         " does not exist (or timed out)")))))
 
       (^ReadableBlobMeta getBlobMeta [this ^String blob-key]
         (let [^ReadableBlobMeta ret (.getBlobMeta (:blob-store nimbus)
@@ -2057,13 +2053,13 @@
 
       (^ListBlobsResult listBlobs [this ^String session]
         (let [listers (:blob-listers nimbus)
-              ^Iterator keys-it (if (clojure.string/blank? session)
-                                  (.listKeys (:blob-store nimbus))
-                                  (.get listers session))
-              _ (or keys-it (Utils/throwRuntime ["Blob list for session "
-                              session
-                              " does not exist (or timed out)"]))
-
+              ^Iterator keys-it (or
+                                 (if (clojure.string/blank? session)
+                                   (.listKeys (:blob-store nimbus))
+                                   (.get listers session))
+                                 (throw (RuntimeException. (str "Blob list for session "
+                                                                session
+                                                                " does not exist (or timed out)"))))
               ;; Create a new session id if the user gave an empty session string.
               ;; This is the use case when the user wishes to list blobs
               ;; starting from the beginning.
@@ -2127,7 +2123,7 @@
           (doto topo-page-info
             (.set_name (:storm-name info))
             (.set_status (extract-status-str (:base info)))
-            (.set_uptime_secs (Time/delta (:launch-time-secs info)))
+            (.set_uptime_secs (Time/deltaSecs (:launch-time-secs info)))
             (.set_topology_conf (JSONValue/toJSONString
                                   (try-read-storm-conf conf
                                                        topo-id

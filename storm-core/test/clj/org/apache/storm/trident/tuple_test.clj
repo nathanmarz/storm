@@ -19,8 +19,7 @@
   (:import [org.apache.storm.trident.tuple TridentTupleView TridentTupleView$ProjectionFactory
             TridentTupleView$FreshOutputFactory TridentTupleView$OperationOutputFactory
             TridentTupleView$RootFactory])
-  (:use [org.apache.storm.trident testing])
-  (:use [org.apache.storm util]))
+  (:use [org.apache.storm.trident testing]))
 
 (defmacro letlocals
   [& body]

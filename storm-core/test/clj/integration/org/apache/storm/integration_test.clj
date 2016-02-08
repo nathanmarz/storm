@@ -21,7 +21,7 @@
   (:import [org.apache.storm.testing TestWordCounter TestWordSpout TestGlobalCount
             TestAggregatesCounter TestConfBolt AckFailMapTracker AckTracker TestPlannerSpout])
   (:import [org.apache.storm.tuple Fields])
-  (:use [org.apache.storm testing config clojure util])
+  (:use [org.apache.storm testing config clojure])
   (:use [org.apache.storm.daemon common])
   (:require [org.apache.storm [thrift :as thrift]]))
 

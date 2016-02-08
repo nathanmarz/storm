@@ -23,7 +23,7 @@
         [clojure.string :only [split]]
         [clojure.tools.cli :only [cli]]
         [clojure.java.io :only [copy input-stream output-stream]]
-        [org.apache.storm blobstore log util])
+        [org.apache.storm blobstore log])
   (:gen-class))
 
 (defn update-blob-from-stream

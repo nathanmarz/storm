@@ -72,7 +72,6 @@
                                                           (:worker->resources assignment)))))
     thrift-assignment))
 
-;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 ;TODO: when translating this function, you should replace the map-key with a proper for loop HERE
 (defn clojurify-executor->node_port [executor->node_port]
   (into {}
@@ -215,7 +214,6 @@
       (map-val clojurify-debugoptions (.get_component_debug storm-base)))))
 
 ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
-;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defn thriftify-stats [stats]
   (if stats
     (map-val thriftify-executor-stats
@@ -223,7 +221,6 @@
         stats))
     {}))
 
-;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defn clojurify-stats [stats]
   (if stats

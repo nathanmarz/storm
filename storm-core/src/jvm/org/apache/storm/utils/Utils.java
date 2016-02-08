@@ -158,7 +158,6 @@ public class Utils {
 
     public static Object newInstance(String klass) {
         try {
-            LOG.info("Creating new instance for class {}", klass);
             return newInstance(Class.forName(klass));
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -166,14 +165,12 @@ public class Utils {
     }
 
     public static Object newInstance(Class klass) {
-        LOG.info("Inside other newInstance static method.");
         return _instance.newInstanceImpl(klass);
     }
 
     // Non-static impl methods exist for mocking purposes.
     public Object newInstanceImpl(Class klass) {
         try {
-            LOG.info("Returning {}.newInstance()", klass);
             return klass.newInstance();
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -666,17 +663,6 @@ public class Utils {
 
     public static boolean isSystemId(String id) {
         return id.startsWith("__");
-    }
-
-    /*
-        TODO: Can this be replaced with reverseMap in this file?
-     */
-    public static <K, V> Map<V, K> simpleReverseMap(Map<K, V> map) {
-        Map<V, K> ret = new HashMap<V, K>();
-        for (Map.Entry<K, V> entry : map.entrySet()) {
-            ret.put(entry.getValue(), entry.getKey());
-        }
-        return ret;
     }
 
     public static ComponentCommon getComponentCommon(StormTopology topology, String id) {
@@ -1824,6 +1810,21 @@ public class Utils {
         } else {
             return defaultObj;
         }
+    }
+
+    /**
+     * "{:a 1  :b 2} -> {1 :a  2 :b}"
+     *
+     * Note: Only one key wins if there are duplicate values.
+     *       Which key wins is indeterminate:
+     * "{:a 1  :b 1} -> {1 :a} *or* {1 :b}"
+     */
+    public static <K, V> Map<V, K> simpleReverseMap(Map<K, V> map) {
+        Map<V, K> ret = new HashMap<V, K>();
+        for (Map.Entry<K, V> entry : map.entrySet()) {
+            ret.put(entry.getValue(), entry.getKey());
+        }
+        return ret;
     }
 
     /**

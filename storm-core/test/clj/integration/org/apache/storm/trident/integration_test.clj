@@ -20,8 +20,7 @@
             MemoryMapState$Factory])
   (:import [org.apache.storm.trident.state StateSpec])
   (:import [org.apache.storm.trident.operation.impl CombinerAggStateUpdater])
-  (:use [org.apache.storm.trident testing])
-  (:use [org.apache.storm util]))
+  (:use [org.apache.storm.trident testing]))
   
 (bootstrap-imports)
 

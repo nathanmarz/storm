@@ -53,7 +53,7 @@
         pred (reify IPredicate (test [this x] (not-nil? x)))
         ret (Utils/findFirst pred slot-assigns)]
     (when-not ret
-      (Utils/throwRuntime "Could not find assignment for worker"))
+      (throw (RuntimeException. "Could not find assignment for worker")))
     ret
     ))
 

@@ -1,7 +1,16 @@
 ## 2.0.0
+ * STORM-1257: port backtype.storm.zookeeper to java
+ * STORM-1504: Add Serializer and instruction for AvroGenericRecordBolt
+ * STORM-1524: Add Pluggable daemon metrics Reporters
 
 ## 1.0.0
- * STORM-1503] Worker should not crash on failure to send heartbeats to Pacemaker/ZK
+ * STORM-1526 Improve Storm core performance
+ * STORM-1517: Add peek api in trident stream
+ * STORM-1455: kafka spout should not reset to the beginning of partition when offsetoutofrange exception occurs
+ * STORM-1505: Add map, flatMap and filter functions in trident stream
+ * STORM-1518: Backport of STORM-1504
+ * STORM-1510: Fix broken nimbus log link
+ * STORM-1503: Worker should not crash on failure to send heartbeats to Pacemaker/ZK
  * STORM-1176: Checkpoint window evaluated/expired state
  * STORM-1494: Add link to supervisor log in Storm UI
  * STORM-1496: Nimbus periodically throws blobstore-related exception

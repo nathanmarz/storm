@@ -386,7 +386,7 @@
     {
       "host" host
       "port" port
-      "nimbusLogLink" (nimbus-log-link host port)
+      "nimbusLogLink" (nimbus-log-link host)
       "status" "Offline"
       "version" "Not applicable"
       "nimbusUpTime" "Not applicable"
@@ -1260,7 +1260,7 @@
           https-ts-type (conf UI-HTTPS-TRUSTSTORE-TYPE)
           https-want-client-auth (conf UI-HTTPS-WANT-CLIENT-AUTH)
           https-need-client-auth (conf UI-HTTPS-NEED-CLIENT-AUTH)]
-      (start-metrics-reporters)
+      (start-metrics-reporters conf)
       (storm-run-jetty {:port (conf UI-PORT)
                         :host (conf UI-HOST)
                         :https-port https-port

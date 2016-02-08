@@ -58,7 +58,7 @@
   (.prepare grouping context (GlobalStreamId. component-id stream-id) target-tasks)
   (if (instance? LoadAwareCustomStreamGrouping grouping)
     (fn [task-id ^List values load]
-      (.chooseTasks grouping task-id values load))
+      (.chooseTasks ^LoadAwareCustomStreamGrouping grouping task-id values load))
     (fn [task-id ^List values load]
       (.chooseTasks grouping task-id values))))
 
@@ -142,7 +142,7 @@
                   (.getComponentOutputFields worker-context component-id stream-id)
                   component->grouping
                   topo-conf)]))
-         (into {})
+         (into (apply merge (map #(hash-map % nil) (.keySet (.get_streams (.getComponentCommon worker-context component-id))))))
          (HashMap.)))
 
 (defn executor-type [^WorkerTopologyContext context component-id]

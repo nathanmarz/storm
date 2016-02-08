@@ -41,4 +41,11 @@ public class MinWithComparator<T> extends ComparisonAggregator<T> {
     protected T compare(T value1, T value2) {
         return comparator.compare(value1, value2) < 0 ? value1 : value2;
     }
+
+    @Override
+    public String toString() {
+        return "MinWithComparator{" +
+                "comparator=" + comparator +
+                '}';
+    }
 }

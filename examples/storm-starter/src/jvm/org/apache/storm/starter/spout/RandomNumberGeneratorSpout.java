@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.storm.trident.testing;
+package org.apache.storm.starter.spout;
 
 import org.apache.storm.Config;
 import org.apache.storm.task.TopologyContext;
@@ -25,23 +25,22 @@ import org.apache.storm.trident.spout.IBatchSpout;
 import org.apache.storm.tuple.Fields;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
+ * This spout generates random whole numbers with given {@code maxNumber} value as maximum with the given {@code fields}.
  *
  */
-public class NumberGeneratorSpout implements IBatchSpout {
+public class RandomNumberGeneratorSpout implements IBatchSpout {
     private final Fields fields;
     private final int batchSize;
     private final int maxNumber;
     private final Map<Long, List<List<Object>>> batches = new HashMap<>();
 
-    public NumberGeneratorSpout(Fields fields, int batchSize, int maxNumber) {
+    public RandomNumberGeneratorSpout(Fields fields, int batchSize, int maxNumber) {
         this.fields = fields;
         this.batchSize = batchSize;
         this.maxNumber = maxNumber;
@@ -59,7 +58,11 @@ public class NumberGeneratorSpout implements IBatchSpout {
         } else {
             values = new ArrayList<>();
             for (int i = 0; i < batchSize; i++) {
-                values.add(Collections.singletonList((Object) ThreadLocalRandom.current().nextInt(0, maxNumber + 1)));
+                List<Object> numbers = new ArrayList<>();
+                for (int x=0; x<fields.size(); x++) {
+                    numbers.add(ThreadLocalRandom.current().nextInt(0, maxNumber + 1));
+                }
+                values.add(numbers);
             }
             batches.put(batchId, values);
         }

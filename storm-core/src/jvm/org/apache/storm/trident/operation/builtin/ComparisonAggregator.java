@@ -21,12 +21,16 @@ package org.apache.storm.trident.operation.builtin;
 import org.apache.storm.trident.operation.BaseAggregator;
 import org.apache.storm.trident.operation.TridentCollector;
 import org.apache.storm.trident.tuple.TridentTuple;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Abstract {@code Aggregator} for comparing two values in a stream.
  *
  */
 public abstract class ComparisonAggregator<T> extends BaseAggregator<ComparisonAggregator.State> {
+    private static final Logger log = LoggerFactory.getLogger(ComparisonAggregator.class);
+    private Object batchId;
 
     public static class State {
         TridentTuple previousTuple;
@@ -42,6 +46,8 @@ public abstract class ComparisonAggregator<T> extends BaseAggregator<ComparisonA
 
     @Override
     public State init(Object batchId, TridentCollector collector) {
+        this.batchId = batchId;
+        log.debug("Started comparison aggregation for batch: [{}] in operation [{}]", batchId, this);
         return new State();
     }
 
@@ -49,6 +55,8 @@ public abstract class ComparisonAggregator<T> extends BaseAggregator<ComparisonA
     public void aggregate(State state, TridentTuple tuple, TridentCollector collector) {
         T value1 = valueFromTuple(state.previousTuple);
         T value2 = valueFromTuple(tuple);
+
+        log.debug("Aggregated tuple value in state [{}], and received tuple value [{}] in operation [{}]", value1, value2, this);
 
         if(value2 == null) {
             return;
@@ -62,11 +70,22 @@ public abstract class ComparisonAggregator<T> extends BaseAggregator<ComparisonA
 
     protected T valueFromTuple(TridentTuple tuple) {
         // when there is no input field then the whole tuple is considered for comparison.
-        return (T) (inputFieldName != null && tuple != null ? tuple.getValueByField(inputFieldName) : tuple);
+        Object value = null;
+        if (inputFieldName != null && tuple != null) {
+            value =  tuple.getValueByField(inputFieldName);
+        } else {
+            value = tuple;
+        }
+
+        log.debug("value from tuple is [{}] with input field [{}] and tuple [{}]", value, inputFieldName, tuple);
+
+        return (T) value;
     }
 
     @Override
     public void complete(State state, TridentCollector collector) {
-        collector.emit(state.previousTuple.getValues());
+        log.debug("Completed comparison aggregation for batch [{}] with resultant tuple: [{}] in operation [{}]", batchId, state.previousTuple, this);
+
+        collector.emit(state.previousTuple != null ? state.previousTuple.getValues() : null);
     }
 }

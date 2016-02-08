@@ -448,10 +448,11 @@ public class Stream implements IAggregatableStream {
 
     /**
      * This aggregator operation computes the minimum of tuples by the given {@code inputFieldName} and it is
-     * assumed that its value is an instance of {@code Comparable}.
+     * assumed that its value is an instance of {@code Comparable}. If the value of tuple with field {@code inputFieldName} is not an
+     * instance of {@code Comparable} then it throws {@code ClassCastException}
      *
      * @param inputFieldName input field name
-     * @return
+     * @return the new stream with this operation.
      */
     public Stream minBy(String inputFieldName) {
         Aggregator<ComparisonAggregator.State> min = new Min(inputFieldName);
@@ -460,12 +461,13 @@ public class Stream implements IAggregatableStream {
 
     /**
      * This aggregator operation computes the minimum of tuples by the given {@code inputFieldName} in a stream by
-     * using the given {@code comparator}.
+     * using the given {@code comparator}. If the value of tuple with field {@code inputFieldName} is not an
+     * instance of {@code T} then it throws {@code ClassCastException}
      *
      * @param inputFieldName input field name
      * @param comparator comparator used in for finding minimum of two tuple values of {@code inputFieldName}.
      * @param <T> type of tuple's given input field value.
-     * @return
+     * @return the new stream with this operation.
      */
     public <T> Stream minBy(String inputFieldName, Comparator<T> comparator) {
         Aggregator<ComparisonAggregator.State> min = new MinWithComparator<>(inputFieldName, comparator);
@@ -477,7 +479,7 @@ public class Stream implements IAggregatableStream {
      * {@code TridentTuple}s.
      *
      * @param comparator comparator used in for finding minimum of two tuple values.
-     * @return
+     * @return the new stream with this operation.
      */
     public Stream min(Comparator<TridentTuple> comparator) {
         Aggregator<ComparisonAggregator.State> min = new MinWithComparator<>(comparator);
@@ -486,10 +488,11 @@ public class Stream implements IAggregatableStream {
 
     /**
      * This aggregator operation computes the maximum of tuples by the given {@code inputFieldName} and it is
-     * assumed that its value is an instance of {@code Comparable}.
+     * assumed that its value is an instance of {@code Comparable}. If the value of tuple with field {@code inputFieldName} is not an
+     * instance of {@code Comparable} then it throws {@code ClassCastException}
      *
      * @param inputFieldName input field name
-     * @return
+     * @return the new stream with this operation.
      */
     public Stream maxBy(String inputFieldName) {
         Aggregator<ComparisonAggregator.State> max = new Max(inputFieldName);
@@ -498,12 +501,13 @@ public class Stream implements IAggregatableStream {
 
     /**
      * This aggregator operation computes the maximum of tuples by the given {@code inputFieldName} in a stream by
-     * using the given {@code comparator}.
+     * using the given {@code comparator}. If the value of tuple with field {@code inputFieldName} is not an
+     * instance of {@code T} then it throws {@code ClassCastException}
      *
      * @param inputFieldName input field name
      * @param comparator comparator used in for finding maximum of two tuple values of {@code inputFieldName}.
      * @param <T> type of tuple's given input field value.
-     * @return
+     * @return the new stream with this operation.
      */
     public <T> Stream maxBy(String inputFieldName, Comparator<T> comparator) {
         Aggregator<ComparisonAggregator.State> max = new MaxWithComparator<>(inputFieldName, comparator);
@@ -515,7 +519,7 @@ public class Stream implements IAggregatableStream {
      * {@code TridentTuple}s.
      *
      * @param comparator comparator used in for finding maximum of two tuple values.
-     * @return
+     * @return the new stream with this operation.
      */
     public Stream max(Comparator<TridentTuple> comparator) {
         Aggregator<ComparisonAggregator.State> max = new MaxWithComparator<>(comparator);

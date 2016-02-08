@@ -34,10 +34,4 @@ public class Max extends ComparisonAggregator<Comparable<Object>> {
         return value1.compareTo(value2) > 0 ? value1 : value2;
     }
 
-    /**
-     * Returns an aggregator computes the maximum of aggregated tuples in a stream. It assumes that the tuple has one value and
-     * it is an instance of {@code Comparable}.
-     *
-     * @return
-     */
 }

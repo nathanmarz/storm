@@ -100,12 +100,12 @@
         (.remove (System/getProperties) k))))))
 
 (deftest test-secs-to-millis-long
-  (is (= 0 (secs-to-millis-long 0)))
-  (is (= 2 (secs-to-millis-long 0.002)))
-  (is (= 500 (secs-to-millis-long 0.5)))
-  (is (= 1000 (secs-to-millis-long 1)))
-  (is (= 1080 (secs-to-millis-long 1.08)))
-  (is (= 10000 (secs-to-millis-long 10)))
-  (is (= 10100 (secs-to-millis-long 10.1)))
+  (is (= 0 (Utils/secsToMillisLong 0)))
+  (is (= 2 (Utils/secsToMillisLong 0.002)))
+  (is (= 500 (Utils/secsToMillisLong 0.5)))
+  (is (= 1000 (Utils/secsToMillisLong 1)))
+  (is (= 1080 (Utils/secsToMillisLong 1.08)))
+  (is (= 10000 (Utils/secsToMillisLong 10)))
+  (is (= 10100 (Utils/secsToMillisLong 10.1)))
 )
 

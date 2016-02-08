@@ -48,7 +48,7 @@
   [this name conf topology]
   (submit-local-topology
     (:nimbus (. this state)) name conf topology)
-  (let [hook (get-configured-class conf STORM-TOPOLOGY-SUBMISSION-NOTIFIER-PLUGIN)]
+  (let [hook (Utils/getConfiguredClass conf STORM-TOPOLOGY-SUBMISSION-NOTIFIER-PLUGIN)]
     (when hook (submit-hook hook name conf topology))))
 
 

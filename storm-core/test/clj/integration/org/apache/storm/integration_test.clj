@@ -437,68 +437,50 @@
   (with-simulated-time-local-cluster [cluster
                                       :daemon-conf {TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS true
                                                     TOPOLOGY-KRYO-DECORATORS ["this-is-overriden"]}]
-    (letlocals
-     (bind builder (TopologyBuilder.))
-     (.setSpout builder "1" (TestPlannerSpout. (Fields. ["conf"])))
-     (-> builder
-         (.setBolt "2"
-                   (TestConfBolt.
-                    {TOPOLOGY-KRYO-DECORATORS ["one" "two"]}))
-         (.shuffleGrouping "1"))
-     
-     (bind results
-           (complete-topology cluster
-                              (.createTopology builder)
-                              :storm-conf {TOPOLOGY-KRYO-DECORATORS ["one" "three"]}
-                              :mock-sources {"1" [[TOPOLOGY-KRYO-DECORATORS]]}))
-     (is (= {"topology.kryo.decorators" (list "one" "two" "three")}            
-            (->> (read-tuples results "2")
-                 (apply concat)
-                 (apply hash-map)))))))
+    (let [builder (TopologyBuilder.)
+          _ (.setSpout builder "1" (TestPlannerSpout. (Fields. ["conf"])))
+          _ (-> builder (.setBolt "2" (TestConfBolt. {TOPOLOGY-KRYO-DECORATORS ["one" "two"]})) (.shuffleGrouping "1"))
+          results (complete-topology cluster
+                                     (.createTopology builder)
+                                     :storm-conf {TOPOLOGY-KRYO-DECORATORS ["one" "three"]}
+                                     :mock-sources {"1" [[TOPOLOGY-KRYO-DECORATORS]]})]
+      (is (= {"topology.kryo.decorators" (list "one" "two" "three")}
+             (->> (read-tuples results "2") (apply concat) (apply hash-map)))))))
 
 (deftest test-component-specific-config
   (with-simulated-time-local-cluster [cluster
                                       :daemon-conf {TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS true}]
-    (letlocals
-     (bind builder (TopologyBuilder.))
-     (.setSpout builder "1" (TestPlannerSpout. (Fields. ["conf"])))
-     (-> builder
-         (.setBolt "2"
-                   (TestConfBolt.
-                    {"fake.config" 123
-                     TOPOLOGY-MAX-TASK-PARALLELISM 20
-                     TOPOLOGY-MAX-SPOUT-PENDING 30
-                     TOPOLOGY-KRYO-REGISTER [{"fake.type" "bad.serializer"}
-                                             {"fake.type2" "a.serializer"}]
-                     }))
-         (.shuffleGrouping "1")
-         (.setMaxTaskParallelism (int 2))
-         (.addConfiguration "fake.config2" 987)
-         )
-     
-
-     (bind results
-           (complete-topology cluster
-                              (.createTopology builder)
-                              :storm-conf {TOPOLOGY-KRYO-REGISTER [{"fake.type" "good.serializer" "fake.type3" "a.serializer3"}]}
-                              :mock-sources {"1" [["fake.config"]
-                                                  [TOPOLOGY-MAX-TASK-PARALLELISM]
-                                                  [TOPOLOGY-MAX-SPOUT-PENDING]
-                                                  ["fake.config2"]
-                                                  [TOPOLOGY-KRYO-REGISTER]
-                                                  ]}))
-     (is (= {"fake.config" 123
-             "fake.config2" 987
-             TOPOLOGY-MAX-TASK-PARALLELISM 2
-             TOPOLOGY-MAX-SPOUT-PENDING 30
-             TOPOLOGY-KRYO-REGISTER {"fake.type" "good.serializer"
-                                     "fake.type2" "a.serializer"
-                                     "fake.type3" "a.serializer3"}}
-            (->> (read-tuples results "2")
-                 (apply concat)
-                 (apply hash-map))
-            ))
-     )))
+    (let [builder (TopologyBuilder.)
+          _ (.setSpout builder "1" (TestPlannerSpout. (Fields. ["conf"])))
+          _ (-> builder
+                (.setBolt "2"
+                          (TestConfBolt.
+                            {"fake.config" 123
+                             TOPOLOGY-MAX-TASK-PARALLELISM 20
+                             TOPOLOGY-MAX-SPOUT-PENDING 30
+                             TOPOLOGY-KRYO-REGISTER [{"fake.type" "bad.serializer"}
+                                                     {"fake.type2" "a.serializer"}]}))
+                (.shuffleGrouping "1")
+                (.setMaxTaskParallelism (int 2))
+                (.addConfiguration "fake.config2" 987))
+          results (complete-topology cluster
+                                     (.createTopology builder)
+                                     :storm-conf {TOPOLOGY-KRYO-REGISTER [{"fake.type" "good.serializer", "fake.type3" "a.serializer3"}]}
+                                     :mock-sources {"1" [["fake.config"]
+                                                         [TOPOLOGY-MAX-TASK-PARALLELISM]
+                                                         [TOPOLOGY-MAX-SPOUT-PENDING]
+                                                         ["fake.config2"]
+                                                         [TOPOLOGY-KRYO-REGISTER]]})]
+      (is (= {"fake.config" 123
+              "fake.config2" 987
+              TOPOLOGY-MAX-TASK-PARALLELISM 2
+              TOPOLOGY-MAX-SPOUT-PENDING 30
+              TOPOLOGY-KRYO-REGISTER {"fake.type" "good.serializer"
+                                      "fake.type2" "a.serializer"
+                                      "fake.type3" "a.serializer3"}}
+             (->> (read-tuples results "2")
+                  (apply concat)
+                  (apply hash-map)))))))
 
 (defbolt hooks-bolt ["emit" "ack" "fail" "executed"] {:prepare true}
   [conf context collector]

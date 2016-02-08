@@ -19,8 +19,9 @@
            [java.util.concurrent ConcurrentHashMap]
            [java.util.concurrent.atomic AtomicInteger]
            [org.apache.storm.generated HBNodes
-                                     HBServerMessageType HBMessage HBMessageData HBPulse]
-           [org.apache.storm.utils VersionInfo ConfigUtils])
+            HBServerMessageType HBMessage HBMessageData HBPulse]
+           [org.apache.storm.utils VersionInfo ConfigUtils]
+           [uk.org.lidalia.sysoutslf4j.context SysOutOverSLF4J])
   (:use [clojure.string :only [replace-first split]]
         [org.apache.storm log config util])
   (:require [clojure.java.jmx :as jmx])
@@ -237,5 +238,5 @@
     (PacemakerServer. (mk-handler conf) conf)))
 
 (defn -main []
-  (redirect-stdio-to-slf4j!)
+  (SysOutOverSLF4J/sendSystemOutAndErrToSLF4J)
   (launch-server!))

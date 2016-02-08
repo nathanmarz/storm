@@ -17,17 +17,17 @@
   (:use [org.apache.storm log config util])
   (:import [org.apache.storm.generated StormTopology
             InvalidTopologyException GlobalStreamId]
-           [org.apache.storm.utils ThriftTopologyUtils]
+           [org.apache.storm.utils Utils ConfigUtils IPredicate ThriftTopologyUtils]
            [org.apache.storm.daemon.metrics.reporters PreparableReporter]
            [com.codahale.metrics MetricRegistry])
-  (:import [org.apache.storm.utils Utils ConfigUtils])
   (:import [org.apache.storm.daemon.metrics MetricsUtils])
   (:import [org.apache.storm.task WorkerTopologyContext])
   (:import [org.apache.storm Constants])
   (:import [org.apache.storm.metric SystemBolt])
   (:import [org.apache.storm.metric EventLoggerBolt])
-  (:import [org.apache.storm.security.auth IAuthorizer]) 
-  (:import [java.io InterruptedIOException])
+  (:import [org.apache.storm.security.auth IAuthorizer])
+  (:import [java.io InterruptedIOException]
+           [org.json.simple JSONValue])
   (:require [clojure.set :as set])  
   (:require [org.apache.storm.daemon.acker :as acker])
   (:require [org.apache.storm.thrift :as thrift])
@@ -84,10 +84,9 @@
   (ExecutorStats. 0 0 0 0 0))
 
 (defn get-storm-id [storm-cluster-state storm-name]
-  (let [active-storms (.active-storms storm-cluster-state)]
-    (find-first
-      #(= storm-name (:storm-name (.storm-base storm-cluster-state % nil)))
-      active-storms)
+  (let [active-storms (.active-storms storm-cluster-state)
+        pred  (reify IPredicate (test [this x] (= storm-name (:storm-name (.storm-base storm-cluster-state x nil)))))]
+    (Utils/findFirst pred active-storms)
     ))
 
 (defn topology-bases [storm-cluster-state]
@@ -114,12 +113,12 @@
         (throw e#))
       (catch Throwable t#
         (log-error t# "Error on initialization of server " ~(str name))
-        (exit-process! 13 "Error on initialization")
+        (Utils/exitProcess 13 "Error on initialization")
         )))))
 
 (defn- validate-ids! [^StormTopology topology]
   (let [sets (map #(.getFieldValue topology %) thrift/STORM-TOPOLOGY-FIELDS)
-        offending (apply any-intersection sets)]
+        offending (apply set/intersection sets)]
     (if-not (empty? offending)
       (throw (InvalidTopologyException.
               (str "Duplicate component ids: " offending))))
@@ -145,9 +144,10 @@
 
 (defn component-conf [component]
   (->> component
-      .get_common
-      .get_json_conf
-      from-json))
+       .get_common
+       .get_json_conf
+       (#(if % (JSONValue/parse %)))
+       clojurify-structure))
 
 (defn validate-basic! [^StormTopology topology]
   (validate-ids! topology)
@@ -238,7 +238,7 @@
                                {TOPOLOGY-TICK-TUPLE-FREQ-SECS (storm-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS)})]]
       (do
         ;; this set up tick tuples to cause timeouts to be triggered
-        (.set_json_conf common (to-json spout-conf))
+        (.set_json_conf common (JSONValue/toJSONString spout-conf))
         (.put_to_streams common ACKER-INIT-STREAM-ID (thrift/output-fields ["id" "init-val" "spout-task"]))
         (.put_to_inputs common
                         (GlobalStreamId. ACKER-COMPONENT-ID ACKER-ACK-STREAM-ID)
@@ -363,6 +363,7 @@
 (defn num-start-executors [component]
   (thrift/parallelism-hint (.get_common component)))
 
+;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defn storm-task-info
   "Returns map from task -> component id"
   [^StormTopology user-topology storm-conf]

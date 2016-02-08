@@ -17,12 +17,14 @@
 (ns org.apache.storm.daemon.drpc
   (:import [org.apache.storm.security.auth AuthUtils ThriftServer ThriftConnectionType ReqContext])
   (:import [org.apache.storm.security.auth.authorizer DRPCAuthorizerBase])
+  (:import [org.apache.storm.utils Utils])
   (:import [org.apache.storm.generated DistributedRPC DistributedRPC$Iface DistributedRPC$Processor
             DRPCRequest DRPCExecutionException DistributedRPCInvocations DistributedRPCInvocations$Iface
             DistributedRPCInvocations$Processor])
   (:import [java.util.concurrent Semaphore ConcurrentLinkedQueue
             ThreadPoolExecutor ArrayBlockingQueue TimeUnit])
-  (:import [org.apache.storm.daemon Shutdownable])
+  (:import [org.apache.storm.daemon Shutdownable]
+           [org.apache.storm.utils Time])
   (:import [java.net InetAddress])
   (:import [org.apache.storm.generated AuthorizationException]
            [org.apache.storm.utils VersionInfo ConfigUtils])
@@ -57,7 +59,7 @@
 (defn check-authorization
   ([aclHandler mapping operation context]
     (if (not-nil? context)
-      (log-thrift-access (.requestID context) (.remoteAddress context) (.principal context) operation))
+      (Utils/logThriftAccess (.requestID context) (.remoteAddress context) (.principal context) operation))
     (if aclHandler
       (let [context (or context (ReqContext/context))]
         (if-not (.permit aclHandler context operation mapping)
@@ -85,10 +87,10 @@
                   (swap! id->request dissoc id)
                   (swap! id->start dissoc id))
         my-ip (.getHostAddress (InetAddress/getLocalHost))
-        clear-thread (async-loop
+        clear-thread (Utils/asyncLoop
                        (fn []
                          (doseq [[id start] @id->start]
-                           (when (> (time-delta start) (conf DRPC-REQUEST-TIMEOUT-SECS))
+                           (when (> (Time/delta start) (conf DRPC-REQUEST-TIMEOUT-SECS))
                              (when-let [sem (@id->sem id)]
                                (.remove (acquire-queue request-queues (@id->function id)) (@id->request id))
                                (log-warn "Timeout DRPC request id: " id " start at " start)
@@ -107,7 +109,7 @@
               ^Semaphore sem (Semaphore. 0)
               req (DRPCRequest. args id)
               ^ConcurrentLinkedQueue queue (acquire-queue request-queues function)]
-          (swap! id->start assoc id (current-time-secs))
+          (swap! id->start assoc id (Time/currentTimeSecs))
           (swap! id->sem assoc id sem)
           (swap! id->function assoc id function)
           (swap! id->request assoc id req)
@@ -227,9 +229,9 @@
                           (DistributedRPCInvocations$Processor. drpc-service-handler)
                           ThriftConnectionType/DRPC_INVOCATIONS)
           http-creds-handler (AuthUtils/GetDrpcHttpCredentialsPlugin conf)]
-      (add-shutdown-hook-with-force-kill-in-1-sec (fn []
-                                                    (if handler-server (.stop handler-server))
-                                                    (.stop invoke-server)))
+      (Utils/addShutdownHookWithForceKillIn1Sec (fn []
+                                            (if handler-server (.stop handler-server))
+                                            (.stop invoke-server)))
       (log-message "Starting Distributed RPC servers...")
       (future (.serve invoke-server))
       (when (> drpc-http-port 0)
@@ -270,5 +272,5 @@
         (.serve handler-server)))))
 
 (defn -main []
-  (setup-default-uncaught-exception-handler)
+  (Utils/setupDefaultUncaughtExceptionHandler)
   (launch-server!))

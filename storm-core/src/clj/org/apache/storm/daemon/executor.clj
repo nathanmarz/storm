@@ -36,7 +36,9 @@
   (:import [org.apache.storm Config Constants])
   (:import [org.apache.storm.cluster ClusterStateContext DaemonType])
   (:import [org.apache.storm.grouping LoadAwareCustomStreamGrouping LoadAwareShuffleGrouping LoadMapping ShuffleGrouping])
-  (:import [java.util.concurrent ConcurrentLinkedQueue])
+  (:import [java.lang Thread Thread$UncaughtExceptionHandler]
+           [java.util.concurrent ConcurrentLinkedQueue]
+           [org.json.simple JSONValue])
   (:require [org.apache.storm [thrift :as thrift]
              [cluster :as cluster] [disruptor :as disruptor] [stats :as stats]])
   (:require [org.apache.storm.daemon [task :as task]])
@@ -109,6 +111,7 @@
         :direct
       )))
 
+;TODO: when translating this function, you should replace the filter-val with a proper for loop + if condition HERE
 (defn- outbound-groupings
   [^WorkerTopologyContext worker-context this-component-id stream-id out-fields component->grouping topo-conf]
   (->> component->grouping
@@ -151,7 +154,7 @@
         bolts (.get_bolts topology)]
     (cond (contains? spouts component-id) :spout
           (contains? bolts component-id) :bolt
-          :else (throw-runtime "Could not find " component-id " in topology " topology))))
+          :else (Utils/throwRuntime ["Could not find " component-id " in topology " topology]))))
 
 (defn executor-selector [executor-data & _] (:type executor-data))
 
@@ -181,7 +184,8 @@
         spec-conf (-> general-context
                       (.getComponentCommon component-id)
                       .get_json_conf
-                      from-json)]
+                      (#(if % (JSONValue/parse %)))
+                      clojurify-structure)]
     (merge storm-conf (apply dissoc spec-conf to-remove))
     ))
 
@@ -195,20 +199,20 @@
   (let [storm-conf (:storm-conf executor)
         error-interval-secs (storm-conf TOPOLOGY-ERROR-THROTTLE-INTERVAL-SECS)
         max-per-interval (storm-conf TOPOLOGY-MAX-ERROR-REPORT-PER-INTERVAL)
-        interval-start-time (atom (current-time-secs))
+        interval-start-time (atom (Time/currentTimeSecs))
         interval-errors (atom 0)
         ]
     (fn [error]
       (log-error error)
-      (when (> (time-delta @interval-start-time)
+      (when (> (Time/delta @interval-start-time)
                error-interval-secs)
         (reset! interval-errors 0)
-        (reset! interval-start-time (current-time-secs)))
+        (reset! interval-start-time (Time/currentTimeSecs)))
       (swap! interval-errors inc)
 
       (when (<= @interval-errors max-per-interval)
         (cluster/report-error (:storm-cluster-state executor) (:storm-id executor) (:component-id executor)
-                              (hostname storm-conf)
+                              (Utils/hostname storm-conf)
                               (.getThisWorkerPort (:worker-context executor)) error)
         ))))
 
@@ -262,13 +266,16 @@
      :task->component (:task->component worker)
      :stream->component->grouper (outbound-components worker-context component-id storm-conf)
      :report-error (throttled-report-error-fn <>)
-     :report-error-and-die (fn [error]
-                             ((:report-error <>) error)
-                             (if (or
-                                    (exception-cause? InterruptedException error)
-                                    (exception-cause? java.io.InterruptedIOException error))
-                               (log-message "Got interrupted excpetion shutting thread down...")
-                               ((:suicide-fn <>))))
+     :report-error-and-die (reify
+                             Thread$UncaughtExceptionHandler
+                             (uncaughtException [this _ error]
+                               (fn [error]
+                                 ((:report-error <>) error)
+                                 (if (or
+                                       (Utils/exceptionCauseIsInstanceOf InterruptedException error)
+                                       (Utils/exceptionCauseIsInstanceOf java.io.InterruptedIOException error))
+                                   (log-message "Got interrupted excpetion shutting thread down...")
+                                   ((:suicide-fn <>))))))
      :sampler (mk-stats-sampler storm-conf)
      :backpressure (atom false)
      :spout-throttling-metrics (if (= executor-type :spout) 
@@ -329,7 +336,7 @@
          task-id (:task-id task-data)
          name->imetric (-> interval->task->metric-registry (get interval) (get task-id))
          task-info (IMetricsConsumer$TaskInfo.
-                     (hostname (:storm-conf executor-data))
+                     (Utils/hostname (:storm-conf executor-data))
                      (.getThisWorkerPort worker-context)
                      (:component-id executor-data)
                      task-id
@@ -386,8 +393,9 @@
         ;; doesn't block (because it's a single threaded queue and the caching/consumer started
         ;; trick isn't thread-safe)
         system-threads [(start-batch-transfer->worker-handler! worker executor-data)]
-        handlers (with-error-reaction report-error-and-die
-                   (mk-threads executor-data task-datas initial-credentials))
+        handlers (try
+                   (mk-threads executor-data task-datas initial-credentials)
+                   (catch Throwable t (report-error-and-die t)))
         threads (concat handlers system-threads)]    
     (setup-ticks! worker executor-data)
 
@@ -472,7 +480,7 @@
     (if p (* p num-tasks))))
 
 (defn init-spout-wait-strategy [storm-conf]
-  (let [ret (-> storm-conf (get TOPOLOGY-SPOUT-WAIT-STRATEGY) new-instance)]
+  (let [ret (-> storm-conf (get TOPOLOGY-SPOUT-WAIT-STRATEGY) Utils/newInstance)]
     (.prepare ret storm-conf)
     ret
     ))
@@ -491,6 +499,10 @@
           EVENTLOGGER-STREAM-ID
           [component-id message-id (System/currentTimeMillis) values]))))
 
+(defn- bit-xor-vals
+  [vals]
+  (reduce bit-xor 0 vals))
+
 (defmethod mk-threads :spout [executor-data task-datas initial-credentials]
   (let [{:keys [storm-conf component-id worker-context transfer-fn report-error sampler open-or-prepare-was-called?]} executor-data
         ^ISpoutWaitStrategy spout-wait-strategy (init-spout-wait-strategy storm-conf)
@@ -506,7 +518,7 @@
                  2 ;; microoptimize for performance of .size method
                  (reify RotatingMap$ExpiredCallback
                    (expire [this id [task-id spout-id tuple-info start-time-ms]]
-                     (let [time-delta (if start-time-ms (time-delta-ms start-time-ms))]
+                     (let [time-delta (if start-time-ms (Time/deltaMs start-time-ms))]
                        (fail-spout-msg executor-data (get task-datas task-id) spout-id tuple-info time-delta "TIMEOUT" id)
                        ))))
         tuple-action-fn (fn [task-id ^TupleImpl tuple]
@@ -523,8 +535,8 @@
                                     [stored-task-id spout-id tuple-finished-info start-time-ms] (.remove pending id)]
                                 (when spout-id
                                   (when-not (= stored-task-id task-id)
-                                    (throw-runtime "Fatal error, mismatched task ids: " task-id " " stored-task-id))
-                                  (let [time-delta (if start-time-ms (time-delta-ms start-time-ms))]
+                                    (Utils/throwRuntime ["Fatal error, mismatched task ids: " task-id " " stored-task-id]))
+                                  (let [time-delta (if start-time-ms (Time/deltaMs start-time-ms))]
                                     (condp = stream-id
                                       ACKER-ACK-STREAM-ID (ack-spout-msg executor-data (get task-datas task-id)
                                                                          spout-id tuple-finished-info time-delta id)
@@ -540,7 +552,7 @@
         emitted-count (MutableLong. 0)
         empty-emit-streak (MutableLong. 0)]
    
-    [(async-loop
+    [(Utils/asyncLoop
       (fn []
         ;; If topology was started in inactive state, don't call (.open spout) until it's activated first.
         (while (not @(:storm-active-atom executor-data))
@@ -661,19 +673,22 @@
               (.set empty-emit-streak 0)
               ))
           0))
-      :kill-fn (:report-error-and-die executor-data)
-      :factory? true
-      :thread-name (str component-id "-executor" (:executor-id executor-data)))]))
+      false ; isDaemon
+      (:report-error-and-die executor-data)
+      Thread/NORM_PRIORITY
+      true ; isFactory
+      true ; startImmediately
+      (str component-id "-executor" (:executor-id executor-data)))]))
 
 (defn- tuple-time-delta! [^TupleImpl tuple]
   (let [ms (.getProcessSampleStartTime tuple)]
     (if ms
-      (time-delta-ms ms))))
+      (Time/deltaMs ms))))
       
 (defn- tuple-execute-time-delta! [^TupleImpl tuple]
   (let [ms (.getExecuteSampleStartTime tuple)]
     (if ms
-      (time-delta-ms ms))))
+      (Time/deltaMs ms))))
 
 (defn put-xor! [^Map pending key id]
   (let [curr (or (.get pending key) (long 0))]
@@ -738,7 +753,7 @@
     
     ;; TODO: can get any SubscribedState objects out of the context now
 
-    [(async-loop
+    [(Utils/asyncLoop
       (fn []
         ;; If topology was started in inactive state, don't call prepare bolt until it's activated first.
         (while (not @(:storm-active-atom executor-data))          
@@ -840,9 +855,12 @@
           (fn []            
             (disruptor/consume-batch-when-available receive-queue event-handler)
             0)))
-      :kill-fn (:report-error-and-die executor-data)
-      :factory? true
-      :thread-name (str component-id "-executor" (:executor-id executor-data)))]))
+      false ; isDaemon
+      (:report-error-and-die executor-data)
+      Thread/NORM_PRIORITY
+      true ; isFactory
+      true ; startImmediately
+      (str component-id "-executor" (:executor-id executor-data)))]))
 
 (defmethod close-component :spout [executor-data spout]
   (.close spout))

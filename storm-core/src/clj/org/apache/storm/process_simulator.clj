@@ -17,8 +17,6 @@
 (ns org.apache.storm.process-simulator
   (:use [org.apache.storm log util]))
 
-(def pid-counter (mk-counter))
-
 (def process-map (atom {}))
 
 (def kill-lock (Object.))

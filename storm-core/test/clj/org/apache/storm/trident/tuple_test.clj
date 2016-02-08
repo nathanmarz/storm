@@ -22,6 +22,18 @@
   (:use [org.apache.storm.trident testing])
   (:use [org.apache.storm util]))
 
+(defmacro letlocals
+  [& body]
+  (let [[tobind lexpr] (split-at (dec (count body)) body)
+        binded (vec (mapcat (fn [e]
+                              (if (and (list? e) (= 'bind (first e)))
+                                [(second e) (last e)]
+                                ['_ e]
+                                ))
+                            tobind))]
+    `(let ~binded
+       ~(first lexpr))))
+
 (deftest test-fresh
   (letlocals
     (bind fresh-factory (TridentTupleView$FreshOutputFactory. (fields "a" "b" "c")))

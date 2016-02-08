@@ -25,6 +25,18 @@
   
 (bootstrap-imports)
 
+(defmacro letlocals
+  [& body]
+  (let [[tobind lexpr] (split-at (dec (count body)) body)
+        binded (vec (mapcat (fn [e]
+                              (if (and (list? e) (= 'bind (first e)))
+                                [(second e) (last e)]
+                                ['_ e]
+                                ))
+                            tobind))]
+    `(let ~binded
+       ~(first lexpr))))
+
 (deftest test-memory-map-get-tuples
   (t/with-local-cluster [cluster]
     (with-drpc [drpc]

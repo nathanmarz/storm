@@ -15,7 +15,7 @@
 ;; limitations under the License.
 
 (ns org.apache.storm.disruptor
-  (:import [org.apache.storm.utils DisruptorQueue WorkerBackpressureCallback DisruptorBackpressureCallback])
+  (:import [org.apache.storm.utils DisruptorQueue WorkerBackpressureCallback DisruptorBackpressureCallback Utils])
   (:import [com.lmax.disruptor.dsl ProducerType])
   (:require [clojure [string :as str]])
   (:require [clojure [set :as set]])
@@ -77,12 +77,10 @@
   (.haltWithInterrupt queue))
 
 (defnk consume-loop*
-  [^DisruptorQueue queue handler
-   :kill-fn (fn [error] (exit-process! 1 "Async loop died!"))]
-  (async-loop
+  [^DisruptorQueue queue handler]
+  (Utils/asyncLoop
           (fn [] (consume-batch-when-available queue handler) 0)
-          :kill-fn kill-fn
-          :thread-name (.getName queue)))
+          (.getName queue)))
 
 (defmacro consume-loop [queue & handler-args]
   `(let [handler# (handler ~@handler-args)]

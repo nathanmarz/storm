@@ -191,22 +191,19 @@
             ))))))
 
 (deftest test-test-tuple
-  (letlocals
-   ;; test the one-param signature
-   (bind ^Tuple tuple (Testing/testTuple ["james" "bond"]))
-   (is (= ["james" "bond"] (.getValues tuple)))
-   (is (= Utils/DEFAULT_STREAM_ID (.getSourceStreamId tuple)))
-   (is (= ["field1" "field2"] (-> tuple .getFields .toList)))
-   (is (= "component" (.getSourceComponent tuple)))
-
-   ;; test the two-params signature
-   (bind mk-tuple-param (MkTupleParam.))
-   (doto mk-tuple-param
-     (.setStream "test-stream")
-     (.setComponent "test-component")
-     (.setFields (into-array String ["fname" "lname"])))
-   (bind ^Tuple tuple (Testing/testTuple ["james" "bond"] mk-tuple-param))
-   (is (= ["james" "bond"] (.getValues tuple)))
-   (is (= "test-stream" (.getSourceStreamId tuple)))
-   (is (= ["fname" "lname"] (-> tuple .getFields .toList)))
-   (is (= "test-component" (.getSourceComponent tuple)))))
+  (testing "one-param signature"
+    (let [tuple (Testing/testTuple ["james" "bond"])]
+      (is (= ["james" "bond"] (.getValues tuple)))
+      (is (= Utils/DEFAULT_STREAM_ID (.getSourceStreamId tuple)))
+      (is (= ["field1" "field2"] (-> tuple .getFields .toList)))
+      (is (= "component" (.getSourceComponent tuple)))))
+   (testing "two-params signature"
+    (let [mk-tuple-param (doto (MkTupleParam.)
+                           (.setStream "test-stream")
+                           (.setComponent "test-component")
+                           (.setFields (into-array String ["fname" "lname"])))
+          tuple (Testing/testTuple ["james" "bond"] mk-tuple-param)]
+      (is (= ["james" "bond"] (.getValues tuple)))
+      (is (= "test-stream" (.getSourceStreamId tuple)))
+      (is (= ["fname" "lname"] (-> tuple .getFields .toList)))
+      (is (= "test-component" (.getSourceComponent tuple))))))

@@ -76,7 +76,7 @@
               (contains? spouts component-id) (.get_spout_object ^SpoutSpec (get spouts component-id))
               (contains? bolts component-id) (.get_bolt_object ^Bolt (get bolts component-id))
               (contains? state-spouts component-id) (.get_state_spout_object ^StateSpoutSpec (get state-spouts component-id))
-              true (throw-runtime "Could not find " component-id " in " topology)))
+              true (Utils/throwRuntime ["Could not find " component-id " in " topology])))
         obj (if (instance? ShellComponent obj)
               (if (contains? spouts component-id)
                 (ShellSpout. obj)

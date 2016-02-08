@@ -525,6 +525,7 @@
                             <include>org.clojure:core.incubator</include>
                             <include>io.dropwizard.metrics:*</include>
                             <include>metrics-clojure:*</include>
+                            <include>uk.org.lidalia:*</include>
                         </includes>
                     </artifactSet>
                     <relocations>
@@ -728,6 +729,10 @@
                         <relocation>
                             <pattern>metrics.utils</pattern>
                             <shadedPattern>org.apache.storm.shade.metrics.utils</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>uk.org.lidalia</pattern>
+                            <shadedPattern>org.apache.storm.shade.uk.org.lidalia</shadedPattern>
                         </relocation>
                     </relocations>
                     <transformers>

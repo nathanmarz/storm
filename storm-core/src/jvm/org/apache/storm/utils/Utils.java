@@ -2353,8 +2353,8 @@ public class Utils {
      * @return the newly created thread
      * @see java.lang.Thread
      */
-    public static SmartThread asyncLoop(final Callable afn, String threadName) {
-        return asyncLoop(afn, false, null, Thread.NORM_PRIORITY, false, true,
+    public static SmartThread asyncLoop(final Callable afn, String threadName, final Thread.UncaughtExceptionHandler eh) {
+        return asyncLoop(afn, false, eh, Thread.NORM_PRIORITY, false, true,
                 threadName);
     }
 

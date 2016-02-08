@@ -77,10 +77,12 @@
   (.haltWithInterrupt queue))
 
 (defnk consume-loop*
-  [^DisruptorQueue queue handler]
+  [^DisruptorQueue queue handler
+   :uncaught-exception-handler nil]
   (Utils/asyncLoop
           (fn [] (consume-batch-when-available queue handler) 0)
-          (.getName queue)))
+          (.getName queue)
+          uncaught-exception-handler))
 
 (defmacro consume-loop [queue & handler-args]
   `(let [handler# (handler ~@handler-args)]

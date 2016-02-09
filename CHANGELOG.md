@@ -4,6 +4,7 @@
  * STORM-1524: Add Pluggable daemon metrics Reporters
 
 ## 1.0.0
+ * STORM-1520: Nimbus Clojure/Zookeeper issue ("stateChanged" method not found)
  * STORM-1531: Junit and mockito dependencies need to have correct scope defined in storm-elasticsearch pom.xml
  * STORM-1526: Improve Storm core performance
  * STORM-1517: Add peek api in trident stream

@@ -33,7 +33,8 @@
   (:import [java.io File FileOutputStream FileInputStream])
   (:import [java.net InetAddress ServerSocket BindException])
   (:import [java.nio.channels Channels WritableByteChannel])
-  (:import [org.apache.storm.security.auth ThriftServer ThriftConnectionType ReqContext AuthUtils])
+  (:import [org.apache.storm.security.auth ThriftServer ThriftConnectionType ReqContext AuthUtils]
+           [org.apache.storm.logging ThriftAccessLogger])
   (:use [org.apache.storm.scheduler.DefaultScheduler])
   (:import [org.apache.storm.scheduler INimbus SupervisorDetails WorkerSlot TopologyDetails
             Cluster Topologies SchedulerAssignment SchedulerAssignmentImpl DefaultScheduler ExecutorDetails])
@@ -413,7 +414,7 @@
   [storm-cluster-state]
 
   (let [assignments (.assignments storm-cluster-state nil)]
-    (Utils/defaulted
+    (or
       (apply merge-with set/union
              (for [a assignments
                    [_ [node port]] (-> (.assignment-info storm-cluster-state a nil) :executor->node+port)]
@@ -1038,7 +1039,7 @@
            impersonation-authorizer (:impersonation-authorization-handler nimbus)
            ctx (or context (ReqContext/context))
            check-conf (if storm-conf storm-conf (if storm-name {TOPOLOGY-NAME storm-name}))]
-       (Utils/logThriftAccess (.requestID ctx) (.remoteAddress ctx) (.principal ctx) operation)
+       (ThriftAccessLogger/logAccess (.requestID ctx) (.remoteAddress ctx) (.principal ctx) operation)
        (if (.isImpersonating ctx)
          (do
           (log-warn "principal: " (.realPrincipal ctx) " is trying to impersonate principal: " (.principal ctx))

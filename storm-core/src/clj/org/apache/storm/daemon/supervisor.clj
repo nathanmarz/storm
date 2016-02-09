@@ -405,7 +405,7 @@
   (let [conf (:conf supervisor)
         ^LocalState local-state (:local-state supervisor)
         storm-cluster-state (:storm-cluster-state supervisor)
-        assigned-executors (Utils/defaulted (ls-local-assignments local-state) {})
+        assigned-executors (or (ls-local-assignments local-state) {})
         now (Time/currentTimeSecs)
         allocated (read-allocated-workers supervisor assigned-executors now)
         keepers (filter-val
@@ -456,7 +456,7 @@
 (defn shutdown-disallowed-workers [supervisor]
   (let [conf (:conf supervisor)
         ^LocalState local-state (:local-state supervisor)
-        assigned-executors (Utils/defaulted (ls-local-assignments local-state) {})
+        assigned-executors (or (ls-local-assignments local-state) {})
         now (Time/currentTimeSecs)
         allocated (read-allocated-workers supervisor assigned-executors now)
         disallowed (keys (filter-val

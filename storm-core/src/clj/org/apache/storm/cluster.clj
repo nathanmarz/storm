@@ -26,7 +26,8 @@
   (:import [org.apache.storm.cluster ClusterState ClusterStateContext ClusterStateListener ConnectionState])
   (:import [java.security MessageDigest])
   (:import [org.apache.zookeeper.server.auth DigestAuthenticationProvider])
-  (:import [org.apache.storm.nimbus NimbusInfo])
+  (:import [org.apache.storm.nimbus NimbusInfo]
+           [org.apache.storm.zookeeper Zookeeper])
   (:use [org.apache.storm util log config converter])
   (:require [org.apache.storm [zookeeper :as zk]])
   (:require [org.apache.storm.daemon [common :as common]]))
@@ -266,7 +267,7 @@
         state-id (.register
                   cluster-state
                   (fn [type path]
-                    (let [[subtree & args] (Utils/tokenizePath path)]
+                    (let [[subtree & args] (Zookeeper/tokenizePath path)]
                       (condp = subtree
                          ASSIGNMENTS-ROOT (if (empty? args)
                                              (issue-callback! assignments-callback)

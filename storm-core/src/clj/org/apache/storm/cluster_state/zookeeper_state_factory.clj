@@ -74,7 +74,7 @@
 
      (set-ephemeral-node
        [this path data acls]
-       (Zookeeper/mkdirs zk-writer (Utils/parentPath path) acls)
+       (Zookeeper/mkdirs zk-writer (Zookeeper/parentPath path) acls)
        (if (Zookeeper/exists zk-writer path false)
          (try-cause
            (Zookeeper/setData zk-writer path data) ; should verify that it's ephemeral
@@ -93,7 +93,7 @@
        (if (Zookeeper/exists zk-writer path false)
          (Zookeeper/setData zk-writer path data)
          (do
-           (Zookeeper/mkdirs zk-writer (Utils/parentPath path) acls)
+           (Zookeeper/mkdirs zk-writer (Zookeeper/parentPath path) acls)
            (Zookeeper/createNode zk-writer path data CreateMode/PERSISTENT acls))))
 
      (set-worker-hb

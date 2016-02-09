@@ -160,7 +160,7 @@
 (defn get-error-time
   [error]
   (if error
-    (Time/delta (.get_error_time_secs ^ErrorInfo error))))
+    (Time/deltaSecs (.get_error_time_secs ^ErrorInfo error))))
 
 (defn get-error-data
   [error]

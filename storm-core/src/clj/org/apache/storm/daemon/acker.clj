@@ -91,18 +91,18 @@
 (defn -init []
   [[] (Container.)])
 
-(defn -prepare [this conf context collector]
+(defn -prepare [^org.apache.storm.daemon.acker this conf context collector]
   (let [^IBolt ret (mk-acker-bolt)]
-    (Utils/containerSet (.state ^org.apache.storm.daemon.acker this) ret)
+    (.. this state (set ret))
     (.prepare ret conf context collector)
     ))
 
-(defn -execute [this tuple]
-  (let [^IBolt delegate (Utils/containerGet (.state ^org.apache.storm.daemon.acker this))]
+(defn -execute [^org.apache.storm.daemon.acker this tuple]
+  (let [^IBolt delegate (.. this state (get))]
     (.execute delegate tuple)
     ))
 
-(defn -cleanup [this]
-  (let [^IBolt delegate (Utils/containerGet (.state ^org.apache.storm.daemon.acker this))]
+(defn -cleanup [^org.apache.storm.daemon.acker this]
+  (let [^IBolt delegate (.. this state (get))]
     (.cleanup delegate)
     ))

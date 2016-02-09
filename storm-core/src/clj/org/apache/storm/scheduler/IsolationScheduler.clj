@@ -33,7 +33,7 @@
   [[] (Container.)])
 
 (defn -prepare [this conf]
-  (Utils/containerSet (.state this) conf))
+  (.. this state (set conf)))
 
 (defn- repeat-seq
   ([aseq]
@@ -168,7 +168,7 @@
 ;; run default scheduler on isolated topologies that didn't have enough slots + non-isolated topologies on remaining machines
 ;; set blacklist to what it was initially
 (defn -schedule [this ^Topologies topologies ^Cluster cluster]
-  (let [conf (Utils/containerGet (.state this))
+  (let [conf (.. this state (get))
         orig-blacklist (HashSet. (.getBlacklistedHosts cluster))
         iso-topologies (isolated-topologies conf (.getTopologies topologies))
         iso-ids-set (->> iso-topologies (map #(.getId ^TopologyDetails %)) set)

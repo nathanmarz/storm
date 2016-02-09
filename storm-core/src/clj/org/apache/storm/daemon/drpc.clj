@@ -27,7 +27,8 @@
            [org.apache.storm.utils Time])
   (:import [java.net InetAddress])
   (:import [org.apache.storm.generated AuthorizationException]
-           [org.apache.storm.utils VersionInfo ConfigUtils])
+           [org.apache.storm.utils VersionInfo ConfigUtils]
+           [org.apache.storm.logging ThriftAccessLogger])
   (:use [org.apache.storm config log util])
   (:use [org.apache.storm.daemon common])
   (:use [org.apache.storm.ui helpers])
@@ -59,7 +60,7 @@
 (defn check-authorization
   ([aclHandler mapping operation context]
     (if (not-nil? context)
-      (Utils/logThriftAccess (.requestID context) (.remoteAddress context) (.principal context) operation))
+      (ThriftAccessLogger/logAccess (.requestID context) (.remoteAddress context) (.principal context) operation))
     (if aclHandler
       (let [context (or context (ReqContext/context))]
         (if-not (.permit aclHandler context operation mapping)

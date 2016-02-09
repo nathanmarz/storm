@@ -92,7 +92,7 @@
   (when check-active (check-active! timer))
   (let [id (Utils/uuid)
         ^PriorityQueue queue (:queue timer)
-        end-time-ms (+ (Time/currentTimeMillis) (Utils/secsToMillisLong delay-secs))
+        end-time-ms (+ (Time/currentTimeMillis) (Time/secsToMillisLong delay-secs))
         end-time-ms (if (< 0 jitter-ms) (+ (.nextInt (:random timer) jitter-ms) end-time-ms) end-time-ms)]
     (locking (:lock timer)
       (.add queue [end-time-ms afn id]))))

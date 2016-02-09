@@ -109,6 +109,10 @@ public class Time {
         return 1000*(long) secs;
     }
 
+    public static long secsToMillisLong(double secs) {
+        return (long) (1000 * secs);
+    }
+
     public static int currentTimeSecs() {
         return (int) (currentTimeMillis() / 1000);
     }

@@ -22,6 +22,6 @@ package org.apache.storm.utils;
  * into certain Util functions which test some collection for elements matching
  * the IPredicate. (IPredicate.test(...) == true)
  */
-public interface IPredicate {
-    boolean test (Object obj);
+public interface IPredicate<T> {
+    boolean test (T obj);
 }

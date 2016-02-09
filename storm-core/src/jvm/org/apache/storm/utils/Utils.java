@@ -151,25 +151,32 @@ public class Utils {
     private static SerializationDelegate serializationDelegate;
     private static ClassLoader cl = ClassLoader.getSystemClassLoader();
 
+    public static final boolean IS_ON_WINDOWS = "Windows_NT".equals(System.getenv("OS"));
+    public static final String FILE_PATH_SEPARATOR = System.getProperty("file.separator");
+    public static final String CLASS_PATH_SEPARATOR = System.getProperty("path.separator");
+
+    public static final int SIGKILL = 9;
+    public static final int SIGTERM = 15;
+
     static {
         Map conf = readStormConfig();
         serializationDelegate = getSerializationDelegate(conf);
     }
 
-    public static Object newInstance(String klass) {
+    public static <T> T newInstance(String klass) {
         try {
-            return newInstance(Class.forName(klass));
+            return newInstance((Class<T>)Class.forName(klass));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static Object newInstance(Class klass) {
+    public static <T> T newInstance(Class<T> klass) {
         return _instance.newInstanceImpl(klass);
     }
 
     // Non-static impl methods exist for mocking purposes.
-    public Object newInstanceImpl(Class klass) {
+    public <T> T newInstanceImpl(Class<T> klass) {
         try {
             return klass.newInstance();
         } catch (Exception e) {
@@ -948,26 +955,8 @@ public class Utils {
                 entry = tis.getNextTarEntry();
             }
         } finally {
-            cleanup(tis, inputStream);
-        }
-    }
-
-    /**
-     * Close the Closeable objects and <b>ignore</b> any {@link IOException} or
-     * null pointers. Must only be used for cleanup in exception handlers.
-     *
-     * @param closeables the objects to close
-     */
-    private static void cleanup(java.io.Closeable... closeables) {
-        for (java.io.Closeable c : closeables) {
-            if (c != null) {
-                try {
-                    c.close();
-                } catch (IOException e) {
-                    LOG.debug("Exception in closing " + c, e);
-
-                }
-            }
+            tis.close();
+            inputStream.close();
         }
     }
 
@@ -988,7 +977,7 @@ public class Utils {
         if (!outputFile.getParentFile().exists()) {
             if (!outputFile.getParentFile().mkdirs()) {
                 throw new IOException("Mkdirs failed to create tar internal dir "
-                        + outputDir);
+                                      + outputDir);
             }
         }
         int count;
@@ -1329,7 +1318,7 @@ public class Utils {
                         if (!file.getParentFile().mkdirs()) {
                             if (!file.getParentFile().isDirectory()) {
                                 throw new IOException("Mkdirs failed to create " +
-                                        file.getParentFile().toString());
+                                                      file.getParentFile().toString());
                             }
                         }
                         OutputStream out = new FileOutputStream(file);
@@ -1470,10 +1459,6 @@ public class Utils {
     public static boolean zipDoesContainDir(String zipfile, String target) throws IOException {
         List<ZipEntry> entries = (List<ZipEntry>)Collections.list(new ZipFile(zipfile).entries());
 
-        if(entries == null) {
-            return false;
-        }
-
         String targetDir = target + "/";
         for(ZipEntry entry : entries) {
             String name = entry.getName();
@@ -1576,18 +1561,17 @@ public class Utils {
     }
 
     public static String logsFilename(String stormId, int port) {
-        return stormId + FILE_PATH_SEPARATOR + Integer.toString(port) + FILE_PATH_SEPARATOR + "worker.log";
+        return stormId + FILE_PATH_SEPARATOR + port + FILE_PATH_SEPARATOR + "worker.log";
     }
 
     public static String eventLogsFilename(String stormId, int port) {
-        return stormId + FILE_PATH_SEPARATOR + Integer.toString(port) + FILE_PATH_SEPARATOR + "events.log";
+        return stormId + FILE_PATH_SEPARATOR + port + FILE_PATH_SEPARATOR + "events.log";
     }
 
     public static Object readYamlFile(String yamlFile) {
         try (FileReader reader = new FileReader(yamlFile)) {
             return new Yaml(new SafeConstructor()).load(reader);
-        }
-        catch(Exception ex) {
+        } catch(Exception ex) {
             LOG.error("Failed to read yaml file.", ex);
         }
         return null;
@@ -1598,8 +1582,7 @@ public class Utils {
                 public void uncaughtException(Thread thread, Throwable thrown) {
                     try {
                         handleUncaughtException(thrown);
-                    }
-                    catch (Error err) {
+                    } catch (Error err) {
                         LOG.error("Received error in main thread.. terminating server...", err);
                         Runtime.getRuntime().exit(-2);
                     }
@@ -1614,7 +1597,7 @@ public class Utils {
      * @param key The key pointing to the value to be redacted
      * @return a new map with the value redacted. The original map will not be modified.
      */
-    public static Map redactValue(Map<Object, String> m, Object key) { 
+    public static Map<Object, String> redactValue(Map<Object, String> m, Object key) { 
         if(m.containsKey(key)) {
             HashMap<Object, String> newMap = new HashMap<>(m);
             String value = newMap.get(key);
@@ -1625,23 +1608,13 @@ public class Utils {
         return m;
     }
 
-    public static void logThriftAccess(Integer requestId, InetAddress remoteAddress, Principal principal, String operation) {
-        new ThriftAccessLogger().log(
-            String.format("Request ID: {} access from: {} principal: {} operation: {}",
-                          requestId, remoteAddress, principal, operation));
-    }
-
     /**
      * Make sure a given key name is valid for the storm config. 
      * Throw RuntimeException if the key isn't valid.
      * @param name The name of the config key to check.
      */
+    private static final Set<String> disallowedKeys = new HashSet<>(Arrays.asList(new String[] {"/", ".", ":", "\\"}));
     public static void validateKeyName(String name) {
-        Set<String> disallowedKeys = new HashSet<>();
-        disallowedKeys.add("/");
-        disallowedKeys.add(".");
-        disallowedKeys.add(":");
-        disallowedKeys.add("\\");
 
         for(String key : disallowedKeys) {
             if( name.contains(key) ) {
@@ -1653,53 +1626,29 @@ public class Utils {
         }
     }
 
-    //Everything from here on is translated from the old util.clj (storm-core/src/clj/backtype.storm/util.clj)
-
-    public static final boolean IS_ON_WINDOWS = "Windows_NT".equals(System.getenv("OS"));
-
-    public static final String FILE_PATH_SEPARATOR = System.getProperty("file.separator");
-
-    public static final String CLASS_PATH_SEPARATOR = System.getProperty("path.separator");
-
-    public static final int SIGKILL = 9;
-    public static final int SIGTERM = 15;
-
-
-
     /**
      * Find the first item of coll for which pred.test(...) returns true.
      * @param pred The IPredicate to test for
      * @param coll The Collection of items to search through.
      * @return The first matching value in coll, or null if nothing matches.
      */
-    public static Object findFirst (IPredicate pred, Collection coll) {
-        if (coll == null || pred == null) {
-            return null;
-        } else {
-            Iterator<Object> iter = coll.iterator();
-            while(iter != null && iter.hasNext()) {
-                Object obj = iter.next();
-                if (pred.test(obj)) {
-                    return obj;
-                }
-            }
+    public static <T> T findFirst (IPredicate<T> pred, Collection<T> coll) {
+        if(coll == null) {
             return null;
         }
+        for(T elem : coll) {
+            if (pred.test(elem)) {
+                return elem;
+            }
+        }
+        return null;
     }
 
-    public static Object findFirst (IPredicate pred, Map map) {
-        if (map == null || pred == null) {
-            return null;
-        } else {
-            Iterator<Object> iter = map.entrySet().iterator();
-            while(iter != null && iter.hasNext()) {
-                Object obj = iter.next();
-                if (pred.test(obj)) {
-                    return obj;
-                }
-            }
+    public static <T, U> T findFirst (IPredicate<T> pred, Map<U, T> map) {
+        if(map == null) {
             return null;
         }
+        return findFirst(pred, (Set<T>)map.entrySet());
     }
 
     public static String localHostname () throws UnknownHostException {
@@ -1731,85 +1680,25 @@ public class Utils {
             return memoizedLocalHostname();
         }
         Object hostnameString = conf.get(Config.STORM_LOCAL_HOSTNAME);
-        if (hostnameString == null ) {
+        if (hostnameString == null || hostnameString.equals("")) {
             return memoizedLocalHostname();
         }
-        if (hostnameString.equals("")) {
-            return memoizedLocalHostname();
-        }
-        return hostnameString.toString();
+        return (String)hostnameString;
     }
 
     public static String uuid() {
         return UUID.randomUUID().toString();
     }
 
-    public static long secsToMillisLong(double secs) {
-        return (long) (1000 * secs);
-    }
-
-    public static Vector<String> tokenizePath (String path) {
-        String[] tokens = path.split("/");
-        Vector<String> outputs = new Vector<String>();
-        if (tokens == null || tokens.length == 0) {
-            return null;
-        }
-        for (String tok: tokens) {
-            if (!tok.isEmpty()) {
-                outputs.add(tok);
-            }
-        }
-        return outputs;
-    }
-
-    public static String parentPath(String path) {
-        if (path == null) {
-            return "/";
-        }
-        Vector<String> tokens = tokenizePath(path);
-        int length = tokens.size();
-        if (length == 0) {
-            return "/";
-        }
-        String output = "";
-        for (int i = 0; i < length - 1; i++) {  //length - 1 to mimic "butlast" from the old clojure code
-            output = output + "/" + tokens.get(i);
-        }
-        return output;
-    }
-
-    public static String toksToPath (Vector<String> toks) {
-        if (toks == null || toks.size() == 0) {
-            return "/";
-        }
-
-        String output = "";
-        for (int i = 0; i < toks.size(); i++) {
-            output = output + "/" + toks.get(i);
-        }
-        return output;
-    }
-    public static String normalizePath (String path) {
-        return toksToPath(tokenizePath(path));
-    }
-
     public static void exitProcess (int val, Object... msg) {
         StringBuilder errorMessage = new StringBuilder();
-        errorMessage.append("halting process: ");
+        errorMessage.append("Halting process: ");
         for (Object oneMessage: msg) {
             errorMessage.append(oneMessage);
         }
         String combinedErrorMessage = errorMessage.toString();
         LOG.error(combinedErrorMessage, new RuntimeException(combinedErrorMessage));
         Runtime.getRuntime().exit(val);
-    }
-
-    public static Object defaulted(Object val, Object defaultObj) {
-        if (val != null) {
-            return val;
-        } else {
-            return defaultObj;
-        }
     }
 
     /**
@@ -1880,11 +1769,9 @@ public class Utils {
 
 
     /**
-     * Gets the pid of this JVM, because Java doesn't provide a real way to do this.
-     *
-     * @return
+     * @return the pid of this JVM, because Java doesn't provide a real way to do this.
      */
-    public static String processPid() throws RuntimeException {
+    public static String processPid() {
         String name = ManagementFactory.getRuntimeMXBean().getName();
         String[] split = name.split("@");
         if (split.length != 2) {
@@ -1893,11 +1780,11 @@ public class Utils {
         return split[0];
     }
 
-    public static int execCommand(String command) throws ExecuteException, IOException {
-        String[] cmdlist = command.split(" ");
-        CommandLine cmd = new CommandLine(cmdlist[0]);
-        for (int i = 1; i < cmdlist.length; i++) {
-            cmd.addArgument(cmdlist[i]);
+    public static int execCommand(String... command) throws ExecuteException, IOException {
+        //String[] cmdlist = command.split(" ");
+        CommandLine cmd = new CommandLine(command[0]);
+        for (int i = 1; i < command.length; i++) {
+            cmd.addArgument(command[i]);
         }
 
         DefaultExecutor exec = new DefaultExecutor();
@@ -1907,111 +1794,62 @@ public class Utils {
     /**
      * Extra dir from the jar to destdir
      *
-     * @param jarpath
-     * @param dir
-     * @param destdir
+     * @param jarpath Path to the jar file
+     * @param dir Directory in the jar to pull out
+     * @param destdir Path to the directory where the extracted directory will be put 
      *
-    (with-open [jarpath (ZipFile. jarpath)]
-    (let [entries (enumeration-seq (.entries jarpath))]
-    (doseq [file (filter (fn [entry](and (not (.isDirectory entry)) (.startsWith (.getName entry) dir))) entries)]
-    (.mkdirs (.getParentFile (File. destdir (.getName file))))
-    (with-open [out (FileOutputStream. (File. destdir (.getName file)))]
-    (io/copy (.getInputStream jarpath file) out)))))
-
      */
     public static void extractDirFromJar(String jarpath, String dir, String destdir) {
-        JarFile jarFile = null;
-        FileOutputStream out = null;
-        InputStream in = null;
-        try {
-            jarFile = new JarFile(jarpath);
+        try (JarFile jarFile = new JarFile(jarpath)) {
             Enumeration<JarEntry> jarEnums = jarFile.entries();
             while (jarEnums.hasMoreElements()) {
                 JarEntry entry = jarEnums.nextElement();
                 if (!entry.isDirectory() && entry.getName().startsWith(dir)) {
                     File aFile = new File(destdir, entry.getName());
                     aFile.getParentFile().mkdirs();
-                    out = new FileOutputStream(aFile);
-                    in = jarFile.getInputStream(entry);
-                    IOUtils.copy(in, out);
-                    out.close();
-                    in.close();
+                    try (FileOutputStream out = new FileOutputStream(aFile);
+                         InputStream in = jarFile.getInputStream(entry)) {
+                        IOUtils.copy(in, out);
+                    }
                 }
             }
         } catch (IOException e) {
             LOG.info("Could not extract {} from {}", dir, jarpath);
-        } finally {
-            if (jarFile != null) {
-                try {
-                    jarFile.close();
-                } catch (IOException e) {
-                    throw new RuntimeException(
-                            "Something really strange happened when trying to close the jar file" + jarpath);
-                }
-            }
-            if (out != null) {
-                try {
-                    out.close();
-                } catch (IOException e) {
-                    throw new RuntimeException(
-                            "Something really strange happened when trying to close the output for jar file" + jarpath);
-                }
-            }
-            if (in != null) {
-                try {
-                    in.close();
-                } catch (IOException e) {
-                    throw new RuntimeException(
-                            "Something really strange happened when trying to close the input for jar file" + jarpath);
-                }
-            }
         }
-
     }
 
-    public static int sendSignalToProcess(long pid, int signum) {
-        int retval = 0;
+    public static void sendSignalToProcess(long lpid, int signum) throws IOException {
+        String pid = Long.toString(lpid);
         try {
-            String killString = null;
             if (isOnWindows()) {
                 if (signum == SIGKILL) {
-                    killString = "taskkill /f /pid ";
+                    execCommand("taskkill", "/f", "/pid", pid);
                 } else {
-                    killString = "taskkill /pid ";
+                    execCommand("taskkill", "/pid", pid);
                 }
             } else {
-                killString = "kill -" + signum + " ";
+                execCommand("kill", "-" + signum, pid);
             }
-            killString = killString + pid;
-            retval = execCommand(killString);
         } catch (ExecuteException e) {
             LOG.info("Error when trying to kill " + pid + ". Process is probably already dead.");
         } catch (IOException e) {
             LOG.info("IOException Error when trying to kill " + pid + ".");
-        } finally {
-            return retval;
+            throw e;
         }
     }
 
-    public static int forceKillProcess (long pid) {
-        return sendSignalToProcess(pid, SIGKILL);
+    public static void forceKillProcess (String pid) throws IOException {
+        sendSignalToProcess(Long.parseLong(pid), SIGKILL);
     }
 
-    public static int forceKillProcess (String pid) {
-        return sendSignalToProcess(Long.parseLong(pid), SIGKILL);
+    public static void killProcessWithSigTerm (String pid) throws IOException {
+        sendSignalToProcess(Long.parseLong(pid), SIGTERM);
     }
 
-    public static int killProcessWithSigTerm (long pid) {
-        return sendSignalToProcess(pid, SIGTERM);
-    }
-    public static int killProcessWithSigTerm (String pid) {
-        return sendSignalToProcess(Long.parseLong(pid), SIGTERM);
-    }
-
-    /*
-        Adds the user supplied function as a shutdown hook for cleanup.
-        Also adds a function that sleeps for a second and then sends kill -9
-        to process to avoid any zombie process in case cleanup function hangs.
+    /**
+     * Adds the user supplied function as a shutdown hook for cleanup.
+     * Also adds a function that sleeps for a second and then sends kill -9
+     * to process to avoid any zombie process in case cleanup function hangs.
      */
     public static void addShutdownHookWithForceKillIn1Sec (Runnable func) {
         Runnable sleepKill = new Runnable() {
@@ -2021,7 +1859,7 @@ public class Utils {
                     Time.sleepSecs(1);
                     Runtime.getRuntime().halt(20);
                 } catch (Exception e) {
-                    LOG.warn("Exception in the ShutDownHook: " + e);
+                    LOG.warn("Exception in the ShutDownHook", e);
                 }
             }
         };
@@ -2035,7 +1873,7 @@ public class Utils {
      * @return the resulting command string
      */
     public static String shellCmd (List<String> command) {
-        List<String> changedCommands = new LinkedList<>();
+        List<String> changedCommands = new ArrayList<>(command.size());
         for (String str: command) {
             if (str == null) {
                 continue;
@@ -2053,28 +1891,9 @@ public class Utils {
         return dir + FILE_PATH_SEPARATOR + "launch_container.sh";
     }
 
-    public static void throwRuntime (Object... strings) {
-        String combinedErrorMessage = "";
-        for (Object oneMessage: strings) {
-            combinedErrorMessage = combinedErrorMessage + oneMessage.toString();
-        }
-        throw new RuntimeException(combinedErrorMessage);
-    }
-
     public static Object nullToZero (Object v) {
-        return (v!=null? v : 0);
+        return (v != null ? v : 0);
     }
-
-    public static Object containerGet (Container container) {
-        return container.object;
-    }
-
-    public static Container containerSet (Container container, Object obj) {
-        container.object = obj;
-        return container;
-    }
-
-
 
     /**
      * Deletes a file or directory and its contents if it exists. Does not
@@ -2181,6 +2000,11 @@ public class Utils {
 
     public static String workerClasspath() {
         String stormDir = System.getProperty("storm.home");
+
+        if (stormDir == null) {
+            return Utils.currentClasspath();
+        }
+
         String stormLibDir = Paths.get(stormDir, "lib").toString();
         String stormConfDir =
                 System.getenv("STORM_CONF_DIR") != null ?
@@ -2188,9 +2012,6 @@ public class Utils {
                 Paths.get(stormDir, "conf").toString();
         String stormExtlibDir = Paths.get(stormDir, "extlib").toString();
         String extcp = System.getenv("STORM_EXT_CLASSPATH");
-        if (stormDir == null) {
-            return Utils.currentClasspath();
-        }
         List<String> pathElements = new LinkedList<>();
         pathElements.addAll(Utils.getFullJars(stormLibDir));
         pathElements.addAll(Utils.getFullJars(stormExtlibDir));
@@ -2226,7 +2047,7 @@ public class Utils {
         }
         
         public int upTime() {
-            return Time.delta(startTime);
+            return Time.deltaSecs(startTime);
         }
     }
 

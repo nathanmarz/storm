@@ -20,7 +20,7 @@
   (:import [java.io FileReader FileNotFoundException])
   (:import [java.nio.file Paths])
   (:import [org.apache.storm Config])
-  (:import [org.apache.storm.utils Time Container ClojureTimerTask Utils
+  (:import [org.apache.storm.utils Time ClojureTimerTask Utils
             MutableObject])
   (:import [org.apache.storm.security.auth NimbusPrincipal])
   (:import [javax.security.auth Subject])

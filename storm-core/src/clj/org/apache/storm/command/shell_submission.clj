@@ -32,5 +32,4 @@
         no-op (.close zk-leader-elector)
         jarpath (StormSubmitter/submitJar conf tmpjarpath)
         args (concat args [host port jarpath])]
-    (Utils/execCommand (str/join " " args))
-    ))
+    (Utils/execCommand args)))

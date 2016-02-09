@@ -1923,25 +1923,24 @@ public class Utils {
      * @return the path of the link if it did not exist, otherwise null
      * @throws IOException
      */
-    public static Path createSymlink(String dir, String targetDir,
+    public static void createSymlink(String dir, String targetDir,
             String targetFilename, String filename) throws IOException {
         Path path = Paths.get(dir, filename).toAbsolutePath();
         Path target = Paths.get(targetDir, targetFilename).toAbsolutePath();
         LOG.debug("Creating symlink [{}] to [{}]", path, target);
         if (!path.toFile().exists()) {
-            return Files.createSymbolicLink(path, target);
+            Files.createSymbolicLink(path, target);
         }
-        return null;
     }
 
     /**
      * Convenience method for the case when the link's file name should be the
      * same as the file name of the target
      */
-    public static Path createSymlink(String dir, String targetDir,
+    public static void createSymlink(String dir, String targetDir,
                                      String targetFilename) throws IOException {
-        return Utils.createSymlink(dir, targetDir, targetFilename,
-                targetFilename);
+        Utils.createSymlink(dir, targetDir, targetFilename,
+                            targetFilename);
     }
 
     /**
@@ -1973,19 +1972,14 @@ public class Utils {
     public String currentClasspathImpl() {
         return System.getProperty("java.class.path");
     }
-
+    
     /**
      * Returns a collection of jar file names found under the given directory.
      * @param dir the directory to search
      * @return the jar file names
-     */
+     */ 
     private static List<String> getFullJars(String dir) {
-        File[] files = new File(dir).listFiles(new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return name.endsWith(".jar");
-            }
-        });
+        File[] files = new File(dir).listFiles(jarFilter);
         
         if(files == null) {
             return new ArrayList<>();
@@ -1997,6 +1991,13 @@ public class Utils {
         }
         return ret;
     }
+    private static final FilenameFilter jarFilter = new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+                return name.endsWith(".jar");
+            }
+        };
+    
 
     public static String workerClasspath() {
         String stormDir = System.getProperty("storm.home");
@@ -2068,7 +2069,7 @@ public class Utils {
      * @return the path to the script that has been written
      */
     public static String writeScript(String dir, List<String> command,
-                                     Map<String,String> environment) {
+                                     Map<String,String> environment) throws IOException {
         String path = Utils.scriptFilePath(dir);
         try(BufferedWriter out = new BufferedWriter(new FileWriter(path))) {
             out.write("#!/bin/bash");
@@ -2088,8 +2089,6 @@ public class Utils {
             }
             out.newLine();
             out.write("exec "+Utils.shellCmd(command)+";");
-        } catch (IOException io) {
-            throw new RuntimeException("Could not write posix script file", io);
         }
         return path;
     }
@@ -2118,7 +2117,7 @@ public class Utils {
      * @param afn the code to call on each iteration
      * @param isDaemon whether the new thread should be a daemon thread
      * @param eh code to call when afn throws an exception
-     * @param priority the new thread's priority see
+     * @param priority the new thread's priority
      * @param isFactory whether afn returns a callable instead of sleep seconds
      * @param startImmediately whether to start the thread before returning
      * @param threadName a suffix to be appended to the thread name
@@ -2153,6 +2152,7 @@ public class Utils {
         } else {
             thread.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
                 public void uncaughtException(Thread t, Throwable e) {
+                    LOG.error("Async loop died!", e);
                     Utils.exitProcess(1, "Async loop died!");
                 }
             });

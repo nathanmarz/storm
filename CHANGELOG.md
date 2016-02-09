@@ -4,7 +4,8 @@
  * STORM-1524: Add Pluggable daemon metrics Reporters
 
 ## 1.0.0
- * STORM-1526 Improve Storm core performance
+ * STORM-1531: Junit and mockito dependencies need to have correct scope defined in storm-elasticsearch pom.xml
+ * STORM-1526: Improve Storm core performance
  * STORM-1517: Add peek api in trident stream
  * STORM-1455: kafka spout should not reset to the beginning of partition when offsetoutofrange exception occurs
  * STORM-1505: Add map, flatMap and filter functions in trident stream

@@ -473,7 +473,7 @@ public class ConfigValidation {
             }
 
             SimpleTypeValidator.validateField(name, String.class, ((Map) o).get("class"));
-            SimpleTypeValidator.validateField(name, Long.class, ((Map) o).get("parallelism.hint"));
+            new IntegerValidator().validateField(name, ((Map) o).get("parallelism.hint"));
         }
     }
 

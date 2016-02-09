@@ -270,8 +270,6 @@
                              Thread$UncaughtExceptionHandler
                              (uncaughtException [this _ error]
                                ((:report-error <>) error)
-                               (when (Utils/exceptionCauseIsInstanceOf ClassCastException error)
-                                 (log-message "CLASS CAST EXCEPTION WOOOOOOOOOOOOOOOO!"))
                                (if (or
                                     (Utils/exceptionCauseIsInstanceOf InterruptedException error)
                                     (Utils/exceptionCauseIsInstanceOf java.io.InterruptedIOException error))

@@ -1781,7 +1781,6 @@ public class Utils {
     }
 
     public static int execCommand(String... command) throws ExecuteException, IOException {
-        //String[] cmdlist = command.split(" ");
         CommandLine cmd = new CommandLine(command[0]);
         for (int i = 1; i < command.length; i++) {
             cmd.addArgument(command[i]);
@@ -1792,7 +1791,7 @@ public class Utils {
     }
 
     /**
-     * Extra dir from the jar to destdir
+     * Extract dir from the jar to destdir
      *
      * @param jarpath Path to the jar file
      * @param dir Directory in the jar to pull out
@@ -1848,8 +1847,8 @@ public class Utils {
 
     /**
      * Adds the user supplied function as a shutdown hook for cleanup.
-     * Also adds a function that sleeps for a second and then sends kill -9
-     * to process to avoid any zombie process in case cleanup function hangs.
+     * Also adds a function that sleeps for a second and then halts the
+     * runtime to avoid any zombie process in case cleanup function hangs.
      */
     public static void addShutdownHookWithForceKillIn1Sec (Runnable func) {
         Runnable sleepKill = new Runnable() {

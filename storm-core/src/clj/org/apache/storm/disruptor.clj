@@ -22,68 +22,15 @@
   (:use [clojure walk])
   (:use [org.apache.storm util log]))
 
-(def PRODUCER-TYPE
-  {:multi-threaded ProducerType/MULTI
-   :single-threaded ProducerType/SINGLE})
 
-(defnk disruptor-queue
-  [^String queue-name buffer-size timeout :producer-type :multi-threaded :batch-size 100 :batch-timeout 1]
-  (DisruptorQueue. queue-name
-                   (PRODUCER-TYPE producer-type) buffer-size
-                   timeout batch-size batch-timeout))
 
-(defn clojure-handler
-  [afn]
-  (reify com.lmax.disruptor.EventHandler
-    (onEvent
-      [this o seq-id batchEnd?]
-      (afn o seq-id batchEnd?))))
 
-(defn disruptor-backpressure-handler
-  [afn-high-wm afn-low-wm]
-  (reify DisruptorBackpressureCallback
-    (highWaterMark
-      [this]
-      (afn-high-wm))
-    (lowWaterMark
-      [this]
-      (afn-low-wm))))
-
-(defn worker-backpressure-handler
-  [afn]
-  (reify WorkerBackpressureCallback
-    (onEvent
-      [this o]
-      (afn o))))
-
-(defmacro handler
-  [& args]
-  `(clojure-handler (fn ~@args)))
-
-(defn publish
-  [^DisruptorQueue q o]
-  (.publish q o))
-
-(defn consume-batch
-  [^DisruptorQueue queue handler]
-  (.consumeBatch queue handler))
-
-(defn consume-batch-when-available
-  [^DisruptorQueue queue handler]
-  (.consumeBatchWhenAvailable queue handler))
-
-(defn halt-with-interrupt!
-  [^DisruptorQueue queue]
-  (.haltWithInterrupt queue))
 
 (defnk consume-loop*
   [^DisruptorQueue queue handler
    :kill-fn (fn [error] (exit-process! 1 "Async loop died!"))]
   (async-loop
-          (fn [] (consume-batch-when-available queue handler) 0)
+          (fn [] (.consumeBatchWhenAvailable ^DisruptorQueue queue handler) 0)
           :kill-fn kill-fn
           :thread-name (.getName queue)))
 
-(defmacro consume-loop [queue & handler-args]
-  `(let [handler# (handler ~@handler-args)]
-     (consume-loop* ~queue handler#)))

@@ -25,7 +25,7 @@
   (:import [java.util.concurrent Executors]
            [org.apache.storm.hooks IWorkerHook BaseWorkerHook])
   (:import [java.util ArrayList HashMap])
-  (:import [org.apache.storm.utils Utils ConfigUtils TransferDrainer ThriftTopologyUtils WorkerBackpressureThread DisruptorQueue])
+  (:import [org.apache.storm.utils Utils ConfigUtils TransferDrainer ThriftTopologyUtils WorkerBackpressureThread DisruptorQueue WorkerBackpressureCallback DisruptorBackpressureCallback])
   (:import [org.apache.storm.grouping LoadMapping])
   (:import [org.apache.storm.messaging TransportFactory])
   (:import [org.apache.storm.messaging TaskMessage IContext IConnection ConnectionWithStatus ConnectionWithStatus$Status])
@@ -121,7 +121,7 @@
         (fast-map-iter [[short-executor pairs] grouped]
           (let [q (short-executor-receive-queue-map short-executor)]
             (if q
-              (disruptor/publish q pairs)
+              (.publish ^DisruptorQueue q pairs)
               (log-warn "Received invalid messages for unknown tasks. Dropping... ")
               )))))))
 
@@ -132,8 +132,8 @@
 
 (defn- mk-backpressure-handler [executors]
   "make a handler that checks and updates worker's backpressure flag"
-  (disruptor/worker-backpressure-handler
-    (fn [worker]
+  (reify WorkerBackpressureCallback
+    (onEvent [this worker]
       (let [storm-id (:storm-id worker)
             assignment-id (:assignment-id worker)
             port (:port worker)
@@ -152,11 +152,11 @@
 (defn- mk-disruptor-backpressure-handler [worker]
   "make a handler for the worker's send disruptor queue to
   check highWaterMark and lowWaterMark for backpressure"
-  (disruptor/disruptor-backpressure-handler
-    (fn []
+  (reify DisruptorBackpressureCallback
+    (highWaterMark [this]
       (reset! (:transfer-backpressure worker) true)
       (WorkerBackpressureThread/notifyBackpressureChecker (:backpressure-trigger worker)))
-    (fn []
+    (lowWaterMark [this]
       (reset! (:transfer-backpressure worker) false)
       (WorkerBackpressureThread/notifyBackpressureChecker (:backpressure-trigger worker)))))
 
@@ -188,7 +188,7 @@
                        )))))
 
               (when (not (.isEmpty local)) (local-transfer local))
-              (when (not (.isEmpty remoteMap)) (disruptor/publish transfer-queue remoteMap))))]
+              (when (not (.isEmpty remoteMap)) (.publish ^DisruptorQueue transfer-queue remoteMap))))]
     (if try-serialize-local
       (do
         (log-warn "WILL TRY TO SERIALIZE ALL TUPLES (Turn off " TOPOLOGY-TESTING-ALWAYS-TRY-SERIALIZE " for production)")
@@ -200,11 +200,11 @@
 (defn- mk-receive-queue-map [storm-conf executors]
   (->> executors
        ;; TODO: this depends on the type of executor
-       (map (fn [e] [e (disruptor/disruptor-queue (str "receive-queue" e)
-                                                  (storm-conf TOPOLOGY-EXECUTOR-RECEIVE-BUFFER-SIZE)
-                                                  (storm-conf TOPOLOGY-DISRUPTOR-WAIT-TIMEOUT-MILLIS)
-                                                  :batch-size (storm-conf TOPOLOGY-DISRUPTOR-BATCH-SIZE)
-                                                  :batch-timeout (storm-conf TOPOLOGY-DISRUPTOR-BATCH-TIMEOUT-MILLIS))]))
+       (map (fn [e] [e (DisruptorQueue. (str "receive-queue" e)
+                                       (storm-conf TOPOLOGY-EXECUTOR-RECEIVE-BUFFER-SIZE)
+                                       (storm-conf TOPOLOGY-DISRUPTOR-WAIT-TIMEOUT-MILLIS)
+                                       (storm-conf TOPOLOGY-DISRUPTOR-BATCH-SIZE)
+                                       (storm-conf TOPOLOGY-DISRUPTOR-BATCH-TIMEOUT-MILLIS))]))
        (into {})
        ))
 
@@ -244,10 +244,11 @@
 (defn worker-data [conf mq-context storm-id assignment-id port worker-id storm-conf cluster-state storm-cluster-state]
   (let [assignment-versions (atom {})
         executors (set (read-worker-executors storm-conf storm-cluster-state storm-id assignment-id port assignment-versions))
-        transfer-queue (disruptor/disruptor-queue "worker-transfer-queue" (storm-conf TOPOLOGY-TRANSFER-BUFFER-SIZE)
+        transfer-queue (DisruptorQueue. "worker-transfer-queue"
+                                                  (storm-conf TOPOLOGY-TRANSFER-BUFFER-SIZE)
                                                   (storm-conf TOPOLOGY-DISRUPTOR-WAIT-TIMEOUT-MILLIS)
-                                                  :batch-size (storm-conf TOPOLOGY-DISRUPTOR-BATCH-SIZE)
-                                                  :batch-timeout (storm-conf TOPOLOGY-DISRUPTOR-BATCH-TIMEOUT-MILLIS))
+                                                  (storm-conf TOPOLOGY-DISRUPTOR-BATCH-SIZE)
+                                                  (storm-conf TOPOLOGY-DISRUPTOR-BATCH-TIMEOUT-MILLIS))
         executor-receive-queue-map (mk-receive-queue-map storm-conf executors)
 
         receive-queue-map (->> executor-receive-queue-map
@@ -412,21 +413,20 @@
 
 ;; TODO: consider having a max batch size besides what disruptor does automagically to prevent latency issues
 (defn mk-transfer-tuples-handler [worker]
-  (let [^DisruptorQueue transfer-queue (:transfer-queue worker)
+   (let [^DisruptorQueue transfer-queue (:transfer-queue worker)
         drainer (TransferDrainer.)
         node+port->socket (:cached-node+port->socket worker)
         task->node+port (:cached-task->node+port worker)
         endpoint-socket-lock (:endpoint-socket-lock worker)
         ]
-    (disruptor/clojure-handler
-      (fn [packets _ batch-end?]
+    (reify com.lmax.disruptor.EventHandler
+      (onEvent [this packets seqId batch-end?]
         (.add drainer packets)
-
         (when batch-end?
           (read-locked endpoint-socket-lock
-             (let [node+port->socket @node+port->socket
-                   task->node+port @task->node+port]
-               (.send drainer task->node+port node+port->socket)))
+                       (let [node+port->socket @node+port->socket
+                             task->node+port @task->node+port]
+                         (.send drainer task->node+port node+port->socket)))
           (.clear drainer))))))
 
 ;; Check whether this messaging connection is ready to send data
@@ -664,7 +664,7 @@
                     ;;in which case it's a noop
                     (.term ^IContext (:mq-context worker))
                     (log-message "Shutting down transfer thread")
-                    (disruptor/halt-with-interrupt! (:transfer-queue worker))
+                    (.haltWithInterrupt ^DisruptorQueue (:transfer-queue worker))
 
                     (.interrupt transfer-thread)
                     (.join transfer-thread)

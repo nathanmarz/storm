@@ -1,4 +1,5 @@
 ## 2.0.0
+ * STORM-1436: Random test failure on BlobStoreTest / HdfsBlobStoreImplTest (occasionally killed)
  * STORM-1476: Filter -c options from args and add them as part of storm.options
  * STORM-1257: port backtype.storm.zookeeper to java
  * STORM-1504: Add Serializer and instruction for AvroGenericRecordBolt

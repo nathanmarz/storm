@@ -330,7 +330,17 @@ public class Utils {
         Map ret = new HashMap();
         String commandOptions = System.getProperty("storm.options");
         if (commandOptions != null) {
-            String[] configs = commandOptions.split(",");
+            /*
+             Below regex uses negative lookahead to not split in the middle of json objects '{}'
+             or json arrays '[]'. This is needed to parse valid json object/arrays passed as options
+             via 'storm.cmd' in windows. This is not an issue while using 'storm.py' since it url-encodes
+             the options and the below regex just does a split on the commas that separates each option.
+
+             Note:- This regex handles only valid json strings and could produce invalid results
+             if the options contain un-encoded invalid json or strings with unmatched '[, ], { or }'. We can
+             replace below code with split(",") once 'storm.cmd' is fixed to send url-encoded options.
+              */
+            String[] configs = commandOptions.split(",(?![^\\[\\]{}]*(]|}))");
             for (String config : configs) {
                 config = URLDecoder.decode(config);
                 String[] options = config.split("=", 2);

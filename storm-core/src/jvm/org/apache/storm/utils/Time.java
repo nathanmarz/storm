@@ -122,7 +122,7 @@ public class Time {
     }
 
     public static long deltaMs(long timeInMilliseconds) {
-        return System.currentTimeMillis() - timeInMilliseconds;
+        return Time.currentTimeMillis() - timeInMilliseconds;
     }
     
     public static void advanceTime(long ms) {

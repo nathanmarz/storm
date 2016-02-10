@@ -51,7 +51,7 @@
                           (when executors [storm-id executors])
                           ))
         pred (reify IPredicate (test [this x] (not-nil? x)))
-        ret (Utils/findFirst pred slot-assigns)]
+        ret (Utils/findOne pred slot-assigns)]
     (when-not ret
       (throw (RuntimeException. "Could not find assignment for worker")))
     ret

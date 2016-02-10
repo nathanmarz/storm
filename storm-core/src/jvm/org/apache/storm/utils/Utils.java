@@ -109,7 +109,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
-import java.util.Vector;
 import java.util.concurrent.Callable;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -119,8 +118,6 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
-import java.security.Principal;
-import org.apache.storm.logging.ThriftAccessLogger;
 
 public class Utils {
     // A singleton instance allows us to mock delegated static methods in our
@@ -941,7 +938,6 @@ public class Utils {
     private static void unTarUsingJava(File inFile, File untarDir,
                                        boolean gzipped) throws IOException {
         InputStream inputStream = null;
-        TarArchiveInputStream tis = null;
         try {
             if (gzipped) {
                 inputStream = new BufferedInputStream(new GZIPInputStream(
@@ -949,14 +945,16 @@ public class Utils {
             } else {
                 inputStream = new BufferedInputStream(new FileInputStream(inFile));
             }
-            tis = new TarArchiveInputStream(inputStream);
-            for (TarArchiveEntry entry = tis.getNextTarEntry(); entry != null; ) {
-                unpackEntries(tis, entry, untarDir);
-                entry = tis.getNextTarEntry();
+            try (TarArchiveInputStream tis = new TarArchiveInputStream(inputStream)) {
+                for (TarArchiveEntry entry = tis.getNextTarEntry(); entry != null; ) {
+                    unpackEntries(tis, entry, untarDir);
+                    entry = tis.getNextTarEntry();
+                }
             }
         } finally {
-            tis.close();
-            inputStream.close();
+            if(inputStream != null) {
+                inputStream.close();
+            }
         }
     }
 
@@ -1427,7 +1425,6 @@ public class Utils {
         return topologyInfo;
     }
 
-
     /**
      * A cheap way to deterministically convert a number to a positive value. When the input is
      * positive, the original value is returned. When the input number is negative, the returned
@@ -1632,7 +1629,7 @@ public class Utils {
      * @param coll The Collection of items to search through.
      * @return The first matching value in coll, or null if nothing matches.
      */
-    public static <T> T findFirst (IPredicate<T> pred, Collection<T> coll) {
+    public static <T> T findOne (IPredicate<T> pred, Collection<T> coll) {
         if(coll == null) {
             return null;
         }
@@ -1644,11 +1641,11 @@ public class Utils {
         return null;
     }
 
-    public static <T, U> T findFirst (IPredicate<T> pred, Map<U, T> map) {
+    public static <T, U> T findOne (IPredicate<T> pred, Map<U, T> map) {
         if(map == null) {
             return null;
         }
-        return findFirst(pred, (Set<T>)map.entrySet());
+        return findOne(pred, (Set<T>)map.entrySet());
     }
 
     public static String localHostname () throws UnknownHostException {
@@ -1702,29 +1699,14 @@ public class Utils {
     }
 
     /**
-     * "{:a 1  :b 2} -> {1 :a  2 :b}"
-     *
-     * Note: Only one key wins if there are duplicate values.
-     *       Which key wins is indeterminate:
-     * "{:a 1  :b 1} -> {1 :a} *or* {1 :b}"
-     */
-    public static <K, V> Map<V, K> simpleReverseMap(Map<K, V> map) {
-        Map<V, K> ret = new HashMap<V, K>();
-        for (Map.Entry<K, V> entry : map.entrySet()) {
-            ret.put(entry.getValue(), entry.getKey());
-        }
-        return ret;
-    }
-
-    /**
      * "{:a 1 :b 1 :c 2} -> {1 [:a :b] 2 :c}"
      *
      * Example usage in java:
      *  Map<Integer, String> tasks;
      *  Map<String, List<Integer>> componentTasks = Utils.reverse_map(tasks);
      *
-     * @param map
-     * @return
+     * @param map to reverse
+     * @return a reversed map
      */
     public static <K, V> HashMap<V, List<K>> reverseMap(Map<K, V> map) {
         HashMap<V, List<K>> rtn = new HashMap<V, List<K>>();
@@ -1745,8 +1727,11 @@ public class Utils {
     }
 
     /**
-     * "{:a 1 :b 1 :c 2} -> {1 [:a :b] 2 :c}"
+     * "[[:a 1] [:b 1] [:c 2]} -> {1 [:a :b] 2 :c}"
+     * Reverses an assoc-list style Map like reverseMap(Map...)
      *
+     * @param listSeq to reverse
+     * @return a reversed map
      */
     public static HashMap reverseMap(List listSeq) {
         HashMap<Object, List<Object>> rtn = new HashMap();
@@ -1830,9 +1815,9 @@ public class Utils {
                 execCommand("kill", "-" + signum, pid);
             }
         } catch (ExecuteException e) {
-            LOG.info("Error when trying to kill " + pid + ". Process is probably already dead.");
+            LOG.info("Error when trying to kill {}. Process is probably already dead.", pid);
         } catch (IOException e) {
-            LOG.info("IOException Error when trying to kill " + pid + ".");
+            LOG.info("IOException Error when trying to kill {}.", pid);
             throw e;
         }
     }
@@ -1919,7 +1904,6 @@ public class Utils {
      * @param targetDir the parent directory of the link's target
      * @param targetFilename the file name of the links target
      * @param filename the file name of the link
-     * @return the path of the link if it did not exist, otherwise null
      * @throws IOException
      */
     public static void createSymlink(String dir, String targetDir,

@@ -830,8 +830,8 @@
       (check-executor-distribution slot-executors2 [2 2 2 3])
       (check-consistency cluster "test")
 
-      (bind common (first (Utils/findFirst (proxy [IPredicate] []
-                                               (test [[k v]] (= 3 (count v)))) slot-executors2)))
+      (bind common (first (Utils/findOne (proxy [IPredicate] []
+                                           (test [[k v]] (= 3 (count v)))) slot-executors2)))
       (is (not-nil? common))
       (is (= (slot-executors2 common) (slot-executors common)))
 

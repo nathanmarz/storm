@@ -22,14 +22,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ThriftAccessLogger {
-  private static final Logger LOG = LoggerFactory.getLogger(ThriftAccessLogger.class);
-  public void log(String logMessage) {
-    LOG.info(logMessage);
-  }
+    private static final Logger LOG = LoggerFactory.getLogger(ThriftAccessLogger.class);
 
-  public static void logAccess(Integer requestId, InetAddress remoteAddress, Principal principal, String operation) {
-    new ThriftAccessLogger().log(
-      String.format("Request ID: {} access from: {} principal: {} operation: {}",
-                    requestId, remoteAddress, principal, operation));
-  } 
+    public static void logAccess(Integer requestId, InetAddress remoteAddress,
+                                 Principal principal, String operation) {
+        LOG.info("Request ID: {} access from: {} principal: {} operation: {}",
+                 requestId, remoteAddress, principal, operation);
+    }
 }

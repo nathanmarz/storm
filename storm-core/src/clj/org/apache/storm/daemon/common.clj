@@ -86,7 +86,7 @@
 (defn get-storm-id [storm-cluster-state storm-name]
   (let [active-storms (.active-storms storm-cluster-state)
         pred  (reify IPredicate (test [this x] (= storm-name (:storm-name (.storm-base storm-cluster-state x nil)))))]
-    (Utils/findFirst pred active-storms)
+    (Utils/findOne pred active-storms)
     ))
 
 (defn topology-bases [storm-cluster-state]

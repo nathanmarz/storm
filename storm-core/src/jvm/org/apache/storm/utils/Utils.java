@@ -1182,7 +1182,7 @@ public class Utils {
                 && !((String)conf.get(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_SCHEME)).isEmpty());
     }
 
-    
+
     public static List<ACL> getWorkerACL(Map conf) {
         //This is a work around to an issue with ZK where a sasl super user is not super unless there is an open SASL ACL so we are trying to give the correct perms
         if (!isZkAuthenticationConfiguredTopology(conf)) {
@@ -1259,7 +1259,7 @@ public class Utils {
     }
 
     /**
-     * Creates an instance of the pluggable SerializationDelegate or falls back to 
+     * Creates an instance of the pluggable SerializationDelegate or falls back to
      * DefaultSerializationDelegate if something goes wrong.
      * @param stormConf The config from which to pull the name of the pluggable class.
      * @return an instance of the class specified by storm.meta.serialization.delegate
@@ -1588,13 +1588,13 @@ public class Utils {
     }
 
     /**
-     * Creates a new map with a string value in the map replaced with an 
+     * Creates a new map with a string value in the map replaced with an
      * equivalently-lengthed string of '#'.
      * @param m The map that a value will be redacted from
      * @param key The key pointing to the value to be redacted
      * @return a new map with the value redacted. The original map will not be modified.
      */
-    public static Map<Object, String> redactValue(Map<Object, String> m, Object key) { 
+    public static Map<Object, String> redactValue(Map<Object, String> m, Object key) {
         if(m.containsKey(key)) {
             HashMap<Object, String> newMap = new HashMap<>(m);
             String value = newMap.get(key);
@@ -1606,7 +1606,7 @@ public class Utils {
     }
 
     /**
-     * Make sure a given key name is valid for the storm config. 
+     * Make sure a given key name is valid for the storm config.
      * Throw RuntimeException if the key isn't valid.
      * @param name The name of the config key to check.
      */
@@ -1704,7 +1704,7 @@ public class Utils {
      * Example usage in java:
      *  Map<Integer, String> tasks;
      *  Map<String, List<Integer>> componentTasks = Utils.reverse_map(tasks);
-     * 
+     *
      * The order of he resulting list values depends on the ordering properties
      * of the Map passed in. The caller is responsible for passing an ordered
      * map if they expect the result to be consistently ordered as well.
@@ -1784,7 +1784,7 @@ public class Utils {
      *
      * @param jarpath Path to the jar file
      * @param dir Directory in the jar to pull out
-     * @param destdir Path to the directory where the extracted directory will be put 
+     * @param destdir Path to the directory where the extracted directory will be put
      *
      */
     public static void extractDirFromJar(String jarpath, String dir, String destdir) {
@@ -1959,19 +1959,19 @@ public class Utils {
     public String currentClasspathImpl() {
         return System.getProperty("java.class.path");
     }
-    
+
     /**
      * Returns a collection of jar file names found under the given directory.
      * @param dir the directory to search
      * @return the jar file names
-     */ 
+     */
     private static List<String> getFullJars(String dir) {
         File[] files = new File(dir).listFiles(jarFilter);
-        
+
         if(files == null) {
             return new ArrayList<>();
         }
-        
+
         List<String> ret = new ArrayList<>(files.length);
         for (File f : files) {
             ret.add(Paths.get(dir, f.getName()).toString());
@@ -1984,7 +1984,7 @@ public class Utils {
                 return name.endsWith(".jar");
             }
         };
-    
+
 
     public static String workerClasspath() {
         String stormDir = System.getProperty("storm.home");
@@ -2029,11 +2029,11 @@ public class Utils {
 
     public static class UptimeComputer {
         int startTime = 0;
-        
+
         public UptimeComputer() {
             startTime = Time.currentTimeSecs();
         }
-        
+
         public int upTime() {
             return Time.deltaSecs(startTime);
         }

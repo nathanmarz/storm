@@ -1704,6 +1704,10 @@ public class Utils {
      * Example usage in java:
      *  Map<Integer, String> tasks;
      *  Map<String, List<Integer>> componentTasks = Utils.reverse_map(tasks);
+     * 
+     * The order of he resulting list values depends on the ordering properties
+     * of the Map passed in. The caller is responsible for passing an ordered
+     * map if they expect the result to be consistently ordered as well.
      *
      * @param map to reverse
      * @return a reversed map

@@ -19,7 +19,7 @@
   (:import [org.apache.storm Config])
   (:import [org.apache.storm.security.auth ReqContext SingleUserPrincipal])
   (:import [org.apache.storm.security.auth.authorizer DRPCSimpleACLAuthorizer])
-  (:use [org.apache.storm config util])
+  (:use [org.apache.storm config])
   )
 
 (defn- mk-mock-context [user]

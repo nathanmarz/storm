@@ -29,7 +29,8 @@
   (:import [org.apache.storm.grouping CustomStreamGrouping])
   (:import [org.apache.storm.topology TopologyBuilder])
   (:import [org.apache.storm.clojure RichShellBolt RichShellSpout])
-  (:import [org.apache.thrift.transport TTransport])
+  (:import [org.apache.thrift.transport TTransport]
+           (org.json.simple JSONValue))
   (:use [org.apache.storm util config log zookeeper]))
 
 (defn instantiate-java-object
@@ -107,6 +108,7 @@
   [fields]
   (StreamInfo. fields false))
 
+;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defn mk-output-spec
   [output-spec]
   (let [output-spec (if (map? output-spec)
@@ -125,7 +127,7 @@
     (when parallelism-hint
       (.set_parallelism_hint ret parallelism-hint))
     (when conf
-      (.set_json_conf ret (to-json conf)))
+      (.set_json_conf ret (JSONValue/toJSONString conf)))
     ret))
 
 (defnk mk-spout-spec*

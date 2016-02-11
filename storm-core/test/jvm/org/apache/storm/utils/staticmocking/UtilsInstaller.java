@@ -14,18 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.storm.testing.staticmocking;
+package org.apache.storm.utils.staticmocking;
 
-import org.apache.storm.utils.ConfigUtils;
+import org.apache.storm.utils.Utils;
 
-public class MockedConfigUtils extends ConfigUtils implements AutoCloseable {
+public class UtilsInstaller implements AutoCloseable {
 
-    public MockedConfigUtils() {
-        ConfigUtils.setInstance(this);
+    private Utils _oldInstance;
+    private Utils _curInstance;
+
+    public UtilsInstaller(Utils instance) {
+        _oldInstance = Utils.setInstance(instance);
+        _curInstance = instance;
     }
 
     @Override
     public void close() throws Exception {
-        ConfigUtils.resetInstance();
+        if (Utils.setInstance(_oldInstance) != _curInstance) {
+            throw new IllegalStateException(
+                    "Instances of this resource must be closed in reverse order of opening.");
+        }
     }
 }

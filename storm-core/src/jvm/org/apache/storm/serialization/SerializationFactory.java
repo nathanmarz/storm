@@ -132,6 +132,21 @@ public class SerializationFactory {
         Map<String, Map<String, Integer>> streamNametoId = new HashMap<>();
         Map<String, Map<Integer, String>> streamIdToName = new HashMap<>();
 
+        /**
+         * "{:a 1  :b 2} -> {1 :a  2 :b}"
+         *
+         * Note: Only one key wins if there are duplicate values.
+         *       Which key wins is indeterminate:
+         * "{:a 1  :b 1} -> {1 :a} *or* {1 :b}"
+         */
+        private static <K, V> Map<V, K> simpleReverseMap(Map<K, V> map) {
+            Map<V, K> ret = new HashMap<V, K>();
+            for (Map.Entry<K, V> entry : map.entrySet()) {
+                ret.put(entry.getValue(), entry.getKey());
+            }
+            return ret;
+        }
+
         public IdDictionary(StormTopology topology) {
             List<String> componentNames = new ArrayList<>(topology.get_spouts().keySet());
             componentNames.addAll(topology.get_bolts().keySet());
@@ -141,7 +156,7 @@ public class SerializationFactory {
                 ComponentCommon common = Utils.getComponentCommon(topology, name);
                 List<String> streams = new ArrayList<>(common.get_streams().keySet());
                 streamNametoId.put(name, idify(streams));
-                streamIdToName.put(name, Utils.reverseMap(streamNametoId.get(name)));
+                streamIdToName.put(name, simpleReverseMap(streamNametoId.get(name)));
             }
         }
 

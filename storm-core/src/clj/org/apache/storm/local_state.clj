@@ -21,7 +21,8 @@
             LSSupervisorAssignments LocalAssignment
             ExecutorInfo LSWorkerHeartbeat
             LSTopoHistory LSTopoHistoryList
-            WorkerResources])
+            WorkerResources]
+           [org.apache.storm.utils Utils])
   (:import [org.apache.storm.utils LocalState]))
 
 (def LS-WORKER-HEARTBEAT "worker-heartbeat")
@@ -104,12 +105,14 @@
       (->executor-list (.get_executors thrift-local-assignment))
       (.get_resources thrift-local-assignment)))
 
+;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defn ls-local-assignments!
   [^LocalState local-state assignments]
-    (let [local-assignment-map (map-val ->LocalAssignment assignments)]
-    (.put local-state LS-LOCAL-ASSIGNMENTS 
+  (let [local-assignment-map (map-val ->LocalAssignment assignments)]
+    (.put local-state LS-LOCAL-ASSIGNMENTS
           (LSSupervisorAssignments. local-assignment-map))))
 
+;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defn ls-local-assignments
   [^LocalState local-state]
     (if-let [thrift-local-assignments (.get local-state LS-LOCAL-ASSIGNMENTS)]

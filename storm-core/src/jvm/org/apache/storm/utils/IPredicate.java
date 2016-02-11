@@ -15,20 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.storm.utils;
 
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.curator.retry.ExponentialBackoffRetry;
-import java.util.Map;
-
-public class TestUtils extends Utils {
-
-    public static void testSetupBuilder(CuratorFrameworkFactory.Builder
-            builder, String zkStr, Map conf, ZookeeperAuthInfo auth)
-    {
-        setupBuilder(builder, zkStr, conf, auth);
-    }
-
+/**
+ * This interface is implemented by classes, instances of which can be passed
+ * into certain Util functions which test some collection for elements matching
+ * the IPredicate. (IPredicate.test(...) == true)
+ */
+public interface IPredicate<T> {
+    boolean test (T obj);
 }

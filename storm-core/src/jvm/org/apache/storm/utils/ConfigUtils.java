@@ -44,27 +44,19 @@ public class ConfigUtils {
 
     // A singleton instance allows us to mock delegated static methods in our
     // tests by subclassing.
-    private static final ConfigUtils INSTANCE = new ConfigUtils();
-    private static ConfigUtils _instance = INSTANCE;
+    private static ConfigUtils _instance = new ConfigUtils();;
 
     /**
      * Provide an instance of this class for delegates to use.  To mock out
      * delegated methods, provide an instance of a subclass that overrides the
      * implementation of the delegated method.
-     *
-     * @param u a ConfigUtils instance
+     * @param u a Utils instance
+     * @return the previously set instance
      */
-    public static void setInstance(ConfigUtils u) {
+    public static ConfigUtils setInstance(ConfigUtils u) {
+        ConfigUtils oldInstance = _instance;
         _instance = u;
-    }
-
-    /**
-     * Resets the singleton instance to the default. This is helpful to reset
-     * the class to its original functionality when mocking is no longer
-     * desired.
-     */
-    public static void resetInstance() {
-        _instance = INSTANCE;
+        return oldInstance;
     }
 
     public static String getLogDir() {

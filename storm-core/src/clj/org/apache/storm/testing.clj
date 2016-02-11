@@ -44,9 +44,9 @@
   (:import [org.apache.storm.transactional.partitioned PartitionedTransactionalSpoutExecutor])
   (:import [org.apache.storm.tuple Tuple])
   (:import [org.apache.storm.generated StormTopology])
-  (:import [org.apache.storm.task TopologyContext])
+  (:import [org.apache.storm.task TopologyContext]
+           (org.apache.storm.messaging IContext))
   (:require [org.apache.storm [zookeeper :as zk]])
-  (:require [org.apache.storm.messaging.loader :as msg-loader])
   (:require [org.apache.storm.daemon.acker :as acker])
   (:use [org.apache.storm cluster util thrift config log local-state]))
 
@@ -117,7 +117,9 @@
 
 (defn mk-shared-context [conf]
   (if-not (conf STORM-LOCAL-MODE-ZMQ)
-    (msg-loader/mk-local-context)))
+    (let [context  (org.apache.storm.messaging.local.Context.)]
+      (.prepare ^IContext context nil)
+      context)))
 
 (defn start-nimbus-daemon [conf nimbus]
   (let [server (ThriftServer. conf (Nimbus$Processor. nimbus)

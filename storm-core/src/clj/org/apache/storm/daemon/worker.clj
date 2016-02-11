@@ -21,14 +21,13 @@
   (:require [org.apache.storm.daemon [executor :as executor]])
   (:require [org.apache.storm [disruptor :as disruptor] [cluster :as cluster]])
   (:require [clojure.set :as set])
-  (:require [org.apache.storm.messaging.loader :as msg-loader])
   (:import [java.util.concurrent Executors]
            [org.apache.storm.hooks IWorkerHook BaseWorkerHook])
   (:import [java.util ArrayList HashMap])
   (:import [org.apache.storm.utils Utils ConfigUtils TransferDrainer ThriftTopologyUtils WorkerBackpressureThread DisruptorQueue])
   (:import [org.apache.storm.grouping LoadMapping])
   (:import [org.apache.storm.messaging TransportFactory])
-  (:import [org.apache.storm.messaging TaskMessage IContext IConnection ConnectionWithStatus ConnectionWithStatus$Status])
+  (:import [org.apache.storm.messaging TaskMessage IContext IConnection ConnectionWithStatus ConnectionWithStatus$Status DeserializingConnectionCallback])
   (:import [org.apache.storm.daemon Shutdownable])
   (:import [org.apache.storm.serialization KryoTupleSerializer])
   (:import [org.apache.storm.generated StormTopology])
@@ -461,11 +460,11 @@
             )))))
 
 (defn register-callbacks [worker]
-  (log-message "Registering IConnectionCallbacks for " (:assignment-id worker) ":" (:port worker))
-  (msg-loader/register-callback (:transfer-local-fn worker)
-                                (:receiver worker)
-                                (:storm-conf worker)
-                                (worker-context worker)))
+  (let [transfer-local-fn (:transfer-local-fn worker) ^IConnection socket (:receiver worker)]
+    (log-message "Registering IConnectionCallbacks for " (:assignment-id worker) ":" (:port worker))
+    (.registerRecv socket (DeserializingConnectionCallback. (:storm-conf worker)
+                                                            (worker-context worker)
+                                                            transfer-local-fn))))
 
 (defn- close-resources [worker]
   (let [dr (:default-shared-resources worker)]

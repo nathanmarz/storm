@@ -231,7 +231,6 @@
         <kryo.version>2.21</kryo.version>
         <servlet.version>2.5</servlet.version>
         <joda-time.version>2.3</joda-time.version>
-        <jackson.version>2.3.1</jackson.version>
         <thrift.version>0.9.3</thrift.version>
         <junit.version>4.11</junit.version>
         <metrics-clojure.version>2.5.1</metrics-clojure.version>

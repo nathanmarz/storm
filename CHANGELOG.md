@@ -1,4 +1,5 @@
 ## 2.0.0
+ * STORM-1242: migrate backtype.storm.command.config-value to java
  * STORM-1226: Port backtype.storm.util to java
  * STORM-1436: Random test failure on BlobStoreTest / HdfsBlobStoreImplTest (occasionally killed)
  * STORM-1476: Filter -c options from args and add them as part of storm.options
@@ -6,6 +7,7 @@
  * STORM-1504: Add Serializer and instruction for AvroGenericRecordBolt
  * STORM-1524: Add Pluggable daemon metrics Reporters
  * STORM-1521: When using Kerberos login from keytab with multiple bolts/executors ticket is not renewed in hbase bolt.
+
 ## 1.0.0
  * STORM-1519: Storm syslog logging not confirming to RFC5426 3.1
  * STORM-1520: Nimbus Clojure/Zookeeper issue ("stateChanged" method not found)

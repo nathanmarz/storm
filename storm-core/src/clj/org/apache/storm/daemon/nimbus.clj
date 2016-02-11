@@ -194,17 +194,12 @@
      :blob-listers (mk-bloblist-cache-map conf)
      :uptime (Utils/makeUptimeComputer)
      :validator (Utils/newInstance (conf NIMBUS-TOPOLOGY-VALIDATOR))
-;     :timer (mk-timer :kill-fn (fn [t]
-;                                 (log-error t "Error when processing event")
-;                                 (Utils/exitProcess 20 "Error when processing an event")
-;                                 ))
      :timer (StormTimer/mkTimer nil
               (reify StormTimer$TimerFunc
                 (^void run
                   [this ^Object t]
                   (log-error t "Error when processing event")
                   (Utils/exitProcess 20 "Error when processing an event"))))
-
      :scheduler (mk-scheduler conf inimbus)
      :leader-elector (Zookeeper/zkLeaderElector conf)
      :id->sched-status (atom {})
@@ -387,12 +382,7 @@
 
 (defn delay-event [nimbus storm-id delay-secs event]
   (log-message "Delaying event " event " for " delay-secs " secs for " storm-id)
-;  (schedule (:timer nimbus)
-;            delay-secs
-;            #(transition! nimbus storm-id event false)
-;            )
-  (StormTimer/schedule
-    (:timer nimbus)
+  (StormTimer/schedule (:timer nimbus)
     delay-secs
     (reify StormTimer$TimerFunc
       (^void run
@@ -1457,16 +1447,8 @@
     (when (is-leader nimbus :throw-exception false)
       (doseq [storm-id (.active-storms (:storm-cluster-state nimbus))]
         (transition! nimbus storm-id :startup)))
-;    (schedule-recurring (:timer nimbus)
-;                        0
-;                        (conf NIMBUS-MONITOR-FREQ-SECS)
-;                        (fn []
-;                          (when-not (conf ConfigUtils/NIMBUS_DO_NOT_REASSIGN)
-;                            (locking (:submit-lock nimbus)
-;                              (mk-assignments nimbus)))
-;                          (do-cleanup nimbus)))
-    (StormTimer/scheduleRecurring
-      (:timer nimbus)
+
+    (StormTimer/scheduleRecurring (:timer nimbus)
       0
       (conf NIMBUS-MONITOR-FREQ-SECS)
       (reify StormTimer$TimerFunc
@@ -1477,14 +1459,7 @@
               (mk-assignments nimbus)))
           (do-cleanup nimbus))))
     ;; Schedule Nimbus inbox cleaner
-;    (schedule-recurring (:timer nimbus)
-;                        0
-;                        (conf NIMBUS-CLEANUP-INBOX-FREQ-SECS)
-;                        (fn []
-;                          (clean-inbox (inbox nimbus) (conf NIMBUS-INBOX-JAR-EXPIRATION-SECS))))
-
-    (StormTimer/scheduleRecurring
-      (:timer nimbus)
+    (StormTimer/scheduleRecurring (:timer nimbus)
       0
       (conf NIMBUS-CLEANUP-INBOX-FREQ-SECS)
       (reify StormTimer$TimerFunc
@@ -1493,13 +1468,7 @@
           (clean-inbox (inbox nimbus) (conf NIMBUS-INBOX-JAR-EXPIRATION-SECS)))))
     ;; Schedule nimbus code sync thread to sync code from other nimbuses.
     (if (instance? LocalFsBlobStore blob-store)
-;      (schedule-recurring (:timer nimbus)
-;                          0
-;                          (conf NIMBUS-CODE-SYNC-FREQ-SECS)
-;                          (fn []
-;                            (blob-sync conf nimbus)))
-      (StormTimer/scheduleRecurring
-        (:timer nimbus)
+      (StormTimer/scheduleRecurring (:timer nimbus)
         0
         (conf NIMBUS-CODE-SYNC-FREQ-SECS)
         (reify StormTimer$TimerFunc
@@ -1508,26 +1477,14 @@
             (blob-sync conf nimbus)))))
     ;; Schedule topology history cleaner
     (when-let [interval (conf LOGVIEWER-CLEANUP-INTERVAL-SECS)]
-;      (schedule-recurring (:timer nimbus)
-;        0
-;        (conf LOGVIEWER-CLEANUP-INTERVAL-SECS)
-;        (fn []
-;          (clean-topology-history (conf LOGVIEWER-CLEANUP-AGE-MINS) nimbus)))
-      (StormTimer/scheduleRecurring
-        (:timer nimbus)
+      (StormTimer/scheduleRecurring (:timer nimbus)
         0
         (conf LOGVIEWER-CLEANUP-INTERVAL-SECS)
         (reify StormTimer$TimerFunc
           (^void run
             [this ^Object t]
             (clean-topology-history (conf LOGVIEWER-CLEANUP-AGE-MINS) nimbus)))))
-;    (schedule-recurring (:timer nimbus)
-;                        0
-;                        (conf NIMBUS-CREDENTIAL-RENEW-FREQ-SECS)
-;                        (fn []
-;                          (renew-credentials nimbus)))
-    (StormTimer/scheduleRecurring
-      (:timer nimbus)
+    (StormTimer/scheduleRecurring (:timer nimbus)
       0
       (conf NIMBUS-CREDENTIAL-RENEW-FREQ-SECS)
       (reify StormTimer$TimerFunc
@@ -2265,7 +2222,6 @@
       (shutdown [this]
         (mark! nimbus:num-shutdown-calls)
         (log-message "Shutting down master")
-        ;(cancel-timer (:timer nimbus))
         (StormTimer/cancelTimer (:timer nimbus))
         (.disconnect (:storm-cluster-state nimbus))
         (.cleanup (:downloaders nimbus))
@@ -2276,9 +2232,7 @@
         (log-message "Shut down master"))
       DaemonCommon
       (waiting? [this]
-;        (timer-waiting? (:timer nimbus))
-        (StormTimer/isTimerWaiting (:timer nimbus))
-        ))))
+        (StormTimer/isTimerWaiting (:timer nimbus))))))
 
 (defn validate-port-available[conf]
   (try

@@ -645,9 +645,7 @@
                                                 (upTime [] 0))))]
       (with-open [_ (ConfigUtilsInstaller. fake-cu)
                   _ (UtilsInstaller. fake-utils)]
-        (stubbing [cluster/mk-storm-cluster-state nil
-;                   mk-timer nil
-                   ]
+        (stubbing [cluster/mk-storm-cluster-state nil]
           (supervisor/supervisor-data auth-conf nil fake-isupervisor)
           (verify-call-times-for cluster/mk-storm-cluster-state 1)
           (verify-first-call-args-for-indices cluster/mk-storm-cluster-state [2]

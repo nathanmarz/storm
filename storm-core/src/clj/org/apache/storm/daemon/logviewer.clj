@@ -264,14 +264,6 @@
   (let [interval-secs (conf LOGVIEWER-CLEANUP-INTERVAL-SECS)]
     (when interval-secs
       (log-debug "starting log cleanup thread at interval: " interval-secs)
-;      (schedule-recurring (mk-timer :thread-name "logviewer-cleanup"
-;                                    :kill-fn (fn [t]
-;                                               (log-error t "Error when doing logs cleanup")
-;                                               (Utils/exitProcess 20 "Error when doing log cleanup")))
-;                          0 ;; Start immediately.
-;                          interval-secs
-;                          (fn [] (cleanup-fn! log-root-dir)))
-
       (StormTimer/scheduleRecurring
         (StormTimer/mkTimer "logviewer-cleanup"
           (reify StormTimer$TimerFunc

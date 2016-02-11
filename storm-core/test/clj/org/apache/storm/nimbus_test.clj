@@ -1483,7 +1483,6 @@
                    nimbus/file-cache-map nil
                    nimbus/mk-blob-cache-map nil
                    nimbus/mk-bloblist-cache-map nil
-                  ; mk-timer nil
                    nimbus/mk-scheduler nil]
                   (nimbus/nimbus-data auth-conf fake-inimbus)
                   (verify-call-times-for cluster/mk-storm-cluster-state 1)

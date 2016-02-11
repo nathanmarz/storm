@@ -324,14 +324,6 @@
   (let [{:keys [storm-conf receive-queue worker-context interval->task->metric-registry]} executor-data
         distinct-time-bucket-intervals (keys interval->task->metric-registry)]
     (doseq [interval distinct-time-bucket-intervals]
-;      (schedule-recurring
-;       (:user-timer (:worker executor-data))
-;       interval
-;       interval
-;       (fn []
-;         (let [val [(AddressedTuple. AddressedTuple/BROADCAST_DEST (TupleImpl. worker-context [interval] Constants/SYSTEM_TASK_ID Constants/METRICS_TICK_STREAM_ID))]]
-;           (disruptor/publish receive-queue val))))
-
       (StormTimer/scheduleRecurring
         (:user-timer (:worker executor-data))
         interval
@@ -375,14 +367,6 @@
               (and (= false (storm-conf TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS))
                    (= :spout (:type executor-data))))
         (log-message "Timeouts disabled for executor " (:component-id executor-data) ":" (:executor-id executor-data))
-;        (schedule-recurring
-;          (:user-timer worker)
-;          tick-time-secs
-;          tick-time-secs
-;          (fn []
-;            (let [val [(AddressedTuple. AddressedTuple/BROADCAST_DEST (TupleImpl. context [tick-time-secs] Constants/SYSTEM_TASK_ID Constants/SYSTEM_TICK_STREAM_ID))]]
-;              (disruptor/publish receive-queue val))))
-
         (StormTimer/scheduleRecurring
           (:user-timer worker)
           tick-time-secs

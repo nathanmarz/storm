@@ -25,10 +25,15 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Comparator;
 import java.util.Random;
-import java.util.UUID;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+/**
+ * The timer defined in this file is very similar to java.util.Timer, except
+ * it integrates with Storm's time simulation capabilities. This lets us test
+ * code that does asynchronous work on the timer thread
+ */
 
 public class StormTimer {
     private static final Logger LOG = LoggerFactory.getLogger(StormTimer.class);
@@ -75,28 +80,41 @@ public class StormTimer {
 
         @Override
         public void run() {
-            LOG.info("in run...{}", this.getName());
             while (this.active.get()) {
                 QueueEntry queueEntry = null;
                 try {
                     synchronized (this.lock) {
                         queueEntry = this.queue.peek();
                     }
-                    LOG.info("event: {} -- {}", this.getName(), queueEntry);
-
                     if ((queueEntry != null) && (Time.currentTimeMillis() >= queueEntry.endTimeMs)) {
+                        // It is imperative to not run the function
+                        // inside the timer lock. Otherwise, it is
+                        // possible to deadlock if the fn deals with
+                        // other locks, like the submit lock.
                         synchronized (this.lock) {
                             this.queue.poll();
                         }
                         queueEntry.afn.run(null);
                     } else if (queueEntry != null) {
+                        //  If any events are scheduled, sleep until
+                        // event generation. If any recurring events
+                        // are scheduled then we will always go
+                        // through this branch, sleeping only the
+                        // exact necessary amount of time. We give
+                        // an upper bound, e.g. 1000 millis, to the
+                        // sleeping time, to limit the response time
+                        // for detecting any new event within 1 secs.
                         Time.sleep(Math.min(1000, (queueEntry.endTimeMs - Time.currentTimeMillis())));
                     } else {
+                        // Otherwise poll to see if any new event
+                        // was scheduled. This is, in essence, the
+                        // response time for detecting any new event
+                        // schedulings when there are no scheduled
+                        // events.
                         Time.sleep(1000);
                     }
                 } catch (Throwable t) {
                     if (!(Utils.exceptionCauseIsInstanceOf(InterruptedException.class, t))) {
-                        LOG.info("Exception throw for event: {} --- {}", queueEntry, t);
                         this.onKill.run(t);
                         this.setActive(false);
                         throw new RuntimeException(t);
@@ -153,7 +171,6 @@ public class StormTimer {
         if (jitterMs > 0) {
             endTimeMs = task.random.nextInt(jitterMs) + endTimeMs;
         }
-        LOG.info("add event: {}-{}-{}", id, endTimeMs, afn);
         synchronized (task.lock) {
             task.add(new QueueEntry(endTimeMs, afn, id));
         }
@@ -166,10 +183,8 @@ public class StormTimer {
         schedule(task, delaySecs, new TimerFunc() {
             @Override
             public void run(Object o) {
-                LOG.info("scheduleRecurring running...");
                 afn.run(null);
-                LOG.info("scheduleRecurring schedule again...");
-
+                // This avoids a race condition with cancel-timer.
                 schedule(task, recurSecs, this, false, 0);
             }
         });
@@ -179,10 +194,8 @@ public class StormTimer {
         schedule(task, delaySecs, new TimerFunc() {
             @Override
             public void run(Object o) {
-                LOG.info("scheduleRecurringWithJitter running...");
                 afn.run(null);
-                LOG.info("scheduleRecurringWithJitter schedule again...");
-
+                // This avoids a race condition with cancel-timer.
                 schedule(task, recurSecs, this, false, jitterMs);
             }
         });
@@ -201,8 +214,6 @@ public class StormTimer {
         if (task == null) {
             throw new RuntimeException("task is null!");
         }
-        LOG.info("cancel task: {} - {} - {}", task.getName(), task.getId(), task.queue);
-
         checkActive(task);
         synchronized (task.lock) {
             task.setActive(false);

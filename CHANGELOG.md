@@ -6,6 +6,8 @@
  * STORM-1524: Add Pluggable daemon metrics Reporters
  * STORM-1521: When using Kerberos login from keytab with multiple bolts/executors ticket is not renewed in hbase bolt.
 ## 1.0.0
+ * STORM-1533: IntegerValidator for metric consumer parallelism hint
+ * STORM-1534: Pick correct version of jackson-annotations jar
  * STORM-1520: Nimbus Clojure/Zookeeper issue ("stateChanged" method not found)
  * STORM-1531: Junit and mockito dependencies need to have correct scope defined in storm-elasticsearch pom.xml
  * STORM-1526: Improve Storm core performance

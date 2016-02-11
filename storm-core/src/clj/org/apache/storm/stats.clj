@@ -561,27 +561,27 @@
                      (get window)
                      handle-sys-components-fn
                      vals
-                     (reduce +))
+                     (#(reduce + %)))
         :transferred (-> statk->w->sid->num
                          :transferred
                          str-key
                          (get window)
                          handle-sys-components-fn
                          vals
-                         (reduce +))
+                         (#(reduce + %)))
         :capacity (compute-agg-capacity statk->w->sid->num uptime)
         :acked (-> statk->w->sid->num
                    :acked
                    str-key
                    (get window)
                    vals
-                   (reduce +))
+                   (#(reduce + %)))
         :failed (-> statk->w->sid->num
                     :failed
                     str-key
                     (get window)
                     vals
-                    (reduce +))})}))
+                    (#(reduce + %)))})}))
 
 (defn agg-pre-merge-topo-page-spout
   [{comp-id :comp-id
@@ -610,20 +610,20 @@
                      (get window)
                      handle-sys-components-fn
                      vals
-                     (reduce +))
+                     (#(reduce + %)))
         :transferred (-> statk->w->sid->num
                          :transferred
                          str-key
                          (get window)
                          handle-sys-components-fn
                          vals
-                         (reduce +))
+                         (#(reduce + %)))
         :failed (-> statk->w->sid->num
                     :failed
                     str-key
                     (get window)
                     vals
-                    (reduce +))})}))
+                    (#(reduce + %)))})}))
 
 (defn merge-agg-comp-stats-comp-page-bolt
   [{acc-in :cid+sid->input-stats

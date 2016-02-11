@@ -400,7 +400,7 @@
                                         (Matchers/any)
                                         (Matchers/any)
                                         (Matchers/any)))))))
-      
+
       (testing "testing topology.classpath is added to classpath"
         (let [topo-cp (str Utils/FILE_PATH_SEPARATOR "any" Utils/FILE_PATH_SEPARATOR "path")
               exp-args (exp-args-fn [] [] (Utils/addToClasspath mock-cp [topo-cp]))

@@ -41,16 +41,15 @@ public class CgroupUtils {
 
     public static void deleteDir(String dir) {
         File d = new File(dir);
-        if (d.exists()) {
-            if (d.isDirectory()) {
-                if (!d.delete()) {
-                    throw new RuntimeException("Cannot delete dir " + dir);
-                }
-            } else {
-                throw new RuntimeException("dir " + dir + " is not a directory!");
-            }
-        } else {
+        if (!d.exists()) {
             LOG.warn("dir {} does not exist!", dir);
+            return;
+        }
+        if (!d.isDirectory()) {
+            throw new RuntimeException("dir " + dir + " is not a directory!");
+        }
+        if (!d.delete()) {
+            throw new RuntimeException("Cannot delete dir " + dir);
         }
     }
 

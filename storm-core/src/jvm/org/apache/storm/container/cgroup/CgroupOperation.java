@@ -22,7 +22,8 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * An interface to manage cgroups
+ * An interface to implement the basic functions to manage cgroups such as mount and mounting a hiearchy
+ * and creating cgroups.  Also contains functions to access basic information of cgroups.
  */
 public interface CgroupOperation {
 

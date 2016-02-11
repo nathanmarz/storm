@@ -16,7 +16,6 @@
 (ns org.apache.storm.worker-test
   (:use [clojure test])
   (:require [org.apache.storm.daemon [worker :as worker]])
-  (:require [org.apache.storm [util :as util]])
   (:require [conjure.core])
   (:require [clj-time.core :as time])
   (:require [clj-time.coerce :as coerce])

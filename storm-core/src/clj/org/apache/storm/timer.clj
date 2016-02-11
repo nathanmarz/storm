@@ -15,7 +15,7 @@
 ;; limitations under the License.
 
 (ns org.apache.storm.timer
-  (:import [org.apache.storm.utils Time])
+  (:import [org.apache.storm.utils Utils Time])
   (:import [java.util PriorityQueue Comparator Random])
   (:import [java.util.concurrent Semaphore])
   (:use [org.apache.storm util log]))
@@ -41,7 +41,7 @@
                          (while @active
                            (try
                              (let [[time-millis _ _ :as elem] (locking lock (.peek queue))]
-                               (if (and elem (>= (current-time-millis) time-millis))
+                               (if (and elem (>= (Time/currentTimeMillis) time-millis))
                                  ;; It is imperative to not run the function
                                  ;; inside the timer lock. Otherwise, it is
                                  ;; possible to deadlock if the fn deals with
@@ -57,7 +57,7 @@
                                    ;; an upper bound, e.g. 1000 millis, to the
                                    ;; sleeping time, to limit the response time
                                    ;; for detecting any new event within 1 secs.
-                                   (Time/sleep (min 1000 (- time-millis (current-time-millis))))
+                                   (Time/sleep (min 1000 (- time-millis (Time/currentTimeMillis))))
                                    ;; Otherwise poll to see if any new event
                                    ;; was scheduled. This is, in essence, the
                                    ;; response time for detecting any new event
@@ -67,7 +67,7 @@
                              (catch Throwable t
                                ;; Because the interrupted exception can be
                                ;; wrapped in a RuntimeException.
-                               (when-not (exception-cause? InterruptedException t)
+                               (when-not (Utils/exceptionCauseIsInstanceOf InterruptedException t)
                                  (kill-fn t)
                                  (reset! active false)
                                  (throw t)))))
@@ -90,9 +90,9 @@
 (defnk schedule
   [timer delay-secs afn :check-active true :jitter-ms 0]
   (when check-active (check-active! timer))
-  (let [id (uuid)
+  (let [id (Utils/uuid)
         ^PriorityQueue queue (:queue timer)
-        end-time-ms (+ (current-time-millis) (secs-to-millis-long delay-secs))
+        end-time-ms (+ (Time/currentTimeMillis) (Time/secsToMillisLong delay-secs))
         end-time-ms (if (< 0 jitter-ms) (+ (.nextInt (:random timer) jitter-ms) end-time-ms) end-time-ms)]
     (locking (:lock timer)
       (.add queue [end-time-ms afn id]))))

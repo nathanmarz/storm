@@ -17,7 +17,7 @@
   (:use [clojure test])
   (:import [org.apache.storm.messaging TransportFactory])
   (:import [org.apache.storm.testing TestWordSpout TestGlobalCount])
-  (:use [org.apache.storm testing util config])
+  (:use [org.apache.storm testing config])
   (:require [org.apache.storm [thrift :as thrift]]))
 
 (deftest test-integration

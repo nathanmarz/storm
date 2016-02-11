@@ -18,14 +18,17 @@
   (:require [org.apache.storm.scheduler.EvenScheduler :as EvenScheduler])
   (:import [org.apache.storm.scheduler IScheduler Topologies
             Cluster TopologyDetails WorkerSlot SchedulerAssignment
-            EvenScheduler ExecutorDetails])
+            EvenScheduler ExecutorDetails]
+           [org.apache.storm.utils Utils])
   (:gen-class
     :implements [org.apache.storm.scheduler.IScheduler]))
 
 (defn- bad-slots [existing-slots num-executors num-workers]
   (if (= 0 num-workers)
     '()
-    (let [distribution (atom (integer-divided num-executors num-workers))
+    (let [distribution (->> (Utils/integerDivided num-executors num-workers)
+                            clojurify-structure
+                            atom)
           keepers (atom {})]
       (doseq [[node+port executor-list] existing-slots :let [executor-count (count executor-list)]]
         (when (pos? (get @distribution executor-count 0))

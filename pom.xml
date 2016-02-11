@@ -215,6 +215,7 @@
         <jgrapht.version>0.9.0</jgrapht.version>
         <guava.version>16.0.1</guava.version>
         <netty.version>3.9.0.Final</netty.version>
+        <sysout-over-slf4j.version>1.0.2</sysout-over-slf4j.version>
         <log4j-over-slf4j.version>1.6.6</log4j-over-slf4j.version>
         <log4j.version>2.1</log4j.version>
         <slf4j.version>1.7.7</slf4j.version>
@@ -827,6 +828,11 @@
               <groupId>com.fasterxml.jackson.core</groupId>
               <artifactId>jackson-databind</artifactId>
               <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>uk.org.lidalia</groupId>
+                <artifactId>sysout-over-slf4j</artifactId>
+                <version>${sysout-over-slf4j.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

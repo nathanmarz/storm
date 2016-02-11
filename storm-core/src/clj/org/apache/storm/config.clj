@@ -18,7 +18,7 @@
   (:import [java.io FileReader File IOException]
            [org.apache.storm.generated StormTopology])
   (:import [org.apache.storm Config])
-  (:import [org.apache.storm.utils Utils LocalState ConfigUtils])
+  (:import [org.apache.storm.utils Utils LocalState ConfigUtils MutableInt])
   (:import [org.apache.storm.validation ConfigValidation])
   (:import [org.apache.commons.io FileUtils])
   (:require [clojure [string :as str]])
@@ -48,6 +48,22 @@
   (->> (conf TOPOLOGY-STATS-SAMPLE-RATE)
     (/ 1)
     int))
+
+(defn- even-sampler
+  [freq]
+  (let [freq (int freq)
+        start (int 0)
+        r (java.util.Random.)
+        curr (MutableInt. -1)
+        target (MutableInt. (.nextInt r freq))]
+    (with-meta
+      (fn []
+        (let [i (.increment curr)]
+          (when (>= i freq)
+            (.set curr start)
+            (.set target (.nextInt r freq))))
+        (= (.get curr) (.get target)))
+      {:rate freq})))
 
 ;; TODO this function together with sampling-rate are to be replaced with Java version when util.clj is in
 (defn mk-stats-sampler

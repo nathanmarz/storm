@@ -17,9 +17,20 @@
   (:use [org.apache.storm util log config])
   (:require [clojure.set :as set])
   (:import [org.apache.storm.scheduler IScheduler Topologies
-            Cluster TopologyDetails WorkerSlot ExecutorDetails])
+            Cluster TopologyDetails WorkerSlot ExecutorDetails]
+           [org.apache.storm.utils Utils])
   (:gen-class
     :implements [org.apache.storm.scheduler.IScheduler]))
+
+; this can be rewritten to be tail recursive
+(defn- interleave-all
+  [& colls]
+  (if (empty? colls)
+    []
+    (let [colls (filter (complement empty?) colls)
+          my-elems (map first colls)
+          rest-elems (apply interleave-all (map rest colls))]
+      (concat my-elems rest-elems))))
 
 (defn sort-slots [all-slots]
   (let [split-up (sort-by count > (vals (group-by first all-slots)))]
@@ -35,8 +46,14 @@
                                            :let [executor [(.getStartTask executor) (.getEndTask executor)]
                                                  node+port [(.getNodeId slot) (.getPort slot)]]]
                                        {executor node+port}))
-        alive-assigned (reverse-map executor->node+port)]
+        alive-assigned (clojurify-structure (Utils/reverseMap executor->node+port))]
     alive-assigned))
+
+(defn- repeat-seq
+  ([aseq]
+    (apply concat (repeat aseq)))
+  ([amt aseq]
+    (apply concat (repeat amt aseq))))
 
 (defn- schedule-topology [^TopologyDetails topology ^Cluster cluster]
   (let [topology-id (.getId topology)
@@ -67,7 +84,7 @@
     (doseq [^TopologyDetails topology needs-scheduling-topologies
             :let [topology-id (.getId topology)
                   new-assignment (schedule-topology topology cluster)
-                  node+port->executors (reverse-map new-assignment)]]
+                  node+port->executors (clojurify-structure (Utils/reverseMap new-assignment))]]
       (doseq [[node+port executors] node+port->executors
               :let [^WorkerSlot slot (WorkerSlot. (first node+port) (last node+port))
                     executors (for [[start-task end-task] executors]

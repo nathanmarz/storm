@@ -40,6 +40,22 @@
 
 (def max-retries 10)
 
+(defn retry-on-exception
+  "Retries specific function on exception based on retries count"
+  [retries task-description f & args]
+  (let [res (try {:value (apply f args)}
+                 (catch Exception e
+                   (if (<= 0 retries)
+                     (throw e)
+                     {:exception e})))]
+    (if (:exception res)
+      (do 
+        (log-error (:exception res) (str "Failed to " task-description ". Will make [" retries "] more attempts."))
+        (recur (dec retries) task-description f args))
+      (do 
+        (log-debug (str "Successful " task-description "."))
+        (:value res)))))
+
 (defn -mkState [this conf auth-conf acls context]
   (let [zk-state (makeZKState conf auth-conf acls context)
         pacemaker-client (makeClient conf)]
@@ -64,7 +80,7 @@
       (sync_path [this path] (.sync_path zk-state path))
       
       (set_worker_hb [this path data acls]
-        (util/retry-on-exception
+        (retry-on-exception
          max-retries
          "set_worker_hb"
          #(let [response
@@ -79,7 +95,7 @@
               (throw (HBExecutionException. "Invalid Response Type"))))))
 
       (delete_worker_hb [this path]
-        (util/retry-on-exception
+        (retry-on-exception
          max-retries
          "delete_worker_hb"
          #(let [response
@@ -91,7 +107,7 @@
               (throw (HBExecutionException. "Invalid Response Type"))))))
       
       (get_worker_hb [this path watch?]
-        (util/retry-on-exception
+        (retry-on-exception
          max-retries
          "get_worker_hb"
          #(let [response
@@ -106,7 +122,7 @@
               (throw (HBExecutionException. "Invalid Response Type"))))))
       
       (get_worker_hb_children [this path watch?]
-        (util/retry-on-exception
+        (retry-on-exception
          max-retries
          "get_worker_hb_children"
          #(let [response

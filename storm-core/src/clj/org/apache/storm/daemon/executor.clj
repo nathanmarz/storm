@@ -220,7 +220,7 @@
     (let [val (AddressedTuple. task tuple)]
       (when (= true (storm-conf TOPOLOGY-DEBUG))
         (log-message "TRANSFERING tuple " val))
-        (.publish ^DisruptorQueue batch-transfer->worker val) )))
+      (.publish ^DisruptorQueue batch-transfer->worker val))))
 
 (defn mk-executor-data [worker executor-id]
   (let [worker-context (worker-context worker)

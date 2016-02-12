@@ -30,6 +30,11 @@ import com.lmax.disruptor.TimeoutException;
 import com.lmax.disruptor.WaitStrategy;
 import com.lmax.disruptor.dsl.ProducerType;
 
+import org.apache.storm.metric.api.IStatefulObject;
+import org.apache.storm.metric.internal.RateTracker;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -45,12 +50,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import org.apache.storm.metric.api.IStatefulObject;
-import org.apache.storm.metric.internal.RateTracker;
 
 /**
  * A single consumer queue that uses the LMAX Disruptor. They key to the performance is
@@ -379,6 +378,10 @@ public class DisruptorQueue implements IStatefulObject {
 
         _flusher = new Flusher(Math.max(flushInterval, 1), _queueName);
         _flusher.start();
+    }
+
+    public DisruptorQueue(String queueName,  int size, long readTimeout, int inputBatchSize, long flushInterval) {
+        this(queueName, ProducerType.MULTI, size, readTimeout, inputBatchSize, flushInterval);
     }
 
     public String getName() {

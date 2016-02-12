@@ -18,7 +18,6 @@
 package org.apache.storm.container.cgroup.core;
 
 import org.apache.storm.container.cgroup.CgroupUtils;
-import org.apache.storm.container.cgroup.Constants;
 import org.apache.storm.container.cgroup.SubSystemType;
 
 import java.io.IOException;
@@ -44,11 +43,11 @@ public class CpuacctCore implements CgroupCore {
     }
 
     public Long getCpuUsage() throws IOException {
-        return Long.parseLong(CgroupUtils.readFileByLine(Constants.getDir(this.dir, CPUACCT_USAGE)).get(0));
+        return Long.parseLong(CgroupUtils.readFileByLine(CgroupUtils.getDir(this.dir, CPUACCT_USAGE)).get(0));
     }
 
     public Map<StatType, Long> getCpuStat() throws IOException {
-        List<String> strs = CgroupUtils.readFileByLine(Constants.getDir(this.dir, CPUACCT_STAT));
+        List<String> strs = CgroupUtils.readFileByLine(CgroupUtils.getDir(this.dir, CPUACCT_STAT));
         Map<StatType, Long> result = new HashMap<StatType, Long>();
         result.put(StatType.user, Long.parseLong(strs.get(0).split(" ")[1]));
         result.put(StatType.system, Long.parseLong(strs.get(1).split(" ")[1]));
@@ -56,7 +55,7 @@ public class CpuacctCore implements CgroupCore {
     }
 
     public Long[] getPerCpuUsage() throws IOException {
-        String str = CgroupUtils.readFileByLine(Constants.getDir(this.dir, CPUACCT_USAGE_PERCPU)).get(0);
+        String str = CgroupUtils.readFileByLine(CgroupUtils.getDir(this.dir, CPUACCT_USAGE_PERCPU)).get(0);
         String[] strArgs = str.split(" ");
         Long[] result = new Long[strArgs.length];
         for (int i = 0; i < result.length; i++) {
@@ -65,7 +64,7 @@ public class CpuacctCore implements CgroupCore {
         return result;
     }
 
-    public enum StatType {
+    public static enum StatType {
         user, system;
     }
 

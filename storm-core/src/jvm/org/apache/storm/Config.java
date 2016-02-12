@@ -2196,6 +2196,9 @@ public class Config extends HashMap<String, Object> {
     public static final Object CLIENT_JAR_TRANSFORMER = "client.jartransformer.class";
 
 
+    /**
+     * The plugin to be used for resource isolation
+     */
     @isImplementationOfClass(implementsClass = ResourceIsolationInterface.class)
     public static final Object STORM_RESOURCE_ISOLATION_PLUGIN = "storm.resource.isolation.plugin";
 
@@ -2222,10 +2225,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object STORM_CGROUP_HIERARCHY_NAME = "storm.cgroup.hierarchy.name";
 
     /**
-     * flag to determine whether to use cgroups
+     * flag to determine whether to use a resource isolation plugin
+     * Also determines whether the unit tests for cgroup runs.
+     * If storm.resource.isolation.plugin.enable is set to false the unit tests for cgroups will not run
      */
     @isBoolean
-    public static final String STORM_CGROUP_ENABLE = "storm.cgroup.enable";
+    public static final String STORM_RESOURCE_ISOLATION_PLUGIN_ENABLE = "storm.resource.isolation.plugin.enable";
 
     /**
      * root directory for cgoups

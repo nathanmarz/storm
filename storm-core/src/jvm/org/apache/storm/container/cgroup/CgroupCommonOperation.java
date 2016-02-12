@@ -78,5 +78,4 @@ public interface CgroupCommonOperation {
      * set event control config
      */
     public void setEventControl(String eventFd, String controlFd, String... args) throws IOException;
-
 }

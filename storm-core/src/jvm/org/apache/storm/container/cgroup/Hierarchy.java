@@ -19,6 +19,9 @@ package org.apache.storm.container.cgroup;
 
 import java.util.Set;
 
+/**
+ * A class that describes a cgroup hiearchy
+ */
 public class Hierarchy {
 
     private final String name;
@@ -36,13 +39,19 @@ public class Hierarchy {
         this.subSystems = subSystems;
         this.dir = dir;
         this.rootCgroups = new CgroupCommon(this, dir);
-        this.type = CgroupUtils.reAnalyse(subSystems);
+        this.type = CgroupUtils.subSystemsToString(subSystems);
     }
 
+    /**
+     * get subsystems
+     */
     public Set<SubSystemType> getSubSystems() {
         return subSystems;
     }
 
+    /**
+     * get all subsystems in hierarchy as a comma delimited list
+     */
     public String getType() {
         return type;
     }
@@ -105,7 +114,7 @@ public class Hierarchy {
         return name;
     }
 
-    public boolean subSystemMounted(SubSystemType subsystem) {
+    public boolean isSubSystemMounted(SubSystemType subsystem) {
         for (SubSystemType type : this.subSystems) {
             if (type == subsystem) {
                 return true;
@@ -114,4 +123,8 @@ public class Hierarchy {
         return false;
     }
 
+    @Override
+    public String toString() {
+        return this.dir;
+    }
 }

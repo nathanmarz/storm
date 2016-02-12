@@ -17,6 +17,7 @@
  */
 package org.apache.storm.container.cgroup;
 
+import org.apache.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,6 +26,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -41,24 +43,18 @@ public class CgroupCenter implements CgroupOperation {
 
     }
 
-    /**
-     * Thread unsafe
-     * 
-     * @return
-     */
     public synchronized static CgroupCenter getInstance() {
-        if (instance == null) {
+        if (CgroupUtils.enabled()) {
             instance = new CgroupCenter();
+            return instance;
         }
-        return CgroupUtils.enabled() ? instance : null;
+        return null;
     }
 
     @Override
     public List<Hierarchy> getHierarchies() {
-
         Map<String, Hierarchy> hierarchies = new HashMap<String, Hierarchy>();
-
-        try (FileReader reader = new FileReader(Constants.MOUNT_STATUS_FILE);
+        try (FileReader reader = new FileReader(CgroupUtils.MOUNT_STATUS_FILE);
              BufferedReader br = new BufferedReader(reader)) {
             String str = null;
             while ((str = br.readLine()) != null) {
@@ -69,8 +65,8 @@ public class CgroupCenter implements CgroupOperation {
                 String name = strSplit[0];
                 String type = strSplit[3];
                 String dir = strSplit[1];
-                Hierarchy h = hierarchies.get(type);
-                h = new Hierarchy(name, CgroupUtils.analyse(type), dir);
+                //Some mount options (i.e. rw and relatime) in type are not cgroups related
+                Hierarchy h = new Hierarchy(name, CgroupUtils.getSubSystemsFromString(type), dir);
                 hierarchies.put(type, h);
             }
             return new ArrayList<Hierarchy>(hierarchies.values());
@@ -82,10 +78,8 @@ public class CgroupCenter implements CgroupOperation {
 
     @Override
     public Set<SubSystem> getSubSystems() {
-
         Set<SubSystem> subSystems = new HashSet<SubSystem>();
-
-        try (FileReader reader = new FileReader(Constants.CGROUP_STATUS_FILE);
+        try (FileReader reader = new FileReader(CgroupUtils.CGROUP_STATUS_FILE);
              BufferedReader br = new BufferedReader(reader)){
             String str = null;
             while ((str = br.readLine()) != null) {
@@ -94,8 +88,10 @@ public class CgroupCenter implements CgroupOperation {
                 if (type == null) {
                     continue;
                 }
-                subSystems.add(new SubSystem(type, Integer.valueOf(split[1]), Integer.valueOf(split[2])
-                        , Integer.valueOf(split[3]).intValue() == 1 ? true : false));
+                int hierarchyID = Integer.valueOf(split[1]);
+                int cgroupNum = Integer.valueOf(split[2]);
+                boolean enable =  Integer.valueOf(split[3]).intValue() == 1 ? true : false;
+                subSystems.add(new SubSystem(type, hierarchyID, cgroupNum, enable));
             }
             return subSystems;
         } catch (Exception e) {
@@ -105,11 +101,10 @@ public class CgroupCenter implements CgroupOperation {
     }
 
     @Override
-    public boolean enabled(SubSystemType subsystem) {
-
+    public boolean isSubSystemEnabled(SubSystemType subSystemType) {
         Set<SubSystem> subSystems = this.getSubSystems();
         for (SubSystem subSystem : subSystems) {
-            if (subSystem.getType() == subsystem) {
+            if (subSystem.getType() == subSystemType) {
                 return true;
             }
         }
@@ -117,25 +112,17 @@ public class CgroupCenter implements CgroupOperation {
     }
 
     @Override
-    public Hierarchy busy(SubSystemType subsystem) {
-        List<Hierarchy> hierarchies = this.getHierarchies();
-        for (Hierarchy hierarchy : hierarchies) {
-            for (SubSystemType type : hierarchy.getSubSystems()) {
-                if (type == subsystem) {
-                    return hierarchy;
-                }
-            }
-        }
-        return null;
+    public Hierarchy getHierarchyWithSubSystem(SubSystemType subSystem) {
+        return getHierarchyWithSubSystems(Arrays.asList(subSystem));
     }
 
     @Override
-    public Hierarchy busy(List<SubSystemType> subSystems) {
+    public Hierarchy getHierarchyWithSubSystems(List<SubSystemType> subSystems) {
         List<Hierarchy> hierarchies = this.getHierarchies();
         for (Hierarchy hierarchy : hierarchies) {
             Hierarchy ret = hierarchy;
-            for (SubSystemType subsystem : subSystems) {
-                if (!hierarchy.getSubSystems().contains(subsystem)) {
+            for (SubSystemType subSystem : subSystems) {
+                if (!hierarchy.getSubSystems().contains(subSystem)) {
                     ret = null;
                     break;
                 }
@@ -148,85 +135,82 @@ public class CgroupCenter implements CgroupOperation {
     }
 
     @Override
-    public Hierarchy mounted(Hierarchy hierarchy) {
-
-        List<Hierarchy> hierarchies = this.getHierarchies();
-        if (CgroupUtils.dirExists(hierarchy.getDir())) {
+    public boolean isMounted(Hierarchy hierarchy) {
+        if (Utils.CheckDirExists(hierarchy.getDir())) {
+            List<Hierarchy> hierarchies = this.getHierarchies();
             for (Hierarchy h : hierarchies) {
                 if (h.equals(hierarchy)) {
-                    return h;
+                    return true;
                 }
             }
         }
-        return null;
+        return false;
     }
 
     @Override
     public void mount(Hierarchy hierarchy) throws IOException {
-
-        if (this.mounted(hierarchy) != null) {
-            LOG.error("{} is mounted", hierarchy.getDir());
+        if (this.isMounted(hierarchy)) {
+            LOG.error("{} is already mounted", hierarchy.getDir());
             return;
         }
-        Set<SubSystemType> subsystems = hierarchy.getSubSystems();
-        for (SubSystemType type : subsystems) {
-            if (this.busy(type) != null) {
-                LOG.error("subsystem: {} is busy", type.name());
-                subsystems.remove(type);
+        Set<SubSystemType> subSystems = hierarchy.getSubSystems();
+        for (SubSystemType type : subSystems) {
+            Hierarchy hierarchyWithSubSystem = this.getHierarchyWithSubSystem(type);
+            if (hierarchyWithSubSystem != null) {
+                LOG.error("subSystem: {} is already mounted on hierarchy: {}", type.name(), hierarchyWithSubSystem);
+                subSystems.remove(type);
             }
         }
-        if (subsystems.size() == 0) {
+        if (subSystems.size() == 0) {
             return;
         }
-        if (!CgroupUtils.dirExists(hierarchy.getDir())) {
+        if (!Utils.CheckDirExists(hierarchy.getDir())) {
             new File(hierarchy.getDir()).mkdirs();
         }
-        String subSystems = CgroupUtils.reAnalyse(subsystems);
-        SystemOperation.mount(subSystems, hierarchy.getDir(), "cgroup", subSystems);
+        String subSystemsName = CgroupUtils.subSystemsToString(subSystems);
+        SystemOperation.mount(subSystemsName, hierarchy.getDir(), "cgroup", subSystemsName);
 
     }
 
     @Override
     public void umount(Hierarchy hierarchy) throws IOException {
-        if (this.mounted(hierarchy) != null) {
+        if (this.isMounted(hierarchy)) {
             hierarchy.getRootCgroups().delete();
             SystemOperation.umount(hierarchy.getDir());
             CgroupUtils.deleteDir(hierarchy.getDir());
+        } else {
+            LOG.error("{} is not mounted", hierarchy.getDir());
         }
     }
 
     @Override
-    public void create(CgroupCommon cgroup) throws SecurityException {
+    public void createCgroup(CgroupCommon cgroup) throws SecurityException {
         if (cgroup.isRoot()) {
             LOG.error("You can't create rootCgroup in this function");
-            return;
+            throw new RuntimeException("You can't create rootCgroup in this function");
         }
         CgroupCommon parent = cgroup.getParent();
         while (parent != null) {
-            if (!CgroupUtils.dirExists(parent.getDir())) {
-                LOG.error(" {} is not existed", parent.getDir());
-                return;
+            if (!Utils.CheckDirExists(parent.getDir())) {
+                throw new RuntimeException("Parent " + parent.getDir() + "does not exist");
             }
             parent = parent.getParent();
         }
         Hierarchy h = cgroup.getHierarchy();
-        if (mounted(h) == null) {
-            LOG.error("{} is not mounted", h.getDir());
-            return;
+        if (!isMounted(h)) {
+            throw new RuntimeException("hierarchy " + h.getDir() + " is not mounted");
         }
-        if (CgroupUtils.dirExists(cgroup.getDir())) {
-            LOG.error("{} is existed", cgroup.getDir());
-            return;
+        if (Utils.CheckDirExists(cgroup.getDir())) {
+            throw new RuntimeException("cgroup {} already exists " + cgroup.getDir());
         }
 
-        //Todo perhaps thrown exception or print out error message is dir is not created successfully
         if (!(new File(cgroup.getDir())).mkdir()) {
-            LOG.error("Could not create cgroup dir at {}", cgroup.getDir());
+            throw new RuntimeException("Could not create cgroup dir at " + cgroup.getDir());
         }
     }
 
     @Override
-    public void delete(CgroupCommon cgroup) throws IOException {
+    public void deleteCgroup(CgroupCommon cgroup) throws IOException {
         cgroup.delete();
     }
 }

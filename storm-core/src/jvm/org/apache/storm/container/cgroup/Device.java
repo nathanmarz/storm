@@ -17,6 +17,9 @@
  */
 package org.apache.storm.container.cgroup;
 
+/**
+ * a class that represents a device in linux
+ */
 public class Device {
 
     public final int major;

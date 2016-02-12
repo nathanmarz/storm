@@ -18,7 +18,6 @@
 package org.apache.storm.container.cgroup.core;
 
 import org.apache.storm.container.cgroup.CgroupUtils;
-import org.apache.storm.container.cgroup.Constants;
 import org.apache.storm.container.cgroup.SubSystemType;
 
 import java.io.IOException;
@@ -43,7 +42,7 @@ public class NetPrioCore implements CgroupCore {
     }
 
     public int getPrioId() throws IOException {
-        return Integer.parseInt(CgroupUtils.readFileByLine(Constants.getDir(this.dir, NET_PRIO_PRIOIDX)).get(0));
+        return Integer.parseInt(CgroupUtils.readFileByLine(CgroupUtils.getDir(this.dir, NET_PRIO_PRIOIDX)).get(0));
     }
 
     public void setIfPrioMap(String iface, int priority) throws IOException {
@@ -51,12 +50,12 @@ public class NetPrioCore implements CgroupCore {
         sb.append(iface);
         sb.append(' ');
         sb.append(priority);
-        CgroupUtils.writeFileByLine(Constants.getDir(this.dir, NET_PRIO_IFPRIOMAP), sb.toString());
+        CgroupUtils.writeFileByLine(CgroupUtils.getDir(this.dir, NET_PRIO_IFPRIOMAP), sb.toString());
     }
 
     public Map<String, Integer> getIfPrioMap() throws IOException {
         Map<String, Integer> result = new HashMap<String, Integer>();
-        List<String> strs = CgroupUtils.readFileByLine(Constants.getDir(this.dir, NET_PRIO_IFPRIOMAP));
+        List<String> strs = CgroupUtils.readFileByLine(CgroupUtils.getDir(this.dir, NET_PRIO_IFPRIOMAP));
         for (String str : strs) {
             String[] strArgs = str.split(" ");
             result.put(strArgs[0], Integer.valueOf(strArgs[1]));

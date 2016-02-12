@@ -24,6 +24,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
+/**
+ * A class that implements system operations for using cgroups
+ */
 public class SystemOperation {
 
     private static final Logger LOG = LoggerFactory.getLogger(SystemOperation.class);
@@ -31,17 +34,24 @@ public class SystemOperation {
     public static boolean isRoot() throws IOException {
         String result = SystemOperation.exec("echo $EUID").substring(0, 1);
         return Integer.valueOf(result.substring(0, result.length())).intValue() == 0 ? true : false;
-    };
+    }
 
-    public static void mount(String name, String target, String type, String data) throws IOException {
+    public static void mount(String name, String target, String type, String options) throws IOException {
         StringBuilder sb = new StringBuilder();
-        sb.append("mount -t ").append(type).append(" -o ").append(data).append(" ").append(name).append(" ").append(target);
+        sb.append("mount -t ")
+                .append(type)
+                .append(" -o ")
+                .append(options)
+                .append(" ")
+                .append(name)
+                .append(" ")
+                .append(target);
         SystemOperation.exec(sb.toString());
     }
 
-    public static void umount(String name) throws IOException {
+    public static void umount(String pathToDir) throws IOException {
         StringBuilder sb = new StringBuilder();
-        sb.append("umount ").append(name);
+        sb.append("umount ").append(pathToDir);
         SystemOperation.exec(sb.toString());
     }
 
@@ -59,7 +69,7 @@ public class SystemOperation {
             }
             return output;
         } catch (InterruptedException ie) {
-            throw new IOException(ie.toString());
+            throw new IOException(ie);
         }
     }
 }

@@ -45,11 +45,7 @@ public class CgroupCommon implements CgroupCommonOperation {
 
     private final CgroupCommon parent;
 
-    private final Map<SubSystemType, CgroupCore> cores;
-
     private final boolean isRoot;
-
-    private final Set<CgroupCommon> children = new HashSet<CgroupCommon>();
 
     private static final Logger LOG = LoggerFactory.getLogger(CgroupCommon.class);
 
@@ -58,8 +54,6 @@ public class CgroupCommon implements CgroupCommonOperation {
         this.hierarchy = hierarchy;
         this.parent = parent;
         this.dir = parent.getDir() + "/" + name;
-        this.init();
-        cores = CgroupCoreFactory.getInstance(this.hierarchy.getSubSystems(), this.dir);
         this.isRoot = false;
     }
 
@@ -71,19 +65,17 @@ public class CgroupCommon implements CgroupCommonOperation {
         this.hierarchy = hierarchy;
         this.parent = null;
         this.dir = dir;
-        this.init();
-        cores = CgroupCoreFactory.getInstance(this.hierarchy.getSubSystems(), this.dir);
         this.isRoot = true;
     }
 
     @Override
     public void addTask(int taskId) throws IOException {
-        CgroupUtils.writeFileByLine(Constants.getDir(this.dir, TASKS), String.valueOf(taskId));
+        CgroupUtils.writeFileByLine(CgroupUtils.getDir(this.dir, TASKS), String.valueOf(taskId));
     }
 
     @Override
     public Set<Integer> getTasks() throws IOException {
-        List<String> stringTasks = CgroupUtils.readFileByLine(Constants.getDir(this.dir, TASKS));
+        List<String> stringTasks = CgroupUtils.readFileByLine(CgroupUtils.getDir(this.dir, TASKS));
         Set<Integer> tasks = new HashSet<Integer>();
         for (String task : stringTasks) {
             tasks.add(Integer.valueOf(task));
@@ -93,12 +85,12 @@ public class CgroupCommon implements CgroupCommonOperation {
 
     @Override
     public void addProcs(int pid) throws IOException {
-        CgroupUtils.writeFileByLine(Constants.getDir(this.dir, CGROUP_PROCS), String.valueOf(pid));
+        CgroupUtils.writeFileByLine(CgroupUtils.getDir(this.dir, CGROUP_PROCS), String.valueOf(pid));
     }
 
     @Override
     public Set<Integer> getPids() throws IOException {
-        List<String> stringPids = CgroupUtils.readFileByLine(Constants.getDir(this.dir, CGROUP_PROCS));
+        List<String> stringPids = CgroupUtils.readFileByLine(CgroupUtils.getDir(this.dir, CGROUP_PROCS));
         Set<Integer> pids = new HashSet<Integer>();
         for (String task : stringPids) {
             pids.add(Integer.valueOf(task));
@@ -109,41 +101,43 @@ public class CgroupCommon implements CgroupCommonOperation {
     @Override
     public void setNotifyOnRelease(boolean flag) throws IOException {
 
-        CgroupUtils.writeFileByLine(Constants.getDir(this.dir, NOTIFY_ON_RELEASE), flag ? "1" : "0");
+        CgroupUtils.writeFileByLine(CgroupUtils.getDir(this.dir, NOTIFY_ON_RELEASE), flag ? "1" : "0");
     }
 
     @Override
     public boolean getNotifyOnRelease() throws IOException {
-        return CgroupUtils.readFileByLine(Constants.getDir(this.dir, NOTIFY_ON_RELEASE)).get(0).equals("1") ? true : false;
+        return CgroupUtils.readFileByLine(CgroupUtils.getDir(this.dir, NOTIFY_ON_RELEASE)).get(0).equals("1") ? true : false;
     }
 
     @Override
     public void setReleaseAgent(String command) throws IOException {
         if (!this.isRoot) {
+            LOG.warn("Cannot set {} in {} since its not the root group", RELEASE_AGENT, this.isRoot);
             return;
         }
-        CgroupUtils.writeFileByLine(Constants.getDir(this.dir, RELEASE_AGENT), command);
+        CgroupUtils.writeFileByLine(CgroupUtils.getDir(this.dir, RELEASE_AGENT), command);
     }
 
     @Override
     public String getReleaseAgent() throws IOException {
         if (!this.isRoot) {
+            LOG.warn("Cannot get {} in {} since its not the root group", RELEASE_AGENT, this.isRoot);
             return null;
         }
-        return CgroupUtils.readFileByLine(Constants.getDir(this.dir, RELEASE_AGENT)).get(0);
+        return CgroupUtils.readFileByLine(CgroupUtils.getDir(this.dir, RELEASE_AGENT)).get(0);
     }
 
     @Override
     public void setCgroupCloneChildren(boolean flag) throws IOException {
-        if (!this.cores.keySet().contains(SubSystemType.cpuset)) {
+        if (!getCores().keySet().contains(SubSystemType.cpuset)) {
             return;
         }
-        CgroupUtils.writeFileByLine(Constants.getDir(this.dir, CGROUP_CLONE_CHILDREN), flag ? "1" : "0");
+        CgroupUtils.writeFileByLine(CgroupUtils.getDir(this.dir, CGROUP_CLONE_CHILDREN), flag ? "1" : "0");
     }
 
     @Override
     public boolean getCgroupCloneChildren() throws IOException {
-        return CgroupUtils.readFileByLine(Constants.getDir(this.dir, CGROUP_CLONE_CHILDREN)).get(0).equals("1") ? true : false;
+        return CgroupUtils.readFileByLine(CgroupUtils.getDir(this.dir, CGROUP_CLONE_CHILDREN)).get(0).equals("1") ? true : false;
     }
 
     @Override
@@ -156,7 +150,7 @@ public class CgroupCommon implements CgroupCommonOperation {
             sb.append(' ');
             sb.append(arg);
         }
-        CgroupUtils.writeFileByLine(Constants.getDir(this.dir, CGROUP_EVENT_CONTROL), sb.toString());
+        CgroupUtils.writeFileByLine(CgroupUtils.getDir(this.dir, CGROUP_EVENT_CONTROL), sb.toString());
     }
 
     public Hierarchy getHierarchy() {
@@ -176,6 +170,19 @@ public class CgroupCommon implements CgroupCommonOperation {
     }
 
     public Set<CgroupCommon> getChildren() {
+
+        File file = new File(this.dir);
+        File[] files = file.listFiles();
+        if (files == null) {
+            LOG.info("{} is not a directory", this.dir);
+            return null;
+        }
+        Set<CgroupCommon> children = new HashSet<CgroupCommon>();
+        for (File child : files) {
+            if (child.isDirectory()) {
+                children.add(new CgroupCommon(child.getName(), this.hierarchy, this));
+            }
+        }
         return children;
     }
 
@@ -184,7 +191,7 @@ public class CgroupCommon implements CgroupCommonOperation {
     }
 
     public Map<SubSystemType, CgroupCore> getCores() {
-        return cores;
+        return CgroupCoreFactory.getInstance(this.hierarchy.getSubSystems(), this.dir);
     }
 
     public void delete() throws IOException {
@@ -195,7 +202,7 @@ public class CgroupCommon implements CgroupCommonOperation {
     }
 
     private void free() throws IOException {
-        for (CgroupCommon child : this.children) {
+        for (CgroupCommon child : getChildren()) {
             child.free();
         }
         if (this.isRoot) {
@@ -210,17 +217,54 @@ public class CgroupCommon implements CgroupCommonOperation {
         CgroupUtils.deleteDir(this.dir);
     }
 
-    private void init() {
-        File file = new File(this.dir);
-        File[] files = file.listFiles();
-        if (files == null) {
-            return;
-        }
-        for (File child : files) {
-            if (child.isDirectory()) {
-                this.children.add(new CgroupCommon(child.getName(), this.hierarchy, this));
+    @Override
+    public boolean equals(Object o) {
+        boolean ret = false;
+        if (o != null && (o instanceof CgroupCommon)) {
+
+            boolean hierarchyFlag =false;
+            if (((CgroupCommon)o).hierarchy != null && this.hierarchy != null) {
+                hierarchyFlag = ((CgroupCommon)o).hierarchy.equals(this.hierarchy);
+            } else if (((CgroupCommon)o).hierarchy == null && this.hierarchy == null) {
+                hierarchyFlag = true;
+            } else {
+                hierarchyFlag = false;
             }
+
+            boolean nameFlag = false;
+            if (((CgroupCommon)o).name != null && this.name != null) {
+                nameFlag = ((CgroupCommon)o).name.equals(this.name);
+            } else if (((CgroupCommon)o).name == null && this.name == null) {
+                nameFlag = true;
+            } else {
+                nameFlag = false;
+            }
+
+            boolean dirFlag = false;
+            if (((CgroupCommon)o).dir != null && this.dir != null) {
+                dirFlag = ((CgroupCommon)o).dir.equals(this.dir);
+            } else if (((CgroupCommon)o).dir == null && this.dir == null) {
+                dirFlag = true;
+            } else {
+                dirFlag = false;
+            }
+            ret = hierarchyFlag && nameFlag && dirFlag;
         }
+        return ret;
     }
 
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + (this.name != null ? this.name.hashCode() : 0);
+        result = prime * result + (this.hierarchy != null ? this.hierarchy.hashCode() : 0);
+        result = prime * result + (this.dir != null ? this.dir.hashCode() : 0);
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return this.getName();
+    }
 }

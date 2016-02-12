@@ -18,9 +18,10 @@
 package org.apache.storm.container.cgroup.core;
 
 import org.apache.storm.container.cgroup.CgroupUtils;
-import org.apache.storm.container.cgroup.Constants;
 import org.apache.storm.container.cgroup.SubSystemType;
 import org.apache.storm.container.cgroup.Device;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
@@ -29,21 +30,23 @@ public class DevicesCore implements CgroupCore {
 
     private final String dir;
 
-    public static final String DEVICES_ALLOW = "/devices.allow";
-    public static final String DEVICES_DENY = "/devices.deny";
-    public static final String DEVICES_LIST = "/devices.list";
+    private static final String DEVICES_ALLOW = "/devices.allow";
+    private static final String DEVICES_DENY = "/devices.deny";
+    private static final String DEVICES_LIST = "/devices.list";
 
-    public static final char TYPE_ALL = 'a';
-    public static final char TYPE_BLOCK = 'b';
-    public static final char TYPE_CHAR = 'c';
+    private static final char TYPE_ALL = 'a';
+    private static final char TYPE_BLOCK = 'b';
+    private static final char TYPE_CHAR = 'c';
 
-    public static final int ACCESS_READ = 1;
-    public static final int ACCESS_WRITE = 2;
-    public static final int ACCESS_CREATE = 4;
+    private static final int ACCESS_READ = 1;
+    private static final int ACCESS_WRITE = 2;
+    private static final int ACCESS_CREATE = 4;
 
-    public static final char ACCESS_READ_CH = 'r';
-    public static final char ACCESS_WRITE_CH = 'w';
-    public static final char ACCESS_CREATE_CH = 'm';
+    private static final char ACCESS_READ_CH = 'r';
+    private static final char ACCESS_WRITE_CH = 'w';
+    private static final char ACCESS_CREATE_CH = 'm';
+
+    private static final Logger LOG = LoggerFactory.getLogger(DevicesCore.class);
 
     public DevicesCore(String dir) {
         this.dir = dir;
@@ -67,9 +70,9 @@ public class DevicesCore implements CgroupCore {
 
         public Record(String output) {
             if (output.contains("*")) {
-                System.out.println("Pre:" + output);
+                LOG.debug("Pre: {}", output);
                 output = output.replaceAll("\\*", "-1");
-                System.out.println("After:" + output);
+                LOG.debug("After: {}",output);
             }
             String[] splits = output.split("[: ]");
             type = splits[0].charAt(0);
@@ -168,7 +171,7 @@ public class DevicesCore implements CgroupCore {
 
     private void setPermission(String prop, char type, Device device, int accesses) throws IOException {
         Record record = new Record(type, device, accesses);
-        CgroupUtils.writeFileByLine(Constants.getDir(this.dir, prop), record.toString());
+        CgroupUtils.writeFileByLine(CgroupUtils.getDir(this.dir, prop), record.toString());
     }
 
     public void setAllow(char type, Device device, int accesses) throws IOException {
@@ -180,7 +183,7 @@ public class DevicesCore implements CgroupCore {
     }
 
     public Record[] getList() throws IOException {
-        List<String> output = CgroupUtils.readFileByLine(Constants.getDir(this.dir, DEVICES_LIST));
+        List<String> output = CgroupUtils.readFileByLine(CgroupUtils.getDir(this.dir, DEVICES_LIST));
         return Record.parseRecordList(output);
     }
 }

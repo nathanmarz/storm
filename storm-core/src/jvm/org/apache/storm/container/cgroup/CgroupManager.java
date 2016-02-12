@@ -18,6 +18,7 @@
 
 package org.apache.storm.container.cgroup;
 
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.storm.Config;
 import org.apache.storm.container.ResourceIsolationInterface;
 import org.apache.storm.container.cgroup.core.CpuCore;
@@ -28,6 +29,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -35,6 +38,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Class that implements ResourceIsolationInterface that manages cgroups
+ */
 public class CgroupManager implements ResourceIsolationInterface {
 
     private static final Logger LOG = LoggerFactory.getLogger(CgroupManager.class);
@@ -49,16 +55,20 @@ public class CgroupManager implements ResourceIsolationInterface {
 
     private Map conf;
 
+    /**
+     * initialize intial data structures
+     * @param conf storm confs
+     */
     public void prepare(Map conf) throws IOException {
         this.conf = conf;
         this.rootDir = Config.getCgroupRootDir(this.conf);
         if (this.rootDir == null) {
-            throw new RuntimeException("Check configuration file. The supervisor.cgroup.rootdir is missing.");
+            throw new RuntimeException("Check configuration file. The storm.supervisor.cgroup.rootdir is missing.");
         }
 
         File file = new File(Config.getCgroupStormHierarchyDir(conf) + "/" + this.rootDir);
         if (!file.exists()) {
-            LOG.error("{}/{} is not existing.", Config.getCgroupStormHierarchyDir(conf), this.rootDir);
+            LOG.error("{} is not existing.", file.getPath());
             throw new RuntimeException("Check if cgconfig service starts or /etc/cgconfig.conf is consistent with configuration file.");
         }
         this.center = CgroupCenter.getInstance();
@@ -66,6 +76,30 @@ public class CgroupManager implements ResourceIsolationInterface {
             throw new RuntimeException("Cgroup error, please check /proc/cgroups");
         }
         this.prepareSubSystem(this.conf);
+    }
+
+    /**
+     * initalize subsystems
+     */
+    private void prepareSubSystem(Map conf) throws IOException {
+        List<SubSystemType> subSystemTypes = new LinkedList<>();
+        for (String resource : Config.getCgroupStormResources(conf)) {
+            subSystemTypes.add(SubSystemType.getSubSystem(resource));
+        }
+
+        this.hierarchy = center.getHierarchyWithSubSystems(subSystemTypes);
+
+        if (this.hierarchy == null) {
+            Set<SubSystemType> types = new HashSet<SubSystemType>();
+            types.add(SubSystemType.cpu);
+            this.hierarchy = new Hierarchy(Config.getCgroupStormHierarchyName(conf), types, Config.getCgroupStormHierarchyDir(conf));
+        }
+        this.rootCgroup = new CgroupCommon(this.rootDir, this.hierarchy, this.hierarchy.getRootCgroups());
+
+        // set upper limit to how much cpu can be used by all workers running on supervisor node.
+        // This is done so that some cpu cycles will remain free to run the daemons and other miscellaneous OS operations.
+        CpuCore supervisorRootCPU = (CpuCore) this.rootCgroup.getCores().get(SubSystemType.cpu);
+        setCpuUsageUpperLimit(supervisorRootCPU, ((Number) this.conf.get(Config.SUPERVISOR_CPU_CAPACITY)).intValue());
     }
 
     /**
@@ -84,22 +118,36 @@ public class CgroupManager implements ResourceIsolationInterface {
         }
     }
 
-    public String startNewWorker(String workerId, Map resourcesMap) throws SecurityException {
-        Number cpuNum = (Number) resourcesMap.get("cpu");
+    public void reserveResourcesForWorker(String workerId, Map resourcesMap) throws SecurityException {
+        Number cpuNum = null;
+        // The manually set STORM_WORKER_CGROUP_CPU_LIMIT config on supervisor will overwrite resources assigned by RAS (Resource Aware Scheduler)
+        if (this.conf.get(Config.STORM_WORKER_CGROUP_CPU_LIMIT) != null) {
+            cpuNum = (Number) this.conf.get(Config.STORM_WORKER_CGROUP_CPU_LIMIT);
+        } else if(resourcesMap.get("cpu") != null) {
+            cpuNum = (Number) resourcesMap.get("cpu");
+        }
+
         Number totalMem = null;
-        if (resourcesMap.get("memory") != null) {
+        // The manually set STORM_WORKER_CGROUP_MEMORY_MB_LIMIT config on supervisor will overwrite resources assigned by RAS (Resource Aware Scheduler)
+        if (this.conf.get(Config.STORM_WORKER_CGROUP_MEMORY_MB_LIMIT) != null) {
+            totalMem = (Number) this.conf.get(Config.STORM_WORKER_CGROUP_MEMORY_MB_LIMIT);
+        } else if (resourcesMap.get("memory") != null) {
             totalMem = (Number) resourcesMap.get("memory");
         }
 
-        CgroupCommon workerGroup = new CgroupCommon(workerId, hierarchy, this.rootCgroup);
-        this.center.create(workerGroup);
+        CgroupCommon workerGroup = new CgroupCommon(workerId, this.hierarchy, this.rootCgroup);
+        try {
+            this.center.createCgroup(workerGroup);
+        } catch (Exception e) {
+            LOG.error("Error when creating Cgroup: {}", e);
+        }
 
         if (cpuNum != null) {
             CpuCore cpuCore = (CpuCore) workerGroup.getCores().get(SubSystemType.cpu);
             try {
                 cpuCore.setCpuShares(cpuNum.intValue());
             } catch (IOException e) {
-                throw new RuntimeException("Cannot set cpu.shares! Exception: " + e);
+                throw new RuntimeException("Cannot set cpu.shares! Exception: ", e);
             }
         }
 
@@ -108,8 +156,32 @@ public class CgroupManager implements ResourceIsolationInterface {
             try {
                 memCore.setPhysicalUsageLimit(Long.valueOf(totalMem.longValue() * 1024 * 1024));
             } catch (IOException e) {
-                throw new RuntimeException("Cannot set memory.limit_in_bytes! Exception: " + e);
+                throw new RuntimeException("Cannot set memory.limit_in_bytes! Exception: ", e);
             }
+        }
+    }
+
+    public void releaseResourcesForWorker(String workerId) {
+        CgroupCommon workerGroup = new CgroupCommon(workerId, hierarchy, this.rootCgroup);
+        try {
+            Set<Integer> tasks = workerGroup.getTasks();
+            if (!tasks.isEmpty()) {
+                throw new Exception("Cannot correctly showdown worker CGroup " + workerId + "tasks " + tasks.toString() + " still running!");
+            }
+            this.center.deleteCgroup(workerGroup);
+        } catch (Exception e) {
+            LOG.error("Exception thrown when shutting worker {} Exception: {}", workerId, e);
+        }
+    }
+
+    @Override
+    public List<String> getLaunchCommand(String workerId, List<String> existingCommand) {
+
+        CgroupCommon workerGroup = new CgroupCommon(workerId, this.hierarchy, this.rootCgroup);
+
+        if(!this.rootCgroup.getChildren().contains(workerGroup)) {
+            LOG.error("cgroup {} doesn't exist! Need to reserve resources for worker first!", workerGroup);
+            return existingCommand;
         }
 
         StringBuilder sb = new StringBuilder();
@@ -125,53 +197,14 @@ public class CgroupManager implements ResourceIsolationInterface {
                 sb.append(":");
             }
         }
-
         sb.append(workerGroup.getName());
-
-        return sb.toString();
-    }
-
-    public void shutDownWorker(String workerId, boolean isKilled) {
-        CgroupCommon workerGroup = new CgroupCommon(workerId, hierarchy, this.rootCgroup);
-        try {
-            if (isKilled == false) {
-                for (Integer pid : workerGroup.getTasks()) {
-                    Utils.kill(pid);
-                }
-                Utils.sleepMs(1500);
-            }
-            Set<Integer> tasks = workerGroup.getTasks();
-            if (isKilled == true && !tasks.isEmpty()) {
-                throw new Exception("Cannot correctly showdown worker CGroup " + workerId + "tasks " + tasks.toString() + " still running!");
-            }
-            this.center.delete(workerGroup);
-        } catch (Exception e) {
-            LOG.error("Exception thrown when shutting worker {} Exception: {}", workerId, e);
-        }
+        List<String> newCommand = new ArrayList<String>();
+        newCommand.addAll(Arrays.asList(sb.toString().split(" ")));
+        newCommand.addAll(existingCommand);
+        return newCommand;
     }
 
     public void close() throws IOException {
-        this.center.delete(this.rootCgroup);
-    }
-
-    private void prepareSubSystem(Map conf) throws IOException {
-        List<SubSystemType> subSystemTypes = new LinkedList<>();
-        for (String resource : Config.getCgroupStormResources(conf)) {
-            subSystemTypes.add(SubSystemType.getSubSystem(resource));
-        }
-
-        this.hierarchy = center.busy(subSystemTypes);
-
-        if (this.hierarchy == null) {
-            Set<SubSystemType> types = new HashSet<SubSystemType>();
-            types.add(SubSystemType.cpu);
-            this.hierarchy = new Hierarchy(Config.getCgroupStormHierarchyName(conf), types, Config.getCgroupStormHierarchyDir(conf));
-        }
-        this.rootCgroup = new CgroupCommon(this.rootDir, this.hierarchy, this.hierarchy.getRootCgroups());
-
-        // set upper limit to how much cpu can be used by all workers running on supervisor node.
-        // This is done so that some cpu cycles will remain free to run the daemons and other miscellaneous OS operations.
-        CpuCore supervisorRootCPU = (CpuCore)  this.rootCgroup.getCores().get(SubSystemType.cpu);
-        setCpuUsageUpperLimit(supervisorRootCPU, ((Number) this.conf.get(Config.SUPERVISOR_CPU_CAPACITY)).intValue());
+        this.center.deleteCgroup(this.rootCgroup);
     }
 }

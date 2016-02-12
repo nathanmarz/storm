@@ -18,6 +18,7 @@
 
 package org.apache.storm.container;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -26,18 +27,25 @@ import java.util.Map;
 public interface ResourceIsolationInterface {
 
     /**
+     * This function should be used prior to starting the worker to reserve resources for the worker
      * @param workerId worker id of the worker to start
      * @param resources set of resources to limit
-     * @return a String that includes to command on how to start the worker.  The string returned from this function
-     * will be concatenated to the front of the command to launch logwriter/worker in supervisor.clj
      */
-    public String startNewWorker(String workerId, Map resources);
+    void reserveResourcesForWorker(String workerId, Map resources);
 
     /**
      * This function will be called when the worker needs to shutdown.  This function should include logic to clean up after a worker is shutdown
      * @param workerId worker id to shutdown and clean up after
-     * @param isKilled whether to actually kill worker
      */
-    public void shutDownWorker(String workerId, boolean isKilled);
+    void releaseResourcesForWorker(String workerId);
+
+
+    /**
+     * After reserving resources for the worker (i.e. calling reserveResourcesForWorker). This function can be used
+     * to get the modified command line to launch the worker with resource isolation
+     * @param existingCommand
+     * @return new commandline with necessary additions to launch worker with resource isolation
+     */
+    List<String> getLaunchCommand(String workerId, List<String> existingCommand);
 
 }

@@ -23,12 +23,17 @@ import org.junit.Assume;
 import org.apache.storm.container.cgroup.CgroupManager;
 import org.apache.storm.utils.Utils;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -36,6 +41,8 @@ import java.util.UUID;
  * Unit tests for CGroups
  */
 public class TestCgroups {
+
+    private static final Logger LOG = LoggerFactory.getLogger(TestCgroups.class);
 
     /**
      * Test whether cgroups are setup up correctly for use.  Also tests whether Cgroups produces the right command to
@@ -46,7 +53,7 @@ public class TestCgroups {
         Config config = new Config();
         config.putAll(Utils.readDefaultConfig());
         //We don't want to run the test is CGroups are not setup
-        Assume.assumeTrue("Check if CGroups are setup", ((boolean) config.get(Config.STORM_CGROUP_ENABLE)) == true);
+        Assume.assumeTrue("Check if CGroups are setup", ((boolean) config.get(Config.STORM_RESOURCE_ISOLATION_PLUGIN_ENABLE)) == true);
 
         Assert.assertTrue("Check if STORM_CGROUP_HIERARCHY_DIR exists", stormCgroupHierarchyExists(config));
         Assert.assertTrue("Check if STORM_SUPERVISOR_CGROUP_ROOTDIR exists", stormCgroupSupervisorRootDirExists(config));
@@ -58,13 +65,18 @@ public class TestCgroups {
         resourcesMap.put("cpu", 200);
         resourcesMap.put("memory", 1024);
         String workerId = UUID.randomUUID().toString();
-        String command = manager.startNewWorker(workerId, resourcesMap);
+        manager.reserveResourcesForWorker(workerId, resourcesMap);
 
+        List<String> commandList = manager.getLaunchCommand(workerId, new ArrayList<String>());
+        StringBuilder command = new StringBuilder();
+        for (String entry : commandList) {
+            command.append(entry).append(" ");
+        }
         String correctCommand1 = config.get(Config.STORM_CGROUP_CGEXEC_CMD) + " -g memory,cpu:/"
-                + config.get(Config.STORM_SUPERVISOR_CGROUP_ROOTDIR) + "/" + workerId;
+                + config.get(Config.STORM_SUPERVISOR_CGROUP_ROOTDIR) + "/" + workerId + " ";
         String correctCommand2 = config.get(Config.STORM_CGROUP_CGEXEC_CMD) + " -g cpu,memory:/"
-                + config.get(Config.STORM_SUPERVISOR_CGROUP_ROOTDIR) + "/" + workerId;
-        Assert.assertTrue("Check if cgroup launch command is correct", command.equals(correctCommand1) || command.equals(correctCommand2));
+                + config.get(Config.STORM_SUPERVISOR_CGROUP_ROOTDIR) + "/" + workerId + " ";
+        Assert.assertTrue("Check if cgroup launch command is correct", command.toString().equals(correctCommand1) || command.toString().equals(correctCommand2));
 
         String pathToWorkerCgroupDir = ((String) config.get(Config.STORM_CGROUP_HIERARCHY_DIR))
                 + "/" + ((String) config.get(Config.STORM_SUPERVISOR_CGROUP_ROOTDIR)) + "/" + workerId;
@@ -84,7 +96,7 @@ public class TestCgroups {
         Assert.assertTrue("Check if memory.limit_in_bytes file exists", fileExists(pathTomemoryLimitInBytes));
         Assert.assertEquals("Check if the correct value is written into memory.limit_in_bytes", String.valueOf(1024 * 1024 * 1024), readFileAll(pathTomemoryLimitInBytes));
 
-        manager.shutDownWorker(workerId, true);
+        manager.releaseResourcesForWorker(workerId);
 
         Assert.assertFalse("Make sure cgroup was removed properly", dirExists(pathToWorkerCgroupDir));
     }

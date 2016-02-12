@@ -18,7 +18,6 @@
 package org.apache.storm.container.cgroup.core;
 
 import org.apache.storm.container.cgroup.CgroupUtils;
-import org.apache.storm.container.cgroup.Constants;
 import org.apache.storm.container.cgroup.SubSystemType;
 import org.apache.storm.container.cgroup.Device;
 
@@ -63,19 +62,19 @@ public class BlkioCore implements CgroupCore {
 
     /* weight: 100-1000 */
     public void setBlkioWeight(int weight) throws IOException {
-        CgroupUtils.writeFileByLine(Constants.getDir(this.dir, BLKIO_WEIGHT), String.valueOf(weight));
+        CgroupUtils.writeFileByLine(CgroupUtils.getDir(this.dir, BLKIO_WEIGHT), String.valueOf(weight));
     }
 
     public int getBlkioWeight() throws IOException {
-        return Integer.valueOf(CgroupUtils.readFileByLine(Constants.getDir(this.dir, BLKIO_WEIGHT)).get(0)).intValue();
+        return Integer.valueOf(CgroupUtils.readFileByLine(CgroupUtils.getDir(this.dir, BLKIO_WEIGHT)).get(0)).intValue();
     }
 
     public void setBlkioWeightDevice(Device device, int weight) throws IOException {
-        CgroupUtils.writeFileByLine(Constants.getDir(this.dir, BLKIO_WEIGHT_DEVICE), makeContext(device, weight));
+        CgroupUtils.writeFileByLine(CgroupUtils.getDir(this.dir, BLKIO_WEIGHT_DEVICE), makeContext(device, weight));
     }
 
     public Map<Device, Integer> getBlkioWeightDevice() throws IOException {
-        List<String> strings = CgroupUtils.readFileByLine(Constants.getDir(this.dir, BLKIO_WEIGHT_DEVICE));
+        List<String> strings = CgroupUtils.readFileByLine(CgroupUtils.getDir(this.dir, BLKIO_WEIGHT_DEVICE));
         Map<Device, Integer> result = new HashMap<Device, Integer>();
         for (String string : strings) {
             String[] strArgs = string.split(" ");
@@ -87,129 +86,97 @@ public class BlkioCore implements CgroupCore {
     }
 
     public void setReadBps(Device device, long bps) throws IOException {
-        CgroupUtils.writeFileByLine(Constants.getDir(this.dir, BLKIO_THROTTLE_READ_BPS_DEVICE), makeContext(device, bps));
+        CgroupUtils.writeFileByLine(CgroupUtils.getDir(this.dir, BLKIO_THROTTLE_READ_BPS_DEVICE), makeContext(device, bps));
     }
 
     public Map<Device, Long> getReadBps() throws IOException {
-        List<String> strings = CgroupUtils.readFileByLine(Constants.getDir(this.dir, BLKIO_THROTTLE_READ_BPS_DEVICE));
-        Map<Device, Long> result = new HashMap<Device, Long>();
-        for (String string : strings) {
-            String[] strArgs = string.split(" ");
-            Device device = new Device(strArgs[0]);
-            Long bps = Long.valueOf(strArgs[1]);
-            result.put(device, bps);
-        }
-        return result;
+        return parseConfig(BLKIO_THROTTLE_READ_BPS_DEVICE);
     }
 
     public void setWriteBps(Device device, long bps) throws IOException {
-        CgroupUtils.writeFileByLine(Constants.getDir(this.dir, BLKIO_THROTTLE_WRITE_BPS_DEVICE), makeContext(device, bps));
+        CgroupUtils.writeFileByLine(CgroupUtils.getDir(this.dir, BLKIO_THROTTLE_WRITE_BPS_DEVICE), makeContext(device, bps));
     }
 
     public Map<Device, Long> getWriteBps() throws IOException {
-        List<String> strings = CgroupUtils.readFileByLine(Constants.getDir(this.dir, BLKIO_THROTTLE_WRITE_BPS_DEVICE));
-        Map<Device, Long> result = new HashMap<Device, Long>();
-        for (String string : strings) {
-            String[] strArgs = string.split(" ");
-            Device device = new Device(strArgs[0]);
-            Long bps = Long.valueOf(strArgs[1]);
-            result.put(device, bps);
-        }
-        return result;
+        return parseConfig(BLKIO_THROTTLE_WRITE_BPS_DEVICE);
     }
 
     public void setReadIOps(Device device, long iops) throws IOException {
-        CgroupUtils.writeFileByLine(Constants.getDir(this.dir, BLKIO_THROTTLE_READ_IOPS_DEVICE), makeContext(device, iops));
+        CgroupUtils.writeFileByLine(CgroupUtils.getDir(this.dir, BLKIO_THROTTLE_READ_IOPS_DEVICE), makeContext(device, iops));
     }
 
     public Map<Device, Long> getReadIOps() throws IOException {
-        List<String> strings = CgroupUtils.readFileByLine(Constants.getDir(this.dir, BLKIO_THROTTLE_READ_IOPS_DEVICE));
-        Map<Device, Long> result = new HashMap<Device, Long>();
-        for (String string : strings) {
-            String[] strArgs = string.split(" ");
-            Device device = new Device(strArgs[0]);
-            Long iops = Long.valueOf(strArgs[1]);
-            result.put(device, iops);
-        }
-        return result;
+        return parseConfig(BLKIO_THROTTLE_READ_IOPS_DEVICE);
     }
 
     public void setWriteIOps(Device device, long iops) throws IOException {
-        CgroupUtils.writeFileByLine(Constants.getDir(this.dir, BLKIO_THROTTLE_WRITE_IOPS_DEVICE), makeContext(device, iops));
+        CgroupUtils.writeFileByLine(CgroupUtils.getDir(this.dir, BLKIO_THROTTLE_WRITE_IOPS_DEVICE), makeContext(device, iops));
     }
 
     public Map<Device, Long> getWriteIOps() throws IOException {
-        List<String> strings = CgroupUtils.readFileByLine(Constants.getDir(this.dir, BLKIO_THROTTLE_WRITE_IOPS_DEVICE));
-        Map<Device, Long> result = new HashMap<Device, Long>();
-        for (String string : strings) {
-            String[] strArgs = string.split(" ");
-            Device device = new Device(strArgs[0]);
-            Long iops = Long.valueOf(strArgs[1]);
-            result.put(device, iops);
-        }
-        return result;
+        return parseConfig(BLKIO_THROTTLE_WRITE_IOPS_DEVICE);
     }
 
     public Map<Device, Map<RecordType, Long>> getThrottleIOServiced() throws IOException {
-        return this.analyseRecord(CgroupUtils.readFileByLine(Constants.getDir(this.dir, BLKIO_THROTTLE_IO_SERVICED)));
+        return this.analyseRecord(CgroupUtils.readFileByLine(CgroupUtils.getDir(this.dir, BLKIO_THROTTLE_IO_SERVICED)));
     }
 
     public Map<Device, Map<RecordType, Long>> getThrottleIOServiceByte() throws IOException {
-        return this.analyseRecord(CgroupUtils.readFileByLine(Constants.getDir(this.dir, BLKIO_THROTTLE_IO_SERVICE_BYTES)));
+        return this.analyseRecord(CgroupUtils.readFileByLine(CgroupUtils.getDir(this.dir, BLKIO_THROTTLE_IO_SERVICE_BYTES)));
     }
 
     public Map<Device, Long> getBlkioTime() throws IOException {
-        Map<Device, Long> result = new HashMap<Device, Long>();
-        List<String> strs = CgroupUtils.readFileByLine(Constants.getDir(this.dir, BLKIO_TIME));
-        for (String str : strs) {
-            String[] strArgs = str.split(" ");
-            result.put(new Device(strArgs[0]), Long.parseLong(strArgs[1]));
-        }
-        return result;
+        return parseConfig(BLKIO_TIME);
     }
 
     public Map<Device, Long> getBlkioSectors() throws IOException {
-        Map<Device, Long> result = new HashMap<Device, Long>();
-        List<String> strs = CgroupUtils.readFileByLine(Constants.getDir(this.dir, BLKIO_SECTORS));
-        for (String str : strs) {
-            String[] strArgs = str.split(" ");
-            result.put(new Device(strArgs[0]), Long.parseLong(strArgs[1]));
-        }
-        return result;
+        return parseConfig(BLKIO_SECTORS);
     }
 
     public Map<Device, Map<RecordType, Long>> getIOServiced() throws IOException {
-        return this.analyseRecord(CgroupUtils.readFileByLine(Constants.getDir(this.dir, BLKIO_IO_SERVICED)));
+        return this.analyseRecord(CgroupUtils.readFileByLine(CgroupUtils.getDir(this.dir, BLKIO_IO_SERVICED)));
     }
 
     public Map<Device, Map<RecordType, Long>> getIOServiceBytes() throws IOException {
-        return this.analyseRecord(CgroupUtils.readFileByLine(Constants.getDir(this.dir, BLKIO_IO_SERVICE_BYTES)));
+        return this.analyseRecord(CgroupUtils.readFileByLine(CgroupUtils.getDir(this.dir, BLKIO_IO_SERVICE_BYTES)));
     }
 
     public Map<Device, Map<RecordType, Long>> getIOServiceTime() throws IOException {
-        return this.analyseRecord(CgroupUtils.readFileByLine(Constants.getDir(this.dir, BLKIO_IO_SERVICE_TIME)));
+        return this.analyseRecord(CgroupUtils.readFileByLine(CgroupUtils.getDir(this.dir, BLKIO_IO_SERVICE_TIME)));
     }
 
     public Map<Device, Map<RecordType, Long>> getIOWaitTime() throws IOException {
-        return this.analyseRecord(CgroupUtils.readFileByLine(Constants.getDir(this.dir, BLKIO_IO_WAIT_TIME)));
+        return this.analyseRecord(CgroupUtils.readFileByLine(CgroupUtils.getDir(this.dir, BLKIO_IO_WAIT_TIME)));
     }
 
     public Map<Device, Map<RecordType, Long>> getIOMerged() throws IOException {
-        return this.analyseRecord(CgroupUtils.readFileByLine(Constants.getDir(this.dir, BLKIO_IO_MERGED)));
+        return this.analyseRecord(CgroupUtils.readFileByLine(CgroupUtils.getDir(this.dir, BLKIO_IO_MERGED)));
     }
 
     public Map<Device, Map<RecordType, Long>> getIOQueued() throws IOException {
-        return this.analyseRecord(CgroupUtils.readFileByLine(Constants.getDir(this.dir, BLKIO_IO_QUEUED)));
+        return this.analyseRecord(CgroupUtils.readFileByLine(CgroupUtils.getDir(this.dir, BLKIO_IO_QUEUED)));
     }
 
     public void resetStats() throws IOException {
-        CgroupUtils.writeFileByLine(Constants.getDir(this.dir, BLKIO_RESET_STATS), "1");
+        CgroupUtils.writeFileByLine(CgroupUtils.getDir(this.dir, BLKIO_RESET_STATS), "1");
     }
 
     private String makeContext(Device device, Object data) {
         StringBuilder sb = new StringBuilder();
         sb.append(device.toString()).append(" ").append(data);
         return sb.toString();
+    }
+
+    private Map<Device, Long> parseConfig(String config) throws IOException {
+        List<String> strings = CgroupUtils.readFileByLine(CgroupUtils.getDir(this.dir, config));
+        Map<Device, Long> result = new HashMap<Device, Long>();
+        for (String string : strings) {
+            String[] strArgs = string.split(" ");
+            Device device = new Device(strArgs[0]);
+            Long value = Long.valueOf(strArgs[1]);
+            result.put(device, value);
+        }
+        return result;
     }
 
     private Map<Device, Map<RecordType, Long>> analyseRecord(List<String> strs) {
@@ -236,22 +203,9 @@ public class BlkioCore implements CgroupCore {
         read, write, sync, async, total;
 
         public static RecordType getType(String type) {
-            if (type.equals("Read")) {
-                return read;
-            }
-            else if (type.equals("Write")) {
-                return write;
-            }
-            else if (type.equals("Sync")) {
-                return sync;
-            }
-            else if (type.equals("Async")) {
-                return async;
-            }
-            else if (type.equals("Total")) {
-                return total;
-            }
-            else {
+            try {
+                return RecordType.valueOf(type.toLowerCase());
+            } catch (Exception e) {
                 return null;
             }
         }

@@ -17,6 +17,9 @@
  */
 package org.apache.storm.container.cgroup;
 
+/**
+ * a class that implements operations that can be performed on a cgroup subsystem
+ */
 public class SubSystem {
 
     private SubSystemType type;
@@ -70,9 +73,9 @@ public class SubSystem {
     public boolean equals(Object object) {
         boolean ret = false;
         if (object != null && object instanceof SubSystem) {
-            ret = (this.type.equals(((SubSystem)object).getType()) && this.hierarchyID == ((SubSystem)object).getHierarchyID());
+            ret = ((this.type == ((SubSystem)object).getType())
+                    && (this.hierarchyID == ((SubSystem)object).getHierarchyID()));
         }
         return ret;
     }
-
 }

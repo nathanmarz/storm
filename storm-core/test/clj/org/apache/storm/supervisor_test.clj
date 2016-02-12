@@ -22,7 +22,7 @@
   (:import [org.apache.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter TestPlannerSpout])
   (:import [org.apache.storm.scheduler ISupervisor])
   (:import [org.apache.storm.utils Time Utils$UptimeComputer ConfigUtils])
-  (:import [org.apache.storm.generated RebalanceOptions])
+  (:import [org.apache.storm.generated RebalanceOptions WorkerResources])
   (:import [org.mockito Matchers Mockito])
   (:import [java.util UUID])
   (:import [java.io File])
@@ -291,7 +291,6 @@
     (let [mock-port "42"
           mock-storm-id "fake-storm-id"
           mock-worker-id "fake-worker-id"
-          mock-mem-onheap 512
           mock-cp (str Utils/FILE_PATH_SEPARATOR "base" Utils/CLASS_PATH_SEPARATOR Utils/FILE_PATH_SEPARATOR "stormjar.jar")
           mock-sensitivity "S3"
           mock-cp "/base:/stormjar.jar"
@@ -358,7 +357,7 @@
                                       mock-storm-id
                                       mock-port
                                       mock-worker-id
-                                      mock-mem-onheap)
+                                      (WorkerResources.))
                 (. (Mockito/verify utils-spy)
                    (launchProcessImpl (Matchers/eq exp-args)
                                       (Matchers/any)
@@ -394,7 +393,7 @@
                                             mock-storm-id
                                             mock-port
                                             mock-worker-id
-                                            mock-mem-onheap)
+                                            (WorkerResources.))
                   (. (Mockito/verify utils-spy)
                      (launchProcessImpl (Matchers/eq exp-args)
                                         (Matchers/any)
@@ -428,7 +427,7 @@
                                               mock-storm-id
                                               mock-port
                                               mock-worker-id
-                                              mock-mem-onheap)
+                                              (WorkerResources.))
                   (. (Mockito/verify utils-spy)
                      (launchProcessImpl (Matchers/eq exp-args)
                                         (Matchers/any)
@@ -462,7 +461,7 @@
                                         mock-storm-id
                                         mock-port
                                         mock-worker-id
-                                        mock-mem-onheap)
+                                        (WorkerResources.))
               (. (Mockito/verify utils-spy)
                  (launchProcessImpl (Matchers/any)
                                     (Matchers/eq full-env)
@@ -475,7 +474,6 @@
     (let [mock-port "42"
           mock-storm-id "fake-storm-id"
           mock-worker-id "fake-worker-id"
-          mock-mem-onheap 512
           mock-sensitivity "S3"
           mock-cp "mock-classpath'quote-on-purpose"
           attrs (make-array FileAttribute 0)
@@ -554,7 +552,7 @@
                                           mock-storm-id
                                           mock-port
                                           mock-worker-id
-                                          mock-mem-onheap)
+                                          (WorkerResources.))
                 (. (Mockito/verify utils-spy)
                    (launchProcessImpl (Matchers/eq exp-launch)
                                       (Matchers/any)
@@ -596,7 +594,7 @@
                                           mock-storm-id
                                           mock-port
                                           mock-worker-id
-                                          mock-mem-onheap)
+                                          (WorkerResources.))
                 (. (Mockito/verify utils-spy)
                  (launchProcessImpl (Matchers/eq exp-launch)
                                     (Matchers/any)

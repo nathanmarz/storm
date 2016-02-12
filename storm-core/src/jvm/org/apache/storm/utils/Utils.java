@@ -52,7 +52,6 @@ import org.apache.thrift.TSerializer;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Id;
-import org.eclipse.jetty.util.log.Log;
 import org.json.simple.JSONValue;
 import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
@@ -1454,7 +1453,7 @@ public class Utils {
      * @return boolean whether or not the directory exists in the zip.
      */
     public static boolean zipDoesContainDir(String zipfile, String target) throws IOException {
-        List<ZipEntry> entries = (List<ZipEntry>)Collections.list(new ZipFile(zipfile).entries());
+        List<ZipEntry> entries = (List<ZipEntry>) Collections.list(new ZipFile(zipfile).entries());
 
         String targetDir = target + "/";
         for(ZipEntry entry : entries) {

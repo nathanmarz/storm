@@ -1,4 +1,5 @@
 ## 2.0.0
+ * STORM-1248: port backtype.storm.messaging.loader to java
  * STORM-1538: Exception being thrown after Utils conversion to java
  * STORM-1242: migrate backtype.storm.command.config-value to java
  * STORM-1226: Port backtype.storm.util to java

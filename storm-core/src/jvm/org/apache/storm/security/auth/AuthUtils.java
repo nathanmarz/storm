@@ -17,10 +17,16 @@
  */
 package org.apache.storm.security.auth;
 
+import javax.security.auth.kerberos.KerberosTicket;
 import org.apache.storm.Config;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.Subject;
+import javax.xml.bind.DatatypeConverter;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.security.URIParameter;
 import java.security.MessageDigest;
 
@@ -344,5 +350,39 @@ public class AuthUtils {
             LOG.error("Cant run SHA-512 digest. Algorithm not available.", e);
             throw new RuntimeException(e);
         }
+    }
+
+    public static byte[] serializeKerberosTicket(KerberosTicket tgt) throws Exception {
+        ByteArrayOutputStream bao = new ByteArrayOutputStream();
+        ObjectOutputStream out = new ObjectOutputStream(bao);
+        out.writeObject(tgt);
+        out.flush();
+        out.close();
+        return bao.toByteArray();
+    }
+
+    public static KerberosTicket deserializeKerberosTicket(byte[] tgtBytes) {
+        KerberosTicket ret;
+        try {
+
+            ByteArrayInputStream bin = new ByteArrayInputStream(tgtBytes);
+            ObjectInputStream in = new ObjectInputStream(bin);
+            ret = (KerberosTicket)in.readObject();
+            in.close();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return ret;
+    }
+
+    public static KerberosTicket cloneKerberosTicket(KerberosTicket kerberosTicket) {
+        if(kerberosTicket != null) {
+            try {
+                return (deserializeKerberosTicket(serializeKerberosTicket(kerberosTicket)));
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to clone KerberosTicket TGT!!", e);
+            }
+        }
+        return null;
     }
 }

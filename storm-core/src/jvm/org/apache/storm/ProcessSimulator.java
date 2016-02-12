@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 
 public class ProcessSimulator {
     private static Logger LOG = LoggerFactory.getLogger(ProcessSimulator.class);
-    protected static Object lock = new Object();
+    private static Object lock = new Object();
     protected static ConcurrentHashMap<String, Shutdownable> processMap = new ConcurrentHashMap<String, Shutdownable>();
 
     /**
@@ -38,16 +38,6 @@ public class ProcessSimulator {
      */
     public static void registerProcess(String pid, Shutdownable shutdownable) {
         processMap.put(pid, shutdownable);
-    }
-
-    /**
-     * Get a process' handle
-     * 
-     * @param pid
-     * @return
-     */
-    protected static Shutdownable getProcessHandle(String pid) {
-        return processMap.get(pid);
     }
 
     /**
@@ -67,12 +57,12 @@ public class ProcessSimulator {
     public static void killProcess(String pid) {
         synchronized (lock) {
             LOG.info("Begin killing process " + pid);
-            Shutdownable shutdownHandle = getProcessHandle(pid);
+            Shutdownable shutdownHandle = processMap.get(pid);
             if (shutdownHandle != null) {
                 shutdownHandle.shutdown();
             }
             processMap.remove(pid);
-            LOG.info("Successfully killing process " + pid);
+            LOG.info("Successfully killed process " + pid);
         }
     }
 
@@ -80,10 +70,11 @@ public class ProcessSimulator {
      * kill all processes
      */
     public static void killAllProcesses() {
+        LOG.info("Begin killing all processes");
         Set<String> pids = processMap.keySet();
         for (String pid : pids) {
             killProcess(pid);
         }
-        LOG.info("Successfully kill all processes");
+        LOG.info("Successfully killed all processes");
     }
 }

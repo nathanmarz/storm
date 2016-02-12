@@ -1,4 +1,5 @@
 ## 2.0.0
+ * STORM-1538: Exception being thrown after Utils conversion to java
  * STORM-1242: migrate backtype.storm.command.config-value to java
  * STORM-1226: Port backtype.storm.util to java
  * STORM-1436: Random test failure on BlobStoreTest / HdfsBlobStoreImplTest (occasionally killed)

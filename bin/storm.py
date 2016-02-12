@@ -278,7 +278,7 @@ def kill(*args):
         print_usage(command="kill")
         sys.exit(2)
     exec_storm_class(
-        "org.apache.storm.command.kill_topology",
+        "org.apache.storm.command.KillTopology",
         args=args,
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, STORM_BIN_DIR])

@@ -263,7 +263,7 @@ topology.state.checkpoint.interval.ms: 1000
 # topology priority describing the importance of the topology in decreasing importance starting from 0 (i.e. 0 is the highest priority and the priority importance decreases as the priority number increases).
 # Recommended range of 0-29 but no hard limit set.
 topology.priority: 29
-topology.component.resources.onheap.memory.mb: 256.0
+topology.component.resources.onheap.memory.mb: 128.0
 topology.component.resources.offheap.memory.mb: 0.0
 topology.component.cpu.pcore.percent: 10.0
 topology.worker.max.heap.size.mb: 768.0
@@ -298,3 +298,4 @@ storm.cgroup.hierarchy.name: "storm"
 # Also determines whether the unit tests for cgroup runs.  If cgroup.enable is set to false the unit tests for cgroups will not run
 storm.supervisor.cgroup.rootdir: "storm"
 storm.cgroup.cgexec.cmd: "/bin/cgexec"
+storm.cgroup.memory.limit.tolerance.margin.mb: 128.0

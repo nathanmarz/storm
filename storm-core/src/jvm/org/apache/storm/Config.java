@@ -2256,6 +2256,11 @@ public class Config extends HashMap<String, Object> {
     @isString
     public static String STORM_CGROUP_CGEXEC_CMD = "storm.cgroup.cgexec.cmd";
 
+    /**
+     * The amount of memory a worker can exceed its allocation before cgroup will kill it
+     */
+    @isPositiveNumber
+    public static String STORM_CGROUP_MEMORY_MB_LIMIT_TOLERANCE_MARGIN = "storm.cgroup.memory.limit.tolerance.margin.mb";
 
     public static void setClasspath(Map conf, String cp) {
         conf.put(Config.TOPOLOGY_CLASSPATH, cp);

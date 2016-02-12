@@ -1087,7 +1087,9 @@
                         (Utils/addToClasspath topo-classpath))
           top-gc-opts (storm-conf TOPOLOGY-WORKER-GC-CHILDOPTS)
 
-          mem-onheap (int (Math/ceil (.get_mem_on_heap resources)))
+          mem-onheap (if (and (.get_mem_on_heap resources) (> (.get_mem_on_heap resources) 0)) ;; not nil and not zero
+                       (int (Math/ceil (.get_mem_on_heap resources))) ;; round up
+                       (storm-conf WORKER-HEAP-MEMORY-MB)) ;; otherwise use default value
 
           mem-offheap (int (Math/ceil (.get_mem_off_heap resources)))
 
@@ -1160,7 +1162,7 @@
           command (if (conf STORM-RESOURCE-ISOLATION-PLUGIN-ENABLE)
                     (do
                       (.reserveResourcesForWorker (:resource-isolation-manager supervisor) worker-id
-                        {"cpu" cpu "memory" (+ mem-onheap mem-offheap)})
+                        {"cpu" cpu "memory" (+ mem-onheap mem-offheap  (int (Math/ceil (conf STORM-CGROUP-MEMORY-MB-LIMIT-TOLERANCE-MARGIN))))})
                       (.getLaunchCommand (:resource-isolation-manager supervisor) worker-id
                         (java.util.ArrayList. (java.util.Arrays/asList (to-array command)))))
                     command)]

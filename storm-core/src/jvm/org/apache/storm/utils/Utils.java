@@ -1557,11 +1557,11 @@ public class Utils {
         return null;
     }
 
-    public static String logsFilename(String stormId, int port) {
+    public static String logsFilename(String stormId, String port) {
         return stormId + FILE_PATH_SEPARATOR + port + FILE_PATH_SEPARATOR + "worker.log";
     }
 
-    public static String eventLogsFilename(String stormId, int port) {
+    public static String eventLogsFilename(String stormId, String port) {
         return stormId + FILE_PATH_SEPARATOR + port + FILE_PATH_SEPARATOR + "events.log";
     }
 

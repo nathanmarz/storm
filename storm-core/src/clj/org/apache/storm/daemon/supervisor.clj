@@ -1051,7 +1051,7 @@
     (log-message "Creating symlinks for worker-id: " worker-id " storm-id: "
                  storm-id " to its port artifacts directory")
     (if (.exists (File. worker-dir))
-      (Utils/createSymlink worker-dir topo-dir "artifacts" port))))
+      (Utils/createSymlink worker-dir topo-dir "artifacts" (str port)))))
 
 (defmethod launch-worker
     :distributed [supervisor storm-id port worker-id mem-onheap]

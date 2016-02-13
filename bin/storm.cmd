@@ -165,7 +165,7 @@
   goto :eof
 
 :list
-  set CLASS=org.apache.storm.command.list
+  set CLASS=org.apache.storm.command.List
   set STORM_OPTS=%STORM_CLIENT_OPTS% %STORM_OPTS%
   goto :eof
 

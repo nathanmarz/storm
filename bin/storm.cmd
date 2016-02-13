@@ -134,7 +134,7 @@
   goto :eof
 
 :deactivate
-  set CLASS=org.apache.storm.command.deactivate
+  set CLASS=org.apache.storm.command.Deactivate
   set STORM_OPTS=%STORM_CLIENT_OPTS% %STORM_OPTS%
   goto :eof
 

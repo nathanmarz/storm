@@ -158,7 +158,7 @@ public class CLI {
             return this;
         }
 
-        public Map<String, Object> parse(String[] rawArgs) throws Exception {
+        public Map<String, Object> parse(String ... rawArgs) throws Exception {
             Options options = new Options();
             for (Opt opt: opts) {
                 options.addOption(Option.builder(opt.s).longOpt(opt.l).hasArg().build());

@@ -125,7 +125,7 @@
 
 
 :activate
-  set CLASS=org.apache.storm.command.activate
+  set CLASS=org.apache.storm.command.Activate
   set STORM_OPTS=%STORM_CLIENT_OPTS% %STORM_OPTS%
   goto :eof
 

@@ -28,7 +28,7 @@
   (:import [org.apache.storm.security.auth IAuthorizer])
   (:import [java.io InterruptedIOException]
            [org.json.simple JSONValue])
-  (:require [clojure.set :as set])
+  (:require [clojure.set :as set])  
   (:require [org.apache.storm.daemon.acker :as acker])
   (:require [org.apache.storm.thrift :as thrift])
   (:require [metrics.core  :refer [default-registry]]))
@@ -144,8 +144,8 @@
 
 (defn component-conf [component]
   (->> component
-      .get_common
-      .get_json_conf
+       .get_common
+       .get_json_conf
        (#(if % (JSONValue/parse %)))
        clojurify-structure))
 

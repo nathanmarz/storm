@@ -44,7 +44,8 @@
 (defn -prepare [^org.apache.storm.daemon.acker this conf context collector]
   (let [^IBolt ret (mk-acker-bolt)]
     (.. this state (set ret))
-    (.prepare ret conf context collector)))
+    (.prepare ret conf context collector)
+    ))
 
 (defn -execute [^org.apache.storm.daemon.acker this tuple]
   (let [^IBolt delegate (.. this state (get))]

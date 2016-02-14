@@ -512,7 +512,7 @@ public class Utils {
 
         if(store != null) {
             // store can be null during testing when mocking utils.
-        store.prepare(nconf, baseDir, nimbusInfo);
+            store.prepare(nconf, baseDir, nimbusInfo);
         }
         return store;
     }
@@ -946,17 +946,17 @@ public class Utils {
                 inputStream = new BufferedInputStream(new FileInputStream(inFile));
             }
             try (TarArchiveInputStream tis = new TarArchiveInputStream(inputStream)) {
-            for (TarArchiveEntry entry = tis.getNextTarEntry(); entry != null; ) {
-                unpackEntries(tis, entry, untarDir);
-                entry = tis.getNextTarEntry();
-            }
+                for (TarArchiveEntry entry = tis.getNextTarEntry(); entry != null; ) {
+                    unpackEntries(tis, entry, untarDir);
+                    entry = tis.getNextTarEntry();
+                }
             }
         } finally {
             if(inputStream != null) {
                 inputStream.close();
+            }
         }
     }
-                }
 
     private static void unpackEntries(TarArchiveInputStream tis,
                                       TarArchiveEntry entry, File outputDir) throws IOException {
@@ -975,7 +975,7 @@ public class Utils {
         if (!outputFile.getParentFile().exists()) {
             if (!outputFile.getParentFile().mkdirs()) {
                 throw new IOException("Mkdirs failed to create tar internal dir "
-                        + outputDir);
+                                      + outputDir);
             }
         }
         int count;
@@ -1190,11 +1190,11 @@ public class Utils {
         }
         String stormZKUser = (String)conf.get(Config.STORM_ZOOKEEPER_SUPERACL);
         if (stormZKUser == null) {
-            throw new IllegalArgumentException("Authentication is enabled but "+Config.STORM_ZOOKEEPER_SUPERACL+" is not set");
+            throw new IllegalArgumentException("Authentication is enabled but " + Config.STORM_ZOOKEEPER_SUPERACL + " is not set");
         }
-        String[] split = stormZKUser.split(":",2);
+        String[] split = stormZKUser.split(":", 2);
         if (split.length != 2) {
-            throw new IllegalArgumentException(Config.STORM_ZOOKEEPER_SUPERACL+" does not appear to be in the form scheme:acl, i.e. sasl:storm-user");
+            throw new IllegalArgumentException(Config.STORM_ZOOKEEPER_SUPERACL + " does not appear to be in the form scheme:acl, i.e. sasl:storm-user");
         }
         ArrayList<ACL> ret = new ArrayList<ACL>(ZooDefs.Ids.CREATOR_ALL_ACL);
         ret.add(new ACL(ZooDefs.Perms.ALL, new Id(split[0], split[1])));
@@ -1258,7 +1258,7 @@ public class Utils {
         return dump.toString();
     }
 
-    /*
+    /**
      * Creates an instance of the pluggable SerializationDelegate or falls back to
      * DefaultSerializationDelegate if something goes wrong.
      * @param stormConf The config from which to pull the name of the pluggable class.
@@ -1316,7 +1316,7 @@ public class Utils {
                         if (!file.getParentFile().mkdirs()) {
                             if (!file.getParentFile().isDirectory()) {
                                 throw new IOException("Mkdirs failed to create " +
-                                        file.getParentFile().toString());
+                                                      file.getParentFile().toString());
                             }
                         }
                         OutputStream out = new FileOutputStream(file);

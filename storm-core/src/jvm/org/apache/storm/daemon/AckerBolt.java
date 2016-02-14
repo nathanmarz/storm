@@ -21,6 +21,7 @@ import org.apache.storm.task.IBolt;
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.tuple.Tuple;
+import org.apache.storm.tuple.Values;
 import org.apache.storm.utils.RotatingMap;
 import org.apache.storm.utils.TupleUtils;
 import org.apache.storm.utils.Utils;
@@ -81,12 +82,12 @@ public class AckerBolt implements IBolt {
                 pending.put(id, curr);
             } else {
                 // If receiving bolt's ack before the init message from spout, just update the xor value.
-                curr.updateAck(input.getValue(1));
+                curr.updateAck(input.getLong(1));
                 curr.spoutTask = input.getInteger(2);
             }
         } else if (ACKER_ACK_STREAM_ID.equals(streamId)) {
             if (curr != null) {
-                curr.updateAck(input.getValue(1));
+                curr.updateAck(input.getLong(1));
             } else {
                 curr = new AckObject();
                 curr.val = input.getLong(1);
@@ -107,13 +108,11 @@ public class AckerBolt implements IBolt {
         if (task != null) {
             if (curr.val == 0) {
                 pending.remove(id);
-                List values = Utils.makeList(id);
-                collector.emitDirect(task, ACKER_ACK_STREAM_ID, values);
+                collector.emitDirect(task, ACKER_ACK_STREAM_ID, new Values(id));
             } else {
                 if (curr.failed) {
                     pending.remove(id);
-                    List values = Utils.makeList(id);
-                    collector.emitDirect(task, ACKER_FAIL_STREAM_ID, values);
+                    collector.emitDirect(task, ACKER_FAIL_STREAM_ID, new Values(id));
                 }
             }
         }
@@ -123,6 +122,6 @@ public class AckerBolt implements IBolt {
 
     @Override
     public void cleanup() {
-
+        LOG.info("Acker: cleanup successfully");
     }
 }

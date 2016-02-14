@@ -1378,33 +1378,5 @@ public class Utils {
     public static long bitXor(Object a, Object b) {
         return  ((Long) a) ^ ((Long) b);
     }
-
-    public static <V> List<V> makeList(V... args) {
-        ArrayList<V> rtn = new ArrayList<V>();
-        for (V o : args) {
-            rtn.add(o);
-        }
-        return rtn;
-    }
-
-    public static <V> List<V> makeList(java.util.Set<V> args) {
-        ArrayList<V> rtn = new ArrayList<V>();
-        if (args != null) {
-            for (V o : args) {
-                rtn.add(o);
-            }
-        }
-        return rtn;
-    }
-
-    public static <V> List<V> makeList(Collection<V> args) {
-        ArrayList<V> rtn = new ArrayList<V>();
-        if (args != null) {
-            for (V o : args) {
-                rtn.add(o);
-            }
-        }
-        return rtn;
-    }
 }
 

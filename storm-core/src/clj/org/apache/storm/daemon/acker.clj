@@ -22,10 +22,10 @@
            (org.apache.storm.daemon AckerBolt))
   (:use [org.apache.storm config util])
   (:gen-class
-    :init init
-    :implements [org.apache.storm.task.IBolt]
-    :constructors {[] []}
-    :state state))
+   :init init
+   :implements [org.apache.storm.task.IBolt]
+   :constructors {[] []}
+   :state state))
 
 (def ACKER-COMPONENT-ID AckerBolt/ACKER_COMPONENT_ID)
 (def ACKER-INIT-STREAM-ID AckerBolt/ACKER_INIT_STREAM_ID)

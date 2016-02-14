@@ -52,6 +52,10 @@ public class BasicOutputCollector implements IBasicOutputCollector {
         emitDirect(taskId, Utils.DEFAULT_STREAM_ID, tuple);
     }
 
+    public void resetTimeout(Tuple tuple){
+        out.resetTimeout(tuple);
+    }
+
     protected IOutputCollector getOutputter() {
         return out;
     }

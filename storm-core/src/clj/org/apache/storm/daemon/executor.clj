@@ -529,6 +529,11 @@
                                       spout-obj (:object task-data)]
                                   (when (instance? ICredentialsListener spout-obj)
                                     (.setCredentials spout-obj (.getValue tuple 0))))
+                              ACKER-RESET-TIMEOUT-STREAM-ID 
+                                (let [id (.getValue tuple 0)
+                                      pending-for-id (.get pending id)]
+                                   (when pending-for-id
+                                     (.put pending id pending-for-id))) 
                               (let [id (.getValue tuple 0)
                                     [stored-task-id spout-id tuple-finished-info start-time-ms] (.remove pending id)]
                                 (when spout-id
@@ -830,9 +835,13 @@
                                                                           (.getSourceComponent tuple)
                                                                           (.getSourceStreamId tuple)
                                                                           delta))))
+                                          (^void resetTimeout [this ^Tuple tuple]
+                                            (fast-list-iter [root (.. tuple getMessageId getAnchors)]
+                                                            (task/send-unanchored task-data
+                                                                                  ACKER-RESET-TIMEOUT-STREAM-ID
+                                                                                  [root])))
                                           (reportError [this error]
                                             (report-error error))))))
-
                            (reset! open-or-prepare-was-called? true)
                            (log-message "Prepared bolt " component-id ":" (keys task-datas))
                            (setup-metrics! executor-data)

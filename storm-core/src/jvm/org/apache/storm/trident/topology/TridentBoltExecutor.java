@@ -180,6 +180,10 @@ public class TridentBoltExecutor implements IRichBolt {
         public void fail(Tuple tuple) {
             throw new IllegalStateException("Method should never be called");
         }
+
+        public void resetTimeout(Tuple tuple) {
+            throw new IllegalStateException("Method should never be called");
+        }
         
         public void reportError(Throwable error) {
             _delegate.reportError(error);

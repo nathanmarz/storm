@@ -37,9 +37,14 @@
 :main
   setlocal enabledelayedexpansion
 
+  set storm-command=%1
+
+  if not "%storm-command%" == "jar" (
+    set set_storm_options=true
+  )
+
   call %~dp0storm-config.cmd
 
-  set storm-command=%1
   if not defined storm-command (
       goto print_usage
   )
@@ -66,19 +71,45 @@
   )
 
   if %storm-command% == jar (
-    set STORM_OPTS=%STORM_CLIENT_OPTS% %STORM_OPTS% -Dstorm.jar=%2
-    set CLASSPATH=%CLASSPATH%;%2
-    set CLASS=%3
-    set args=%4
+    set config-options=
+
     goto start
     :start
     shift
-    if [%4] == [] goto done
-    set args=%args% %4
+    if [%1] == [] goto done
+
+    if '%1'=='-c' (
+      set c-opt=first
+      goto start
+    )
+
+    if "%c-opt%"=="first" (
+      set config-options=%config-options%,%1
+      set c-opt=second
+      goto start
+    )
+
+    if "%c-opt%"=="second" (
+      set config-options=%config-options%=%1
+      set c-opt=
+      goto start
+    )
+
+    set args=%args% %1
     goto start
 
     :done
-    set storm-command-arguments=%args%
+    for /F "tokens=1,2,*" %%a in ("%args%") do (
+      set first-arg=%%a
+      set second-arg=%%b
+      set remaining-args=%%c
+    )
+    set STORM_OPTS=%STORM_CLIENT_OPTS% %STORM_OPTS% -Dstorm.jar=%first-arg%
+    set STORM_OPTS=%STORM_OPTS% -Dstorm.options=%config-options%
+    set CLASSPATH=%CLASSPATH%;%first-arg%
+    set CLASS=%second-arg%
+    set storm-command-arguments=%remaining-args%
+
   )
   
   if not defined STORM_LOG_FILE (

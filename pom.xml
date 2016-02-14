@@ -215,6 +215,7 @@
         <jgrapht.version>0.9.0</jgrapht.version>
         <guava.version>16.0.1</guava.version>
         <netty.version>3.9.0.Final</netty.version>
+        <sysout-over-slf4j.version>1.0.2</sysout-over-slf4j.version>
         <log4j-over-slf4j.version>1.6.6</log4j-over-slf4j.version>
         <log4j.version>2.1</log4j.version>
         <slf4j.version>1.7.7</slf4j.version>
@@ -231,7 +232,6 @@
         <kryo.version>2.21</kryo.version>
         <servlet.version>2.5</servlet.version>
         <joda-time.version>2.3</joda-time.version>
-        <jackson.version>2.3.1</jackson.version>
         <thrift.version>0.9.3</thrift.version>
         <junit.version>4.11</junit.version>
         <metrics-clojure.version>2.5.1</metrics-clojure.version>
@@ -357,6 +357,9 @@
                                 <!-- StormSQL -->
                                 <exclude>**/src/codegen/config.fmpp</exclude>
                                 <exclude>**/src/codegen/data/Parser.tdd</exclude>
+
+                                <!-- Avro Serializer Test Resource -->
+                                <exclude>**/src/test/resources/FixedAvroSerializer.config</exclude>
                             </excludes>
                         </configuration>
                     </plugin>
@@ -826,6 +829,11 @@
               <artifactId>jackson-databind</artifactId>
               <version>${jackson.version}</version>
             </dependency>
+            <dependency>
+                <groupId>uk.org.lidalia</groupId>
+                <artifactId>sysout-over-slf4j</artifactId>
+                <version>${sysout-over-slf4j.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -865,6 +873,7 @@
                         <includes>
                             <include>${java.unit.test.include}</include>
                         </includes>
+                        <argLine>-Xmx1536m</argLine>
                     </configuration>
                 </plugin>
                 <plugin>
@@ -876,6 +885,7 @@
                             <include>${java.integration.test.include}</include>
                         </includes>
                         <groups>${java.integration.test.group}</groups>  <!--set in integration-test the profile-->
+                        <argLine>-Xmx1536m</argLine>
                     </configuration>
                     <executions>
                         <execution>

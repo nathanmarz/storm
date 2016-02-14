@@ -17,7 +17,11 @@
  */
 package org.apache.storm.utils;
 
+import org.apache.commons.exec.CommandLine;
+import org.apache.commons.exec.DefaultExecutor;
+import org.apache.commons.exec.ExecuteException;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.storm.Config;
 import org.apache.storm.blobstore.BlobStore;
 import org.apache.storm.blobstore.BlobStoreAclHandler;
@@ -30,7 +34,6 @@ import org.apache.storm.localizer.Localizer;
 import org.apache.storm.nimbus.NimbusInfo;
 import org.apache.storm.serialization.DefaultSerializationDelegate;
 import org.apache.storm.serialization.SerializationDelegate;
-import clojure.lang.IFn;
 import clojure.lang.RT;
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -57,12 +60,38 @@ import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.FilenameFilter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintStream;
+import java.io.RandomAccessFile;
+import java.io.Serializable;
+import java.lang.management.ManagementFactory;
+import java.net.InetAddress;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
@@ -73,11 +102,14 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.regex.Matcher;
@@ -88,6 +120,23 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 public class Utils {
+    // A singleton instance allows us to mock delegated static methods in our
+    // tests by subclassing.
+    private static Utils _instance = new Utils();
+
+    /**
+     * Provide an instance of this class for delegates to use.  To mock out
+     * delegated methods, provide an instance of a subclass that overrides the
+     * implementation of the delegated method.
+     * @param u a Utils instance
+     * @return the previously set instance
+     */
+    public static Utils setInstance(Utils u) {
+        Utils oldInstance = _instance;
+        _instance = u;
+        return oldInstance;
+    }
+
     private static final Logger LOG = LoggerFactory.getLogger(Utils.class);
     public static final String DEFAULT_STREAM_ID = "default";
     public static final String DEFAULT_BLOB_VERSION_SUFFIX = ".version";
@@ -99,15 +148,34 @@ public class Utils {
     private static SerializationDelegate serializationDelegate;
     private static ClassLoader cl = ClassLoader.getSystemClassLoader();
 
+    public static final boolean IS_ON_WINDOWS = "Windows_NT".equals(System.getenv("OS"));
+    public static final String FILE_PATH_SEPARATOR = System.getProperty("file.separator");
+    public static final String CLASS_PATH_SEPARATOR = System.getProperty("path.separator");
+
+    public static final int SIGKILL = 9;
+    public static final int SIGTERM = 15;
+
     static {
         Map conf = readStormConfig();
         serializationDelegate = getSerializationDelegate(conf);
     }
 
-    public static Object newInstance(String klass) {
+    public static <T> T newInstance(String klass) {
         try {
-            Class c = Class.forName(klass);
-            return c.newInstance();
+            return newInstance((Class<T>)Class.forName(klass));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static <T> T newInstance(Class<T> klass) {
+        return _instance.newInstanceImpl(klass);
+    }
+
+    // Non-static impl methods exist for mocking purposes.
+    public <T> T newInstanceImpl(Class<T> klass) {
+        try {
+            return klass.newInstance();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -441,7 +509,11 @@ public class Utils {
         HashMap nconf = new HashMap(conf);
         // only enable cleanup of blobstore on nimbus
         nconf.put(Config.BLOBSTORE_CLEANUP_ENABLE, Boolean.TRUE);
+
+        if(store != null) {
+            // store can be null during testing when mocking utils.
         store.prepare(nconf, baseDir, nimbusInfo);
+        }
         return store;
     }
 
@@ -514,6 +586,10 @@ public class Utils {
         return isSuccess;
     }
 
+    public static boolean checkFileExists(String path) {
+        return Files.exists(new File(path).toPath());
+    }
+
     public static boolean checkFileExists(String dir, String file) {
         return Files.exists(new File(dir, file).toPath());
     }
@@ -580,25 +656,17 @@ public class Utils {
     }
 
 
-    public static synchronized IFn loadClojureFn(String namespace, String name) {
+    public static synchronized clojure.lang.IFn loadClojureFn(String namespace, String name) {
         try {
             clojure.lang.Compiler.eval(RT.readString("(require '" + namespace + ")"));
         } catch (Exception e) {
             //if playing from the repl and defining functions, file won't exist
         }
-        return (IFn) RT.var(namespace, name).deref();
+        return (clojure.lang.IFn) RT.var(namespace, name).deref();
     }
 
     public static boolean isSystemId(String id) {
         return id.startsWith("__");
-    }
-
-    public static <K, V> Map<V, K> reverseMap(Map<K, V> map) {
-        Map<V, K> ret = new HashMap<V, K>();
-        for (Map.Entry<K, V> entry : map.entrySet()) {
-            ret.put(entry.getValue(), entry.getKey());
-        }
-        return ret;
     }
 
     public static ComponentCommon getComponentCommon(StormTopology topology, String id) {
@@ -828,7 +896,7 @@ public class Utils {
         }
 
         boolean gzipped = inFile.toString().endsWith("gz");
-        if (onWindows()) {
+        if (isOnWindows()) {
             // Tar is not native to Windows. Use simple Java based implementation for
             // tests and simple tar archives
             unTarUsingJava(inFile, untarDir, gzipped);
@@ -870,7 +938,6 @@ public class Utils {
     private static void unTarUsingJava(File inFile, File untarDir,
                                        boolean gzipped) throws IOException {
         InputStream inputStream = null;
-        TarArchiveInputStream tis = null;
         try {
             if (gzipped) {
                 inputStream = new BufferedInputStream(new GZIPInputStream(
@@ -878,34 +945,18 @@ public class Utils {
             } else {
                 inputStream = new BufferedInputStream(new FileInputStream(inFile));
             }
-            tis = new TarArchiveInputStream(inputStream);
+            try (TarArchiveInputStream tis = new TarArchiveInputStream(inputStream)) {
             for (TarArchiveEntry entry = tis.getNextTarEntry(); entry != null; ) {
                 unpackEntries(tis, entry, untarDir);
                 entry = tis.getNextTarEntry();
             }
-        } finally {
-            cleanup(tis, inputStream);
-        }
-    }
-
-    /**
-     * Close the Closeable objects and <b>ignore</b> any {@link IOException} or
-     * null pointers. Must only be used for cleanup in exception handlers.
-     *
-     * @param closeables the objects to close
-     */
-    private static void cleanup(java.io.Closeable... closeables) {
-        for (java.io.Closeable c : closeables) {
-            if (c != null) {
-                try {
-                    c.close();
-                } catch (IOException e) {
-                    LOG.debug("Exception in closing " + c, e);
-
-                }
             }
+        } finally {
+            if(inputStream != null) {
+                inputStream.close();
         }
     }
+                }
 
     private static void unpackEntries(TarArchiveInputStream tis,
                                       TarArchiveEntry entry, File outputDir) throws IOException {
@@ -939,11 +990,15 @@ public class Utils {
         outputStream.close();
     }
 
-    public static boolean onWindows() {
+    public static boolean isOnWindows() {
         if (System.getenv("OS") != null) {
             return System.getenv("OS").equals("Windows_NT");
         }
         return false;
+    }
+
+    public static boolean isAbsolutePath(String path) {
+        return Paths.get(path).isAbsolute();
     }
 
     public static void unpack(File localrsrc, File dst) throws IOException {
@@ -1034,6 +1089,12 @@ public class Utils {
         }
     }
 
+    public static void testSetupBuilder(CuratorFrameworkFactory.Builder
+                                                builder, String zkStr, Map conf, ZookeeperAuthInfo auth)
+    {
+        setupBuilder(builder, zkStr, conf, auth);
+    }
+
     public static CuratorFramework newCurator(Map conf, List<String> servers, Object port, ZookeeperAuthInfo auth) {
         return newCurator(conf, servers, port, "", auth);
     }
@@ -1076,10 +1137,16 @@ public class Utils {
                 LOG.info("{}:{}", prefix, line);
             }
         } catch (IOException e) {
-            LOG.warn("Error whiel trying to log stream", e);
+            LOG.warn("Error while trying to log stream", e);
         }
     }
 
+    /**
+     * Checks if a throwable is an instance of a particular class
+     * @param klass The class you're expecting
+     * @param throwable The throwable you expect to be an instance of klass
+     * @return true if throwable is instance of klass, false otherwise.
+     */
     public static boolean exceptionCauseIsInstanceOf(Class klass, Throwable throwable) {
         Throwable t = throwable;
         while (t != null) {
@@ -1114,6 +1181,7 @@ public class Utils {
                 && conf.get(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_SCHEME) != null
                 && !((String)conf.get(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_SCHEME)).isEmpty());
     }
+
 
     public static List<ACL> getWorkerACL(Map conf) {
         //This is a work around to an issue with ZK where a sasl super user is not super unless there is an open SASL ACL so we are trying to give the correct perms
@@ -1165,6 +1233,10 @@ public class Utils {
         }
     }
 
+    /**
+     * Gets some information, including stack trace, for a running thread.
+     * @return A human-readable string of the dump.
+     */
     public static String threadDump() {
         final StringBuilder dump = new StringBuilder();
         final java.lang.management.ThreadMXBean threadMXBean =  java.lang.management.ManagementFactory.getThreadMXBean();
@@ -1186,20 +1258,19 @@ public class Utils {
         return dump.toString();
     }
 
-    // Assumes caller is synchronizing
+    /*
+     * Creates an instance of the pluggable SerializationDelegate or falls back to
+     * DefaultSerializationDelegate if something goes wrong.
+     * @param stormConf The config from which to pull the name of the pluggable class.
+     * @return an instance of the class specified by storm.meta.serialization.delegate
+     */
     private static SerializationDelegate getSerializationDelegate(Map stormConf) {
         String delegateClassName = (String)stormConf.get(Config.STORM_META_SERIALIZATION_DELEGATE);
         SerializationDelegate delegate;
         try {
             Class delegateClass = Class.forName(delegateClassName);
             delegate = (SerializationDelegate) delegateClass.newInstance();
-        } catch (ClassNotFoundException e) {
-            LOG.error("Failed to construct serialization delegate, falling back to default", e);
-            delegate = new DefaultSerializationDelegate();
-        } catch (InstantiationException e) {
-            LOG.error("Failed to construct serialization delegate, falling back to default", e);
-            delegate = new DefaultSerializationDelegate();
-        } catch (IllegalAccessException e) {
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
             LOG.error("Failed to construct serialization delegate, falling back to default", e);
             delegate = new DefaultSerializationDelegate();
         }
@@ -1370,13 +1441,815 @@ public class Utils {
     public static RuntimeException wrapInRuntime(Exception e){
         if (e instanceof RuntimeException){
             return (RuntimeException)e;
-        }else {
+        } else {
             return new RuntimeException(e);
         }
     }
 
+    /**
+     * Determines if a zip archive contains a particular directory.
+     *
+     * @param zipfile path to the zipped file
+     * @param target directory being looked for in the zip.
+     * @return boolean whether or not the directory exists in the zip.
+     */
+    public static boolean zipDoesContainDir(String zipfile, String target) throws IOException {
+        List<ZipEntry> entries = (List<ZipEntry>)Collections.list(new ZipFile(zipfile).entries());
+
+        String targetDir = target + "/";
+        for(ZipEntry entry : entries) {
+            String name = entry.getName();
+            if(name.startsWith(targetDir)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Joins any number of maps together into a single map, combining their values into
+     * a list, maintaining values in the order the maps were passed in. Nulls are inserted
+     * for given keys when the map does not contain that key.
+     *
+     * i.e. joinMaps({'a' => 1, 'b' => 2}, {'b' => 3}, {'a' => 4, 'c' => 5}) ->
+     *      {'a' => [1, null, 4], 'b' => [2, 3, null], 'c' => [null, null, 5]}
+     *
+     * @param maps variable number of maps to join - order affects order of values in output.
+     * @return combined map
+     */
+    public static <K, V> Map<K, List<V>> joinMaps(Map<K, V>... maps) {
+        Map<K, List<V>> ret = new HashMap<>();
+
+        Set<K> keys = new HashSet<>();
+
+        for(Map<K, V> map : maps) {
+            keys.addAll(map.keySet());
+        }
+
+        for(Map<K, V> m : maps) {
+            for(K key : keys) {
+                V value = m.get(key);
+
+                if(!ret.containsKey(key)) {
+                    ret.put(key, new ArrayList<V>());
+                }
+
+                List<V> targetList = ret.get(key);
+                targetList.add(value);
+            }
+        }
+        return ret;
+    }
+
+    /**
+     * Fills up chunks out of a collection (given a maximum amount of chunks)
+     *
+     * i.e. partitionFixed(5, [1,2,3]) -> [[1,2,3]]
+     *      partitionFixed(5, [1..9]) -> [[1,2], [3,4], [5,6], [7,8], [9]]
+     *      partitionFixed(3, [1..10]) -> [[1,2,3,4], [5,6,7], [8,9,10]]
+     * @param maxNumChunks the maximum number of chunks to return
+     * @param coll the collection to be chunked up
+     * @return a list of the chunks, which are themselves lists.
+     */
+    public static <T> List<List<T>> partitionFixed(int maxNumChunks, Collection<T> coll) {
+        List<List<T>> ret = new ArrayList<>();
+
+        if(maxNumChunks == 0 || coll == null) {
+            return ret;
+        }
+
+        Map<Integer, Integer> parts = integerDivided(coll.size(), maxNumChunks);
+
+        // Keys sorted in descending order
+        List<Integer> sortedKeys = new ArrayList<Integer>(parts.keySet());
+        Collections.sort(sortedKeys, Collections.reverseOrder());
+
+
+        Iterator<T> it = coll.iterator();
+        for(Integer chunkSize : sortedKeys) {
+            if(!it.hasNext()) { break; }
+            Integer times = parts.get(chunkSize);
+            for(int i = 0; i < times; i++) {
+                if(!it.hasNext()) { break; }
+                List<T> chunkList = new ArrayList<>();
+                for(int j = 0; j < chunkSize; j++) {
+                    if(!it.hasNext()) { break; }
+                    chunkList.add(it.next());
+                }
+                ret.add(chunkList);
+            }
+        }
+
+        return ret;
+    }
+
+    /**
+     * Return a new instance of a pluggable specified in the conf.
+     * @param conf The conf to read from.
+     * @param configKey The key pointing to the pluggable class
+     * @return an instance of the class or null if it is not specified.
+     */
+    public static Object getConfiguredClass(Map conf, Object configKey) {
+        if (conf.containsKey(configKey)) {
+            return newInstance((String)conf.get(configKey));
+        }
+        return null;
+    }
+
+    public static String logsFilename(String stormId, String port) {
+        return stormId + FILE_PATH_SEPARATOR + port + FILE_PATH_SEPARATOR + "worker.log";
+    }
+
+    public static String eventLogsFilename(String stormId, String port) {
+        return stormId + FILE_PATH_SEPARATOR + port + FILE_PATH_SEPARATOR + "events.log";
+    }
+
+    public static Object readYamlFile(String yamlFile) {
+        try (FileReader reader = new FileReader(yamlFile)) {
+            return new Yaml(new SafeConstructor()).load(reader);
+        } catch(Exception ex) {
+            LOG.error("Failed to read yaml file.", ex);
+        }
+        return null;
+    }
+
+    public static void setupDefaultUncaughtExceptionHandler() {
+        Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+                public void uncaughtException(Thread thread, Throwable thrown) {
+                    try {
+                        handleUncaughtException(thrown);
+                    } catch (Error err) {
+                        LOG.error("Received error in main thread.. terminating server...", err);
+                        Runtime.getRuntime().exit(-2);
+                    }
+                }
+            });
+    }
+
+    /**
+     * Creates a new map with a string value in the map replaced with an
+     * equivalently-lengthed string of '#'.
+     * @param m The map that a value will be redacted from
+     * @param key The key pointing to the value to be redacted
+     * @return a new map with the value redacted. The original map will not be modified.
+     */
+    public static Map<Object, String> redactValue(Map<Object, String> m, Object key) {
+        if(m.containsKey(key)) {
+            HashMap<Object, String> newMap = new HashMap<>(m);
+            String value = newMap.get(key);
+            String redacted = new String(new char[value.length()]).replace("\0", "#");
+            newMap.put(key, redacted);
+            return newMap;
+        }
+        return m;
+    }
+
+    /**
+     * Make sure a given key name is valid for the storm config.
+     * Throw RuntimeException if the key isn't valid.
+     * @param name The name of the config key to check.
+     */
+    private static final Set<String> disallowedKeys = new HashSet<>(Arrays.asList(new String[] {"/", ".", ":", "\\"}));
+    public static void validateKeyName(String name) {
+
+        for(String key : disallowedKeys) {
+            if( name.contains(key) ) {
+                throw new RuntimeException("Key name cannot contain any of the following: " + disallowedKeys.toString());
+            }
+        }
+        if(name.trim().isEmpty()) {
+            throw new RuntimeException("Key name cannot be blank");
+        }
+    }
+
+    /**
+     * Find the first item of coll for which pred.test(...) returns true.
+     * @param pred The IPredicate to test for
+     * @param coll The Collection of items to search through.
+     * @return The first matching value in coll, or null if nothing matches.
+     */
+    public static <T> T findOne (IPredicate<T> pred, Collection<T> coll) {
+        if(coll == null) {
+            return null;
+        }
+        for(T elem : coll) {
+            if (pred.test(elem)) {
+                return elem;
+            }
+        }
+        return null;
+    }
+
+    public static <T, U> T findOne (IPredicate<T> pred, Map<U, T> map) {
+        if(map == null) {
+            return null;
+        }
+        return findOne(pred, (Set<T>)map.entrySet());
+    }
+
+    public static String localHostname () throws UnknownHostException {
+        return _instance.localHostnameImpl();
+    }
+
+    // Non-static impl methods exist for mocking purposes.
+    protected String localHostnameImpl () throws UnknownHostException {
+        return InetAddress.getLocalHost().getCanonicalHostName();
+    }
+
+    private static String memoizedLocalHostnameString = null;
+
+    public static String memoizedLocalHostname () throws UnknownHostException {
+        if (memoizedLocalHostnameString == null) {
+            memoizedLocalHostnameString = localHostname();
+        }
+        return memoizedLocalHostnameString;
+    }
+
+    /**
+     * Gets the storm.local.hostname value, or tries to figure out the local hostname
+     * if it is not set in the config.
+     * @param conf The storm config to read from
+     * @return a string representation of the hostname.
+    */
+    public static String hostname (Map<String, Object> conf) throws UnknownHostException  {
+        if (conf == null) {
+            return memoizedLocalHostname();
+        }
+        Object hostnameString = conf.get(Config.STORM_LOCAL_HOSTNAME);
+        if (hostnameString == null || hostnameString.equals("")) {
+            return memoizedLocalHostname();
+        }
+        return (String)hostnameString;
+    }
+
+    public static String uuid() {
+        return UUID.randomUUID().toString();
+    }
+
+    public static void exitProcess (int val, Object... msg) {
+        StringBuilder errorMessage = new StringBuilder();
+        errorMessage.append("Halting process: ");
+        for (Object oneMessage: msg) {
+            errorMessage.append(oneMessage);
+        }
+        String combinedErrorMessage = errorMessage.toString();
+        LOG.error(combinedErrorMessage, new RuntimeException(combinedErrorMessage));
+        Runtime.getRuntime().exit(val);
+    }
+
+    /**
+     * "{:a 1 :b 1 :c 2} -> {1 [:a :b] 2 :c}"
+     *
+     * Example usage in java:
+     *  Map<Integer, String> tasks;
+     *  Map<String, List<Integer>> componentTasks = Utils.reverse_map(tasks);
+     *
+     * The order of he resulting list values depends on the ordering properties
+     * of the Map passed in. The caller is responsible for passing an ordered
+     * map if they expect the result to be consistently ordered as well.
+     *
+     * @param map to reverse
+     * @return a reversed map
+     */
+    public static <K, V> HashMap<V, List<K>> reverseMap(Map<K, V> map) {
+        HashMap<V, List<K>> rtn = new HashMap<V, List<K>>();
+        if (map == null) {
+            return rtn;
+        }
+        for (Entry<K, V> entry : map.entrySet()) {
+            K key = entry.getKey();
+            V val = entry.getValue();
+            List<K> list = rtn.get(val);
+            if (list == null) {
+                list = new ArrayList<K>();
+                rtn.put(entry.getValue(), list);
+            }
+            list.add(key);
+        }
+        return rtn;
+    }
+
+    /**
+     * "[[:a 1] [:b 1] [:c 2]} -> {1 [:a :b] 2 :c}"
+     * Reverses an assoc-list style Map like reverseMap(Map...)
+     *
+     * @param listSeq to reverse
+     * @return a reversed map
+     */
+    public static HashMap reverseMap(List listSeq) {
+        HashMap<Object, List<Object>> rtn = new HashMap();
+        if (listSeq == null) {
+            return rtn;
+        }
+        for (Object entry : listSeq) {
+            List listEntry = (List) entry;
+            Object key = listEntry.get(0);
+            Object val = listEntry.get(1);
+            List list = rtn.get(val);
+            if (list == null) {
+                list = new ArrayList<Object>();
+                rtn.put(val, list);
+            }
+            list.add(key);
+        }
+        return rtn;
+    }
+
+
+    /**
+     * @return the pid of this JVM, because Java doesn't provide a real way to do this.
+     */
+    public static String processPid() {
+        String name = ManagementFactory.getRuntimeMXBean().getName();
+        String[] split = name.split("@");
+        if (split.length != 2) {
+            throw new RuntimeException("Got unexpected process name: " + name);
+        }
+        return split[0];
+    }
+
+    public static int execCommand(String... command) throws ExecuteException, IOException {
+        CommandLine cmd = new CommandLine(command[0]);
+        for (int i = 1; i < command.length; i++) {
+            cmd.addArgument(command[i]);
+        }
+
+        DefaultExecutor exec = new DefaultExecutor();
+        return exec.execute(cmd);
+    }
+
+    /**
+     * Extract dir from the jar to destdir
+     *
+     * @param jarpath Path to the jar file
+     * @param dir Directory in the jar to pull out
+     * @param destdir Path to the directory where the extracted directory will be put
+     *
+     */
+    public static void extractDirFromJar(String jarpath, String dir, String destdir) {
+        try (JarFile jarFile = new JarFile(jarpath)) {
+            Enumeration<JarEntry> jarEnums = jarFile.entries();
+            while (jarEnums.hasMoreElements()) {
+                JarEntry entry = jarEnums.nextElement();
+                if (!entry.isDirectory() && entry.getName().startsWith(dir)) {
+                    File aFile = new File(destdir, entry.getName());
+                    aFile.getParentFile().mkdirs();
+                    try (FileOutputStream out = new FileOutputStream(aFile);
+                         InputStream in = jarFile.getInputStream(entry)) {
+                        IOUtils.copy(in, out);
+                    }
+                }
+            }
+        } catch (IOException e) {
+            LOG.info("Could not extract {} from {}", dir, jarpath);
+        }
+    }
+
+    public static void sendSignalToProcess(long lpid, int signum) throws IOException {
+        String pid = Long.toString(lpid);
+        try {
+            if (isOnWindows()) {
+                if (signum == SIGKILL) {
+                    execCommand("taskkill", "/f", "/pid", pid);
+                } else {
+                    execCommand("taskkill", "/pid", pid);
+                }
+            } else {
+                execCommand("kill", "-" + signum, pid);
+            }
+        } catch (ExecuteException e) {
+            LOG.info("Error when trying to kill {}. Process is probably already dead.", pid);
+        } catch (IOException e) {
+            LOG.info("IOException Error when trying to kill {}.", pid);
+            throw e;
+        }
+    }
+
+    public static void forceKillProcess (String pid) throws IOException {
+        sendSignalToProcess(Long.parseLong(pid), SIGKILL);
+    }
+
+    public static void killProcessWithSigTerm (String pid) throws IOException {
+        sendSignalToProcess(Long.parseLong(pid), SIGTERM);
+    }
+
+    /**
+     * Adds the user supplied function as a shutdown hook for cleanup.
+     * Also adds a function that sleeps for a second and then halts the
+     * runtime to avoid any zombie process in case cleanup function hangs.
+     */
+    public static void addShutdownHookWithForceKillIn1Sec (Runnable func) {
+        Runnable sleepKill = new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Time.sleepSecs(1);
+                    Runtime.getRuntime().halt(20);
+                } catch (Exception e) {
+                    LOG.warn("Exception in the ShutDownHook", e);
+                }
+            }
+        };
+        Runtime.getRuntime().addShutdownHook(new Thread(func));
+        Runtime.getRuntime().addShutdownHook(new Thread(sleepKill));
+    }
+
+    /**
+     * Returns the combined string, escaped for posix shell.
+     * @param command the list of strings to be combined
+     * @return the resulting command string
+     */
+    public static String shellCmd (List<String> command) {
+        List<String> changedCommands = new ArrayList<>(command.size());
+        for (String str: command) {
+            if (str == null) {
+                continue;
+            }
+            changedCommands.add("'" + str.replaceAll("'", "'\"'\"'") + "'");
+        }
+        return StringUtils.join(changedCommands, " ");
+    }
+
+    public static String scriptFilePath (String dir) {
+        return dir + FILE_PATH_SEPARATOR + "storm-worker-script.sh";
+    }
+
+    public static String containerFilePath (String dir) {
+        return dir + FILE_PATH_SEPARATOR + "launch_container.sh";
+    }
+
+    public static Object nullToZero (Object v) {
+        return (v != null ? v : 0);
+    }
+
+    /**
+     * Deletes a file or directory and its contents if it exists. Does not
+     * complain if the input is null or does not exist.
+     * @param path the path to the file or directory
+     */
+    public static void forceDelete(String path) throws IOException {
+        _instance.forceDeleteImpl(path);
+    }
+
+    // Non-static impl methods exist for mocking purposes.
+    protected void forceDeleteImpl(String path) throws IOException {
+        LOG.debug("Deleting path {}", path);
+        if (checkFileExists(path)) {
+            try {
+                FileUtils.forceDelete(new File(path));
+            } catch (FileNotFoundException ignored) {}
+        }
+    }
+
+    /**
+     * Creates a symbolic link to the target
+     * @param dir the parent directory of the link
+     * @param targetDir the parent directory of the link's target
+     * @param targetFilename the file name of the links target
+     * @param filename the file name of the link
+     * @throws IOException
+     */
+    public static void createSymlink(String dir, String targetDir,
+            String targetFilename, String filename) throws IOException {
+        Path path = Paths.get(dir, filename).toAbsolutePath();
+        Path target = Paths.get(targetDir, targetFilename).toAbsolutePath();
+        LOG.debug("Creating symlink [{}] to [{}]", path, target);
+        if (!path.toFile().exists()) {
+            Files.createSymbolicLink(path, target);
+        }
+    }
+
+    /**
+     * Convenience method for the case when the link's file name should be the
+     * same as the file name of the target
+     */
+    public static void createSymlink(String dir, String targetDir,
+                                     String targetFilename) throws IOException {
+        Utils.createSymlink(dir, targetDir, targetFilename,
+                            targetFilename);
+    }
+
+    /**
+     * Returns a Collection of file names found under the given directory.
+     * @param dir a directory
+     * @return the Collection of file names
+     */
+    public static Collection<String> readDirContents(String dir) {
+        Collection<String> ret = new HashSet<>();
+        File[] files = new File(dir).listFiles();
+        if (files != null) {
+            for (File f: files) {
+                ret.add(f.getName());
+            }
+        }
+        return ret;
+    }
+
+    /**
+     * Returns the value of java.class.path System property. Kept separate for
+     * testing.
+     * @return the classpath
+     */
+    public static String currentClasspath() {
+        return _instance.currentClasspathImpl();
+    }
+
+    // Non-static impl methods exist for mocking purposes.
+    public String currentClasspathImpl() {
+        return System.getProperty("java.class.path");
+    }
+
+    /**
+     * Returns a collection of jar file names found under the given directory.
+     * @param dir the directory to search
+     * @return the jar file names
+     */
+    private static List<String> getFullJars(String dir) {
+        File[] files = new File(dir).listFiles(jarFilter);
+
+        if(files == null) {
+            return new ArrayList<>();
+        }
+
+        List<String> ret = new ArrayList<>(files.length);
+        for (File f : files) {
+            ret.add(Paths.get(dir, f.getName()).toString());
+        }
+        return ret;
+    }
+    private static final FilenameFilter jarFilter = new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+                return name.endsWith(".jar");
+            }
+        };
+
+
+    public static String workerClasspath() {
+        String stormDir = System.getProperty("storm.home");
+
+        if (stormDir == null) {
+            return Utils.currentClasspath();
+        }
+
+        String stormLibDir = Paths.get(stormDir, "lib").toString();
+        String stormConfDir =
+                System.getenv("STORM_CONF_DIR") != null ?
+                System.getenv("STORM_CONF_DIR") :
+                Paths.get(stormDir, "conf").toString();
+        String stormExtlibDir = Paths.get(stormDir, "extlib").toString();
+        String extcp = System.getenv("STORM_EXT_CLASSPATH");
+        List<String> pathElements = new LinkedList<>();
+        pathElements.addAll(Utils.getFullJars(stormLibDir));
+        pathElements.addAll(Utils.getFullJars(stormExtlibDir));
+        pathElements.add(extcp);
+        pathElements.add(stormConfDir);
+
+        return StringUtils.join(pathElements,
+                CLASS_PATH_SEPARATOR);
+    }
+
+    public static String addToClasspath(String classpath,
+                Collection<String> paths) {
+        return _instance.addToClasspathImpl(classpath, paths);
+    }
+
+    // Non-static impl methods exist for mocking purposes.
+    public String addToClasspathImpl(String classpath,
+                Collection<String> paths) {
+        if (paths == null || paths.isEmpty()) {
+            return classpath;
+        }
+        List<String> l = new LinkedList<>();
+        l.add(classpath);
+        l.addAll(paths);
+        return StringUtils.join(l, CLASS_PATH_SEPARATOR);
+    }
+
+    public static class UptimeComputer {
+        int startTime = 0;
+
+        public UptimeComputer() {
+            startTime = Time.currentTimeSecs();
+        }
+
+        public int upTime() {
+            return Time.deltaSecs(startTime);
+        }
+    }
+
+    public static UptimeComputer makeUptimeComputer() {
+        return _instance.makeUptimeComputerImpl();
+    }
+
+    // Non-static impl methods exist for mocking purposes.
+    public UptimeComputer makeUptimeComputerImpl() {
+        return new UptimeComputer();
+    }
+
+    /**
+     * Writes a posix shell script file to be executed in its own process.
+     * @param dir the directory under which the script is to be written
+     * @param command the command the script is to execute
+     * @param environment optional environment variables to set before running the script's command. May be  null.
+     * @return the path to the script that has been written
+     */
+    public static String writeScript(String dir, List<String> command,
+                                     Map<String,String> environment) throws IOException {
+        String path = Utils.scriptFilePath(dir);
+        try(BufferedWriter out = new BufferedWriter(new FileWriter(path))) {
+            out.write("#!/bin/bash");
+            out.newLine();
+            if (environment != null) {
+                for (String k : environment.keySet()) {
+                    String v = environment.get(k);
+                    if (v == null) {
+                        v = "";
+                    }
+                    out.write(Utils.shellCmd(
+                            Arrays.asList(
+                                    "export",k+"="+v)));
+                    out.write(";");
+                    out.newLine();
+                }
+            }
+            out.newLine();
+            out.write("exec "+Utils.shellCmd(command)+";");
+        }
+        return path;
+    }
+
+    /**
+     * A thread that can answer if it is sleeping in the case of simulated time.
+     * This class is not useful when simulated time is not being used.
+     */
+    public static class SmartThread extends Thread {
+        public boolean isSleeping() {
+            return Time.isThreadWaiting(this);
+        }
+        public SmartThread(Runnable r) {
+            super(r);
+        }
+    }
+
+    /**
+     * Creates a thread that calls the given code repeatedly, sleeping for an
+     * interval of seconds equal to the return value of the previous call.
+     *
+     * The given afn may be a callable that returns the number of seconds to
+     * sleep, or it may be a Callable that returns another Callable that in turn
+     * returns the number of seconds to sleep. In the latter case isFactory.
+     *
+     * @param afn the code to call on each iteration
+     * @param isDaemon whether the new thread should be a daemon thread
+     * @param eh code to call when afn throws an exception
+     * @param priority the new thread's priority
+     * @param isFactory whether afn returns a callable instead of sleep seconds
+     * @param startImmediately whether to start the thread before returning
+     * @param threadName a suffix to be appended to the thread name
+     * @return the newly created thread
+     * @see java.lang.Thread
+     */
+    public static SmartThread asyncLoop(final Callable afn,
+            boolean isDaemon, final Thread.UncaughtExceptionHandler eh,
+            int priority, final boolean isFactory, boolean startImmediately,
+            String threadName) {
+        SmartThread thread = new SmartThread(new Runnable() {
+            public void run() {
+                Object s;
+                try {
+                    Callable fn = isFactory ? (Callable) afn.call() : afn;
+                    while ((s = fn.call()) instanceof Long) {
+                        Time.sleepSecs((Long) s);
+                    }
+                } catch (Throwable t) {
+                    if (Utils.exceptionCauseIsInstanceOf(
+                            InterruptedException.class, t)) {
+                        LOG.info("Async loop interrupted!");
+                        return;
+                    }
+                    LOG.error("Async loop died!", t);
+                    throw new RuntimeException(t);
+                }
+            }
+        });
+        if (eh != null) {
+            thread.setUncaughtExceptionHandler(eh);
+        } else {
+            thread.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+                public void uncaughtException(Thread t, Throwable e) {
+                    LOG.error("Async loop died!", e);
+                    Utils.exitProcess(1, "Async loop died!");
+                }
+            });
+        }
+        thread.setDaemon(isDaemon);
+        thread.setPriority(priority);
+        if (threadName != null && !threadName.isEmpty()) {
+            thread.setName(thread.getName() +"-"+ threadName);
+        }
+        if (startImmediately) {
+            thread.start();
+        }
+        return thread;
+    }
+
+    /**
+     * Convenience method used when only the function and name suffix are given.
+     * @param afn the code to call on each iteration
+     * @param threadName a suffix to be appended to the thread name
+     * @return the newly created thread
+     * @see java.lang.Thread
+     */
+    public static SmartThread asyncLoop(final Callable afn, String threadName, final Thread.UncaughtExceptionHandler eh) {
+        return asyncLoop(afn, false, eh, Thread.NORM_PRIORITY, false, true,
+                threadName);
+    }
+
+    /**
+     * Convenience method used when only the function is given.
+     * @param afn the code to call on each iteration
+     * @return the newly created thread
+     */
+    public static SmartThread asyncLoop(final Callable afn) {
+        return asyncLoop(afn, false, null, Thread.NORM_PRIORITY, false, true,
+                null);
+    }
+
+    /**
+     * A callback that can accept an integer.
+     * @param <V> the result type of method <code>call</code>
+     */
+    public interface ExitCodeCallable<V> extends Callable<V> {
+        V call(int exitCode);
+    }
+
+    /**
+     * Launch a new process as per {@link java.lang.ProcessBuilder} with a given
+     * callback.
+     * @param command the command to be executed in the new process
+     * @param environment the environment to be applied to the process. Can be
+     *                    null.
+     * @param logPrefix a prefix for log entries from the output of the process.
+     *                  Can be null.
+     * @param exitCodeCallback code to be called passing the exit code value
+     *                         when the process completes
+     * @param dir the working directory of the new process
+     * @return the new process
+     * @throws IOException
+     * @see java.lang.ProcessBuilder
+     */
+    public static Process launchProcess(List<String> command,
+                                        Map<String,String> environment,
+                                        final String logPrefix,
+                                        final ExitCodeCallable exitCodeCallback,
+                                        File dir)
+            throws IOException {
+        return _instance.launchProcessImpl(command, environment, logPrefix,
+                exitCodeCallback, dir);
+    }
+
+    public Process launchProcessImpl(
+            List<String> command,
+            Map<String,String> cmdEnv,
+            final String logPrefix,
+            final ExitCodeCallable exitCodeCallback,
+            File dir)
+            throws IOException {
+        ProcessBuilder builder = new ProcessBuilder(command);
+        Map<String,String> procEnv = builder.environment();
+        if (dir != null) {
+            builder.directory(dir);
+        }
+        builder.redirectErrorStream(true);
+        if (cmdEnv != null) {
+            procEnv.putAll(cmdEnv);
+        }
+        final Process process = builder.start();
+        if (logPrefix != null || exitCodeCallback != null) {
+            Utils.asyncLoop(new Callable() {
+                public Object call() {
+                    if (logPrefix != null ) {
+                        Utils.readAndLogStream(logPrefix,
+                                process.getInputStream());
+                    }
+                    if (exitCodeCallback != null) {
+                        try {
+                            process.waitFor();
+                        } catch (InterruptedException ie) {
+                            LOG.info("{} interrupted", logPrefix);
+                            exitCodeCallback.call(process.exitValue());
+                        }
+                    }
+                    return null; // Run only once.
+                }
+            });
+        }
+        return process;
+    }
+
     public static long bitXor(Object a, Object b) {
-        return  ((Long) a) ^ ((Long) b);
+        return ((Long) a) ^ ((Long) b);
     }
 }
-

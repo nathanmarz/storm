@@ -23,7 +23,7 @@
   (:import [org.apache.storm.spout SpoutOutputCollector ISpout])
   (:import [org.apache.storm.utils Utils])
   (:import [org.apache.storm.clojure ClojureBolt ClojureSpout])
-  (:import [java.util List])
+  (:import [java.util Collection List])
   (:require [org.apache.storm [thrift :as thrift]]))
 
 (defn direct-stream [fields]
@@ -152,6 +152,12 @@
   java.util.List
   (tuple-values [this collector stream]
     this))
+
+(defn- collectify
+  [obj]
+  (if (or (sequential? obj) (instance? Collection obj))
+    obj
+    [obj]))
 
 (defnk emit-bolt! [collector values
                    :stream Utils/DEFAULT_STREAM_ID :anchor []]

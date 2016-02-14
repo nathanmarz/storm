@@ -76,7 +76,7 @@
               (contains? spouts component-id) (.get_spout_object ^SpoutSpec (get spouts component-id))
               (contains? bolts component-id) (.get_bolt_object ^Bolt (get bolts component-id))
               (contains? state-spouts component-id) (.get_state_spout_object ^StateSpoutSpec (get state-spouts component-id))
-              true (throw-runtime "Could not find " component-id " in " topology)))
+              true (throw (RuntimeException. (str "Could not find " component-id " in " topology)))))
         obj (if (instance? ShellComponent obj)
               (if (contains? spouts component-id)
                 (ShellSpout. obj)
@@ -150,6 +150,8 @@
            (when debug?
              (log-message "Emitting: " component-id " " stream " " values))
            (let [out-tasks (ArrayList.)]
+             (if (not (.containsKey stream->component->grouper stream))
+               (throw (IllegalArgumentException. (str "Unknown stream ID: " stream))))
              (fast-map-iter [[out-component grouper] (get stream->component->grouper stream)]
                (when (= :direct grouper)
                   ;;  TODO: this is wrong, need to check how the stream was declared

@@ -18,14 +18,16 @@
   (:import [org.apache.zookeeper.data Stat ACL Id]
            [org.apache.storm.generated SupervisorInfo Assignment StormBase ClusterWorkerHeartbeat ErrorInfo Credentials NimbusSummary
             LogConfig ProfileAction ProfileRequest NodeInfo]
-           [java.io Serializable])
+           [java.io Serializable StringWriter PrintWriter]
+           [java.net URLEncoder])
   (:import [org.apache.zookeeper KeeperException KeeperException$NoNodeException ZooDefs ZooDefs$Ids ZooDefs$Perms])
   (:import [org.apache.curator.framework CuratorFramework])
-  (:import [org.apache.storm.utils Utils])
+  (:import [org.apache.storm.utils Utils Time])
   (:import [org.apache.storm.cluster ClusterState ClusterStateContext ClusterStateListener ConnectionState])
   (:import [java.security MessageDigest])
   (:import [org.apache.zookeeper.server.auth DigestAuthenticationProvider])
-  (:import [org.apache.storm.nimbus NimbusInfo])
+  (:import [org.apache.storm.nimbus NimbusInfo]
+           [org.apache.storm.zookeeper Zookeeper])
   (:use [org.apache.storm util log config converter])
   (:require [org.apache.storm [zookeeper :as zk]])
   (:require [org.apache.storm.daemon [common :as common]]))
@@ -176,7 +178,7 @@
 
 (defn error-path
   [storm-id component-id]
-  (str (error-storm-root storm-id) "/" (url-encode component-id)))
+  (str (error-storm-root storm-id) "/" (URLEncoder/encode component-id)))
 
 (def last-error-path-seg "last-error")
 
@@ -184,7 +186,7 @@
   [storm-id component-id]
   (str (error-storm-root storm-id)
        "/"
-       (url-encode component-id)
+       (URLEncoder/encode component-id)
        "-"
        last-error-path-seg))
 
@@ -240,6 +242,12 @@
                       :stats (get executor-stats t)}})))
          (into {}))))
 
+(defn- stringify-error [error]
+  (let [result (StringWriter.)
+        printer (PrintWriter. result)]
+    (.printStackTrace error printer)
+    (.toString result)))
+
 ;; Watches should be used for optimization. When ZK is reconnecting, they're not guaranteed to be called.
 (defnk mk-storm-cluster-state
   [cluster-state-spec :acls nil :context (ClusterStateContext.)]
@@ -259,7 +267,7 @@
         state-id (.register
                   cluster-state
                   (fn [type path]
-                    (let [[subtree & args] (tokenize-path path)]
+                    (let [[subtree & args] (Zookeeper/tokenizePath path)]
                       (condp = subtree
                          ASSIGNMENTS-ROOT (if (empty? args)
                                              (issue-callback! assignments-callback)
@@ -274,7 +282,8 @@
                          LOGCONFIG-ROOT (issue-map-callback! log-config-callback (first args))
                          BACKPRESSURE-ROOT (issue-map-callback! backpressure-callback (first args))
                          ;; this should never happen
-                         (exit-process! 30 "Unknown callback for subtree " subtree args)))))]
+                         (Utils/exitProcess 30 ["Unknown callback for subtree " subtree args])
+                          ))))]
     (doseq [p [ASSIGNMENTS-SUBTREE STORMS-SUBTREE SUPERVISORS-SUBTREE WORKERBEATS-SUBTREE ERRORS-SUBTREE BLOBSTORE-SUBTREE NIMBUSES-SUBTREE
                LOGCONFIG-SUBTREE]]
       (.mkdirs cluster-state p acls))
@@ -381,7 +390,7 @@
         ;; long dead worker with a skewed clock overrides all the timestamps. By only checking heartbeats
         ;; with an assigned node+port, and only reading executors from that heartbeat that are actually assigned,
         ;; we avoid situations like that
-        (let [node+port->executors (reverse-map executor->node+port)
+        (let [node+port->executors (clojurify-structure (Utils/reverseMap executor->node+port))
               all-heartbeats (for [[[node port] executors] node+port->executors]
                                (->> (get-worker-heartbeat this storm-id node port)
                                     (convert-executor-beats executors)
@@ -580,7 +589,7 @@
          [this storm-id component-id node port error]
          (let [path (error-path storm-id component-id)
                last-error-path (last-error-path storm-id component-id)
-               data (thriftify-error {:time-secs (current-time-secs) :error (stringify-error error) :host node :port port})
+               data (thriftify-error {:time-secs (Time/currentTimeSecs) :error (stringify-error error) :host node :port port})
                _ (.mkdirs cluster-state path acls)
                ser-data (Utils/serialize data)
                _ (.mkdirs cluster-state path acls)

@@ -15,20 +15,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.storm.trident.operation;
 
-package org.apache.storm.utils;
+import org.apache.storm.trident.tuple.TridentTuple;
+import org.apache.storm.tuple.Values;
 
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.curator.retry.ExponentialBackoffRetry;
-import java.util.Map;
+import java.io.Serializable;
 
-public class TestUtils extends Utils {
-
-    public static void testSetupBuilder(CuratorFrameworkFactory.Builder
-            builder, String zkStr, Map conf, ZookeeperAuthInfo auth)
-    {
-        setupBuilder(builder, zkStr, conf, auth);
-    }
-
+/**
+ * A one-one transformation function
+ */
+public interface MapFunction extends Serializable {
+    /**
+     * Invoked by the framework for each trident tuple in a stream.
+     *
+     * @param input the input trident tuple
+     * @return the transformed values
+     */
+    Values execute(TridentTuple input);
 }

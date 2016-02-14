@@ -94,7 +94,7 @@
                     <includes>
                         <include>${java.unit.test.include}</include>
                     </includes>
-                    <argLine>-Djava.net.preferIPv4Stack=true</argLine>
+                    <argLine>-Djava.net.preferIPv4Stack=true -Xmx1536m</argLine>
                 </configuration>
             </plugin>
             <plugin>
@@ -109,7 +109,7 @@
                         <include>${java.integration.test.include}</include>
                     </includes>
                     <groups>${java.integration.test.group}</groups>  <!--set in integration-test the profile-->
-                    <argLine>-Djava.net.preferIPv4Stack=true</argLine>
+                    <argLine>-Djava.net.preferIPv4Stack=true -Xmx1536m</argLine>
                 </configuration>
                 <executions>
                     <execution>

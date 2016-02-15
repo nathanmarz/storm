@@ -33,14 +33,14 @@ import org.slf4j.LoggerFactory;
 public class CLI {
     private static final Logger LOG = LoggerFactory.getLogger(CLI.class);
     private static class Opt {
-        final String s;
-        final String l;
+        final String shortName;
+        final String longName;
         final Object defaultValue;
         final Parse parse;
         final Assoc assoc;
-        public Opt(String s, String l, Object defaultValue, Parse parse, Assoc assoc) {
-            this.s = s;
-            this.l = l;
+        public Opt(String shortName, String longName, Object defaultValue, Parse parse, Assoc assoc) {
+            this.shortName = shortName;
+            this.longName = longName;
             this.defaultValue = defaultValue;
             this.parse = parse == null ? AS_STRING : parse;
             this.assoc = assoc == null ? LAST_WINS : assoc;
@@ -75,6 +75,9 @@ public class CLI {
         public Object parse(String value);
     }
 
+    /**
+     * Parse function to return an Integer
+     */
     public static final Parse AS_INT = new Parse() {
         @Override
         public Object parse(String value) {
@@ -82,6 +85,9 @@ public class CLI {
         }
     };
 
+    /**
+     * Noop parse function, returns the String.
+     */
     public static final Parse AS_STRING = new Parse() {
         @Override
         public Object parse(String value) {
@@ -99,6 +105,9 @@ public class CLI {
         public Object assoc(Object current, Object value);
     }
 
+    /**
+     * Last occurance on the command line is the resulting value.
+     */
     public static final Assoc LAST_WINS = new Assoc() {
         @Override
         public Object assoc(Object current, Object value) {
@@ -106,6 +115,9 @@ public class CLI {
         }
     };
 
+    /**
+     * First occurance on the command line is the resulting value.
+     */
     public static final Assoc FIRST_WINS = new Assoc() {
         @Override
         public Object assoc(Object current, Object value) {
@@ -113,6 +125,9 @@ public class CLI {
         }
     };
 
+    /**
+     * All values are returned as a List.
+     */
     public static final Assoc INTO_LIST = new Assoc() {
         @Override
         public Object assoc(Object current, Object value) {
@@ -128,57 +143,115 @@ public class CLI {
         private final ArrayList<Opt> opts = new ArrayList<>();
         private final ArrayList<Arg> args = new ArrayList<>();
 
-        public CLIBuilder opt(String s, String l, Object defaultValue) {
-            return opt(s, l, defaultValue, null, null);
-        }
- 
-        public CLIBuilder opt(String s, String l, Object defaultValue, Parse parse) {
-            return opt(s, l, defaultValue, parse, null);
+        /**
+         * Add an option to be parsed
+         * @param shortName the short single character name of the option (no `-` character proceeds it).
+         * @param longName the multi character name of the option (no `--` characters proceed it).
+         * @param defaultValue the value that will be returned of the command if none is given. null if none is given.
+         * @return a builder to be used to continue creating the command line.
+         */
+        public CLIBuilder opt(String shortName, String longName, Object defaultValue) {
+            return opt(shortName, longName, defaultValue, null, null);
         }
 
-        public CLIBuilder opt(String s, String l, Object defaultValue, Parse parse, Assoc assoc) {
-            opts.add(new Opt(s, l, defaultValue, parse, assoc));
+        /**
+         * Add an option to be parsed
+         * @param shortName the short single character name of the option (no `-` character proceeds it).
+         * @param longName the multi character name of the option (no `--` characters proceed it).
+         * @param defaultValue the value that will be returned of the command if none is given. null if none is given.
+         * @param parse an optional function to transform the string to something else. If null a NOOP is used.
+         * @return a builder to be used to continue creating the command line.
+         */
+        public CLIBuilder opt(String shortName, String longName, Object defaultValue, Parse parse) {
+            return opt(shortName, longName, defaultValue, parse, null);
+        }
+
+        /**
+         * Add an option to be parsed
+         * @param shortName the short single character name of the option (no `-` character proceeds it).
+         * @param longName the multi character name of the option (no `--` characters proceed it).
+         * @param defaultValue the value that will be returned of the command if none is given. null if none is given.
+         * @param parse an optional function to transform the string to something else. If null a NOOP is used.
+         * @param assoc an association command to decide what to do if the option appears multiple times.  If null LAST_WINS is used.
+         * @return a builder to be used to continue creating the command line.
+         */
+        public CLIBuilder opt(String shortName, String longName, Object defaultValue, Parse parse, Assoc assoc) {
+            opts.add(new Opt(shortName, longName, defaultValue, parse, assoc));
             return this;
         }
 
+        /**
+         * Add a named argument.
+         * @param name the name of the argument.
+         * @return a builder to be used to continue creating the command line.
+         */
         public CLIBuilder arg(String name) {
             return arg(name, null, null);
         }
 
+        /**
+         * Add a named argument.
+         * @param name the name of the argument.
+         * @param assoc an association command to decide what to do if the argument appears multiple times.  If null INTO_LIST is used.
+         * @return a builder to be used to continue creating the command line.
+         */
         public CLIBuilder arg(String name, Assoc assoc) {
             return arg(name, null, assoc);
         }
- 
+
+        /**
+         * Add a named argument.
+         * @param name the name of the argument.
+         * @param parse an optional function to transform the string to something else. If null a NOOP is used.
+         * @return a builder to be used to continue creating the command line.
+         */
         public CLIBuilder arg(String name, Parse parse) {
             return arg(name, parse, null);
         }
 
+        /**
+         * Add a named argument.
+         * @param name the name of the argument.
+         * @param parse an optional function to transform the string to something else. If null a NOOP is used.
+         * @param assoc an association command to decide what to do if the argument appears multiple times.  If null INTO_LIST is used.
+         * @return a builder to be used to continue creating the command line.
+         */
         public CLIBuilder arg(String name, Parse parse, Assoc assoc) {
             args.add(new Arg(name, parse, assoc));
             return this;
         }
 
+        /**
+         * Parse the command line arguments.
+         * @param rawArgs the string arguments to be parsed.
+         * @throws Exception on any error.
+         * @return The parsed command line.
+         * opts will be stored under the short argument name.
+         * args will be stored under the argument name, unless no arguments are configured, and then they will be stored under "ARGS".
+         * The last argument comnfigured is greedy and is used to process all remaining command line arguments.
+         */
         public Map<String, Object> parse(String ... rawArgs) throws Exception {
             Options options = new Options();
             for (Opt opt: opts) {
-                options.addOption(Option.builder(opt.s).longOpt(opt.l).hasArg().build());
+                options.addOption(Option.builder(opt.shortName).longOpt(opt.longName).hasArg().build());
             }
             DefaultParser parser = new DefaultParser();
             CommandLine cl = parser.parse(options, rawArgs);
             HashMap<String, Object> ret = new HashMap<>();
             for (Opt opt: opts) {
                 Object current = null;
-                for (String val: cl.getOptionValues(opt.s)) {
+                for (String val: cl.getOptionValues(opt.shortName)) {
                     current = opt.process(current, val);
                 }
                 if (current == null) {
                     current = opt.defaultValue;
                 }
-                ret.put(opt.s, current);
+                ret.put(opt.shortName, current);
             }
             List<String> stringArgs = cl.getArgList();
             if (args.size() > stringArgs.size()) {
-                throw new RuntimeException("Wrong number of arguments at least "+args.size()+" expected, but only " + stringArgs.size() + " found");
+                throw new RuntimeException("Wrong number of arguments at least " + args.size() +
+                                           " expected, but only " + stringArgs.size() + " found");
             }
 
             int argIndex = 0;
@@ -202,30 +275,78 @@ public class CLI {
         }
     }
 
-    public static CLIBuilder opt(String s, String l, Object defaultValue) {
-        return new CLIBuilder().opt(s, l, defaultValue);
-    }
- 
-    public static CLIBuilder opt(String s, String l, Object defaultValue, Parse parse) {
-        return new CLIBuilder().opt(s, l, defaultValue, parse);
+    /**
+     * Add an option to be parsed
+     * @param shortName the short single character name of the option (no `-` character proceeds it).
+     * @param longName the multi character name of the option (no `--` characters proceed it).
+     * @param defaultValue the value that will be returned of the command if none is given. null if none is given.
+     * @return a builder to be used to continue creating the command line.
+     */
+    public static CLIBuilder opt(String shortName, String longName, Object defaultValue) {
+        return new CLIBuilder().opt(shortName, longName, defaultValue);
     }
 
-    public static CLIBuilder opt(String s, String l, Object defaultValue, Parse parse, Assoc assoc) {
-        return new CLIBuilder().opt(s, l, defaultValue, parse, assoc);
+    /**
+     * Add an option to be parsed
+     * @param shortName the short single character name of the option (no `-` character proceeds it).
+     * @param longName the multi character name of the option (no `--` characters proceed it).
+     * @param defaultValue the value that will be returned of the command if none is given. null if none is given.
+     * @param parse an optional function to transform the string to something else. If null a NOOP is used.
+     * @return a builder to be used to continue creating the command line.
+     */
+    public static CLIBuilder opt(String shortName, String longName, Object defaultValue, Parse parse) {
+        return new CLIBuilder().opt(shortName, longName, defaultValue, parse);
     }
 
+    /**
+     * Add an option to be parsed
+     * @param shortName the short single character name of the option (no `-` character proceeds it).
+     * @param longName the multi character name of the option (no `--` characters proceed it).
+     * @param defaultValue the value that will be returned of the command if none is given. null if none is given.
+     * @param parse an optional function to transform the string to something else. If null a NOOP is used.
+     * @param assoc an association command to decide what to do if the option appears multiple times.  If null LAST_WINS is used.
+     * @return a builder to be used to continue creating the command line.
+     */
+    public static CLIBuilder opt(String shortName, String longName, Object defaultValue, Parse parse, Assoc assoc) {
+        return new CLIBuilder().opt(shortName, longName, defaultValue, parse, assoc);
+    }
+
+    /**
+     * Add a named argument.
+     * @param name the name of the argument.
+     * @return a builder to be used to continue creating the command line.
+     */
     public CLIBuilder arg(String name) {
         return new CLIBuilder().arg(name);
     }
- 
+
+    /**
+     * Add a named argument.
+     * @param name the name of the argument.
+     * @param assoc an association command to decide what to do if the argument appears multiple times.  If null INTO_LIST is used.
+     * @return a builder to be used to continue creating the command line.
+     */
     public CLIBuilder arg(String name, Assoc assoc) {
         return new CLIBuilder().arg(name, assoc);
     }
 
+    /**
+     * Add a named argument.
+     * @param name the name of the argument.
+     * @param parse an optional function to transform the string to something else. If null a NOOP is used.
+     * @return a builder to be used to continue creating the command line.
+     */
     public CLIBuilder arg(String name, Parse parse) {
         return new CLIBuilder().arg(name, parse);
     }
 
+    /**
+     * Add a named argument.
+     * @param name the name of the argument.
+     * @param parse an optional function to transform the string to something else. If null a NOOP is used.
+     * @param assoc an association command to decide what to do if the argument appears multiple times.  If null INTO_LIST is used.
+     * @return a builder to be used to continue creating the command line.
+     */
     public CLIBuilder arg(String name, Parse parse, Assoc assoc) {
         return new CLIBuilder().arg(name, parse, assoc);
     }

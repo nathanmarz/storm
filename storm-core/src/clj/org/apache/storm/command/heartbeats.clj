@@ -27,7 +27,7 @@
 
 (defn -main [command path & args]
   (let [conf (clojurify-structure (ConfigUtils/readStormConfig))
-        cluster (ClusterUtils/mkDistributedClusterState conf conf nil (ClusterStateContext.))]
+        cluster (ClusterUtils/mkStateStorage conf conf nil (ClusterStateContext.))]
     (println "Command: [" command "]")
     (condp = command
       "list"

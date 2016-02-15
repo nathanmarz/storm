@@ -26,7 +26,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Map;
 
-public interface StormClusterState {
+public interface IStormClusterState {
     public List<String> assignments(IFn callback);
 
     public Assignment assignmentInfo(String stormId, IFn callback);

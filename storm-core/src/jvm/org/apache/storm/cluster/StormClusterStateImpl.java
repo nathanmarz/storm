@@ -39,11 +39,11 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class StormClusterStateImpl implements StormClusterState {
+public class StormClusterStateImpl implements IStormClusterState {
 
     private static Logger LOG = LoggerFactory.getLogger(StormClusterStateImpl.class);
 
-    private StateStorage stateStorage;
+    private IStateStorage stateStorage;
 
     private ConcurrentHashMap<String, IFn> assignmentInfoCallback;
     private ConcurrentHashMap<String, IFn> assignmentInfoWithVersionCallback;
@@ -61,7 +61,7 @@ public class StormClusterStateImpl implements StormClusterState {
     private String stateId;
     private boolean solo;
 
-    public StormClusterStateImpl(StateStorage StateStorage, List<ACL> acls, ClusterStateContext context, boolean solo) throws Exception {
+    public StormClusterStateImpl(IStateStorage StateStorage, List<ACL> acls, ClusterStateContext context, boolean solo) throws Exception {
 
         this.stateStorage = StateStorage;
         this.solo = solo;
@@ -615,7 +615,7 @@ public class StormClusterStateImpl implements StormClusterState {
             }
             Collections.sort(errorInfos, new Comparator<ErrorInfo>() {
                 public int compare(ErrorInfo arg0, ErrorInfo arg1) {
-                    return -Integer.compare(arg0.get_error_time_secs(), arg1.get_error_time_secs());
+                    return Integer.compare(arg1.get_error_time_secs(), arg0.get_error_time_secs());
                 }
             });
         } catch (Exception e) {

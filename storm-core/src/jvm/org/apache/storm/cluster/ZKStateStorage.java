@@ -41,7 +41,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class ZKStateStorage implements StateStorage {
+public class ZKStateStorage implements IStateStorage {
 
     private static Logger LOG = LoggerFactory.getLogger(ZKStateStorage.class);
 
@@ -126,7 +126,7 @@ public class ZKStateStorage implements StateStorage {
 
     @Override
     public void delete_node_blobstore(String path, String nimbusHostPortInfo) {
-
+        Zookeeper.deleteNodeBlobstore(zkWriter, path, nimbusHostPortInfo);
     }
 
     @Override

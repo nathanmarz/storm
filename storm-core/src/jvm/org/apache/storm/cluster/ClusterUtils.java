@@ -194,20 +194,20 @@ public class ClusterUtils {
         return executorWhb;
     }
 
-    public StormClusterState mkStormClusterStateImpl(Object StateStorage, List<ACL> acls, ClusterStateContext context) throws Exception {
-        if (StateStorage instanceof StateStorage) {
-            return new StormClusterStateImpl((StateStorage) StateStorage, acls, context, false);
+    public IStormClusterState mkStormClusterStateImpl(Object stateStorage, List<ACL> acls, ClusterStateContext context) throws Exception {
+        if (stateStorage instanceof IStateStorage) {
+            return new StormClusterStateImpl((IStateStorage) stateStorage, acls, context, false);
         } else {
-            StateStorage Storage = _instance.mkDistributedClusterStateImpl((APersistentMap) StateStorage, (APersistentMap) StateStorage, acls, context);
+            IStateStorage Storage = _instance.mkStateStorageImpl((APersistentMap) stateStorage, (APersistentMap) stateStorage, acls, context);
             return new StormClusterStateImpl(Storage, acls, context, true);
         }
 
     }
 
-    public StateStorage mkDistributedClusterStateImpl(APersistentMap config, APersistentMap auth_conf, List<ACL> acls, ClusterStateContext context)
+    public IStateStorage mkStateStorageImpl(APersistentMap config, APersistentMap auth_conf, List<ACL> acls, ClusterStateContext context)
             throws Exception {
         String className = null;
-        StateStorage stateStorage = null;
+        IStateStorage stateStorage = null;
         if (config.get(Config.STORM_CLUSTER_STATE_STORE) != null) {
             className = (String) config.get(Config.STORM_CLUSTER_STATE_STORE);
         } else {
@@ -215,16 +215,16 @@ public class ClusterUtils {
         }
         Class clazz = Class.forName(className);
         StateStorageFactory storageFactory = (StateStorageFactory) clazz.newInstance();
-        stateStorage = storageFactory.mkState(config, auth_conf, acls, context);
+        stateStorage = storageFactory.mkStore(config, auth_conf, acls, context);
         return stateStorage;
     }
 
-    public static StateStorage mkDistributedClusterState(APersistentMap config, APersistentMap auth_conf, List<ACL> acls, ClusterStateContext context)
+    public static IStateStorage mkStateStorage(APersistentMap config, APersistentMap auth_conf, List<ACL> acls, ClusterStateContext context)
             throws Exception {
-        return _instance.mkDistributedClusterStateImpl(config, auth_conf, acls, context);
+        return _instance.mkStateStorageImpl(config, auth_conf, acls, context);
     }
 
-    public static StormClusterState mkStormClusterState(Object StateStorage, List<ACL> acls, ClusterStateContext context) throws Exception {
+    public static IStormClusterState mkStormClusterState(Object StateStorage, List<ACL> acls, ClusterStateContext context) throws Exception {
         return _instance.mkStormClusterStateImpl(StateStorage, acls, context);
     }
 

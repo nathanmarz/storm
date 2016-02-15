@@ -18,7 +18,6 @@
 package org.apache.storm.cluster;
 
 import clojure.lang.APersistentMap;
-import clojure.lang.IFn;
 import java.util.List;
 
 import org.apache.curator.framework.state.ConnectionStateListener;
@@ -41,7 +40,7 @@ import org.apache.zookeeper.data.ACL;
  * may or may not cause a collision in "/path".
  * Never use the same paths with the *_hb* methods as you do with the others.
  */
-public interface StateStorage {
+public interface IStateStorage {
 
     /**
      * Registers a callback function that gets called when CuratorEvents happen.

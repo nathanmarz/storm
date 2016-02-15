@@ -23,7 +23,7 @@
   (:import [org.apache.storm.generated
             HBExecutionException HBServerMessageType HBMessage
             HBMessageData HBPulse]
-           [org.apache.storm.cluster ZKStateStorage StateStorage ClusterUtils]
+           [org.apache.storm.cluster ZKStateStorage ClusterUtils IStateStorage]
            [org.apache.storm.pacemaker PacemakerClient])
   (:gen-class
     :implements [org.apache.storm.cluster.StateStorageFactory]))
@@ -33,7 +33,7 @@
   (PacemakerClient. conf))
 
 (defn makeZKState [conf auth-conf acls context]
-  (ClusterUtils/mkDistributedClusterState conf auth-conf acls context))
+  (ClusterUtils/mkStateStorage conf auth-conf acls context))
 
 (def max-retries 10)
 
@@ -42,7 +42,7 @@
         pacemaker-client (makeClient conf)]
 
     (reify
-      StateStorage
+      IStateStorage
       ;; Let these pass through to the zk-state. We only want to handle heartbeats.
       (register [this callback] (.register zk-state callback))
       (unregister [this callback] (.unregister zk-state callback))

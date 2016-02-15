@@ -158,7 +158,7 @@
                      :port-counter port-counter
                      :daemon-conf daemon-conf
                      :supervisors (atom [])
-                     :state (ClusterUtils/mkDistributedClusterState daemon-conf nil nil (ClusterStateContext.))
+                     :state (ClusterUtils/mkStateStorage daemon-conf nil nil (ClusterStateContext.))
                      :storm-cluster-state (ClusterUtils/mkStormClusterState daemon-conf nil (ClusterStateContext.))
                      :tmp-dirs (atom [nimbus-tmp zk-tmp])
                      :zookeeper (if (not-nil? zk-handle) zk-handle)

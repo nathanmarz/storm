@@ -157,7 +157,6 @@ public class PacemakerClient implements ISaslClient {
     public String secretKey() {
         return secret;
     }
-
     public HBMessage send(HBMessage m) {
         waitUntilReady();
         LOG.debug("Sending message: {}", m.toString());

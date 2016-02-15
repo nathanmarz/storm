@@ -23,7 +23,7 @@
   (:import [org.mockito.exceptions.base MockitoAssertionError])
   (:import [org.apache.curator.framework CuratorFramework CuratorFrameworkFactory CuratorFrameworkFactory$Builder])
   (:import [org.apache.storm.utils Utils TestUtils ZookeeperAuthInfo ConfigUtils])
-  (:import [org.apache.storm.cluster StateStorage ZKStateStorage ClusterStateContext StormClusterStateImpl ClusterUtils])
+  (:import [org.apache.storm.cluster IStateStorage ZKStateStorage ClusterStateContext StormClusterStateImpl ClusterUtils])
   (:import [org.apache.storm.zookeeper Zookeeper])
   (:import [org.apache.storm.callback ZKStateChangedCallback])
   (:import [org.apache.storm.testing.staticmocking MockedZookeeper MockedCluster])
@@ -39,7 +39,7 @@
 
 (defn mk-state
   ([zk-port] (let [conf (mk-config zk-port)]
-               (ClusterUtils/mkDistributedClusterState conf conf nil (ClusterStateContext.))))
+               (ClusterUtils/mkStateStorage conf conf nil (ClusterStateContext.))))
   ([zk-port cb]
     (let [ret (mk-state zk-port)]
       (.register ret cb)
@@ -318,12 +318,12 @@
       ;; No need for when clauses because we just want to return nil
       (with-open [_ (MockedZookeeper. zk-mock)]
         (. (Mockito/when (.mkClientImpl zk-mock (Mockito/anyMap) (Mockito/anyList) (Mockito/any) (Mockito/anyString) (Mockito/any) (Mockito/anyMap))) (thenReturn curator-frameworke))
-        (ClusterUtils/mkDistributedClusterState {} nil nil (ClusterStateContext.))
+        (ClusterUtils/mkStateStorage {} nil nil (ClusterStateContext.))
         (.mkdirsImpl (Mockito/verify zk-mock (Mockito/times 1)) (Mockito/any) (Mockito/anyString) (Mockito/eq nil))))
-    (let [distributed-state-storage (reify StateStorage
+    (let [distributed-state-storage (reify IStateStorage
                                       (register [this callback] nil)
                                       (mkdirs [this path acls] nil))
           cluster-utils (Mockito/mock ClusterUtils)]
       (with-open [mocked-cluster (MockedCluster. cluster-utils)]
-        (. (Mockito/when (.mkDistributedClusterStateImpl cluster-utils (Mockito/any) (Mockito/any) (Mockito/eq nil) (Mockito/any))) (thenReturn distributed-state-storage))
+        (. (Mockito/when (mkStateStorageImpl cluster-utils (Mockito/any) (Mockito/any) (Mockito/eq nil) (Mockito/any))) (thenReturn distributed-state-storage))
         (ClusterUtils/mkStormClusterState {} nil (ClusterStateContext.))))))

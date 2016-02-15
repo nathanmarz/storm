@@ -26,7 +26,7 @@ import java.util.List;
 public class ZKStateStorageFactory implements StateStorageFactory{
 
     @Override
-    public StateStorage mkState(APersistentMap config, APersistentMap auth_conf, List<ACL> acls, ClusterStateContext context) {
+    public IStateStorage mkStore(APersistentMap config, APersistentMap auth_conf, List<ACL> acls, ClusterStateContext context) {
         try {
             return new ZKStateStorage(config, auth_conf, acls, context);
         }catch (Exception e){

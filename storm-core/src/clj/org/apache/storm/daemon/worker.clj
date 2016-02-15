@@ -596,7 +596,7 @@
   (let [storm-conf (ConfigUtils/readSupervisorStormConf conf storm-id)
         storm-conf (clojurify-structure (ConfigUtils/overrideLoginConfigWithSystemProperty storm-conf))
         acls (Utils/getWorkerACL storm-conf)
-        state-store (ClusterUtils/mkDistributedClusterState conf storm-conf  acls  (ClusterStateContext. DaemonType/WORKER))
+        state-store (ClusterUtils/mkStateStorage conf storm-conf  acls  (ClusterStateContext. DaemonType/WORKER))
         storm-cluster-state (ClusterUtils/mkStormClusterState state-store acls (ClusterStateContext.))
         initial-credentials (clojurify-crdentials (.credentials storm-cluster-state storm-id nil))
         auto-creds (AuthUtils/GetAutoCredentials storm-conf)

@@ -16,7 +16,7 @@
 (ns org.apache.storm.scheduler-test
   (:use [clojure test])
   (:use [org.apache.storm config testing])
-  (:use [org.apache.storm.scheduler EvenScheduler])
+  (:import [org.apache.storm.scheduler EvenScheduler])
   (:require [org.apache.storm.daemon [nimbus :as nimbus]])
   (:import [org.apache.storm.generated StormTopology])
   (:import [org.apache.storm.scheduler Cluster SupervisorDetails WorkerSlot ExecutorDetails
@@ -265,7 +265,7 @@
   (is (= '(["supervisor2" 6700] ["supervisor1" 6700]
            ["supervisor2" 6701] ["supervisor1" 6701]
            ["supervisor2" 6702])
-         (sort-slots [["supervisor1" 6700] ["supervisor1" 6701]
+         (EvenScheduler/sortSlots [["supervisor1" 6700] ["supervisor1" 6701]
                       ["supervisor2" 6700] ["supervisor2" 6701] ["supervisor2" 6702]
                       ])))
   ;; test supervisor3 has more free slots
@@ -273,7 +273,7 @@
            ["supervisor3" 6703] ["supervisor2" 6701] ["supervisor1" 6701]
            ["supervisor3" 6702] ["supervisor2" 6702]
            ["supervisor3" 6701])
-         (sort-slots [["supervisor1" 6700] ["supervisor1" 6701]
+         (EvenScheduler/sortSlots [["supervisor1" 6700] ["supervisor1" 6701]
                       ["supervisor2" 6700] ["supervisor2" 6701] ["supervisor2" 6702]
                       ["supervisor3" 6700] ["supervisor3" 6703] ["supervisor3" 6702] ["supervisor3" 6701]
                       ])))

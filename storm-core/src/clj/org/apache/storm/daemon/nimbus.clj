@@ -35,7 +35,7 @@
   (:import [java.nio.channels Channels WritableByteChannel])
   (:import [org.apache.storm.security.auth ThriftServer ThriftConnectionType ReqContext AuthUtils]
            [org.apache.storm.logging ThriftAccessLogger])
-  (:use [org.apache.storm.scheduler.DefaultScheduler])
+  (:import [org.apache.storm.scheduler DefaultScheduler])
   (:import [org.apache.storm.scheduler INimbus SupervisorDetails WorkerSlot TopologyDetails
             Cluster Topologies SchedulerAssignment SchedulerAssignmentImpl DefaultScheduler ExecutorDetails])
   (:import [org.apache.storm.nimbus NimbusInfo])

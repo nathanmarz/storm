@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Map;
 
-public class NimbusClient extends ThriftClient {
+public class NimbusClient extends ThriftClient implements AutoCloseable {
     private Nimbus.Client _client;
     private static final Logger LOG = LoggerFactory.getLogger(NimbusClient.class);
 

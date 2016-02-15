@@ -18,6 +18,8 @@
 package org.apache.storm.cluster;
 
 import clojure.lang.APersistentMap;
+import clojure.lang.PersistentArrayMap;
+import clojure.lang.RT;
 import org.apache.storm.Config;
 import org.apache.storm.generated.ClusterWorkerHeartbeat;
 import org.apache.storm.generated.ExecutorInfo;
@@ -29,6 +31,8 @@ import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Id;
 import org.apache.zookeeper.server.auth.DigestAuthenticationProvider;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.security.NoSuchAlgorithmException;
@@ -182,13 +186,21 @@ public class ClusterUtils {
         return null;
     }
 
-    // Ensures that we only return heartbeats for executors assigned to this worker
-    public static Map<ExecutorInfo, ClusterWorkerHeartbeat> convertExecutorBeats(List<ExecutorInfo> executors, ClusterWorkerHeartbeat workerHeartbeat) {
-        Map<ExecutorInfo, ClusterWorkerHeartbeat> executorWhb = new HashMap<>();
+    /**
+     * Ensures that we only return heartbeats for executors assigned to this worker
+     * @param executors
+     * @param workerHeartbeat
+     * @return
+     */
+    public static Map<ExecutorInfo, APersistentMap> convertExecutorBeats(List<ExecutorInfo> executors, ClusterWorkerHeartbeat workerHeartbeat) {
+        Map<ExecutorInfo, APersistentMap> executorWhb = new HashMap<>();
         Map<ExecutorInfo, ExecutorStats> executorStatsMap = workerHeartbeat.get_executor_stats();
         for (ExecutorInfo executor : executors) {
             if (executorStatsMap.containsKey(executor)) {
-                executorWhb.put(executor, workerHeartbeat);
+                APersistentMap executorBeat =
+                        new PersistentArrayMap(new Object[] { RT.keyword(null, "time-secs"), workerHeartbeat.get_time_secs(), RT.keyword(null, "uptime"),
+                                workerHeartbeat.get_uptime_secs(), RT.keyword(null, "stats"), workerHeartbeat.get_executor_stats().get(executor) });
+                executorWhb.put(executor, executorBeat);
             }
         }
         return executorWhb;
@@ -204,8 +216,7 @@ public class ClusterUtils {
 
     }
 
-    public IStateStorage mkStateStorageImpl(APersistentMap config, APersistentMap auth_conf, List<ACL> acls, ClusterStateContext context)
-            throws Exception {
+    public IStateStorage mkStateStorageImpl(APersistentMap config, APersistentMap auth_conf, List<ACL> acls, ClusterStateContext context) throws Exception {
         String className = null;
         IStateStorage stateStorage = null;
         if (config.get(Config.STORM_CLUSTER_STATE_STORE) != null) {
@@ -219,8 +230,7 @@ public class ClusterUtils {
         return stateStorage;
     }
 
-    public static IStateStorage mkStateStorage(APersistentMap config, APersistentMap auth_conf, List<ACL> acls, ClusterStateContext context)
-            throws Exception {
+    public static IStateStorage mkStateStorage(APersistentMap config, APersistentMap auth_conf, List<ACL> acls, ClusterStateContext context) throws Exception {
         return _instance.mkStateStorageImpl(config, auth_conf, acls, context);
     }
 
@@ -245,5 +255,28 @@ public class ClusterUtils {
             list.add(key);
         }
         return rtn;
+    }
+
+    public static String StringifyError(Throwable error) {
+        String errorString = null;
+        StringWriter result = null;
+        PrintWriter printWriter = null;
+        try {
+            result = new StringWriter();
+            printWriter = new PrintWriter(result);
+            error.printStackTrace(printWriter);
+            if (result != null) {
+                errorString = result.toString();
+            }
+        } finally {
+            try {
+                if (result != null)
+                    result.close();
+                if (printWriter != null)
+                    printWriter.close();
+            } catch (Exception e) {
+            }
+        }
+        return errorString;
     }
 }

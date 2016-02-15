@@ -23,13 +23,13 @@ import org.apache.zookeeper.data.ACL;
 
 import java.util.List;
 
-public class ZKStateStorageFactory implements StateStorageFactory{
+public class ZKStateStorageFactory implements StateStorageFactory {
 
     @Override
     public IStateStorage mkStore(APersistentMap config, APersistentMap auth_conf, List<ACL> acls, ClusterStateContext context) {
         try {
             return new ZKStateStorage(config, auth_conf, acls, context);
-        }catch (Exception e){
+        } catch (Exception e) {
             throw Utils.wrapInRuntime(e);
         }
     }

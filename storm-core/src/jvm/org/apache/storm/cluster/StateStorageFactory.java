@@ -22,7 +22,7 @@ import java.util.List;
 import org.apache.zookeeper.data.ACL;
 
 public interface StateStorageFactory {
-    
+
     IStateStorage mkStore(APersistentMap config, APersistentMap auth_conf, List<ACL> acls, ClusterStateContext context);
 
 }

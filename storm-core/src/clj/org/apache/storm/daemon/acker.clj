@@ -14,12 +14,13 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns org.apache.storm.daemon.acker
-  (:import [org.apache.storm.task OutputCollector TopologyContext IBolt])
+  (:import [org.apache.storm.task OutputCollector TopologyContext IBolt]
+           [org.apache.storm.utils Utils])
   (:import [org.apache.storm.tuple Tuple Fields])
-  (:import [org.apache.storm.utils RotatingMap MutableObject])
+  (:import [org.apache.storm.utils Container RotatingMap MutableObject])
   (:import [java.util List Map])
   (:import [org.apache.storm Constants])
-  (:use [org.apache.storm config util log])
+  (:use [org.apache.storm config log])
   (:gen-class
    :init init
    :implements [org.apache.storm.task.IBolt]
@@ -88,20 +89,20 @@
       )))
 
 (defn -init []
-  [[] (container)])
+  [[] (Container.)])
 
-(defn -prepare [this conf context collector]
+(defn -prepare [^org.apache.storm.daemon.acker this conf context collector]
   (let [^IBolt ret (mk-acker-bolt)]
-    (container-set! (.state ^org.apache.storm.daemon.acker this) ret)
+    (.. this state (set ret))
     (.prepare ret conf context collector)
     ))
 
-(defn -execute [this tuple]
-  (let [^IBolt delegate (container-get (.state ^org.apache.storm.daemon.acker this))]
+(defn -execute [^org.apache.storm.daemon.acker this tuple]
+  (let [^IBolt delegate (.. this state (get))]
     (.execute delegate tuple)
     ))
 
-(defn -cleanup [this]
-  (let [^IBolt delegate (container-get (.state ^org.apache.storm.daemon.acker this))]
+(defn -cleanup [^org.apache.storm.daemon.acker this]
+  (let [^IBolt delegate (.. this state (get))]
     (.cleanup delegate)
     ))

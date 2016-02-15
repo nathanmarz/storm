@@ -35,13 +35,10 @@ public interface IStormClusterState {
 
     public Integer assignmentVersion(String stormId, IFn callback) throws Exception;
 
-    // returns key information under /storm/blobstore/key
     public List<String> blobstoreInfo(String blobKey);
 
-    // returns list of nimbus summaries stored under /stormroot/nimbuses/<nimbus-ids> -> <data>
     public List nimbuses();
 
-    // adds the NimbusSummary to /stormroot/nimbuses/nimbus-id
     public void addNimbusHost(String nimbusId, NimbusSummary nimbusSummary);
 
     public List<String> activeStorms();
@@ -58,7 +55,7 @@ public interface IStormClusterState {
 
     public void deleteTopologyProfileRequests(String stormId, ProfileRequest profileRequest);
 
-    public Map<ExecutorInfo, ClusterWorkerHeartbeat> executorBeats(String stormId, Map<List<Long>, NodeInfo> executorNodePort);
+    public Map<ExecutorInfo, APersistentMap> executorBeats(String stormId, Map<List<Long>, NodeInfo> executorNodePort);
 
     public List<String> supervisors(IFn callback);
 
@@ -100,8 +97,6 @@ public interface IStormClusterState {
 
     public void setAssignment(String stormId, Assignment info);
 
-    // sets up information related to key consisting of nimbus
-    // host:port and version info of the blob
     public void setupBlobstore(String key, NimbusInfo nimbusInfo, Integer versionInfo);
 
     public List<String> activeKeys();
@@ -114,7 +109,7 @@ public interface IStormClusterState {
 
     public void removeKeyVersion(String blobKey);
 
-    public void reportError(String stormId, String componentId, String node, Long port, String error);
+    public void reportError(String stormId, String componentId, String node, Long port, Throwable error);
 
     public List<ErrorInfo> errors(String stormId, String componentId);
 

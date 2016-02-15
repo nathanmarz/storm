@@ -18,6 +18,7 @@
   (:require [org.apache.storm [testing :as t]])
   (:import [org.apache.storm.trident.operation.builtin Count])
   (:import [org.apache.storm.trident.state OpaqueValue])
+  (:import [org.apache.storm.utils Utils])
   (:import [org.apache.storm.trident.state CombinerValueUpdater])
   (:import [org.apache.storm.trident.topology.state TransactionalState TestTransactionalState])
   (:import [org.apache.storm.trident.state.map TransactionalMap OpaqueMap])
@@ -29,7 +30,7 @@
   (:import [org.mockito Matchers Mockito])
   (:import [org.mockito.exceptions.base MockitoAssertionError])
   (:use [org.apache.storm.trident testing])
-  (:use [org.apache.storm config util]))
+  (:use [org.apache.storm config]))
 
 (defn single-remove [map key]
   (-> map (.multiRemove [[key]])))
@@ -128,7 +129,7 @@
           e)))))))
 
 (deftest test-memory-map-state-remove
-  (let [map (MemoryMapState. (uuid))]
+  (let [map (MemoryMapState. (Utils/uuid))]
     (.beginCommit map 1)
     (single-put map "a" 1)
     (single-put map "b" 2)

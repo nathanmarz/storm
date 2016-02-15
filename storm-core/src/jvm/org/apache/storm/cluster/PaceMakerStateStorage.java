@@ -158,7 +158,7 @@ public class PaceMakerStateStorage implements IStateStorage {
         int retry = maxRetries;
         while (true) {
             try {
-                HBMessage message = new HBMessage(HBServerMessageType.GET_PULSE, HBMessageData.path(path));
+                HBMessage message = new HBMessage(HBServerMessageType.GET_ALL_NODES_FOR_PATH, HBMessageData.path(path));
                 HBMessage response = pacemakerClient.send(message);
                 if (response.get_type() != HBServerMessageType.GET_ALL_NODES_FOR_PATH_RESPONSE) {
                     throw new HBExecutionException("Invalid Response Type");
@@ -179,7 +179,7 @@ public class PaceMakerStateStorage implements IStateStorage {
         int retry = maxRetries;
         while (true) {
             try {
-                HBMessage message = new HBMessage(HBServerMessageType.GET_PULSE, HBMessageData.path(path));
+                HBMessage message = new HBMessage(HBServerMessageType.DELETE_PATH, HBMessageData.path(path));
                 HBMessage response = pacemakerClient.send(message);
                 if (response.get_type() != HBServerMessageType.DELETE_PATH_RESPONSE) {
                     throw new HBExecutionException("Invalid Response Type");

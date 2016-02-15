@@ -34,6 +34,8 @@ import org.apache.zookeeper.data.ACL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -65,6 +67,7 @@ public class StormClusterStateImpl implements IStormClusterState {
 
         this.stateStorage = StateStorage;
         this.solo = solo;
+        this.acls = acls;
 
         assignmentInfoCallback = new ConcurrentHashMap<>();
         assignmentInfoWithVersionCallback = new ConcurrentHashMap<>();
@@ -83,9 +86,7 @@ public class StormClusterStateImpl implements IStormClusterState {
                 List<String> toks = Zookeeper.tokenizePath(path);
                 int size = toks.size();
                 if (size >= 1) {
-                    String params = null;
                     String root = toks.get(0);
-                    IFn fn = null;
                     if (root.equals(ClusterUtils.ASSIGNMENTS_ROOT)) {
                         if (size == 1) {
                             // set null and get the old value
@@ -287,13 +288,18 @@ public class StormClusterStateImpl implements IStormClusterState {
         stateStorage.delete_node(path);
     }
 
-    // need to take executor->node+port in explicitly so that we don't run into a situation where a
-    // long dead worker with a skewed clock overrides all the timestamps. By only checking heartbeats
-    // with an assigned node+port, and only reading executors from that heartbeat that are actually assigned,
-    // we avoid situations like that
+    /**
+     * need to take executor->node+port in explicitly so that we don't run into a situation where a long dead worker with a skewed clock overrides all the
+     * timestamps. By only checking heartbeats with an assigned node+port, and only reading executors from that heartbeat that are actually assigned, we avoid
+     * situations like that
+     * 
+     * @param stormId
+     * @param executorNodePort
+     * @return
+     */
     @Override
-    public Map<ExecutorInfo, ClusterWorkerHeartbeat> executorBeats(String stormId, Map<List<Long>, NodeInfo> executorNodePort) {
-        Map<ExecutorInfo, ClusterWorkerHeartbeat> executorWhbs = new HashMap<>();
+    public Map<ExecutorInfo, APersistentMap> executorBeats(String stormId, Map<List<Long>, NodeInfo> executorNodePort) {
+        Map<ExecutorInfo, APersistentMap> executorWhbs = new HashMap<>();
 
         Map<NodeInfo, List<List<Long>>> nodePortExecutors = ClusterUtils.reverseMap(executorNodePort);
 
@@ -400,8 +406,14 @@ public class StormClusterStateImpl implements IStormClusterState {
         stateStorage.set_ephemeral_node(path, Utils.serialize(info), acls);
     }
 
-    // if znode exists and to be not on?, delete; if exists and on?, do nothing;
-    // if not exists and to be on?, create; if not exists and not on?, do nothing;
+    /**
+     * if znode exists and to be not on?, delete; if exists and on?, do nothing; if not exists and to be on?, create; if not exists and not on?, do nothing;
+     * 
+     * @param stormId
+     * @param node
+     * @param port
+     * @param on
+     */
     @Override
     public void workerBackpressure(String stormId, String node, Long port, boolean on) {
         String path = ClusterUtils.backpressurePath(stormId, node, port);
@@ -417,7 +429,13 @@ public class StormClusterStateImpl implements IStormClusterState {
         }
     }
 
-    // if the backpresure/storm-id dir is empty, this topology has throttle-on, otherwise not.
+    /**
+     * if the backpresure/storm-id dir is empty, this topology has throttle-on, otherwise not.
+     * 
+     * @param stormId
+     * @param callback
+     * @return
+     */
     @Override
     public boolean topologyBackpressure(String stormId, IFn callback) {
         if (callback != null) {
@@ -445,7 +463,12 @@ public class StormClusterStateImpl implements IStormClusterState {
         stateStorage.set_data(path, Utils.serialize(stormBase), acls);
     }
 
-    // To update this function due to APersistentMap/APersistentSet is clojure's structure
+    /**
+     * To update this function due to APersistentMap/APersistentSet is clojure's structure
+     * 
+     * @param stormId
+     * @param newElems
+     */
     @Override
     public void updateStorm(String stormId, StormBase newElems) {
 
@@ -575,11 +598,11 @@ public class StormClusterStateImpl implements IStormClusterState {
     }
 
     @Override
-    public void reportError(String stormId, String componentId, String node, Long port, String error) {
+    public void reportError(String stormId, String componentId, String node, Long port, Throwable error) {
 
         String path = ClusterUtils.errorPath(stormId, componentId);
         String lastErrorPath = ClusterUtils.lastErrorPath(stormId, componentId);
-        ErrorInfo errorInfo = new ErrorInfo(error, Time.currentTimeSecs());
+        ErrorInfo errorInfo = new ErrorInfo(ClusterUtils.StringifyError(error), Time.currentTimeSecs());
         errorInfo.set_host(node);
         errorInfo.set_port(port.intValue());
         byte[] serData = Utils.serialize(errorInfo);

@@ -20,10 +20,21 @@
             MemoryMapState$Factory])
   (:import [org.apache.storm.trident.state StateSpec])
   (:import [org.apache.storm.trident.operation.impl CombinerAggStateUpdater])
-  (:use [org.apache.storm.trident testing])
-  (:use [org.apache.storm util]))
+  (:use [org.apache.storm.trident testing]))
   
 (bootstrap-imports)
+
+(defmacro letlocals
+  [& body]
+  (let [[tobind lexpr] (split-at (dec (count body)) body)
+        binded (vec (mapcat (fn [e]
+                              (if (and (list? e) (= 'bind (first e)))
+                                [(second e) (last e)]
+                                ['_ e]
+                                ))
+                            tobind))]
+    `(let ~binded
+       ~(first lexpr))))
 
 (deftest test-memory-map-get-tuples
   (t/with-local-cluster [cluster]

@@ -1,8 +1,24 @@
 ## 2.0.0
+ * STORM-1248: port backtype.storm.messaging.loader to java
+ * STORM-1538: Exception being thrown after Utils conversion to java
+ * STORM-1242: migrate backtype.storm.command.config-value to java
+ * STORM-1226: Port backtype.storm.util to java
+ * STORM-1436: Random test failure on BlobStoreTest / HdfsBlobStoreImplTest (occasionally killed)
+ * STORM-1476: Filter -c options from args and add them as part of storm.options
  * STORM-1257: port backtype.storm.zookeeper to java
  * STORM-1504: Add Serializer and instruction for AvroGenericRecordBolt
+ * STORM-1524: Add Pluggable daemon metrics Reporters
+ * STORM-1521: When using Kerberos login from keytab with multiple bolts/executors ticket is not renewed in hbase bolt.
 
 ## 1.0.0
+ * STORM-1519: Storm syslog logging not confirming to RFC5426 3.1
+ * STORM-1520: Nimbus Clojure/Zookeeper issue ("stateChanged" method not found)
+ * STORM-1531: Junit and mockito dependencies need to have correct scope defined in storm-elasticsearch pom.xml
+ * STORM-1526: Improve Storm core performance
+ * STORM-1517: Add peek api in trident stream
+ * STORM-1455: kafka spout should not reset to the beginning of partition when offsetoutofrange exception occurs
+ * STORM-1505: Add map, flatMap and filter functions in trident stream
+ * STORM-1518: Backport of STORM-1504
  * STORM-1510: Fix broken nimbus log link
  * STORM-1503: Worker should not crash on failure to send heartbeats to Pacemaker/ZK
  * STORM-1176: Checkpoint window evaluated/expired state

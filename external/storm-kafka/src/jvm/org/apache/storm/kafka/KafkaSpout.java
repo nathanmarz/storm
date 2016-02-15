@@ -17,17 +17,17 @@
  */
 package org.apache.storm.kafka;
 
+import com.google.common.base.Strings;
+
 import org.apache.storm.Config;
+import org.apache.storm.kafka.PartitionManager.KafkaMessageId;
 import org.apache.storm.metric.api.IMetric;
 import org.apache.storm.spout.SpoutOutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.topology.base.BaseRichSpout;
-import com.google.common.base.Strings;
-import kafka.message.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.storm.kafka.PartitionManager.KafkaMessageId;
 
 import java.util.*;
 
@@ -100,7 +100,7 @@ public class KafkaSpout extends BaseRichSpout {
                 }
                 _kafkaOffsetMetric.refreshPartitions(latestPartitions);
                 for (PartitionManager pm : pms) {
-                    _kafkaOffsetMetric.setLatestEmittedOffset(pm.getPartition(), pm.lastCompletedOffset());
+                    _kafkaOffsetMetric.setOffsetData(pm.getPartition(), pm.getOffsetData());
                 }
                 return _kafkaOffsetMetric.getValueAndReset();
             }

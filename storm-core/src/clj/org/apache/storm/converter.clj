@@ -16,7 +16,8 @@
 (ns org.apache.storm.converter
   (:import [org.apache.storm.generated SupervisorInfo NodeInfo Assignment WorkerResources
             StormBase TopologyStatus ClusterWorkerHeartbeat ExecutorInfo ErrorInfo Credentials RebalanceOptions KillOptions
-            TopologyActionOptions DebugOptions ProfileRequest])
+            TopologyActionOptions DebugOptions ProfileRequest]
+           [org.apache.storm.utils Utils])
   (:use [org.apache.storm util stats log])
   (:require [org.apache.storm.daemon [common :as common]]))
 
@@ -71,6 +72,7 @@
                                                           (:worker->resources assignment)))))
     thrift-assignment))
 
+;TODO: when translating this function, you should replace the map-key with a proper for loop HERE
 (defn clojurify-executor->node_port [executor->node_port]
   (into {}
     (map-val
@@ -90,6 +92,7 @@
                 [(.get_mem_on_heap resources) (.get_mem_off_heap resources) (.get_cpu resources)]])
              worker->resources)))
 
+;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defn clojurify-assignment [^Assignment assignment]
   (if assignment
     (org.apache.storm.daemon.common.Assignment.
@@ -117,12 +120,17 @@
       :killed TopologyStatus/KILLED
       nil)))
 
+(defn assoc-non-nil
+  [m k v]
+  (if v (assoc m k v) m))
+
 (defn clojurify-rebalance-options [^RebalanceOptions rebalance-options]
   (-> {:action :rebalance}
     (assoc-non-nil :delay-secs (if (.is_set_wait_secs rebalance-options) (.get_wait_secs rebalance-options)))
     (assoc-non-nil :num-workers (if (.is_set_num_workers rebalance-options) (.get_num_workers rebalance-options)))
     (assoc-non-nil :component->executors (if (.is_set_num_executors rebalance-options) (into {} (.get_num_executors rebalance-options))))))
 
+;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defn thriftify-rebalance-options [rebalance-options]
   (if rebalance-options
     (let [thrift-rebalance-options (RebalanceOptions.)]
@@ -178,6 +186,7 @@
     (.set_enable (get options :enable false))
     (.set_samplingpct (get options :samplingpct 10))))
 
+;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defn thriftify-storm-base [storm-base]
   (doto (StormBase.)
     (.set_name (:storm-name storm-base))
@@ -190,6 +199,7 @@
     (.set_prev_status (convert-to-status-from-symbol (:prev-status storm-base)))
     (.set_component_debug (map-val thriftify-debugoptions (:component->debug storm-base)))))
 
+;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defn clojurify-storm-base [^StormBase storm-base]
   (if storm-base
     (org.apache.storm.daemon.common.StormBase.
@@ -203,6 +213,7 @@
       (convert-to-symbol-from-status (.get_prev_status storm-base))
       (map-val clojurify-debugoptions (.get_component_debug storm-base)))))
 
+;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defn thriftify-stats [stats]
   (if stats
     (map-val thriftify-executor-stats
@@ -210,6 +221,7 @@
         stats))
     {}))
 
+;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defn clojurify-stats [stats]
   (if stats
     (map-val clojurify-executor-stats

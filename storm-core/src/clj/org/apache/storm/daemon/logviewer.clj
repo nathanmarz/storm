@@ -20,7 +20,7 @@
   (:use [hiccup core page-helpers form-helpers])
   (:use [org.apache.storm config util log timer])
   (:use [org.apache.storm.ui helpers])
-  (:import [org.apache.storm.utils Utils VersionInfo ConfigUtils])
+  (:import [org.apache.storm.utils Utils Time VersionInfo ConfigUtils])
   (:import [org.slf4j LoggerFactory])
   (:import [java.util Arrays ArrayList HashSet])
   (:import [java.util.zip GZIPInputStream])
@@ -28,10 +28,10 @@
   (:import [org.apache.logging.log4j.core Appender LoggerContext])
   (:import [org.apache.logging.log4j.core.appender RollingFileAppender])
   (:import [java.io BufferedInputStream File FileFilter FileInputStream
-            InputStream InputStreamReader])
+            InputStream InputStreamReader]
+           [java.net URLDecoder])
   (:import [java.nio.file Files Path Paths DirectoryStream])
   (:import [java.nio ByteBuffer])
-  (:import [org.apache.storm.utils Utils])
   (:import [org.apache.storm.daemon DirectoryCleaner])
   (:import [org.yaml.snakeyaml Yaml]
            [org.yaml.snakeyaml.constructor SafeConstructor])
@@ -50,6 +50,8 @@
 
 (def ^:dynamic *STORM-CONF* (clojurify-structure (ConfigUtils/readStormConfig)))
 (def STORM-VERSION (VersionInfo/getVersion))
+
+(def worker-log-filename-pattern  #"^worker.log(.*)")
 
 (defmeter logviewer:num-log-page-http-requests)
 (defmeter logviewer:num-daemonlog-page-http-requests)
@@ -117,9 +119,9 @@
 (defn get-topo-port-workerlog
   "Return the path of the worker log with the format of topoId/port/worker.log.*"
   [^File file]
-  (clojure.string/join file-path-separator
+  (clojure.string/join Utils/FILE_PATH_SEPARATOR
                        (take-last 3
-                                  (split (.getCanonicalPath file) (re-pattern file-path-separator)))))
+                                  (split (.getCanonicalPath file) (re-pattern Utils/FILE_PATH_SEPARATOR)))))
 
 (defn get-metadata-file-for-log-root-name [root-name root-dir]
   (let [metaFile (clojure.java.io/file root-dir "metadata"
@@ -141,10 +143,10 @@
         nil))))
 
 (defn get-worker-id-from-metadata-file [metaFile]
-  (get (clojure-from-yaml-file metaFile) "worker-id"))
+  (get (clojurify-structure (Utils/readYamlFile metaFile)) "worker-id"))
 
 (defn get-topo-owner-from-metadata-file [metaFile]
-  (get (clojure-from-yaml-file metaFile) TOPOLOGY-SUBMITTER-USER))
+  (get (clojurify-structure (Utils/readYamlFile  metaFile)) TOPOLOGY-SUBMITTER-USER))
 
 (defn identify-worker-log-dirs [log-dirs]
   "return the workerid to worker-log-dir map"
@@ -188,7 +190,7 @@
   "Return a sorted set of java.io.Files that were written by workers that are
   now active"
   [conf root-dir]
-  (let [alive-ids (get-alive-ids conf (current-time-secs))
+  (let [alive-ids (get-alive-ids conf (Time/currentTimeSecs))
         log-dirs (get-all-worker-dirs root-dir)
         id->dir (identify-worker-log-dirs log-dirs)]
     (apply sorted-set
@@ -227,12 +229,12 @@
   [^File dir]
   (let [topodir (.getParentFile dir)]
     (if (empty? (.listFiles topodir))
-      (rmr (.getCanonicalPath topodir)))))
+      (Utils/forceDelete (.getCanonicalPath topodir)))))
 
 (defn cleanup-fn!
   "Delete old log dirs for which the workers are no longer alive"
   [log-root-dir]
-  (let [now-secs (current-time-secs)
+  (let [now-secs (Time/currentTimeSecs)
         old-log-dirs (select-dirs-for-cleanup *STORM-CONF*
                                               (* now-secs 1000)
                                               log-root-dir)
@@ -250,7 +252,7 @@
     (dofor [dir dead-worker-dirs]
            (let [path (.getCanonicalPath dir)]
              (log-message "Cleaning up: Removing " path)
-             (try (rmr path)
+             (try (Utils/forceDelete path)
                   (cleanup-empty-topodir! dir)
                   (catch Exception ex (log-error ex)))))
     (per-workerdir-cleanup! (File. log-root-dir) (* per-dir-size (* 1024 1024)) cleaner)
@@ -264,7 +266,7 @@
       (schedule-recurring (mk-timer :thread-name "logviewer-cleanup"
                                     :kill-fn (fn [t]
                                                (log-error t "Error when doing logs cleanup")
-                                               (exit-process! 20 "Error when doing log cleanup")))
+                                               (Utils/exitProcess 20 "Error when doing log cleanup")))
                           0 ;; Start immediately.
                           interval-secs
                           (fn [] (cleanup-fn! log-root-dir))))))
@@ -309,7 +311,7 @@
 
 (defn get-log-user-group-whitelist [fname]
   (let [wl-file (ConfigUtils/getLogMetaDataFile fname)
-        m (clojure-from-yaml-file wl-file)]
+        m (clojurify-structure (Utils/readYamlFile wl-file))]
     (if (not-nil? m)
       (do
         (let [user-wl (.get m LOGS-USERS)
@@ -514,9 +516,9 @@
 
 (defn url-to-match-centered-in-log-page
   [needle fname offset port]
-  (let [host (local-hostname)
+  (let [host (Utils/localHostname)
         port (logviewer-port)
-        fname (clojure.string/join file-path-separator (take-last 3 (split fname (re-pattern file-path-separator))))]
+        fname (clojure.string/join Utils/FILE_PATH_SEPARATOR (take-last 3 (split fname (re-pattern Utils/FILE_PATH_SEPARATOR))))]
     (url (str "http://" host ":" port "/log")
       {:file fname
        :start (max 0
@@ -851,7 +853,7 @@
               new-matches (conj matches
                             (merge these-matches
                               { "fileName" file-name
-                                "port" (first (take-last 2 (split (.getCanonicalPath (first logs)) (re-pattern file-path-separator))))}))
+                                "port" (first (take-last 2 (split (.getCanonicalPath (first logs)) (re-pattern Utils/FILE_PATH_SEPARATOR))))}))
               new-count (+ match-count (count (these-matches "matches")))]
           (if (empty? these-matches)
             (recur matches (rest logs) 0 (+ file-offset 1) match-count)
@@ -874,12 +876,12 @@
 (defn deep-search-logs-for-topology
   [topology-id user ^String root-dir search num-matches port file-offset offset search-archived? callback origin]
   (json-response
-    (if (or (not search) (not (.exists (File. (str root-dir file-path-separator topology-id)))))
+    (if (or (not search) (not (.exists (File. (str root-dir Utils/FILE_PATH_SEPARATOR topology-id)))))
       []
       (let [file-offset (if file-offset (Integer/parseInt file-offset) 0)
             offset (if offset (Integer/parseInt offset) 0)
             num-matches (or (Integer/parseInt num-matches) 1)
-            port-dirs (vec (.listFiles (File. (str root-dir file-path-separator topology-id))))
+            port-dirs (vec (.listFiles (File. (str root-dir Utils/FILE_PATH_SEPARATOR topology-id))))
             logs-for-port-fn (partial logs-for-port user)]
         (if (or (not port) (= "*" port))
           ;; Check for all ports
@@ -892,7 +894,7 @@
           ;; Check just the one port
           (if (not (contains? (into #{} (map str (*STORM-CONF* SUPERVISOR-SLOTS-PORTS))) port))
             []
-            (let [port-dir (File. (str root-dir file-path-separator topology-id file-path-separator port))]
+            (let [port-dir (File. (str root-dir Utils/FILE_PATH_SEPARATOR topology-id Utils/FILE_PATH_SEPARATOR port))]
               (if (or (not (.exists port-dir)) (empty? (logs-for-port user port-dir)))
                 []
                 (let [filtered-logs (logs-for-port user port-dir)]
@@ -945,7 +947,7 @@
                     (if (= (str port) (.getName port-dir))
                       (into [] (DirectoryCleaner/getFilesForDir port-dir))))))))
           (if (nil? port)
-            (let [topo-dir (File. (str log-root file-path-separator topoId))]
+            (let [topo-dir (File. (str log-root Utils/FILE_PATH_SEPARATOR topoId))]
               (if (.exists topo-dir)
                 (reduce concat
                   (for [port-dir (.listFiles topo-dir)]
@@ -982,7 +984,7 @@
             user (.getUserName http-creds-handler servlet-request)
             start (if (:start m) (parse-long-from-map m :start))
             length (if (:length m) (parse-long-from-map m :length))
-            file (url-decode (:file m))]
+            file (URLDecoder/decode (:file m))]
         (log-template (log-page file start length (:grep m) user log-root)
           file user))
       (catch InvalidRequestException ex
@@ -993,21 +995,21 @@
      (let [user (.getUserName http-creds-handler servlet-request)
            port (second (split host-port #":"))
            dir (File. (str log-root
-                           file-path-separator
+                           Utils/FILE_PATH_SEPARATOR
                            topo-id
-                           file-path-separator
+                           Utils/FILE_PATH_SEPARATOR
                            port))
            file (File. (str log-root
-                            file-path-separator
+                            Utils/FILE_PATH_SEPARATOR
                             topo-id
-                            file-path-separator
+                            Utils/FILE_PATH_SEPARATOR
                             port
-                            file-path-separator
+                            Utils/FILE_PATH_SEPARATOR
                             filename))]
        (if (and (.exists dir) (.exists file))
          (if (or (blank? (*STORM-CONF* UI-FILTER))
                (authorized-log-user? user 
-                                     (str topo-id file-path-separator port file-path-separator "worker.log")
+                                     (str topo-id Utils/FILE_PATH_SEPARATOR port Utils/FILE_PATH_SEPARATOR "worker.log")
                                      *STORM-CONF*))
            (-> (resp/response file)
                (resp/content-type "application/octet-stream"))
@@ -1019,14 +1021,14 @@
      (let [user (.getUserName http-creds-handler servlet-request)
            port (second (split host-port #":"))
            dir (File. (str log-root
-                           file-path-separator
+                           Utils/FILE_PATH_SEPARATOR
                            topo-id
-                           file-path-separator
+                           Utils/FILE_PATH_SEPARATOR
                            port))]
        (if (.exists dir)
          (if (or (blank? (*STORM-CONF* UI-FILTER))
                (authorized-log-user? user 
-                                     (str topo-id file-path-separator port file-path-separator "worker.log")
+                                     (str topo-id Utils/FILE_PATH_SEPARATOR port Utils/FILE_PATH_SEPARATOR "worker.log")
                                      *STORM-CONF*))
            (html4
              [:head
@@ -1050,7 +1052,7 @@
             user (.getUserName http-creds-handler servlet-request)
             start (if (:start m) (parse-long-from-map m :start))
             length (if (:length m) (parse-long-from-map m :length))
-            file (url-decode (:file m))]
+            file (URLDecoder/decode (:file m))]
         (log-template (daemonlog-page file start length (:grep m) user daemonlog-root)
           file user))
       (catch InvalidRequestException ex
@@ -1078,7 +1080,7 @@
     ;; filter is configured.
     (try
       (let [user (.getUserName http-creds-handler servlet-request)]
-        (search-log-file (url-decode file)
+        (search-log-file (URLDecoder/decode file)
           user
           (if (= (:is-daemon m) "yes") daemonlog-root log-root)
           (:search-string m)
@@ -1192,10 +1194,10 @@
   (let [conf (clojurify-structure (ConfigUtils/readStormConfig))
         log-root (ConfigUtils/workerArtifactsRoot conf)
         daemonlog-root (log-root-dir (conf LOGVIEWER-APPENDER-NAME))]
-    (setup-default-uncaught-exception-handler)
+    (Utils/setupDefaultUncaughtExceptionHandler)
     (start-log-cleaner! conf log-root)
     (log-message "Starting logviewer server for storm version '"
                  STORM-VERSION
                  "'")
     (start-logviewer! conf log-root daemonlog-root)
-    (start-metrics-reporters)))
+    (start-metrics-reporters conf)))

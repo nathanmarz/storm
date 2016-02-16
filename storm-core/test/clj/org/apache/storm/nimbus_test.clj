@@ -1411,6 +1411,8 @@
           cluster-utils (Mockito/mock ClusterUtils)]
       (with-open [_ (ConfigUtilsInstaller. fake-cu)
                   _ (UtilsInstaller. fake-utils)
+                  _ (proxy [ConfigUtils] []
+                      (nimbusTopoHistoryStateImpl [conf] nil))
                   zk-le (MockedZookeeper. (proxy [Zookeeper] []
                           (zkLeaderElectorImpl [conf] nil)))
                   mocked-cluster (MockedCluster. cluster-utils)]

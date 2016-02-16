@@ -125,7 +125,7 @@ public class StormTimer implements AutoCloseable{
     }
 
     //task to run
-    StormTimerTask task = new StormTimerTask();
+    private StormTimerTask task = new StormTimerTask();
 
     /**
      * Makes a Timer in the form of a StormTimerTask Object
@@ -158,9 +158,6 @@ public class StormTimer implements AutoCloseable{
      * @param jitterMs add jitter to the run
      */
     public void schedule(int delaySecs, Runnable func, boolean checkActive, int jitterMs) {
-        if (this.task == null) {
-            throw new RuntimeException("task is null!");
-        }
         if (func == null) {
             throw new RuntimeException("function to schedule is null!");
         }
@@ -217,7 +214,7 @@ public class StormTimer implements AutoCloseable{
     /**
      * check if timer is active
      */
-    public void checkActive() {
+    private void checkActive() {
         if (!this.task.isActive()) {
             throw new IllegalStateException("Timer is not active");
         }
@@ -238,9 +235,6 @@ public class StormTimer implements AutoCloseable{
      * is timer waiting. Used in timer simulation
      */
     public boolean isTimerWaiting() {
-        if (task == null) {
-            throw new RuntimeException("task is null!");
-        }
         return Time.isThreadWaiting(task);
     }
 }

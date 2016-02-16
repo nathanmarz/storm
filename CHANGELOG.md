@@ -1,4 +1,8 @@
 ## 2.0.0
+ * STROM-1263: port backtype.storm.command.kill-topology to java
+ * STORM-1260: port backtype.storm.command.activate to java
+ * STORM-1261: port backtype.storm.command.deactivate to java
+ * STORM-1264: port backtype.storm.command.list to java
  * STORM-1272: port backtype.storm.disruptor to java
  * STORM-1248: port backtype.storm.messaging.loader to java
  * STORM-1538: Exception being thrown after Utils conversion to java

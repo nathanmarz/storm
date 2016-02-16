@@ -24,7 +24,7 @@ import org.apache.storm.zookeeper.Zookeeper;
 
 import java.util.Map;
 
-public class devZookeeper {
+public class DevZookeeper {
     public static void main(String[] args) throws Exception {
         Map<String, Object> conf = ConfigUtils.readStormConfig();
         Object port = conf.get(Config.STORM_ZOOKEEPER_PORT);

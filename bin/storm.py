@@ -651,7 +651,7 @@ def dev_zookeeper():
     """
     cppaths = [CLUSTER_CONF_DIR]
     exec_storm_class(
-        "org.apache.storm.command.devZookeeper",
+        "org.apache.storm.command.DevZookeeper",
         jvmtype="-server",
         extrajars=[CLUSTER_CONF_DIR])
 

@@ -261,21 +261,34 @@
     ))
 
 (deftest test-sort-slots
+  (let [supervisor1 (SupervisorDetails. "supervisor1" "192.168.0.1" (list ) (map int (list 6700 6701)))
+        supervisor2 (SupervisorDetails. "supervisor2" "192.168.0.2" (list ) (map int (list 6700 6701 6702)))
+        supervisor3 (SupervisorDetails. "supervisor3" "192.168.0.3" (list ) (map int (list 6700 6701 6702 6703)))
+        assignment1 (SchedulerAssignmentImpl. "topology1" nil)
+        assignment2 (SchedulerAssignmentImpl. "topology2" nil)
+        supervisor1-slot0 (WorkerSlot. "supervisor1" 6700)
+        supervisor1-slot1 (WorkerSlot. "supervisor1" 6701)
+        supervisor2-slot0 (WorkerSlot. "supervisor2" 6700)
+        supervisor2-slot1 (WorkerSlot. "supervisor2" 6701)
+        supervisor2-slot2 (WorkerSlot. "supervisor2" 6702)
+        supervisor3-slot0 (WorkerSlot. "supervisor3" 6700)
+        supervisor3-slot1 (WorkerSlot. "supervisor3" 6701)
+        supervisor3-slot2 (WorkerSlot. "supervisor3" 6702)
+        supervisor3-slot3 (WorkerSlot. "supervisor3" 6703)
+        cluster (Cluster. (nimbus/standalone-nimbus)
+                          {"supervisor1" supervisor1 "supervisor2" supervisor2 "supervisor3" supervisor3}
+                          {"topology1" assignment1 "topology2" assignment2}
+                  nil)]
   ;; test supervisor2 has more free slots
-  (is (= '(["supervisor2" 6700] ["supervisor1" 6700]
-           ["supervisor2" 6701] ["supervisor1" 6701]
-           ["supervisor2" 6702])
-         (EvenScheduler/sortSlots [["supervisor1" 6700] ["supervisor1" 6701]
-                      ["supervisor2" 6700] ["supervisor2" 6701] ["supervisor2" 6702]
-                      ])))
+  (is (= "[supervisor2:6700, supervisor1:6700, supervisor2:6701, supervisor1:6701, supervisor2:6702]"
+         (.toString (EvenScheduler/sortSlots [supervisor1-slot0 supervisor1-slot1
+                      supervisor2-slot0 supervisor2-slot1 supervisor2-slot2
+                      ] cluster))))
   ;; test supervisor3 has more free slots
-  (is (= '(["supervisor3" 6700] ["supervisor2" 6700] ["supervisor1" 6700]
-           ["supervisor3" 6703] ["supervisor2" 6701] ["supervisor1" 6701]
-           ["supervisor3" 6702] ["supervisor2" 6702]
-           ["supervisor3" 6701])
-         (EvenScheduler/sortSlots [["supervisor1" 6700] ["supervisor1" 6701]
-                      ["supervisor2" 6700] ["supervisor2" 6701] ["supervisor2" 6702]
-                      ["supervisor3" 6700] ["supervisor3" 6703] ["supervisor3" 6702] ["supervisor3" 6701]
-                      ])))
-    )
+  (is (= "[supervisor3:6700, supervisor2:6700, supervisor1:6700, supervisor3:6701, supervisor2:6701, supervisor1:6701, supervisor3:6702, supervisor2:6702, supervisor3:6703]"
+         (.toString (EvenScheduler/sortSlots [supervisor1-slot0 supervisor1-slot1
+                      supervisor2-slot0 supervisor2-slot1 supervisor2-slot2
+                      supervisor3-slot0 supervisor3-slot3 supervisor3-slot2 supervisor3-slot1
+                      ] cluster))))
+    ))
 

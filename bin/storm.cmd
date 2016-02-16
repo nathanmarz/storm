@@ -139,7 +139,7 @@
   goto :eof
 
 :dev-zookeeper
-  set CLASS=org.apache.storm.command.dev_zookeeper
+  set CLASS=org.apache.storm.command.devZookeeper
   set STORM_OPTS=%STORM_SERVER_OPTS% %STORM_OPTS%
   goto :eof
 

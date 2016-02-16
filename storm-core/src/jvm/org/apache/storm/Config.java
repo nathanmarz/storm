@@ -2086,7 +2086,7 @@ public class Config extends HashMap<String, Object> {
 
     /**
      * The path to use as the zookeeper dir when running a zookeeper server via
-     * "storm dev-zookeeper". This zookeeper instance is only intended for development;
+     * "storm devZookeeper". This zookeeper instance is only intended for development;
      * it is not a production grade zookeeper setup.
      */
     @isString

@@ -15,18 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.storm.logging;
-import java.net.InetAddress;
-import java.security.Principal;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+package org.apache.storm.utils;
 
-public class ThriftAccessLogger {
-    private static final Logger LOG = LoggerFactory.getLogger(ThriftAccessLogger.class);
-
-    public static void logAccess(Integer requestId, InetAddress remoteAddress,
-                                 Principal principal, String operation) {
-        LOG.info("Request ID: {} access from: {} principal: {} operation: {}",
-                 requestId, remoteAddress, principal, operation);
-    }
+/**
+ * This interface is implemented by classes, instances of which can be passed
+ * into certain Util functions which test some collection for elements matching
+ * the IPredicate. (IPredicate.test(...) == true)
+ */
+public interface IPredicate<T> {
+    boolean test (T obj);
 }

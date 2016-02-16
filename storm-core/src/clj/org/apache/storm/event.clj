@@ -45,7 +45,7 @@
                        (log-message "Event manager interrupted"))
                      (catch Throwable t
                        (log-error t "Error when processing event")
-                       (exit-process! 20 "Error when processing an event")))))]
+                       (Utils/exitProcess 20 "Error when processing an event")))))]
     (.setDaemon runner daemon?)
     (.start runner)
     (reify

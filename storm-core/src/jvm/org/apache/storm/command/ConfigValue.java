@@ -15,20 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.storm.command;
 
-package org.apache.storm.utils;
-
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.curator.retry.ExponentialBackoffRetry;
 import java.util.Map;
 
-public class TestUtils extends Utils {
+import org.apache.storm.utils.ConfigUtils;
 
-    public static void testSetupBuilder(CuratorFrameworkFactory.Builder
-            builder, String zkStr, Map conf, ZookeeperAuthInfo auth)
-    {
-        setupBuilder(builder, zkStr, conf, auth);
+public class ConfigValue {
+    public static void main(String [] args) {
+        String name = args[0];
+        Map<String, Object> conf = ConfigUtils.readStormConfig();
+        System.out.println("VALUE: " + conf.get(name));
     }
-
 }

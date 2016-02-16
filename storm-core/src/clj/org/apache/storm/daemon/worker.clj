@@ -21,14 +21,16 @@
   (:require [org.apache.storm.daemon [executor :as executor]])
   (:require [org.apache.storm [disruptor :as disruptor] [cluster :as cluster]])
   (:require [clojure.set :as set])
-  (:require [org.apache.storm.messaging.loader :as msg-loader])
   (:import [java.util.concurrent Executors]
-           [org.apache.storm.hooks IWorkerHook BaseWorkerHook])
-  (:import [java.util ArrayList HashMap])
-  (:import [org.apache.storm.utils Utils ConfigUtils TransferDrainer ThriftTopologyUtils WorkerBackpressureThread DisruptorQueue])
+           [org.apache.storm.hooks IWorkerHook BaseWorkerHook]
+           [uk.org.lidalia.sysoutslf4j.context SysOutOverSLF4J])
+  (:import [java.util ArrayList HashMap]
+           [java.util.concurrent.locks ReentrantReadWriteLock])
+  (:import [org.apache.commons.io FileUtils])
+  (:import [org.apache.storm.utils Utils ConfigUtils TransferDrainer ThriftTopologyUtils WorkerBackpressureThread DisruptorQueue Time])
   (:import [org.apache.storm.grouping LoadMapping])
   (:import [org.apache.storm.messaging TransportFactory])
-  (:import [org.apache.storm.messaging TaskMessage IContext IConnection ConnectionWithStatus ConnectionWithStatus$Status])
+  (:import [org.apache.storm.messaging TaskMessage IContext IConnection ConnectionWithStatus ConnectionWithStatus$Status DeserializingConnectionCallback])
   (:import [org.apache.storm.daemon Shutdownable])
   (:import [org.apache.storm.serialization KryoTupleSerializer])
   (:import [org.apache.storm.generated StormTopology])
@@ -68,8 +70,8 @@
                     (apply merge)))
         zk-hb {:storm-id (:storm-id worker)
                :executor-stats stats
-               :uptime ((:uptime worker))
-               :time-secs (current-time-secs)
+               :uptime (. (:uptime worker) upTime)
+               :time-secs (Time/currentTimeSecs)
                }]
     ;; do the zookeeper heartbeat
     (try
@@ -81,7 +83,7 @@
   (let [conf (:conf worker)
         state (ConfigUtils/workerState conf (:worker-id worker))]
     ;; do the local-file-system heartbeat.
-    (ls-worker-heartbeat! state (current-time-secs) (:storm-id worker) (:executors worker) (:port worker))
+    (ls-worker-heartbeat! state (Time/currentTimeSecs) (:storm-id worker) (:executors worker) (:port worker))
     (.cleanup state 60) ; this is just in case supervisor is down so that disk doesn't fill up.
                          ; it shouldn't take supervisor 120 seconds between listing dir and reading it
 
@@ -101,7 +103,8 @@
                      (:task-ids worker))]
     (-> worker
         :task->component
-        reverse-map
+        (Utils/reverseMap)
+        clojurify-structure
         (select-keys components)
         vals
         flatten
@@ -237,7 +240,7 @@
 (defn mk-halting-timer [timer-name]
   (mk-timer :kill-fn (fn [t]
                        (log-error t "Error when processing event")
-                       (exit-process! 20 "Error when processing an event")
+                       (Utils/exitProcess 20 "Error when processing an event")
                        )
             :timer-name timer-name))
 
@@ -290,19 +293,21 @@
       :user-timer (mk-halting-timer "user-timer")
       :task->component (HashMap. (storm-task-info topology storm-conf)) ; for optimized access when used in tasks later on
       :component->stream->fields (component->stream->fields (:system-topology <>))
-      :component->sorted-tasks (->> (:task->component <>) reverse-map (map-val sort))
-      :endpoint-socket-lock (mk-rw-lock)
+      ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
+      :component->sorted-tasks (->> (:task->component <>) (Utils/reverseMap) (clojurify-structure) (map-val sort))
+      :endpoint-socket-lock (ReentrantReadWriteLock.)
       :cached-node+port->socket (atom {})
       :cached-task->node+port (atom {})
       :transfer-queue transfer-queue
       :executor-receive-queue-map executor-receive-queue-map
+      ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
       :short-executor-receive-queue-map (map-key first executor-receive-queue-map)
       :task->short-executor (->> executors
                                  (mapcat (fn [e] (for [t (executor-id->tasks e)] [t (first e)])))
                                  (into {})
                                  (HashMap.))
       :suicide-fn (mk-suicide-fn conf)
-      :uptime (uptime-computer)
+      :uptime (Utils/makeUptimeComputer)
       :default-shared-resources (mk-default-resources <>)
       :user-shared-resources (mk-user-resources <>)
       :transfer-local-fn (mk-transfer-local-fn <>)
@@ -325,6 +330,7 @@
 
 (def LOAD-REFRESH-INTERVAL-MS 5000)
 
+;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defn mk-refresh-load [worker]
   (let [local-tasks (set (:task-ids worker))
         remote-tasks (set/difference (worker-outbound-tasks worker) local-tasks)
@@ -345,6 +351,23 @@
             (.sendLoadMetrics (:receiver worker) local-pop)
             (reset! next-update (+ LOAD-REFRESH-INTERVAL-MS now))))))))
 
+(defmacro read-locked
+  [rw-lock & body]
+  (let [lock (with-meta rw-lock {:tag `ReentrantReadWriteLock})]
+    `(let [rlock# (.readLock ~lock)]
+       (try (.lock rlock#)
+         ~@body
+         (finally (.unlock rlock#))))))
+
+(defmacro write-locked
+  [rw-lock & body]
+  (let [lock (with-meta rw-lock {:tag `ReentrantReadWriteLock})]
+    `(let [wlock# (.writeLock ~lock)]
+       (try (.lock wlock#)
+         ~@body
+         (finally (.unlock wlock#))))))
+
+;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defn mk-refresh-connections [worker]
   (let [outbound-tasks (worker-outbound-tasks worker)
         conf (:conf worker)
@@ -364,8 +387,10 @@
                                 :executor->node+port
                                 to-task->node+port
                                 (select-keys outbound-tasks)
+                                ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
                                 (#(map-val endpoint->string %)))
               ;; we dont need a connection for the local tasks anymore
+               ;TODO: when translating this function, you should replace the filter-val with a proper for loop + if condition HERE
               needed-assignment (->> my-assignment
                                       (filter-key (complement (-> worker :task-ids set))))
               needed-connections (-> needed-assignment vals set)
@@ -461,11 +486,12 @@
             )))))
 
 (defn register-callbacks [worker]
-  (log-message "Registering IConnectionCallbacks for " (:assignment-id worker) ":" (:port worker))
-  (msg-loader/register-callback (:transfer-local-fn worker)
-                                (:receiver worker)
-                                (:storm-conf worker)
-                                (worker-context worker)))
+  (let [transfer-local-fn (:transfer-local-fn worker)
+        ^IConnection socket (:receiver worker)]
+    (log-message "Registering IConnectionCallbacks for " (:assignment-id worker) ":" (:port worker))
+    (.registerRecv socket (DeserializingConnectionCallback. (:storm-conf worker)
+                                                            (worker-context worker)
+                                                            transfer-local-fn))))
 
 (defn- close-resources [worker]
   (let [dr (:default-shared-resources worker)]
@@ -578,12 +604,12 @@
   (log-message "Launching worker for " storm-id " on " assignment-id ":" port " with id " worker-id
                " and conf " conf)
   (if-not (ConfigUtils/isLocalMode conf)
-    (redirect-stdio-to-slf4j!))
+    (SysOutOverSLF4J/sendSystemOutAndErrToSLF4J))
   ;; because in local mode, its not a separate
   ;; process. supervisor will register it in this case
   (when (= :distributed (ConfigUtils/clusterMode conf))
-    (let [pid (process-pid)]
-      (touch (ConfigUtils/workerPidPath conf worker-id pid))
+    (let [pid (Utils/processPid)]
+      (FileUtils/touch (ConfigUtils/workerPidPath conf worker-id pid))
       (spit (ConfigUtils/workerArtifactsPidPath conf storm-id port) pid)))
 
   (declare establish-log-setting-callback)
@@ -744,22 +770,22 @@
     (schedule-recurring (:reset-log-levels-timer worker) 0 (conf WORKER-LOG-LEVEL-RESET-POLL-SECS) (fn [] (reset-log-levels latest-log-config)))
     (schedule-recurring (:refresh-active-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) (partial refresh-storm-active worker))
 
-    (log-message "Worker has topology config " (redact-value (:storm-conf worker) STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD))
+    (log-message "Worker has topology config " (Utils/redactValue (:storm-conf worker) STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD))
     (log-message "Worker " worker-id " for storm " storm-id " on " assignment-id ":" port " has finished loading")
     ret
     ))))))
 
 (defmethod mk-suicide-fn
   :local [conf]
-  (fn [] (exit-process! 1 "Worker died")))
+  (fn [] (Utils/exitProcess 1 "Worker died")))
 
 (defmethod mk-suicide-fn
   :distributed [conf]
-  (fn [] (exit-process! 1 "Worker died")))
+  (fn [] (Utils/exitProcess 1 "Worker died")))
 
 (defn -main [storm-id assignment-id port-str worker-id]
   (let [conf (clojurify-structure (ConfigUtils/readStormConfig))]
-    (setup-default-uncaught-exception-handler)
+    (Utils/setupDefaultUncaughtExceptionHandler)
     (validate-distributed-mode! conf)
     (let [worker (mk-worker conf nil storm-id assignment-id (Integer/parseInt port-str) worker-id)]
-      (add-shutdown-hook-with-force-kill-in-1-sec #(.shutdown worker)))))
+      (Utils/addShutdownHookWithForceKillIn1Sec #(.shutdown worker)))))

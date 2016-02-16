@@ -32,7 +32,7 @@
   (:import [org.apache.storm.generated WorkerResources ProfileAction])
   (:import [org.apache.storm.localizer LocalResource])
   (:use [org.apache.storm.daemon common])
-  (:require [org.apache.storm.command [healthcheck :as healthcheck]])
+  (:import [org.apache.storm.command HealthCheck])
   (:require [org.apache.storm.daemon [worker :as worker]]
             [org.apache.storm [process-simulator :as psim] [cluster :as cluster] [event :as event]]
             [clojure.set :as set])
@@ -835,7 +835,7 @@
       (schedule-recurring (:event-timer supervisor)
                           (* 60 5)
                           (* 60 5)
-                          (fn [] (let [health-code (healthcheck/health-check conf)
+                          (fn [] (let [health-code (HealthCheck/healthCheck conf)
                                        ids (my-worker-ids conf)]
                                    (if (not (= health-code 0))
                                      (do

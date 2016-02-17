@@ -502,10 +502,6 @@
           EVENTLOGGER-STREAM-ID
           [component-id message-id (System/currentTimeMillis) values]))))
 
-(defn- bit-xor-vals
-  [vals]
-  (reduce bit-xor 0 vals))
-
 (defmethod mk-threads :spout [executor-data task-datas initial-credentials]
   (let [{:keys [storm-conf component-id worker-context transfer-fn report-error sampler open-or-prepare-was-called?]} executor-data
         ^ISpoutWaitStrategy spout-wait-strategy (init-spout-wait-strategy storm-conf)
@@ -593,7 +589,7 @@
                                                                                         (if (sampler) (System/currentTimeMillis))])
                                                                  (task/send-unanchored task-data
                                                                                        ACKER-INIT-STREAM-ID
-                                                                                       [root-id (bit-xor-vals out-ids) task-id]))
+                                                                                       [root-id (Utils/bitXorVals out-ids) task-id]))
                                                                (when message-id
                                                                  (ack-spout-msg executor-data task-data message-id
                                                                                 {:stream out-stream-id :values values}

@@ -302,6 +302,14 @@ public class Utils {
         return ret.toString();
     }
 
+    public static long bitXorVals(List<Long> coll) {
+        long result = 0;
+        for (Long val : coll) {
+            result ^= val;
+        }
+        return result;
+    }
+
     public static void sleep(long millis) {
         try {
             Time.sleep(millis);

@@ -603,11 +603,11 @@
 (defserverfn mk-worker [conf shared-mq-context storm-id assignment-id port worker-id]
   (log-message "Launching worker for " storm-id " on " assignment-id ":" port " with id " worker-id
                " and conf " conf)
-  (if-not (ConfigUtils/isLocalMode conf)
-    (SysOutOverSLF4J/sendSystemOutAndErrToSLF4J))
   ;; because in local mode, its not a separate
   ;; process. supervisor will register it in this case
-  (when (= :distributed (ConfigUtils/clusterMode conf))
+  ;; if (ConfigUtils/isLocalMode conf) returns false then it is in distributed mode.
+  (when-not (ConfigUtils/isLocalMode conf)
+    (SysOutOverSLF4J/sendSystemOutAndErrToSLF4J)
     (let [pid (Utils/processPid)]
       (FileUtils/touch (ConfigUtils/workerPidPath conf worker-id pid))
       (spit (ConfigUtils/workerArtifactsPidPath conf storm-id port) pid)))

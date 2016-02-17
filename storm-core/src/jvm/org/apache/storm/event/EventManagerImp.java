@@ -17,7 +17,6 @@
  */
 package org.apache.storm.event;
 
-import org.apache.storm.callback.IRunnableCallback;
 import org.apache.storm.utils.Time;
 import org.apache.storm.utils.Utils;
 import org.slf4j.Logger;
@@ -36,9 +35,9 @@ public class EventManagerImp implements EventManager {
     private AtomicBoolean running;
     private Thread runner;
 
-    private LinkedBlockingQueue<IRunnableCallback> queue = new LinkedBlockingQueue<IRunnableCallback>();
+    private LinkedBlockingQueue<Runnable> queue = new LinkedBlockingQueue<Runnable>();
 
-    public EventManagerImp(boolean daemon) {
+    public EventManagerImp(boolean isDaemon) {
         added = new AtomicInteger();
         processed = new AtomicInteger();
         running = new AtomicBoolean(true);
@@ -47,13 +46,13 @@ public class EventManagerImp implements EventManager {
             public void run() {
                 while (running.get()) {
                     try {
-                        IRunnableCallback r = queue.take();
+                        Runnable r = queue.take();
                         if (r == null) {
                             return;
                         }
 
                         r.run();
-                        proccessinc();
+                        proccessInc();
                     } catch (Throwable t) {
                         if (Utils.exceptionCauseIsInstanceOf(InterruptedIOException.class, t)) {
                             LOG.info("Event manager interrupted while doing IO");
@@ -67,16 +66,16 @@ public class EventManagerImp implements EventManager {
                 }
             }
         };
-        runner.setDaemon(daemon);
+        runner.setDaemon(isDaemon);
         runner.start();
     }
 
-    public void proccessinc() {
+    public void proccessInc() {
         processed.incrementAndGet();
     }
 
     @Override
-    public void add(IRunnableCallback eventFn) {
+    public void add(Runnable eventFn) {
         if (!running.get()) {
             throw new RuntimeException("Cannot add events to a shutdown event manager");
         }
@@ -87,7 +86,6 @@ public class EventManagerImp implements EventManager {
     @Override
     public boolean waiting() {
         return (Time.isThreadWaiting(runner) || (processed.get() == added.get()));
-
     }
 
     public void shutdown() {

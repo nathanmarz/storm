@@ -32,7 +32,6 @@
   (:import [org.apache.storm.generated WorkerResources ProfileAction])
   (:import [org.apache.storm.localizer LocalResource])
   (:import [org.apache.storm.event EventManagerImp])
-  (:import [org.apache.storm.callback IRunnableCallback])
   (:use [org.apache.storm.daemon common])
   (:require [org.apache.storm.command [healthcheck :as healthcheck]])
   (:require [org.apache.storm.daemon [worker :as worker]]
@@ -547,7 +546,7 @@
           storm-cluster-state (:storm-cluster-state supervisor)
           ^ISupervisor isupervisor (:isupervisor supervisor)
           ^LocalState local-state (:local-state supervisor)
-          sync-callback (fn [& ignored] (.add event-manager (reify IRunnableCallback
+          sync-callback (fn [& ignored] (.add event-manager (reify Runnable
                                                                    (^void run [this]
                                                                      (callback-supervisor)))))
           assignment-versions @(:assignment-versions supervisor)
@@ -618,7 +617,7 @@
           (log-message "Removing code for storm id "
                        storm-id)
           (rm-topo-files conf storm-id localizer true)))
-      (.add processes-event-manager (reify IRunnableCallback
+      (.add processes-event-manager (reify Runnable
                                                      (^void run [this]
                                                        (sync-processes)))))))
 
@@ -830,14 +829,14 @@
     (when (conf SUPERVISOR-ENABLE)
       ;; This isn't strictly necessary, but it doesn't hurt and ensures that the machine stays up
       ;; to date even if callbacks don't all work exactly right
-      (schedule-recurring (:event-timer supervisor) 0 10 (fn [] (.add event-manager  (reify IRunnableCallback
+      (schedule-recurring (:event-timer supervisor) 0 10 (fn [] (.add event-manager  (reify Runnable
                                                                                                              (^void run [this]
                                                                                                                (synchronize-supervisor))))))
 
       (schedule-recurring (:event-timer supervisor)
                           0
                           (conf SUPERVISOR-MONITOR-FREQUENCY-SECS)
-                          (fn [] (.add processes-event-manager  (reify IRunnableCallback
+                          (fn [] (.add processes-event-manager  (reify Runnable
                                                                                 (^void run [this]
                                                                                   (sync-processes))))))
 
@@ -845,7 +844,7 @@
       (schedule-recurring (:blob-update-timer supervisor)
                           30
                           30
-                          (fn [] (.add event-manager  (reify IRunnableCallback
+                          (fn [] (.add event-manager  (reify Runnable
                                                                             (^void run [this]
                                                                               (synchronize-blobs-fn))))))
 
@@ -864,7 +863,7 @@
       (schedule-recurring (:event-timer supervisor)
                           30
                           30
-                          (fn [] (.add event-manager  (reify IRunnableCallback
+                          (fn [] (.add event-manager  (reify Runnable
                                                                                (^void run [this]
                                                                                  (run-profiler-actions-fn))))))
       )

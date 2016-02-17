@@ -17,10 +17,8 @@
  */
 package org.apache.storm.event;
 
-import org.apache.storm.callback.IRunnableCallback;
-
 public interface EventManager {
-     void add(IRunnableCallback eventFn);
+     void add(Runnable eventFn);
      boolean waiting();
      void shutdown();
 }

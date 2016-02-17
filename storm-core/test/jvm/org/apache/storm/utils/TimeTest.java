@@ -21,10 +21,10 @@ package org.apache.storm.utils;
 import org.junit.Test;
 import org.junit.Assert;
 
-public class TimeTest{
+public class TimeTest {
 
     @Test
-    public void secsToMillisLongTest(){
+    public void secsToMillisLongTest() {
         Assert.assertEquals(Time.secsToMillisLong(0),     0);
         Assert.assertEquals(Time.secsToMillisLong(0.002), 2);
         Assert.assertEquals(Time.secsToMillisLong(1),     1000);
@@ -34,19 +34,24 @@ public class TimeTest{
     }
 
     @Test
-    public void ifNotSimulatingIsSimulatingReturnsFalse(){
+    public void ifNotSimulatingIsSimulatingReturnsFalse() {
         Assert.assertFalse(Time.isSimulating());
     }
 
+    @Test(expected=IllegalStateException.class)
+    public void ifNotSimulatingAdvanceTimeThrows() {
+        Time.advanceTime(1000);
+    }
+
     @Test
-    public void ifSimulatingIsSimulatingReturnsTrue(){
+    public void ifSimulatingIsSimulatingReturnsTrue() {
         Time.startSimulating();
         Assert.assertTrue(Time.isSimulating());
         Time.stopSimulating();
     }
 
     @Test
-    public void advanceTimeSimulatedTimeBy0Causes0DeltaTest(){
+    public void shouldNotAdvanceTimeTest() {
         Time.startSimulating();
         long current = Time.currentTimeMillis();
         Time.advanceTime(0);
@@ -55,34 +60,29 @@ public class TimeTest{
     }
 
     @Test
-    public void advanceTimeSimulatedTimeBy1000Causes1000MsDeltaTest(){
+    public void shouldAdvanceForwardTest() {
         Time.startSimulating();
         long current = Time.currentTimeMillis();
         Time.advanceTime(1000);
         Assert.assertEquals(Time.deltaMs(current), 1000);
-        Time.stopSimulating();
-    }
-
-    @Test
-    public void advanceTimeSimulatedTimeBy1500Causes1500MsDeltaTest(){
-        Time.startSimulating();
-        long current = Time.currentTimeMillis();
-        Time.advanceTime(1500);
+        Time.advanceTime(500);
         Assert.assertEquals(Time.deltaMs(current), 1500);
         Time.stopSimulating();
     }
 
     @Test
-    public void advanceTimeSimulatedTimeByNegative1500CausesNegative1500MsDeltaTest(){
+    public void shouldAdvanceBackwardsTest() {
         Time.startSimulating();
         long current = Time.currentTimeMillis();
+        Time.advanceTime(1000);
+        Assert.assertEquals(Time.deltaMs(current), 1000);
         Time.advanceTime(-1500);
-        Assert.assertEquals(Time.deltaMs(current), -1500);
+        Assert.assertEquals(Time.deltaMs(current), -500);
         Time.stopSimulating();
     }
 
     @Test
-    public void advanceSimulatedTimeBy1000MsSecondReturns1SecondTest(){
+    public void deltaSecsConvertsToSecondsTest() {
         Time.startSimulating();
         int current = Time.currentTimeSecs();
         Time.advanceTime(1000);
@@ -91,7 +91,7 @@ public class TimeTest{
     }
 
     @Test
-    public void advanceSimulatedtimeBy1500MsSecondsReturns1TruncatedSecondTest(){
+    public void deltaSecsTruncatesFractionalSeconds() {
         Time.startSimulating();
         int current = Time.currentTimeSecs();
         Time.advanceTime(1500);
@@ -99,8 +99,4 @@ public class TimeTest{
         Time.stopSimulating();
     }
 
-    @Test(expected=IllegalStateException.class)
-    public void ifNotSimulatingAdvanceTimeThrows(){
-        Time.advanceTime(1000);
-    }
 }

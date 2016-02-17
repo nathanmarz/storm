@@ -34,11 +34,9 @@ import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.storm.Config;
 import org.apache.thrift.transport.TTransportException;
 
-import static org.mockito.Mockito.*;
-
-public class UtilsTest{
+public class UtilsTest {
     @Test
-    public void newCuratorUsesExponentialBackoffTest() throws InterruptedException{
+    public void newCuratorUsesExponentialBackoffTest() throws InterruptedException {
         final int expectedInterval = 2400;
         final int expectedRetries = 10;
         final int expectedCeiling = 3000;
@@ -63,68 +61,64 @@ public class UtilsTest{
         new NimbusClient(config, "", 65535);
     }
 
-    private Map mockMap(String key, String value){
+    private Map mockMap(String key, String value) {
         Map<String, Object> map = new HashMap<String, Object>();
         map.put(key, value);
         return map;
     }
 
-    private Map topologyMockMap(String value){
+    private Map topologyMockMap(String value) {
         return mockMap(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_SCHEME, value);
     }
 
-    private Map serverMockMap(String value){
+    private Map serverMockMap(String value) {
         return mockMap(Config.STORM_ZOOKEEPER_AUTH_SCHEME, value);
     }
 
-    private Map emptyMockMap(){
+    private Map emptyMockMap() {
         return new HashMap<String, Object>();
     }
 
-    /* isZkAuthenticationConfiguredTopology */
     @Test
-    public void isZkAuthenticationConfiguredTopologyReturnsFalseOnNullConfigTest(){
-        Assert.assertFalse(Utils.isZkAuthenticationConfiguredTopology(null));
+    public void isZkAuthenticationConfiguredTopologyTest() {
+        Assert.assertFalse(
+            "Returns null if given null config", 
+            Utils.isZkAuthenticationConfiguredTopology(null));
+
+        Assert.assertFalse(
+            "Returns false if scheme key is missing", 
+            Utils.isZkAuthenticationConfiguredTopology(emptyMockMap()));
+
+        Assert.assertFalse(
+            "Returns false if scheme value is null", 
+            Utils.isZkAuthenticationConfiguredTopology(topologyMockMap(null)));
+
+        Assert.assertTrue(
+            "Returns true if scheme value is string", 
+            Utils.isZkAuthenticationConfiguredTopology(topologyMockMap("foobar")));
     }
 
     @Test
-    public void isZkAuthenticationConfiguredTopologyReturnsFalseOnSchemeKeyMissingTest(){
-        Assert.assertFalse(Utils.isZkAuthenticationConfiguredTopology(emptyMockMap()));
+    public void isZkAuthenticationConfiguredStormServerTest() {
+        Assert.assertFalse(
+            "Returns false if given null config",
+            Utils.isZkAuthenticationConfiguredStormServer(null));
+
+        Assert.assertFalse(
+            "Returns false if scheme key is missing",
+            Utils.isZkAuthenticationConfiguredStormServer(emptyMockMap()));
+
+        Assert.assertFalse(
+            "Returns false if scheme value is null",
+            Utils.isZkAuthenticationConfiguredStormServer(serverMockMap(null)));
+
+        Assert.assertTrue(
+            "Returns true if scheme value is string",
+            Utils.isZkAuthenticationConfiguredStormServer(serverMockMap("foobar")));
     }
 
     @Test
-    public void isZkAuthenticationConfiguredTopologyReturnsFalseOnSchemeValueNullTest(){
-        Assert.assertFalse(Utils.isZkAuthenticationConfiguredTopology(topologyMockMap(null)));
-    }
-
-    @Test
-    public void isZkAuthenticationConfiguredTopologyReturnsTrueWhenSchemeSetToStringTest(){
-        Assert.assertTrue(Utils.isZkAuthenticationConfiguredTopology(topologyMockMap("foobar")));
-    }
-
-    /* isZkAuthenticationConfiguredStormServer */
-    @Test
-    public void isZkAuthenticationConfiguredStormReturnsFalseOnNullConfigTest(){
-        Assert.assertFalse(Utils.isZkAuthenticationConfiguredStormServer(null));
-    }
-
-    @Test
-    public void isZkAuthenticationConfiguredStormReturnsFalseOnSchemeKeyMissingTest(){
-        Assert.assertFalse(Utils.isZkAuthenticationConfiguredStormServer(emptyMockMap()));
-    }
-
-    @Test
-    public void isZkAuthenticationConfiguredStormReturnsFalseOnSchemeValueNullTest(){
-        Assert.assertFalse(Utils.isZkAuthenticationConfiguredStormServer(serverMockMap(null)));
-    }
-
-    @Test
-    public void isZkAuthenticationConfiguredStormReturnsTrueWhenSchemeSetToStringTest(){
-        Assert.assertTrue(Utils.isZkAuthenticationConfiguredStormServer(serverMockMap("foobar")));
-    }
-
-    @Test
-    public void isZkAuthenticationConfiguredStormReturnsTrueWhenAuthLoginConfigIsSetTest(){
+    public void isZkAuthenticationConfiguredStormServerWithPropertyTest() {
         String key = "java.security.auth.login.config";
         String oldValue = System.getProperty(key);
         try {
@@ -133,7 +127,7 @@ public class UtilsTest{
         } catch (Exception ignore) {
         } finally {
             // reset property
-            if (oldValue == null){
+            if (oldValue == null) {
                 System.clearProperty(key);
             } else {
                 System.setProperty(key, oldValue);
@@ -141,14 +135,14 @@ public class UtilsTest{
         }
     }
 
-    private CuratorFrameworkFactory.Builder setupBuilder(boolean withExhibitor){
+    private CuratorFrameworkFactory.Builder setupBuilder(boolean withExhibitor) {
         return setupBuilder(withExhibitor, false /*without Auth*/);
     }
 
-    private CuratorFrameworkFactory.Builder setupBuilder(boolean withExhibitor, boolean withAuth){
+    private CuratorFrameworkFactory.Builder setupBuilder(boolean withExhibitor, boolean withAuth) {
         CuratorFrameworkFactory.Builder builder = CuratorFrameworkFactory.builder();
         Map<String, Object> conf = new HashMap<String, Object>();
-        if (withExhibitor){
+        if (withExhibitor) {
             conf.put(Config.STORM_EXHIBITOR_SERVERS,"foo");
             conf.put(Config.STORM_EXHIBITOR_PORT, 0);
             conf.put(Config.STORM_EXHIBITOR_URIPATH, "/exhibitor");
@@ -164,7 +158,7 @@ public class UtilsTest{
         conf.put(Config.STORM_ZOOKEEPER_RETRY_TIMES, 0);
         String zkStr = new String("zk_connection_string");
         ZookeeperAuthInfo auth = null;
-        if (withAuth){
+        if (withAuth) {
             auth = new ZookeeperAuthInfo("scheme", "abc".getBytes());
         }
         Utils.testSetupBuilder(builder, zkStr, conf, auth);
@@ -172,21 +166,21 @@ public class UtilsTest{
     }
 
     @Test
-    public void ifExhibitorServersProvidedBuilderUsesTheExhibitorEnsembleProviderTest(){
+    public void givenExhibitorServersBuilderUsesExhibitorProviderTest() {
         CuratorFrameworkFactory.Builder builder = setupBuilder(true /*with exhibitor*/);
         Assert.assertEquals(builder.getEnsembleProvider().getConnectionString(), "");
         Assert.assertEquals(builder.getEnsembleProvider().getClass(), ExhibitorEnsembleProvider.class);
     }
 
     @Test
-    public void ifExhibitorServersAreEmptyBuilderUsesAFixedEnsembleProviderTest(){
+    public void givenNoExhibitorServersBuilderUsesFixedProviderTest() {
         CuratorFrameworkFactory.Builder builder = setupBuilder(false /*without exhibitor*/);
         Assert.assertEquals(builder.getEnsembleProvider().getConnectionString(), "zk_connection_string");
         Assert.assertEquals(builder.getEnsembleProvider().getClass(), FixedEnsembleProvider.class);
     }
 
     @Test
-    public void ifAuthSchemeAndPayloadAreDefinedBuilderUsesAuthTest(){
+    public void givenSchemeAndPayloadBuilderUsesAuthTest() {
         CuratorFrameworkFactory.Builder builder = setupBuilder(false /*without exhibitor*/, true /*with auth*/);
         List<AuthInfo> authInfos = builder.getAuthInfos();
         AuthInfo authInfo = authInfos.get(0);
@@ -195,27 +189,25 @@ public class UtilsTest{
     }
 
     @Test
-    public void parseJvmHeapMemByChildOpts1024KIs1Test(){
-        Assert.assertEquals(Utils.parseJvmHeapMemByChildOpts("Xmx1024K", 0.0).doubleValue(), 1.0, 0); 
-    }
+    public void parseJvmHeapMemByChildOptsTest() {
+        Assert.assertEquals(
+            "1024K results in 1 MB",
+            Utils.parseJvmHeapMemByChildOpts("Xmx1024K", 0.0).doubleValue(), 1.0, 0); 
 
-    @Test
-    public void parseJvmHeapMemByChildOpts100MIs100Test(){
-        Assert.assertEquals(Utils.parseJvmHeapMemByChildOpts("Xmx100M", 0.0).doubleValue(), 100.0, 0); 
-    }
+        Assert.assertEquals(
+            "100M results in 100 MB",
+            Utils.parseJvmHeapMemByChildOpts("Xmx100M", 0.0).doubleValue(), 100.0, 0); 
 
-    @Test
-    public void parseJvmHeapMemByChildOpts1GIs1024Test(){
-        Assert.assertEquals(Utils.parseJvmHeapMemByChildOpts("Xmx1G", 0.0).doubleValue(), 1024.0, 0); 
-    }
+        Assert.assertEquals(
+            "1G results in 1024 MB",
+            Utils.parseJvmHeapMemByChildOpts("Xmx1G", 0.0).doubleValue(), 1024.0, 0); 
 
-    @Test
-    public void parseJvmHeapMemByChildOptsReturnsDefaultIfMatchNotFoundTest(){
-        Assert.assertEquals(Utils.parseJvmHeapMemByChildOpts("Xmx1T", 123.0).doubleValue(), 123.0, 0); 
-    }
+        Assert.assertEquals(
+            "Unmatched value results in default",
+            Utils.parseJvmHeapMemByChildOpts("Xmx1T", 123.0).doubleValue(), 123.0, 0); 
 
-    @Test
-    public void parseJvmHeapMemByChildOptsReturnsDefaultIfInputIsNullTest(){
-        Assert.assertEquals(Utils.parseJvmHeapMemByChildOpts(null, 123.0).doubleValue(), 123.0, 0); 
+        Assert.assertEquals(
+            "Null value results in default",
+            Utils.parseJvmHeapMemByChildOpts(null, 123.0).doubleValue(), 123.0, 0); 
     }
 }

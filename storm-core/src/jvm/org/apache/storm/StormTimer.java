@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * code that does asynchronous work on the timer thread
  */
 
-public class StormTimer implements AutoCloseable{
+public class StormTimer implements AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(StormTimer.class);
 
     public static class QueueEntry {
@@ -51,7 +51,8 @@ public class StormTimer implements AutoCloseable{
 
     public static class StormTimerTask extends Thread {
 
-        private PriorityBlockingQueue<QueueEntry> queue = new PriorityBlockingQueue<QueueEntry>(10, new Comparator<QueueEntry>() {
+        //initialCapacity set to 11 since its the default inital capacity of PriorityBlockingQueue
+        private PriorityBlockingQueue<QueueEntry> queue = new PriorityBlockingQueue<QueueEntry>(11, new Comparator<QueueEntry>() {
             @Override
             public int compare(QueueEntry o1, QueueEntry o2) {
                 return o1.endTimeMs.intValue() - o2.endTimeMs.intValue();

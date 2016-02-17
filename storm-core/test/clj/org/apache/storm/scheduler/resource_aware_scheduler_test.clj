@@ -15,7 +15,8 @@
 ;; limitations under the License.
 (ns org.apache.storm.scheduler.resource-aware-scheduler-test
   (:use [clojure test])
-  (:use [org.apache.storm util config testing thrift])
+  (:use [org.apache.storm util config testing])
+  (:use [org.apache.storm.internal thrift])
   (:require [org.apache.storm.util :refer [map-val]])
   (:require [org.apache.storm.daemon [nimbus :as nimbus]])
   (:import [org.apache.storm.generated StormTopology]

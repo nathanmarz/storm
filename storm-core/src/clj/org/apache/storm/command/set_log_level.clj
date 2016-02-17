@@ -15,7 +15,8 @@
 ;; limitations under the License.
 (ns org.apache.storm.command.set-log-level
   (:use [clojure.tools.cli :only [cli]])
-  (:use [org.apache.storm thrift log])
+  (:use [org.apache.storm log])
+  (:use [org.apache.storm.internal thrift])
   (:import [org.apache.logging.log4j Level])
   (:import [org.apache.storm.generated LogConfig LogLevel LogLevelAction])
   (:gen-class))

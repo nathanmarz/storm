@@ -271,6 +271,7 @@
         <module>external/storm-cassandra</module>
         <module>external/storm-mqtt</module>
         <module>examples/storm-starter</module>
+        <module>storm-clojure</module>
     </modules>
 
     <dependencies>

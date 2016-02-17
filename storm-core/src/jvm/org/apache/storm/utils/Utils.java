@@ -52,7 +52,6 @@ import org.apache.thrift.TSerializer;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Id;
-import org.eclipse.jetty.util.log.Log;
 import org.json.simple.JSONValue;
 import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
@@ -1454,6 +1453,13 @@ public class Utils {
      */
     public static int toPositive(int number) {
         return number & Integer.MAX_VALUE;
+    }
+
+    public static GlobalStreamId getGlobalStreamId(String streamId, String componentId) {
+        if (componentId == null) {
+            return new GlobalStreamId(streamId, DEFAULT_STREAM_ID);
+        }
+        return new GlobalStreamId(streamId, componentId);
     }
 
     public static RuntimeException wrapInRuntime(Exception e){

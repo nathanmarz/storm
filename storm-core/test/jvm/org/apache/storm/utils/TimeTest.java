@@ -25,12 +25,12 @@ public class TimeTest {
 
     @Test
     public void secsToMillisLongTest() {
-        Assert.assertEquals(Time.secsToMillisLong(0),     0);
+        Assert.assertEquals(Time.secsToMillisLong(0), 0);
         Assert.assertEquals(Time.secsToMillisLong(0.002), 2);
-        Assert.assertEquals(Time.secsToMillisLong(1),     1000);
-        Assert.assertEquals(Time.secsToMillisLong(1.08),  1080);
-        Assert.assertEquals(Time.secsToMillisLong(10),    10000);
-        Assert.assertEquals(Time.secsToMillisLong(10.1),  10100);
+        Assert.assertEquals(Time.secsToMillisLong(1), 1000);
+        Assert.assertEquals(Time.secsToMillisLong(1.08), 1080);
+        Assert.assertEquals(Time.secsToMillisLong(10), 10000);
+        Assert.assertEquals(Time.secsToMillisLong(10.1), 10100);
     }
 
     @Test(expected=IllegalStateException.class)

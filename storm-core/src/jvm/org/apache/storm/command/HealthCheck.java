@@ -81,22 +81,20 @@ public class HealthCheck {
                         Thread.sleep(timeout);
                         curThread.interrupt();
                     } catch (InterruptedException e) {
-
+                        // Ignored
                     }
                 }
             });
             interruptThread.start();
             process.waitFor();
             interruptThread.interrupt();
+            curThread.interrupted();
 
             if (process.exitValue() != 0) {
                 String str;
                 InputStream stdin = process.getInputStream();
                 BufferedReader reader = new BufferedReader(new InputStreamReader(stdin));
                 while ((str = reader.readLine()) != null) {
-                    if (StringUtils.isBlank(str)) {
-                        continue;
-                    }
                     if (str.startsWith("ERROR")) {
                         return FAILED;
                     }
@@ -105,7 +103,7 @@ public class HealthCheck {
             }
             return FAILED_WITH_EXIT_CODE;
         } catch (InterruptedException e) {
-            System.out.println("Script " + script + "timed out.");
+            System.out.println("Script " + script + " timed out.");
             return TIMEOUT;
         } catch (Exception e) {
             System.out.println("Script failed with exception: " + e);

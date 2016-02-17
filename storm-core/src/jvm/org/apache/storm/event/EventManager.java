@@ -18,8 +18,9 @@
 package org.apache.storm.event;
 
 public interface EventManager {
-     void add(Runnable eventFn);
-     boolean waiting();
-     void shutdown();
-}
+    void add(Runnable eventFn);
 
+    boolean waiting();
+
+    void shutdown();
+}

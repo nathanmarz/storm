@@ -90,7 +90,7 @@
     )
 
     if "%c-opt%"=="second" (
-      set config-options=%config-options%=%1
+      set config-options=%config-options%=%~1
       set c-opt=
       goto start
     )

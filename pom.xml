@@ -199,6 +199,7 @@
         <commons-exec.version>1.1</commons-exec.version>
         <commons-fileupload.version>1.2.1</commons-fileupload.version>
         <commons-codec.version>1.6</commons-codec.version>
+        <commons-cli.version>1.3.1</commons-cli.version>
         <clj-time.version>0.8.0</clj-time.version>
         <curator.version>2.9.0</curator.version>
         <json-simple.version>1.1</json-simple.version>
@@ -490,6 +491,11 @@
                 <groupId>com.esotericsoftware.kryo</groupId>
                 <artifactId>kryo</artifactId>
                 <version>${kryo.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>commons-cli</groupId>
+                <artifactId>commons-cli</artifactId>
+                <version>${commons-cli.version}</version>
             </dependency>
             <dependency>
                 <groupId>commons-io</groupId>

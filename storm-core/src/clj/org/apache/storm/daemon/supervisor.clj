@@ -1162,7 +1162,7 @@
           command (if (conf STORM-RESOURCE-ISOLATION-PLUGIN-ENABLE)
                     (do
                       (.reserveResourcesForWorker (:resource-isolation-manager supervisor) worker-id
-                        {"cpu" cpu "memory" (+ mem-onheap mem-offheap  (int (Math/ceil (conf STORM-CGROUP-MEMORY-MB-LIMIT-TOLERANCE-MARGIN))))})
+                        {"cpu" cpu "memory" (+ mem-onheap mem-offheap  (int (Math/ceil (conf STORM-CGROUP-MEMORY-LIMIT-TOLERANCE-MARGIN-MB))))})
                       (.getLaunchCommand (:resource-isolation-manager supervisor) worker-id
                         (java.util.ArrayList. (java.util.Arrays/asList (to-array command)))))
                     command)]

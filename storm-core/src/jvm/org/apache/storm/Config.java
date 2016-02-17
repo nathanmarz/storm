@@ -2260,7 +2260,7 @@ public class Config extends HashMap<String, Object> {
      * The amount of memory a worker can exceed its allocation before cgroup will kill it
      */
     @isPositiveNumber
-    public static String STORM_CGROUP_MEMORY_MB_LIMIT_TOLERANCE_MARGIN = "storm.cgroup.memory.mb.limit.tolerance.margin";
+    public static String STORM_CGROUP_MEMORY_LIMIT_TOLERANCE_MARGIN_MB = "storm.cgroup.memory.limit.tolerance.margin.mb";
 
     public static void setClasspath(Map conf, String cp) {
         conf.put(Config.TOPOLOGY_CLASSPATH, cp);

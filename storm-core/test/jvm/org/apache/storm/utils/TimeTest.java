@@ -33,18 +33,14 @@ public class TimeTest {
         Assert.assertEquals(Time.secsToMillisLong(10.1),  10100);
     }
 
-    @Test
-    public void ifNotSimulatingIsSimulatingReturnsFalse() {
-        Assert.assertFalse(Time.isSimulating());
-    }
-
     @Test(expected=IllegalStateException.class)
     public void ifNotSimulatingAdvanceTimeThrows() {
         Time.advanceTime(1000);
     }
 
     @Test
-    public void ifSimulatingIsSimulatingReturnsTrue() {
+    public void isSimulatingReturnsTrueDuringSimulationTest() {
+        Assert.assertFalse(Time.isSimulating());
         Time.startSimulating();
         Assert.assertTrue(Time.isSimulating());
         Time.stopSimulating();

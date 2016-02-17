@@ -52,7 +52,7 @@ public class EvenScheduler implements IScheduler {
                 slots.add(slot);
             }
 
-            // sort by port
+            // sort by port: from small to large
             for (List<WorkerSlot> slots : slotGroups.values()) {
                 Collections.sort(slots, new Comparator<WorkerSlot>() {
                     @Override
@@ -62,7 +62,7 @@ public class EvenScheduler implements IScheduler {
                 });
             }
 
-            // sort by count
+            // sort by available slots size: from large to small
             List<List<WorkerSlot>> list = new ArrayList<List<WorkerSlot>>(slotGroups.values());
             Collections.sort(list, new Comparator<List<WorkerSlot>>() {
                 @Override
@@ -84,18 +84,7 @@ public class EvenScheduler implements IScheduler {
             executorToSlot = existingAssignment.getExecutorToSlot();
         }
 
-        Map<WorkerSlot, List<ExecutorDetails>> result = new HashMap<WorkerSlot, List<ExecutorDetails>>();
-        if (executorToSlot != null) {
-            for (Entry<ExecutorDetails, WorkerSlot> entry : executorToSlot.entrySet()) {
-                List<ExecutorDetails> list = result.get(entry.getValue());
-                if (list == null) {
-                    list = new ArrayList<ExecutorDetails>();
-                    result.put(entry.getValue(), list);
-                }
-                list.add(entry.getKey());
-            }
-        }
-        return result;
+        return Utils.reverseMap(executorToSlot);
     }
 
     private static Map<ExecutorDetails, WorkerSlot> scheduleTopology(TopologyDetails topology, Cluster cluster) {
@@ -105,7 +94,7 @@ public class EvenScheduler implements IScheduler {
         int totalSlotsToUse = Math.min(topology.getNumWorkers(), availableSlots.size() + aliveAssigned.size());
 
         List<WorkerSlot> sortedList = sortSlots(availableSlots, cluster);
-        if (sortedList == null) {
+        if (sortedList == null || sortedList.size() < (totalSlotsToUse - aliveAssigned.size())) {
             LOG.error("Available slots are not enough for topology: {}", topology.getName());
             return new HashMap<ExecutorDetails, WorkerSlot>();
         }
@@ -122,25 +111,16 @@ public class EvenScheduler implements IScheduler {
             return reassignment;
         }
 
-        List<ExecutorDetails> _executors = new ArrayList<ExecutorDetails>(reassignExecutors);
-        Collections.sort(_executors, new Comparator<ExecutorDetails>() {
+        List<ExecutorDetails> executors = new ArrayList<ExecutorDetails>(reassignExecutors);
+        Collections.sort(executors, new Comparator<ExecutorDetails>() {
             @Override
             public int compare(ExecutorDetails o1, ExecutorDetails o2) {
                 return o1.getStartTask() - o2.getStartTask();
             }
         });
 
-        int numExecutors = _executors.size();
-        List<WorkerSlot> _slots = new ArrayList<WorkerSlot>(numExecutors);
-        int numSlots = reassignSlots.size();
-        for (int i = 0; i < numExecutors; i++) {
-            _slots.add(reassignSlots.get(i % numSlots));
-        }
-
-        Iterator<WorkerSlot> slotIterator = _slots.iterator();
-        Iterator<ExecutorDetails> executorIterator = _executors.iterator();
-        while (slotIterator.hasNext() && executorIterator.hasNext()) {
-            reassignment.put(executorIterator.next(), slotIterator.next());
+        for (int i = 0; i < executors.size(); i++) {
+            reassignment.put(executors.get(i), reassignSlots.get(i % reassignSlots.size()));
         }
 
         if (reassignment.size() != 0) {

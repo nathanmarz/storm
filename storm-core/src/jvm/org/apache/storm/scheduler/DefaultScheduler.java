@@ -31,18 +31,19 @@ public class DefaultScheduler implements IScheduler {
     private static Set<WorkerSlot> badSlots(Map<WorkerSlot, List<ExecutorDetails>> existingSlots, int numExecutors, int numWorkers) {
         if (numWorkers != 0) {
             Map<Integer, Integer> distribution = Utils.integerDivided(numExecutors, numWorkers);
-            Set<WorkerSlot> _slots = new HashSet<WorkerSlot>();
+            Set<WorkerSlot> slots = new HashSet<WorkerSlot>();
 
             for (Entry<WorkerSlot, List<ExecutorDetails>> entry : existingSlots.entrySet()) {
-                Integer executorCount = distribution.get(entry.getValue().size());
-                if (executorCount != null && executorCount > 0) {
-                    _slots.add(entry.getKey());
+                Integer executorCount = entry.getValue().size();
+                Integer workerCount = distribution.get(executorCount);
+                if (workerCount != null && workerCount > 0) {
+                    slots.add(entry.getKey());
                     executorCount--;
-                    distribution.put(entry.getValue().size(), executorCount);
+                    distribution.put(executorCount, workerCount);
                 }
             }
 
-            for (WorkerSlot slot : _slots) {
+            for (WorkerSlot slot : slots) {
                 existingSlots.remove(slot);                
             }
 
@@ -83,12 +84,12 @@ public class DefaultScheduler implements IScheduler {
             Set<WorkerSlot> canReassignSlots = slotsCanReassign(cluster, aliveAssigned.keySet());
             int totalSlotsToUse = Math.min(topology.getNumWorkers(), canReassignSlots.size() + availableSlots.size());
 
-            Set<WorkerSlot> badSlot = null;
+            Set<WorkerSlot> badSlots = null;
             if (totalSlotsToUse > aliveAssigned.size() || !allExecutors.equals(aliveExecutors)) {
-                badSlot = badSlots(aliveAssigned, allExecutors.size(), totalSlotsToUse);                
+                badSlots = badSlots(aliveAssigned, allExecutors.size(), totalSlotsToUse);                
             }
-            if (badSlot != null) {
-                cluster.freeSlots(badSlot);                
+            if (badSlots != null) {
+                cluster.freeSlots(badSlots);                
             }
 
             Map<String, TopologyDetails> _topologies = new HashMap<String, TopologyDetails>();

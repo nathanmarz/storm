@@ -28,7 +28,7 @@
   (:import [org.apache.storm.grouping CustomStreamGrouping])
   (:import [org.apache.storm.task WorkerTopologyContext IBolt OutputCollector IOutputCollector])
   (:import [org.apache.storm.generated GlobalStreamId])
-  (:import [org.apache.storm.utils Utils ConfigUtils TupleUtils MutableObject RotatingMap RotatingMap$ExpiredCallback MutableLong Time DisruptorQueue WorkerBackpressureThread])
+  (:import [org.apache.storm.utils Utils ConfigUtils TupleUtils MutableObject RotatingMap RotatingMap$ExpiredCallback MutableLong Time DisruptorQueue WorkerBackpressureThread DisruptorBackpressureCallback])
   (:import [com.lmax.disruptor InsufficientCapacityException])
   (:import [org.apache.storm.serialization KryoTupleSerializer])
   (:import [org.apache.storm.daemon Shutdownable])
@@ -38,8 +38,9 @@
   (:import [org.apache.storm.grouping LoadAwareCustomStreamGrouping LoadAwareShuffleGrouping LoadMapping ShuffleGrouping])
   (:import [java.lang Thread Thread$UncaughtExceptionHandler]
            [java.util.concurrent ConcurrentLinkedQueue]
-           [org.json.simple JSONValue])
-  (:require [org.apache.storm [thrift :as thrift] [disruptor :as disruptor] [stats :as stats]])
+           [org.json.simple JSONValue]
+           [com.lmax.disruptor.dsl ProducerType])
+  (:require [org.apache.storm [thrift :as thrift] [stats :as stats]])
   (:require [org.apache.storm.daemon [task :as task]])
   (:require [org.apache.storm.daemon.builtin-metrics :as builtin-metrics])
   (:require [clojure.set :as set]))
@@ -222,7 +223,7 @@
     (let [val (AddressedTuple. task tuple)]
       (when (= true (storm-conf TOPOLOGY-DEBUG))
         (log-message "TRANSFERING tuple " val))
-      (disruptor/publish batch-transfer->worker val))))
+      (.publish ^DisruptorQueue batch-transfer->worker val))))
 
 (defn mk-executor-data [worker executor-id]
   (let [worker-context (worker-context worker)
@@ -230,13 +231,13 @@
         component-id (.getComponentId worker-context (first task-ids))
         storm-conf (normalized-component-conf (:storm-conf worker) worker-context component-id)
         executor-type (executor-type worker-context component-id)
-        batch-transfer->worker (disruptor/disruptor-queue
+        batch-transfer->worker (DisruptorQueue.
                                   (str "executor"  executor-id "-send-queue")
+                                  ProducerType/SINGLE
                                   (storm-conf TOPOLOGY-EXECUTOR-SEND-BUFFER-SIZE)
                                   (storm-conf TOPOLOGY-DISRUPTOR-WAIT-TIMEOUT-MILLIS)
-                                  :producer-type :single-threaded
-                                  :batch-size (storm-conf TOPOLOGY-DISRUPTOR-BATCH-SIZE)
-                                  :batch-timeout (storm-conf TOPOLOGY-DISRUPTOR-BATCH-TIMEOUT-MILLIS))
+                                  (storm-conf TOPOLOGY-DISRUPTOR-BATCH-SIZE)
+                                  (storm-conf TOPOLOGY-DISRUPTOR-BATCH-TIMEOUT-MILLIS))
         ]
     (recursive-map
      :worker worker
@@ -284,14 +285,14 @@
 (defn- mk-disruptor-backpressure-handler [executor-data]
   "make a handler for the executor's receive disruptor queue to
   check highWaterMark and lowWaterMark for backpressure"
-  (disruptor/disruptor-backpressure-handler
-    (fn []
+  (reify DisruptorBackpressureCallback
+    (highWaterMark [this]
       "When receive queue is above highWaterMark"
       (if (not @(:backpressure executor-data))
         (do (reset! (:backpressure executor-data) true)
             (log-debug "executor " (:executor-id executor-data) " is congested, set backpressure flag true")
             (WorkerBackpressureThread/notifyBackpressureChecker (:backpressure-trigger (:worker executor-data))))))
-    (fn []
+    (lowWaterMark [this]
       "When receive queue is below lowWaterMark"
       (if @(:backpressure executor-data)
         (do (reset! (:backpressure executor-data) false)
@@ -303,16 +304,19 @@
         cached-emit (MutableObject. (ArrayList.))
         storm-conf (:storm-conf executor-data)
         serializer (KryoTupleSerializer. storm-conf (:worker-context executor-data))
+        ^DisruptorQueue batch-transfer-queue (:batch-transfer-queue executor-data)
+        handler (reify com.lmax.disruptor.EventHandler
+                  (onEvent [this o seq-id batch-end?]
+                    (let [^ArrayList alist (.getObject cached-emit)]
+                      (.add alist o)
+                      (when batch-end?
+                        (worker-transfer-fn serializer alist)
+                        (.setObject cached-emit (ArrayList.))))))
         ]
-    (disruptor/consume-loop*
-      (:batch-transfer-queue executor-data)
-      (disruptor/handler [o seq-id batch-end?]
-        (let [^ArrayList alist (.getObject cached-emit)]
-          (.add alist o)
-          (when batch-end?
-            (worker-transfer-fn serializer alist)
-            (.setObject cached-emit (ArrayList.)))))
-      :uncaught-exception-handler (:report-error-and-die executor-data))))
+    (Utils/asyncLoop
+      (fn [] (.consumeBatchWhenAvailable batch-transfer-queue handler) 0)
+      (.getName batch-transfer-queue)
+      (:uncaught-exception-handler (:report-error-and-die executor-data)))))
 
 (defn setup-metrics! [executor-data]
   (let [{:keys [storm-conf receive-queue worker-context interval->task->metric-registry]} executor-data
@@ -324,7 +328,7 @@
        interval
        (fn []
          (let [val [(AddressedTuple. AddressedTuple/BROADCAST_DEST (TupleImpl. worker-context [interval] Constants/SYSTEM_TASK_ID Constants/METRICS_TICK_STREAM_ID))]]
-           (disruptor/publish receive-queue val)))))))
+           (.publish ^DisruptorQueue receive-queue val)))))))
 
 (defn metrics-tick
   [executor-data task-data ^TupleImpl tuple]
@@ -365,7 +369,7 @@
           tick-time-secs
           (fn []
             (let [val [(AddressedTuple. AddressedTuple/BROADCAST_DEST (TupleImpl. context [tick-time-secs] Constants/SYSTEM_TASK_ID Constants/SYSTEM_TICK_STREAM_ID))]]
-              (disruptor/publish receive-queue val))))))))
+              (.publish ^DisruptorQueue receive-queue val))))))))
 
 (defn mk-executor [worker executor-id initial-credentials]
   (let [executor-data (mk-executor-data worker executor-id)
@@ -408,15 +412,15 @@
         (let [receive-queue (:receive-queue executor-data)
               context (:worker-context executor-data)
               val [(AddressedTuple. AddressedTuple/BROADCAST_DEST (TupleImpl. context [creds] Constants/SYSTEM_TASK_ID Constants/CREDENTIALS_CHANGED_STREAM_ID))]]
-          (disruptor/publish receive-queue val)))
+          (.publish ^DisruptorQueue receive-queue val)))
       (get-backpressure-flag [this]
         @(:backpressure executor-data))
       Shutdownable
       (shutdown
         [this]
         (log-message "Shutting down executor " component-id ":" (pr-str executor-id))
-        (disruptor/halt-with-interrupt! (:receive-queue executor-data))
-        (disruptor/halt-with-interrupt! (:batch-transfer-queue executor-data))
+        (.haltWithInterrupt ^DisruptorQueue (:receive-queue executor-data))
+        (.haltWithInterrupt ^DisruptorQueue (:batch-transfer-queue executor-data))
         (doseq [t threads]
           (.interrupt t)
           (.join t))
@@ -458,8 +462,8 @@
   (let [task-ids (:task-ids executor-data)
         debug? (= true (-> executor-data :storm-conf (get TOPOLOGY-DEBUG)))
         ]
-    (disruptor/clojure-handler
-      (fn [tuple-batch sequence-id end-of-batch?]
+    (reify com.lmax.disruptor.EventHandler
+      (onEvent [this tuple-batch sequence-id end-of-batch?]
         (fast-list-iter [^AddressedTuple addressed-tuple tuple-batch]
           (let [^TupleImpl tuple (.getTuple addressed-tuple)
                 task-id (.getDest addressed-tuple)]
@@ -495,10 +499,6 @@
           task-data
           EVENTLOGGER-STREAM-ID
           [component-id message-id (System/currentTimeMillis) values]))))
-
-(defn- bit-xor-vals
-  [vals]
-  (reduce bit-xor 0 vals))
 
 (defmethod mk-threads :spout [executor-data task-datas initial-credentials]
   (let [{:keys [storm-conf component-id worker-context transfer-fn report-error sampler open-or-prepare-was-called?]} executor-data
@@ -587,7 +587,7 @@
                                                                                         (if (sampler) (System/currentTimeMillis))])
                                                                  (task/send-unanchored task-data
                                                                                        ACKER-INIT-STREAM-ID
-                                                                                       [root-id (bit-xor-vals out-ids) task-id]))
+                                                                                       [root-id (Utils/bitXorVals out-ids) task-id]))
                                                                (when message-id
                                                                  (ack-spout-msg executor-data task-data message-id
                                                                                 {:stream out-stream-id :values values}
@@ -621,7 +621,7 @@
 
                             (fn []
                               ;; This design requires that spouts be non-blocking
-                              (disruptor/consume-batch receive-queue event-handler)
+                              (.consumeBatch ^DisruptorQueue receive-queue event-handler)
 
                               (let [active? @(:storm-active-atom executor-data)
                                     curr-count (.get emitted-count)
@@ -839,7 +839,7 @@
                            (let [receive-queue (:receive-queue executor-data)
                                  event-handler (mk-task-receiver executor-data tuple-action-fn)]
                              (fn []
-                               (disruptor/consume-batch-when-available receive-queue event-handler)
+                               (.consumeBatchWhenAvailable ^DisruptorQueue receive-queue event-handler)
                                0)))]
     ;; TODO: can get any SubscribedState objects out of the context now
 

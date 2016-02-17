@@ -1,4 +1,10 @@
 ## 2.0.0
+ * STORM-1511: min/max operators implementation in Trident streams API.
+ * STROM-1263: port backtype.storm.command.kill-topology to java
+ * STORM-1260: port backtype.storm.command.activate to java
+ * STORM-1261: port backtype.storm.command.deactivate to java
+ * STORM-1264: port backtype.storm.command.list to java
+ * STORM-1272: port backtype.storm.disruptor to java
  * STORM-1248: port backtype.storm.messaging.loader to java
  * STORM-1538: Exception being thrown after Utils conversion to java
  * STORM-1242: migrate backtype.storm.command.config-value to java
@@ -11,6 +17,8 @@
  * STORM-1521: When using Kerberos login from keytab with multiple bolts/executors ticket is not renewed in hbase bolt.
 
 ## 1.0.0
+ * STORM-1532: Fix readCommandLineOpts to parse JSON correctly in windows
+ * STORM-1539: Improve Storm ACK-ing performance
  * STORM-1519: Storm syslog logging not confirming to RFC5426 3.1
  * STORM-1520: Nimbus Clojure/Zookeeper issue ("stateChanged" method not found)
  * STORM-1531: Junit and mockito dependencies need to have correct scope defined in storm-elasticsearch pom.xml

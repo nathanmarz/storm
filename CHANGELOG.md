@@ -1,4 +1,5 @@
 ## 2.0.0
+ * STORM-1511: min/max operators implementation in Trident streams API.
  * STROM-1263: port backtype.storm.command.kill-topology to java
  * STORM-1260: port backtype.storm.command.activate to java
  * STORM-1261: port backtype.storm.command.deactivate to java

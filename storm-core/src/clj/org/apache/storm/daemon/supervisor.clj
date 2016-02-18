@@ -578,7 +578,11 @@
           assigned-storm-ids (assigned-storm-ids-from-port-assignments new-assignment)
           localizer (:localizer supervisor)
           checked-downloaded-storm-ids (set (verify-downloaded-files conf localizer assigned-storm-ids all-downloaded-storm-ids))
-          downloaded-storm-ids (set/difference all-downloaded-storm-ids checked-downloaded-storm-ids)]
+          downloaded-storm-ids (set/difference all-downloaded-storm-ids checked-downloaded-storm-ids)
+          assigned-executors (or (ls-local-assignments local-state) {})
+          allocated (read-allocated-workers supervisor assigned-executors (Time/currentTimeSecs))
+          valid-allocated (filter-val (fn [[state _]] (= state :valid)) allocated)
+          port->worker-id (clojure.set/map-invert (map-val #((nth % 1) :port) valid-allocated))]
 
       (log-debug "Synchronizing supervisor")
       (log-debug "Storm code map: " storm-code-map)
@@ -611,6 +615,10 @@
       (doseq [p (set/difference (set (keys existing-assignment))
                                 (set (keys new-assignment)))]
         (.killedWorker isupervisor (int p)))
+      (doseq [p (set/intersection (set (keys existing-assignment))
+                                  (set (keys new-assignment)))]
+        (if (not= (:executors (existing-assignment p)) (:executors (new-assignment p)))
+          (shutdown-worker supervisor (port->worker-id p))))
       (.assigned isupervisor (keys new-assignment))
       (ls-local-assignments! local-state
             new-assignment)

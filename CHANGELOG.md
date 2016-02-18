@@ -1,4 +1,5 @@
 ## 2.0.0
+ * STORM-1516: Fixed issue in writing pids with distributed cluster mode.
  * STORM-1253: port backtype.storm.timer to java
  * STORM-1258: port thrift.clj to Thrift.java
  * STORM-1336: Evalute/Port JStorm cgroup support and implement cgroup support for RAS

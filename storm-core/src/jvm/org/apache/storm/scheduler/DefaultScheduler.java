@@ -38,7 +38,7 @@ public class DefaultScheduler implements IScheduler {
                 Integer workerCount = distribution.get(executorCount);
                 if (workerCount != null && workerCount > 0) {
                     slots.add(entry.getKey());
-                    executorCount--;
+                    workerCount--;
                     distribution.put(executorCount, workerCount);
                 }
             }

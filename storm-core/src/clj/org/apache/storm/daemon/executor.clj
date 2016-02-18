@@ -40,7 +40,7 @@
            [java.util.concurrent ConcurrentLinkedQueue]
            [org.json.simple JSONValue]
            [com.lmax.disruptor.dsl ProducerType]
-           [org.apache.storm StormTimer StormTimer$TimerFunc])
+           [org.apache.storm StormTimer])
   (:require [org.apache.storm [cluster :as cluster] [stats :as stats]])
   (:require [org.apache.storm.daemon [task :as task]])
   (:require [org.apache.storm.daemon.builtin-metrics :as builtin-metrics])
@@ -324,15 +324,13 @@
   (let [{:keys [storm-conf receive-queue worker-context interval->task->metric-registry]} executor-data
         distinct-time-bucket-intervals (keys interval->task->metric-registry)]
     (doseq [interval distinct-time-bucket-intervals]
-      (StormTimer/scheduleRecurring
+      (.scheduleRecurring
         (:user-timer (:worker executor-data))
         interval
         interval
-        (reify StormTimer$TimerFunc
-          (^void run
-            [this ^Object o]
-            (let [val [(AddressedTuple. AddressedTuple/BROADCAST_DEST (TupleImpl. worker-context [interval] Constants/SYSTEM_TASK_ID Constants/METRICS_TICK_STREAM_ID))]]
-              (.publish ^DisruptorQueue receive-queue val))))))))
+        (fn []
+          (let [val [(AddressedTuple. AddressedTuple/BROADCAST_DEST (TupleImpl. worker-context [interval] Constants/SYSTEM_TASK_ID Constants/METRICS_TICK_STREAM_ID))]]
+            (.publish ^DisruptorQueue receive-queue val)))))))
 
 (defn metrics-tick
   [executor-data task-data ^TupleImpl tuple]
@@ -367,15 +365,13 @@
               (and (= false (storm-conf TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS))
                    (= :spout (:type executor-data))))
         (log-message "Timeouts disabled for executor " (:component-id executor-data) ":" (:executor-id executor-data))
-        (StormTimer/scheduleRecurring
+        (.scheduleRecurring
           (:user-timer worker)
           tick-time-secs
           tick-time-secs
-          (reify StormTimer$TimerFunc
-            (^void run
-              [this ^Object o]
-              (let [val [(AddressedTuple. AddressedTuple/BROADCAST_DEST (TupleImpl. context [tick-time-secs] Constants/SYSTEM_TASK_ID Constants/SYSTEM_TICK_STREAM_ID))]]
-                (.publish ^DisruptorQueue receive-queue val)))))))))
+          (fn []
+            (let [val [(AddressedTuple. AddressedTuple/BROADCAST_DEST (TupleImpl. context [tick-time-secs] Constants/SYSTEM_TASK_ID Constants/SYSTEM_TICK_STREAM_ID))]]
+              (.publish ^DisruptorQueue receive-queue val))))))))
 
 (defn mk-executor [worker executor-id initial-credentials]
   (let [executor-data (mk-executor-data worker executor-id)

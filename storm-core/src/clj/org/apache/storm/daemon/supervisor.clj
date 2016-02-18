@@ -42,7 +42,7 @@
            [org.yaml.snakeyaml.constructor SafeConstructor])
   (:require [metrics.gauges :refer [defgauge]])
   (:require [metrics.meters :refer [defmeter mark!]])
-  (:import [org.apache.storm StormTimer StormTimer$TimerFunc])
+  (:import [org.apache.storm StormTimer])
   (:gen-class
     :methods [^{:static true} [launch [org.apache.storm.scheduler.ISupervisor] void]])
   (:require [clojure.string :as str]))
@@ -336,23 +336,23 @@
    :assignment-id (.getAssignmentId isupervisor)
    :my-hostname (Utils/hostname conf)
    :curr-assignment (atom nil) ;; used for reporting used ports when heartbeating
-   :heartbeat-timer (StormTimer/mkTimer nil
-                      (reify StormTimer$TimerFunc
-                        (^void run
-                          [this ^Object t]
-                          (log-error t "Error when processing event")
+   :heartbeat-timer (StormTimer. nil
+                      (reify Thread$UncaughtExceptionHandler
+                        (^void uncaughtException
+                          [this ^Thread t ^Throwable e]
+                          (log-error e "Error when processing event")
                           (Utils/exitProcess 20 "Error when processing an event"))))
-   :event-timer (StormTimer/mkTimer nil
-                  (reify StormTimer$TimerFunc
-                    (^void run
-                      [this ^Object t]
-                      (log-error t "Error when processing event")
+   :event-timer (StormTimer. nil
+                  (reify Thread$UncaughtExceptionHandler
+                    (^void uncaughtException
+                      [this ^Thread t ^Throwable e]
+                      (log-error e "Error when processing event")
                       (Utils/exitProcess 20 "Error when processing an event"))))
-   :blob-update-timer (StormTimer/mkTimer "blob-update-timer"
-                        (reify StormTimer$TimerFunc
-                          (^void run
-                            [this ^Object t]
-                            (log-error t "Error when processing event")
+   :blob-update-timer (StormTimer. "blob-update-timer"
+                        (reify Thread$UncaughtExceptionHandler
+                          (^void uncaughtException
+                            [this ^Thread t ^Throwable e]
+                            (log-error e "Error when processing event")
                             (Utils/exitProcess 20 "Error when processing an event"))))
    :localizer (Utils/createLocalizer conf (ConfigUtils/supervisorLocalDir conf))
    :assignment-versions (atom {})
@@ -821,13 +821,10 @@
     (heartbeat-fn)
 
     ;; should synchronize supervisor so it doesn't launch anything after being down (optimization)
-    (StormTimer/scheduleRecurring (:heartbeat-timer supervisor)
+    (.scheduleRecurring (:heartbeat-timer supervisor)
       0
       (conf SUPERVISOR-HEARTBEAT-FREQUENCY-SECS)
-      (reify StormTimer$TimerFunc
-        (^void run
-          [this ^Object o]
-          (heartbeat-fn))))
+      heartbeat-fn)
 
     (doseq [storm-id downloaded-storm-ids]
       (add-blob-references (:localizer supervisor) storm-id
@@ -838,53 +835,38 @@
     (when (conf SUPERVISOR-ENABLE)
       ;; This isn't strictly necessary, but it doesn't hurt and ensures that the machine stays up
       ;; to date even if callbacks don't all work exactly right
-      (StormTimer/scheduleRecurring (:event-timer supervisor)
-        0 10
-        (reify StormTimer$TimerFunc
-          (^void run
-            [this ^Object o]
-            (.add event-manager synchronize-supervisor))))
+      (.scheduleRecurring (:event-timer supervisor) 0 10 (fn [] (.add event-manager synchronize-supervisor)))
 
-      (StormTimer/scheduleRecurring (:event-timer supervisor)
+      (.scheduleRecurring (:event-timer supervisor)
         0
         (conf SUPERVISOR-MONITOR-FREQUENCY-SECS)
-        (reify StormTimer$TimerFunc
-          (^void run
-            [this ^Object o]
-            (.add processes-event-manager sync-processes))))
+        (fn [] (.add processes-event-manager sync-processes)))
 
       ;; Blob update thread. Starts with 30 seconds delay, every 30 seconds
-      (StormTimer/scheduleRecurring (:blob-update-timer supervisor)
+      (.scheduleRecurring (:blob-update-timer supervisor)
         30
         30
-        (reify StormTimer$TimerFunc
-          (^void run
-            [this ^Object o]
-            (.add event-manager synchronize-blobs-fn))))
+        (fn [] (.add event-manager synchronize-blobs-fn)))
 
-      (StormTimer/scheduleRecurring (:event-timer supervisor)
+      (.scheduleRecurring (:event-timer supervisor)
         (* 60 5)
         (* 60 5)
-        (reify StormTimer$TimerFunc
-          (^void run
-            [this ^Object o]
-            (let [health-code (healthcheck/health-check conf)
-                  ids (my-worker-ids conf)]
-              (if (not (= health-code 0))
-                (do
-                  (doseq [id ids]
-                    (shutdown-worker supervisor id))
-                  (throw (RuntimeException. "Supervisor failed health check. Exiting."))))))))
+        (fn []
+          (let [health-code (healthcheck/health-check conf)
+                ids (my-worker-ids conf)]
+            (if (not (= health-code 0))
+              (do
+                (doseq [id ids]
+                  (shutdown-worker supervisor id))
+                (throw (RuntimeException. "Supervisor failed health check. Exiting.")))))))
 
 
       ;; Launch a thread that Runs profiler commands . Starts with 30 seconds delay, every 30 seconds
-      (StormTimer/scheduleRecurring
+      (.scheduleRecurring
         (:event-timer supervisor)
-        30 30
-        (reify StormTimer$TimerFunc
-          (^void run
-            [this ^Object o]
-            (.add event-manager run-profiler-actions-fn)))))
+        30
+        30
+        (fn [] (.add event-manager run-profiler-actions-fn))))
 
     (log-message "Starting supervisor with id " (:supervisor-id supervisor) " at host " (:my-hostname supervisor))
     (reify
@@ -892,9 +874,9 @@
      (shutdown [this]
                (log-message "Shutting down supervisor " (:supervisor-id supervisor))
                (reset! (:active supervisor) false)
-               (StormTimer/cancelTimer (:heartbeat-timer supervisor))
-               (StormTimer/cancelTimer (:event-timer supervisor))
-               (StormTimer/cancelTimer (:blob-update-timer supervisor))
+               (.close (:heartbeat-timer supervisor))
+               (.close (:event-timer supervisor))
+               (.close (:blob-update-timer supervisor))
                (.shutdown event-manager)
                (.shutdown processes-event-manager)
                (.shutdown (:localizer supervisor))
@@ -913,8 +895,8 @@
      (waiting? [this]
        (or (not @(:active supervisor))
            (and
-            (StormTimer/isTimerWaiting (:heartbeat-timer supervisor))
-            (StormTimer/isTimerWaiting (:event-timer supervisor))
+            (.isTimerWaiting (:heartbeat-timer supervisor))
+            (.isTimerWaiting (:event-timer supervisor))
             (every? (memfn waiting?) managers)))
            ))))
 

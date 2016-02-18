@@ -26,7 +26,6 @@ import org.slf4j.LoggerFactory;
 import java.util.Comparator;
 import java.util.Random;
 import java.util.concurrent.PriorityBlockingQueue;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -35,66 +34,52 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * code that does asynchronous work on the timer thread
  */
 
-public class StormTimer {
+public class StormTimer implements AutoCloseable{
     private static final Logger LOG = LoggerFactory.getLogger(StormTimer.class);
-
-    public interface TimerFunc {
-        public void run(Object o);
-    }
 
     public static class QueueEntry {
         public final Long endTimeMs;
-        public final TimerFunc afn;
+        public final Runnable func;
         public final String id;
 
-        public QueueEntry(Long endTimeMs, TimerFunc afn, String id) {
+        public QueueEntry(Long endTimeMs, Runnable func, String id) {
             this.endTimeMs = endTimeMs;
-            this.afn = afn;
+            this.func = func;
             this.id = id;
-        }
-
-        @Override
-        public String toString() {
-            return this.id + " " + this.endTimeMs + " " + this.afn;
         }
     }
 
     public static class StormTimerTask extends Thread {
 
-        private PriorityBlockingQueue<QueueEntry> queue = new PriorityBlockingQueue<QueueEntry>(10, new Comparator() {
+        private PriorityBlockingQueue<QueueEntry> queue = new PriorityBlockingQueue<QueueEntry>(10, new Comparator<QueueEntry>() {
             @Override
-            public int compare(Object o1, Object o2) {
-                return ((QueueEntry)o1).endTimeMs.intValue() - ((QueueEntry)o2).endTimeMs.intValue();
+            public int compare(QueueEntry o1, QueueEntry o2) {
+                return o1.endTimeMs.intValue() - o2.endTimeMs.intValue();
             }
         });
 
+        // boolean to indicate whether timer is active
         private AtomicBoolean active = new AtomicBoolean(false);
 
-        private TimerFunc onKill;
+        // function to call when timer is killed
+        private Thread.UncaughtExceptionHandler onKill;
 
+        //random number generator
         private Random random = new Random();
-
-        private Semaphore cancelNotifier = new Semaphore(0);
-
-        private Object lock = new Object();
 
         @Override
         public void run() {
             while (this.active.get()) {
                 QueueEntry queueEntry = null;
                 try {
-                    synchronized (this.lock) {
-                        queueEntry = this.queue.peek();
-                    }
+                    queueEntry = this.queue.peek();
                     if ((queueEntry != null) && (Time.currentTimeMillis() >= queueEntry.endTimeMs)) {
                         // It is imperative to not run the function
                         // inside the timer lock. Otherwise, it is
                         // possible to deadlock if the fn deals with
                         // other locks, like the submit lock.
-                        synchronized (this.lock) {
-                            this.queue.poll();
-                        }
-                        queueEntry.afn.run(null);
+                        this.queue.remove(queueEntry);
+                        queueEntry.func.run();
                     } else if (queueEntry != null) {
                         //  If any events are scheduled, sleep until
                         // event generation. If any recurring events
@@ -113,18 +98,16 @@ public class StormTimer {
                         // events.
                         Time.sleep(1000);
                     }
-                } catch (Throwable t) {
-                    if (!(Utils.exceptionCauseIsInstanceOf(InterruptedException.class, t))) {
-                        this.onKill.run(t);
+                } catch (Throwable e) {
+                    if (!(Utils.exceptionCauseIsInstanceOf(InterruptedException.class, e))) {
+                        this.onKill.uncaughtException(this, e);
                         this.setActive(false);
-                        throw new RuntimeException(t);
                     }
                 }
             }
-            this.cancelNotifier.release();
         }
 
-        public void setOnKillFunc(TimerFunc onKill) {
+        public void setOnKillFunc(Thread.UncaughtExceptionHandler onKill) {
             this.onKill = onKill;
         }
 
@@ -141,88 +124,120 @@ public class StormTimer {
         }
     }
 
-    public static StormTimerTask mkTimer(String name, TimerFunc onKill) {
+    //task to run
+    StormTimerTask task = new StormTimerTask();
+
+    /**
+     * Makes a Timer in the form of a StormTimerTask Object
+     * @param name name of the timer
+     * @param onKill function to call when timer is killed unexpectedly
+     * @return StormTimerTask object that was initialized
+     */
+    public StormTimer (String name, Thread.UncaughtExceptionHandler onKill) {
         if (onKill == null) {
             throw new RuntimeException("onKill func is null!");
         }
-        StormTimerTask task  = new StormTimerTask();
         if (name == null) {
-            task.setName("timer");
+            this.task.setName("timer");
         } else {
-            task.setName(name);
+            this.task.setName(name);
         }
-        task.setOnKillFunc(onKill);
-        task.setActive(true);
+        this.task.setOnKillFunc(onKill);
+        this.task.setActive(true);
 
-        task.setDaemon(true);
-        task.setPriority(Thread.MAX_PRIORITY);
-        task.start();
-        return task;
+        this.task.setDaemon(true);
+        this.task.setPriority(Thread.MAX_PRIORITY);
+        this.task.start();
     }
-    public static void schedule(StormTimerTask task, int delaySecs, TimerFunc afn, boolean checkActive, int jitterMs) {
-        if (task == null) {
+
+    /**
+     * Schedule a function to be executed in the timer
+     * @param delaySecs the number of seconds to delay before running the function
+     * @param func the function to run
+     * @param checkActive whether to check is the timer is active
+     * @param jitterMs add jitter to the run
+     */
+    public void schedule(int delaySecs, Runnable func, boolean checkActive, int jitterMs) {
+        if (this.task == null) {
             throw new RuntimeException("task is null!");
         }
-        if (afn == null) {
+        if (func == null) {
             throw new RuntimeException("function to schedule is null!");
+        }
+        if (checkActive) {
+            checkActive();
         }
         String id = Utils.uuid();
         long endTimeMs = Time.currentTimeMillis() + Time.secsToMillisLong(delaySecs);
         if (jitterMs > 0) {
-            endTimeMs = task.random.nextInt(jitterMs) + endTimeMs;
+            endTimeMs = this.task.random.nextInt(jitterMs) + endTimeMs;
         }
-        synchronized (task.lock) {
-            task.add(new QueueEntry(endTimeMs, afn, id));
-        }
-    }
-    public static void schedule(StormTimerTask task, int delaySecs, TimerFunc afn) {
-        schedule(task, delaySecs, afn, true, 0);
+        task.add(new QueueEntry(endTimeMs, func, id));
     }
 
-    public static void scheduleRecurring(final StormTimerTask task, int delaySecs, final int recurSecs, final TimerFunc afn) {
-        schedule(task, delaySecs, new TimerFunc() {
+    public void schedule(int delaySecs, Runnable func) {
+        schedule(delaySecs, func, true, 0);
+    }
+
+    /**
+     * Schedule a function to run recurrently
+     * @param delaySecs the number of seconds to delay before running the function
+     * @param recurSecs the time between each invocation
+     * @param func the function to run
+     */
+    public void scheduleRecurring(int delaySecs, final int recurSecs, final Runnable func) {
+        schedule(delaySecs, new Runnable() {
             @Override
-            public void run(Object o) {
-                afn.run(null);
+            public void run() {
+                func.run();
                 // This avoids a race condition with cancel-timer.
-                schedule(task, recurSecs, this, false, 0);
+                schedule(recurSecs, this, false, 0);
             }
         });
     }
 
-    public static void scheduleRecurringWithJitter(final StormTimerTask task, int delaySecs, final int recurSecs, final int jitterMs, final TimerFunc afn) {
-        schedule(task, delaySecs, new TimerFunc() {
+    /**
+     * schedule a function to run recurrently with jitter
+     * @param delaySecs the number of seconds to delay before running the function
+     * @param recurSecs the time between each invocation
+     * @param jitterMs jitter added to the run
+     * @param func the function to run
+     */
+    public void scheduleRecurringWithJitter(int delaySecs, final int recurSecs, final int jitterMs, final Runnable func) {
+        schedule(delaySecs, new Runnable() {
             @Override
-            public void run(Object o) {
-                afn.run(null);
+            public void run() {
+                func.run();
                 // This avoids a race condition with cancel-timer.
-                schedule(task, recurSecs, this, false, jitterMs);
+                schedule(recurSecs, this, false, jitterMs);
             }
         });
     }
 
-    public static void checkActive(StormTimerTask task) {
-        if (task == null) {
-            throw new RuntimeException("task is null!");
-        }
-        if (!task.isActive()) {
+    /**
+     * check if timer is active
+     */
+    public void checkActive() {
+        if (!this.task.isActive()) {
             throw new IllegalStateException("Timer is not active");
         }
     }
 
-    public static void cancelTimer(StormTimerTask task) throws InterruptedException {
-        if (task == null) {
-            throw new RuntimeException("task is null!");
-        }
-        checkActive(task);
-        synchronized (task.lock) {
-            task.setActive(false);
-            task.interrupt();
-        }
-        task.cancelNotifier.acquire();
+    /**
+     * cancel timer
+     */
+
+    @Override
+    public void close() throws Exception {
+        checkActive();
+        this.task.setActive(false);
+        this.task.interrupt();
     }
 
-    public static boolean isTimerWaiting(StormTimerTask task) {
+    /**
+     * is timer waiting. Used in timer simulation
+     */
+    public boolean isTimerWaiting() {
         if (task == null) {
             throw new RuntimeException("task is null!");
         }

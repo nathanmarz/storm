@@ -24,12 +24,12 @@
            [java.net JarURLConnection]
            [java.net URI URLDecoder]
            [org.apache.commons.io FileUtils])
-  (:use [org.apache.storm config util log local-state])
+  (:use [org.apache.storm config util log local-state-converter])
   (:import [org.apache.storm.generated AuthorizationException KeyNotFoundException WorkerResources])
   (:import [org.apache.storm.utils NimbusLeaderNotFoundException VersionInfo])
   (:import [java.nio.file Files StandardCopyOption])
   (:import [org.apache.storm Config])
-  (:import [org.apache.storm.generated WorkerResources ProfileAction])
+  (:import [org.apache.storm.generated WorkerResources ProfileAction LocalAssignment])
   (:import [org.apache.storm.localizer LocalResource])
   (:use [org.apache.storm.daemon common])
   (:require [org.apache.storm.command [healthcheck :as healthcheck]])
@@ -85,6 +85,10 @@
        :profiler-actions new-profiler-actions
        :versions new-assignments})))
 
+(defn mk-local-assignment
+  [storm-id executors resources]
+  {:storm-id storm-id :executors executors :resources resources})
+
 (defn- read-my-executors [assignments-snapshot storm-id assignment-id]
   (let [assignment (get assignments-snapshot storm-id)
         my-slots-resources (into {}
@@ -124,6 +128,20 @@
 
 (defn- read-downloaded-storm-ids [conf]
   (map #(URLDecoder/decode %) (Utils/readDirContents (ConfigUtils/supervisorStormDistRoot conf))))
+
+(defn ->executor-list
+  [executors]
+  (into []
+        (for [exec-info executors]
+          [(.get_task_start exec-info) (.get_task_end exec-info)])))
+
+(defn ls-worker-heartbeat
+  [^LocalState local-state]
+  (if-let [worker-hb (.getWorkerHeartBeat ^LocalState local-state)]
+    {:time-secs (.get_time_secs worker-hb)
+     :storm-id (.get_topology_id worker-hb)
+     :executors (->executor-list (.get_executors worker-hb))
+     :port (.get_port worker-hb)}))
 
 (defn read-worker-heartbeat [conf id]
   (let [local-state (ConfigUtils/workerState conf id)]
@@ -172,7 +190,7 @@
   (let [conf (:conf supervisor)
         ^LocalState local-state (:local-state supervisor)
         id->heartbeat (read-worker-heartbeats conf)
-        approved-ids (set (keys (ls-approved-workers local-state)))]
+        approved-ids (set (keys (clojurify-structure (.getApprovedWorkers ^LocalState local-state))))]
     (into
      {}
      (dofor [[id hb] id->heartbeat]
@@ -198,7 +216,7 @@
 (defn- wait-for-worker-launch [conf id start-time]
   (let [state (ConfigUtils/workerState conf id)]
     (loop []
-      (let [hb (ls-worker-heartbeat state)]
+      (let [hb (.getWorkerHeartBeat state)]
         (when (and
                (not hb)
                (<
@@ -209,7 +227,7 @@
           (Time/sleep 500)
           (recur)
           )))
-    (when-not (ls-worker-heartbeat state)
+    (when-not (.getWorkerHeartBeat state)
       (log-message "Worker " id " failed to start")
       )))
 
@@ -414,6 +432,19 @@
   [pred amap]
   (into {} (filter (fn [[k v]] (pred k)) amap)))
 
+(defn ->local-assignment
+  [^LocalAssignment thrift-local-assignment]
+  (mk-local-assignment
+    (.get_topology_id thrift-local-assignment)
+    (->executor-list (.get_executors thrift-local-assignment))
+    (.get_resources thrift-local-assignment)))
+
+;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
+(defn ls-local-assignments
+  [^LocalState local-state]
+  (if-let [thrift-local-assignments (.getLocalAssignmentsMap local-state)]
+    (map-val ->local-assignment thrift-local-assignments)))
+
 ;TODO: when translating this function, you should replace the filter-val with a proper for loop + if condition HERE
 (defn sync-processes [supervisor]
   (let [conf (:conf supervisor)
@@ -453,9 +484,9 @@
          ", Heartbeat: " (pr-str heartbeat))
         (shutdown-worker supervisor id)))
     (let [valid-new-worker-ids (get-valid-new-worker-ids conf supervisor reassign-executors new-worker-ids)]
-      (ls-approved-workers! local-state
+      (.setApprovedWorkers ^LocalState local-state
                         (merge
-                          (select-keys (ls-approved-workers local-state)
+                          (select-keys (clojurify-structure (.getApprovedWorkers ^LocalState local-state))
                             (keys keepers))
                           valid-new-worker-ids))
       (wait-for-workers-launch conf (keys valid-new-worker-ids)))))
@@ -552,6 +583,22 @@
           (log-debug "Files not present in topology directory")
           (rm-topo-files conf storm-id localizer false)
           storm-id)))))
+
+(defn ->LocalAssignment
+  [{storm-id :storm-id executors :executors resources :resources}]
+  (let [assignment (LocalAssignment. storm-id (->ExecutorInfo-list executors))]
+    (if resources (.set_resources assignment
+                                  (doto (WorkerResources. )
+                                    (.set_mem_on_heap (first resources))
+                                    (.set_mem_off_heap (second resources))
+                                    (.set_cpu (last resources)))))
+    assignment))
+
+;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
+(defn ls-local-assignments!
+  [^LocalState local-state assignments]
+  (let [local-assignment-map (map-val ->LocalAssignment assignments)]
+    (.setLocalAssignmentsMap local-state local-assignment-map)))
 
 (defn mk-synchronize-supervisor [supervisor sync-processes event-manager processes-event-manager]
   (fn this []
@@ -1265,10 +1312,10 @@
       (prepare [this conf local-dir]
         (reset! conf-atom conf)
         (let [state (LocalState. local-dir)
-              curr-id (if-let [id (ls-supervisor-id state)]
+              curr-id (if-let [id (.getSupervisorId state)]
                         id
                         (generate-supervisor-id))]
-          (ls-supervisor-id! state curr-id)
+          (.setSupervisorId state curr-id)
           (reset! id-atom curr-id))
         )
       (confirmAssigned [this port]

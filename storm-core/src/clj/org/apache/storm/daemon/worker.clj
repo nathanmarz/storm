@@ -15,7 +15,7 @@
 ;; limitations under the License.
 (ns org.apache.storm.daemon.worker
   (:use [org.apache.storm.daemon common])
-  (:use [org.apache.storm config log util local-state])
+  (:use [org.apache.storm config log util local-state-converter])
   (:require [clj-time.core :as time])
   (:require [clj-time.coerce :as coerce])
   (:require [org.apache.storm.daemon [executor :as executor]])
@@ -33,7 +33,7 @@
   (:import [org.apache.storm.messaging TaskMessage IContext IConnection ConnectionWithStatus ConnectionWithStatus$Status DeserializingConnectionCallback])
   (:import [org.apache.storm.daemon Shutdownable])
   (:import [org.apache.storm.serialization KryoTupleSerializer])
-  (:import [org.apache.storm.generated StormTopology])
+  (:import [org.apache.storm.generated StormTopology LSWorkerHeartbeat])
   (:import [org.apache.storm.tuple AddressedTuple Fields])
   (:import [org.apache.storm.task WorkerTopologyContext])
   (:import [org.apache.storm Constants])
@@ -84,7 +84,11 @@
   (let [conf (:conf worker)
         state (ConfigUtils/workerState conf (:worker-id worker))]
     ;; do the local-file-system heartbeat.
-    (ls-worker-heartbeat! state (Time/currentTimeSecs) (:storm-id worker) (:executors worker) (:port worker))
+    (.setWorkerHeartBeat state (LSWorkerHeartbeat.
+                                 (Time/currentTimeSecs)
+                                 (:storm-id worker)
+                                 (->ExecutorInfo-list (:executors worker))
+                                 (:port worker)))
     (.cleanup state 60) ; this is just in case supervisor is down so that disk doesn't fill up.
                          ; it shouldn't take supervisor 120 seconds between listing dir and reading it
 

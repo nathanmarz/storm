@@ -24,7 +24,8 @@
         [org.apache.storm.ui helpers])
   (:import [org.apache.storm.daemon DirectoryCleaner]
            [org.apache.storm.utils Utils Time]
-           [org.apache.storm.utils.staticmocking UtilsInstaller])
+           [org.apache.storm.utils.staticmocking UtilsInstaller]
+           [org.apache.storm.ui UIHelpers])
   (:import [java.nio.file Files Path DirectoryStream])
   (:import [java.nio.file Files])
   (:import [java.nio.file.attribute FileAttribute])
@@ -334,19 +335,19 @@
           _ (.createNewFile file2)
           _ (.createNewFile file3)
           origin "www.origin.server.net"
-          expected-all (json-response '("topoA/port1/worker.log" "topoA/port2/worker.log"
+          expected-all (clojurify-structure (UIHelpers/jsonResponse '("topoA/port1/worker.log" "topoA/port2/worker.log"
                                          "topoB/port1/worker.log")
                          nil
-                         :headers {"Access-Control-Allow-Origin" origin
-                                   "Access-Control-Allow-Credentials" "true"})
-          expected-filter-port (json-response '("topoA/port1/worker.log" "topoB/port1/worker.log")
+                         {"Access-Control-Allow-Origin" origin
+                          "Access-Control-Allow-Credentials" "true"}))
+          expected-filter-port (clojurify-structure (UIHelpers/jsonResponse '("topoA/port1/worker.log" "topoB/port1/worker.log")
                                  nil
-                                 :headers {"Access-Control-Allow-Origin" origin
-                                           "Access-Control-Allow-Credentials" "true"})
-          expected-filter-topoId (json-response '("topoB/port1/worker.log")
+                                 {"Access-Control-Allow-Origin" origin
+                                  "Access-Control-Allow-Credentials" "true"}))
+          expected-filter-topoId (clojurify-structure (UIHelpers/jsonResponse '("topoB/port1/worker.log")
                                    nil
-                                   :headers {"Access-Control-Allow-Origin" origin
-                                             "Access-Control-Allow-Credentials" "true"})
+                                   {"Access-Control-Allow-Origin" origin
+                                    "Access-Control-Allow-Credentials" "true"}))
           returned-all (logviewer/list-log-files "user" nil nil root-path nil origin)
           returned-filter-port (logviewer/list-log-files "user" nil "port1" root-path nil origin)
           returned-filter-topoId (logviewer/list-log-files "user" "topoB" nil root-path nil origin)]

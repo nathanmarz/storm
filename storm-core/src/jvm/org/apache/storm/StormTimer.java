@@ -19,11 +19,13 @@
 package org.apache.storm;
 
 import org.apache.storm.utils.Time;
+import org.apache.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Comparator;
 import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -35,20 +37,35 @@ public class StormTimer {
         public void run(Object o);
     }
 
+    public static class QueueEntry {
+        public final Long endTimeMs;
+        public final TimerFunc afn;
+        public final String id;
+
+        public QueueEntry(Long endTimeMs, TimerFunc afn, String id) {
+            this.endTimeMs = endTimeMs;
+            this.afn = afn;
+            this.id = id;
+        }
+
+        @Override
+        public String toString() {
+            return this.id + " " + this.endTimeMs + " " + this.afn;
+        }
+    }
+
     public static class StormTimerTask extends Thread {
 
-        private PriorityBlockingQueue<Long> queue = new PriorityBlockingQueue<Long>(10, new Comparator() {
+        private PriorityBlockingQueue<QueueEntry> queue = new PriorityBlockingQueue<QueueEntry>(10, new Comparator() {
             @Override
             public int compare(Object o1, Object o2) {
-                return 0;
+                return ((QueueEntry)o1).endTimeMs.intValue() - ((QueueEntry)o2).endTimeMs.intValue();
             }
         });
 
         private AtomicBoolean active = new AtomicBoolean(false);
 
         private TimerFunc onKill;
-
-        private TimerFunc afn;
 
         private Random random = new Random();
 
@@ -58,26 +75,32 @@ public class StormTimer {
 
         @Override
         public void run() {
-            LOG.info("in run...");
+            LOG.info("in run...{}", this.getName());
             while (this.active.get()) {
+                QueueEntry queueEntry = null;
                 try {
-                    Long endTimeMillis;
                     synchronized (this.lock) {
-                        endTimeMillis = this.queue.peek();
+                        queueEntry = this.queue.peek();
                     }
-                    if ((endTimeMillis != null) && (currentTimeMillis() >= endTimeMillis)) {
+                    LOG.info("event: {} -- {}", this.getName(), queueEntry);
+
+                    if ((queueEntry != null) && (Time.currentTimeMillis() >= queueEntry.endTimeMs)) {
                         synchronized (this.lock) {
                             this.queue.poll();
                         }
-                        LOG.info("About to run function...");
-                        this.afn.run(null);
-                    } else if (endTimeMillis != null) {
-                        Time.sleep(Math.min(1000, (endTimeMillis - currentTimeMillis())));
+                        queueEntry.afn.run(null);
+                    } else if (queueEntry != null) {
+                        Time.sleep(Math.min(1000, (queueEntry.endTimeMs - Time.currentTimeMillis())));
                     } else {
                         Time.sleep(1000);
                     }
                 } catch (Throwable t) {
-                    this.onKill.run(t);
+                    if (!(Utils.exceptionCauseIsInstanceOf(InterruptedException.class, t))) {
+                        LOG.info("Exception throw for event: {} --- {}", queueEntry, t);
+                        this.onKill.run(t);
+                        this.setActive(false);
+                        throw new RuntimeException(t);
+                    }
                 }
             }
             this.cancelNotifier.release();
@@ -85,10 +108,6 @@ public class StormTimer {
 
         public void setOnKillFunc(TimerFunc onKill) {
             this.onKill = onKill;
-        }
-
-        public void setFunc(TimerFunc func) {
-            this.afn = func;
         }
 
         public void setActive(boolean flag) {
@@ -99,14 +118,21 @@ public class StormTimer {
             return this.active.get();
         }
 
-        public void add(long endTime) {
-            this.queue.add(endTime);
+        public void add(QueueEntry queueEntry) {
+            this.queue.add(queueEntry);
         }
     }
 
-    public static StormTimerTask mkTimer(TimerFunc onKill, String name) {
-        LOG.info("making Timer...");
+    public static StormTimerTask mkTimer(String name, TimerFunc onKill) {
+        if (onKill == null) {
+            throw new RuntimeException("onKill func is null!");
+        }
         StormTimerTask task  = new StormTimerTask();
+        if (name == null) {
+            task.setName("timer");
+        } else {
+            task.setName(name);
+        }
         task.setOnKillFunc(onKill);
         task.setActive(true);
 
@@ -116,13 +142,20 @@ public class StormTimer {
         return task;
     }
     public static void schedule(StormTimerTask task, int delaySecs, TimerFunc afn, boolean checkActive, int jitterMs) {
-        long endTimeMs = currentTimeMillis() + secsToMillisLong(delaySecs);
+        if (task == null) {
+            throw new RuntimeException("task is null!");
+        }
+        if (afn == null) {
+            throw new RuntimeException("function to schedule is null!");
+        }
+        String id = Utils.uuid();
+        long endTimeMs = Time.currentTimeMillis() + Time.secsToMillisLong(delaySecs);
         if (jitterMs > 0) {
             endTimeMs = task.random.nextInt(jitterMs) + endTimeMs;
         }
-        task.setFunc(afn);
+        LOG.info("add event: {}-{}-{}", id, endTimeMs, afn);
         synchronized (task.lock) {
-            task.add(endTimeMs);
+            task.add(new QueueEntry(endTimeMs, afn, id));
         }
     }
     public static void schedule(StormTimerTask task, int delaySecs, TimerFunc afn) {
@@ -156,12 +189,20 @@ public class StormTimer {
     }
 
     public static void checkActive(StormTimerTask task) {
+        if (task == null) {
+            throw new RuntimeException("task is null!");
+        }
         if (!task.isActive()) {
             throw new IllegalStateException("Timer is not active");
         }
     }
 
     public static void cancelTimer(StormTimerTask task) throws InterruptedException {
+        if (task == null) {
+            throw new RuntimeException("task is null!");
+        }
+        LOG.info("cancel task: {} - {} - {}", task.getName(), task.getId(), task.queue);
+
         checkActive(task);
         synchronized (task.lock) {
             task.setActive(false);
@@ -171,29 +212,9 @@ public class StormTimer {
     }
 
     public static boolean isTimerWaiting(StormTimerTask task) {
+        if (task == null) {
+            throw new RuntimeException("task is null!");
+        }
         return Time.isThreadWaiting(task);
     }
-
-    /**
-     * function in util that haven't be translated to java
-     */
-
-    public static long secsToMillisLong(long secs) {
-        return secs * 1000;
-    }
-
-    public static long currentTimeMillis() {
-        return Time.currentTimeMillis();
-    }
-
-
-    public static void main(String[] argv) {
-        mkTimer(new TimerFunc() {
-            @Override
-            public void run(Object o) {
-
-            }
-        }, "erer");
-    }
-
 }

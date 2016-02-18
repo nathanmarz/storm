@@ -37,7 +37,7 @@
   (:import [org.apache.storm.zookeeper Zookeeper])
   (:import [org.apache.commons.io FileUtils]
            [org.json.simple JSONValue])
-  (:use [org.apache.storm testing MockAutoCred util config log timer zookeeper])
+  (:use [org.apache.storm testing MockAutoCred util config log zookeeper])
   (:use [org.apache.storm.daemon common])
   (:require [conjure.core])
   (:require [org.apache.storm [cluster :as cluster]])
@@ -1483,7 +1483,7 @@
                    nimbus/file-cache-map nil
                    nimbus/mk-blob-cache-map nil
                    nimbus/mk-bloblist-cache-map nil
-                   mk-timer nil
+                  ; mk-timer nil
                    nimbus/mk-scheduler nil]
                   (nimbus/nimbus-data auth-conf fake-inimbus)
                   (verify-call-times-for cluster/mk-storm-cluster-state 1)

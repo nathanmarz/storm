@@ -15,7 +15,7 @@
 ;; limitations under the License.
 (ns org.apache.storm.daemon.worker
   (:use [org.apache.storm.daemon common])
-  (:use [org.apache.storm config log util timer local-state])
+  (:use [org.apache.storm config log util local-state])
   (:require [clj-time.core :as time])
   (:require [clj-time.coerce :as coerce])
   (:require [org.apache.storm.daemon [executor :as executor]])
@@ -45,6 +45,7 @@
   (:import [org.apache.logging.log4j Level])
   (:import [org.apache.logging.log4j.core.config LoggerConfig])
   (:import [org.apache.storm.generated LogConfig LogLevelAction])
+  (:import [org.apache.storm StormTimer StormTimer$TimerFunc])
   (:gen-class))
 
 (defmulti mk-suicide-fn cluster-mode)
@@ -238,11 +239,17 @@
   {})
 
 (defn mk-halting-timer [timer-name]
-  (mk-timer :kill-fn (fn [t]
-                       (log-error t "Error when processing event")
-                       (Utils/exitProcess 20 "Error when processing an event")
-                       )
-            :timer-name timer-name))
+;  (mk-timer :kill-fn (fn [t]
+;                       (log-error t "Error when processing event")
+;                       (Utils/exitProcess 20 "Error when processing an event")
+;                       )
+;            :timer-name timer-name)
+  (StormTimer/mkTimer timer-name
+    (reify StormTimer$TimerFunc
+      (^void run
+        [this ^Object t]
+        (log-error t "Error when processing event")
+        (Utils/exitProcess 20 "Error when processing an event")))))
 
 (defn worker-data [conf mq-context storm-id assignment-id port worker-id storm-conf cluster-state storm-cluster-state]
   (let [assignment-versions (atom {})
@@ -374,9 +381,16 @@
         conf (:conf worker)
         storm-cluster-state (:storm-cluster-state worker)
         storm-id (:storm-id worker)]
-    (fn this
+    (fn refresh-connections
       ([]
-        (this (fn [& ignored] (schedule (:refresh-connections-timer worker) 0 this))))
+        (refresh-connections (fn [& ignored]
+;                (schedule (:refresh-connections-timer worker) 0 refresh-connections)
+                (StormTimer/schedule
+                  (:refresh-connections-timer worker) 0
+                  (reify StormTimer$TimerFunc
+                    (^void run
+                      [this ^Object o]
+                      (refresh-connections)))))))
       ([callback]
          (let [version (.assignment-version storm-cluster-state storm-id callback)
                assignment (if (= version (:version (get @(:assignment-versions worker) storm-id)))
@@ -427,7 +441,15 @@
 
 (defn refresh-storm-active
   ([worker]
-    (refresh-storm-active worker (fn [& ignored] (schedule (:refresh-active-timer worker) 0 (partial refresh-storm-active worker)))))
+    (refresh-storm-active
+      worker (fn [& ignored]
+;               (schedule (:refresh-active-timer worker) 0 (partial refresh-storm-active worker))
+               (StormTimer/schedule
+                 (:refresh-active-timer worker) 0
+                 (reify StormTimer$TimerFunc
+                   (^void run
+                     [this ^Object o]
+                     ((partial refresh-storm-active worker))))))))
   ([worker callback]
     (let [base (.storm-base (:storm-cluster-state worker) (:storm-id worker) callback)]
       (reset!
@@ -474,16 +496,28 @@
   (let [timer (:refresh-active-timer worker)
         delay-secs 0
         recur-secs 1]
-    (schedule timer
+;    (schedule timer
+;      delay-secs
+;      (fn this []
+;        (if (all-connections-ready worker)
+;          (do
+;            (log-message "All connections are ready for worker " (:assignment-id worker) ":" (:port worker)
+;              " with id "(:worker-id worker))
+;            (reset! (:worker-active-flag worker) true))
+;          (schedule timer recur-secs this :check-active false)
+;            )))
+
+    (StormTimer/schedule timer
       delay-secs
-      (fn this []
-        (if (all-connections-ready worker)
-          (do
-            (log-message "All connections are ready for worker " (:assignment-id worker) ":" (:port worker)
-              " with id "(:worker-id worker))
-            (reset! (:worker-active-flag worker) true))
-          (schedule timer recur-secs this :check-active false)
-            )))))
+      (reify StormTimer$TimerFunc
+        (^void run
+          [this ^Object o]
+          (if (all-connections-ready worker)
+            (do
+              (log-message "All connections are ready for worker " (:assignment-id worker) ":" (:port worker)
+                " with id " (:worker-id worker))
+              (reset! (:worker-active-flag worker) true))
+            (StormTimer/schedule timer recur-secs this false 0)))))))
 
 (defn register-callbacks [worker]
   (let [transfer-local-fn (:transfer-local-fn worker)
@@ -638,8 +672,22 @@
         executors (atom nil)
         ;; launch heartbeat threads immediately so that slow-loading tasks don't cause the worker to timeout
         ;; to the supervisor
-        _ (schedule-recurring (:heartbeat-timer worker) 0 (conf WORKER-HEARTBEAT-FREQUENCY-SECS) heartbeat-fn)
-        _ (schedule-recurring (:executor-heartbeat-timer worker) 0 (conf TASK-HEARTBEAT-FREQUENCY-SECS) #(do-executor-heartbeats worker :executors @executors))
+;        _ (schedule-recurring (:heartbeat-timer worker) 0 (conf WORKER-HEARTBEAT-FREQUENCY-SECS) heartbeat-fn)
+        _ (StormTimer/scheduleRecurring
+            (:heartbeat-timer worker) 0 (conf WORKER-HEARTBEAT-FREQUENCY-SECS)
+            (reify StormTimer$TimerFunc
+              (^void run
+                [this ^Object o]
+                (heartbeat-fn))))
+
+;                _ (schedule-recurring (:executor-heartbeat-timer worker) 0 (conf TASK-HEARTBEAT-FREQUENCY-SECS) #(do-executor-heartbeats worker :executors @executors))
+
+        _ (StormTimer/scheduleRecurring
+            (:executor-heartbeat-timer worker) 0 (conf TASK-HEARTBEAT-FREQUENCY-SECS)
+            (reify StormTimer$TimerFunc
+              (^void run
+                [this ^Object o]
+                (do-executor-heartbeats worker :executors @executors))))
 
         _ (register-callbacks worker)
 
@@ -700,14 +748,22 @@
                     (.interrupt backpressure-thread)
                     (.join backpressure-thread)
                     (log-message "Shut down backpressure thread")
-                    (cancel-timer (:heartbeat-timer worker))
-                    (cancel-timer (:refresh-connections-timer worker))
-                    (cancel-timer (:refresh-credentials-timer worker))
-                    (cancel-timer (:refresh-active-timer worker))
-                    (cancel-timer (:executor-heartbeat-timer worker))
-                    (cancel-timer (:user-timer worker))
-                    (cancel-timer (:refresh-load-timer worker))
+;                    (cancel-timer (:heartbeat-timer worker))
+                    (StormTimer/cancelTimer (:heartbeat-timer worker))
+;                    (cancel-timer (:refresh-connections-timer worker))
+                    (StormTimer/cancelTimer (:refresh-connections-timer worker))
+;                    (cancel-timer (:refresh-credentials-timer worker))
+                    (StormTimer/cancelTimer (:refresh-credentials-timer worker))
+;                    (cancel-timer (:refresh-active-timer worker))
+                    (StormTimer/cancelTimer (:refresh-active-timer worker))
+;                    (cancel-timer (:executor-heartbeat-timer worker))
+                    (StormTimer/cancelTimer (:executor-heartbeat-timer worker))
+;                    (cancel-timer (:user-timer worker))
+                    (StormTimer/cancelTimer (:user-timer worker))
+;                    (cancel-timer (:refresh-load-timer worker))
+                    (StormTimer/cancelTimer (:refresh-load-timer worker))
 
+                    (StormTimer/cancelTimer (:reset-log-levels-timer worker))
                     (close-resources worker)
 
                     (log-message "Trigger any worker shutdown hooks")
@@ -726,13 +782,20 @@
              DaemonCommon
              (waiting? [this]
                (and
-                 (timer-waiting? (:heartbeat-timer worker))
-                 (timer-waiting? (:refresh-connections-timer worker))
-                 (timer-waiting? (:refresh-load-timer worker))
-                 (timer-waiting? (:refresh-credentials-timer worker))
-                 (timer-waiting? (:refresh-active-timer worker))
-                 (timer-waiting? (:executor-heartbeat-timer worker))
-                 (timer-waiting? (:user-timer worker))
+;                 (timer-waiting? (:heartbeat-timer worker))
+;                 (timer-waiting? (:refresh-connections-timer worker))
+;                 (timer-waiting? (:refresh-load-timer worker))
+;                 (timer-waiting? (:refresh-credentials-timer worker))
+;                 (timer-waiting? (:refresh-active-timer worker))
+;                 (timer-waiting? (:executor-heartbeat-timer worker))
+;                 (timer-waiting? (:user-timer worker))
+                 (StormTimer/isTimerWaiting (:heartbeat-timer worker))
+                 (StormTimer/isTimerWaiting (:refresh-connections-timer worker))
+                 (StormTimer/isTimerWaiting (:refresh-load-timer worker))
+                 (StormTimer/isTimerWaiting (:refresh-credentials-timer worker))
+                 (StormTimer/isTimerWaiting (:refresh-active-timer worker))
+                 (StormTimer/isTimerWaiting (:executor-heartbeat-timer worker))
+                 (StormTimer/isTimerWaiting (:user-timer worker))
                  ))
              )
         credentials (atom initial-credentials)
@@ -760,18 +823,50 @@
 
     (establish-log-setting-callback)
     (.credentials (:storm-cluster-state worker) storm-id (fn [args] (check-credentials-changed)))
-    (schedule-recurring (:refresh-credentials-timer worker) 0 (conf TASK-CREDENTIALS-POLL-SECS)
-                        (fn [& args]
-                          (check-credentials-changed)
-                          (if ((:storm-conf worker) TOPOLOGY-BACKPRESSURE-ENABLE)
-                            (check-throttle-changed))))
+;    (schedule-recurring (:refresh-credentials-timer worker) 0 (conf TASK-CREDENTIALS-POLL-SECS)
+;                        (fn [& args]
+;                          (check-credentials-changed)
+;                          (if ((:storm-conf worker) TOPOLOGY-BACKPRESSURE-ENABLE)
+;                            (check-throttle-changed))))
+
+    (StormTimer/scheduleRecurring
+      (:refresh-credentials-timer worker) 0 (conf TASK-CREDENTIALS-POLL-SECS)
+      (reify StormTimer$TimerFunc
+        (^void run
+          [this ^Object o]
+          (check-credentials-changed)
+          (if ((:storm-conf worker) TOPOLOGY-BACKPRESSURE-ENABLE)
+            (check-throttle-changed)))))
     ;; The jitter allows the clients to get the data at different times, and avoids thundering herd
     (when-not (.get conf TOPOLOGY-DISABLE-LOADAWARE-MESSAGING)
-      (schedule-recurring-with-jitter (:refresh-load-timer worker) 0 1 500 refresh-load))
-    (schedule-recurring (:refresh-connections-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) refresh-connections)
-    (schedule-recurring (:reset-log-levels-timer worker) 0 (conf WORKER-LOG-LEVEL-RESET-POLL-SECS) (fn [] (reset-log-levels latest-log-config)))
-    (schedule-recurring (:refresh-active-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) (partial refresh-storm-active worker))
-
+;      (schedule-recurring-with-jitter (:refresh-load-timer worker) 0 1 500 refresh-load)
+      (StormTimer/scheduleRecurringWithJitter
+        (:refresh-load-timer worker) 0 1 500
+        (reify StormTimer$TimerFunc
+          (^void run
+            [this ^Object o]
+            (refresh-load)))))
+;    (schedule-recurring (:refresh-connections-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) refresh-connections)
+    (StormTimer/scheduleRecurring
+      (:refresh-connections-timer worker) 0 (conf TASK-REFRESH-POLL-SECS)
+      (reify StormTimer$TimerFunc
+        (^void run
+          [this ^Object o]
+          (refresh-connections))))
+;    (schedule-recurring (:reset-log-levels-timer worker) 0 (conf WORKER-LOG-LEVEL-RESET-POLL-SECS) (fn [] (reset-log-levels latest-log-config)))
+    (StormTimer/scheduleRecurring
+      (:reset-log-levels-timer worker) 0 (conf WORKER-LOG-LEVEL-RESET-POLL-SECS)
+      (reify StormTimer$TimerFunc
+        (^void run
+          [this ^Object o]
+          (reset-log-levels latest-log-config))))
+;     (schedule-recurring (:refresh-active-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) (partial refresh-storm-active worker))
+    (StormTimer/scheduleRecurring
+      (:refresh-active-timer worker) 0 (conf TASK-REFRESH-POLL-SECS)
+      (reify StormTimer$TimerFunc
+        (^void run
+          [this ^Object o]
+          ((partial refresh-storm-active worker)))))
     (log-message "Worker has topology config " (Utils/redactValue (:storm-conf worker) STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD))
     (log-message "Worker " worker-id " for storm " storm-id " on " assignment-id ":" port " has finished loading")
     ret

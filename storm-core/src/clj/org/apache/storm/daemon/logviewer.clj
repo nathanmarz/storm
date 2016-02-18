@@ -18,8 +18,9 @@
   (:use [clojure.set :only [difference intersection]])
   (:use [clojure.string :only [blank? split]])
   (:use [hiccup core page-helpers form-helpers])
-  (:use [org.apache.storm config util log timer])
+  (:use [org.apache.storm config util log])
   (:use [org.apache.storm.ui helpers])
+  (:import [org.apache.storm StormTimer StormTimer$TimerFunc])
   (:import [org.apache.storm.utils Utils Time VersionInfo ConfigUtils])
   (:import [org.slf4j LoggerFactory])
   (:import [java.util Arrays ArrayList HashSet])
@@ -263,13 +264,26 @@
   (let [interval-secs (conf LOGVIEWER-CLEANUP-INTERVAL-SECS)]
     (when interval-secs
       (log-debug "starting log cleanup thread at interval: " interval-secs)
-      (schedule-recurring (mk-timer :thread-name "logviewer-cleanup"
-                                    :kill-fn (fn [t]
-                                               (log-error t "Error when doing logs cleanup")
-                                               (Utils/exitProcess 20 "Error when doing log cleanup")))
-                          0 ;; Start immediately.
-                          interval-secs
-                          (fn [] (cleanup-fn! log-root-dir))))))
+;      (schedule-recurring (mk-timer :thread-name "logviewer-cleanup"
+;                                    :kill-fn (fn [t]
+;                                               (log-error t "Error when doing logs cleanup")
+;                                               (Utils/exitProcess 20 "Error when doing log cleanup")))
+;                          0 ;; Start immediately.
+;                          interval-secs
+;                          (fn [] (cleanup-fn! log-root-dir)))
+
+      (StormTimer/scheduleRecurring
+        (StormTimer/mkTimer "logviewer-cleanup"
+          (reify StormTimer$TimerFunc
+            (^void run
+              [this ^Object t]
+              (log-error t "Error when doing logs cleanup")
+              (Utils/exitProcess 20 "Error when doing log cleanup"))))
+        0 interval-secs
+        (reify StormTimer$TimerFunc
+          (^void run
+            [this ^Object o]
+            (cleanup-fn! log-root-dir)))))))
 
 (defn- skip-bytes
   "FileInputStream#skip may not work the first time, so ensure it successfully

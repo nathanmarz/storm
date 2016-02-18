@@ -1,4 +1,5 @@
 ## 2.0.0
+ * STORM-1258: port thrift.clj to Thrift.java
  * STORM-1336: Evalute/Port JStorm cgroup support and implement cgroup support for RAS
  * STORM-1511: min/max operators implementation in Trident streams API.
  * STROM-1263: port backtype.storm.command.kill-topology to java

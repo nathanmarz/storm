@@ -127,7 +127,7 @@ public class AvroGenericRecordBolt extends AbstractHdfsBolt{
     }
 
     @Override
-    Path createOutputFile() throws IOException {
+    protected Path createOutputFile() throws IOException {
         Path path = new Path(this.fileNameFormat.getPath(), this.fileNameFormat.getName(this.rotation, System.currentTimeMillis()));
         this.out = this.fs.create(path);
 

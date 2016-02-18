@@ -125,7 +125,7 @@ public class SequenceFileBolt extends AbstractHdfsBolt {
         this.offset = this.writer.getLength();
     }
 
-    Path createOutputFile() throws IOException {
+    protected Path createOutputFile() throws IOException {
         Path p = new Path(this.fsUrl + this.fileNameFormat.getPath(), this.fileNameFormat.getName(this.rotation, System.currentTimeMillis()));
         this.writer = SequenceFile.createWriter(
                 this.hdfsConfig,
@@ -137,7 +137,7 @@ public class SequenceFileBolt extends AbstractHdfsBolt {
         return p;
     }
 
-    void closeOutputFile() throws IOException {
+    protected void closeOutputFile() throws IOException {
         this.writer.close();
     }
 }

@@ -242,9 +242,9 @@ public abstract class AbstractHdfsBolt extends BaseRichBolt {
      */
     abstract void syncTuples() throws IOException;
 
-    abstract void closeOutputFile() throws IOException;
+    abstract protected void closeOutputFile() throws IOException;
 
-    abstract Path createOutputFile() throws IOException;
+    abstract protected Path createOutputFile() throws IOException;
 
     abstract void doPrepare(Map conf, TopologyContext topologyContext, OutputCollector collector) throws IOException;
 

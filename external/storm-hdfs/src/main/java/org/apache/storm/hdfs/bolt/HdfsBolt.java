@@ -113,12 +113,12 @@ public class HdfsBolt extends AbstractHdfsBolt{
     }
 
     @Override
-    void closeOutputFile() throws IOException {
+    protected void closeOutputFile() throws IOException {
         this.out.close();
     }
 
     @Override
-    Path createOutputFile() throws IOException {
+    protected Path createOutputFile() throws IOException {
         Path path = new Path(this.fileNameFormat.getPath(), this.fileNameFormat.getName(this.rotation, System.currentTimeMillis()));
         this.out = this.fs.create(path);
         return path;

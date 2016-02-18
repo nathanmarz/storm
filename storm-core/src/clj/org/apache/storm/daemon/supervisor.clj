@@ -43,7 +43,8 @@
   (:require [metrics.gauges :refer [defgauge]])
   (:require [metrics.meters :refer [defmeter mark!]])
   (:gen-class
-    :methods [^{:static true} [launch [org.apache.storm.scheduler.ISupervisor] void]]))
+    :methods [^{:static true} [launch [org.apache.storm.scheduler.ISupervisor] void]])
+  (:require [clojure.string :as str]))
 
 (defmeter supervisor:num-workers-launched)
 
@@ -257,7 +258,7 @@
     (if (Utils/checkFileExists path)
       (throw (RuntimeException. (str path " was not deleted"))))))
 
-(defn try-cleanup-worker [conf id]
+(defn try-cleanup-worker [conf supervisor id]
   (try
     (if (.exists (File. (ConfigUtils/workerRoot conf id)))
       (do
@@ -271,6 +272,8 @@
         (ConfigUtils/removeWorkerUserWSE conf id)
         (remove-dead-worker id)
       ))
+    (if (conf STORM-RESOURCE-ISOLATION-PLUGIN-ENABLE)
+      (.releaseResourcesForWorker (:resource-isolation-manager supervisor) id))
   (catch IOException e
     (log-warn-error e "Failed to cleanup worker " id ". Will retry later"))
   (catch RuntimeException e
@@ -307,7 +310,7 @@
             (log-debug "Removing path " path)
             (.delete (File. path))
             (catch Exception e))))) ;; on windows, the supervisor may still holds the lock on the worker directory
-    (try-cleanup-worker conf id))
+    (try-cleanup-worker conf supervisor id))
   (log-message "Shut down " (:supervisor-id supervisor) ":" id))
 
 (def SUPERVISOR-ZK-ACLS
@@ -350,6 +353,12 @@
    :sync-retry (atom 0)
    :download-lock (Object.)
    :stormid->profiler-actions (atom {})
+   :resource-isolation-manager (if (conf STORM-RESOURCE-ISOLATION-PLUGIN-ENABLE)
+                                 (let [resource-isolation-manager (Utils/newInstance (conf STORM-RESOURCE-ISOLATION-PLUGIN))]
+                                   (.prepare resource-isolation-manager conf)
+                                   (log-message "Using resource isolation plugin " (conf STORM-RESOURCE-ISOLATION-PLUGIN))
+                                   resource-isolation-manager)
+                                 nil)
    })
 
 (defn required-topo-files-exist?
@@ -374,8 +383,7 @@
       (dofor [[port assignment] reassign-executors]
         (let [id (new-worker-ids port)
               storm-id (:storm-id assignment)
-              ^WorkerResources resources (:resources assignment)
-              mem-onheap (.get_mem_on_heap resources)]
+              ^WorkerResources resources (:resources assignment)]
           ;; This condition checks for required files exist before launching the worker
           (if (required-topo-files-exist? conf storm-id)
             (let [pids-path (ConfigUtils/workerPidsRoot conf id)
@@ -388,7 +396,7 @@
                 (:storm-id assignment)
                 port
                 id
-                mem-onheap)
+                resources)
               [id port])
             (do
               (log-message "Missing topology storm code, so can't launch worker with assignment "
@@ -1054,7 +1062,7 @@
       (Utils/createSymlink worker-dir topo-dir "artifacts" (str port)))))
 
 (defmethod launch-worker
-    :distributed [supervisor storm-id port worker-id mem-onheap]
+    :distributed [supervisor storm-id port worker-id resources]
     (let [conf (:conf supervisor)
           run-worker-as-user (conf SUPERVISOR-RUN-WORKER-AS-USER)
           storm-home (System/getProperty "storm.home")
@@ -1078,9 +1086,15 @@
                         (Utils/addToClasspath [stormjar])
                         (Utils/addToClasspath topo-classpath))
           top-gc-opts (storm-conf TOPOLOGY-WORKER-GC-CHILDOPTS)
-          mem-onheap (if (and mem-onheap (> mem-onheap 0)) ;; not nil and not zero
-                       (int (Math/ceil mem-onheap)) ;; round up
+
+          mem-onheap (if (and (.get_mem_on_heap resources) (> (.get_mem_on_heap resources) 0)) ;; not nil and not zero
+                       (int (Math/ceil (.get_mem_on_heap resources))) ;; round up
                        (storm-conf WORKER-HEAP-MEMORY-MB)) ;; otherwise use default value
+
+          mem-offheap (int (Math/ceil (.get_mem_off_heap resources)))
+
+          cpu (int (Math/ceil (.get_cpu resources)))
+
           gc-opts (substitute-childopts (if top-gc-opts top-gc-opts (conf WORKER-GC-CHILDOPTS)) worker-id storm-id port mem-onheap)
           topo-worker-logwriter-childopts (storm-conf TOPOLOGY-WORKER-LOGWRITER-CHILDOPTS)
           user (storm-conf TOPOLOGY-SUBMITTER-USER)
@@ -1104,8 +1118,9 @@
                                             (str "file:///" storm-log4j2-conf-dir))
                                           storm-log4j2-conf-dir)
                                      Utils/FILE_PATH_SEPARATOR "worker.xml")
+
           command (concat
-                    [(java-cmd) "-cp" classpath 
+                    [(java-cmd) "-cp" classpath
                      topo-worker-logwriter-childopts
                      (str "-Dlogfile.name=" logfilename)
                      (str "-Dstorm.home=" storm-home)
@@ -1143,7 +1158,14 @@
                      worker-id])
           command (->> command
                        (map str)
-                       (filter (complement empty?)))]
+                       (filter (complement empty?)))
+          command (if (conf STORM-RESOURCE-ISOLATION-PLUGIN-ENABLE)
+                    (do
+                      (.reserveResourcesForWorker (:resource-isolation-manager supervisor) worker-id
+                        {"cpu" cpu "memory" (+ mem-onheap mem-offheap  (int (Math/ceil (conf STORM-CGROUP-MEMORY-LIMIT-TOLERANCE-MARGIN-MB))))})
+                      (.getLaunchCommand (:resource-isolation-manager supervisor) worker-id
+                        (java.util.ArrayList. (java.util.Arrays/asList (to-array command)))))
+                    command)]
       (log-message "Launching worker with command: " (Utils/shellCmd command))
       (write-log-metadata! storm-conf user worker-id storm-id port conf)
       (ConfigUtils/setWorkerUserWSE conf worker-id user)
@@ -1200,7 +1222,7 @@
           (FileUtils/copyDirectory (File. (.getFile url)) (File. target-dir)))))))
 
 (defmethod launch-worker
-    :local [supervisor storm-id port worker-id mem-onheap]
+    :local [supervisor storm-id port worker-id resources]
     (let [conf (:conf supervisor)
           pid (Utils/uuid)
           worker (worker/mk-worker conf

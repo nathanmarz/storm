@@ -18,6 +18,7 @@
 package org.apache.storm.metric;
 
 import org.apache.storm.task.TopologyContext;
+import org.apache.storm.utils.ConfigUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,25 +80,17 @@ public class FileBasedEventLogger implements IEventLogger {
 
     @Override
     public void prepare(Map stormConf, TopologyContext context) {
-        String logDir; // storm local directory
+        String workersArtifactRoot = ConfigUtils.workerArtifactsRoot(stormConf);
         String stormId = context.getStormId();
         int port = context.getThisWorkerPort();
-        if ((logDir = System.getProperty("storm.local.dir")) == null &&
-                (logDir = (String)stormConf.get("storm.local.dir")) == null) {
-            String msg = "Could not determine the directory to log events.";
-            LOG.error(msg);
-            throw new RuntimeException(msg);
-        } else {
-            LOG.info("FileBasedEventLogger log directory {}.", logDir);
-        }
 
         /*
          * Include the topology name & worker port in the file name so that
          * multiple event loggers can log independently.
          */
-        Path path = Paths.get(logDir, "workers-artifacts", stormId, Integer.toString(port), "events.log");
+        Path path = Paths.get(workersArtifactRoot, stormId, Integer.toString(port), "events.log");
         if (!path.isAbsolute()) {
-            path = Paths.get(System.getProperty("storm.home"), logDir, "workers-artifacts",
+            path = Paths.get(System.getProperty("storm.home"), workersArtifactRoot,
                     stormId, Integer.toString(port), "events.log");
         }
         File dir = path.toFile().getParentFile();

@@ -50,7 +50,7 @@
   (:import [org.apache.storm.daemon Shutdownable])
   (:import [org.apache.storm.validation ConfigValidation])
   (:import [org.apache.storm.cluster ClusterStateContext DaemonType])
-  (:use [org.apache.storm util config log timer zookeeper local-state])
+  (:use [org.apache.storm util config log zookeeper local-state])
   (:require [org.apache.storm [cluster :as cluster]
                             [converter :as converter]
                             [stats :as stats]])
@@ -66,6 +66,7 @@
   (:require [clj-time.coerce :as coerce])
   (:require [metrics.meters :refer [defmeter mark!]])
   (:require [metrics.gauges :refer [defgauge]])
+  (:import [org.apache.storm StormTimer])
   (:gen-class
     :methods [^{:static true} [launch [org.apache.storm.scheduler.INimbus] void]]))
 
@@ -193,10 +194,13 @@
      :blob-listers (mk-bloblist-cache-map conf)
      :uptime (Utils/makeUptimeComputer)
      :validator (Utils/newInstance (conf NIMBUS-TOPOLOGY-VALIDATOR))
-     :timer (mk-timer :kill-fn (fn [t]
-                                 (log-error t "Error when processing event")
-                                 (Utils/exitProcess 20 "Error when processing an event")
-                                 ))
+     :timer (StormTimer. nil
+              (reify Thread$UncaughtExceptionHandler
+                (^void uncaughtException
+                  [this ^Thread t ^Throwable e]
+                  (log-error e "Error when processing event")
+                  (Utils/exitProcess 20 "Error when processing an event"))))
+
      :scheduler (mk-scheduler conf inimbus)
      :leader-elector (Zookeeper/zkLeaderElector conf)
      :id->sched-status (atom {})
@@ -379,10 +383,9 @@
 
 (defn delay-event [nimbus storm-id delay-secs event]
   (log-message "Delaying event " event " for " delay-secs " secs for " storm-id)
-  (schedule (:timer nimbus)
-            delay-secs
-            #(transition! nimbus storm-id event false)
-            ))
+  (.schedule (:timer nimbus)
+    delay-secs
+    (fn [] (transition! nimbus storm-id event false))))
 
 ;; active -> reassign in X secs
 
@@ -1442,39 +1445,37 @@
     (when (is-leader nimbus :throw-exception false)
       (doseq [storm-id (.active-storms (:storm-cluster-state nimbus))]
         (transition! nimbus storm-id :startup)))
-    (schedule-recurring (:timer nimbus)
-                        0
-                        (conf NIMBUS-MONITOR-FREQ-SECS)
-                        (fn []
-                          (when-not (conf ConfigUtils/NIMBUS_DO_NOT_REASSIGN)
-                            (locking (:submit-lock nimbus)
-                              (mk-assignments nimbus)))
-                          (do-cleanup nimbus)))
+
+    (.scheduleRecurring (:timer nimbus)
+      0
+      (conf NIMBUS-MONITOR-FREQ-SECS)
+      (fn []
+        (when-not (conf ConfigUtils/NIMBUS_DO_NOT_REASSIGN)
+          (locking (:submit-lock nimbus)
+            (mk-assignments nimbus)))
+        (do-cleanup nimbus)))
     ;; Schedule Nimbus inbox cleaner
-    (schedule-recurring (:timer nimbus)
-                        0
-                        (conf NIMBUS-CLEANUP-INBOX-FREQ-SECS)
-                        (fn []
-                          (clean-inbox (inbox nimbus) (conf NIMBUS-INBOX-JAR-EXPIRATION-SECS))))
+    (.scheduleRecurring (:timer nimbus)
+      0
+      (conf NIMBUS-CLEANUP-INBOX-FREQ-SECS)
+      (fn [] (clean-inbox (inbox nimbus) (conf NIMBUS-INBOX-JAR-EXPIRATION-SECS))))
     ;; Schedule nimbus code sync thread to sync code from other nimbuses.
     (if (instance? LocalFsBlobStore blob-store)
-      (schedule-recurring (:timer nimbus)
-                          0
-                          (conf NIMBUS-CODE-SYNC-FREQ-SECS)
-                          (fn []
-                            (blob-sync conf nimbus))))
+      (.scheduleRecurring (:timer nimbus)
+        0
+        (conf NIMBUS-CODE-SYNC-FREQ-SECS)
+        (fn [] (blob-sync conf nimbus))))
     ;; Schedule topology history cleaner
     (when-let [interval (conf LOGVIEWER-CLEANUP-INTERVAL-SECS)]
-      (schedule-recurring (:timer nimbus)
+      (.scheduleRecurring (:timer nimbus)
         0
         (conf LOGVIEWER-CLEANUP-INTERVAL-SECS)
-        (fn []
-          (clean-topology-history (conf LOGVIEWER-CLEANUP-AGE-MINS) nimbus))))
-    (schedule-recurring (:timer nimbus)
-                        0
-                        (conf NIMBUS-CREDENTIAL-RENEW-FREQ-SECS)
-                        (fn []
-                          (renew-credentials nimbus)))
+        (fn [] (clean-topology-history (conf LOGVIEWER-CLEANUP-AGE-MINS) nimbus))))
+    (.scheduleRecurring (:timer nimbus)
+      0
+      (conf NIMBUS-CREDENTIAL-RENEW-FREQ-SECS)
+      (fn []
+        (renew-credentials nimbus)))
 
     (defgauge nimbus:num-supervisors
       (fn [] (.size (.supervisors (:storm-cluster-state nimbus) nil))))
@@ -2206,7 +2207,7 @@
       (shutdown [this]
         (mark! nimbus:num-shutdown-calls)
         (log-message "Shutting down master")
-        (cancel-timer (:timer nimbus))
+        (.close (:timer nimbus))
         (.disconnect (:storm-cluster-state nimbus))
         (.cleanup (:downloaders nimbus))
         (.cleanup (:uploaders nimbus))
@@ -2216,7 +2217,7 @@
         (log-message "Shut down master"))
       DaemonCommon
       (waiting? [this]
-        (timer-waiting? (:timer nimbus))))))
+        (.isTimerWaiting (:timer nimbus))))))
 
 (defn validate-port-available[conf]
   (try

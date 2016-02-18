@@ -33,7 +33,7 @@
   (:import [java.nio.file.attribute FileAttribute])
   (:import [org.apache.storm Thrift])
   (:import [org.apache.storm.utils Utils])
-  (:use [org.apache.storm config testing util timer log])
+  (:use [org.apache.storm config testing util log])
   (:use [org.apache.storm.daemon common])
   (:require [org.apache.storm.daemon [worker :as worker] [supervisor :as supervisor]]
             [org.apache.storm [cluster :as cluster]])
@@ -645,8 +645,7 @@
                                                 (upTime [] 0))))]
       (with-open [_ (ConfigUtilsInstaller. fake-cu)
                   _ (UtilsInstaller. fake-utils)]
-        (stubbing [cluster/mk-storm-cluster-state nil
-                   mk-timer nil]
+        (stubbing [cluster/mk-storm-cluster-state nil]
           (supervisor/supervisor-data auth-conf nil fake-isupervisor)
           (verify-call-times-for cluster/mk-storm-cluster-state 1)
           (verify-first-call-args-for-indices cluster/mk-storm-cluster-state [2]

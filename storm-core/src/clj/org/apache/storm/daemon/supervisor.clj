@@ -24,7 +24,7 @@
            [java.net JarURLConnection]
            [java.net URI URLDecoder]
            [org.apache.commons.io FileUtils])
-  (:use [org.apache.storm config util log timer local-state])
+  (:use [org.apache.storm config util log local-state])
   (:import [org.apache.storm.generated AuthorizationException KeyNotFoundException WorkerResources])
   (:import [org.apache.storm.utils NimbusLeaderNotFoundException VersionInfo])
   (:import [java.nio.file Files StandardCopyOption])
@@ -42,6 +42,7 @@
            [org.yaml.snakeyaml.constructor SafeConstructor])
   (:require [metrics.gauges :refer [defgauge]])
   (:require [metrics.meters :refer [defmeter mark!]])
+  (:import [org.apache.storm StormTimer])
   (:gen-class
     :methods [^{:static true} [launch [org.apache.storm.scheduler.ISupervisor] void]])
   (:require [clojure.string :as str]))
@@ -335,19 +336,24 @@
    :assignment-id (.getAssignmentId isupervisor)
    :my-hostname (Utils/hostname conf)
    :curr-assignment (atom nil) ;; used for reporting used ports when heartbeating
-   :heartbeat-timer (mk-timer :kill-fn (fn [t]
-                               (log-error t "Error when processing event")
-                               (Utils/exitProcess 20 "Error when processing an event")
-                               ))
-   :event-timer (mk-timer :kill-fn (fn [t]
-                                         (log-error t "Error when processing event")
-                                         (Utils/exitProcess 20 "Error when processing an event")
-                                         ))
-   :blob-update-timer (mk-timer :kill-fn (defn blob-update-timer
-                                           [t]
-                                           (log-error t "Error when processing event")
-                                           (Utils/exitProcess 20 "Error when processing a event"))
-                                :timer-name "blob-update-timer")
+   :heartbeat-timer (StormTimer. nil
+                      (reify Thread$UncaughtExceptionHandler
+                        (^void uncaughtException
+                          [this ^Thread t ^Throwable e]
+                          (log-error e "Error when processing event")
+                          (Utils/exitProcess 20 "Error when processing an event"))))
+   :event-timer (StormTimer. nil
+                  (reify Thread$UncaughtExceptionHandler
+                    (^void uncaughtException
+                      [this ^Thread t ^Throwable e]
+                      (log-error e "Error when processing event")
+                      (Utils/exitProcess 20 "Error when processing an event"))))
+   :blob-update-timer (StormTimer. "blob-update-timer"
+                        (reify Thread$UncaughtExceptionHandler
+                          (^void uncaughtException
+                            [this ^Thread t ^Throwable e]
+                            (log-error e "Error when processing event")
+                            (Utils/exitProcess 20 "Error when processing an event"))))
    :localizer (Utils/createLocalizer conf (ConfigUtils/supervisorLocalDir conf))
    :assignment-versions (atom {})
    :sync-retry (atom 0)
@@ -815,10 +821,11 @@
     (heartbeat-fn)
 
     ;; should synchronize supervisor so it doesn't launch anything after being down (optimization)
-    (schedule-recurring (:heartbeat-timer supervisor)
-                        0
-                        (conf SUPERVISOR-HEARTBEAT-FREQUENCY-SECS)
-                        heartbeat-fn)
+    (.scheduleRecurring (:heartbeat-timer supervisor)
+      0
+      (conf SUPERVISOR-HEARTBEAT-FREQUENCY-SECS)
+      heartbeat-fn)
+
     (doseq [storm-id downloaded-storm-ids]
       (add-blob-references (:localizer supervisor) storm-id
         conf))
@@ -828,43 +835,48 @@
     (when (conf SUPERVISOR-ENABLE)
       ;; This isn't strictly necessary, but it doesn't hurt and ensures that the machine stays up
       ;; to date even if callbacks don't all work exactly right
-      (schedule-recurring (:event-timer supervisor) 0 10 (fn [] (.add event-manager synchronize-supervisor)))
-      (schedule-recurring (:event-timer supervisor)
-                          0
-                          (conf SUPERVISOR-MONITOR-FREQUENCY-SECS)
-                          (fn [] (.add processes-event-manager sync-processes)))
+      (.scheduleRecurring (:event-timer supervisor) 0 10 (fn [] (.add event-manager synchronize-supervisor)))
+
+      (.scheduleRecurring (:event-timer supervisor)
+        0
+        (conf SUPERVISOR-MONITOR-FREQUENCY-SECS)
+        (fn [] (.add processes-event-manager sync-processes)))
 
       ;; Blob update thread. Starts with 30 seconds delay, every 30 seconds
-      (schedule-recurring (:blob-update-timer supervisor)
-                          30
-                          30
-                          (fn [] (.add event-manager synchronize-blobs-fn)))
+      (.scheduleRecurring (:blob-update-timer supervisor)
+        30
+        30
+        (fn [] (.add event-manager synchronize-blobs-fn)))
 
-      (schedule-recurring (:event-timer supervisor)
-                          (* 60 5)
-                          (* 60 5)
-                          (fn [] (let [health-code (healthcheck/health-check conf)
-                                       ids (my-worker-ids conf)]
-                                   (if (not (= health-code 0))
-                                     (do
-                                       (doseq [id ids]
-                                         (shutdown-worker supervisor id))
-                                       (throw (RuntimeException. "Supervisor failed health check. Exiting.")))))))
+      (.scheduleRecurring (:event-timer supervisor)
+        (* 60 5)
+        (* 60 5)
+        (fn []
+          (let [health-code (healthcheck/health-check conf)
+                ids (my-worker-ids conf)]
+            (if (not (= health-code 0))
+              (do
+                (doseq [id ids]
+                  (shutdown-worker supervisor id))
+                (throw (RuntimeException. "Supervisor failed health check. Exiting.")))))))
+
 
       ;; Launch a thread that Runs profiler commands . Starts with 30 seconds delay, every 30 seconds
-      (schedule-recurring (:event-timer supervisor)
-                          30
-                          30
-                          (fn [] (.add event-manager run-profiler-actions-fn))))
+      (.scheduleRecurring
+        (:event-timer supervisor)
+        30
+        30
+        (fn [] (.add event-manager run-profiler-actions-fn))))
+
     (log-message "Starting supervisor with id " (:supervisor-id supervisor) " at host " (:my-hostname supervisor))
     (reify
      Shutdownable
      (shutdown [this]
                (log-message "Shutting down supervisor " (:supervisor-id supervisor))
                (reset! (:active supervisor) false)
-               (cancel-timer (:heartbeat-timer supervisor))
-               (cancel-timer (:event-timer supervisor))
-               (cancel-timer (:blob-update-timer supervisor))
+               (.close (:heartbeat-timer supervisor))
+               (.close (:event-timer supervisor))
+               (.close (:blob-update-timer supervisor))
                (.shutdown event-manager)
                (.shutdown processes-event-manager)
                (.shutdown (:localizer supervisor))
@@ -883,8 +895,8 @@
      (waiting? [this]
        (or (not @(:active supervisor))
            (and
-            (timer-waiting? (:heartbeat-timer supervisor))
-            (timer-waiting? (:event-timer supervisor))
+            (.isTimerWaiting (:heartbeat-timer supervisor))
+            (.isTimerWaiting (:event-timer supervisor))
             (every? (memfn waiting?) managers)))
            ))))
 

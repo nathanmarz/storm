@@ -17,7 +17,7 @@
   (:use [org.apache.storm.daemon common])
   (:import [org.apache.storm.generated Grouping Grouping$_Fields]
            [java.io Serializable])
-  (:use [org.apache.storm util config log timer stats])
+  (:use [org.apache.storm util config log stats])
   (:import [java.util List Random HashMap ArrayList LinkedList Map])
   (:import [org.apache.storm ICredentialsListener Thrift])
   (:import [org.apache.storm.hooks ITaskHook])
@@ -39,7 +39,8 @@
   (:import [java.lang Thread Thread$UncaughtExceptionHandler]
            [java.util.concurrent ConcurrentLinkedQueue]
            [org.json.simple JSONValue]
-           [com.lmax.disruptor.dsl ProducerType])
+           [com.lmax.disruptor.dsl ProducerType]
+           [org.apache.storm StormTimer])
   (:require [org.apache.storm [cluster :as cluster] [stats :as stats]])
   (:require [org.apache.storm.daemon [task :as task]])
   (:require [org.apache.storm.daemon.builtin-metrics :as builtin-metrics])
@@ -323,13 +324,13 @@
   (let [{:keys [storm-conf receive-queue worker-context interval->task->metric-registry]} executor-data
         distinct-time-bucket-intervals (keys interval->task->metric-registry)]
     (doseq [interval distinct-time-bucket-intervals]
-      (schedule-recurring 
-       (:user-timer (:worker executor-data)) 
-       interval
-       interval
-       (fn []
-         (let [val [(AddressedTuple. AddressedTuple/BROADCAST_DEST (TupleImpl. worker-context [interval] Constants/SYSTEM_TASK_ID Constants/METRICS_TICK_STREAM_ID))]]
-           (.publish ^DisruptorQueue receive-queue val)))))))
+      (.scheduleRecurring
+        (:user-timer (:worker executor-data))
+        interval
+        interval
+        (fn []
+          (let [val [(AddressedTuple. AddressedTuple/BROADCAST_DEST (TupleImpl. worker-context [interval] Constants/SYSTEM_TASK_ID Constants/METRICS_TICK_STREAM_ID))]]
+            (.publish ^DisruptorQueue receive-queue val)))))))
 
 (defn metrics-tick
   [executor-data task-data ^TupleImpl tuple]
@@ -364,7 +365,7 @@
               (and (= false (storm-conf TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS))
                    (= :spout (:type executor-data))))
         (log-message "Timeouts disabled for executor " (:component-id executor-data) ":" (:executor-id executor-data))
-        (schedule-recurring
+        (.scheduleRecurring
           (:user-timer worker)
           tick-time-secs
           tick-time-secs

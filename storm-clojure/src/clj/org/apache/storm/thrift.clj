@@ -29,7 +29,7 @@
   (:import [org.apache.storm.grouping CustomStreamGrouping])
   (:import [org.apache.storm.topology TopologyBuilder])
   (:import [org.apache.storm.clojure RichShellBolt RichShellSpout])
-  (:import [org.apache.thrift.transport TTransport]
+  (:import [org.apache.storm.thrift.transport TTransport]
            (org.json.simple JSONValue))
   (:use [org.apache.storm util config log zookeeper]))
 

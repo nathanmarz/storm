@@ -83,6 +83,16 @@
      <version>3.0.3</version>
     </dependency>
     <dependency>
+        <groupId>org.apache.storm</groupId>
+        <artifactId>storm-clojure</artifactId>
+        <version>${project.version}</version>
+        <!--
+          Use "provided" scope to keep storm out of the jar-with-dependencies
+          For IntelliJ dev, intellij will load properly.
+        -->
+        <scope>${provided.scope}</scope>
+    </dependency>
+    <dependency>
       <groupId>org.apache.storm</groupId>
       <artifactId>storm-core</artifactId>
       <version>${project.version}</version>

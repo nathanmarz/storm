@@ -15,7 +15,8 @@
 ;; limitations under the License.
 (ns org.apache.storm.command.get-errors
   (:use [clojure.tools.cli :only [cli]])
-  (:use [org.apache.storm thrift log])
+  (:use [org.apache.storm log])
+  (:use [org.apache.storm.internal thrift])
   (:use [org.apache.storm util])
   (:require [org.apache.storm.daemon
              [nimbus :as nimbus]

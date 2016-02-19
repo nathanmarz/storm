@@ -127,6 +127,7 @@ public class Time {
     
     public static void advanceTime(long ms) {
         if(!simulating.get()) throw new IllegalStateException("Cannot simulate time unless in simulation mode");
+        if(ms < 0) throw new IllegalArgumentException("advanceTime only accepts positive time as an argument");
         simulatedCurrTimeMs.set(simulatedCurrTimeMs.get() + ms);
     }
     

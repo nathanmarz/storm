@@ -34,7 +34,7 @@ public class TimeTest {
     }
 
     @Test(expected=IllegalStateException.class)
-    public void ifNotSimulatingAdvanceTimeThrows() {
+    public void ifNotSimulatingAdvanceTimeThrowsTest() {
         Time.advanceTime(1000);
     }
 
@@ -42,39 +42,47 @@ public class TimeTest {
     public void isSimulatingReturnsTrueDuringSimulationTest() {
         Assert.assertFalse(Time.isSimulating());
         Time.startSimulating();
-        Assert.assertTrue(Time.isSimulating());
-        Time.stopSimulating();
+        try {
+            Assert.assertTrue(Time.isSimulating());
+        } finally {
+            Time.stopSimulating();
+        }
     }
 
     @Test
     public void shouldNotAdvanceTimeTest() {
         Time.startSimulating();
-        long current = Time.currentTimeMillis();
-        Time.advanceTime(0);
-        Assert.assertEquals(Time.deltaMs(current), 0);
-        Time.stopSimulating();
+        try{
+            long current = Time.currentTimeMillis();
+            Time.advanceTime(0);
+            Assert.assertEquals(Time.deltaMs(current), 0);
+        } finally {
+            Time.stopSimulating();
+        }
     }
 
     @Test
     public void shouldAdvanceForwardTest() {
         Time.startSimulating();
-        long current = Time.currentTimeMillis();
-        Time.advanceTime(1000);
-        Assert.assertEquals(Time.deltaMs(current), 1000);
-        Time.advanceTime(500);
-        Assert.assertEquals(Time.deltaMs(current), 1500);
-        Time.stopSimulating();
+        try {
+            long current = Time.currentTimeMillis();
+            Time.advanceTime(1000);
+            Assert.assertEquals(Time.deltaMs(current), 1000);
+            Time.advanceTime(500);
+            Assert.assertEquals(Time.deltaMs(current), 1500);
+        } finally {
+            Time.stopSimulating();
+        }
     }
 
-    @Test
-    public void shouldAdvanceBackwardsTest() {
+    @Test(expected=IllegalArgumentException.class)
+    public void shouldThrowIfAttemptToAdvanceBackwardsTest() {
         Time.startSimulating();
-        long current = Time.currentTimeMillis();
-        Time.advanceTime(1000);
-        Assert.assertEquals(Time.deltaMs(current), 1000);
-        Time.advanceTime(-1500);
-        Assert.assertEquals(Time.deltaMs(current), -500);
-        Time.stopSimulating();
+        try {
+            Time.advanceTime(-1500);
+        } finally {
+            Time.stopSimulating();
+        }
     }
 
     @Test
@@ -87,7 +95,7 @@ public class TimeTest {
     }
 
     @Test
-    public void deltaSecsTruncatesFractionalSeconds() {
+    public void deltaSecsTruncatesFractionalSecondsTest() {
         Time.startSimulating();
         int current = Time.currentTimeSecs();
         Time.advanceTime(1500);

@@ -54,11 +54,18 @@ public class UtilsTest {
         Assert.assertEquals(policy.getSleepTimeMs(10, 0), expectedCeiling);
     }
 
-    @Test(expected = RuntimeException.class)
-    public void getConfiguredClientThrowsRuntimeExceptionOnBadArgsTest () throws RuntimeException, TTransportException {
+    public void getConfiguredClientThrowsRuntimeExceptionOnBadArgsTest () throws TTransportException {
         Map config = ConfigUtils.readStormConfig();
         config.put(Config.STORM_NIMBUS_RETRY_TIMES, 0);
-        new NimbusClient(config, "", 65535);
+
+        try {
+            new NimbusClient(config, "", 65535);
+            Assert.fail("Expected exception to be thrown");
+        } catch (RuntimeException e){
+            Assert.assertTrue(
+                "Cause is not TTransportException " + e,  
+                Utils.exceptionCauseIsInstanceOf(TTransportException.class, e));
+        }
     }
 
     private Map mockMap(String key, String value) {
@@ -124,7 +131,6 @@ public class UtilsTest {
         try {
             System.setProperty("java.security.auth.login.config", "anything");
             Assert.assertTrue(Utils.isZkAuthenticationConfiguredStormServer(emptyMockMap()));
-        } catch (Exception ignore) {
         } finally {
             // reset property
             if (oldValue == null) {

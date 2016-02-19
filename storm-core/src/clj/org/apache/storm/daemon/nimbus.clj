@@ -46,11 +46,11 @@
             KillOptions RebalanceOptions ClusterSummary SupervisorSummary TopologySummary TopologyInfo TopologyHistoryInfo
             ExecutorSummary AuthorizationException GetInfoOptions NumErrorsChoice SettableBlobMeta ReadableBlobMeta
             BeginDownloadResult ListBlobsResult ComponentPageInfo TopologyPageInfo LogConfig LogLevel LogLevelAction
-            ProfileRequest ProfileAction NodeInfo])
+            ProfileRequest ProfileAction NodeInfo LSTopoHistory])
   (:import [org.apache.storm.daemon Shutdownable])
   (:import [org.apache.storm.validation ConfigValidation])
   (:import [org.apache.storm.cluster ClusterStateContext DaemonType])
-  (:use [org.apache.storm util config log zookeeper local-state])
+  (:use [org.apache.storm util config log zookeeper])
   (:require [org.apache.storm [cluster :as cluster]
                             [converter :as converter]
                             [stats :as stats]])
@@ -60,7 +60,7 @@
   (:use [org.apache.storm.daemon common])
   (:use [org.apache.storm config])
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
-  (:import [org.apache.storm.utils VersionInfo]
+  (:import [org.apache.storm.utils VersionInfo LocalState]
            [org.json.simple JSONValue])
   (:require [clj-time.core :as time])
   (:require [clj-time.coerce :as coerce])
@@ -1181,11 +1181,8 @@
   [mins nimbus]
   (locking (:topology-history-lock nimbus)
     (let [cutoff-age (- (Time/currentTimeSecs) (* mins 60))
-          topo-history-state (:topo-history-state nimbus)
-          curr-history (vec (ls-topo-hist topo-history-state))
-          new-history (vec (filter (fn [line]
-                                     (> (line :timestamp) cutoff-age)) curr-history))]
-      (ls-topo-hist! topo-history-state new-history))))
+          topo-history-state (:topo-history-state nimbus)]
+          (.filterOldTopologies ^LocalState topo-history-state cutoff-age))))
 
 (defn cleanup-corrupt-topologies! [nimbus]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
@@ -1275,11 +1272,9 @@
   (locking (:topology-history-lock nimbus)
     (let [topo-history-state (:topo-history-state nimbus)
           users (ConfigUtils/getTopoLogsUsers topology-conf)
-          groups (ConfigUtils/getTopoLogsGroups topology-conf)
-          curr-history (vec (ls-topo-hist topo-history-state))
-          new-history (conj curr-history {:topoid storm-id :timestamp (Time/currentTimeSecs)
-                                          :users users :groups groups})]
-      (ls-topo-hist! topo-history-state new-history))))
+          groups (ConfigUtils/getTopoLogsGroups topology-conf)]
+      (.addTopologyHistory ^LocalState topo-history-state
+                           (LSTopoHistory. storm-id (Time/currentTimeSecs) users groups)))))
 
 (defn igroup-mapper
   [storm-conf]
@@ -1295,10 +1290,18 @@
   (let [groups (user-groups user storm-conf)]
     (> (.size (set/intersection (set groups) (set groups-to-check))) 0)))
 
+(defn ->topo-history
+  [thrift-topo-hist]
+  {
+   :topoid (.get_topology_id thrift-topo-hist)
+   :timestamp (.get_time_stamp thrift-topo-hist)
+   :users (.get_users thrift-topo-hist)
+   :groups (.get_groups thrift-topo-hist)})
+
 (defn read-topology-history
   [nimbus user admin-users]
   (let [topo-history-state (:topo-history-state nimbus)
-        curr-history (vec (ls-topo-hist topo-history-state))
+        curr-history (vec (map ->topo-history (.getTopoHistoryList ^LocalState topo-history-state)))
         topo-user-can-access (fn [line user storm-conf]
                                (if (nil? user)
                                  (line :topoid)

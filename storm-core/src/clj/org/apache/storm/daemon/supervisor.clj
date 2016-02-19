@@ -24,17 +24,18 @@
            [java.net JarURLConnection]
            [java.net URI URLDecoder]
            [org.apache.commons.io FileUtils])
-  (:use [org.apache.storm config util log local-state])
+  (:use [org.apache.storm config util log local-state-converter])
   (:import [org.apache.storm.generated AuthorizationException KeyNotFoundException WorkerResources])
   (:import [org.apache.storm.utils NimbusLeaderNotFoundException VersionInfo])
   (:import [java.nio.file Files StandardCopyOption])
   (:import [org.apache.storm Config])
-  (:import [org.apache.storm.generated WorkerResources ProfileAction])
+  (:import [org.apache.storm.generated WorkerResources ProfileAction LocalAssignment])
   (:import [org.apache.storm.localizer LocalResource])
+  (:import [org.apache.storm.event EventManagerImp])
   (:use [org.apache.storm.daemon common])
-  (:require [org.apache.storm.command [healthcheck :as healthcheck]])
+  (:import [org.apache.storm.command HealthCheck])
   (:require [org.apache.storm.daemon [worker :as worker]]
-            [org.apache.storm [process-simulator :as psim] [cluster :as cluster] [event :as event]]
+            [org.apache.storm [process-simulator :as psim] [cluster :as cluster]]
             [clojure.set :as set])
   (:import [org.apache.thrift.transport TTransportException])
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
@@ -85,6 +86,10 @@
        :profiler-actions new-profiler-actions
        :versions new-assignments})))
 
+(defn mk-local-assignment
+  [storm-id executors resources]
+  {:storm-id storm-id :executors executors :resources resources})
+
 (defn- read-my-executors [assignments-snapshot storm-id assignment-id]
   (let [assignment (get assignments-snapshot storm-id)
         my-slots-resources (into {}
@@ -124,6 +129,20 @@
 
 (defn- read-downloaded-storm-ids [conf]
   (map #(URLDecoder/decode %) (Utils/readDirContents (ConfigUtils/supervisorStormDistRoot conf))))
+
+(defn ->executor-list
+  [executors]
+  (into []
+        (for [exec-info executors]
+          [(.get_task_start exec-info) (.get_task_end exec-info)])))
+
+(defn ls-worker-heartbeat
+  [^LocalState local-state]
+  (if-let [worker-hb (.getWorkerHeartBeat ^LocalState local-state)]
+    {:time-secs (.get_time_secs worker-hb)
+     :storm-id (.get_topology_id worker-hb)
+     :executors (->executor-list (.get_executors worker-hb))
+     :port (.get_port worker-hb)}))
 
 (defn read-worker-heartbeat [conf id]
   (let [local-state (ConfigUtils/workerState conf id)]
@@ -172,7 +191,7 @@
   (let [conf (:conf supervisor)
         ^LocalState local-state (:local-state supervisor)
         id->heartbeat (read-worker-heartbeats conf)
-        approved-ids (set (keys (ls-approved-workers local-state)))]
+        approved-ids (set (keys (clojurify-structure (.getApprovedWorkers ^LocalState local-state))))]
     (into
      {}
      (dofor [[id hb] id->heartbeat]
@@ -198,7 +217,7 @@
 (defn- wait-for-worker-launch [conf id start-time]
   (let [state (ConfigUtils/workerState conf id)]
     (loop []
-      (let [hb (ls-worker-heartbeat state)]
+      (let [hb (.getWorkerHeartBeat state)]
         (when (and
                (not hb)
                (<
@@ -209,7 +228,7 @@
           (Time/sleep 500)
           (recur)
           )))
-    (when-not (ls-worker-heartbeat state)
+    (when-not (.getWorkerHeartBeat state)
       (log-message "Worker " id " failed to start")
       )))
 
@@ -414,6 +433,19 @@
   [pred amap]
   (into {} (filter (fn [[k v]] (pred k)) amap)))
 
+(defn ->local-assignment
+  [^LocalAssignment thrift-local-assignment]
+  (mk-local-assignment
+    (.get_topology_id thrift-local-assignment)
+    (->executor-list (.get_executors thrift-local-assignment))
+    (.get_resources thrift-local-assignment)))
+
+;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
+(defn ls-local-assignments
+  [^LocalState local-state]
+  (if-let [thrift-local-assignments (.getLocalAssignmentsMap local-state)]
+    (map-val ->local-assignment thrift-local-assignments)))
+
 ;TODO: when translating this function, you should replace the filter-val with a proper for loop + if condition HERE
 (defn sync-processes [supervisor]
   (let [conf (:conf supervisor)
@@ -453,9 +485,9 @@
          ", Heartbeat: " (pr-str heartbeat))
         (shutdown-worker supervisor id)))
     (let [valid-new-worker-ids (get-valid-new-worker-ids conf supervisor reassign-executors new-worker-ids)]
-      (ls-approved-workers! local-state
+      (.setApprovedWorkers ^LocalState local-state
                         (merge
-                          (select-keys (ls-approved-workers local-state)
+                          (select-keys (clojurify-structure (.getApprovedWorkers ^LocalState local-state))
                             (keys keepers))
                           valid-new-worker-ids))
       (wait-for-workers-launch conf (keys valid-new-worker-ids)))))
@@ -563,13 +595,31 @@
       (if (not= (:executors (existing-assignment p)) (:executors (new-assignment p)))
         (shutdown-worker supervisor (port->worker-id p))))))
 
+(defn ->LocalAssignment
+  [{storm-id :storm-id executors :executors resources :resources}]
+  (let [assignment (LocalAssignment. storm-id (->ExecutorInfo-list executors))]
+    (if resources (.set_resources assignment
+                                  (doto (WorkerResources. )
+                                    (.set_mem_on_heap (first resources))
+                                    (.set_mem_off_heap (second resources))
+                                    (.set_cpu (last resources)))))
+    assignment))
+
+;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
+(defn ls-local-assignments!
+  [^LocalState local-state assignments]
+  (let [local-assignment-map (map-val ->LocalAssignment assignments)]
+    (.setLocalAssignmentsMap local-state local-assignment-map)))
+
 (defn mk-synchronize-supervisor [supervisor sync-processes event-manager processes-event-manager]
-  (fn this []
+  (fn callback-supervisor []
     (let [conf (:conf supervisor)
           storm-cluster-state (:storm-cluster-state supervisor)
           ^ISupervisor isupervisor (:isupervisor supervisor)
           ^LocalState local-state (:local-state supervisor)
-          sync-callback (fn [& ignored] (.add event-manager this))
+          sync-callback (fn [& ignored] (.add event-manager (reify Runnable
+                                                                   (^void run [this]
+                                                                     (callback-supervisor)))))
           assignment-versions @(:assignment-versions supervisor)
           {assignments-snapshot :assignments
            storm-id->profiler-actions :profiler-actions
@@ -639,7 +689,9 @@
           (log-message "Removing code for storm id "
                        storm-id)
           (rm-topo-files conf storm-id localizer true)))
-      (.add processes-event-manager sync-processes))))
+      (.add processes-event-manager (reify Runnable
+                                                     (^void run [this]
+                                                       (sync-processes)))))))
 
 (defn mk-supervisor-capacities
   [conf]
@@ -803,6 +855,10 @@
       (catch Exception e
         (log-error e "Error running profiler actions, will retry again later")))))
 
+
+(defn is-waiting [^EventManagerImp event-manager]
+  (.waiting event-manager))
+
 ;; in local state, supervisor stores who its current assignments are
 ;; another thread launches events to restart any dead processes if necessary
 (defserverfn mk-supervisor [conf shared-context ^ISupervisor isupervisor]
@@ -810,7 +866,7 @@
   (.prepare isupervisor conf (ConfigUtils/supervisorIsupervisorDir conf))
   (FileUtils/cleanDirectory (File. (ConfigUtils/supervisorTmpDir conf)))
   (let [supervisor (supervisor-data conf shared-context isupervisor)
-        [event-manager processes-event-manager :as managers] [(event/event-manager false) (event/event-manager false)]
+        [event-manager processes-event-manager :as managers] [(EventManagerImp. false) (EventManagerImp. false)]
         sync-processes (partial sync-processes supervisor)
         synchronize-supervisor (mk-synchronize-supervisor supervisor sync-processes event-manager processes-event-manager)
         synchronize-blobs-fn (update-blobs-for-all-topologies-fn supervisor)
@@ -846,24 +902,30 @@
     (when (conf SUPERVISOR-ENABLE)
       ;; This isn't strictly necessary, but it doesn't hurt and ensures that the machine stays up
       ;; to date even if callbacks don't all work exactly right
-      (.scheduleRecurring (:event-timer supervisor) 0 10 (fn [] (.add event-manager synchronize-supervisor)))
+      (.scheduleRecurring (:event-timer supervisor) 0 10 (fn [] (.add event-manager (reify Runnable
+                                                                                      (^void run [this]
+                                                                                        (synchronize-supervisor))))))
 
       (.scheduleRecurring (:event-timer supervisor)
         0
         (conf SUPERVISOR-MONITOR-FREQUENCY-SECS)
-        (fn [] (.add processes-event-manager sync-processes)))
+        (fn [] (.add processes-event-manager (reify Runnable
+                                               (^void run [this]
+                                                 (sync-processes))))))
 
       ;; Blob update thread. Starts with 30 seconds delay, every 30 seconds
       (.scheduleRecurring (:blob-update-timer supervisor)
         30
         30
-        (fn [] (.add event-manager synchronize-blobs-fn)))
+        (fn [] (.add event-manager (reify Runnable
+                                     (^void run [this]
+                                       (synchronize-blobs-fn))))))
 
       (.scheduleRecurring (:event-timer supervisor)
         (* 60 5)
         (* 60 5)
         (fn []
-          (let [health-code (healthcheck/health-check conf)
+          (let [health-code (HealthCheck/healthCheck conf)
                 ids (my-worker-ids conf)]
             (if (not (= health-code 0))
               (do
@@ -873,12 +935,13 @@
 
 
       ;; Launch a thread that Runs profiler commands . Starts with 30 seconds delay, every 30 seconds
-      (.scheduleRecurring
-        (:event-timer supervisor)
+      (.scheduleRecurring (:event-timer supervisor)
         30
         30
-        (fn [] (.add event-manager run-profiler-actions-fn))))
-
+        (fn [] (.add event-manager (reify Runnable
+                                     (^void run [this]
+                                       (run-profiler-actions-fn))))))
+      )
     (log-message "Starting supervisor with id " (:supervisor-id supervisor) " at host " (:my-hostname supervisor))
     (reify
      Shutdownable
@@ -888,8 +951,8 @@
                (.close (:heartbeat-timer supervisor))
                (.close (:event-timer supervisor))
                (.close (:blob-update-timer supervisor))
-               (.shutdown event-manager)
-               (.shutdown processes-event-manager)
+               (.close event-manager)
+               (.close processes-event-manager)
                (.shutdown (:localizer supervisor))
                (.disconnect (:storm-cluster-state supervisor)))
      SupervisorDaemon
@@ -908,8 +971,10 @@
            (and
             (.isTimerWaiting (:heartbeat-timer supervisor))
             (.isTimerWaiting (:event-timer supervisor))
-            (every? (memfn waiting?) managers)))
+            (every? is-waiting managers)))
            ))))
+
+
 
 (defn kill-supervisor [supervisor]
   (.shutdown supervisor)
@@ -1276,10 +1341,10 @@
       (prepare [this conf local-dir]
         (reset! conf-atom conf)
         (let [state (LocalState. local-dir)
-              curr-id (if-let [id (ls-supervisor-id state)]
+              curr-id (if-let [id (.getSupervisorId state)]
                         id
                         (generate-supervisor-id))]
-          (ls-supervisor-id! state curr-id)
+          (.setSupervisorId state curr-id)
           (reset! id-atom curr-id))
         )
       (confirmAssigned [this port]

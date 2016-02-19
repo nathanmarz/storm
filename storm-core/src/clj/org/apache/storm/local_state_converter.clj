@@ -13,16 +13,12 @@
 ;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
-(ns org.apache.storm.command.dev-zookeeper
-  (:import [org.apache.storm.utils Utils])
-  (:use [org.apache.storm zookeeper util config])
-  (:import [org.apache.storm.utils ConfigUtils])
-  (:import [org.apache.storm.zookeeper Zookeeper])
-  (:gen-class))
+(ns org.apache.storm.local-state-converter
+  (:import [org.apache.storm.generated ExecutorInfo]))
 
-(defn -main [& args]
-  (let [conf (clojurify-structure (ConfigUtils/readStormConfig))
-        port (conf STORM-ZOOKEEPER-PORT)
-        localpath (conf DEV-ZOOKEEPER-PATH)]
-    (Utils/forceDelete localpath)
-    (Zookeeper/mkInprocessZookeeper localpath port)))
+(defn ->ExecutorInfo
+  [[low high]] (ExecutorInfo. low high))
+
+(defn ->ExecutorInfo-list
+  [executors]
+  (map ->ExecutorInfo executors))

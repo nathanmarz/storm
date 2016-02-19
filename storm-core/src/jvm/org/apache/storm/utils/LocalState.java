@@ -18,24 +18,28 @@
 package org.apache.storm.utils;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.storm.generated.LSApprovedWorkers;
+import org.apache.storm.generated.LSSupervisorAssignments;
+import org.apache.storm.generated.LSSupervisorId;
+import org.apache.storm.generated.LSTopoHistory;
+import org.apache.storm.generated.LSTopoHistoryList;
+import org.apache.storm.generated.LSWorkerHeartbeat;
+import org.apache.storm.generated.LocalAssignment;
+import org.apache.storm.generated.LocalStateData;
+import org.apache.storm.generated.ThriftSerializedObject;
+import org.apache.thrift.TBase;
+import org.apache.thrift.TDeserializer;
+import org.apache.thrift.TSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.nio.ByteBuffer;
-import java.util.Map;
-import java.util.HashMap;
 import java.io.IOException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import org.apache.thrift.TBase;
-import org.apache.thrift.TDeserializer;
-import org.apache.thrift.TException;
-import org.apache.thrift.TSerializer;
-
-import org.apache.storm.generated.LocalStateData;
-import org.apache.storm.generated.ThriftSerializedObject;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * A simple, durable, atomic K/V database. *Very inefficient*, should only be used for occasional reads/writes.
@@ -43,6 +47,11 @@ import org.apache.storm.generated.ThriftSerializedObject;
  */
 public class LocalState {
     public static final Logger LOG = LoggerFactory.getLogger(LocalState.class);
+    public static final String LS_WORKER_HEARTBEAT = "worker-heartbeat";
+    public static final String LS_ID = "supervisor-id";
+    public static final String LS_LOCAL_ASSIGNMENTS = "local-assignments";
+    public static final String LS_APPROVED_WORKERS = "approved-workers";
+    public static final String LS_TOPO_HISTORY = "topo-hist";
     private VersionedStore _vs;
     
     public LocalState(String backingDir) throws IOException {
@@ -155,6 +164,85 @@ public class LocalState {
 
     public synchronized void cleanup(int keepVersions) throws IOException {
         _vs.cleanup(keepVersions);
+    }
+
+    public List<LSTopoHistory> getTopoHistoryList() {
+        LSTopoHistoryList lsTopoHistoryListWrapper = (LSTopoHistoryList) get(LS_TOPO_HISTORY);
+        if (null != lsTopoHistoryListWrapper) {
+            return lsTopoHistoryListWrapper.get_topo_history();
+        }
+        return null;
+    }
+
+    /**
+     * Remove topologies from local state which are older than cutOffAge.
+     * @param cutOffAge
+     */
+    public void filterOldTopologies(long cutOffAge) {
+        LSTopoHistoryList lsTopoHistoryListWrapper = (LSTopoHistoryList) get(LS_TOPO_HISTORY);
+        List<LSTopoHistory> filteredTopoHistoryList = new ArrayList<>();
+        if (null != lsTopoHistoryListWrapper) {
+            for (LSTopoHistory topoHistory : lsTopoHistoryListWrapper.get_topo_history()) {
+                if (topoHistory.get_time_stamp() > cutOffAge) {
+                    filteredTopoHistoryList.add(topoHistory);
+                }
+            }
+        }
+        put(LS_TOPO_HISTORY, new LSTopoHistoryList(filteredTopoHistoryList));
+    }
+
+    public void addTopologyHistory(LSTopoHistory lsTopoHistory) {
+        LSTopoHistoryList lsTopoHistoryListWrapper = (LSTopoHistoryList) get(LS_TOPO_HISTORY);
+        List<LSTopoHistory> currentTopoHistoryList = new ArrayList<>();
+        if (null != lsTopoHistoryListWrapper) {
+            currentTopoHistoryList.addAll(lsTopoHistoryListWrapper.get_topo_history());
+        }
+        currentTopoHistoryList.add(lsTopoHistory);
+        put(LS_TOPO_HISTORY, new LSTopoHistoryList(currentTopoHistoryList));
+    }
+
+    public String getSupervisorId() {
+        LSSupervisorId lsSupervisorId = (LSSupervisorId) get(LS_ID);
+        if (null != lsSupervisorId) {
+            return lsSupervisorId.get_supervisor_id();
+        }
+        return null;
+    }
+
+    public void setSupervisorId(String supervisorId) {
+        put(LS_ID, new LSSupervisorId(supervisorId));
+    }
+
+    public Map<String, Integer> getApprovedWorkers() {
+        LSApprovedWorkers lsApprovedWorkers = (LSApprovedWorkers) get(LS_APPROVED_WORKERS);
+        if (null != lsApprovedWorkers) {
+            return lsApprovedWorkers.get_approved_workers();
+        }
+        return null;
+    }
+
+    public void setApprovedWorkers(Map<String, Integer> approvedWorkers) {
+        put(LS_APPROVED_WORKERS, new LSApprovedWorkers(approvedWorkers));
+    }
+
+    public LSWorkerHeartbeat getWorkerHeartBeat() {
+        return (LSWorkerHeartbeat) get(LS_WORKER_HEARTBEAT);
+    }
+
+    public void setWorkerHeartBeat(LSWorkerHeartbeat workerHeartBeat) {
+        put(LS_WORKER_HEARTBEAT, workerHeartBeat, false);
+    }
+
+    public Map<Integer, LocalAssignment> getLocalAssignmentsMap() {
+        LSSupervisorAssignments assignments = (LSSupervisorAssignments) get(LS_LOCAL_ASSIGNMENTS);
+        if (null != assignments) {
+            return assignments.get_assignments();
+        }
+        return null;
+    }
+
+    public void setLocalAssignmentsMap(Map<Integer, LocalAssignment> localAssignmentMap) {
+        put(LS_LOCAL_ASSIGNMENTS, new LSSupervisorAssignments(localAssignmentMap));
     }
 
     private void persistInternal(Map<String, ThriftSerializedObject> serialized, TSerializer ser, boolean cleanup) {

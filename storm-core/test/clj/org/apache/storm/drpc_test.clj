@@ -16,7 +16,8 @@
 (ns org.apache.storm.drpc-test
   (:use [clojure test])
   (:import [org.apache.storm.drpc ReturnResults DRPCSpout
-            LinearDRPCTopologyBuilder])
+            LinearDRPCTopologyBuilder]
+           [org.apache.storm.utils ConfigUtils Utils])
   (:import [org.apache.storm.topology FailedException])
   (:import [org.apache.storm.coordination CoordinatedBolt$FinishedCallback])
   (:import [org.apache.storm LocalDRPC LocalCluster])
@@ -25,7 +26,9 @@
            [org.apache.storm.utils.staticmocking ConfigUtilsInstaller])
   (:import [org.apache.storm.generated DRPCExecutionException])
   (:import [java.util.concurrent ConcurrentLinkedQueue])
-  (:use [org.apache.storm config testing clojure])
+  (:import [org.apache.storm Thrift])
+  (:use [org.apache.storm config testing])
+  (:use [org.apache.storm.internal clojure])
   (:use [org.apache.storm.daemon common drpc])
   (:use [conjure core]))
 
@@ -40,12 +43,16 @@
   (let [drpc (LocalDRPC.)
         spout (DRPCSpout. "test" drpc)
         cluster (LocalCluster.)
-        topology (topology
-                  {"1" (spout-spec spout)}
-                  {"2" (bolt-spec {"1" :shuffle}
-                                exclamation-bolt)
-                   "3" (bolt-spec {"2" :shuffle}
-                                (ReturnResults.))})]
+        topology (Thrift/buildTopology
+                  {"1" (Thrift/prepareSpoutDetails spout)}
+                  {"2" (Thrift/prepareBoltDetails
+                         {(Utils/getGlobalStreamId "1" nil)
+                          (Thrift/prepareShuffleGrouping)}
+                         exclamation-bolt)
+                   "3" (Thrift/prepareBoltDetails
+                         {(Utils/getGlobalStreamId "2" nil)
+                          (Thrift/prepareGlobalGrouping)}
+                         (ReturnResults.))})]
     (.submitTopology cluster "test" {} topology)
 
     (is (= "aaa!!!" (.execute drpc "test" "aaa")))

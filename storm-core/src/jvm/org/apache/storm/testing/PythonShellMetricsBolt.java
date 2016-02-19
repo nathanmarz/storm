@@ -28,18 +28,22 @@ import org.apache.storm.topology.OutputFieldsDeclarer;
 
 public class PythonShellMetricsBolt extends ShellBolt implements IRichBolt {
 	private static final long serialVersionUID = 1999209252187463355L;
-	
-	public PythonShellMetricsBolt(String[] command) {
-		super(command);
+
+	public PythonShellMetricsBolt(String[] args) {
+		super(args);
 	}
+
+    public PythonShellMetricsBolt(String command, String file) {
+        super(command, file);
+    }
 
 	public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
 		super.prepare(stormConf, context, collector);
-		
+
 		CountShellMetric cMetric = new CountShellMetric();
 		context.registerMetric("my-custom-shell-metric", cMetric, 5);
 	}
-	
+
 	public void declareOutputFields(OutputFieldsDeclarer declarer) {
 	}
 

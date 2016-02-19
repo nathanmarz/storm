@@ -59,7 +59,7 @@ public class ResourceAwareExampleTopology {
   public static void main(String[] args) throws Exception {
     TopologyBuilder builder = new TopologyBuilder();
 
-    SpoutDeclarer spout =  builder.setSpout("word", new TestWordSpout(), 10);
+    SpoutDeclarer spout =  builder.setSpout("word", new TestWordSpout(), 5);
     //set cpu requirement
     spout.setCPULoad(20);
     //set onheap and offheap memory requirement

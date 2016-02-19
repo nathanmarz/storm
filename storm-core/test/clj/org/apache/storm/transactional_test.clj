@@ -36,7 +36,8 @@
   (:import [org.mockito Matchers Mockito])
   (:import [org.mockito.exceptions.base MockitoAssertionError])
   (:import [java.util HashMap Collections ArrayList])
-  (:use [org.apache.storm testing util config clojure])
+  (:use [org.apache.storm testing util config])
+  (:use [org.apache.storm.internal clojure])
   (:use [org.apache.storm.daemon common]))
 
 ;; Testing TODO:

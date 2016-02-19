@@ -29,7 +29,7 @@
   (:import [java.util HashMap ArrayList])
   (:import [java.util.concurrent.atomic AtomicInteger])
   (:import [java.util.concurrent ConcurrentHashMap])
-  (:import [org.apache.storm.utils Time Utils IPredicate RegisteredGlobalState ConfigUtils])
+  (:import [org.apache.storm.utils Time Utils IPredicate RegisteredGlobalState ConfigUtils LocalState])
   (:import [org.apache.storm.tuple Fields Tuple TupleImpl])
   (:import [org.apache.storm.task TopologyContext])
   (:import [org.apache.storm.generated GlobalStreamId Bolt KillOptions])
@@ -44,13 +44,15 @@
   (:import [org.apache.storm.transactional TransactionalSpoutCoordinator])
   (:import [org.apache.storm.transactional.partitioned PartitionedTransactionalSpoutExecutor])
   (:import [org.apache.storm.tuple Tuple])
+  (:import [org.apache.storm Thrift])
   (:import [org.apache.storm.generated StormTopology])
   (:import [org.apache.storm.task TopologyContext]
            (org.apache.storm.messaging IContext)
            [org.json.simple JSONValue])
   (:require [org.apache.storm [zookeeper :as zk]])
   (:require [org.apache.storm.daemon.acker :as acker])
-  (:use [org.apache.storm cluster util thrift config log local-state]))
+  (:use [org.apache.storm cluster util config log local-state-converter])
+  (:use [org.apache.storm.internal thrift]))
 
 (defn feeder-spout
   [fields]
@@ -393,14 +395,14 @@
 (defn find-worker-id
   [supervisor-conf port]
   (let [supervisor-state (ConfigUtils/supervisorState supervisor-conf)
-        worker->port (ls-approved-workers supervisor-state)]
+        worker->port (.getApprovedWorkers ^LocalState supervisor-state)]
     (first ((clojurify-structure (Utils/reverseMap worker->port)) port))))
 
 (defn find-worker-port
   [supervisor-conf worker-id]
   (let [supervisor-state (ConfigUtils/supervisorState supervisor-conf)
-        worker->port (ls-approved-workers supervisor-state)]
-    (worker->port worker-id)))
+        worker->port (.getApprovedWorkers ^LocalState supervisor-state)]
+    (if worker->port (.get worker->port worker-id))))
 
 (defn mk-capture-shutdown-fn
   [capture-atom]
@@ -526,7 +528,7 @@
   (for [[_ spout-spec] spec-map]
     (-> spout-spec
         .get_spout_object
-        deserialized-component-object)))
+        (Thrift/deserializeComponentObject))))
 
 (defn capture-topology
   [topology]
@@ -543,11 +545,11 @@
                 (assoc (clojurify-structure bolts)
                   (Utils/uuid)
                   (Bolt.
-                    (serialize-component-object capturer)
-                    (mk-plain-component-common (into {} (for [[id direct?] all-streams]
+                    (Thrift/serializeComponentObject capturer)
+                    (Thrift/prepareComponentCommon (into {} (for [[id direct?] all-streams]
                                                           [id (if direct?
-                                                                (mk-direct-grouping)
-                                                                (mk-global-grouping))]))
+                                                                (Thrift/prepareDirectGrouping)
+                                                                (Thrift/prepareGlobalGrouping))]))
                                                {}
                                                nil))))
     {:topology topology
@@ -577,7 +579,7 @@
                               mock-sources)]
     (doseq [[id spout] replacements]
       (let [spout-spec (get spouts id)]
-        (.set_spout_object spout-spec (serialize-component-object spout))))
+        (.set_spout_object spout-spec (Thrift/serializeComponentObject spout))))
     (doseq [spout (spout-objects spouts)]
       (when-not (extends? CompletableSpout (.getClass spout))
         (throw (RuntimeException. (str "Cannot complete topology unless every spout is a CompletableSpout (or mocked to be); failed by " spout)))))
@@ -636,12 +638,12 @@
    (let [track-id (::track-id tracked-cluster)
          ret (.deepCopy topology)]
      (dofor [[_ bolt] (.get_bolts ret)
-             :let [obj (deserialized-component-object (.get_bolt_object bolt))]]
-            (.set_bolt_object bolt (serialize-component-object
+             :let [obj (Thrift/deserializeComponentObject (.get_bolt_object bolt))]]
+            (.set_bolt_object bolt (Thrift/serializeComponentObject
                                      (BoltTracker. obj track-id))))
      (dofor [[_ spout] (.get_spouts ret)
-             :let [obj (deserialized-component-object (.get_spout_object spout))]]
-            (.set_spout_object spout (serialize-component-object
+             :let [obj (Thrift/deserializeComponentObject (.get_spout_object spout))]]
+            (.set_spout_object spout (Thrift/serializeComponentObject
                                        (SpoutTracker. obj track-id))))
      {:topology ret
       :last-spout-emit (atom 0)
@@ -723,8 +725,9 @@
                    (->> (iterate inc 1)
                         (take (count values))
                         (map #(str "field" %))))
-        spout-spec (mk-spout-spec* (TestWordSpout.)
-                                   {stream fields})
+        spout-spec (Thrift/prepareSerializedSpoutDetails
+                     (TestWordSpout.)
+                     {stream fields})
         topology (StormTopology. {component spout-spec} {} {})
         context (TopologyContext.
                   topology

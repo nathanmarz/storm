@@ -34,8 +34,6 @@ import org.apache.zookeeper.data.ACL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -47,17 +45,17 @@ public class StormClusterStateImpl implements IStormClusterState {
 
     private IStateStorage stateStorage;
 
-    private ConcurrentHashMap<String, IFn> assignmentInfoCallback;
-    private ConcurrentHashMap<String, IFn> assignmentInfoWithVersionCallback;
-    private ConcurrentHashMap<String, IFn> assignmentVersionCallback;
-    private AtomicReference<IFn> supervisorsCallback;
+    private ConcurrentHashMap<String, Runnable> assignmentInfoCallback;
+    private ConcurrentHashMap<String, Runnable> assignmentInfoWithVersionCallback;
+    private ConcurrentHashMap<String, Runnable> assignmentVersionCallback;
+    private AtomicReference<Runnable> supervisorsCallback;
     // we want to reigister a topo directory getChildren callback for all workers of this dir
-    private ConcurrentHashMap<String, IFn> backPressureCallback;
-    private AtomicReference<IFn> assignmentsCallback;
-    private ConcurrentHashMap<String, IFn> stormBaseCallback;
-    private AtomicReference<IFn> blobstoreCallback;
-    private ConcurrentHashMap<String, IFn> credentialsCallback;
-    private ConcurrentHashMap<String, IFn> logConfigCallback;
+    private ConcurrentHashMap<String, Runnable> backPressureCallback;
+    private AtomicReference<Runnable> assignmentsCallback;
+    private ConcurrentHashMap<String, Runnable> stormBaseCallback;
+    private AtomicReference<Runnable> blobstoreCallback;
+    private ConcurrentHashMap<String, Runnable> credentialsCallback;
+    private ConcurrentHashMap<String, Runnable> logConfigCallback;
 
     private List<ACL> acls;
     private String stateId;
@@ -129,20 +127,20 @@ public class StormClusterStateImpl implements IStormClusterState {
 
     }
 
-    protected void issueCallback(AtomicReference<IFn> cb) {
-        IFn callback = cb.getAndSet(null);
+    protected void issueCallback(AtomicReference<Runnable> cb) {
+        Runnable callback = cb.getAndSet(null);
         if (callback != null)
-            callback.invoke();
+            callback.run();
     }
 
-    protected void issueMapCallback(ConcurrentHashMap<String, IFn> callbackConcurrentHashMap, String key) {
-        IFn callback = callbackConcurrentHashMap.remove(key);
+    protected void issueMapCallback(ConcurrentHashMap<String, Runnable> callbackConcurrentHashMap, String key) {
+        Runnable callback = callbackConcurrentHashMap.remove(key);
         if (callback != null)
-            callback.invoke();
+            callback.run();
     }
 
     @Override
-    public List<String> assignments(IFn callback) {
+    public List<String> assignments(Runnable callback) {
         if (callback != null) {
             assignmentsCallback.set(callback);
         }
@@ -150,7 +148,7 @@ public class StormClusterStateImpl implements IStormClusterState {
     }
 
     @Override
-    public Assignment assignmentInfo(String stormId, IFn callback) {
+    public Assignment assignmentInfo(String stormId, Runnable callback) {
         if (callback != null) {
             assignmentInfoCallback.put(stormId, callback);
         }
@@ -159,23 +157,25 @@ public class StormClusterStateImpl implements IStormClusterState {
     }
 
     @Override
-    public APersistentMap assignmentInfoWithVersion(String stormId, IFn callback) {
+    public Map assignmentInfoWithVersion(String stormId, Runnable callback) {
+        Map map = new HashMap();
         if (callback != null) {
             assignmentInfoWithVersionCallback.put(stormId, callback);
         }
         Assignment assignment = null;
         Integer version = 0;
-        APersistentMap aPersistentMap = stateStorage.get_data_with_version(ClusterUtils.assignmentPath(stormId), callback != null);
-        if (aPersistentMap != null) {
-            assignment = ClusterUtils.maybeDeserialize((byte[]) aPersistentMap.get(RT.keyword(null, "data")), Assignment.class);
-            version = (Integer) aPersistentMap.get(RT.keyword(null, "version"));
+        Map dataWithVersionMap = stateStorage.get_data_with_version(ClusterUtils.assignmentPath(stormId), callback != null);
+        if (dataWithVersionMap != null) {
+            assignment = ClusterUtils.maybeDeserialize((byte[]) dataWithVersionMap.get(IStateStorage.DATA), Assignment.class);
+            version = (Integer) dataWithVersionMap.get(IStateStorage.VERSION);
         }
-        APersistentMap map = new PersistentArrayMap(new Object[] { RT.keyword(null, "data"), assignment, RT.keyword(null, "version"), version });
+        map.put(IStateStorage.DATA, assignment);
+        map.put(IStateStorage.VERSION, version);
         return map;
     }
 
     @Override
-    public Integer assignmentVersion(String stormId, IFn callback) throws Exception {
+    public Integer assignmentVersion(String stormId, Runnable callback) throws Exception {
         if (callback != null) {
             assignmentVersionCallback.put(stormId, callback);
         }
@@ -227,7 +227,7 @@ public class StormClusterStateImpl implements IStormClusterState {
     }
 
     @Override
-    public StormBase stormBase(String stormId, IFn callback) {
+    public StormBase stormBase(String stormId, Runnable callback) {
         if (callback != null) {
             stormBaseCallback.put(stormId, callback);
         }
@@ -298,10 +298,10 @@ public class StormClusterStateImpl implements IStormClusterState {
      * @return
      */
     @Override
-    public Map<ExecutorInfo, APersistentMap> executorBeats(String stormId, Map<List<Long>, NodeInfo> executorNodePort) {
-        Map<ExecutorInfo, APersistentMap> executorWhbs = new HashMap<>();
+    public Map<ExecutorInfo, ExecutorBeat> executorBeats(String stormId, Map<List<Long>, NodeInfo> executorNodePort) {
+        Map<ExecutorInfo, ExecutorBeat> executorWhbs = new HashMap<>();
 
-        Map<NodeInfo, List<List<Long>>> nodePortExecutors = ClusterUtils.reverseMap(executorNodePort);
+        Map<NodeInfo, List<List<Long>>> nodePortExecutors = Utils.reverseMap(executorNodePort);
 
         for (Map.Entry<NodeInfo, List<List<Long>>> entry : nodePortExecutors.entrySet()) {
 
@@ -319,7 +319,7 @@ public class StormClusterStateImpl implements IStormClusterState {
     }
 
     @Override
-    public List<String> supervisors(IFn callback) {
+    public List<String> supervisors(Runnable callback) {
         if (callback != null) {
             supervisorsCallback.set(callback);
         }
@@ -342,7 +342,7 @@ public class StormClusterStateImpl implements IStormClusterState {
         try {
             stateStorage.delete_worker_hb(ClusterUtils.workerbeatStormRoot(stormId));
         } catch (Exception e) {
-            if (Zookeeper.exceptionCause(KeeperException.class, e)) {
+            if (Utils.exceptionCauseIsInstanceOf(KeeperException.class, e)) {
                 // do nothing
                 LOG.warn("Could not teardown heartbeats for {}.", stormId);
             } else {
@@ -356,7 +356,7 @@ public class StormClusterStateImpl implements IStormClusterState {
         try {
             stateStorage.delete_node(ClusterUtils.errorStormRoot(stormId));
         } catch (Exception e) {
-            if (Zookeeper.exceptionCause(KeeperException.class, e)) {
+            if (Utils.exceptionCauseIsInstanceOf(KeeperException.class, e)) {
                 // do nothing
                 LOG.warn("Could not teardown errors for {}.", stormId);
             } else {
@@ -381,7 +381,7 @@ public class StormClusterStateImpl implements IStormClusterState {
     }
 
     @Override
-    public LogConfig topologyLogConfig(String stormId, IFn cb) {
+    public LogConfig topologyLogConfig(String stormId, Runnable cb) {
         String path = ClusterUtils.logConfigPath(stormId);
         return ClusterUtils.maybeDeserialize(stateStorage.get_data(path, cb != null), LogConfig.class);
     }
@@ -437,7 +437,7 @@ public class StormClusterStateImpl implements IStormClusterState {
      * @return
      */
     @Override
-    public boolean topologyBackpressure(String stormId, IFn callback) {
+    public boolean topologyBackpressure(String stormId, Runnable callback) {
         if (callback != null) {
             backPressureCallback.put(stormId, callback);
         }
@@ -568,7 +568,7 @@ public class StormClusterStateImpl implements IStormClusterState {
 
     // blobstore state
     @Override
-    public List<String> blobstore(IFn callback) {
+    public List<String> blobstore(Runnable callback) {
         if (callback != null) {
             blobstoreCallback.set(callback);
         }
@@ -602,7 +602,7 @@ public class StormClusterStateImpl implements IStormClusterState {
 
         String path = ClusterUtils.errorPath(stormId, componentId);
         String lastErrorPath = ClusterUtils.lastErrorPath(stormId, componentId);
-        ErrorInfo errorInfo = new ErrorInfo(ClusterUtils.StringifyError(error), Time.currentTimeSecs());
+        ErrorInfo errorInfo = new ErrorInfo(ClusterUtils.stringifyError(error), Time.currentTimeSecs());
         errorInfo.set_host(node);
         errorInfo.set_port(port.intValue());
         byte[] serData = Utils.serialize(errorInfo);
@@ -669,7 +669,7 @@ public class StormClusterStateImpl implements IStormClusterState {
     }
 
     @Override
-    public Credentials credentials(String stormId, IFn callback) {
+    public Credentials credentials(String stormId, Runnable callback) {
         if (callback != null) {
             credentialsCallback.put(stormId, callback);
         }

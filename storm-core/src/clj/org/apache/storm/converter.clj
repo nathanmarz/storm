@@ -18,6 +18,7 @@
             StormBase TopologyStatus ClusterWorkerHeartbeat ExecutorInfo ErrorInfo Credentials RebalanceOptions KillOptions
             TopologyActionOptions DebugOptions ProfileRequest]
            [org.apache.storm.utils Utils])
+  (:import [org.apache.storm.cluster ExecutorBeat])
   (:use [org.apache.storm util stats log])
   (:require [org.apache.storm.daemon [common :as common]]))
 
@@ -235,6 +236,14 @@
      :executor-stats (clojurify-stats (into {} (.get_executor_stats worker-hb)))
      :uptime (.get_uptime_secs worker-hb)
      :time-secs (.get_time_secs worker-hb)
+     }
+    {}))
+
+(defn clojurify-zk-executor-hb [^ExecutorBeat executor-hb]
+  (if executor-hb
+    {:stats (.getStats executor-hb)
+     :uptime (.getUptime executor-hb)
+     :time-secs (.getTimeSecs executor-hb)
      }
     {}))
 

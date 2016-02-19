@@ -20,7 +20,7 @@
                                    ConfigUtils]
            [org.apache.storm.daemon Shutdownable]
            [org.apache.storm Constants]
-           [org.apache.storm.cluster ClusterStateContext DaemonType StormClusterStateImpl ClusterUtils]
+           [org.apache.storm.cluster ClusterStateContext DaemonType StormClusterStateImpl ClusterUtils IStateStorage]
            [java.net JarURLConnection]
            [java.net URI URLDecoder]
            [org.apache.commons.io FileUtils])
@@ -69,8 +69,8 @@
                       (if (= assignment-version recorded-version)
                         {sid (get assignment-versions sid)}
                         (let [thriftify-assignment-version (.assignmentInfoWithVersion storm-cluster-state sid callback)
-                              assignment (clojurify-assignment (:data thriftify-assignment-version))]
-                        {sid {:data assignment :version (:version thriftify-assignment-version)}}))
+                              assignment (clojurify-assignment (.get thriftify-assignment-version (IStateStorage/DATA)))]
+                        {sid {:data assignment :version (.get thriftify-assignment-version (IStateStorage/VERSION))}}))
                       {sid nil})))
            (apply merge)
            (filter-val not-nil?))
@@ -1184,7 +1184,7 @@
       (.readBlobTo blob-store (ConfigUtils/masterStormConfKey storm-id) (FileOutputStream. (ConfigUtils/supervisorStormConfPath tmproot)) nil)
       (finally
         (.shutdown blob-store)))
-    (try (FileUtils/moveDirectory (File. tmproot) (File. stormroot)) (catch Exception e))
+    (FileUtils/moveDirectory (File. tmproot) (File. stormroot))
 
     (setup-storm-code-dir conf (clojurify-structure (ConfigUtils/readSupervisorStormConf conf storm-id)) stormroot)
     (let [classloader (.getContextClassLoader (Thread/currentThread))

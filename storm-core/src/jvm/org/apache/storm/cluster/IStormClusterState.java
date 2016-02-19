@@ -17,8 +17,6 @@
  */
 package org.apache.storm.cluster;
 
-import clojure.lang.APersistentMap;
-import clojure.lang.IFn;
 import org.apache.storm.generated.*;
 import org.apache.storm.nimbus.NimbusInfo;
 
@@ -27,13 +25,13 @@ import java.util.List;
 import java.util.Map;
 
 public interface IStormClusterState {
-    public List<String> assignments(IFn callback);
+    public List<String> assignments(Runnable callback);
 
-    public Assignment assignmentInfo(String stormId, IFn callback);
+    public Assignment assignmentInfo(String stormId, Runnable callback);
 
-    public APersistentMap assignmentInfoWithVersion(String stormId, IFn callback);
+    public Map assignmentInfoWithVersion(String stormId, Runnable callback);
 
-    public Integer assignmentVersion(String stormId, IFn callback) throws Exception;
+    public Integer assignmentVersion(String stormId, Runnable callback) throws Exception;
 
     public List<String> blobstoreInfo(String blobKey);
 
@@ -43,7 +41,7 @@ public interface IStormClusterState {
 
     public List<String> activeStorms();
 
-    public StormBase stormBase(String stormId, IFn callback);
+    public StormBase stormBase(String stormId, Runnable callback);
 
     public ClusterWorkerHeartbeat getWorkerHeartbeat(String stormId, String node, Long port);
 
@@ -55,9 +53,9 @@ public interface IStormClusterState {
 
     public void deleteTopologyProfileRequests(String stormId, ProfileRequest profileRequest);
 
-    public Map<ExecutorInfo, APersistentMap> executorBeats(String stormId, Map<List<Long>, NodeInfo> executorNodePort);
+    public Map<ExecutorInfo, ExecutorBeat> executorBeats(String stormId, Map<List<Long>, NodeInfo> executorNodePort);
 
-    public List<String> supervisors(IFn callback);
+    public List<String> supervisors(Runnable callback);
 
     public SupervisorInfo supervisorInfo(String supervisorId); // returns nil if doesn't exist
 
@@ -73,7 +71,7 @@ public interface IStormClusterState {
 
     public void setTopologyLogConfig(String stormId, LogConfig logConfig);
 
-    public LogConfig topologyLogConfig(String stormId, IFn cb);
+    public LogConfig topologyLogConfig(String stormId, Runnable cb);
 
     public void workerHeartbeat(String stormId, String node, Long port, ClusterWorkerHeartbeat info);
 
@@ -83,7 +81,7 @@ public interface IStormClusterState {
 
     public void workerBackpressure(String stormId, String node, Long port, boolean on);
 
-    public boolean topologyBackpressure(String stormId, IFn callback);
+    public boolean topologyBackpressure(String stormId, Runnable callback);
 
     public void setupBackpressure(String stormId);
 
@@ -101,7 +99,7 @@ public interface IStormClusterState {
 
     public List<String> activeKeys();
 
-    public List<String> blobstore(IFn callback);
+    public List<String> blobstore(Runnable callback);
 
     public void removeStorm(String stormId);
 
@@ -117,7 +115,7 @@ public interface IStormClusterState {
 
     public void setCredentials(String stormId, Credentials creds, Map topoConf) throws NoSuchAlgorithmException;
 
-    public Credentials credentials(String stormId, IFn callback);
+    public Credentials credentials(String stormId, Runnable callback);
 
     public void disconnect();
 

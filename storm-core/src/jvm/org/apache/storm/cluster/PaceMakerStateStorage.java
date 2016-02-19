@@ -17,7 +17,6 @@
  */
 package org.apache.storm.cluster;
 
-import clojure.lang.APersistentMap;
 import org.apache.curator.framework.state.ConnectionStateListener;
 import org.apache.storm.callback.ZKStateChangedCallback;
 import org.apache.storm.generated.*;
@@ -28,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Map;
 
 public class PaceMakerStateStorage implements IStateStorage {
 
@@ -104,7 +104,7 @@ public class PaceMakerStateStorage implements IStateStorage {
     }
 
     @Override
-    public APersistentMap get_data_with_version(String path, boolean watch) {
+    public Map get_data_with_version(String path, boolean watch) {
         return stateStorage.get_data_with_version(path, watch);
     }
 

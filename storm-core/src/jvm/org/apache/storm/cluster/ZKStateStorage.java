@@ -17,7 +17,6 @@
  */
 package org.apache.storm.cluster;
 
-import clojure.lang.APersistentMap;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.state.*;
 import org.apache.curator.framework.state.ConnectionState;
@@ -220,7 +219,7 @@ public class ZKStateStorage implements IStateStorage {
     }
 
     @Override
-    public APersistentMap get_data_with_version(String path, boolean watch) {
+    public Map get_data_with_version(String path, boolean watch) {
         return Zookeeper.getDataWithVersion(zkReader, path, watch);
     }
 

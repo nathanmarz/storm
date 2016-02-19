@@ -17,16 +17,16 @@
  */
 package org.apache.storm.cluster;
 
-import clojure.lang.APersistentMap;
 import org.apache.storm.utils.Utils;
 import org.apache.zookeeper.data.ACL;
 
 import java.util.List;
+import java.util.Map;
 
 public class ZKStateStorageFactory implements StateStorageFactory {
 
     @Override
-    public IStateStorage mkStore(APersistentMap config, APersistentMap auth_conf, List<ACL> acls, ClusterStateContext context) {
+    public IStateStorage mkStore(Map config, Map auth_conf, List<ACL> acls, ClusterStateContext context) {
         try {
             return new ZKStateStorage(config, auth_conf, acls, context);
         } catch (Exception e) {

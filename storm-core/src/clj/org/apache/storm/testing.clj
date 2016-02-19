@@ -448,7 +448,7 @@
                            component->tasks)
         task-ids (apply concat (vals component->tasks))
         assignment (clojurify-assignment (.assignmentInfo state storm-id nil))
-        taskbeats (.taskbeats state storm-id (:task->node+port assignment))  ;hava question?
+        taskbeats (.taskbeats state storm-id (:task->node+port assignment))
         heartbeats (dofor [id task-ids] (get taskbeats id))
         stats (dofor [hb heartbeats] (if hb (stat-key (:stats hb)) 0))]
     (reduce + stats)))

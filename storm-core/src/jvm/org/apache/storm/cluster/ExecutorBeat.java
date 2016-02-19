@@ -17,12 +17,28 @@
  */
 package org.apache.storm.cluster;
 
-import java.util.List;
-import java.util.Map;
+import org.apache.storm.generated.ExecutorStats;
 
-import org.apache.zookeeper.data.ACL;
+public class ExecutorBeat {
+    private final int timeSecs;
+    private final int uptime;
+    private final ExecutorStats stats;
 
-public interface StateStorageFactory {
+    public ExecutorBeat(int timeSecs, int uptime, ExecutorStats stats) {
+        this.timeSecs = timeSecs;
+        this.uptime = uptime;
+        this.stats = stats;
+    }
 
-    IStateStorage mkStore(Map config, Map auth_conf, List<ACL> acls, ClusterStateContext context);
+    public int getTimeSecs() {
+        return timeSecs;
+    }
+
+    public int getUptime() {
+        return uptime;
+    }
+
+    public ExecutorStats getStats() {
+        return stats;
+    }
 }

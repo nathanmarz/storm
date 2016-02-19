@@ -17,9 +17,6 @@
  */
 package org.apache.storm.cluster;
 
-import clojure.lang.APersistentMap;
-import clojure.lang.PersistentArrayMap;
-import clojure.lang.RT;
 import org.apache.storm.Config;
 import org.apache.storm.generated.ClusterWorkerHeartbeat;
 import org.apache.storm.generated.ExecutorInfo;
@@ -192,14 +189,15 @@ public class ClusterUtils {
      * @param workerHeartbeat
      * @return
      */
-    public static Map<ExecutorInfo, APersistentMap> convertExecutorBeats(List<ExecutorInfo> executors, ClusterWorkerHeartbeat workerHeartbeat) {
-        Map<ExecutorInfo, APersistentMap> executorWhb = new HashMap<>();
+    public static Map<ExecutorInfo, ExecutorBeat> convertExecutorBeats(List<ExecutorInfo> executors, ClusterWorkerHeartbeat workerHeartbeat) {
+        Map<ExecutorInfo, ExecutorBeat> executorWhb = new HashMap<>();
         Map<ExecutorInfo, ExecutorStats> executorStatsMap = workerHeartbeat.get_executor_stats();
         for (ExecutorInfo executor : executors) {
             if (executorStatsMap.containsKey(executor)) {
-                APersistentMap executorBeat =
-                        new PersistentArrayMap(new Object[] { RT.keyword(null, "time-secs"), workerHeartbeat.get_time_secs(), RT.keyword(null, "uptime"),
-                                workerHeartbeat.get_uptime_secs(), RT.keyword(null, "stats"), workerHeartbeat.get_executor_stats().get(executor) });
+                int time = workerHeartbeat.get_time_secs();
+                int uptime = workerHeartbeat.get_uptime_secs();
+                ExecutorStats executorStats = workerHeartbeat.get_executor_stats().get(executor);
+                ExecutorBeat executorBeat = new ExecutorBeat(time, uptime, executorStats);
                 executorWhb.put(executor, executorBeat);
             }
         }
@@ -210,13 +208,13 @@ public class ClusterUtils {
         if (stateStorage instanceof IStateStorage) {
             return new StormClusterStateImpl((IStateStorage) stateStorage, acls, context, false);
         } else {
-            IStateStorage Storage = _instance.mkStateStorageImpl((APersistentMap) stateStorage, (APersistentMap) stateStorage, acls, context);
+            IStateStorage Storage = _instance.mkStateStorageImpl((Map) stateStorage, (Map) stateStorage, acls, context);
             return new StormClusterStateImpl(Storage, acls, context, true);
         }
 
     }
 
-    public IStateStorage mkStateStorageImpl(APersistentMap config, APersistentMap auth_conf, List<ACL> acls, ClusterStateContext context) throws Exception {
+    public IStateStorage mkStateStorageImpl(Map config, Map auth_conf, List<ACL> acls, ClusterStateContext context) throws Exception {
         String className = null;
         IStateStorage stateStorage = null;
         if (config.get(Config.STORM_CLUSTER_STATE_STORE) != null) {
@@ -230,7 +228,7 @@ public class ClusterUtils {
         return stateStorage;
     }
 
-    public static IStateStorage mkStateStorage(APersistentMap config, APersistentMap auth_conf, List<ACL> acls, ClusterStateContext context) throws Exception {
+    public static IStateStorage mkStateStorage(Map config, Map auth_conf, List<ACL> acls, ClusterStateContext context) throws Exception {
         return _instance.mkStateStorageImpl(config, auth_conf, acls, context);
     }
 
@@ -238,26 +236,7 @@ public class ClusterUtils {
         return _instance.mkStormClusterStateImpl(StateStorage, acls, context);
     }
 
-    // TO be remove
-    public static <K, V> HashMap<V, List<K>> reverseMap(Map<K, V> map) {
-        HashMap<V, List<K>> rtn = new HashMap<V, List<K>>();
-        if (map == null) {
-            return rtn;
-        }
-        for (Map.Entry<K, V> entry : map.entrySet()) {
-            K key = entry.getKey();
-            V val = entry.getValue();
-            List<K> list = rtn.get(val);
-            if (list == null) {
-                list = new ArrayList<K>();
-                rtn.put(entry.getValue(), list);
-            }
-            list.add(key);
-        }
-        return rtn;
-    }
-
-    public static String StringifyError(Throwable error) {
+    public static String stringifyError(Throwable error) {
         String errorString = null;
         StringWriter result = null;
         PrintWriter printWriter = null;

@@ -17,12 +17,12 @@
  */
 package org.apache.storm.cluster;
 
-import clojure.lang.APersistentMap;
 import org.apache.storm.pacemaker.PacemakerClient;
 import org.apache.storm.utils.Utils;
 import org.apache.zookeeper.data.ACL;
 
 import java.util.List;
+import java.util.Map;
 
 public class PaceMakerStateStorageFactory implements StateStorageFactory {
 
@@ -38,7 +38,7 @@ public class PaceMakerStateStorageFactory implements StateStorageFactory {
     }
 
     @Override
-    public IStateStorage mkStore(APersistentMap config, APersistentMap auth_conf, List<ACL> acls, ClusterStateContext context) {
+    public IStateStorage mkStore(Map config, Map auth_conf, List<ACL> acls, ClusterStateContext context) {
         try {
             return new PaceMakerStateStorage(initMakeClient(config), initZKstate(config, auth_conf, acls, context));
         } catch (Exception e) {
@@ -46,19 +46,19 @@ public class PaceMakerStateStorageFactory implements StateStorageFactory {
         }
     }
 
-    public static IStateStorage initZKstate(APersistentMap config, APersistentMap auth_conf, List<ACL> acls, ClusterStateContext context) throws Exception {
+    public static IStateStorage initZKstate(Map config, Map auth_conf, List<ACL> acls, ClusterStateContext context) throws Exception {
         return _instance.initZKstateImpl(config, auth_conf, acls, context);
     }
 
-    public static PacemakerClient initMakeClient(APersistentMap config) {
+    public static PacemakerClient initMakeClient(Map config) {
         return _instance.initMakeClientImpl(config);
     }
 
-    public IStateStorage initZKstateImpl(APersistentMap config, APersistentMap auth_conf, List<ACL> acls, ClusterStateContext context) throws Exception {
+    public IStateStorage initZKstateImpl(Map config, Map auth_conf, List<ACL> acls, ClusterStateContext context) throws Exception {
         return ClusterUtils.mkStateStorage(config, auth_conf, acls, context);
     }
 
-    public PacemakerClient initMakeClientImpl(APersistentMap config) {
+    public PacemakerClient initMakeClientImpl(Map config) {
         return new PacemakerClient(config);
     }
 }

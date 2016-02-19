@@ -86,6 +86,10 @@ if not defined STORM_LOG_DIR (
 @rem retrieve storm.log4j2.conf.dir from conf file
 @rem
 
+if not defined CMD_TEMP_FILE (
+  set CMD_TEMP_FILE=tmpfile
+)
+
 "%JAVA%" -client -Dstorm.options= -Dstorm.conf.file= -cp "%CLASSPATH%" org.apache.storm.command.config_value storm.log4j2.conf.dir > %CMD_TEMP_FILE%
 
 FOR /F "delims=" %%i in (%CMD_TEMP_FILE%) do (

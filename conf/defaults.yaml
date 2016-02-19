@@ -156,7 +156,7 @@ supervisor.heartbeat.frequency.secs: 5
 supervisor.enable: true
 supervisor.supervisors: []
 supervisor.supervisors.commands: []
-supervisor.memory.capacity.mb: 3072.0
+supervisor.memory.capacity.mb: 4096.0
 #By convention 1 cpu core should be about 100, but this can be adjusted if needed
 # using 100 makes it simple to set the desired value to the capacity measurement
 # for single threaded bolts
@@ -285,3 +285,17 @@ pacemaker.kerberos.users: []
 #default storm daemon metrics reporter plugins
 storm.daemon.metrics.reporter.plugins:
      - "org.apache.storm.daemon.metrics.reporters.JmxPreparableReporter"
+
+storm.resource.isolation.plugin: "org.apache.storm.container.cgroup.CgroupManager"
+storm.resource.isolation.plugin.enable: false
+
+# Configs for CGroup support
+storm.cgroup.hierarchy.dir: "/cgroup/storm_resources"
+storm.cgroup.resources:
+    - "cpu"
+    - "memory"
+storm.cgroup.hierarchy.name: "storm"
+# Also determines whether the unit tests for cgroup runs.  If cgroup.enable is set to false the unit tests for cgroups will not run
+storm.supervisor.cgroup.rootdir: "storm"
+storm.cgroup.cgexec.cmd: "/bin/cgexec"
+storm.cgroup.memory.limit.tolerance.margin.mb: 128.0

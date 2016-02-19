@@ -24,15 +24,15 @@
            [java.net JarURLConnection]
            [java.net URI URLDecoder]
            [org.apache.commons.io FileUtils])
-  (:use [org.apache.storm config util log timer local-state converter])
+  (:use [org.apache.storm config util log converter local-state-converter])
   (:import [org.apache.storm.generated AuthorizationException KeyNotFoundException WorkerResources])
   (:import [org.apache.storm.utils NimbusLeaderNotFoundException VersionInfo])
   (:import [java.nio.file Files StandardCopyOption])
   (:import [org.apache.storm Config])
-  (:import [org.apache.storm.generated WorkerResources ProfileAction])
+  (:import [org.apache.storm.generated WorkerResources ProfileAction LocalAssignment])
   (:import [org.apache.storm.localizer LocalResource])
   (:use [org.apache.storm.daemon common])
-  (:require [org.apache.storm.command [healthcheck :as healthcheck]])
+  (:import [org.apache.storm.command HealthCheck])
   (:require [org.apache.storm.daemon [worker :as worker]]
             [org.apache.storm [process-simulator :as psim] [event :as event]]
             [clojure.set :as set])
@@ -42,8 +42,10 @@
            [org.yaml.snakeyaml.constructor SafeConstructor])
   (:require [metrics.gauges :refer [defgauge]])
   (:require [metrics.meters :refer [defmeter mark!]])
+  (:import [org.apache.storm StormTimer])
   (:gen-class
-    :methods [^{:static true} [launch [org.apache.storm.scheduler.ISupervisor] void]]))
+    :methods [^{:static true} [launch [org.apache.storm.scheduler.ISupervisor] void]])
+  (:require [clojure.string :as str]))
 
 (defmeter supervisor:num-workers-launched)
 
@@ -85,6 +87,10 @@
        :profiler-actions new-profiler-actions
        :versions new-assignments})))
 
+(defn mk-local-assignment
+  [storm-id executors resources]
+  {:storm-id storm-id :executors executors :resources resources})
+
 (defn- read-my-executors [assignments-snapshot storm-id assignment-id]
   (let [assignment (get assignments-snapshot storm-id)
         my-slots-resources (into {}
@@ -124,6 +130,20 @@
 
 (defn- read-downloaded-storm-ids [conf]
   (map #(URLDecoder/decode %) (Utils/readDirContents (ConfigUtils/supervisorStormDistRoot conf))))
+
+(defn ->executor-list
+  [executors]
+  (into []
+        (for [exec-info executors]
+          [(.get_task_start exec-info) (.get_task_end exec-info)])))
+
+(defn ls-worker-heartbeat
+  [^LocalState local-state]
+  (if-let [worker-hb (.getWorkerHeartBeat ^LocalState local-state)]
+    {:time-secs (.get_time_secs worker-hb)
+     :storm-id (.get_topology_id worker-hb)
+     :executors (->executor-list (.get_executors worker-hb))
+     :port (.get_port worker-hb)}))
 
 (defn read-worker-heartbeat [conf id]
   (let [local-state (ConfigUtils/workerState conf id)]
@@ -172,7 +192,7 @@
   (let [conf (:conf supervisor)
         ^LocalState local-state (:local-state supervisor)
         id->heartbeat (read-worker-heartbeats conf)
-        approved-ids (set (keys (ls-approved-workers local-state)))]
+        approved-ids (set (keys (clojurify-structure (.getApprovedWorkers ^LocalState local-state))))]
     (into
      {}
      (dofor [[id hb] id->heartbeat]
@@ -198,7 +218,7 @@
 (defn- wait-for-worker-launch [conf id start-time]
   (let [state (ConfigUtils/workerState conf id)]
     (loop []
-      (let [hb (ls-worker-heartbeat state)]
+      (let [hb (.getWorkerHeartBeat state)]
         (when (and
                (not hb)
                (<
@@ -209,7 +229,7 @@
           (Time/sleep 500)
           (recur)
           )))
-    (when-not (ls-worker-heartbeat state)
+    (when-not (.getWorkerHeartBeat state)
       (log-message "Worker " id " failed to start")
       )))
 
@@ -259,7 +279,7 @@
     (if (Utils/checkFileExists path)
       (throw (RuntimeException. (str path " was not deleted"))))))
 
-(defn try-cleanup-worker [conf id]
+(defn try-cleanup-worker [conf supervisor id]
   (try
     (if (.exists (File. (ConfigUtils/workerRoot conf id)))
       (do
@@ -273,6 +293,8 @@
         (ConfigUtils/removeWorkerUserWSE conf id)
         (remove-dead-worker id)
       ))
+    (if (conf STORM-RESOURCE-ISOLATION-PLUGIN-ENABLE)
+      (.releaseResourcesForWorker (:resource-isolation-manager supervisor) id))
   (catch IOException e
     (log-warn-error e "Failed to cleanup worker " id ". Will retry later"))
   (catch RuntimeException e
@@ -309,7 +331,7 @@
             (log-debug "Removing path " path)
             (.delete (File. path))
             (catch Exception e))))) ;; on windows, the supervisor may still holds the lock on the worker directory
-    (try-cleanup-worker conf id))
+    (try-cleanup-worker conf supervisor id))
   (log-message "Shut down " (:supervisor-id supervisor) ":" id))
 
 (def SUPERVISOR-ZK-ACLS
@@ -332,24 +354,35 @@
    :assignment-id (.getAssignmentId isupervisor)
    :my-hostname (Utils/hostname conf)
    :curr-assignment (atom nil) ;; used for reporting used ports when heartbeating
-   :heartbeat-timer (mk-timer :kill-fn (fn [t]
-                               (log-error t "Error when processing event")
-                               (Utils/exitProcess 20 "Error when processing an event")
-                               ))
-   :event-timer (mk-timer :kill-fn (fn [t]
-                                         (log-error t "Error when processing event")
-                                         (Utils/exitProcess 20 "Error when processing an event")
-                                         ))
-   :blob-update-timer (mk-timer :kill-fn (defn blob-update-timer
-                                           [t]
-                                           (log-error t "Error when processing event")
-                                           (Utils/exitProcess 20 "Error when processing a event"))
-                                :timer-name "blob-update-timer")
+   :heartbeat-timer (StormTimer. nil
+                      (reify Thread$UncaughtExceptionHandler
+                        (^void uncaughtException
+                          [this ^Thread t ^Throwable e]
+                          (log-error e "Error when processing event")
+                          (Utils/exitProcess 20 "Error when processing an event"))))
+   :event-timer (StormTimer. nil
+                  (reify Thread$UncaughtExceptionHandler
+                    (^void uncaughtException
+                      [this ^Thread t ^Throwable e]
+                      (log-error e "Error when processing event")
+                      (Utils/exitProcess 20 "Error when processing an event"))))
+   :blob-update-timer (StormTimer. "blob-update-timer"
+                        (reify Thread$UncaughtExceptionHandler
+                          (^void uncaughtException
+                            [this ^Thread t ^Throwable e]
+                            (log-error e "Error when processing event")
+                            (Utils/exitProcess 20 "Error when processing an event"))))
    :localizer (Utils/createLocalizer conf (ConfigUtils/supervisorLocalDir conf))
    :assignment-versions (atom {})
    :sync-retry (atom 0)
    :download-lock (Object.)
    :stormid->profiler-actions (atom {})
+   :resource-isolation-manager (if (conf STORM-RESOURCE-ISOLATION-PLUGIN-ENABLE)
+                                 (let [resource-isolation-manager (Utils/newInstance (conf STORM-RESOURCE-ISOLATION-PLUGIN))]
+                                   (.prepare resource-isolation-manager conf)
+                                   (log-message "Using resource isolation plugin " (conf STORM-RESOURCE-ISOLATION-PLUGIN))
+                                   resource-isolation-manager)
+                                 nil)
    })
 
 (defn required-topo-files-exist?
@@ -374,8 +407,7 @@
       (dofor [[port assignment] reassign-executors]
         (let [id (new-worker-ids port)
               storm-id (:storm-id assignment)
-              ^WorkerResources resources (:resources assignment)
-              mem-onheap (.get_mem_on_heap resources)]
+              ^WorkerResources resources (:resources assignment)]
           ;; This condition checks for required files exist before launching the worker
           (if (required-topo-files-exist? conf storm-id)
             (let [pids-path (ConfigUtils/workerPidsRoot conf id)
@@ -388,7 +420,7 @@
                 (:storm-id assignment)
                 port
                 id
-                mem-onheap)
+                resources)
               [id port])
             (do
               (log-message "Missing topology storm code, so can't launch worker with assignment "
@@ -399,6 +431,19 @@
 (defn- select-keys-pred
   [pred amap]
   (into {} (filter (fn [[k v]] (pred k)) amap)))
+
+(defn ->local-assignment
+  [^LocalAssignment thrift-local-assignment]
+  (mk-local-assignment
+    (.get_topology_id thrift-local-assignment)
+    (->executor-list (.get_executors thrift-local-assignment))
+    (.get_resources thrift-local-assignment)))
+
+;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
+(defn ls-local-assignments
+  [^LocalState local-state]
+  (if-let [thrift-local-assignments (.getLocalAssignmentsMap local-state)]
+    (map-val ->local-assignment thrift-local-assignments)))
 
 ;TODO: when translating this function, you should replace the filter-val with a proper for loop + if condition HERE
 (defn sync-processes [supervisor]
@@ -439,9 +484,9 @@
          ", Heartbeat: " (pr-str heartbeat))
         (shutdown-worker supervisor id)))
     (let [valid-new-worker-ids (get-valid-new-worker-ids conf supervisor reassign-executors new-worker-ids)]
-      (ls-approved-workers! local-state
+      (.setApprovedWorkers ^LocalState local-state
                         (merge
-                          (select-keys (ls-approved-workers local-state)
+                          (select-keys (clojurify-structure (.getApprovedWorkers ^LocalState local-state))
                             (keys keepers))
                           valid-new-worker-ids))
       (wait-for-workers-launch conf (keys valid-new-worker-ids)))))
@@ -538,6 +583,22 @@
           (log-debug "Files not present in topology directory")
           (rm-topo-files conf storm-id localizer false)
           storm-id)))))
+
+(defn ->LocalAssignment
+  [{storm-id :storm-id executors :executors resources :resources}]
+  (let [assignment (LocalAssignment. storm-id (->ExecutorInfo-list executors))]
+    (if resources (.set_resources assignment
+                                  (doto (WorkerResources. )
+                                    (.set_mem_on_heap (first resources))
+                                    (.set_mem_off_heap (second resources))
+                                    (.set_cpu (last resources)))))
+    assignment))
+
+;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
+(defn ls-local-assignments!
+  [^LocalState local-state assignments]
+  (let [local-assignment-map (map-val ->LocalAssignment assignments)]
+    (.setLocalAssignmentsMap local-state local-assignment-map)))
 
 (defn mk-synchronize-supervisor [supervisor sync-processes event-manager processes-event-manager]
   (fn this []
@@ -808,10 +869,11 @@
     (heartbeat-fn)
 
     ;; should synchronize supervisor so it doesn't launch anything after being down (optimization)
-    (schedule-recurring (:heartbeat-timer supervisor)
-                        0
-                        (conf SUPERVISOR-HEARTBEAT-FREQUENCY-SECS)
-                        heartbeat-fn)
+    (.scheduleRecurring (:heartbeat-timer supervisor)
+      0
+      (conf SUPERVISOR-HEARTBEAT-FREQUENCY-SECS)
+      heartbeat-fn)
+
     (doseq [storm-id downloaded-storm-ids]
       (add-blob-references (:localizer supervisor) storm-id
         conf))
@@ -821,43 +883,48 @@
     (when (conf SUPERVISOR-ENABLE)
       ;; This isn't strictly necessary, but it doesn't hurt and ensures that the machine stays up
       ;; to date even if callbacks don't all work exactly right
-      (schedule-recurring (:event-timer supervisor) 0 10 (fn [] (.add event-manager synchronize-supervisor)))
-      (schedule-recurring (:event-timer supervisor)
-                          0
-                          (conf SUPERVISOR-MONITOR-FREQUENCY-SECS)
-                          (fn [] (.add processes-event-manager sync-processes)))
+      (.scheduleRecurring (:event-timer supervisor) 0 10 (fn [] (.add event-manager synchronize-supervisor)))
+
+      (.scheduleRecurring (:event-timer supervisor)
+        0
+        (conf SUPERVISOR-MONITOR-FREQUENCY-SECS)
+        (fn [] (.add processes-event-manager sync-processes)))
 
       ;; Blob update thread. Starts with 30 seconds delay, every 30 seconds
-      (schedule-recurring (:blob-update-timer supervisor)
-                          30
-                          30
-                          (fn [] (.add event-manager synchronize-blobs-fn)))
+      (.scheduleRecurring (:blob-update-timer supervisor)
+        30
+        30
+        (fn [] (.add event-manager synchronize-blobs-fn)))
 
-      (schedule-recurring (:event-timer supervisor)
-                          (* 60 5)
-                          (* 60 5)
-                          (fn [] (let [health-code (healthcheck/health-check conf)
-                                       ids (my-worker-ids conf)]
-                                   (if (not (= health-code 0))
-                                     (do
-                                       (doseq [id ids]
-                                         (shutdown-worker supervisor id))
-                                       (throw (RuntimeException. "Supervisor failed health check. Exiting.")))))))
+      (.scheduleRecurring (:event-timer supervisor)
+        (* 60 5)
+        (* 60 5)
+        (fn []
+          (let [health-code (HealthCheck/healthCheck conf)
+                ids (my-worker-ids conf)]
+            (if (not (= health-code 0))
+              (do
+                (doseq [id ids]
+                  (shutdown-worker supervisor id))
+                (throw (RuntimeException. "Supervisor failed health check. Exiting.")))))))
+
 
       ;; Launch a thread that Runs profiler commands . Starts with 30 seconds delay, every 30 seconds
-      (schedule-recurring (:event-timer supervisor)
-                          30
-                          30
-                          (fn [] (.add event-manager run-profiler-actions-fn))))
+      (.scheduleRecurring
+        (:event-timer supervisor)
+        30
+        30
+        (fn [] (.add event-manager run-profiler-actions-fn))))
+
     (log-message "Starting supervisor with id " (:supervisor-id supervisor) " at host " (:my-hostname supervisor))
     (reify
      Shutdownable
      (shutdown [this]
                (log-message "Shutting down supervisor " (:supervisor-id supervisor))
                (reset! (:active supervisor) false)
-               (cancel-timer (:heartbeat-timer supervisor))
-               (cancel-timer (:event-timer supervisor))
-               (cancel-timer (:blob-update-timer supervisor))
+               (.close (:heartbeat-timer supervisor))
+               (.close (:event-timer supervisor))
+               (.close (:blob-update-timer supervisor))
                (.shutdown event-manager)
                (.shutdown processes-event-manager)
                (.shutdown (:localizer supervisor))
@@ -876,8 +943,8 @@
      (waiting? [this]
        (or (not @(:active supervisor))
            (and
-            (timer-waiting? (:heartbeat-timer supervisor))
-            (timer-waiting? (:event-timer supervisor))
+            (.isTimerWaiting (:heartbeat-timer supervisor))
+            (.isTimerWaiting (:event-timer supervisor))
             (every? (memfn waiting?) managers)))
            ))))
 
@@ -1055,7 +1122,7 @@
       (Utils/createSymlink worker-dir topo-dir "artifacts" (str port)))))
 
 (defmethod launch-worker
-    :distributed [supervisor storm-id port worker-id mem-onheap]
+    :distributed [supervisor storm-id port worker-id resources]
     (let [conf (:conf supervisor)
           run-worker-as-user (conf SUPERVISOR-RUN-WORKER-AS-USER)
           storm-home (System/getProperty "storm.home")
@@ -1079,9 +1146,15 @@
                         (Utils/addToClasspath [stormjar])
                         (Utils/addToClasspath topo-classpath))
           top-gc-opts (storm-conf TOPOLOGY-WORKER-GC-CHILDOPTS)
-          mem-onheap (if (and mem-onheap (> mem-onheap 0)) ;; not nil and not zero
-                       (int (Math/ceil mem-onheap)) ;; round up
+
+          mem-onheap (if (and (.get_mem_on_heap resources) (> (.get_mem_on_heap resources) 0)) ;; not nil and not zero
+                       (int (Math/ceil (.get_mem_on_heap resources))) ;; round up
                        (storm-conf WORKER-HEAP-MEMORY-MB)) ;; otherwise use default value
+
+          mem-offheap (int (Math/ceil (.get_mem_off_heap resources)))
+
+          cpu (int (Math/ceil (.get_cpu resources)))
+
           gc-opts (substitute-childopts (if top-gc-opts top-gc-opts (conf WORKER-GC-CHILDOPTS)) worker-id storm-id port mem-onheap)
           topo-worker-logwriter-childopts (storm-conf TOPOLOGY-WORKER-LOGWRITER-CHILDOPTS)
           user (storm-conf TOPOLOGY-SUBMITTER-USER)
@@ -1105,8 +1178,9 @@
                                             (str "file:///" storm-log4j2-conf-dir))
                                           storm-log4j2-conf-dir)
                                      Utils/FILE_PATH_SEPARATOR "worker.xml")
+
           command (concat
-                    [(java-cmd) "-cp" classpath 
+                    [(java-cmd) "-cp" classpath
                      topo-worker-logwriter-childopts
                      (str "-Dlogfile.name=" logfilename)
                      (str "-Dstorm.home=" storm-home)
@@ -1144,7 +1218,14 @@
                      worker-id])
           command (->> command
                        (map str)
-                       (filter (complement empty?)))]
+                       (filter (complement empty?)))
+          command (if (conf STORM-RESOURCE-ISOLATION-PLUGIN-ENABLE)
+                    (do
+                      (.reserveResourcesForWorker (:resource-isolation-manager supervisor) worker-id
+                        {"cpu" cpu "memory" (+ mem-onheap mem-offheap  (int (Math/ceil (conf STORM-CGROUP-MEMORY-LIMIT-TOLERANCE-MARGIN-MB))))})
+                      (.getLaunchCommand (:resource-isolation-manager supervisor) worker-id
+                        (java.util.ArrayList. (java.util.Arrays/asList (to-array command)))))
+                    command)]
       (log-message "Launching worker with command: " (Utils/shellCmd command))
       (write-log-metadata! storm-conf user worker-id storm-id port conf)
       (ConfigUtils/setWorkerUserWSE conf worker-id user)
@@ -1202,7 +1283,7 @@
           (FileUtils/copyDirectory (File. (.getFile url)) (File. target-dir)))))))
 
 (defmethod launch-worker
-    :local [supervisor storm-id port worker-id mem-onheap]
+    :local [supervisor storm-id port worker-id resources]
     (let [conf (:conf supervisor)
           pid (Utils/uuid)
           worker (worker/mk-worker conf
@@ -1233,10 +1314,10 @@
       (prepare [this conf local-dir]
         (reset! conf-atom conf)
         (let [state (LocalState. local-dir)
-              curr-id (if-let [id (ls-supervisor-id state)]
+              curr-id (if-let [id (.getSupervisorId state)]
                         id
                         (generate-supervisor-id))]
-          (ls-supervisor-id! state curr-id)
+          (.setSupervisorId state curr-id)
           (reset! id-atom curr-id))
         )
       (confirmAssigned [this port]

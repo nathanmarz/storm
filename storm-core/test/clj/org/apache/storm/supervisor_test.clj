@@ -22,22 +22,21 @@
   (:import [org.apache.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter TestPlannerSpout])
   (:import [org.apache.storm.scheduler ISupervisor])
   (:import [org.apache.storm.utils Time Utils$UptimeComputer ConfigUtils])
-  (:import [org.apache.storm.generated RebalanceOptions])
+  (:import [org.apache.storm.generated RebalanceOptions WorkerResources])
   (:import [org.apache.storm.testing.staticmocking MockedCluster])
   (:import [java.util UUID])
+  (:import [org.apache.storm Thrift])
   (:import [org.mockito Mockito Matchers])
   (:import [org.mockito.exceptions.base MockitoAssertionError])
   (:import [java.io File])
   (:import [java.nio.file Files])
   (:import [org.apache.storm.utils Utils IPredicate])
   (:import [org.apache.storm.cluster StormClusterStateImpl ClusterStateContext ClusterUtils]
-           [org.apache.storm.utils.staticmocking ConfigUtilsInstaller
-                                                 UtilsInstaller])
+           [org.apache.storm.utils.staticmocking ConfigUtilsInstaller UtilsInstaller])
   (:import [java.nio.file.attribute FileAttribute])
-  (:use [org.apache.storm config testing util timer log converter])
+  (:use [org.apache.storm config testing util log converter])
   (:use [org.apache.storm.daemon common])
-  (:require [org.apache.storm.daemon [worker :as worker] [supervisor :as supervisor]]
-            [org.apache.storm [thrift :as thrift]])
+  (:require [org.apache.storm.daemon [worker :as worker] [supervisor :as supervisor]])
   (:use [conjure core])
   (:require [clojure.java.io :as io]))
 
@@ -106,8 +105,9 @@
                   SUPERVISOR-WORKER-TIMEOUT-SECS 15
                   SUPERVISOR-MONITOR-FREQUENCY-SECS 3}]
     (letlocals
-      (bind topology (thrift/mk-topology
-                       {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 4)}
+      (bind topology (Thrift/buildTopology
+                       {"1" (Thrift/prepareSpoutDetails
+                              (TestPlannerSpout. true) (Integer. 4))}
                        {}))
       (bind sup1 (add-supervisor cluster :id "sup1" :ports [1 2 3 4]))
       (bind changed (capture-changed-workers
@@ -159,11 +159,13 @@
                   SUPERVISOR-WORKER-TIMEOUT-SECS 15
                   SUPERVISOR-MONITOR-FREQUENCY-SECS 3}]
     (letlocals
-      (bind topology (thrift/mk-topology
-                       {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 4)}
+      (bind topology (Thrift/buildTopology
+                       {"1" (Thrift/prepareSpoutDetails
+                              (TestPlannerSpout. true) (Integer. 4))}
                        {}))
-      (bind topology2 (thrift/mk-topology
-                       {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
+      (bind topology2 (Thrift/buildTopology
+                       {"1" (Thrift/prepareSpoutDetails
+                              (TestPlannerSpout. true) (Integer. 3))}
                        {}))
       (bind sup1 (add-supervisor cluster :id "sup1" :ports [1 2 3 4]))
       (bind sup2 (add-supervisor cluster :id "sup2" :ports [1 2]))
@@ -273,8 +275,9 @@
       (check-heartbeat cluster "sup" 3)
       (advance-cluster-time cluster 15)
       (check-heartbeat cluster "sup" 3)
-      (bind topology (thrift/mk-topology
-                       {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 4)}
+      (bind topology (Thrift/buildTopology
+                       {"1" (Thrift/prepareSpoutDetails
+                              (TestPlannerSpout. true) (Integer. 4))}
                        {}))
       ;; prevent them from launching by capturing them
       (capture-changed-workers
@@ -294,7 +297,6 @@
     (let [mock-port "42"
           mock-storm-id "fake-storm-id"
           mock-worker-id "fake-worker-id"
-          mock-mem-onheap 512
           mock-cp (str Utils/FILE_PATH_SEPARATOR "base" Utils/CLASS_PATH_SEPARATOR Utils/FILE_PATH_SEPARATOR "stormjar.jar")
           mock-sensitivity "S3"
           mock-cp "/base:/stormjar.jar"
@@ -361,7 +363,7 @@
                                       mock-storm-id
                                       mock-port
                                       mock-worker-id
-                                      mock-mem-onheap)
+                                      (WorkerResources.))
                 (. (Mockito/verify utils-spy)
                    (launchProcessImpl (Matchers/eq exp-args)
                                       (Matchers/any)
@@ -397,7 +399,7 @@
                                             mock-storm-id
                                             mock-port
                                             mock-worker-id
-                                            mock-mem-onheap)
+                                            (WorkerResources.))
                   (. (Mockito/verify utils-spy)
                      (launchProcessImpl (Matchers/eq exp-args)
                                         (Matchers/any)
@@ -431,7 +433,7 @@
                                               mock-storm-id
                                               mock-port
                                               mock-worker-id
-                                              mock-mem-onheap)
+                                              (WorkerResources.))
                   (. (Mockito/verify utils-spy)
                      (launchProcessImpl (Matchers/eq exp-args)
                                         (Matchers/any)
@@ -465,7 +467,7 @@
                                         mock-storm-id
                                         mock-port
                                         mock-worker-id
-                                        mock-mem-onheap)
+                                        (WorkerResources.))
               (. (Mockito/verify utils-spy)
                  (launchProcessImpl (Matchers/any)
                                     (Matchers/eq full-env)
@@ -478,7 +480,6 @@
     (let [mock-port "42"
           mock-storm-id "fake-storm-id"
           mock-worker-id "fake-worker-id"
-          mock-mem-onheap 512
           mock-sensitivity "S3"
           mock-cp "mock-classpath'quote-on-purpose"
           attrs (make-array FileAttribute 0)
@@ -557,7 +558,7 @@
                                           mock-storm-id
                                           mock-port
                                           mock-worker-id
-                                          mock-mem-onheap)
+                                          (WorkerResources.))
                 (. (Mockito/verify utils-spy)
                    (launchProcessImpl (Matchers/eq exp-launch)
                                       (Matchers/any)
@@ -599,7 +600,7 @@
                                           mock-storm-id
                                           mock-port
                                           mock-worker-id
-                                          mock-mem-onheap)
+                                          (WorkerResources.))
                 (. (Mockito/verify utils-spy)
                  (launchProcessImpl (Matchers/eq exp-launch)
                                     (Matchers/any)
@@ -780,11 +781,13 @@
                                                       TOPOLOGY-ACKER-EXECUTORS 0}]
       (letlocals
         (bind sup1 (add-supervisor cluster :id "sup1" :ports [1 2 3 4]))
-        (bind topology1 (thrift/mk-topology
-                          {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 2)}
+        (bind topology1 (Thrift/buildTopology
+                          {"1" (Thrift/prepareSpoutDetails
+                                 (TestPlannerSpout. true) (Integer. 2))}
                           {}))
-        (bind topology2 (thrift/mk-topology
-                          {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 2)}
+        (bind topology2 (Thrift/buildTopology
+                          {"1" (Thrift/prepareSpoutDetails
+                                 (TestPlannerSpout. true) (Integer. 2))}
                           {}))
         (bind state (:storm-cluster-state cluster))
         (bind changed (capture-changed-workers

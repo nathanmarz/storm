@@ -46,25 +46,26 @@
             KillOptions RebalanceOptions ClusterSummary SupervisorSummary TopologySummary TopologyInfo TopologyHistoryInfo
             ExecutorSummary AuthorizationException GetInfoOptions NumErrorsChoice SettableBlobMeta ReadableBlobMeta
             BeginDownloadResult ListBlobsResult ComponentPageInfo TopologyPageInfo LogConfig LogLevel LogLevelAction
-            ProfileRequest ProfileAction NodeInfo])
+            ProfileRequest ProfileAction NodeInfo LSTopoHistory])
   (:import [org.apache.storm.daemon Shutdownable])
   (:import [org.apache.storm.validation ConfigValidation])
   (:import [org.apache.storm.cluster ClusterStateContext DaemonType StormClusterStateImpl ClusterUtils])
-  (:use [org.apache.storm util config log timer local-state converter])
+  (:use [org.apache.storm util config log converter])
   (:require [org.apache.storm [converter :as converter]
-                            [stats :as stats]])
+                              [stats :as stats]])
   (:require [clojure.set :as set])
   (:import [org.apache.storm.daemon.common StormBase Assignment])
   (:import [org.apache.storm.zookeeper Zookeeper])
   (:use [org.apache.storm.daemon common])
   (:use [org.apache.storm config])
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
-  (:import [org.apache.storm.utils VersionInfo]
+  (:import [org.apache.storm.utils VersionInfo LocalState]
            [org.json.simple JSONValue])
   (:require [clj-time.core :as time])
   (:require [clj-time.coerce :as coerce])
   (:require [metrics.meters :refer [defmeter mark!]])
   (:require [metrics.gauges :refer [defgauge]])
+  (:import [org.apache.storm StormTimer])
   (:gen-class
     :methods [^{:static true} [launch [org.apache.storm.scheduler.INimbus] void]]))
 
@@ -192,10 +193,13 @@
      :blob-listers (mk-bloblist-cache-map conf)
      :uptime (Utils/makeUptimeComputer)
      :validator (Utils/newInstance (conf NIMBUS-TOPOLOGY-VALIDATOR))
-     :timer (mk-timer :kill-fn (fn [t]
-                                 (log-error t "Error when processing event")
-                                 (Utils/exitProcess 20 "Error when processing an event")
-                                 ))
+     :timer (StormTimer. nil
+              (reify Thread$UncaughtExceptionHandler
+                (^void uncaughtException
+                  [this ^Thread t ^Throwable e]
+                  (log-error e "Error when processing event")
+                  (Utils/exitProcess 20 "Error when processing an event"))))
+
      :scheduler (mk-scheduler conf inimbus)
      :leader-elector (Zookeeper/zkLeaderElector conf)
      :id->sched-status (atom {})
@@ -270,17 +274,17 @@
       {:status {:type :rebalancing}
        :prev-status status
        :topology-action-options (-> {:delay-secs delay :action :rebalance}
-                                  (assoc-non-nil :num-workers num-workers)
-                                  (assoc-non-nil :component->executors executor-overrides))
+                                  (converter/assoc-non-nil :num-workers num-workers)
+                                  (converter/assoc-non-nil :component->executors executor-overrides))
        })))
 
 (defn do-rebalance [nimbus storm-id status storm-base]
   (let [rebalance-options (:topology-action-options storm-base)]
     (.updateStorm (:storm-cluster-state nimbus)
       storm-id
-      (thriftify-storm-base (-> {:topology-action-options nil}
-          (assoc-non-nil :component->executors (:component->executors rebalance-options))
-          (assoc-non-nil :num-workers (:num-workers rebalance-options))))))
+      (converter/thriftify-storm-base (-> {:topology-action-options nil}
+          (converter/assoc-non-nil :component->executors (:component->executors rebalance-options))
+          (converter/assoc-non-nil :num-workers (:num-workers rebalance-options))))))
   (mk-assignments nimbus :scratch-topology-id storm-id))
 
 (defn state-transitions [nimbus storm-id status storm-base]
@@ -363,7 +367,7 @@
                                       storm-base-updates)]
 
              (when storm-base-updates
-               (.updateStorm (:storm-cluster-state nimbus) storm-id (thriftify-storm-base storm-base-updates))))))
+               (.updateStorm (:storm-cluster-state nimbus) storm-id (converter/thriftify-storm-base storm-base-updates))))))
        )))
 
 (defn transition-name! [nimbus storm-name event & args]
@@ -374,10 +378,9 @@
 
 (defn delay-event [nimbus storm-id delay-secs event]
   (log-message "Delaying event " event " for " delay-secs " secs for " storm-id)
-  (schedule (:timer nimbus)
-            delay-secs
-            #(transition! nimbus storm-id event false)
-            ))
+  (.schedule (:timer nimbus)
+    delay-secs
+    (fn [] (transition! nimbus storm-id event false))))
 
 ;; active -> reassign in X secs
 
@@ -1004,7 +1007,7 @@
     (log-message "Activating " storm-name ": " storm-id)
     (.activateStorm storm-cluster-state
                       storm-id
-      (thriftify-storm-base (StormBase. storm-name
+      (converter/thriftify-storm-base (StormBase. storm-name
                                   (Time/currentTimeSecs)
                                   {:type topology-initial-status}
                                   (storm-conf TOPOLOGY-WORKERS)
@@ -1178,11 +1181,8 @@
   [mins nimbus]
   (locking (:topology-history-lock nimbus)
     (let [cutoff-age (- (Time/currentTimeSecs) (* mins 60))
-          topo-history-state (:topo-history-state nimbus)
-          curr-history (vec (ls-topo-hist topo-history-state))
-          new-history (vec (filter (fn [line]
-                                     (> (line :timestamp) cutoff-age)) curr-history))]
-      (ls-topo-hist! topo-history-state new-history))))
+          topo-history-state (:topo-history-state nimbus)]
+          (.filterOldTopologies ^LocalState topo-history-state cutoff-age))))
 
 (defn cleanup-corrupt-topologies! [nimbus]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
@@ -1272,11 +1272,9 @@
   (locking (:topology-history-lock nimbus)
     (let [topo-history-state (:topo-history-state nimbus)
           users (ConfigUtils/getTopoLogsUsers topology-conf)
-          groups (ConfigUtils/getTopoLogsGroups topology-conf)
-          curr-history (vec (ls-topo-hist topo-history-state))
-          new-history (conj curr-history {:topoid storm-id :timestamp (Time/currentTimeSecs)
-                                          :users users :groups groups})]
-      (ls-topo-hist! topo-history-state new-history))))
+          groups (ConfigUtils/getTopoLogsGroups topology-conf)]
+      (.addTopologyHistory ^LocalState topo-history-state
+                           (LSTopoHistory. storm-id (Time/currentTimeSecs) users groups)))))
 
 (defn igroup-mapper
   [storm-conf]
@@ -1292,10 +1290,18 @@
   (let [groups (user-groups user storm-conf)]
     (> (.size (set/intersection (set groups) (set groups-to-check))) 0)))
 
+(defn ->topo-history
+  [thrift-topo-hist]
+  {
+   :topoid (.get_topology_id thrift-topo-hist)
+   :timestamp (.get_time_stamp thrift-topo-hist)
+   :users (.get_users thrift-topo-hist)
+   :groups (.get_groups thrift-topo-hist)})
+
 (defn read-topology-history
   [nimbus user admin-users]
   (let [topo-history-state (:topo-history-state nimbus)
-        curr-history (vec (ls-topo-hist topo-history-state))
+        curr-history (vec (map ->topo-history (.getTopoHistoryList ^LocalState topo-history-state)))
         topo-user-can-access (fn [line user storm-conf]
                                (if (nil? user)
                                  (line :topoid)
@@ -1450,39 +1456,37 @@
     (when (is-leader nimbus :throw-exception false)
       (doseq [storm-id (.activeStorms (:storm-cluster-state nimbus))]
         (transition! nimbus storm-id :startup)))
-    (schedule-recurring (:timer nimbus)
-                        0
-                        (conf NIMBUS-MONITOR-FREQ-SECS)
-                        (fn []
-                          (when-not (conf ConfigUtils/NIMBUS_DO_NOT_REASSIGN)
-                            (locking (:submit-lock nimbus)
-                              (mk-assignments nimbus)))
-                          (do-cleanup nimbus)))
+
+    (.scheduleRecurring (:timer nimbus)
+      0
+      (conf NIMBUS-MONITOR-FREQ-SECS)
+      (fn []
+        (when-not (conf ConfigUtils/NIMBUS_DO_NOT_REASSIGN)
+          (locking (:submit-lock nimbus)
+            (mk-assignments nimbus)))
+        (do-cleanup nimbus)))
     ;; Schedule Nimbus inbox cleaner
-    (schedule-recurring (:timer nimbus)
-                        0
-                        (conf NIMBUS-CLEANUP-INBOX-FREQ-SECS)
-                        (fn []
-                          (clean-inbox (inbox nimbus) (conf NIMBUS-INBOX-JAR-EXPIRATION-SECS))))
+    (.scheduleRecurring (:timer nimbus)
+      0
+      (conf NIMBUS-CLEANUP-INBOX-FREQ-SECS)
+      (fn [] (clean-inbox (inbox nimbus) (conf NIMBUS-INBOX-JAR-EXPIRATION-SECS))))
     ;; Schedule nimbus code sync thread to sync code from other nimbuses.
     (if (instance? LocalFsBlobStore blob-store)
-      (schedule-recurring (:timer nimbus)
-                          0
-                          (conf NIMBUS-CODE-SYNC-FREQ-SECS)
-                          (fn []
-                            (blob-sync conf nimbus))))
+      (.scheduleRecurring (:timer nimbus)
+        0
+        (conf NIMBUS-CODE-SYNC-FREQ-SECS)
+        (fn [] (blob-sync conf nimbus))))
     ;; Schedule topology history cleaner
     (when-let [interval (conf LOGVIEWER-CLEANUP-INTERVAL-SECS)]
-      (schedule-recurring (:timer nimbus)
+      (.scheduleRecurring (:timer nimbus)
         0
         (conf LOGVIEWER-CLEANUP-INTERVAL-SECS)
-        (fn []
-          (clean-topology-history (conf LOGVIEWER-CLEANUP-AGE-MINS) nimbus))))
-    (schedule-recurring (:timer nimbus)
-                        0
-                        (conf NIMBUS-CREDENTIAL-RENEW-FREQ-SECS)
-                        (fn []
-                          (renew-credentials nimbus)))
+        (fn [] (clean-topology-history (conf LOGVIEWER-CLEANUP-AGE-MINS) nimbus))))
+    (.scheduleRecurring (:timer nimbus)
+      0
+      (conf NIMBUS-CREDENTIAL-RENEW-FREQ-SECS)
+      (fn []
+        (renew-credentials nimbus)))
 
     (defgauge nimbus:num-supervisors
       (fn [] (.size (.supervisors (:storm-cluster-state nimbus) nil))))
@@ -1650,7 +1654,7 @@
           (log-message "Nimbus setting debug to " enable? " for storm-name '" storm-name "' storm-id '" storm-id "' sampling pct '" spct "'"
             (if (not (clojure.string/blank? component-id)) (str " component-id '" component-id "'")))
           (locking (:submit-lock nimbus)
-            (.updateStorm storm-cluster-state storm-id  (thriftify-storm-base storm-base-updates)))))
+            (.updateStorm storm-cluster-state storm-id  (converter/thriftify-storm-base storm-base-updates)))))
 
       (^void setWorkerProfiler
         [this ^String id ^ProfileRequest profileRequest]
@@ -2214,7 +2218,7 @@
       (shutdown [this]
         (mark! nimbus:num-shutdown-calls)
         (log-message "Shutting down master")
-        (cancel-timer (:timer nimbus))
+        (.close (:timer nimbus))
         (.disconnect (:storm-cluster-state nimbus))
         (.cleanup (:downloaders nimbus))
         (.cleanup (:uploaders nimbus))
@@ -2224,7 +2228,7 @@
         (log-message "Shut down master"))
       DaemonCommon
       (waiting? [this]
-        (timer-waiting? (:timer nimbus))))))
+        (.isTimerWaiting (:timer nimbus))))))
 
 (defn validate-port-available[conf]
   (try

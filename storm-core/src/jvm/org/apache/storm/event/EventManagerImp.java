@@ -88,13 +88,10 @@ public class EventManagerImp implements EventManager {
         return (Time.isThreadWaiting(runner) || (processed.get() == added.get()));
     }
 
-    public void shutdown() {
-        try {
-            running.set(false);
-            runner.interrupt();
-            runner.join();
-        } catch (InterruptedException e) {
-            throw Utils.wrapInRuntime(e);
-        }
+    @Override
+    public void close() throws Exception {
+        running.set(false);
+        runner.interrupt();
+        runner.join();
     }
 }

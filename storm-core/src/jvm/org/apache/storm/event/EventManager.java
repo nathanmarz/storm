@@ -17,10 +17,8 @@
  */
 package org.apache.storm.event;
 
-public interface EventManager {
+public interface EventManager extends AutoCloseable {
     void add(Runnable eventFn);
 
     boolean waiting();
-
-    void shutdown();
 }

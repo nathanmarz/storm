@@ -88,19 +88,25 @@ public class TimeTest {
     @Test
     public void deltaSecsConvertsToSecondsTest() {
         Time.startSimulating();
-        int current = Time.currentTimeSecs();
-        Time.advanceTime(1000);
-        Assert.assertEquals(Time.deltaSecs(current), 1);
-        Time.stopSimulating();
+        try {
+            int current = Time.currentTimeSecs();
+            Time.advanceTime(1000);
+            Assert.assertEquals(Time.deltaSecs(current), 1);
+        } finally {
+            Time.stopSimulating();
+        }
     }
 
     @Test
     public void deltaSecsTruncatesFractionalSecondsTest() {
         Time.startSimulating();
-        int current = Time.currentTimeSecs();
-        Time.advanceTime(1500);
-        Assert.assertEquals(Time.deltaSecs(current), 1, 0);
-        Time.stopSimulating();
+        try {
+            int current = Time.currentTimeSecs();
+            Time.advanceTime(1500);
+            Assert.assertEquals(Time.deltaSecs(current), 1, 0);
+        } finally {
+            Time.stopSimulating();
+        }
     }
 
 }

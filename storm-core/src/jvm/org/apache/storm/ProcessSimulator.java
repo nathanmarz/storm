@@ -25,6 +25,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * In local mode, {@code ProcessSimulator} keeps track of Shutdownable objects
+ * in place of actual processes (in cluster mode).
+ */
 public class ProcessSimulator {
     private static Logger LOG = LoggerFactory.getLogger(ProcessSimulator.class);
     private static Object lock = new Object();
@@ -70,11 +74,9 @@ public class ProcessSimulator {
      * kill all processes
      */
     public static void killAllProcesses() {
-        LOG.info("Begin killing all processes");
         Set<String> pids = processMap.keySet();
         for (String pid : pids) {
             killProcess(pid);
         }
-        LOG.info("Successfully killed all processes");
     }
 }

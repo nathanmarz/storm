@@ -1,4 +1,6 @@
 ## 2.0.0
+ * STORM-1262: port backtype.storm.command.dev-zookeeper to java.
+ * STORM-1243: port backtype.storm.command.healthcheck to java.
  * STORM-1246: port backtype.storm.local-state to java.
  * STORM-1516: Fixed issue in writing pids with distributed cluster mode.
  * STORM-1253: port backtype.storm.timer to java

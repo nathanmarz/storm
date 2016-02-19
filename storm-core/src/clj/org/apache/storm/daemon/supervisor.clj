@@ -33,7 +33,7 @@
   (:import [org.apache.storm.localizer LocalResource])
   (:import [org.apache.storm.event EventManagerImp])
   (:use [org.apache.storm.daemon common])
-  (:require [org.apache.storm.command [healthcheck :as healthcheck]])
+  (:import [org.apache.storm.command HealthCheck])
   (:require [org.apache.storm.daemon [worker :as worker]]
             [org.apache.storm [process-simulator :as psim] [cluster :as cluster]]
             [clojure.set :as set])
@@ -914,7 +914,7 @@
         (* 60 5)
         (* 60 5)
         (fn []
-          (let [health-code (healthcheck/health-check conf)
+          (let [health-code (HealthCheck/healthCheck conf)
                 ids (my-worker-ids conf)]
             (if (not (= health-code 0))
               (do

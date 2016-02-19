@@ -15,11 +15,11 @@
 ;; limitations under the License.
 (ns org.apache.storm.daemon.executor
   (:use [org.apache.storm.daemon common])
-  (:import [org.apache.storm.generated Grouping]
+  (:import [org.apache.storm.generated Grouping Grouping$_Fields]
            [java.io Serializable])
-  (:use [org.apache.storm util config log timer stats])
+  (:use [org.apache.storm util config log stats])
   (:import [java.util List Random HashMap ArrayList LinkedList Map])
-  (:import [org.apache.storm ICredentialsListener])
+  (:import [org.apache.storm ICredentialsListener Thrift])
   (:import [org.apache.storm.hooks ITaskHook])
   (:import [org.apache.storm.tuple AddressedTuple Tuple Fields TupleImpl MessageId])
   (:import [org.apache.storm.spout ISpoutWaitStrategy ISpout SpoutOutputCollector ISpoutOutputCollector])
@@ -39,9 +39,9 @@
   (:import [java.lang Thread Thread$UncaughtExceptionHandler]
            [java.util.concurrent ConcurrentLinkedQueue]
            [org.json.simple JSONValue]
-           [com.lmax.disruptor.dsl ProducerType])
-  (:require [org.apache.storm [thrift :as thrift]
-             [cluster :as cluster] [stats :as stats]])
+           [com.lmax.disruptor.dsl ProducerType]
+           [org.apache.storm StormTimer])
+  (:require [org.apache.storm [cluster :as cluster] [stats :as stats]])
   (:require [org.apache.storm.daemon [task :as task]])
   (:require [org.apache.storm.daemon.builtin-metrics :as builtin-metrics])
   (:require [clojure.set :as set]))
@@ -77,38 +77,38 @@
   (let [num-tasks (count target-tasks)
         random (Random.)
         target-tasks (vec (sort target-tasks))]
-    (condp = (thrift/grouping-type thrift-grouping)
-      :fields
-        (if (thrift/global-grouping? thrift-grouping)
+    (condp = (Thrift/groupingType thrift-grouping)
+      Grouping$_Fields/FIELDS
+        (if (Thrift/isGlobalGrouping thrift-grouping)
           (fn [task-id tuple load]
             ;; It's possible for target to have multiple tasks if it reads multiple sources
             (first target-tasks))
-          (let [group-fields (Fields. (thrift/field-grouping thrift-grouping))]
+          (let [group-fields (Fields. (Thrift/fieldGrouping thrift-grouping))]
             (mk-fields-grouper out-fields group-fields target-tasks)
             ))
-      :all
+      Grouping$_Fields/ALL
         (fn [task-id tuple load] target-tasks)
-      :shuffle
+      Grouping$_Fields/SHUFFLE
         (mk-shuffle-grouper target-tasks topo-conf context component-id stream-id)
-      :local-or-shuffle
+      Grouping$_Fields/LOCAL_OR_SHUFFLE
         (let [same-tasks (set/intersection
                            (set target-tasks)
                            (set (.getThisWorkerTasks context)))]
           (if-not (empty? same-tasks)
             (mk-shuffle-grouper (vec same-tasks) topo-conf context component-id stream-id)
             (mk-shuffle-grouper target-tasks topo-conf context component-id stream-id)))
-      :none
+      Grouping$_Fields/NONE
         (fn [task-id tuple load]
           (let [i (mod (.nextInt random) num-tasks)]
             (get target-tasks i)
             ))
-      :custom-object
-        (let [grouping (thrift/instantiate-java-object (.get_custom_object thrift-grouping))]
+      Grouping$_Fields/CUSTOM_OBJECT
+        (let [grouping (Thrift/instantiateJavaObject (.get_custom_object thrift-grouping))]
           (mk-custom-grouper grouping context component-id stream-id target-tasks))
-      :custom-serialized
+      Grouping$_Fields/CUSTOM_SERIALIZED
         (let [grouping (Utils/javaDeserialize (.get_custom_serialized thrift-grouping) Serializable)]
           (mk-custom-grouper grouping context component-id stream-id target-tasks))
-      :direct
+      Grouping$_Fields/DIRECT
         :direct
       )))
 
@@ -324,13 +324,13 @@
   (let [{:keys [storm-conf receive-queue worker-context interval->task->metric-registry]} executor-data
         distinct-time-bucket-intervals (keys interval->task->metric-registry)]
     (doseq [interval distinct-time-bucket-intervals]
-      (schedule-recurring 
-       (:user-timer (:worker executor-data)) 
-       interval
-       interval
-       (fn []
-         (let [val [(AddressedTuple. AddressedTuple/BROADCAST_DEST (TupleImpl. worker-context [interval] Constants/SYSTEM_TASK_ID Constants/METRICS_TICK_STREAM_ID))]]
-           (.publish ^DisruptorQueue receive-queue val)))))))
+      (.scheduleRecurring
+        (:user-timer (:worker executor-data))
+        interval
+        interval
+        (fn []
+          (let [val [(AddressedTuple. AddressedTuple/BROADCAST_DEST (TupleImpl. worker-context [interval] Constants/SYSTEM_TASK_ID Constants/METRICS_TICK_STREAM_ID))]]
+            (.publish ^DisruptorQueue receive-queue val)))))))
 
 (defn metrics-tick
   [executor-data task-data ^TupleImpl tuple]
@@ -365,7 +365,7 @@
               (and (= false (storm-conf TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS))
                    (= :spout (:type executor-data))))
         (log-message "Timeouts disabled for executor " (:component-id executor-data) ":" (:executor-id executor-data))
-        (schedule-recurring
+        (.scheduleRecurring
           (:user-timer worker)
           tick-time-secs
           tick-time-secs

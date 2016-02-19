@@ -52,7 +52,6 @@ import org.apache.thrift.TSerializer;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Id;
-import org.eclipse.jetty.util.log.Log;
 import org.json.simple.JSONValue;
 import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
@@ -609,7 +608,12 @@ public class Utils {
     }
 
     public static boolean checkFileExists(String dir, String file) {
-        return Files.exists(new File(dir, file).toPath());
+        return checkFileExists(dir + "/" + file);
+    }
+
+    public static boolean CheckDirExists(String dir) {
+        File file = new File(dir);
+        return file.isDirectory();
     }
 
     public static long nimbusVersionOfBlob(String key, ClientBlobStore cb) throws AuthorizationException, KeyNotFoundException {
@@ -1456,6 +1460,13 @@ public class Utils {
         return number & Integer.MAX_VALUE;
     }
 
+    public static GlobalStreamId getGlobalStreamId(String streamId, String componentId) {
+        if (componentId == null) {
+            return new GlobalStreamId(streamId, DEFAULT_STREAM_ID);
+        }
+        return new GlobalStreamId(streamId, componentId);
+    }
+
     public static RuntimeException wrapInRuntime(Exception e){
         if (e instanceof RuntimeException){
             return (RuntimeException)e;
@@ -1472,7 +1483,7 @@ public class Utils {
      * @return boolean whether or not the directory exists in the zip.
      */
     public static boolean zipDoesContainDir(String zipfile, String target) throws IOException {
-        List<ZipEntry> entries = (List<ZipEntry>)Collections.list(new ZipFile(zipfile).entries());
+        List<ZipEntry> entries = (List<ZipEntry>) Collections.list(new ZipFile(zipfile).entries());
 
         String targetDir = target + "/";
         for(ZipEntry entry : entries) {

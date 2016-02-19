@@ -17,9 +17,10 @@
  */
 package org.apache.storm.command;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.storm.Config;
 import org.apache.storm.utils.ConfigUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -30,6 +31,8 @@ import java.util.List;
 import java.util.Map;
 
 public class HealthCheck {
+
+    private static final Logger LOG = LoggerFactory.getLogger(HealthCheck.class);
     private static final String FAILED = "failed";
     private static final String SUCCESS = "success";
     private static final String TIMEOUT = "timeout";
@@ -103,10 +106,10 @@ public class HealthCheck {
             }
             return FAILED_WITH_EXIT_CODE;
         } catch (InterruptedException e) {
-            System.out.println("Script " + script + " timed out.");
+            LOG.warn("Script:  {} timed out.", script);
             return TIMEOUT;
         } catch (Exception e) {
-            System.out.println("Script failed with exception: " + e);
+            LOG.warn("Script failed with exception: ", e);
             return FAILED_WITH_EXIT_CODE;
         } finally {
             if (interruptThread != null)

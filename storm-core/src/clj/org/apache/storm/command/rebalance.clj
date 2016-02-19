@@ -15,7 +15,8 @@
 ;; limitations under the License.
 (ns org.apache.storm.command.rebalance
   (:use [clojure.tools.cli :only [cli]])
-  (:use [org.apache.storm thrift config log])
+  (:use [org.apache.storm config log])
+  (:use [org.apache.storm.internal thrift])
   (:import [org.apache.storm.generated RebalanceOptions])
   (:gen-class))
 

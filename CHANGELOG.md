@@ -25,6 +25,7 @@
  * STORM-1521: When using Kerberos login from keytab with multiple bolts/executors ticket is not renewed in hbase bolt.
 
 ## 1.0.0
+ * STORM-1541: Change scope of 'hadoop-minicluster' to test
  * STORM-1532: Fix readCommandLineOpts to parse JSON correctly in windows
  * STORM-1539: Improve Storm ACK-ing performance
  * STORM-1519: Storm syslog logging not confirming to RFC5426 3.1

@@ -18,7 +18,8 @@
   (:import [org.apache.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestEventLogSpout TestEventOrderCheckBolt])
   (:use [org.apache.storm testing config])
   (:use [org.apache.storm.daemon common])
-  (:require [org.apache.storm [thrift :as thrift]]))
+  (:import [org.apache.storm Thrift])
+  (:import [org.apache.storm.utils Utils]))
 
 (deftest test-local-transport
   (doseq [transport-on? [false true]] 
@@ -28,10 +29,13 @@
                                                       (if transport-on? true false) 
                                                       STORM-MESSAGING-TRANSPORT 
                                                       "org.apache.storm.messaging.netty.Context"}]
-      (let [topology (thrift/mk-topology
-                       {"1" (thrift/mk-spout-spec (TestWordSpout. true) :parallelism-hint 2)}
-                       {"2" (thrift/mk-bolt-spec {"1" :shuffle} (TestGlobalCount.)
-                                                 :parallelism-hint 6)
+      (let [topology (Thrift/buildTopology
+                       {"1" (Thrift/prepareSpoutDetails
+                              (TestWordSpout. true) (Integer. 2))}
+                       {"2" (Thrift/prepareBoltDetails
+                              {(Utils/getGlobalStreamId "1" nil)
+                               (Thrift/prepareShuffleGrouping)}
+                              (TestGlobalCount.) (Integer. 6))
                         })
             results (complete-topology cluster
                                        topology

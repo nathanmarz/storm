@@ -14,7 +14,8 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns org.apache.storm.starter.clj.word-count
-  (:import [org.apache.storm StormSubmitter LocalCluster])
+  (:import [org.apache.storm StormSubmitter LocalCluster]
+           [org.apache.storm.utils Utils])
   (:use [org.apache.storm clojure config])
   (:gen-class))
 

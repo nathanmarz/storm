@@ -13,12 +13,12 @@
 ;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
-(ns org.apache.storm.command.deactivate
-  (:use [org.apache.storm thrift log])
-  (:gen-class))
+(ns org.apache.storm.local-state-converter
+  (:import [org.apache.storm.generated ExecutorInfo]))
 
-(defn -main [name] 
-  (with-configured-nimbus-connection nimbus
-    (.deactivate nimbus name)
-    (log-message "Deactivated topology: " name)
-    ))
+(defn ->ExecutorInfo
+  [[low high]] (ExecutorInfo. low high))
+
+(defn ->ExecutorInfo-list
+  [executors]
+  (map ->ExecutorInfo executors))

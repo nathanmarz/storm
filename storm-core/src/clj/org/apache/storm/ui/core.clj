@@ -26,7 +26,7 @@
   (:use [org.apache.storm.daemon [common :only [ACKER-COMPONENT-ID ACKER-INIT-STREAM-ID ACKER-ACK-STREAM-ID
                                               ACKER-FAIL-STREAM-ID mk-authorization-handler
                                               start-metrics-reporters]]])
-  (:import [org.apache.storm.utils Utils]
+  (:import [org.apache.storm.utils Time]
            [org.apache.storm.generated NimbusSummary])
   (:use [clojure.string :only [blank? lower-case trim split]])
   (:import [org.apache.storm.generated ExecutorSpecificStats
@@ -41,13 +41,15 @@
   (:import [org.apache.storm.security.auth AuthUtils ReqContext])
   (:import [org.apache.storm.generated AuthorizationException ProfileRequest ProfileAction NodeInfo])
   (:import [org.apache.storm.security.auth AuthUtils])
-  (:import [org.apache.storm.utils VersionInfo ConfigUtils])
+  (:import [org.apache.storm.utils Utils VersionInfo ConfigUtils])
   (:import [org.apache.storm Config])
   (:import [java.io File])
+  (:import [java.net URLEncoder URLDecoder])
+  (:import [org.json.simple JSONValue])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]
             [ring.util.response :as resp]
-            [org.apache.storm [thrift :as thrift]])
+            [org.apache.storm.internal [thrift :as thrift]])
   (:require [metrics.meters :refer [defmeter mark!]])
   (:import [org.apache.commons.lang StringEscapeUtils])
   (:import [org.apache.logging.log4j Level])
@@ -143,11 +145,13 @@
 
 (defn event-log-link
   [topology-id component-id host port secure?]
-  (logviewer-link host (event-logs-filename topology-id port) secure?))
+  (logviewer-link host (Utils/eventLogsFilename topology-id port) secure?))
 
 (defn worker-log-link [host port topology-id secure?]
-  (let [fname (logs-filename topology-id port)]
-    (logviewer-link host fname secure?)))
+  (if (or (empty? host) (let [port_str (str port "")] (or (empty? port_str) (= "0" port_str))))
+    ""
+    (let [fname (Utils/logsFilename topology-id port)]
+      (logviewer-link host fname secure?))))
 
 (defn nimbus-log-link [host]
   (url-format "http://%s:%s/daemonlog?file=nimbus.log" host (*STORM-CONF* LOGVIEWER-PORT)))
@@ -158,7 +162,7 @@
 (defn get-error-time
   [error]
   (if error
-    (time-delta (.get_error_time_secs ^ErrorInfo error))))
+    (Time/deltaSecs (.get_error_time_secs ^ErrorInfo error))))
 
 (defn get-error-data
   [error]
@@ -186,10 +190,10 @@
 
 (defn worker-dump-link [host port topology-id]
   (url-format "http://%s:%s/dumps/%s/%s"
-              (url-encode host)
+              (URLEncoder/encode host)
               (*STORM-CONF* LOGVIEWER-PORT)
-              (url-encode topology-id)
-              (str (url-encode host) ":" (url-encode port))))
+              (URLEncoder/encode topology-id)
+              (str (URLEncoder/encode host) ":" (URLEncoder/encode port))))
 
 (defn stats-times
   [stats-map]
@@ -303,12 +307,20 @@
           bolt-summs (filter (partial bolt-summary? topology) execs)
           spout-comp-summs (group-by-comp spout-summs)
           bolt-comp-summs (group-by-comp bolt-summs)
+          ;TODO: when translating this function, you should replace the filter-val with a proper for loop + if condition HERE
           bolt-comp-summs (filter-key (mk-include-sys-fn include-sys?)
                                       bolt-comp-summs)]
       (visualization-data
        (merge (hashmap-to-persistent spouts)
               (hashmap-to-persistent bolts))
        spout-comp-summs bolt-comp-summs window id))))
+
+(defn- from-json
+  [^String str]
+  (if str
+    (clojurify-structure
+      (JSONValue/parse str))
+    nil))
 
 (defn validate-tplg-submit-params [params]
   (let [tplg-jar-file (params :topologyJar)
@@ -323,12 +335,12 @@
   (let [tplg-main-class (if (not-nil? tplg-config) (trim (tplg-config "topologyMainClass")))
         tplg-main-class-args (if (not-nil? tplg-config) (tplg-config "topologyMainClassArgs"))
         storm-home (System/getProperty "storm.home")
-        storm-conf-dir (str storm-home file-path-separator "conf")
+        storm-conf-dir (str storm-home Utils/FILE_PATH_SEPARATOR "conf")
         storm-log-dir (if (not-nil? (*STORM-CONF* "storm.log.dir")) (*STORM-CONF* "storm.log.dir")
-                          (str storm-home file-path-separator "logs"))
-        storm-libs (str storm-home file-path-separator "lib" file-path-separator "*")
-        java-cmd (str (System/getProperty "java.home") file-path-separator "bin" file-path-separator "java")
-        storm-cmd (str storm-home file-path-separator "bin" file-path-separator "storm")
+                          (str storm-home Utils/FILE_PATH_SEPARATOR "logs"))
+        storm-libs (str storm-home Utils/FILE_PATH_SEPARATOR "lib" Utils/FILE_PATH_SEPARATOR "*")
+        java-cmd (str (System/getProperty "java.home") Utils/FILE_PATH_SEPARATOR "bin" Utils/FILE_PATH_SEPARATOR "java")
+        storm-cmd (str storm-home Utils/FILE_PATH_SEPARATOR "bin" Utils/FILE_PATH_SEPARATOR "storm")
         tplg-cmd-response (apply sh
                             (flatten
                               [storm-cmd "jar" tplg-jar-file tplg-main-class
@@ -449,7 +461,7 @@
     (for [^TopologySummary t summs]
       {
        "id" (.get_id t)
-       "encodedId" (url-encode (.get_id t))
+       "encodedId" (URLEncoder/encode (.get_id t))
        "owner" (.get_owner t)
        "name" (.get_name t)
        "status" (.get_status t)
@@ -497,6 +509,7 @@
           bolt-executor-summaries (filter (partial bolt-summary? storm-topology) (.get_executors topology-info))
           spout-comp-id->executor-summaries (group-by-comp spout-executor-summaries)
           bolt-comp-id->executor-summaries (group-by-comp bolt-executor-summaries)
+          ;TODO: when translating this function, you should replace the filter-val with a proper for loop + if condition HERE
           bolt-comp-id->executor-summaries (filter-key (mk-include-sys-fn include-sys?) bolt-comp-id->executor-summaries)
           id->spout-spec (.get_spouts storm-topology)
           id->bolt (.get_bolts storm-topology)
@@ -541,7 +554,7 @@
       (common-agg-stats-json cs)
       (get-error-json topo-id (.get_last_error s) secure?)
       {"spoutId" id
-       "encodedSpoutId" (url-encode id)
+       "encodedSpoutId" (URLEncoder/encode id)
        "completeLatency" (float-str (.get_complete_latency_ms ss))})))
 
 (defmethod comp-agg-stats-json ComponentType/BOLT
@@ -552,7 +565,7 @@
       (common-agg-stats-json cs)
       (get-error-json topo-id (.get_last_error s) secure?)
       {"boltId" id
-       "encodedBoltId" (url-encode id)
+       "encodedBoltId" (URLEncoder/encode id)
        "capacity" (float-str (.get_capacity ss))
        "executeLatency" (float-str (.get_execute_latency_ms ss))
        "executed" (.get_executed ss)
@@ -576,7 +589,7 @@
                          (.get_samplingpct debug-opts)])
         uptime (.get_uptime_secs topo-info)]
     {"id" id
-     "encodedId" (url-encode id)
+     "encodedId" (URLEncoder/encode id)
      "owner" (.get_owner topo-info)
      "name" (.get_name topo-info)
      "status" (.get_status topo-info)
@@ -691,13 +704,13 @@
         ^CommonAggregateStats cas (.get_common_stats stats)
         comp-id (.get_componentId s)]
     {"component" comp-id
-     "encodedComponentId" (url-encode comp-id)
+     "encodedComponentId" (URLEncoder/encode comp-id)
      "stream" (.get_streamId s)
      "executeLatency" (float-str (.get_execute_latency_ms bas))
      "processLatency" (float-str (.get_process_latency_ms bas))
-     "executed" (nil-to-zero (.get_executed bas))
-     "acked" (nil-to-zero (.get_acked cas))
-     "failed" (nil-to-zero (.get_failed cas))}))
+     "executed" (Utils/nullToZero (.get_executed bas))
+     "acked" (Utils/nullToZero (.get_acked cas))
+     "failed" (Utils/nullToZero (.get_failed cas))}))
 
 (defmulti unpack-comp-output-stat
   (fn [[_ ^ComponentAggregateStats s]] (.get_type s)))
@@ -706,8 +719,8 @@
   [[stream-id ^ComponentAggregateStats stats]]
   (let [^CommonAggregateStats cas (.get_common_stats stats)]
     {"stream" stream-id
-     "emitted" (nil-to-zero (.get_emitted cas))
-     "transferred" (nil-to-zero (.get_transferred cas))}))
+     "emitted" (Utils/nullToZero (.get_emitted cas))
+     "transferred" (Utils/nullToZero (.get_transferred cas))}))
 
 (defmethod unpack-comp-output-stat ComponentType/SPOUT
   [[stream-id ^ComponentAggregateStats stats]]
@@ -715,11 +728,11 @@
         ^SpecificAggregateStats spec-s (.get_specific_stats stats)
         ^SpoutAggregateStats spout-s (.get_spout spec-s)]
     {"stream" stream-id
-     "emitted" (nil-to-zero (.get_emitted cas))
-     "transferred" (nil-to-zero (.get_transferred cas))
+     "emitted" (Utils/nullToZero (.get_emitted cas))
+     "transferred" (Utils/nullToZero (.get_transferred cas))
      "completeLatency" (float-str (.get_complete_latency_ms spout-s))
-     "acked" (nil-to-zero (.get_acked cas))
-     "failed" (nil-to-zero (.get_failed cas))}))
+     "acked" (Utils/nullToZero (.get_acked cas))
+     "failed" (Utils/nullToZero (.get_failed cas))}))
 
 (defmulti unpack-comp-exec-stat
   (fn [_ _ ^ComponentAggregateStats cas] (.get_type (.get_stats ^ExecutorAggregateStats cas))))
@@ -737,19 +750,19 @@
         exec-id (pretty-executor-info info)
         uptime (.get_uptime_secs summ)]
     {"id" exec-id
-     "encodedId" (url-encode exec-id)
+     "encodedId" (URLEncoder/encode exec-id)
      "uptime" (pretty-uptime-sec uptime)
      "uptimeSeconds" uptime
      "host" host
      "port" port
-     "emitted" (nil-to-zero (.get_emitted cas))
-     "transferred" (nil-to-zero (.get_transferred cas))
-     "capacity" (float-str (nil-to-zero (.get_capacity bas)))
+     "emitted" (Utils/nullToZero (.get_emitted cas))
+     "transferred" (Utils/nullToZero (.get_transferred cas))
+     "capacity" (float-str (Utils/nullToZero (.get_capacity bas)))
      "executeLatency" (float-str (.get_execute_latency_ms bas))
-     "executed" (nil-to-zero (.get_executed bas))
+     "executed" (Utils/nullToZero (.get_executed bas))
      "processLatency" (float-str (.get_process_latency_ms bas))
-     "acked" (nil-to-zero (.get_acked cas))
-     "failed" (nil-to-zero (.get_failed cas))
+     "acked" (Utils/nullToZero (.get_acked cas))
+     "failed" (Utils/nullToZero (.get_failed cas))
      "workerLogLink" (worker-log-link host port topology-id secure?)}))
 
 (defmethod unpack-comp-exec-stat ComponentType/SPOUT
@@ -765,16 +778,16 @@
         exec-id (pretty-executor-info info)
         uptime (.get_uptime_secs summ)]
     {"id" exec-id
-     "encodedId" (url-encode exec-id)
+     "encodedId" (URLEncoder/encode exec-id)
      "uptime" (pretty-uptime-sec uptime)
      "uptimeSeconds" uptime
      "host" host
      "port" port
-     "emitted" (nil-to-zero (.get_emitted cas))
-     "transferred" (nil-to-zero (.get_transferred cas))
+     "emitted" (Utils/nullToZero (.get_emitted cas))
+     "transferred" (Utils/nullToZero (.get_transferred cas))
      "completeLatency" (float-str (.get_complete_latency_ms sas))
-     "acked" (nil-to-zero (.get_acked cas))
-     "failed" (nil-to-zero (.get_failed cas))
+     "acked" (Utils/nullToZero (.get_acked cas))
+     "failed" (Utils/nullToZero (.get_failed cas))
      "workerLogLink" (worker-log-link host port topology-id secure?)}))
 
 (defmulti unpack-component-page-info
@@ -842,13 +855,13 @@
                                    secure?)
        "user" user
        "id" component
-       "encodedId" (url-encode component)
+       "encodedId" (URLEncoder/encode component)
        "name" (.get_topology_name comp-page-info)
        "executors" (.get_num_executors comp-page-info)
        "tasks" (.get_num_tasks comp-page-info)
        "topologyId" topology-id
        "topologyStatus" (.get_topology_status comp-page-info)
-       "encodedTopologyId" (url-encode topology-id)
+       "encodedTopologyId" (URLEncoder/encode topology-id)
        "window" window
        "componentType" (-> comp-page-info .get_component_type str lower-case)
        "windowHint" window-hint
@@ -859,7 +872,7 @@
                                       (.get_eventlog_host comp-page-info)
                                       (.get_eventlog_port comp-page-info)
                                       secure?)
-       "profilingAndDebuggingCapable" (not on-windows?)
+       "profilingAndDebuggingCapable" (not (Utils/isOnWindows))
        "profileActionEnabled" (*STORM-CONF* WORKER-PROFILER-ENABLED)
        "profilerActive" (if (*STORM-CONF* WORKER-PROFILER-ENABLED)
                           (get-active-profile-actions nimbus topology-id component)
@@ -960,7 +973,7 @@
     (assert-authorized-user "getClusterInfo")
     (json-response (all-topologies-summary) (:callback m)))
   (GET  "/api/v1/topology-workers/:id" [:as {:keys [cookies servlet-request]} id & m]
-    (let [id (url-decode id)]
+    (let [id (URLDecoder/decode id)]
       (json-response {"hostPortList" (worker-host-port id)
                       "logviewerPort" (*STORM-CONF* LOGVIEWER-PORT)} (:callback m))))
   (GET "/api/v1/topology/:id" [:as {:keys [cookies servlet-request scheme]} id & m]

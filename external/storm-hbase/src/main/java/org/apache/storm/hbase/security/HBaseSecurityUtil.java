@@ -39,26 +39,34 @@ public class HBaseSecurityUtil {
 
     public static final String STORM_KEYTAB_FILE_KEY = "storm.keytab.file";
     public static final String STORM_USER_NAME_KEY = "storm.kerberos.principal";
+    private static  UserProvider legacyProvider = null;
 
     public static UserProvider login(Map conf, Configuration hbaseConfig) throws IOException {
         //Allowing keytab based login for backward compatibility.
-        UserProvider provider = UserProvider.instantiate(hbaseConfig);
-        if (conf.get(TOPOLOGY_AUTO_CREDENTIALS) == null ||
-                !(((List) conf.get(TOPOLOGY_AUTO_CREDENTIALS)).contains(AutoHBase.class.getName()))) {
+        if (UserGroupInformation.isSecurityEnabled() && (conf.get(TOPOLOGY_AUTO_CREDENTIALS) == null ||
+                !(((List) conf.get(TOPOLOGY_AUTO_CREDENTIALS)).contains(AutoHBase.class.getName())))) {
             LOG.info("Logging in using keytab as AutoHBase is not specified for " + TOPOLOGY_AUTO_CREDENTIALS);
-            if (UserGroupInformation.isSecurityEnabled()) {
-                String keytab = (String) conf.get(STORM_KEYTAB_FILE_KEY);
-                if (keytab != null) {
-                    hbaseConfig.set(STORM_KEYTAB_FILE_KEY, keytab);
+            //insure that if keytab is used only one login per process executed
+            if(legacyProvider == null) {
+                synchronized (HBaseSecurityUtil.class) {
+                    if(legacyProvider == null) {
+                        legacyProvider = UserProvider.instantiate(hbaseConfig);
+                        String keytab = (String) conf.get(STORM_KEYTAB_FILE_KEY);
+                        if (keytab != null) {
+                            hbaseConfig.set(STORM_KEYTAB_FILE_KEY, keytab);
+                        }
+                        String userName = (String) conf.get(STORM_USER_NAME_KEY);
+                        if (userName != null) {
+                            hbaseConfig.set(STORM_USER_NAME_KEY, userName);
+                        }
+                        legacyProvider.login(STORM_KEYTAB_FILE_KEY, STORM_USER_NAME_KEY,
+                                InetAddress.getLocalHost().getCanonicalHostName());
+                    }
                 }
-                String userName = (String) conf.get(STORM_USER_NAME_KEY);
-                if (userName != null) {
-                    hbaseConfig.set(STORM_USER_NAME_KEY, userName);
-                }
-                provider.login(STORM_KEYTAB_FILE_KEY, STORM_USER_NAME_KEY,
-                        InetAddress.getLocalHost().getCanonicalHostName());
             }
+            return legacyProvider;
+        } else {
+            return UserProvider.instantiate(hbaseConfig);
         }
-        return provider;
     }
 }

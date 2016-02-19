@@ -15,13 +15,15 @@
 ;; limitations under the License.
 (ns org.apache.storm.command.get-errors
   (:use [clojure.tools.cli :only [cli]])
-  (:use [org.apache.storm thrift log])
+  (:use [org.apache.storm log])
+  (:use [org.apache.storm.internal thrift])
   (:use [org.apache.storm util])
   (:require [org.apache.storm.daemon
              [nimbus :as nimbus]
              [common :as common]])
   (:import [org.apache.storm.generated GetInfoOptions NumErrorsChoice
-            TopologySummary ErrorInfo])
+            TopologySummary ErrorInfo]
+           [org.json.simple JSONValue])
   (:gen-class))
 
 (defn get-topology-id [name topologies]
@@ -44,9 +46,10 @@
           topo-id (get-topology-id name topologies)
           topo-info (when (not-nil? topo-id) (.getTopologyInfoWithOpts nimbus topo-id opts))]
       (if (or (nil? topo-id) (nil? topo-info))
-        (println (to-json {"Failure" (str "No topologies running with name " name)}))
+        (println (JSONValue/toJSONString {"Failure" (str "No topologies running with name " name)}))
         (let [topology-name (.get_name topo-info)
               topology-errors (.get_errors topo-info)]
-          (println (to-json (hash-map
-                              "Topology Name" topology-name
-                              "Comp-Errors" (get-component-errors topology-errors)))))))))
+          (println (JSONValue/toJSONString
+                     (hash-map
+                       "Topology Name" topology-name
+                       "Comp-Errors" (get-component-errors topology-errors)))))))))

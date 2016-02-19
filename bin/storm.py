@@ -139,7 +139,7 @@ def confvalue(name, extrapaths, daemon=True):
     global CONFFILE
     command = [
         JAVA_CMD, "-client", get_config_opts(), "-Dstorm.conf.file=" + CONFFILE,
-        "-cp", get_classpath(extrapaths, daemon), "org.apache.storm.command.config_value", name
+        "-cp", get_classpath(extrapaths, daemon), "org.apache.storm.command.ConfigValue", name
     ]
     p = sub.Popen(command, stdout=sub.PIPE)
     output, errors = p.communicate()
@@ -195,7 +195,7 @@ def parse_args(string):
 def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[], fork=False, daemon=True, daemonName=""):
     global CONFFILE
     storm_log_dir = confvalue("storm.log.dir",[CLUSTER_CONF_DIR])
-    if(storm_log_dir == None or storm_log_dir == "nil"):
+    if(storm_log_dir == None or storm_log_dir == "null"):
         storm_log_dir = os.path.join(STORM_DIR, "logs")
     all_args = [
         JAVA_CMD, jvmtype,
@@ -231,7 +231,7 @@ def jar(jarfile, klass, *args):
     will upload the jar at topology-jar-path when the topology is submitted.
     """
     transform_class = confvalue("client.jartransformer.class", [CLUSTER_CONF_DIR])
-    if (transform_class != None and transform_class != "nil"):
+    if (transform_class != None and transform_class != "null"):
         tmpjar = os.path.join(tempfile.gettempdir(), uuid.uuid1().hex+".jar")
         exec_storm_class("org.apache.storm.daemon.ClientJarTransformerRunner", args=[transform_class, jarfile, tmpjar], fork=True, daemon=False)
         exec_storm_class(
@@ -278,7 +278,7 @@ def kill(*args):
         print_usage(command="kill")
         sys.exit(2)
     exec_storm_class(
-        "org.apache.storm.command.kill_topology",
+        "org.apache.storm.command.KillTopology",
         args=args,
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
@@ -345,7 +345,7 @@ def activate(*args):
         print_usage(command="activate")
         sys.exit(2)
     exec_storm_class(
-        "org.apache.storm.command.activate",
+        "org.apache.storm.command.Activate",
         args=args,
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
@@ -389,7 +389,7 @@ def listtopos(*args):
     List the running topologies and their statuses.
     """
     exec_storm_class(
-        "org.apache.storm.command.list",
+        "org.apache.storm.command.List",
         args=args,
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
@@ -403,7 +403,7 @@ def deactivate(*args):
         print_usage(command="deactivate")
         sys.exit(2)
     exec_storm_class(
-        "org.apache.storm.command.deactivate",
+        "org.apache.storm.command.Deactivate",
         args=args,
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
@@ -460,7 +460,7 @@ def healthcheck(*args):
     Run health checks on the local supervisor.
     """
     exec_storm_class(
-        "org.apache.storm.command.healthcheck",
+        "org.apache.storm.command.HealthCheck",
         args=args,
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, os.path.join(STORM_DIR, "bin")])
@@ -503,7 +503,7 @@ def repl():
 def get_log4j2_conf_dir():
     cppaths = [CLUSTER_CONF_DIR]
     storm_log4j2_conf_dir = confvalue("storm.log4j2.conf.dir", cppaths)
-    if(storm_log4j2_conf_dir == None or storm_log4j2_conf_dir == "nil"):
+    if(storm_log4j2_conf_dir == None or storm_log4j2_conf_dir == "null"):
         storm_log4j2_conf_dir = STORM_LOG4J2_CONF_DIR
     elif(not os.path.isabs(storm_log4j2_conf_dir)):
         storm_log4j2_conf_dir = os.path.join(STORM_DIR, storm_log4j2_conf_dir)
@@ -651,7 +651,7 @@ def dev_zookeeper():
     """
     cppaths = [CLUSTER_CONF_DIR]
     exec_storm_class(
-        "org.apache.storm.command.dev_zookeeper",
+        "org.apache.storm.command.DevZookeeper",
         jvmtype="-server",
         extrajars=[CLUSTER_CONF_DIR])
 

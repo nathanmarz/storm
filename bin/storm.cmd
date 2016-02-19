@@ -37,9 +37,14 @@
 :main
   setlocal enabledelayedexpansion
 
+  set storm-command=%1
+
+  if not "%storm-command%" == "jar" (
+    set set_storm_options=true
+  )
+
   call %~dp0storm-config.cmd
 
-  set storm-command=%1
   if not defined storm-command (
       goto print_usage
   )
@@ -66,19 +71,45 @@
   )
 
   if %storm-command% == jar (
-    set STORM_OPTS=%STORM_CLIENT_OPTS% %STORM_OPTS% -Dstorm.jar=%2
-    set CLASSPATH=%CLASSPATH%;%2
-    set CLASS=%3
-    set args=%4
+    set config-options=
+
     goto start
     :start
     shift
-    if [%4] == [] goto done
-    set args=%args% %4
+    if [%1] == [] goto done
+
+    if '%1'=='-c' (
+      set c-opt=first
+      goto start
+    )
+
+    if "%c-opt%"=="first" (
+      set config-options=%config-options%,%1
+      set c-opt=second
+      goto start
+    )
+
+    if "%c-opt%"=="second" (
+      set config-options=%config-options%=%~1
+      set c-opt=
+      goto start
+    )
+
+    set args=%args% %1
     goto start
 
     :done
-    set storm-command-arguments=%args%
+    for /F "tokens=1,2,*" %%a in ("%args%") do (
+      set first-arg=%%a
+      set second-arg=%%b
+      set remaining-args=%%c
+    )
+    set STORM_OPTS=%STORM_CLIENT_OPTS% %STORM_OPTS% -Dstorm.jar=%first-arg%
+    set STORM_OPTS=%STORM_OPTS% -Dstorm.options=%config-options%
+    set CLASSPATH=%CLASSPATH%;%first-arg%
+    set CLASS=%second-arg%
+    set storm-command-arguments=%remaining-args%
+
   )
   
   if not defined STORM_LOG_FILE (
@@ -94,7 +125,7 @@
 
 
 :activate
-  set CLASS=org.apache.storm.command.activate
+  set CLASS=org.apache.storm.command.Activate
   set STORM_OPTS=%STORM_CLIENT_OPTS% %STORM_OPTS%
   goto :eof
 
@@ -103,18 +134,18 @@
   goto :eof
 
 :deactivate
-  set CLASS=org.apache.storm.command.deactivate
+  set CLASS=org.apache.storm.command.Deactivate
   set STORM_OPTS=%STORM_CLIENT_OPTS% %STORM_OPTS%
   goto :eof
 
 :dev-zookeeper
-  set CLASS=org.apache.storm.command.dev_zookeeper
+  set CLASS=org.apache.storm.command.DevZookeeper
   set STORM_OPTS=%STORM_SERVER_OPTS% %STORM_OPTS%
   goto :eof
 
 :drpc
   set CLASS=org.apache.storm.daemon.drpc
-  "%JAVA%" -client -Dstorm.options= -Dstorm.conf.file= -cp "%CLASSPATH%" org.apache.storm.command.config_value drpc.childopts > %CMD_TEMP_FILE%
+  "%JAVA%" -client -Dstorm.options= -Dstorm.conf.file= -cp "%CLASSPATH%" org.apache.storm.command.ConfigValue drpc.childopts > %CMD_TEMP_FILE%
   FOR /F "delims=" %%i in (%CMD_TEMP_FILE%) do (
      FOR /F "tokens=1,* delims= " %%a in ("%%i") do (
 	  if %%a == VALUE: (
@@ -129,18 +160,18 @@
   goto :eof
 
 :kill
-  set CLASS=org.apache.storm.command.kill_topology
+  set CLASS=org.apache.storm.command.KillTopology
   set STORM_OPTS=%STORM_CLIENT_OPTS% %STORM_OPTS%
   goto :eof
 
 :list
-  set CLASS=org.apache.storm.command.list
+  set CLASS=org.apache.storm.command.List
   set STORM_OPTS=%STORM_CLIENT_OPTS% %STORM_OPTS%
   goto :eof
 
 :logviewer
   set CLASS=org.apache.storm.daemon.logviewer
-   "%JAVA%" -client -Dstorm.options= -Dstorm.conf.file= -cp "%CLASSPATH%" org.apache.storm.command.config_value logviewer.childopts > %CMD_TEMP_FILE%
+   "%JAVA%" -client -Dstorm.options= -Dstorm.conf.file= -cp "%CLASSPATH%" org.apache.storm.command.ConfigValue logviewer.childopts > %CMD_TEMP_FILE%
   FOR /F "delims=" %%i in (%CMD_TEMP_FILE%) do (
      FOR /F "tokens=1,* delims= " %%a in ("%%i") do (
 	  if %%a == VALUE: (
@@ -152,7 +183,7 @@
 
 :nimbus
   set CLASS=org.apache.storm.daemon.nimbus
-  "%JAVA%" -client -Dstorm.options= -Dstorm.conf.file= -cp "%CLASSPATH%" org.apache.storm.command.config_value nimbus.childopts > %CMD_TEMP_FILE%
+  "%JAVA%" -client -Dstorm.options= -Dstorm.conf.file= -cp "%CLASSPATH%" org.apache.storm.command.ConfigValue nimbus.childopts > %CMD_TEMP_FILE%
   FOR /F "delims=" %%i in (%CMD_TEMP_FILE%) do (
      FOR /F "tokens=1,* delims= " %%a in ("%%i") do (
 	  if %%a == VALUE: (
@@ -168,7 +199,7 @@
   goto :eof
 
 :remoteconfvalue
-  set CLASS=org.apache.storm.command.config_value
+  set CLASS=org.apache.storm.command.ConfigValue
   set STORM_OPTS=%STORM_CLIENT_OPTS% %STORM_OPTS%
   goto :eof
 
@@ -184,7 +215,7 @@
   
 :supervisor
   set CLASS=org.apache.storm.daemon.supervisor
-  "%JAVA%" -client -Dstorm.options= -Dstorm.conf.file= -cp "%CLASSPATH%" org.apache.storm.command.config_value supervisor.childopts > %CMD_TEMP_FILE%
+  "%JAVA%" -client -Dstorm.options= -Dstorm.conf.file= -cp "%CLASSPATH%" org.apache.storm.command.ConfigValue supervisor.childopts > %CMD_TEMP_FILE%
   FOR /F "delims=" %%i in (%CMD_TEMP_FILE%) do (
      FOR /F "tokens=1,* delims= " %%a in ("%%i") do (
 	  if %%a == VALUE: (
@@ -197,7 +228,7 @@
 :ui
   set CLASS=org.apache.storm.ui.core
   set CLASSPATH=%CLASSPATH%;%STORM_HOME%
-  "%JAVA%" -client -Dstorm.options= -Dstorm.conf.file= -cp "%CLASSPATH%" org.apache.storm.command.config_value ui.childopts > %CMD_TEMP_FILE%
+  "%JAVA%" -client -Dstorm.options= -Dstorm.conf.file= -cp "%CLASSPATH%" org.apache.storm.command.ConfigValue ui.childopts > %CMD_TEMP_FILE%
   FOR /F "delims=" %%i in (%CMD_TEMP_FILE%) do (
      FOR /F "tokens=1,* delims= " %%a in ("%%i") do (
 	  if %%a == VALUE: (

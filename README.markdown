@@ -92,6 +92,7 @@ under the License.
 * Zhuo Liu ([@zhuoliu](https://github.com/zhuoliu))
 * Haohui Mai ([@haohui](https://github.com/haohui))
 * Sanket Chintapalli ([@redsanket](https://github.com/redsanket))
+* Longda Feng ([@longda](https://github.com/longdafeng))
 
 ## Contributors
 
@@ -252,6 +253,7 @@ under the License.
 * Aaron Dixon ([@atdixon](https://github.com/atdixon))
 * Roshan Naik ([@roshannaik](https://github.com/roshannaik))
 * John Fang ([@hustfxj](https://github.com/hustfxj))
+* Dan Bahir([#dbahir](https://github.com/dbahir))
 
 ## Acknowledgements
 

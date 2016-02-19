@@ -33,11 +33,15 @@ public class PythonShellMetricsSpout extends ShellSpout implements IRichSpout {
 	public PythonShellMetricsSpout(String[] command) {
 		super(command);
 	}
-	
+
+    public PythonShellMetricsSpout(String command, String file) {
+        super(command, file);
+    }
+
 	@Override
 	public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
 		super.open(conf, context, collector);
-	
+
 		CountShellMetric cMetric = new CountShellMetric();
 		context.registerMetric("my-custom-shellspout-metric", cMetric, 5);
 	}

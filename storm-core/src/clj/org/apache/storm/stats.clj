@@ -24,7 +24,8 @@
             ExecutorAggregateStats SpecificAggregateStats
             SpoutAggregateStats TopologyPageInfo TopologyStats])
   (:import [org.apache.storm.utils Utils])
-  (:import [org.apache.storm.metric.internal MultiCountStatAndMetric MultiLatencyStatAndMetric])
+  (:import [org.apache.storm.metric.internal MultiCountStatAndMetric MultiLatencyStatAndMetric]
+           [java.util Collection])
   (:use [org.apache.storm log util])
   (:use [clojure.math.numeric-tower :only [ceil]]))
 
@@ -52,6 +53,11 @@
                                ^MultiLatencyStatAndMetric complete-latencies])
 
 (def NUM-STAT-BUCKETS 20)
+
+(defn- div
+  "Perform floating point division on the arguments."
+  [f & rest]
+  (apply / (double f) rest))
 
 (defn- mk-common-stats
   [rate]
@@ -200,6 +206,10 @@
          (value-stats stats SPOUT-FIELDS)
          {:type :spout}))
 
+(defn- class-selector
+  [obj & args]
+  (class obj))
+
 (defmulti render-stats! class-selector)
 
 (defmethod render-stats! SpoutExecutorStats
@@ -324,17 +334,17 @@
   (letfn [(weight-avg [[id avg]]
             (let [num-e (get idk->num-executed id)]
               (product-or-0 avg num-e)))]
-    {:executeLatencyTotal (sum (map weight-avg idk->exec-avg))
-     :processLatencyTotal (sum (map weight-avg idk->proc-avg))
-     :executed (sum (vals idk->num-executed))}))
+    {:executeLatencyTotal (reduce + (map weight-avg idk->exec-avg))
+     :processLatencyTotal (reduce + (map weight-avg idk->proc-avg))
+     :executed (reduce + (vals idk->num-executed))}))
 
 (defn- agg-spout-lat-and-count
   "Aggregates number acked and complete latencies across all streams."
   [sid->comp-avg sid->num-acked]
   (letfn [(weight-avg [[id avg]]
             (product-or-0 avg (get sid->num-acked id)))]
-    {:completeLatencyTotal (sum (map weight-avg sid->comp-avg))
-     :acked (sum (vals sid->num-acked))}))
+    {:completeLatencyTotal (reduce + (map weight-avg sid->comp-avg))
+     :acked (reduce + (vals sid->num-acked))}))
 
 (defn add-pairs
   ([] [0 0])
@@ -347,6 +357,7 @@
     (fn [_] true)
     (fn [stream] (and (string? stream) (not (Utils/isSystemId stream))))))
 
+;TODO: when translating this function, you should replace the filter-val with a proper for loop + if condition HERE
 (defn mk-include-sys-filter
   "Returns a function that includes or excludes map entries whose keys are
   system ids."
@@ -421,6 +432,7 @@
     statk->w->sid->num :stats}
    window
    include-sys?]
+  ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
   (let [str-key (partial map-key str)
         handle-sys-components-fn (mk-include-sys-filter include-sys?)]
     {:executor-id exec-id,
@@ -477,6 +489,7 @@
     statk->w->sid->num :stats}
    window
    include-sys?]
+  ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
   (let [str-key (partial map-key str)
         handle-sys-components-fn (mk-include-sys-filter include-sys?)]
     {:executor-id exec-id,
@@ -523,6 +536,7 @@
     uptime :uptime}
    window
    include-sys?]
+  ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
   (let [str-key (partial map-key str)
         handle-sys-components-fn (mk-include-sys-filter include-sys?)]
     {comp-id
@@ -547,27 +561,27 @@
                      (get window)
                      handle-sys-components-fn
                      vals
-                     sum)
+                     (#(reduce + %)))
         :transferred (-> statk->w->sid->num
                          :transferred
                          str-key
                          (get window)
                          handle-sys-components-fn
                          vals
-                         sum)
+                         (#(reduce + %)))
         :capacity (compute-agg-capacity statk->w->sid->num uptime)
         :acked (-> statk->w->sid->num
                    :acked
                    str-key
                    (get window)
                    vals
-                   sum)
+                   (#(reduce + %)))
         :failed (-> statk->w->sid->num
                     :failed
                     str-key
                     (get window)
                     vals
-                    sum)})}))
+                    (#(reduce + %)))})}))
 
 (defn agg-pre-merge-topo-page-spout
   [{comp-id :comp-id
@@ -575,6 +589,7 @@
     statk->w->sid->num :stats}
    window
    include-sys?]
+  ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
   (let [str-key (partial map-key str)
         handle-sys-components-fn (mk-include-sys-filter include-sys?)]
     {comp-id
@@ -595,20 +610,20 @@
                      (get window)
                      handle-sys-components-fn
                      vals
-                     sum)
+                     (#(reduce + %)))
         :transferred (-> statk->w->sid->num
                          :transferred
                          str-key
                          (get window)
                          handle-sys-components-fn
                          vals
-                         sum)
+                         (#(reduce + %)))
         :failed (-> statk->w->sid->num
                     :failed
                     str-key
                     (get window)
                     vals
-                    sum)})}))
+                    (#(reduce + %)))})}))
 
 (defn merge-agg-comp-stats-comp-page-bolt
   [{acc-in :cid+sid->input-stats
@@ -702,11 +717,13 @@
    :acked (sum-or-0 (:acked acc-spout-stats) (:acked spout-stats))
    :failed (sum-or-0 (:failed acc-spout-stats) (:failed spout-stats))})
 
+;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defn aggregate-count-streams
   [stats]
   (->> stats
-       (map-val #(reduce + (vals %)))))
+    (map-val #(reduce + (vals %)))))
 
+;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defn- agg-topo-exec-stats*
   "A helper function that does the common work to aggregate stats of one
   executor with the given map for the topology page."
@@ -896,13 +913,17 @@
                                      0))
                             (dissoc :completeLatencyTotal)
                             (assoc :lastError (last-err-fn id)))]))
+   ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
    :window->emitted (map-key str (:window->emitted acc-data))
+   ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
    :window->transferred (map-key str (:window->transferred acc-data))
    :window->complete-latency
      (compute-weighted-averages-per-window acc-data
                                            :window->comp-lat-wgt-avg
                                            :window->acked)
+   ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
    :window->acked (map-key str (:window->acked acc-data))
+   ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
    :window->failed (map-key str (:window->failed acc-data))})
 
 (defn- thriftify-common-agg-stats
@@ -1017,6 +1038,7 @@
     (post-aggregate-topo-stats task->component exec->node+port last-err-fn)
     (thriftify-topo-page-data topology-id)))
 
+;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defn- agg-bolt-exec-win-stats
   "A helper function that aggregates windowed stats from one bolt executor."
   [acc-stats new-stats include-sys?]
@@ -1052,6 +1074,7 @@
                           aggregate-count-streams
                           (merge-with + (:window->failed acc-stats)))}))
 
+;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defn- agg-spout-exec-win-stats
   "A helper function that aggregates windowed stats from one spout executor."
   [acc-stats new-stats include-sys?]
@@ -1144,6 +1167,7 @@
 (defmulti post-aggregate-comp-stats
   (fn [_ _ data] (:type data)))
 
+;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defmethod post-aggregate-comp-stats :bolt
   [task->component
    exec->host+port
@@ -1172,20 +1196,26 @@
                                                   :processLatencyTotal))))))
    :sid->output-stats o-stats
    :executor-stats (:executor-stats (:stats acc-data))
+   ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
    :window->emitted (map-key str (:window->emitted acc-data))
+   ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
    :window->transferred (map-key str (:window->transferred acc-data))
    :window->execute-latency
      (compute-weighted-averages-per-window acc-data
                                            :window->exec-lat-wgt-avg
                                            :window->executed)
+   ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
    :window->executed (map-key str (:window->executed acc-data))
    :window->process-latency
      (compute-weighted-averages-per-window acc-data
                                            :window->proc-lat-wgt-avg
                                            :window->executed)
+   ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
    :window->acked (map-key str (:window->acked acc-data))
+   ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
    :window->failed (map-key str (:window->failed acc-data))})
 
+;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defmethod post-aggregate-comp-stats :spout
   [task->component
    exec->host+port
@@ -1206,13 +1236,17 @@
                                  {:complete-latency 0})]
                        (-> m (merge lat) (dissoc :completeLatencyTotal))))))
    :executor-stats (:executor-stats (:stats acc-data))
+   ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
    :window->emitted (map-key str (:window->emitted acc-data))
+   ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
    :window->transferred (map-key str (:window->transferred acc-data))
    :window->complete-latency
      (compute-weighted-averages-per-window acc-data
                                            :window->comp-lat-wgt-avg
                                            :window->acked)
+   ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
    :window->acked (map-key str (:window->acked acc-data))
+   ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
    :window->failed (map-key str (:window->failed acc-data))})
 
 (defmethod post-aggregate-comp-stats :default [& _] {})
@@ -1236,14 +1270,17 @@
              [(to-global-stream-id cid+sid)
               (thriftify-bolt-agg-stats input-stats)])))
 
+;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defn- thriftify-bolt-output-stats
   [sid->output-stats]
   (map-val thriftify-bolt-agg-stats sid->output-stats))
 
+;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defn- thriftify-spout-output-stats
   [sid->output-stats]
   (map-val thriftify-spout-agg-stats sid->output-stats))
 
+;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defn thriftify-comp-page-data
   [topo-id topology comp-id data]
   (let [w->stats (swap-map-order
@@ -1336,6 +1373,7 @@
   (if (= c 0) 0
     (double (/ t c))))
 
+;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defn aggregate-averages
   [average-seq counts-seq]
   (->> (expand-averages-seq average-seq counts-seq)
@@ -1343,6 +1381,7 @@
          (fn [s]
            (map-val val-avg s)))))
 
+;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defn aggregate-avg-streams
   [avg counts]
   (let [expanded (expand-averages avg counts)]
@@ -1350,6 +1389,7 @@
          (map-val #(reduce add-pairs (vals %)))
          (map-val val-avg))))
 
+;TODO: when translating this function, you should replace the filter-val with a proper for loop + if condition HERE
 (defn pre-process
   [stream-summary include-sys?]
   (let [filter-fn (mk-include-sys-fn include-sys?)
@@ -1375,6 +1415,12 @@
   [stats-seq]
   {:emitted (aggregate-counts (map #(.get_emitted ^ExecutorStats %) stats-seq))
    :transferred (aggregate-counts (map #(.get_transferred ^ExecutorStats %) stats-seq))})
+
+(defn- collectify
+  [obj]
+  (if (or (sequential? obj) (instance? Collection obj))
+    obj
+    [obj]))
 
 (defn aggregate-bolt-stats
   [stats-seq include-sys?]
@@ -1459,10 +1505,10 @@
                     (aggregate-bolt-streams)
                     swap-map-order
                     (get (str TEN-MIN-IN-SECONDS))))
-        uptime (nil-to-zero (.get_uptime_secs e))
+        uptime (Utils/nullToZero (.get_uptime_secs e))
         window (if (< uptime TEN-MIN-IN-SECONDS) uptime TEN-MIN-IN-SECONDS)
-        executed (-> stats :executed nil-to-zero)
-        latency (-> stats :execute-latencies nil-to-zero)]
+        executed (-> stats :executed Utils/nullToZero)
+        latency (-> stats :execute-latencies Utils/nullToZero)]
     (if (> window 0)
       (div (* executed latency) (* 1000 window)))))
 
@@ -1517,5 +1563,5 @@
   [executors]
   (->> executors
        (map compute-executor-capacity)
-       (map nil-to-zero)
+       (map #(Utils/nullToZero %))
        (apply max)))

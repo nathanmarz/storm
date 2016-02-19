@@ -27,8 +27,8 @@
   (:import [org.apache.storm.generated ShellComponent JavaObject])
   (:import [org.apache.storm.spout ShellSpout])
   (:import [java.util Collection List ArrayList])
+  (:import [org.apache.storm Thrift])
   (:require [org.apache.storm
-             [thrift :as thrift]
              [stats :as stats]])
   (:require [org.apache.storm.daemon.builtin-metrics :as builtin-metrics]))
 
@@ -76,14 +76,14 @@
               (contains? spouts component-id) (.get_spout_object ^SpoutSpec (get spouts component-id))
               (contains? bolts component-id) (.get_bolt_object ^Bolt (get bolts component-id))
               (contains? state-spouts component-id) (.get_state_spout_object ^StateSpoutSpec (get state-spouts component-id))
-              true (throw-runtime "Could not find " component-id " in " topology)))
+              true (throw (RuntimeException. (str "Could not find " component-id " in " topology)))))
         obj (if (instance? ShellComponent obj)
               (if (contains? spouts component-id)
                 (ShellSpout. obj)
                 (ShellBolt. obj))
               obj )
         obj (if (instance? JavaObject obj)
-              (thrift/instantiate-java-object obj)
+              (Thrift/instantiateJavaObject obj)
               obj )]
     obj
     ))

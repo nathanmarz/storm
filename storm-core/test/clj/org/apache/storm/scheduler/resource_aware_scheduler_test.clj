@@ -15,13 +15,15 @@
 ;; limitations under the License.
 (ns org.apache.storm.scheduler.resource-aware-scheduler-test
   (:use [clojure test])
-  (:use [org.apache.storm config testing thrift])
-  (:require [org.apache.storm.util :refer [map-val reverse-map sum]])
+  (:use [org.apache.storm util config testing])
+  (:use [org.apache.storm.internal thrift])
+  (:require [org.apache.storm.util :refer [map-val]])
   (:require [org.apache.storm.daemon [nimbus :as nimbus]])
   (:import [org.apache.storm.generated StormTopology]
            [org.apache.storm Config]
            [org.apache.storm.testing TestWordSpout TestWordCounter]
-           [org.apache.storm.topology TopologyBuilder])
+           [org.apache.storm.topology TopologyBuilder]
+           [org.apache.storm.utils Utils])
   (:import [org.apache.storm.scheduler Cluster SupervisorDetails WorkerSlot ExecutorDetails
             SchedulerAssignmentImpl Topologies TopologyDetails])
   (:import [org.apache.storm.scheduler.resource RAS_Node RAS_Nodes ResourceAwareScheduler])
@@ -54,6 +56,7 @@
 (def DEFAULT_SCHEDULING_STRATEGY "org.apache.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy")
 
 ;; get the super->mem HashMap by counting the eds' mem usage of all topos on each super
+;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defn get-super->mem-usage [^Cluster cluster ^Topologies topologies]
   (let [assignments (.values (.getAssignments cluster))
         supers (.values (.getSupervisors cluster))
@@ -64,7 +67,7 @@
       (let [ed->super (into {}
                             (for [[ed slot] (.getExecutorToSlot assignment)]
                               {ed (.getSupervisorById cluster (.getNodeId slot))}))
-            super->eds (reverse-map ed->super)
+            super->eds (clojurify-structure (Utils/reverseMap ed->super))
             topology (.getById topologies (.getTopologyId assignment))
             super->mem-pertopo (map-val (fn [eds] 
                                           (reduce + (map #(.getTotalMemReqTask topology %) eds))) 
@@ -75,6 +78,7 @@
     super->mem-usage))
 
 ;; get the super->cpu HashMap by counting the eds' cpu usage of all topos on each super
+;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defn get-super->cpu-usage [^Cluster cluster ^Topologies topologies]
   (let [assignments (.values (.getAssignments cluster))
         supers (.values (.getSupervisors cluster))
@@ -85,7 +89,7 @@
       (let [ed->super (into {}
                             (for [[ed slot] (.getExecutorToSlot assignment)]
                               {ed (.getSupervisorById cluster (.getNodeId slot))}))
-            super->eds (reverse-map ed->super)
+            super->eds (clojurify-structure (Utils/reverseMap ed->super))
             topology (.getById topologies (.getTopologyId assignment))
             super->cpu-pertopo (map-val (fn [eds] 
                                           (reduce + (map #(.getTotalCpuReqTask topology %) eds))) 
@@ -334,13 +338,13 @@
           ed->super (into {}
                             (for [[ed slot] (.getExecutorToSlot assignment)]
                               {ed (.getSupervisorById cluster (.getNodeId slot))}))
-          super->eds (reverse-map ed->super)
+          super->eds (clojurify-structure (Utils/reverseMap ed->super))
           mem-avail->used (into []
                                  (for [[super eds] super->eds]
-                                   [(.getTotalMemory super) (sum (map #(.getTotalMemReqTask topology1 %) eds))]))
+                                   [(.getTotalMemory super) (reduce + (map #(.getTotalMemReqTask topology1 %) eds))]))
           cpu-avail->used (into []
                                  (for [[super eds] super->eds]
-                                   [(.getTotalCPU super) (sum (map #(.getTotalCpuReqTask topology1 %) eds))]))]
+                                   [(.getTotalCPU super) (reduce + (map #(.getTotalCpuReqTask topology1 %) eds))]))]
     ;; 4 slots on 1 machine, all executors assigned
     (is (= 2 (.size assigned-slots)))  ;; executor0 resides one one worker (on one), executor1 and executor2 on another worker (on the other node)
     (is (= 2 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
@@ -403,7 +407,7 @@
             assignment (.getAssignmentById cluster "topology2")
             failed-worker (first (vec (.getSlots assignment)))  ;; choose a worker to mock as failed
             ed->slot (.getExecutorToSlot assignment)
-            failed-eds (.get (reverse-map ed->slot) failed-worker)
+            failed-eds (.get (clojurify-structure (Utils/reverseMap ed->slot)) failed-worker)
             _ (doseq [ed failed-eds] (.remove ed->slot ed))  ;; remove executor details assigned to the worker
             copy-old-mapping (HashMap. ed->slot)
             healthy-eds (.keySet copy-old-mapping)

@@ -17,11 +17,11 @@
  */
 package org.apache.storm.utils;
 
-
 import org.apache.storm.Config;
 import org.apache.storm.generated.ClusterSummary;
 import org.apache.storm.generated.Nimbus;
 import org.apache.storm.generated.NimbusSummary;
+import org.apache.storm.security.auth.ReqContext;
 import org.apache.storm.security.auth.ThriftClient;
 import org.apache.storm.security.auth.ThriftConnectionType;
 import com.google.common.collect.Lists;
@@ -29,13 +29,30 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 
-public class NimbusClient extends ThriftClient {
+public class NimbusClient extends ThriftClient implements AutoCloseable {
     private Nimbus.Client _client;
     private static final Logger LOG = LoggerFactory.getLogger(NimbusClient.class);
 
+    public interface WithNimbus {
+        public void run(Nimbus.Client client) throws Exception;
+    }
+
+    public static void withConfiguredClient(WithNimbus cb) throws Exception {
+        withConfiguredClient(cb, ConfigUtils.readStormConfig());
+    }
+
+    public static void withConfiguredClient(WithNimbus cb, Map conf) throws Exception {
+        ReqContext context = ReqContext.context();
+        Principal principal = context.principal();
+        String user = principal == null ? null : principal.getName();
+        try (NimbusClient client = getConfiguredClientAs(conf, user);) {
+            cb.run(client.getClient());
+        }
+    }
 
     public static NimbusClient getConfiguredClient(Map conf) {
         return getConfiguredClientAs(conf, null);

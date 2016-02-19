@@ -22,7 +22,7 @@
   (:import [org.mockito Mockito])
   (:import [org.mockito.exceptions.base MockitoAssertionError])
   (:import [org.apache.curator.framework CuratorFramework CuratorFrameworkFactory CuratorFrameworkFactory$Builder])
-  (:import [org.apache.storm.utils Utils TestUtils ZookeeperAuthInfo ConfigUtils])
+  (:import [org.apache.storm.utils Time Utils ZookeeperAuthInfo ConfigUtils])
   (:import [org.apache.storm.cluster ClusterState])
   (:import [org.apache.storm.zookeeper Zookeeper])
   (:import [org.apache.storm.testing.staticmocking MockedZookeeper])
@@ -30,7 +30,8 @@
   (:require [conjure.core])
   (:use [conjure core])
   (:use [clojure test])
-  (:use [org.apache.storm cluster config util testing thrift log]))
+  (:use [org.apache.storm cluster config util testing log])
+  (:use [org.apache.storm.internal thrift]))
 
 (defn mk-config [zk-port]
   (merge (clojurify-structure (ConfigUtils/readStormConfig))
@@ -46,6 +47,10 @@
        ret )))
 
 (defn mk-storm-state [zk-port] (mk-storm-cluster-state (mk-config zk-port)))
+
+(defn barr
+  [& vals]
+  (byte-array (map byte vals)))
 
 (deftest test-basics
   (with-inprocess-zookeeper zk-port
@@ -177,8 +182,8 @@
           assignment2 (Assignment. "/aaa" {} {[2] ["2" 2002]} {} {})
           nimbusInfo1 (NimbusInfo. "nimbus1" 6667 false)
           nimbusInfo2 (NimbusInfo. "nimbus2" 6667 false)
-          nimbusSummary1 (NimbusSummary. "nimbus1" 6667 (current-time-secs) false "v1")
-          nimbusSummary2 (NimbusSummary. "nimbus2" 6667 (current-time-secs) false "v2")
+          nimbusSummary1 (NimbusSummary. "nimbus1" 6667 (Time/currentTimeSecs) false "v1")
+          nimbusSummary2 (NimbusSummary. "nimbus2" 6667 (Time/currentTimeSecs) false "v2")
           base1 (StormBase. "/tmp/storm1" 1 {:type :active} 2 {} "" nil nil {})
           base2 (StormBase. "/tmp/storm2" 2 {:type :active} 2 {} "" nil nil {})]
       (is (= [] (.assignments state nil)))
@@ -245,17 +250,17 @@
   (with-inprocess-zookeeper zk-port
     (with-simulated-time
       (let [state (mk-storm-state zk-port)]
-        (.report-error state "a" "1" (local-hostname) 6700 (RuntimeException.))
+        (.report-error state "a" "1" (Utils/localHostname) 6700 (RuntimeException.))
         (validate-errors! state "a" "1" ["RuntimeException"])
         (advance-time-secs! 1)
-        (.report-error state "a" "1" (local-hostname) 6700 (IllegalArgumentException.))
+        (.report-error state "a" "1" (Utils/localHostname) 6700 (IllegalArgumentException.))
         (validate-errors! state "a" "1" ["IllegalArgumentException" "RuntimeException"])
         (doseq [i (range 10)]
-          (.report-error state "a" "2" (local-hostname) 6700 (RuntimeException.))
+          (.report-error state "a" "2" (Utils/localHostname) 6700 (RuntimeException.))
           (advance-time-secs! 2))
         (validate-errors! state "a" "2" (repeat 10 "RuntimeException"))
         (doseq [i (range 5)]
-          (.report-error state "a" "2" (local-hostname) 6700 (IllegalArgumentException.))
+          (.report-error state "a" "2" (Utils/localHostname) 6700 (IllegalArgumentException.))
           (advance-time-secs! 2))
         (validate-errors! state "a" "2" (concat (repeat 5 "IllegalArgumentException")
                                                 (repeat 5 "RuntimeException")
@@ -297,7 +302,7 @@
       (. (Mockito/when (.connectString builder (Mockito/anyString))) (thenReturn builder))
       (. (Mockito/when (.connectionTimeoutMs builder (Mockito/anyInt))) (thenReturn builder))
       (. (Mockito/when (.sessionTimeoutMs builder (Mockito/anyInt))) (thenReturn builder))
-      (TestUtils/testSetupBuilder builder (str zk-port "/") conf (ZookeeperAuthInfo. conf))
+      (Utils/testSetupBuilder builder (str zk-port "/") conf (ZookeeperAuthInfo. conf))
       (is (nil?
            (try
              (. (Mockito/verify builder) (authorization "digest" (.getBytes (conf STORM-ZOOKEEPER-AUTH-PAYLOAD))))

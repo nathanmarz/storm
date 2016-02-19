@@ -57,6 +57,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.Vector;
 
 public class Zookeeper {
     private static Logger LOG = LoggerFactory.getLogger(Zookeeper.class);
@@ -393,6 +394,12 @@ public class Zookeeper {
             }
         }
         return rtn;
+    }
+
+    public static String parentPath(String path) {
+        List<String> tokens = tokenizePath(path);
+        tokens.remove(tokens.size() - 1);
+        return "/" + StringUtils.join(tokens, "/");
     }
 
     public static String toksToPath(List<String> toks) {

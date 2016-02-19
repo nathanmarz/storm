@@ -114,13 +114,13 @@ public class SequenceFileBolt extends AbstractHdfsBolt {
     }
 
     @Override
-    void syncTuples() throws IOException {
+    protected void syncTuples() throws IOException {
         LOG.debug("Attempting to sync all data to filesystem");
         this.writer.hsync();
     }
 
     @Override
-    void writeTuple(Tuple tuple) throws IOException {
+    protected void writeTuple(Tuple tuple) throws IOException {
         this.writer.append(this.format.key(tuple), this.format.value(tuple));
         this.offset = this.writer.getLength();
     }

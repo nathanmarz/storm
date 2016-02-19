@@ -92,7 +92,7 @@ public class AvroGenericRecordBolt extends AbstractHdfsBolt{
     }
 
     @Override
-    void doPrepare(Map conf, TopologyContext topologyContext, OutputCollector collector) throws IOException {
+    protected void doPrepare(Map conf, TopologyContext topologyContext, OutputCollector collector) throws IOException {
         LOG.info("Preparing AvroGenericRecord Bolt...");
         this.fs = FileSystem.get(URI.create(this.fsUrl), hdfsConfig);
         Schema.Parser parser = new Schema.Parser();
@@ -100,14 +100,14 @@ public class AvroGenericRecordBolt extends AbstractHdfsBolt{
     }
 
     @Override
-    void writeTuple(Tuple tuple) throws IOException {
+    protected void writeTuple(Tuple tuple) throws IOException {
         GenericRecord avroRecord = (GenericRecord) tuple.getValue(0);
         avroWriter.append(avroRecord);
         offset = this.out.getPos();
     }
 
     @Override
-    void syncTuples() throws IOException {
+    protected void syncTuples() throws IOException {
         avroWriter.flush();
 
         LOG.debug("Attempting to sync all data to filesystem");

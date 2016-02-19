@@ -940,8 +940,8 @@
                (.close (:heartbeat-timer supervisor))
                (.close (:event-timer supervisor))
                (.close (:blob-update-timer supervisor))
-               (.shutdown event-manager)
-               (.shutdown processes-event-manager)
+               (.close event-manager)
+               (.close processes-event-manager)
                (.shutdown (:localizer supervisor))
                (.disconnect (:storm-cluster-state supervisor)))
      SupervisorDaemon

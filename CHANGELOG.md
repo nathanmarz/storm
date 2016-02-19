@@ -1,4 +1,5 @@
 ## 2.0.0
+ * STORM-1553: port event.clj to java
  * STORM-1262: port backtype.storm.command.dev-zookeeper to java.
  * STORM-1243: port backtype.storm.command.healthcheck to java.
  * STORM-1246: port backtype.storm.local-state to java.

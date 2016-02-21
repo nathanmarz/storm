@@ -83,16 +83,13 @@ public class FileBasedEventLogger implements IEventLogger {
         String stormId = context.getStormId();
         int port = context.getThisWorkerPort();
 
-        String workersArtifactRoot = ConfigUtils.workerArtifactsRoot(stormConf, stormId, port);
-
         /*
          * Include the topology name & worker port in the file name so that
          * multiple event loggers can log independently.
          */
+        String workersArtifactRoot = ConfigUtils.workerArtifactsRoot(stormConf, stormId, port);
+
         Path path = Paths.get(workersArtifactRoot, "events.log");
-        if (!path.isAbsolute()) {
-            path = Paths.get(System.getProperty("storm.home"), workersArtifactRoot, "events.log");
-        }
         File dir = path.toFile().getParentFile();
         if (!dir.exists()) {
              dir.mkdirs();

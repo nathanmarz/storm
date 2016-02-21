@@ -17,10 +17,9 @@
   (:use [clojure test])
   (:import [org.apache.storm.testing TestWordSpout TestPlannerSpout]
            [org.apache.storm.tuple Fields])
-  (:use [org.apache.storm testing config])
-  (:use [org.apache.storm.internal clojure])
+  (:use [org.apache.storm testing clojure config])
   (:use [org.apache.storm.daemon common])
-  (:require [org.apache.storm.internal [thrift :as thrift]])
+  (:require [org.apache.storm [thrift :as thrift]])
   (:import [org.apache.storm Thrift])
   (:import [org.apache.storm.utils Utils]))
 

@@ -1460,6 +1460,13 @@ public class Utils {
         return number & Integer.MAX_VALUE;
     }
 
+    public static GlobalStreamId getGlobalStreamId(String streamId, String componentId) {
+        if (componentId == null) {
+            return new GlobalStreamId(streamId, DEFAULT_STREAM_ID);
+        }
+        return new GlobalStreamId(streamId, componentId);
+    }
+
     public static RuntimeException wrapInRuntime(Exception e){
         if (e instanceof RuntimeException){
             return (RuntimeException)e;

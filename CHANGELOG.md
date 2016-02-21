@@ -1,4 +1,11 @@
 ## 2.0.0
+ * STORM-1553: port event.clj to java
+ * STORM-1262: port backtype.storm.command.dev-zookeeper to java.
+ * STORM-1243: port backtype.storm.command.healthcheck to java.
+ * STORM-1246: port backtype.storm.local-state to java.
+ * STORM-1516: Fixed issue in writing pids with distributed cluster mode.
+ * STORM-1253: port backtype.storm.timer to java
+ * STORM-1258: port thrift.clj to Thrift.java
  * STORM-1336: Evalute/Port JStorm cgroup support and implement cgroup support for RAS
  * STORM-1511: min/max operators implementation in Trident streams API.
  * STROM-1263: port backtype.storm.command.kill-topology to java
@@ -18,6 +25,8 @@
  * STORM-1521: When using Kerberos login from keytab with multiple bolts/executors ticket is not renewed in hbase bolt.
 
 ## 1.0.0
+ * STORM-1522: REST API throws invalid worker log links
+ * STORM-1541: Change scope of 'hadoop-minicluster' to test
  * STORM-1532: Fix readCommandLineOpts to parse JSON correctly in windows
  * STORM-1539: Improve Storm ACK-ing performance
  * STORM-1519: Storm syslog logging not confirming to RFC5426 3.1

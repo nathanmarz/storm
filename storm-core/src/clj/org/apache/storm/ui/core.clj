@@ -49,7 +49,7 @@
   (:require [compojure.route :as route]
             [compojure.handler :as handler]
             [ring.util.response :as resp]
-            [org.apache.storm [thrift :as thrift]])
+            [org.apache.storm.internal [thrift :as thrift]])
   (:require [metrics.meters :refer [defmeter mark!]])
   (:import [org.apache.commons.lang StringEscapeUtils])
   (:import [org.apache.logging.log4j Level])
@@ -145,11 +145,13 @@
 
 (defn event-log-link
   [topology-id component-id host port secure?]
-  (logviewer-link host (Utils/eventLogsFilename topology-id (str port)) secure?))
+  (logviewer-link host (Utils/eventLogsFilename topology-id port) secure?))
 
 (defn worker-log-link [host port topology-id secure?]
-  (let [fname (Utils/logsFilename topology-id (str port))]
-    (logviewer-link host fname secure?)))
+  (if (or (empty? host) (let [port_str (str port "")] (or (empty? port_str) (= "0" port_str))))
+    ""
+    (let [fname (Utils/logsFilename topology-id (str port))]
+      (logviewer-link host fname secure?))))
 
 (defn nimbus-log-link [host]
   (url-format "http://%s:%s/daemonlog?file=nimbus.log" host (*STORM-CONF* LOGVIEWER-PORT)))

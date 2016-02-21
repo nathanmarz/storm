@@ -92,6 +92,7 @@ under the License.
 * Zhuo Liu ([@zhuoliu](https://github.com/zhuoliu))
 * Haohui Mai ([@haohui](https://github.com/haohui))
 * Sanket Chintapalli ([@redsanket](https://github.com/redsanket))
+* Longda Feng ([@longda](https://github.com/longdafeng))
 
 ## Contributors
 

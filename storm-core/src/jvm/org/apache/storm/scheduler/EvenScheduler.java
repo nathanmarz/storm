@@ -22,10 +22,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -38,16 +36,29 @@ import com.google.common.collect.Sets;
 public class EvenScheduler implements IScheduler {
     private static final Logger LOG = LoggerFactory.getLogger(EvenScheduler.class);
 
-    public static List<WorkerSlot> sortSlots(List<WorkerSlot> availableSlots, Cluster cluster) {
+    public static List<WorkerSlot> sortSlots(List<WorkerSlot> availableSlots) {
+        //For example, we have a three nodes(supervisor1, supervisor2, supervisor3) cluster:
+        //slots before sort:
+        //supervisor1:6700, supervisor1:6701,
+        //supervisor2:6700, supervisor2:6701, supervisor2:6702,
+        //supervisor3:6700, supervisor3:6703, supervisor3:6702, supervisor3:6701
+        //slots after sort:
+        //supervisor3:6700, supervisor2:6700, supervisor1:6700,
+        //supervisor3:6701, supervisor2:6701, supervisor1:6701,
+        //supervisor3:6702, supervisor2:6702,
+        //supervisor3:6703
+
         if (availableSlots != null && availableSlots.size() > 0) {
             // group by node
             Map<String, List<WorkerSlot>> slotGroups = new TreeMap<String, List<WorkerSlot>>();
             for (WorkerSlot slot : availableSlots) {
-                String host = cluster.getHost(slot.getNodeId());
-                List<WorkerSlot> slots = slotGroups.get(host);
-                if (slots == null) {
-                    slots = new ArrayList<WorkerSlot>();
-                    slotGroups.put(host, slots);
+                String node = slot.getNodeId();
+                List<WorkerSlot> slots = null;
+                if(slotGroups.containsKey(node)){
+                   slots = slotGroups.get(node);
+                }else{
+                   slots = new ArrayList<WorkerSlot>();
+                   slotGroups.put(node, slots);
                 }
                 slots.add(slot);
             }
@@ -93,7 +104,7 @@ public class EvenScheduler implements IScheduler {
         Map<WorkerSlot, List<ExecutorDetails>> aliveAssigned = getAliveAssignedWorkerSlotExecutors(cluster, topology.getId());
         int totalSlotsToUse = Math.min(topology.getNumWorkers(), availableSlots.size() + aliveAssigned.size());
 
-        List<WorkerSlot> sortedList = sortSlots(availableSlots, cluster);
+        List<WorkerSlot> sortedList = sortSlots(availableSlots);
         if (sortedList == null || sortedList.size() < (totalSlotsToUse - aliveAssigned.size())) {
             LOG.error("Available slots are not enough for topology: {}", topology.getName());
             return new HashMap<ExecutorDetails, WorkerSlot>();

@@ -28,14 +28,14 @@
   (:import [org.apache.storm.generated AuthorizationException KeyNotFoundException WorkerResources])
   (:import [org.apache.storm.utils NimbusLeaderNotFoundException VersionInfo])
   (:import [java.nio.file Files StandardCopyOption])
-  (:import [org.apache.storm Config])
   (:import [org.apache.storm.generated WorkerResources ProfileAction LocalAssignment])
+  (:import [org.apache.storm Config ProcessSimulator])
   (:import [org.apache.storm.localizer LocalResource])
   (:import [org.apache.storm.event EventManagerImp])
   (:use [org.apache.storm.daemon common])
   (:import [org.apache.storm.command HealthCheck])
   (:require [org.apache.storm.daemon [worker :as worker]]
-            [org.apache.storm [process-simulator :as psim] [cluster :as cluster]]
+            [org.apache.storm [cluster :as cluster]]
             [clojure.set :as set])
   (:import [org.apache.thrift.transport TTransportException])
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
@@ -311,7 +311,7 @@
         as-user (conf SUPERVISOR-RUN-WORKER-AS-USER)
         user (ConfigUtils/getWorkerUser conf id)]
     (when thread-pid
-      (psim/kill-process thread-pid))
+      (ProcessSimulator/killProcess thread-pid))
     (doseq [pid pids]
       (if as-user
         (worker-launcher-and-wait conf user ["signal" pid "15"] :log-prefix (str "kill -15 " pid))
@@ -1309,7 +1309,7 @@
                                    port
                                    worker-id)]
       (ConfigUtils/setWorkerUserWSE conf worker-id "")
-      (psim/register-process pid worker)
+      (ProcessSimulator/registerProcess pid worker)
       (swap! (:worker-thread-pids-atom supervisor) assoc worker-id pid)
       ))
 

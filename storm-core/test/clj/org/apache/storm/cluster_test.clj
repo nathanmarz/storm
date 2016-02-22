@@ -30,7 +30,8 @@
   (:require [conjure.core])
   (:use [conjure core])
   (:use [clojure test])
-  (:use [org.apache.storm cluster config util testing thrift log]))
+  (:use [org.apache.storm cluster config util testing log])
+  (:use [org.apache.storm.internal thrift]))
 
 (defn mk-config [zk-port]
   (merge (clojurify-structure (ConfigUtils/readStormConfig))

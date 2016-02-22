@@ -15,7 +15,7 @@
 ;; limitations under the License.
 (ns org.apache.storm.command.monitor
   (:use [clojure.tools.cli :only [cli]])
-  (:use [org.apache.storm.thrift :only [with-configured-nimbus-connection]])
+  (:use [org.apache.storm.internal.thrift :only [with-configured-nimbus-connection]])
   (:import [org.apache.storm.utils Monitor])
   (:gen-class)
  )

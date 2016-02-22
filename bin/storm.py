@@ -278,7 +278,7 @@ def kill(*args):
         print_usage(command="kill")
         sys.exit(2)
     exec_storm_class(
-        "org.apache.storm.command.kill_topology",
+        "org.apache.storm.command.KillTopology",
         args=args,
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
@@ -345,7 +345,7 @@ def activate(*args):
         print_usage(command="activate")
         sys.exit(2)
     exec_storm_class(
-        "org.apache.storm.command.activate",
+        "org.apache.storm.command.Activate",
         args=args,
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
@@ -389,7 +389,7 @@ def listtopos(*args):
     List the running topologies and their statuses.
     """
     exec_storm_class(
-        "org.apache.storm.command.list",
+        "org.apache.storm.command.List",
         args=args,
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
@@ -403,7 +403,7 @@ def deactivate(*args):
         print_usage(command="deactivate")
         sys.exit(2)
     exec_storm_class(
-        "org.apache.storm.command.deactivate",
+        "org.apache.storm.command.Deactivate",
         args=args,
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
@@ -460,7 +460,7 @@ def healthcheck(*args):
     Run health checks on the local supervisor.
     """
     exec_storm_class(
-        "org.apache.storm.command.healthcheck",
+        "org.apache.storm.command.HealthCheck",
         args=args,
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, os.path.join(STORM_DIR, "bin")])
@@ -651,7 +651,7 @@ def dev_zookeeper():
     """
     cppaths = [CLUSTER_CONF_DIR]
     exec_storm_class(
-        "org.apache.storm.command.dev_zookeeper",
+        "org.apache.storm.command.DevZookeeper",
         jvmtype="-server",
         extrajars=[CLUSTER_CONF_DIR])
 

@@ -1,4 +1,18 @@
 ## 2.0.0
+ * STORM-1553: port event.clj to java
+ * STORM-1262: port backtype.storm.command.dev-zookeeper to java.
+ * STORM-1243: port backtype.storm.command.healthcheck to java.
+ * STORM-1246: port backtype.storm.local-state to java.
+ * STORM-1516: Fixed issue in writing pids with distributed cluster mode.
+ * STORM-1253: port backtype.storm.timer to java
+ * STORM-1258: port thrift.clj to Thrift.java
+ * STORM-1336: Evalute/Port JStorm cgroup support and implement cgroup support for RAS
+ * STORM-1511: min/max operators implementation in Trident streams API.
+ * STROM-1263: port backtype.storm.command.kill-topology to java
+ * STORM-1260: port backtype.storm.command.activate to java
+ * STORM-1261: port backtype.storm.command.deactivate to java
+ * STORM-1264: port backtype.storm.command.list to java
+ * STORM-1272: port backtype.storm.disruptor to java
  * STORM-1248: port backtype.storm.messaging.loader to java
  * STORM-1538: Exception being thrown after Utils conversion to java
  * STORM-1242: migrate backtype.storm.command.config-value to java
@@ -11,6 +25,10 @@
  * STORM-1521: When using Kerberos login from keytab with multiple bolts/executors ticket is not renewed in hbase bolt.
 
 ## 1.0.0
+ * STORM-1522: REST API throws invalid worker log links
+ * STORM-1541: Change scope of 'hadoop-minicluster' to test
+ * STORM-1532: Fix readCommandLineOpts to parse JSON correctly in windows
+ * STORM-1539: Improve Storm ACK-ing performance
  * STORM-1519: Storm syslog logging not confirming to RFC5426 3.1
  * STORM-1520: Nimbus Clojure/Zookeeper issue ("stateChanged" method not found)
  * STORM-1531: Junit and mockito dependencies need to have correct scope defined in storm-elasticsearch pom.xml

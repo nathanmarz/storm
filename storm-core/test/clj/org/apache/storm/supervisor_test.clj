@@ -22,7 +22,7 @@
   (:import [org.apache.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter TestPlannerSpout])
   (:import [org.apache.storm.scheduler ISupervisor])
   (:import [org.apache.storm.utils Time Utils$UptimeComputer ConfigUtils])
-  (:import [org.apache.storm.generated RebalanceOptions])
+  (:import [org.apache.storm.generated RebalanceOptions WorkerResources])
   (:import [org.mockito Matchers Mockito])
   (:import [java.util UUID])
   (:import [java.io File])
@@ -31,10 +31,12 @@
            [org.apache.storm.utils.staticmocking ConfigUtilsInstaller
                                                  UtilsInstaller])
   (:import [java.nio.file.attribute FileAttribute])
-  (:use [org.apache.storm config testing util timer log])
+  (:import [org.apache.storm Thrift])
+  (:import [org.apache.storm.utils Utils])
+  (:use [org.apache.storm config testing util log])
   (:use [org.apache.storm.daemon common])
   (:require [org.apache.storm.daemon [worker :as worker] [supervisor :as supervisor]]
-            [org.apache.storm [thrift :as thrift] [cluster :as cluster]])
+            [org.apache.storm [cluster :as cluster]])
   (:use [conjure core])
   (:require [clojure.java.io :as io]))
 
@@ -103,8 +105,9 @@
                   SUPERVISOR-WORKER-TIMEOUT-SECS 15
                   SUPERVISOR-MONITOR-FREQUENCY-SECS 3}]
     (letlocals
-      (bind topology (thrift/mk-topology
-                       {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 4)}
+      (bind topology (Thrift/buildTopology
+                       {"1" (Thrift/prepareSpoutDetails
+                              (TestPlannerSpout. true) (Integer. 4))}
                        {}))
       (bind sup1 (add-supervisor cluster :id "sup1" :ports [1 2 3 4]))
       (bind changed (capture-changed-workers
@@ -156,11 +159,13 @@
                   SUPERVISOR-WORKER-TIMEOUT-SECS 15
                   SUPERVISOR-MONITOR-FREQUENCY-SECS 3}]
     (letlocals
-      (bind topology (thrift/mk-topology
-                       {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 4)}
+      (bind topology (Thrift/buildTopology
+                       {"1" (Thrift/prepareSpoutDetails
+                              (TestPlannerSpout. true) (Integer. 4))}
                        {}))
-      (bind topology2 (thrift/mk-topology
-                       {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
+      (bind topology2 (Thrift/buildTopology
+                       {"1" (Thrift/prepareSpoutDetails
+                              (TestPlannerSpout. true) (Integer. 3))}
                        {}))
       (bind sup1 (add-supervisor cluster :id "sup1" :ports [1 2 3 4]))
       (bind sup2 (add-supervisor cluster :id "sup2" :ports [1 2]))
@@ -270,8 +275,9 @@
       (check-heartbeat cluster "sup" 3)
       (advance-cluster-time cluster 15)
       (check-heartbeat cluster "sup" 3)
-      (bind topology (thrift/mk-topology
-                       {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 4)}
+      (bind topology (Thrift/buildTopology
+                       {"1" (Thrift/prepareSpoutDetails
+                              (TestPlannerSpout. true) (Integer. 4))}
                        {}))
       ;; prevent them from launching by capturing them
       (capture-changed-workers
@@ -291,7 +297,6 @@
     (let [mock-port "42"
           mock-storm-id "fake-storm-id"
           mock-worker-id "fake-worker-id"
-          mock-mem-onheap 512
           mock-cp (str Utils/FILE_PATH_SEPARATOR "base" Utils/CLASS_PATH_SEPARATOR Utils/FILE_PATH_SEPARATOR "stormjar.jar")
           mock-sensitivity "S3"
           mock-cp "/base:/stormjar.jar"
@@ -358,7 +363,7 @@
                                       mock-storm-id
                                       mock-port
                                       mock-worker-id
-                                      mock-mem-onheap)
+                                      (WorkerResources.))
                 (. (Mockito/verify utils-spy)
                    (launchProcessImpl (Matchers/eq exp-args)
                                       (Matchers/any)
@@ -394,7 +399,7 @@
                                             mock-storm-id
                                             mock-port
                                             mock-worker-id
-                                            mock-mem-onheap)
+                                            (WorkerResources.))
                   (. (Mockito/verify utils-spy)
                      (launchProcessImpl (Matchers/eq exp-args)
                                         (Matchers/any)
@@ -428,7 +433,7 @@
                                               mock-storm-id
                                               mock-port
                                               mock-worker-id
-                                              mock-mem-onheap)
+                                              (WorkerResources.))
                   (. (Mockito/verify utils-spy)
                      (launchProcessImpl (Matchers/eq exp-args)
                                         (Matchers/any)
@@ -462,7 +467,7 @@
                                         mock-storm-id
                                         mock-port
                                         mock-worker-id
-                                        mock-mem-onheap)
+                                        (WorkerResources.))
               (. (Mockito/verify utils-spy)
                  (launchProcessImpl (Matchers/any)
                                     (Matchers/eq full-env)
@@ -475,7 +480,6 @@
     (let [mock-port "42"
           mock-storm-id "fake-storm-id"
           mock-worker-id "fake-worker-id"
-          mock-mem-onheap 512
           mock-sensitivity "S3"
           mock-cp "mock-classpath'quote-on-purpose"
           attrs (make-array FileAttribute 0)
@@ -554,7 +558,7 @@
                                           mock-storm-id
                                           mock-port
                                           mock-worker-id
-                                          mock-mem-onheap)
+                                          (WorkerResources.))
                 (. (Mockito/verify utils-spy)
                    (launchProcessImpl (Matchers/eq exp-launch)
                                       (Matchers/any)
@@ -596,7 +600,7 @@
                                           mock-storm-id
                                           mock-port
                                           mock-worker-id
-                                          mock-mem-onheap)
+                                          (WorkerResources.))
                 (. (Mockito/verify utils-spy)
                  (launchProcessImpl (Matchers/eq exp-launch)
                                     (Matchers/any)
@@ -641,12 +645,11 @@
                                                 (upTime [] 0))))]
       (with-open [_ (ConfigUtilsInstaller. fake-cu)
                   _ (UtilsInstaller. fake-utils)]
-        (stubbing [cluster/mk-storm-cluster-state nil
-                   mk-timer nil]
+        (stubbing [cluster/mk-storm-cluster-state nil]
           (supervisor/supervisor-data auth-conf nil fake-isupervisor)
           (verify-call-times-for cluster/mk-storm-cluster-state 1)
           (verify-first-call-args-for-indices cluster/mk-storm-cluster-state [2]
-              expected-acls)))))
+              expected-acls))))))
 
   (deftest test-write-log-metadata
     (testing "supervisor writes correct data to logs metadata file"
@@ -769,66 +772,68 @@
             childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port mem-onheap)]
         (is (= expected-childopts childopts-with-ids)))))
 
-  (deftest test-retry-read-assignments
-    (with-simulated-time-local-cluster [cluster
-                                        :supervisors 0
-                                        :ports-per-supervisor 2
-                                        :daemon-conf {ConfigUtils/NIMBUS_DO_NOT_REASSIGN true
-                                                      NIMBUS-MONITOR-FREQ-SECS 10
-                                                      TOPOLOGY-MESSAGE-TIMEOUT-SECS 30
-                                                      TOPOLOGY-ACKER-EXECUTORS 0}]
-      (letlocals
-        (bind sup1 (add-supervisor cluster :id "sup1" :ports [1 2 3 4]))
-        (bind topology1 (thrift/mk-topology
-                          {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 2)}
-                          {}))
-        (bind topology2 (thrift/mk-topology
-                          {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 2)}
-                          {}))
-        (bind state (:storm-cluster-state cluster))
-        (bind changed (capture-changed-workers
-                        (submit-mocked-assignment
-                          (:nimbus cluster)
-                          (:storm-cluster-state cluster)
-                          "topology1"
-                          {TOPOLOGY-WORKERS 2}
-                          topology1
-                          {1 "1"
-                           2 "1"}
-                          {[1 1] ["sup1" 1]
-                           [2 2] ["sup1" 2]}
-                          {["sup1" 1] [0.0 0.0 0.0]
-                           ["sup1" 2] [0.0 0.0 0.0]
-                           })
-                        (submit-mocked-assignment
-                          (:nimbus cluster)
-                          (:storm-cluster-state cluster)
-                          "topology2"
-                          {TOPOLOGY-WORKERS 2}
-                          topology2
-                          {1 "1"
-                           2 "1"}
-                          {[1 1] ["sup1" 1]
-                           [2 2] ["sup1" 2]}
-                          {["sup1" 1] [0.0 0.0 0.0]
-                           ["sup1" 2] [0.0 0.0 0.0]
-                           })
-                        ;; Instead of sleeping until topology is scheduled, rebalance topology so mk-assignments is called.
-                        (.rebalance (:nimbus cluster) "topology1" (doto (RebalanceOptions.) (.set_wait_secs 0)))
-                        ))
-        (is (empty? (:launched changed)))
-        (bind options (RebalanceOptions.))
-        (.set_wait_secs options 0)
-        (bind changed (capture-changed-workers
-                        (.rebalance (:nimbus cluster) "topology2" options)
-                        (advance-cluster-time cluster 10)
-                        (heartbeat-workers cluster "sup1" [1 2 3 4])
-                        (advance-cluster-time cluster 10)
-                        ))
-        (validate-launched-once (:launched changed)
-          {"sup1" [1 2]}
-          (get-storm-id (:storm-cluster-state cluster) "topology1"))
-        (validate-launched-once (:launched changed)
-          {"sup1" [3 4]}
-          (get-storm-id (:storm-cluster-state cluster) "topology2"))
-        ))))
+(deftest test-retry-read-assignments
+  (with-simulated-time-local-cluster [cluster
+                                      :supervisors 0
+                                      :ports-per-supervisor 2
+                                      :daemon-conf {ConfigUtils/NIMBUS_DO_NOT_REASSIGN true
+                                                    NIMBUS-MONITOR-FREQ-SECS 10
+                                                    TOPOLOGY-MESSAGE-TIMEOUT-SECS 30
+                                                    TOPOLOGY-ACKER-EXECUTORS 0}]
+    (letlocals
+     (bind sup1 (add-supervisor cluster :id "sup1" :ports [1 2 3 4]))
+     (bind topology1 (Thrift/buildTopology
+                      {"1" (Thrift/prepareSpoutDetails
+                             (TestPlannerSpout. true) (Integer. 2))}
+                      {}))
+     (bind topology2 (Thrift/buildTopology
+                      {"1" (Thrift/prepareSpoutDetails
+                             (TestPlannerSpout. true) (Integer. 2))}
+                      {}))
+     (bind state (:storm-cluster-state cluster))
+     (bind changed (capture-changed-workers
+                    (submit-mocked-assignment
+                     (:nimbus cluster)
+                     (:storm-cluster-state cluster)
+                     "topology1"
+                     {TOPOLOGY-WORKERS 2}
+                     topology1
+                     {1 "1"
+                      2 "1"}
+                     {[1 1] ["sup1" 1]
+                      [2 2] ["sup1" 2]}
+                     {["sup1" 1] [0.0 0.0 0.0]
+                      ["sup1" 2] [0.0 0.0 0.0]
+                      })
+                    (submit-mocked-assignment
+                     (:nimbus cluster)
+                     (:storm-cluster-state cluster)
+                     "topology2"
+                     {TOPOLOGY-WORKERS 2}
+                     topology2
+                     {1 "1"
+                      2 "1"}
+                     {[1 1] ["sup1" 1]
+                      [2 2] ["sup1" 2]}
+                     {["sup1" 1] [0.0 0.0 0.0]
+                      ["sup1" 2] [0.0 0.0 0.0]
+                      })
+                    ;; Instead of sleeping until topology is scheduled, rebalance topology so mk-assignments is called.
+                    (.rebalance (:nimbus cluster) "topology1" (doto (RebalanceOptions.) (.set_wait_secs 0)))
+                    ))
+     (is (empty? (:launched changed)))
+     (bind options (RebalanceOptions.))
+     (.set_wait_secs options 0)
+     (bind changed (capture-changed-workers
+                    (.rebalance (:nimbus cluster) "topology2" options)
+                    (advance-cluster-time cluster 10)
+                    (heartbeat-workers cluster "sup1" [1 2 3 4])
+                    (advance-cluster-time cluster 10)
+                    ))
+     (validate-launched-once (:launched changed)
+                             {"sup1" [1 2]}
+                             (get-storm-id (:storm-cluster-state cluster) "topology1"))
+     (validate-launched-once (:launched changed)
+                             {"sup1" [3 4]}
+                             (get-storm-id (:storm-cluster-state cluster) "topology2"))
+     )))

@@ -17,10 +17,12 @@
   (:use [clojure test])
   (:import [org.apache.storm.testing TestWordSpout TestPlannerSpout]
            [org.apache.storm.tuple Fields])
-  (:use [org.apache.storm testing clojure config])
+  (:use [org.apache.storm testing config])
+  (:use [org.apache.storm.internal clojure])
   (:use [org.apache.storm.daemon common])
-  (:require [org.apache.storm [thrift :as thrift]]))
-
+  (:require [org.apache.storm.internal [thrift :as thrift]])
+  (:import [org.apache.storm Thrift])
+  (:import [org.apache.storm.utils Utils]))
 
 (defbolt lalala-bolt1 ["word"] [[val :as tuple] collector]
   (let [ret (str val "lalala")]
@@ -56,15 +58,21 @@
 (deftest test-clojure-bolt
   (with-simulated-time-local-cluster [cluster :supervisors 4]
     (let [nimbus (:nimbus cluster)
-          topology (thrift/mk-topology
-                      {"1" (thrift/mk-spout-spec (TestWordSpout. false))}
-                      {"2" (thrift/mk-bolt-spec {"1" :shuffle}
-                                              lalala-bolt1)
-                       "3" (thrift/mk-bolt-spec {"1" :local-or-shuffle}
-                                              lalala-bolt2)
-                       "4" (thrift/mk-bolt-spec {"1" :shuffle}
-                                              (lalala-bolt3 "_nathan_"))}
-                      )
+          topology (Thrift/buildTopology
+                      {"1" (Thrift/prepareSpoutDetails (TestWordSpout. false))}
+                      {"2" (Thrift/prepareBoltDetails
+                             {(Utils/getGlobalStreamId "1" nil)
+                              (Thrift/prepareShuffleGrouping)}
+                             lalala-bolt1)
+                       "3" (Thrift/prepareBoltDetails
+                             {(Utils/getGlobalStreamId "1" nil)
+                              (Thrift/prepareLocalOrShuffleGrouping)}
+                             lalala-bolt2)
+                       "4" (Thrift/prepareBoltDetails
+                             {(Utils/getGlobalStreamId "1" nil)
+                              (Thrift/prepareShuffleGrouping)}
+                             (lalala-bolt3 "_nathan_"))}
+                     )
           results (complete-topology cluster
                                      topology
                                      :mock-sources {"1" [["david"]
@@ -91,11 +99,12 @@
 
 (deftest test-map-emit
   (with-simulated-time-local-cluster [cluster :supervisors 4]
-    (let [topology (thrift/mk-topology
-                      {"words" (thrift/mk-spout-spec (TestWordSpout. false))}
-                      {"out" (thrift/mk-bolt-spec {"words" :shuffle}
-                                              punctuator-bolt)}
-                      )
+    (let [topology (Thrift/buildTopology
+                      {"words" (Thrift/prepareSpoutDetails (TestWordSpout. false))}
+                      {"out" (Thrift/prepareBoltDetails
+                               {(Utils/getGlobalStreamId "words" nil)
+                                (Thrift/prepareShuffleGrouping)}
+                               punctuator-bolt)})
           results (complete-topology cluster
                                      topology
                                      :mock-sources {"words" [["foo"] ["bar"]]}
@@ -115,14 +124,19 @@
 
 (deftest test-component-specific-config-clojure
   (with-simulated-time-local-cluster [cluster]
-    (let [topology (topology {"1" (spout-spec (TestPlannerSpout. (Fields. ["conf"])) :conf {TOPOLOGY-MESSAGE-TIMEOUT-SECS 40})
-                              }
-                             {"2" (bolt-spec {"1" :shuffle}
-                                             (conf-query-bolt {"fake.config" 1
-                                                               TOPOLOGY-MAX-TASK-PARALLELISM 2
-                                                               TOPOLOGY-MAX-SPOUT-PENDING 10})
-                                             :conf {TOPOLOGY-MAX-SPOUT-PENDING 3})
-                              })
+    (let [topology (Thrift/buildTopology
+                     {"1" (Thrift/prepareSpoutDetails
+                            (TestPlannerSpout. (Fields. ["conf"]))
+                            nil
+                            {TOPOLOGY-MESSAGE-TIMEOUT-SECS 40})}
+                     {"2" (Thrift/prepareBoltDetails
+                            {(Utils/getGlobalStreamId "1" nil)
+                             (Thrift/prepareShuffleGrouping)}
+                            (conf-query-bolt {"fake.config" 1
+                                              TOPOLOGY-MAX-TASK-PARALLELISM 2
+                                              TOPOLOGY-MAX-SPOUT-PENDING 10})
+                            nil
+                            {TOPOLOGY-MAX-SPOUT-PENDING 3})})
           results (complete-topology cluster
                                      topology
                                      :topology-name "test123"

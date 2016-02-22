@@ -194,7 +194,7 @@
   goto :eof
 
 :rebalance
-  set CLASS=org.apache.storm.command.rebalance
+  set CLASS=org.apache.storm.command.Rebalance
   set STORM_OPTS=%STORM_CLIENT_OPTS% %STORM_OPTS%
   goto :eof
 

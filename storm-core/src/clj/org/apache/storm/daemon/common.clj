@@ -29,9 +29,9 @@
   (:import [java.io InterruptedIOException]
            [org.json.simple JSONValue])
   (:import [java.util HashMap])
-  (:import [org.apache.storm Thrift])
+  (:import [org.apache.storm Thrift]
+           (org.apache.storm.daemon Acker))
   (:require [clojure.set :as set])
-  (:require [org.apache.storm.daemon.acker :as acker])
   (:require [metrics.reporters.jmx :as jmx])
   (:require [metrics.core  :refer [default-registry]]))
 
@@ -46,10 +46,10 @@
     (start-metrics-reporter reporter conf)))
 
 
-(def ACKER-COMPONENT-ID acker/ACKER-COMPONENT-ID)
-(def ACKER-INIT-STREAM-ID acker/ACKER-INIT-STREAM-ID)
-(def ACKER-ACK-STREAM-ID acker/ACKER-ACK-STREAM-ID)
-(def ACKER-FAIL-STREAM-ID acker/ACKER-FAIL-STREAM-ID)
+(def ACKER-COMPONENT-ID Acker/ACKER_COMPONENT_ID)
+(def ACKER-INIT-STREAM-ID Acker/ACKER_INIT_STREAM_ID)
+(def ACKER-ACK-STREAM-ID Acker/ACKER_ACK_STREAM_ID)
+(def ACKER-FAIL-STREAM-ID Acker/ACKER_FAIL_STREAM_ID)
 
 (def SYSTEM-STREAM-ID "__system")
 
@@ -222,10 +222,13 @@
                         ))]
     (merge spout-inputs bolt-inputs)))
 
+(defn mk-acker-bolt []
+  (Acker.))
+
 (defn add-acker! [storm-conf ^StormTopology ret]
   (let [num-executors (if (nil? (storm-conf TOPOLOGY-ACKER-EXECUTORS)) (storm-conf TOPOLOGY-WORKERS) (storm-conf TOPOLOGY-ACKER-EXECUTORS))
         acker-bolt (Thrift/prepareSerializedBoltDetails (acker-inputs ret)
-                                                        (new org.apache.storm.daemon.acker)
+                                                        (mk-acker-bolt)
                                                         {ACKER-ACK-STREAM-ID (Thrift/directOutputFields ["id"])
                                                          ACKER-FAIL-STREAM-ID (Thrift/directOutputFields ["id"])
                                                         }

@@ -2278,7 +2278,7 @@ public class Utils {
         return process;
     }
 
-    public static long bitXor(Object a, Object b) {
-        return ((Long) a) ^ ((Long) b);
+    public static long bitXor(Long a, Long b) {
+        return a ^ b;
     }
 }

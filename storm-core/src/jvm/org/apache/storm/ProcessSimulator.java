@@ -71,7 +71,7 @@ public class ProcessSimulator {
     }
 
     /**
-     * kill all processes
+     * Kill all processes
      */
     public static void killAllProcesses() {
         Set<String> pids = processMap.keySet();

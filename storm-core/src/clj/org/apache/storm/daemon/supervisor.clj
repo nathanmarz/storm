@@ -823,7 +823,7 @@
                                 (and stop? (= action ProfileAction/JPROFILE_STOP)) (jprofile-stop profile-cmd worker-pid target-dir))
                       action-on-exit (fn [exit-code]
                                        (log-message log-prefix " profile-action exited for code: " exit-code)
-                                       (if (and (= exit-code 0) stop?)
+                                       (if stop?
                                          (delete-topology-profiler-action storm-cluster-state storm-id pro-action)))
                       command (->> command (map str) (filter (complement empty?)))]
 

@@ -691,8 +691,8 @@
                 (increment-global! id# "transferred" 1)
                 (apply transferrer# args2#)))))]
        (with-simulated-time-local-cluster [~cluster-sym ~@cluster-args]
-                                          (let [~cluster-sym (assoc-track-id ~cluster-sym id#)]
-                                            ~@body)))
+                           (let [~cluster-sym (assoc-track-id ~cluster-sym id#)]
+                             ~@body)))
      (RegisteredGlobalState/clearState id#)))
 
 (defn tracked-wait

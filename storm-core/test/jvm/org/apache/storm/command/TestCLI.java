@@ -18,42 +18,62 @@
 
 package org.apache.storm.command;
 
-import java.util.Map;
-import java.util.List;
-import java.util.Arrays;
-
 import org.junit.Test;
-import static org.junit.Assert.*;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
 
 public class TestCLI {
+
     @Test
     public void testSimple() throws Exception {
         Map<String, Object> values = CLI.opt("a", "aa", null)
-           .opt("b", "bb", 1, CLI.AS_INT)
-           .opt("c", "cc", 1, CLI.AS_INT, CLI.FIRST_WINS)
-           .opt("d", "dd", null, CLI.AS_STRING, CLI.INTO_LIST)
-           .arg("A")
-           .arg("B", CLI.AS_INT)
-           .parse("-a100", "--aa", "200", "-c2", "-b", "50", "--cc", "100", "A-VALUE", "1", "2", "3", "-b40", "-d1", "-d2", "-d3");
-        assertEquals(6, values.size());
-        assertEquals("200", (String)values.get("a"));
-        assertEquals((Integer)40, (Integer)values.get("b"));
-        assertEquals((Integer)2, (Integer)values.get("c"));
+            .opt("b", "bb", 1, CLI.AS_INT)
+            .opt("c", "cc", 1, CLI.AS_INT, CLI.FIRST_WINS)
+            .opt("d", "dd", null, CLI.AS_STRING, CLI.INTO_LIST)
+            .opt("e", "ee", null, new PairParse(), CLI.INTO_MAP)
+            .arg("A")
+            .arg("B", CLI.AS_INT)
+            .parse("-a100", "--aa", "200", "-c2", "-b", "50", "--cc", "100", "A-VALUE", "1", "2", "3", "-b40", "-d1", "-d2", "-d3"
+                , "-e", "key1=value1", "-e", "key2=value2");
+        assertEquals(7, values.size());
+        assertEquals("200", (String) values.get("a"));
+        assertEquals((Integer) 40, (Integer) values.get("b"));
+        assertEquals((Integer) 2, (Integer) values.get("c"));
 
-        List<String> d = (List<String>)values.get("d");
+        List<String> d = (List<String>) values.get("d");
         assertEquals(3, d.size());
         assertEquals("1", d.get(0));
         assertEquals("2", d.get(1));
         assertEquals("3", d.get(2));
 
-        List<String> A = (List<String>)values.get("A");
+        List<String> A = (List<String>) values.get("A");
         assertEquals(1, A.size());
         assertEquals("A-VALUE", A.get(0));
 
-        List<Integer> B = (List<Integer>)values.get("B");
+        List<Integer> B = (List<Integer>) values.get("B");
         assertEquals(3, B.size());
-        assertEquals((Integer)1, B.get(0));
-        assertEquals((Integer)2, B.get(1));
-        assertEquals((Integer)3, B.get(2));
+        assertEquals((Integer) 1, B.get(0));
+        assertEquals((Integer) 2, B.get(1));
+        assertEquals((Integer) 3, B.get(2));
+
+        Map<String, String> e = (Map<String, String>) values.get("e");
+        assertEquals(2, e.size());
+        assertEquals("value1", e.get("key1"));
+        assertEquals("value2", e.get("key2"));
+    }
+
+    private static final class PairParse implements CLI.Parse {
+
+        @Override
+        public Object parse(String value) {
+            Map<String, String> result = new HashMap<>();
+            String[] splits = value.split("=");
+            result.put(splits[0], splits[1]);
+            return result;
+        }
     }
 }

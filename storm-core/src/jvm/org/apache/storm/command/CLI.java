@@ -17,18 +17,17 @@
  */
 package org.apache.storm.command;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.List;
-
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class CLI {
     private static final Logger LOG = LoggerFactory.getLogger(CLI.class);
@@ -135,6 +134,20 @@ public class CLI {
                 current = new ArrayList<Object>();
             }
             ((List<Object>)current).add(value);
+            return current;
+        }
+    };
+
+    /**
+     * All values are returned as a map
+     */
+    public static final Assoc INTO_MAP = new Assoc() {
+        @Override
+        public Object assoc(Object current, Object value) {
+            if (null == current) {
+                current = new HashMap<Object, Object>();
+            }
+            ((Map<Object, Object>) current).putAll((Map<Object, Object>) value);
             return current;
         }
     };

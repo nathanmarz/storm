@@ -21,6 +21,7 @@
   (:require [org.apache.storm.daemon [executor :as executor]])
   (:require [org.apache.storm [cluster :as cluster]])
   (:require [clojure.set :as set])
+  (:import [java.io File])
   (:import [java.util.concurrent Executors]
            [org.apache.storm.hooks IWorkerHook BaseWorkerHook]
            [uk.org.lidalia.sysoutslf4j.context SysOutOverSLF4J])
@@ -619,7 +620,7 @@
   (when-not (ConfigUtils/isLocalMode conf)
     (SysOutOverSLF4J/sendSystemOutAndErrToSLF4J)
     (let [pid (Utils/processPid)]
-      (FileUtils/touch (ConfigUtils/workerPidPath conf worker-id pid))
+      (FileUtils/touch (File. (ConfigUtils/workerPidPath conf worker-id pid)))
       (spit (ConfigUtils/workerArtifactsPidPath conf storm-id port) pid)))
 
   (declare establish-log-setting-callback)

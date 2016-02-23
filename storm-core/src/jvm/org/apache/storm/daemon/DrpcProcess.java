@@ -17,7 +17,6 @@
  */
 package org.apache.storm.daemon;
 
-import clojure.lang.IFn;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import org.apache.commons.lang.StringUtils;
@@ -43,9 +42,9 @@ import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class Drpc implements DistributedRPC.Iface, DistributedRPCInvocations.Iface, Shutdownable {
+public class DrpcProcess implements DistributedRPC.Iface, DistributedRPCInvocations.Iface, Shutdownable {
 
-    private static final Logger LOG = LoggerFactory.getLogger(Drpc.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DrpcProcess.class);
     private final Integer timeoutCheckSecs = 5;
 
     private Map conf;
@@ -73,11 +72,11 @@ public class Drpc implements DistributedRPC.Iface, DistributedRPCInvocations.Ifa
     private Meter meterFetchRequestCalls = new MetricRegistry().meter("drpc:num-fetchRequest-calls");
     private Meter meterShutdownCalls = new MetricRegistry().meter("drpc:num-shutdown-calls");
 
-    public Drpc() {
+    public DrpcProcess() {
 
     }
 
-    private ThriftServer initHandlerServer(Map conf, final Drpc service) throws Exception {
+    private ThriftServer initHandlerServer(Map conf, final DrpcProcess service) throws Exception {
         int port = (int) conf.get(Config.DRPC_PORT);
         if (port > 0) {
             handlerServer = new ThriftServer(conf, new DistributedRPC.Processor<DistributedRPC.Iface>(service), ThriftConnectionType.DRPC);
@@ -85,7 +84,7 @@ public class Drpc implements DistributedRPC.Iface, DistributedRPCInvocations.Ifa
         return handlerServer;
     }
 
-    private ThriftServer initInvokeServer(Map conf, final Drpc service) throws Exception {
+    private ThriftServer initInvokeServer(Map conf, final DrpcProcess service) throws Exception {
         invokeServer = new ThriftServer(conf, new DistributedRPCInvocations.Processor<DistributedRPCInvocations.Iface>(service),
                 ThriftConnectionType.DRPC_INVOCATIONS);
         return invokeServer;
@@ -128,7 +127,7 @@ public class Drpc implements DistributedRPC.Iface, DistributedRPCInvocations.Ifa
             handlerServer.serve();
     }
 
-    private void webApp(Drpc drpc, IHttpCredentialsPlugin httpCredsHandler){
+    private void webApp(DrpcProcess drpc, IHttpCredentialsPlugin httpCredsHandler){
         meterExecuteCalls.mark();
 
     }
@@ -331,7 +330,7 @@ public class Drpc implements DistributedRPC.Iface, DistributedRPCInvocations.Ifa
     public static void main(String[] args) throws Exception {
 
         Utils.setupDefaultUncaughtExceptionHandler();
-        final Drpc service = new Drpc();
+        final DrpcProcess service = new DrpcProcess();
         service.launchServer();
     }
 

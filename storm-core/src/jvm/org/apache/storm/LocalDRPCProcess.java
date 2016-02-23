@@ -18,22 +18,22 @@
 package org.apache.storm;
 
 import org.apache.log4j.Logger;
-import org.apache.storm.daemon.Drpc;
+import org.apache.storm.daemon.DrpcProcess;
 import org.apache.storm.generated.AuthorizationException;
 import org.apache.storm.generated.DRPCExecutionException;
 import org.apache.storm.generated.DRPCRequest;
 import org.apache.storm.utils.ServiceRegistry;
 import org.apache.thrift.TException;
 
-public class LocalDRPC implements ILocalDRPC {
-    private static final Logger LOG = Logger.getLogger(LocalDRPC.class);
+public class LocalDRPCProcess implements ILocalDRPC {
+    private static final Logger LOG = Logger.getLogger(LocalDRPCProcess.class);
 
-    private Drpc handler = new Drpc();
+    private DrpcProcess handler = new DrpcProcess();
     private Thread thread;
 
     private final String serviceId;
 
-    public LocalDRPC() {
+    public LocalDRPCProcess() {
 
         thread = new Thread(new Runnable() {
 

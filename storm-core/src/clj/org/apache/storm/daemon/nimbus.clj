@@ -597,7 +597,6 @@
                          (->> (dofor [[^ExecutorInfo executor-info  ^ExecutorBeat executor-heartbeat] executor-stats-clojurify]
                              {[(.get_task_start executor-info) (.get_task_end executor-info)] (clojurify-zk-executor-hb executor-heartbeat)})
                            (apply merge)))
-
         cache (update-heartbeat-cache (@(:heartbeats-cache nimbus) storm-id)
                                       executor-beats
                                       all-executors
@@ -1918,16 +1917,16 @@
               executor-summaries (dofor [[executor [node port]] (:executor->node+port assignment)]
                                         (let [host (-> assignment :node->host (get node))
                                               heartbeat (get beats executor)
-                                              stats (:stats heartbeat)
-                                              stats (if stats
-                                                      (stats/thriftify-executor-stats stats))]
+                                              excutorstats (:stats heartbeat)
+                                              excutorstats (if excutorstats
+                                                      (stats/thriftify-executor-stats excutorstats))]
                                           (doto
                                               (ExecutorSummary. (thriftify-executor-id executor)
                                                                 (-> executor first task->component)
                                                                 host
                                                                 port
                                                                 (Utils/nullToZero (:uptime heartbeat)))
-                                            (.set_stats stats))
+                                            (.set_stats excutorstats))
                                           ))
               topo-info  (TopologyInfo. storm-id
                            storm-name

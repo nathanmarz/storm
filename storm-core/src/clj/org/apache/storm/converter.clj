@@ -241,7 +241,7 @@
 
 (defn clojurify-zk-executor-hb [^ExecutorBeat executor-hb]
   (if executor-hb
-    {:stats (.getStats executor-hb)
+    {:stats (clojurify-executor-stats (.getStats executor-hb))
      :uptime (.getUptime executor-hb)
      :time-secs (.getTimeSecs executor-hb)
      }

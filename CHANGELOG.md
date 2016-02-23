@@ -1,4 +1,5 @@
 ## 2.0.0
+ * STORM-1558: Utils in java breaks component page due to illegal type cast
  * STORM-1553: port event.clj to java
  * STORM-1262: port backtype.storm.command.dev-zookeeper to java.
  * STORM-1243: port backtype.storm.command.healthcheck to java.

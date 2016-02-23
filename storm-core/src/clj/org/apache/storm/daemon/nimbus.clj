@@ -1215,7 +1215,7 @@
       (.setupBlobstore storm-cluster-state key (:nimbus-host-port-info nimbus) (get-version-for-key key nimbus-host-port-info conf)))))
 
 (defn- get-errors [storm-cluster-state storm-id component-id]
-  (->> (apply clojurify-error (.errors storm-cluster-state storm-id component-id))
+  (->> (map clojurify-error (.errors storm-cluster-state storm-id component-id))
        (map #(doto (ErrorInfo. (:error %) (:time-secs %))
                    (.set_host (:host %))
                    (.set_port (:port %))))))

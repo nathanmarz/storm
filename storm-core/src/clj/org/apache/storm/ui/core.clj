@@ -152,8 +152,10 @@
   (logviewer-link host (Utils/eventLogsFilename topology-id port) secure?))
 
 (defn worker-log-link [host port topology-id secure?]
-  (let [fname (Utils/logsFilename topology-id port)]
-    (logviewer-link host fname secure?)))
+  (if (or (empty? host) (let [port_str (str port "")] (or (empty? port_str) (= "0" port_str))))
+    ""
+    (let [fname (Utils/logsFilename topology-id port)]
+      (logviewer-link host fname secure?))))
 
 (defn nimbus-log-link [host]
   (UIHelpers/urlFormat "http://%s:%s/daemonlog?file=nimbus.log" (to-array [host (*STORM-CONF* LOGVIEWER-PORT)])))

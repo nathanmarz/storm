@@ -32,13 +32,15 @@ public class TestCLI {
            .opt("b", "bb", 1, CLI.AS_INT)
            .opt("c", "cc", 1, CLI.AS_INT, CLI.FIRST_WINS)
            .opt("d", "dd", null, CLI.AS_STRING, CLI.INTO_LIST)
+           .opt("e", "ee", null, CLI.AS_INT)
            .arg("A")
            .arg("B", CLI.AS_INT)
            .parse("-a100", "--aa", "200", "-c2", "-b", "50", "--cc", "100", "A-VALUE", "1", "2", "3", "-b40", "-d1", "-d2", "-d3");
-        assertEquals(6, values.size());
+        assertEquals(7, values.size());
         assertEquals("200", (String)values.get("a"));
         assertEquals((Integer)40, (Integer)values.get("b"));
         assertEquals((Integer)2, (Integer)values.get("c"));
+        assertEquals(null, values.get("e"));
 
         List<String> d = (List<String>)values.get("d");
         assertEquals(3, d.size());

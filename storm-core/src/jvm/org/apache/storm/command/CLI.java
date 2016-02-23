@@ -238,10 +238,13 @@ public class CLI {
             DefaultParser parser = new DefaultParser();
             CommandLine cl = parser.parse(options, rawArgs);
             HashMap<String, Object> ret = new HashMap<>();
-            for (Opt opt: opts) {
+            for (Opt opt : opts) {
                 Object current = null;
-                for (String val: cl.getOptionValues(opt.shortName)) {
-                    current = opt.process(current, val);
+                String[] strings = cl.getOptionValues(opt.shortName);
+                if (strings != null) {
+                    for (String val : cl.getOptionValues(opt.shortName)) {
+                        current = opt.process(current, val);
+                    }
                 }
                 if (current == null) {
                     current = opt.defaultValue;

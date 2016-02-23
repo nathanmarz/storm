@@ -1,4 +1,5 @@
 ## 2.0.0
+ * STORM-1479: use a simple implemention for IntSerializer
  * STORM-1255: port storm_utils.clj to java and split Time tests into its
  * STORM-1566: Worker exits with error o.a.s.d.worker [ERROR] Error on initialization of server mk-worker
  * STORM-1558: Utils in java breaks component page due to illegal type cast

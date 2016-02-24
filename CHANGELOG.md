@@ -1,4 +1,5 @@
 ## 2.0.0
+ * STORM-1564: fix wrong package-info in org.apache.storm.utils.staticmocking
  * STORM-1267: Port set_log_level
  * STORM-1266: Port rebalance
  * STORM-1265: Port monitor

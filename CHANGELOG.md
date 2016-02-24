@@ -1,4 +1,6 @@
 ## 2.0.0
+ * STORM-1571: Improvment Kafka Spout Time Metric
+ * STORM-1569: Allowing users to specify the nimbus thrift server queue size.
  * STORM-1564: fix wrong package-info in org.apache.storm.utils.staticmocking
  * STORM-1267: Port set_log_level
  * STORM-1266: Port rebalance

@@ -242,7 +242,7 @@ public class CLI {
                 Object current = null;
                 String[] strings = cl.getOptionValues(opt.shortName);
                 if (strings != null) {
-                    for (String val : cl.getOptionValues(opt.shortName)) {
+                    for (String val : strings) {
                         current = opt.process(current, val);
                     }
                 }

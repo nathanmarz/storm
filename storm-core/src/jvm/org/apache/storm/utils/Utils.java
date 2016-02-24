@@ -17,27 +17,15 @@
  */
 package org.apache.storm.utils;
 
+import com.google.common.annotations.VisibleForTesting;
+
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.ExecuteException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.storm.Config;
-import org.apache.storm.blobstore.BlobStore;
-import org.apache.storm.blobstore.BlobStoreAclHandler;
-import org.apache.storm.blobstore.ClientBlobStore;
-import org.apache.storm.blobstore.InputStreamWithMeta;
-import org.apache.storm.blobstore.LocalFsBlobStore;
-import org.apache.storm.daemon.JarTransformer;
-import org.apache.storm.generated.*;
-import org.apache.storm.localizer.Localizer;
-import org.apache.storm.nimbus.NimbusInfo;
-import org.apache.storm.serialization.DefaultSerializationDelegate;
-import org.apache.storm.serialization.SerializationDelegate;
-import clojure.lang.RT;
-import com.google.common.annotations.VisibleForTesting;
-import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.io.input.ClassLoaderObjectInputStream;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.ensemble.exhibitor.DefaultExhibitorRestClient;
@@ -45,6 +33,31 @@ import org.apache.curator.ensemble.exhibitor.ExhibitorEnsembleProvider;
 import org.apache.curator.ensemble.exhibitor.Exhibitors;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.storm.Config;
+import org.apache.storm.blobstore.BlobStore;
+import org.apache.storm.blobstore.BlobStoreAclHandler;
+import org.apache.storm.blobstore.ClientBlobStore;
+import org.apache.storm.blobstore.InputStreamWithMeta;
+import org.apache.storm.blobstore.LocalFsBlobStore;
+import org.apache.storm.daemon.JarTransformer;
+import org.apache.storm.generated.AccessControl;
+import org.apache.storm.generated.AccessControlType;
+import org.apache.storm.generated.AuthorizationException;
+import org.apache.storm.generated.ClusterSummary;
+import org.apache.storm.generated.ComponentCommon;
+import org.apache.storm.generated.ComponentObject;
+import org.apache.storm.generated.GlobalStreamId;
+import org.apache.storm.generated.KeyNotFoundException;
+import org.apache.storm.generated.Nimbus;
+import org.apache.storm.generated.ReadableBlobMeta;
+import org.apache.storm.generated.SettableBlobMeta;
+import org.apache.storm.generated.StormTopology;
+import org.apache.storm.generated.TopologyInfo;
+import org.apache.storm.generated.TopologySummary;
+import org.apache.storm.localizer.Localizer;
+import org.apache.storm.nimbus.NimbusInfo;
+import org.apache.storm.serialization.DefaultSerializationDelegate;
+import org.apache.storm.serialization.SerializationDelegate;
 import org.apache.thrift.TBase;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
@@ -117,6 +130,8 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+
+import clojure.lang.RT;
 
 public class Utils {
     // A singleton instance allows us to mock delegated static methods in our
@@ -1433,21 +1448,29 @@ public class Utils {
     }
 
     public static TopologyInfo getTopologyInfo(String name, String asUser, Map stormConf) {
-        NimbusClient client = NimbusClient.getConfiguredClientAs(stormConf, asUser);
-        TopologyInfo topologyInfo = null;
+        try (NimbusClient client = NimbusClient.getConfiguredClientAs(stormConf, asUser)) {
+            String topologyId = getTopologyId(name, client.getClient());
+            if (null != topologyId) {
+                return client.getClient().getTopologyInfo(topologyId);
+            }
+            return null;
+        } catch(Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static String getTopologyId(String name, Nimbus.Client client) {
         try {
-            ClusterSummary summary = client.getClient().getClusterInfo();
+            ClusterSummary summary = client.getClusterInfo();
             for(TopologySummary s : summary.get_topologies()) {
                 if(s.get_name().equals(name)) {
-                    topologyInfo = client.getClient().getTopologyInfo(s.get_id());
+                    return s.get_id();
                 }
             }
         } catch(Exception e) {
             throw new RuntimeException(e);
-        } finally {
-            client.close();
         }
-        return topologyInfo;
+        return null;
     }
 
     /**

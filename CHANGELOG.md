@@ -1,4 +1,5 @@
 ## 2.0.0
+ * STORM-1572: throw NPE when parsing the command line arguments by CLI
  * STORM-1273: port backtype.storm.cluster to java
  * STORM-1479: use a simple implemention for IntSerializer
  * STORM-1255: port storm_utils.clj to java and split Time tests into its

@@ -16,21 +16,26 @@
  * limitations under the License.
  */
 
-
 package org.apache.storm.utils;
 
-import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class WorkerBackpressureThread extends Thread {
 
-    Object trigger;
-    Object workerData;
-    WorkerBackpressureCallback callback;
+    private static final Logger LOG = LoggerFactory.getLogger(WorkerBackpressureThread.class);
+    private Object trigger;
+    private Object workerData;
+    private WorkerBackpressureCallback callback;
+    private volatile boolean running = true;
 
     public WorkerBackpressureThread(Object trigger, Object workerData, WorkerBackpressureCallback callback) {
         this.trigger = trigger;
         this.workerData = workerData;
         this.callback = callback;
+        this.setName("WorkerBackpressureThread");
+        this.setDaemon(true);
+        this.setUncaughtExceptionHandler(new BackpressureUncaughtExceptionHandler());
     }
 
     static public void notifyBackpressureChecker(Object trigger) {
@@ -43,17 +48,33 @@ public class WorkerBackpressureThread extends Thread {
         }
     }
 
+    public void terminate() {
+        running = false;
+    }
+
     public void run() {
-        try {
-            while (true) {
+        while (running) {
+            try {
                 synchronized(trigger) {
                     trigger.wait(100);
                 }
                 callback.onEvent(workerData); // check all executors and update zk backpressure throttle for the worker if needed
+            } catch (InterruptedException interEx) {
+                LOG.info("WorkerBackpressureThread gets interrupted! Ignoring Exception: ", interEx);
             }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
         }
     }
 }
 
+class BackpressureUncaughtExceptionHandler implements Thread.UncaughtExceptionHandler {
+    private static final Logger LOG = LoggerFactory.getLogger(BackpressureUncaughtExceptionHandler.class);
+    @Override
+    public void uncaughtException(Thread t, Throwable e) {
+        try {
+            Utils.handleUncaughtException(e);
+        } catch (Error error) {
+            LOG.info("Received error in WorkerBackpressureThread.. terminating the worker...");
+            Runtime.getRuntime().exit(1);
+        }
+    }
+}

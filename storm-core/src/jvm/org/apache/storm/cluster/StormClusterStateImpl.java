@@ -433,7 +433,8 @@ public class StormClusterStateImpl implements IStormClusterState {
     }
 
     /**
-     * if the backpresure/storm-id dir is empty, this topology has throttle-on, otherwise not.
+     * Check whether a topology is in throttle-on status or not:
+     * if the backpresure/storm-id dir is not empty, this topology has throttle-on, otherwise throttle-off.
      * 
      * @param stormId
      * @param callback
@@ -455,6 +456,10 @@ public class StormClusterStateImpl implements IStormClusterState {
         stateStorage.mkdirs(ClusterUtils.backpressureStormRoot(stormId), acls);
     }
 
+    @Override
+    public void removeBackpressure(String stormId) {
+        stateStorage.delete_node(ClusterUtils.backpressureStormRoot(stormId));
+    }
     @Override
     public void removeWorkerBackpressure(String stormId, String node, Long port) {
         stateStorage.delete_node(ClusterUtils.backpressurePath(stormId, node, port));

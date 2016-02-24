@@ -85,6 +85,8 @@ public interface IStormClusterState {
 
     public void setupBackpressure(String stormId);
 
+    public void removeBackpressure(String stormId);
+
     public void removeWorkerBackpressure(String stormId, String node, Long port);
 
     public void activateStorm(String stormId, StormBase stormBase);

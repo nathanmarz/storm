@@ -28,7 +28,7 @@
                                               start-metrics-reporters]]])
   (:import [org.apache.storm.utils Time]
            [org.apache.storm.generated NimbusSummary]
-           [org.apache.storm.ui UIHelpers IConfigurator])
+           [org.apache.storm.ui UIHelpers IConfigurator FilterConfiguration])
   (:use [clojure.string :only [blank? lower-case trim split]])
   (:import [org.apache.storm.generated ExecutorSpecificStats
             ExecutorStats ExecutorSummary ExecutorInfo TopologyInfo SpoutStats BoltStats
@@ -939,76 +939,76 @@
   "Return a JSON response communicating that profiling is disabled and
   therefore unavailable."
   [callback]
-  (clojurify-structure (UIHelpers/jsonResponse {"status" "disabled",
+  (json-response {"status" "disabled",
                   "message" "Profiling is not enabled on this server"}
                  callback
-                 501)))
+                 :status 501))
 
 (defroutes main-routes
   (GET "/api/v1/cluster/configuration" [& m]
     (mark! ui:num-cluster-configuration-http-requests)
-    (clojurify-structure (UIHelpers/jsonResponse (cluster-configuration)
-                   (:callback m) false nil nil)))
+    (json-response (cluster-configuration)
+                   (:callback m) :need-serialize false))
   (GET "/api/v1/cluster/summary" [:as {:keys [cookies servlet-request]} & m]
     (mark! ui:num-cluster-summary-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "getClusterInfo")
     (let [user (get-user-name servlet-request)]
-      (clojurify-structure (UIHelpers/jsonResponse (assoc (cluster-summary user)
+      (json-response (assoc (cluster-summary user)
                           "bugtracker-url" (*STORM-CONF* UI-PROJECT-BUGTRACKER-URL)
-                          "central-log-url" (*STORM-CONF* UI-CENTRAL-LOGGING-URL)) (:callback m)))))
+                          "central-log-url" (*STORM-CONF* UI-CENTRAL-LOGGING-URL)) (:callback m))))
   (GET "/api/v1/nimbus/summary" [:as {:keys [cookies servlet-request]} & m]
     (mark! ui:num-nimbus-summary-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "getClusterInfo")
-    (clojurify-structure (UIHelpers/jsonResponse (nimbus-summary) (:callback m))))
+    (json-response (nimbus-summary) (:callback m)))
   (GET "/api/v1/history/summary" [:as {:keys [cookies servlet-request]} & m]
     (let [user (.getUserName http-creds-handler servlet-request)]
-      (clojurify-structure (UIHelpers/jsonResponse (topology-history-info user) (:callback m)))))
+      (json-response (topology-history-info user) (:callback m))))
   (GET "/api/v1/supervisor/summary" [:as {:keys [cookies servlet-request]} & m]
     (mark! ui:num-supervisor-summary-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "getClusterInfo")
-    (clojurify-structure (UIHelpers/jsonResponse (assoc (supervisor-summary)
-                     "logviewerPort" (*STORM-CONF* LOGVIEWER-PORT)) (:callback m))))
+    (json-response (assoc (supervisor-summary)
+                     "logviewerPort" (*STORM-CONF* LOGVIEWER-PORT)) (:callback m)))
   (GET "/api/v1/topology/summary" [:as {:keys [cookies servlet-request]} & m]
     (mark! ui:num-all-topologies-summary-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "getClusterInfo")
-    (clojurify-structure (UIHelpers/jsonResponse (all-topologies-summary) (:callback m))))
+    (json-response (all-topologies-summary) (:callback m)))
   (GET  "/api/v1/topology-workers/:id" [:as {:keys [cookies servlet-request]} id & m]
     (let [id (URLDecoder/decode id)]
-      (clojurify-structure (UIHelpers/jsonResponse {"hostPortList" (worker-host-port id)
-                      "logviewerPort" (*STORM-CONF* LOGVIEWER-PORT)} (:callback m)))))
+      (json-response {"hostPortList" (worker-host-port id)
+                      "logviewerPort" (*STORM-CONF* LOGVIEWER-PORT)} (:callback m))))
   (GET "/api/v1/topology/:id" [:as {:keys [cookies servlet-request scheme]} id & m]
     (mark! ui:num-topology-page-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "getTopology" (topology-config id))
     (let [user (get-user-name servlet-request)]
-      (clojurify-structure (UIHelpers/jsonResponse (topology-page id (:window m) (check-include-sys? (:sys m)) user (= scheme :https)) (:callback m)))))
+      (json-response (topology-page id (:window m) (check-include-sys? (:sys m)) user (= scheme :https)) (:callback m))))
   (GET "/api/v1/topology/:id/visualization-init" [:as {:keys [cookies servlet-request]} id & m]
     (mark! ui:num-build-visualization-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "getTopology" (topology-config id))
-    (clojurify-structure (UIHelpers/jsonResponse (build-visualization id (:window m) (check-include-sys? (:sys m))) (:callback m))))
+    (json-response (build-visualization id (:window m) (check-include-sys? (:sys m))) (:callback m)))
   (GET "/api/v1/topology/:id/visualization" [:as {:keys [cookies servlet-request]} id & m]
     (mark! ui:num-mk-visualization-data-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "getTopology" (topology-config id))
-    (clojurify-structure (UIHelpers/jsonResponse (mk-visualization-data id (:window m) (check-include-sys? (:sys m))) (:callback m))))
+    (json-response (mk-visualization-data id (:window m) (check-include-sys? (:sys m))) (:callback m)))
   (GET "/api/v1/topology/:id/component/:component" [:as {:keys [cookies servlet-request scheme]} id component & m]
     (mark! ui:num-component-page-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "getTopology" (topology-config id))
     (let [user (get-user-name servlet-request)]
-      (clojurify-structure (UIHelpers/jsonResponse
+      (json-response
           (component-page id component (:window m) (check-include-sys? (:sys m)) user (= scheme :https))
-          (:callback m)))))
+          (:callback m))))
   (GET "/api/v1/topology/:id/logconfig" [:as {:keys [cookies servlet-request]} id & m]
     (mark! ui:num-log-config-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "getTopology" (topology-config id))
-    (clojurify-structure (UIHelpers/jsonResponse (log-config id) (:callback m))))
+    (json-response (log-config id) (:callback m)))
   (POST "/api/v1/topology/:id/activate" [:as {:keys [cookies servlet-request]} id & m]
     (mark! ui:num-activate-topology-http-requests)
     (populate-context! servlet-request)
@@ -1021,7 +1021,7 @@
             name (.get_name tplg)]
         (.activate nimbus name)
         (log-message "Activating topology '" name "'")))
-    (clojurify-structure (UIHelpers/jsonResponse (topology-op-response id "activate") (m "callback"))))
+    (json-response (topology-op-response id "activate") (m "callback")))
   (POST "/api/v1/topology/:id/deactivate" [:as {:keys [cookies servlet-request]} id & m]
     (mark! ui:num-deactivate-topology-http-requests)
     (populate-context! servlet-request)
@@ -1034,7 +1034,7 @@
             name (.get_name tplg)]
         (.deactivate nimbus name)
         (log-message "Deactivating topology '" name "'")))
-    (clojurify-structure (UIHelpers/jsonResponse (topology-op-response id "deactivate") (m "callback"))))
+    (json-response (topology-op-response id "deactivate") (m "callback")))
   (POST "/api/v1/topology/:id/debug/:action/:spct" [:as {:keys [cookies servlet-request]} id action spct & m]
     (mark! ui:num-debug-topology-http-requests)
     (populate-context! servlet-request)
@@ -1048,7 +1048,7 @@
             enable? (= "enable" action)]
         (.debug nimbus name "" enable? (Integer/parseInt spct))
         (log-message "Debug topology [" name "] action [" action "] sampling pct [" spct "]")))
-    (clojurify-structure (UIHelpers/jsonResponse (topology-op-response id (str "debug/" action)) (m "callback"))))
+    (json-response (topology-op-response id (str "debug/" action)) (m "callback")))
   (POST "/api/v1/topology/:id/component/:component/debug/:action/:spct" [:as {:keys [cookies servlet-request]} id component action spct & m]
     (mark! ui:num-component-op-response-http-requests)
     (populate-context! servlet-request)
@@ -1062,7 +1062,7 @@
             enable? (= "enable" action)]
         (.debug nimbus name component enable? (Integer/parseInt spct))
         (log-message "Debug topology [" name "] component [" component "] action [" action "] sampling pct [" spct "]")))
-    (clojurify-structure (UIHelpers/jsonResponse (component-op-response id component (str "/debug/" action)) (m "callback"))))
+    (json-response (component-op-response id component (str "/debug/" action)) (m "callback")))
   (POST "/api/v1/topology/:id/rebalance/:wait-time" [:as {:keys [cookies servlet-request]} id wait-time & m]
     (mark! ui:num-topology-op-response-http-requests)
     (populate-context! servlet-request)
@@ -1083,7 +1083,7 @@
             (.put_to_num_executors options (key keyval) (Integer/parseInt (.toString (val keyval))))))
         (.rebalance nimbus name options)
         (log-message "Rebalancing topology '" name "' with wait time: " wait-time " secs")))
-    (clojurify-structure (UIHelpers/jsonResponse (topology-op-response id "rebalance") (m "callback"))))
+    (json-response (topology-op-response id "rebalance") (m "callback")))
   (POST "/api/v1/topology/:id/kill/:wait-time" [:as {:keys [cookies servlet-request]} id wait-time & m]
     (mark! ui:num-topology-op-response-http-requests)
     (populate-context! servlet-request)
@@ -1098,7 +1098,7 @@
         (.set_wait_secs options (Integer/parseInt wait-time))
         (.killTopologyWithOpts nimbus name options)
         (log-message "Killing topology '" name "' with wait time: " wait-time " secs")))
-    (clojurify-structure (UIHelpers/jsonResponse (topology-op-response id "kill") (m "callback"))))
+    (json-response (topology-op-response id "kill") (m "callback")))
   (POST "/api/v1/topology/:id/logconfig" [:as {:keys [cookies servlet-request]} id namedLoggerLevels & m]
     (mark! ui:num-topology-op-response-http-requests)
     (populate-context! servlet-request)
@@ -1126,7 +1126,7 @@
               (.put_to_named_logger_level new-log-config logger-name named-logger-level)))
         (log-message "Setting topology " id " log config " new-log-config)
         (.setLogConfig nimbus id new-log-config)
-        (clojurify-structure (UIHelpers/jsonResponse (log-config id) (m "callback"))))))
+        (json-response (log-config id) (m "callback")))))
 
   (GET "/api/v1/topology/:id/profiling/start/:host-port/:timeout"
        [:as {:keys [servlet-request]} id host-port timeout & m]
@@ -1142,14 +1142,14 @@
                                             ProfileAction/JPROFILE_STOP)]
                (.set_time_stamp request timestamp)
                (.setWorkerProfiler nimbus id request)
-               (clojurify-structure (UIHelpers/jsonResponse {"status" "ok"
+               (json-response {"status" "ok"
                                "id" host-port
                                "timeout" timeout
                                "dumplink" (worker-dump-link
                                            host
                                            port
                                            id)}
-                              (m "callback"))))))
+                              (m "callback")))))
          (json-profiling-disabled (m "callback"))))
 
   (GET "/api/v1/topology/:id/profiling/stop/:host-port"
@@ -1166,9 +1166,9 @@
                                             ProfileAction/JPROFILE_STOP)]
                (.set_time_stamp request timestamp)
                (.setWorkerProfiler nimbus id request)
-               (clojurify-structure (UIHelpers/jsonResponse {"status" "ok"
+               (json-response {"status" "ok"
                                "id" host-port}
-                              (m "callback"))))))
+                              (m "callback")))))
          (json-profiling-disabled (m "callback"))))
 
   (GET "/api/v1/topology/:id/profiling/dumpprofile/:host-port"
@@ -1185,9 +1185,9 @@
                                             ProfileAction/JPROFILE_DUMP)]
                (.set_time_stamp request timestamp)
                (.setWorkerProfiler nimbus id request)
-               (clojurify-structure (UIHelpers/jsonResponse {"status" "ok"
+               (json-response {"status" "ok"
                                "id" host-port}
-                              (m "callback"))))))
+                              (m "callback")))))
          (json-profiling-disabled (m "callback"))))
 
   (GET "/api/v1/topology/:id/profiling/dumpjstack/:host-port"
@@ -1202,9 +1202,9 @@
                                         ProfileAction/JSTACK_DUMP)]
            (.set_time_stamp request timestamp)
            (.setWorkerProfiler nimbus id request)
-           (clojurify-structure (UIHelpers/jsonResponse {"status" "ok"
+           (json-response {"status" "ok"
                            "id" host-port}
-                          (m "callback"))))))
+                          (m "callback")))))
 
   (GET "/api/v1/topology/:id/profiling/restartworker/:host-port"
        [:as {:keys [servlet-request]} id host-port & m]
@@ -1218,9 +1218,9 @@
                                         ProfileAction/JVM_RESTART)]
            (.set_time_stamp request timestamp)
            (.setWorkerProfiler nimbus id request)
-           (clojurify-structure (UIHelpers/jsonResponse {"status" "ok"
+           (json-response {"status" "ok"
                            "id" host-port}
-                          (m "callback"))))))
+                          (m "callback")))))
 
   (GET "/api/v1/topology/:id/profiling/dumpheap/:host-port"
        [:as {:keys [servlet-request]} id host-port & m]
@@ -1234,9 +1234,9 @@
                                         ProfileAction/JMAP_DUMP)]
            (.set_time_stamp request timestamp)
            (.setWorkerProfiler nimbus id request)
-           (clojurify-structure (UIHelpers/jsonResponse {"status" "ok"
+           (json-response {"status" "ok"
                            "id" host-port}
-                          (m "callback"))))))
+                          (m "callback")))))
 
   (GET "/" [:as {cookies :cookies}]
     (mark! ui:num-main-page-http-requests)
@@ -1250,7 +1250,7 @@
     (try
       (handler request)
       (catch Exception ex
-        (clojurify-structure (UIHelpers/jsonResponse (UIHelpers/exceptionToJson ex) ((:query-params request) "callback") 500))))))
+        (json-response (UIHelpers/exceptionToJson ex) ((:query-params request) "callback") :status 500)))))
 
 (def app
   (handler/site (-> main-routes
@@ -1265,8 +1265,7 @@
   (try
     (let [conf *STORM-CONF*
           header-buffer-size (int (.get conf UI-HEADER-BUFFER-BYTES))
-          filters-confs [{:filter-class (conf UI-FILTER)
-                          :filter-params (conf UI-FILTER-PARAMS)}]
+          filters-confs [(FilterConfiguration. (conf UI-FILTER) (conf UI-FILTER-PARAMS))]
           https-port (int (or (conf UI-HTTPS-PORT) 0))
           https-ks-path (conf UI-HTTPS-KEYSTORE-PATH)
           https-ks-password (conf UI-HTTPS-KEYSTORE-PASSWORD)
@@ -1296,8 +1295,7 @@
                                       https-want-client-auth)
                                     (doseq [connector (.getConnectors server)]
                                       (.setRequestHeaderSize connector header-buffer-size))
-                                    (UIHelpers/configFilter server (ring.util.servlet/servlet app) filters-confs)
-                                    ))))
+                                    (UIHelpers/configFilter server (ring.util.servlet/servlet app) filters-confs)))))
    (catch Exception ex
      (log-error ex))))
 

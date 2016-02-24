@@ -17,12 +17,8 @@
  */
 package org.apache.storm.ui;
 
-import clojure.lang.Keyword;
-import clojure.lang.RT;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
-import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.storm.generated.ExecutorInfo;
 import org.apache.storm.logging.filters.AccessLoggingFilter;
 import org.apache.storm.utils.Utils;
@@ -47,30 +43,31 @@ import java.util.*;
 
 public class UIHelpers {
 
-    private static final String[][] PRETTY_SEC_DIVIDERS = {
-            new String[]{"s", "60"},
-            new String[]{"m", "60"},
-            new String[]{"h", "24"},
-            new String[]{"d", null}};
+    private static final Object[][] PRETTY_SEC_DIVIDERS = {
+            new Object[]{"s", 60},
+            new Object[]{"m", 60},
+            new Object[]{"h", 24},
+            new Object[]{"d", null}};
 
-    private static final String[][] PRETTY_MS_DIVIDERS = {
-            new String[]{"ms", "1000"},
-            new String[]{"s", "60"},
-            new String[]{"m", "60"},
-            new String[]{"h", "24"},
-            new String[]{"d", null}};
+    private static final Object[][] PRETTY_MS_DIVIDERS = {
+            new Object[]{"ms", 1000},
+            new Object[]{"s", 60},
+            new Object[]{"m", 60},
+            new Object[]{"h", 24},
+            new Object[]{"d", null}};
 
-    public static String prettyUptimeStr(String val, String[][] dividers) {
+    public static String prettyUptimeStr(String val, Object[][] dividers) {
         int uptime = Integer.parseInt(val);
         LinkedList<String> tmp = new LinkedList<>();
-        for (String[] divider : dividers) {
+        for (Object[] divider : dividers) {
             if (uptime > 0) {
-                if (divider[1] != null) {
-                    int div = Integer.parseInt(divider[1]);
-                    tmp.addFirst(uptime % div + divider[0]);
+                String state = (String) divider[0];
+                Integer div = (Integer) divider[1];
+                if (div != null) {
+                    tmp.addFirst(uptime % div + state);
                     uptime = uptime / div;
                 } else {
-                    tmp.addFirst(uptime + divider[0]);
+                    tmp.addFirst(uptime + state);
                 }
             }
         }
@@ -109,16 +106,7 @@ public class UIHelpers {
     public static Map unauthorizedUserJson(String user) {
         return ImmutableMap.of(
                 "error", "No Authorization",
-                "errorMessage", String.format("User %s is not authorized.", user)
-        );
-    }
-
-    public static List unauthorizedUserHtml(String user) {
-        return Lists.newArrayList(
-                keyword("h1"),
-                "User '",
-                StringEscapeUtils.escapeHtml(user),
-                "' is not authorized.");
+                "errorMessage", String.format("User %s is not authorized.", user));
     }
 
     private static SslSocketConnector mkSslConnector(Integer port, String ksPath, String ksPassword, String ksType,
@@ -141,8 +129,7 @@ public class UIHelpers {
 
         if (needClientAuth != null && needClientAuth) {
             factory.setNeedClientAuth(true);
-        }
-        if (wantClientAuth != null && wantClientAuth) {
+        } else if (wantClientAuth != null && wantClientAuth) {
             factory.setWantClientAuth(true);
         }
 
@@ -172,17 +159,16 @@ public class UIHelpers {
         return new FilterHolder(new AccessLoggingFilter());
     }
 
-    public static void configFilter(Server server, Servlet servlet, List filtersConfs) {
+    public static void configFilter(Server server, Servlet servlet, List<FilterConfiguration> filtersConfs) {
         if (filtersConfs != null) {
             ServletHolder servletHolder = new ServletHolder(servlet);
             ServletContextHandler context = new ServletContextHandler(server, "/");
             context.addServlet(servletHolder, "/");
             context.addFilter(corsFilterHandle(), "/*", EnumSet.allOf(DispatcherType.class));
-            for (Object obj : filtersConfs) {
-                Map filterConf = (Map) obj;
-                String filterName = (String) filterConf.get(keyword("filter-name"));
-                String filterClass = (String) filterConf.get(keyword("filter-class"));
-                Map filterParams = (Map) filterConf.get(keyword("filter-params"));
+            for (FilterConfiguration filterConf : filtersConfs) {
+                String filterName = filterConf.getFilterName();
+                String filterClass = filterConf.getFilterClass();
+                Map filterParams = filterConf.getFilterParams();
                 if (filterClass != null) {
                     FilterHolder filterHolder = new FilterHolder();
                     filterHolder.setClassName(filterClass);
@@ -202,14 +188,6 @@ public class UIHelpers {
             context.addFilter(mkAccessLoggingFilterHandle(), "/*", EnumSet.allOf(DispatcherType.class));
             server.setHandler(context);
         }
-    }
-
-    public static Map ringResponseFromException(Exception ex) {
-        return ImmutableMap.of(
-                keyword("headers"), new HashMap<>(),
-                keyword("status"), 400,
-                keyword("body"), ex.getMessage()
-        );
     }
 
     private static Server removeNonSslConnector(Server server) {
@@ -260,19 +238,7 @@ public class UIHelpers {
         return callback + "(" + response + ");";
     }
 
-    public static Map jsonResponse(Object data, String callback) {
-        return jsonResponse(data, callback, true, null, null);
-    }
-
-    public static Map jsonResponse(Object data, String callback, Long status) {
-        return jsonResponse(data, callback, true, status, null);
-    }
-
-    public static Map jsonResponse(Object data, String callback, Map headers) {
-        return jsonResponse(data, callback, true, null, headers);
-    }
-
-    public static Map jsonResponse(Object data, String callback, boolean needSerialize, Long status, Map headers) {
+    public static Map getJsonResponseHeaders(String callback, Map headers) {
         Map<String, String> headersResult = new HashMap<>();
         headersResult.put("Cache-Control", "no-cache, no-store");
         headersResult.put("Access-Control-Allow-Origin", "*");
@@ -285,35 +251,17 @@ public class UIHelpers {
         if (headers != null) {
             headersResult.putAll(headers);
         }
+        return headersResult;
+    }
 
-        String serializedData;
-        if (needSerialize) {
-            serializedData = JSONValue.toJSONString(data);
-        } else {
-            serializedData = (String) data;
-        }
-
-        String body;
-        if (callback != null) {
-            body = wrapJsonInCallback(callback, serializedData);
-        } else {
-            body = serializedData;
-        }
-
-        return ImmutableMap.of(
-                keyword("status"), Utils.getInt(status, 200),
-                keyword("headers"), headersResult,
-                keyword("body"), body
-        );
+    public static String getJsonResponseBody(Object data, String callback, boolean needSerialize) {
+        String serializedData = needSerialize ? JSONValue.toJSONString(data) : (String) data;
+        return callback != null ? wrapJsonInCallback(callback, serializedData) : serializedData;
     }
 
     public static Map exceptionToJson(Exception ex) {
         StringWriter sw = new StringWriter();
         ex.printStackTrace(new PrintWriter(sw));
         return ImmutableMap.of("error", "Internal Server Error", "errorMessage", sw.toString());
-    }
-
-    private static Keyword keyword(String key) {
-        return RT.keyword(null, key);
     }
 }

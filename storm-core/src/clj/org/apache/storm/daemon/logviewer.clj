@@ -36,7 +36,7 @@
   (:import [org.apache.storm.daemon DirectoryCleaner])
   (:import [org.yaml.snakeyaml Yaml]
            [org.yaml.snakeyaml.constructor SafeConstructor])
-  (:import [org.apache.storm.ui InvalidRequestException UIHelpers IConfigurator]
+  (:import [org.apache.storm.ui InvalidRequestException UIHelpers IConfigurator FilterConfiguration]
            [org.apache.storm.security.auth AuthUtils])
   (:require [org.apache.storm.daemon common [supervisor :as supervisor]])
   (:require [compojure.route :as route]
@@ -407,6 +407,14 @@
 (defn- is-txt-file [fname]
   (re-find #"\.(log.*|txt|yaml|pid)$" fname))
 
+(defn unauthorized-user-html [user]
+  [[:h2 "User '" (escape-html user) "' is not authorized."]])
+
+(defn ring-response-from-exception [ex]
+  {:headers {}
+   :status 400
+   :body (.getMessage ex)})
+
 (def default-bytes-per-page 51200)
 
 (defn log-page [fname start length grep user root-dir]
@@ -456,7 +464,7 @@
     (if (nil? (get-log-user-group-whitelist fname))
       (-> (resp/response "Page not found")
         (resp/status 404))
-      [(clojurify-structure (UIHelpers/unauthorizedUserHtml user))])))
+      (unauthorized-user-html user))))
 
 (defn daemonlog-page [fname start length grep user root-dir]
   (let [file (.getCanonicalFile (File. root-dir fname))
@@ -505,7 +513,7 @@
               (authorized-log-user? user fname *STORM-CONF*))
         (-> (resp/response file)
             (resp/content-type "application/octet-stream"))
-        [(clojurify-structure (UIHelpers/unauthorizedUserHtml user))])
+        (unauthorized-user-html user))
       (-> (resp/response "Page not found")
           (resp/status 404)))))
 
@@ -810,25 +818,25 @@
           (try
             (if (and (not (empty? search))
                   <= (count (.getBytes search "UTF-8")) grep-max-search-size)
-              (clojurify-structure (UIHelpers/jsonResponse
+              (json-response
                 (substring-search file
                   search
                   :num-matches num-matches-int
                   :start-byte-offset offset-int)
                 callback
-                {"Access-Control-Allow-Origin" origin
-                 "Access-Control-Allow-Credentials" "true"}))
+                :headers {"Access-Control-Allow-Origin" origin
+                          "Access-Control-Allow-Credentials" "true"})
               (throw
                 (InvalidRequestException.
                   (str "Search substring must be between 1 and 1024 UTF-8 "
                     "bytes in size (inclusive)"))))
             (catch Exception ex
-              (clojurify-structure (UIHelpers/jsonResponse (UIHelpers/exceptionToJson ex) callback 500)))))
-        (clojurify-structure (UIHelpers/jsonResponse (UIHelpers/unauthorizedUserJson user) callback 401)))
-      (clojurify-structure (UIHelpers/jsonResponse {"error" "Not Found"
+              (json-response (UIHelpers/exceptionToJson ex) callback :status 500))))
+        (json-response (UIHelpers/unauthorizedUserJson user) callback :status 401))
+      (json-response {"error" "Not Found"
                       "errorMessage" "The file was not found on this node."}
         callback
-        404)))))
+        :status 404))))
 
 (defn find-n-matches [logs n file-offset offset search]
   (let [logs (drop file-offset logs)
@@ -878,7 +886,7 @@
 
 (defn deep-search-logs-for-topology
   [topology-id user ^String root-dir search num-matches port file-offset offset search-archived? callback origin]
-  (clojurify-structure (UIHelpers/jsonResponse
+  (json-response
     (if (or (not search) (not (.exists (File. (str root-dir Utils/FILE_PATH_SEPARATOR topology-id)))))
       []
       (let [file-offset (if file-offset (Integer/parseInt file-offset) 0)
@@ -905,8 +913,8 @@
                     (find-n-matches filtered-logs num-matches file-offset offset search)
                     (find-n-matches [(first filtered-logs)] num-matches 0 offset search)))))))))
     callback
-    {"Access-Control-Allow-Origin" origin
-     "Access-Control-Allow-Credentials" "true"})))
+    :headers {"Access-Control-Allow-Origin" origin
+              "Access-Control-Allow-Credentials" "true"}))
 
 (defn log-template
   ([body] (log-template body nil nil))
@@ -962,10 +970,10 @@
                 []))))
         file-strs (sort (for [file file-results]
                           (get-topo-port-workerlog file)))]
-    (clojurify-structure (UIHelpers/jsonResponse file-strs
+    (json-response file-strs
       callback
-      {"Access-Control-Allow-Origin" origin
-       "Access-Control-Allow-Credentials" "true"}))))
+      :headers {"Access-Control-Allow-Origin" origin
+                "Access-Control-Allow-Credentials" "true"})))
 
 (defn get-profiler-dump-files
   [dir]
@@ -992,7 +1000,7 @@
           file user))
       (catch InvalidRequestException ex
         (log-error ex)
-        (clojurify-structure (UIHelpers/ringResponseFromException ex)))))
+        (ring-response-from-exception ex))))
   (GET "/dumps/:topo-id/:host-port/:filename"
        [:as {:keys [servlet-request servlet-response log-root]} topo-id host-port filename &m]
      (let [user (.getUserName http-creds-handler servlet-request)
@@ -1016,7 +1024,7 @@
                                      *STORM-CONF*))
            (-> (resp/response file)
                (resp/content-type "application/octet-stream"))
-           [(clojurify-structure (UIHelpers/unauthorizedUserHtml user))])
+           (unauthorized-user-html user))
          (-> (resp/response "Page not found")
            (resp/status 404)))))
   (GET "/dumps/:topo-id/:host-port"
@@ -1044,7 +1052,7 @@
                (for [file (get-profiler-dump-files dir)]
                  [:li
                   [:a {:href (str "/dumps/" topo-id "/" host-port "/" file)} file ]])]])
-           [(clojurify-structure (UIHelpers/unauthorizedUserHtml user))])
+           (unauthorized-user-html user))
          (-> (resp/response "Page not found")
            (resp/status 404)))))
   (GET "/daemonlog" [:as req & m]
@@ -1060,7 +1068,7 @@
           file user))
       (catch InvalidRequestException ex
         (log-error ex)
-        (clojurify-structure (UIHelpers/ringResponseFromException ex)))))
+        (ring-response-from-exception ex))))
   (GET "/download/:file" [:as {:keys [servlet-request servlet-response log-root]} file & m]
     (try
       (mark! logviewer:num-download-log-file-http-requests)
@@ -1068,7 +1076,7 @@
         (download-log-file file servlet-request servlet-response user log-root))
       (catch InvalidRequestException ex
         (log-error ex)
-        (clojurify-structure (UIHelpers/ringResponseFromException ex)))))
+        (ring-response-from-exception ex))))
   (GET "/daemondownload/:file" [:as {:keys [servlet-request servlet-response daemonlog-root]} file & m]
     (try
       (mark! logviewer:num-download-log-daemon-file-http-requests)
@@ -1076,7 +1084,7 @@
         (download-log-file file servlet-request servlet-response user daemonlog-root))
       (catch InvalidRequestException ex
         (log-error ex)
-        (clojurify-structure (UIHelpers/ringResponseFromException ex)))))
+        (ring-response-from-exception ex))))
   (GET "/search/:file" [:as {:keys [servlet-request servlet-response log-root daemonlog-root]} file & m]
     ;; We do not use servlet-response here, but do not remove it from the
     ;; :keys list, or this rule could stop working when an authentication
@@ -1093,7 +1101,7 @@
           (.getHeader servlet-request "Origin")))
       (catch InvalidRequestException ex
         (log-error ex)
-        (clojurify-structure (UIHelpers/jsonResponse (UIHelpers/exceptionToJson ex) (:callback m) 400)))))
+        (json-response (UIHelpers/exceptionToJson ex) (:callback m) :status 400))))
   (GET "/deepSearch/:topo-id" [:as {:keys [servlet-request servlet-response log-root]} topo-id & m]
     ;; We do not use servlet-response here, but do not remove it from the
     ;; :keys list, or this rule could stop working when an authentication
@@ -1113,7 +1121,7 @@
           (.getHeader servlet-request "Origin")))
       (catch InvalidRequestException ex
         (log-error ex)
-        (clojurify-structure (UIHelpers/jsonResponse (UIHelpers/exceptionToJson ex) (:callback m) 400)))))
+        (json-response (UIHelpers/exceptionToJson ex) (:callback m) :status 400))))
   (GET "/searchLogs" [:as req & m]
     (try
       (let [servlet-request (:servlet-request req)
@@ -1126,7 +1134,7 @@
           (.getHeader servlet-request "Origin")))
       (catch InvalidRequestException ex
         (log-error ex)
-        (clojurify-structure (UIHelpers/jsonResponse (UIHelpers/exceptionToJson ex) (:callback m) 400)))))
+        (json-response (UIHelpers/exceptionToJson ex) (:callback m) :status 400))))
   (GET "/listLogs" [:as req & m]
     (try
       (mark! logviewer:num-list-logs-http-requests)
@@ -1140,7 +1148,7 @@
           (.getHeader servlet-request "Origin")))
       (catch InvalidRequestException ex
         (log-error ex)
-        (clojurify-structure (UIHelpers/jsonResponse (UIHelpers/exceptionToJson ex) (:callback m) 400)))))
+        (json-response (UIHelpers/exceptionToJson ex) (:callback m) :status 400))))
   (route/resources "/")
   (route/not-found "Page not found"))
 
@@ -1159,13 +1167,10 @@
                                 requests-middleware))  ;; query params as map
           middle (conf-middleware logapp log-root-dir daemonlog-root-dir)
           filters-confs (if (conf UI-FILTER)
-                          [{:filter-class filter-class
-                            :filter-params (or (conf UI-FILTER-PARAMS) {})}]
+                          [(FilterConfiguration. filter-class (or (conf UI-FILTER-PARAMS) {}))]
                           [])
           filters-confs (concat filters-confs
-                          [{:filter-class "org.eclipse.jetty.servlets.GzipFilter"
-                            :filter-name "Gzipper"
-                            :filter-params {}}])
+                          [(FilterConfiguration. "org.eclipse.jetty.servlets.GzipFilter" "Gzipper" {})])
           https-port (int (or (conf LOGVIEWER-HTTPS-PORT) 0))
           keystore-path (conf LOGVIEWER-HTTPS-KEYSTORE-PATH)
           keystore-pass (conf LOGVIEWER-HTTPS-KEYSTORE-PASSWORD)

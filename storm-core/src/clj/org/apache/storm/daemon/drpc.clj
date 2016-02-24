@@ -16,7 +16,7 @@
 
 (ns org.apache.storm.daemon.drpc
   (:import [org.apache.storm.security.auth AuthUtils ThriftServer ThriftConnectionType ReqContext]
-           [org.apache.storm.ui UIHelpers IConfigurator])
+           [org.apache.storm.ui UIHelpers IConfigurator FilterConfiguration])
   (:import [org.apache.storm.security.auth.authorizer DRPCAuthorizerBase])
   (:import [org.apache.storm.utils Utils])
   (:import [org.apache.storm.generated DistributedRPC DistributedRPC$Iface DistributedRPC$Processor
@@ -241,8 +241,7 @@
                     requests-middleware)
               filter-class (conf DRPC-HTTP-FILTER)
               filter-params (conf DRPC-HTTP-FILTER-PARAMS)
-              filters-confs [{:filter-class filter-class
-                              :filter-params filter-params}]
+              filters-confs [(FilterConfiguration. filter-class filter-params)]
               https-port (int (or (conf DRPC-HTTPS-PORT) 0))
               https-ks-path (conf DRPC-HTTPS-KEYSTORE-PATH)
               https-ks-password (conf DRPC-HTTPS-KEYSTORE-PASSWORD)

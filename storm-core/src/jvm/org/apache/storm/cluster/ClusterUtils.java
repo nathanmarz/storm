@@ -211,7 +211,6 @@ public class ClusterUtils {
             IStateStorage Storage = _instance.mkStateStorageImpl((Map) stateStorage, (Map) stateStorage, acls, context);
             return new StormClusterStateImpl(Storage, acls, context, true);
         }
-
     }
 
     public IStateStorage mkStateStorageImpl(Map config, Map auth_conf, List<ACL> acls, ClusterStateContext context) throws Exception {
@@ -237,25 +236,9 @@ public class ClusterUtils {
     }
 
     public static String stringifyError(Throwable error) {
-        String errorString = null;
-        StringWriter result = null;
-        PrintWriter printWriter = null;
-        try {
-            result = new StringWriter();
-            printWriter = new PrintWriter(result);
-            error.printStackTrace(printWriter);
-            if (result != null) {
-                errorString = result.toString();
-            }
-        } finally {
-            try {
-                if (result != null)
-                    result.close();
-                if (printWriter != null)
-                    printWriter.close();
-            } catch (Exception e) {
-            }
-        }
-        return errorString;
+        StringWriter result = new StringWriter();
+        PrintWriter printWriter = new PrintWriter(result);
+        error.printStackTrace(printWriter);
+        return result.toString();
     }
 }

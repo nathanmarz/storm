@@ -53,6 +53,26 @@ public class ZKStateStorage implements IStateStorage {
     private Map authConf;
     private Map<Object, Object> conf;
 
+    private class ZkWatcherCallBack implements WatcherCallBack{
+        @Override
+        public void execute(Watcher.Event.KeeperState state, Watcher.Event.EventType type, String path) {
+            if (active.get()) {
+                if (!(state.equals(Watcher.Event.KeeperState.SyncConnected))) {
+                    LOG.debug("Received event {} : {}: {} with disconnected Zookeeper.", state, type, path);
+                } else {
+                    LOG.debug("Received event {} : {} : {}", state, type, path);
+                }
+
+                if (!type.equals(Watcher.Event.EventType.None)) {
+                    for (Map.Entry<String, ZKStateChangedCallback> e : callbacks.entrySet()) {
+                        ZKStateChangedCallback fn = e.getValue();
+                        fn.changed(type, path);
+                    }
+                }
+            }
+        }
+    }
+
     public ZKStateStorage(Map<Object, Object> conf, Map authConf, List<ACL> acls, ClusterStateContext context) throws Exception {
         this.conf = conf;
         this.authConf = authConf;
@@ -66,45 +86,9 @@ public class ZKStateStorage implements IStateStorage {
         zkTemp.close();
 
         active = new AtomicBoolean(true);
-        zkWriter = mkZk(new WatcherCallBack() {
-            @Override
-            public void execute(Watcher.Event.KeeperState state, Watcher.Event.EventType type, String path) {
-                if (active.get()) {
-                    if (!(state.equals(Watcher.Event.KeeperState.SyncConnected))) {
-                        LOG.warn("Received event {} : {}: {} with disconnected Zookeeper.", state, type, path);
-                    } else {
-                        LOG.info("Received event {} : {} : {}", state, type, path);
-                    }
-
-                    if (!type.equals(Watcher.Event.EventType.None)) {
-                        for (Map.Entry<String, ZKStateChangedCallback> e : callbacks.entrySet()) {
-                            ZKStateChangedCallback fn = e.getValue();
-                            fn.changed(type, path);
-                        }
-                    }
-                }
-            }
-        });
+        zkWriter = mkZk(new ZkWatcherCallBack());
         if (isNimbus) {
-            zkReader = mkZk(new WatcherCallBack() {
-                @Override
-                public void execute(Watcher.Event.KeeperState state, Watcher.Event.EventType type, String path) {
-                    if (active.get()) {
-                        if (!(state.equals(Watcher.Event.KeeperState.SyncConnected))) {
-                            LOG.warn("Received event {} : {}: {} with disconnected Zookeeper.", state, type, path);
-                        } else {
-                            LOG.debug("Received event {} : {} : {}", state, type, path);
-                        }
-
-                        if (!type.equals(Watcher.Event.EventType.None)) {
-                            for (Map.Entry<String, ZKStateChangedCallback> e : callbacks.entrySet()) {
-                                ZKStateChangedCallback fn = e.getValue();
-                                fn.changed(type, path);
-                            }
-                        }
-                    }
-                }
-            });
+            zkReader = mkZk(new ZkWatcherCallBack());
         } else {
             zkReader = zkWriter;
         }
@@ -157,15 +141,15 @@ public class ZKStateStorage implements IStateStorage {
 
     @Override
     public void set_ephemeral_node(String path, byte[] data, List<ACL> acls) {
-        Zookeeper.mkdirs(zkWriter, parentPath(path), acls);
+        Zookeeper.mkdirs(zkWriter, Zookeeper.parentPath(path), acls);
         if (Zookeeper.exists(zkWriter, path, false)) {
             try {
                 Zookeeper.setData(zkWriter, path, data);
-            } catch (Exception e) {
+            } catch (RuntimeException e) {
                 if (Utils.exceptionCauseIsInstanceOf(KeeperException.NoNodeException.class, e)) {
                     Zookeeper.createNode(zkWriter, path, data, CreateMode.EPHEMERAL, acls);
                 } else {
-                    throw Utils.wrapInRuntime(e);
+                    throw e;
                 }
             }
 
@@ -182,7 +166,7 @@ public class ZKStateStorage implements IStateStorage {
 
     @Override
     public boolean node_exists(String path, boolean watch) {
-        return Zookeeper.existsNode(zkWriter, path, watch);
+        return Zookeeper.existsNode(zkReader, path, watch);
     }
 
     @Override
@@ -204,7 +188,7 @@ public class ZKStateStorage implements IStateStorage {
         if (Zookeeper.exists(zkWriter, path, false)) {
             Zookeeper.setData(zkWriter, path, data);
         } else {
-            Zookeeper.mkdirs(zkWriter, parentPath(path), acls);
+            Zookeeper.mkdirs(zkWriter, Zookeeper.parentPath(path), acls);
             Zookeeper.createNode(zkWriter, path, data, CreateMode.PERSISTENT, acls);
         }
     }
@@ -256,15 +240,5 @@ public class ZKStateStorage implements IStateStorage {
     @Override
     public void sync_path(String path) {
         Zookeeper.syncPath(zkWriter, path);
-    }
-
-    // To be remove when finished port Util.clj
-    public static String parentPath(String path) {
-        List<String> toks = Zookeeper.tokenizePath(path);
-        int size = toks.size();
-        if (size > 0) {
-            toks.remove(size - 1);
-        }
-        return Zookeeper.toksToPath(toks);
     }
 }

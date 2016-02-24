@@ -45,9 +45,9 @@ public interface IStormClusterState {
 
     public ClusterWorkerHeartbeat getWorkerHeartbeat(String stormId, String node, Long port);
 
-    public List<ProfileRequest> getWorkerProfileRequests(String stormId, NodeInfo nodeInfo, boolean isThrift);
+    public List<ProfileRequest> getWorkerProfileRequests(String stormId, NodeInfo nodeInfo);
 
-    public List<ProfileRequest> getTopologyProfileRequests(String stormId, boolean isThrift);
+    public List<ProfileRequest> getTopologyProfileRequests(String stormId);
 
     public void setWorkerProfileRequest(String stormId, ProfileRequest profileRequest);
 

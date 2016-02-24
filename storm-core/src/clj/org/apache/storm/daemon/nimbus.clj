@@ -1676,7 +1676,7 @@
                                              [(node->host node) port])
                                     executor->node+port)
               nodeinfos (stats/extract-nodeinfos-from-hb-for-comp executor->host+port task->component false component_id)
-              all-pending-actions-for-topology (clojurify-profile-request (.getTopologyProfileRequests storm-cluster-state id true))
+              all-pending-actions-for-topology (clojurify-profile-request (.getTopologyProfileRequests storm-cluster-state id))
               latest-profile-actions (remove nil? (map (fn [nodeInfo]
                                                          (->> all-pending-actions-for-topology
                                                               (filter #(and (= (:host nodeInfo) (.get_node (.get_nodeInfo %)))

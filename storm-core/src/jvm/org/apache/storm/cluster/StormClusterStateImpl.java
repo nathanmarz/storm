@@ -106,7 +106,7 @@ public class StormClusterStateImpl implements IStormClusterState {
                     } else if (root.equals(ClusterUtils.LOGCONFIG_ROOT) && size > 1) {
                         issueMapCallback(logConfigCallback, toks.get(1));
                     } else if (root.equals(ClusterUtils.BACKPRESSURE_ROOT) && size > 1) {
-                        issueMapCallback(logConfigCallback, toks.get(1));
+                        issueMapCallback(backPressureCallback, toks.get(1));
                     } else {
                         LOG.error("{} Unknown callback for subtree {}", new RuntimeException("Unknown callback for this path"), path);
                         Runtime.getRuntime().exit(30);
@@ -242,9 +242,9 @@ public class StormClusterStateImpl implements IStormClusterState {
     }
 
     @Override
-    public List<ProfileRequest> getWorkerProfileRequests(String stormId, NodeInfo nodeInfo, boolean isThrift) {
+    public List<ProfileRequest> getWorkerProfileRequests(String stormId, NodeInfo nodeInfo) {
         List<ProfileRequest> requests = new ArrayList<>();
-        List<ProfileRequest> profileRequests = getTopologyProfileRequests(stormId, isThrift);
+        List<ProfileRequest> profileRequests = getTopologyProfileRequests(stormId);
         for (ProfileRequest profileRequest : profileRequests) {
             NodeInfo nodeInfo1 = profileRequest.get_nodeInfo();
             if (nodeInfo1.equals(nodeInfo))
@@ -254,7 +254,7 @@ public class StormClusterStateImpl implements IStormClusterState {
     }
 
     @Override
-    public List<ProfileRequest> getTopologyProfileRequests(String stormId, boolean isThrift) {
+    public List<ProfileRequest> getTopologyProfileRequests(String stormId) {
         List<ProfileRequest> profileRequests = new ArrayList<>();
         String path = ClusterUtils.profilerConfigPath(stormId);
         if (stateStorage.node_exists(path, false)) {
@@ -382,6 +382,9 @@ public class StormClusterStateImpl implements IStormClusterState {
 
     @Override
     public LogConfig topologyLogConfig(String stormId, Runnable cb) {
+        if (cb != null){
+            logConfigCallback.put(stormId, cb);
+        }
         String path = ClusterUtils.logConfigPath(stormId);
         return ClusterUtils.maybeDeserialize(stateStorage.get_data(path, cb != null), LogConfig.class);
     }
@@ -625,25 +628,21 @@ public class StormClusterStateImpl implements IStormClusterState {
     @Override
     public List<ErrorInfo> errors(String stormId, String componentId) {
         List<ErrorInfo> errorInfos = new ArrayList<>();
-        try {
-            String path = ClusterUtils.errorPath(stormId, componentId);
-            if (stateStorage.node_exists(path, false)) {
-                List<String> childrens = stateStorage.get_children(path, false);
-                for (String child : childrens) {
-                    String childPath = path + ClusterUtils.ZK_SEPERATOR + child;
-                    ErrorInfo errorInfo = ClusterUtils.maybeDeserialize(stateStorage.get_data(childPath, false), ErrorInfo.class);
-                    if (errorInfo != null)
-                        errorInfos.add(errorInfo);
-                }
+        String path = ClusterUtils.errorPath(stormId, componentId);
+        if (stateStorage.node_exists(path, false)) {
+            List<String> childrens = stateStorage.get_children(path, false);
+            for (String child : childrens) {
+                String childPath = path + ClusterUtils.ZK_SEPERATOR + child;
+                ErrorInfo errorInfo = ClusterUtils.maybeDeserialize(stateStorage.get_data(childPath, false), ErrorInfo.class);
+                if (errorInfo != null)
+                    errorInfos.add(errorInfo);
             }
-            Collections.sort(errorInfos, new Comparator<ErrorInfo>() {
-                public int compare(ErrorInfo arg0, ErrorInfo arg1) {
-                    return Integer.compare(arg1.get_error_time_secs(), arg0.get_error_time_secs());
-                }
-            });
-        } catch (Exception e) {
-            throw Utils.wrapInRuntime(e);
         }
+        Collections.sort(errorInfos, new Comparator<ErrorInfo>() {
+            public int compare(ErrorInfo arg0, ErrorInfo arg1) {
+                return Integer.compare(arg1.get_error_time_secs(), arg0.get_error_time_secs());
+            }
+        });
 
         return errorInfos;
     }

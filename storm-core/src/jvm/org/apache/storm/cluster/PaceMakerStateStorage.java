@@ -127,7 +127,8 @@ public class PaceMakerStateStorage implements IStateStorage {
                 if (retry <= 0) {
                     throw Utils.wrapInRuntime(e);
                 }
-                LOG.error("{} Failed to set_worker_hb. Will make {} more attempts.", e.getMessage(), retry--);
+                retry--;
+                LOG.error("{} Failed to set_worker_hb. Will make {} more attempts.", e.getMessage(), retry);
             }
         }
     }
@@ -148,7 +149,8 @@ public class PaceMakerStateStorage implements IStateStorage {
                 if (retry <= 0) {
                     throw Utils.wrapInRuntime(e);
                 }
-                LOG.error("{} Failed to get_worker_hb. Will make {} more attempts.", e.getMessage(), retry--);
+                retry--;
+                LOG.error("{} Failed to get_worker_hb. Will make {} more attempts.", e.getMessage(), retry);
             }
         }
     }
@@ -169,7 +171,8 @@ public class PaceMakerStateStorage implements IStateStorage {
                 if (retry <= 0) {
                     throw Utils.wrapInRuntime(e);
                 }
-                LOG.error("{} Failed to get_worker_hb_children. Will make {} more attempts.", e.getMessage(), retry--);
+                retry--;
+                LOG.error("{} Failed to get_worker_hb_children. Will make {} more attempts.", e.getMessage(), retry);
             }
         }
     }
@@ -190,7 +193,8 @@ public class PaceMakerStateStorage implements IStateStorage {
                 if (retry <= 0) {
                     throw Utils.wrapInRuntime(e);
                 }
-                LOG.error("{} Failed to delete_worker_hb. Will make {} more attempts.", e.getMessage(), retry--);
+                retry--;
+                LOG.error("{} Failed to delete_worker_hb. Will make {} more attempts.", e.getMessage(), retry);
             }
         }
     }

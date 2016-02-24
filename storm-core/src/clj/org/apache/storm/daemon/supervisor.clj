@@ -81,7 +81,7 @@
           (->>
             (dofor [sid (distinct storm-ids)]
 
-                   (if-let [topo-profile-actions (into [] (for [request (.getTopologyProfileRequests storm-cluster-state sid false)] (clojurify-profile-request request)))]
+                   (if-let [topo-profile-actions (into [] (for [request (.getTopologyProfileRequests storm-cluster-state sid)] (clojurify-profile-request request)))]
                       {sid topo-profile-actions}))
            (apply merge))]
       {:assignments (into {} (for [[k v] new-assignments] [k (:data v)]))
@@ -607,7 +607,7 @@
           storm-cluster-state (:storm-cluster-state supervisor)
           ^ISupervisor isupervisor (:isupervisor supervisor)
           ^LocalState local-state (:local-state supervisor)
-          sync-callback (fn [& ignored] (.add event-manager (reify Runnable
+          sync-callback (fn [] (.add event-manager (reify Runnable
                                                                    (^void run [this]
                                                                      (callback-supervisor)))))
           assignment-versions @(:assignment-versions supervisor)

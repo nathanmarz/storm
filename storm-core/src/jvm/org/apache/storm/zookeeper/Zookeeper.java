@@ -394,9 +394,12 @@ public class Zookeeper {
     }
 
     public static String parentPath(String path) {
-        List<String> tokens = tokenizePath(path);
-        tokens.remove(tokens.size() - 1);
-        return "/" + StringUtils.join(tokens, "/");
+        List<String> toks = Zookeeper.tokenizePath(path);
+        int size = toks.size();
+        if (size > 0) {
+            toks.remove(size - 1);
+        }
+        return Zookeeper.toksToPath(toks);
     }
 
     public static String toksToPath(List<String> toks) {

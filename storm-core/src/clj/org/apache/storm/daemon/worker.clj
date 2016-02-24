@@ -383,7 +383,7 @@
         storm-id (:storm-id worker)]
     (fn refresh-connections
       ([]
-        (refresh-connections (fn [& ignored]
+        (refresh-connections (fn []
                 (.schedule
                   (:refresh-connections-timer worker) 0 refresh-connections))))
       ([callback]
@@ -438,7 +438,7 @@
 (defn refresh-storm-active
   ([worker]
     (refresh-storm-active
-      worker (fn [& ignored]
+      worker (fn []
                (.schedule
                  (:refresh-active-timer worker) 0 (partial refresh-storm-active worker)))))
   ([worker callback]
@@ -685,7 +685,7 @@
         backpressure-thread (WorkerBackpressureThread. (:backpressure-trigger worker) worker backpressure-handler)
         _ (if ((:storm-conf worker) TOPOLOGY-BACKPRESSURE-ENABLE) 
             (.start backpressure-thread))
-        callback (fn cb [& ignored]
+        callback (fn cb []
                    (let [throttle-on (.topologyBackpressure storm-cluster-state storm-id cb)]
                      (reset! (:throttle-on worker) throttle-on)))
         _ (if ((:storm-conf worker) TOPOLOGY-BACKPRESSURE-ENABLE)
@@ -757,7 +757,7 @@
                                         (dofor [e @executors] (.credentials-changed e new-creds))
                                         (reset! credentials new-creds))))
        check-throttle-changed (fn []
-                                (let [callback (fn cb [& ignored]
+                                (let [callback (fn cb []
                                                  (let [throttle-on (.topologyBackpressure (:storm-cluster-state worker) storm-id cb)]
                                                    (reset! (:throttle-on worker) throttle-on)))
                                       new-throttle-on (.topologyBackpressure (:storm-cluster-state worker) storm-id callback)]

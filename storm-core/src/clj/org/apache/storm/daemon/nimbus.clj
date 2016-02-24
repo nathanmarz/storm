@@ -14,7 +14,8 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns org.apache.storm.daemon.nimbus
-  (:import [org.apache.thrift.server THsHaServer THsHaServer$Args])
+  (:import [org.apache.thrift.server THsHaServer THsHaServer$Args]
+           [org.apache.storm.stats StatsUtil])
   (:import [org.apache.storm.generated KeyNotFoundException])
   (:import [org.apache.storm.blobstore LocalFsBlobStore])
   (:import [org.apache.thrift.protocol TBinaryProtocol TBinaryProtocol$Factory])
@@ -52,8 +53,7 @@
   (:import [org.apache.storm.cluster ClusterStateContext DaemonType])
   (:use [org.apache.storm util config log zookeeper])
   (:require [org.apache.storm [cluster :as cluster]
-                            [converter :as converter]
-                            [stats :as stats]])
+                            [converter :as converter]])
   (:require [clojure.set :as set])
   (:import [org.apache.storm.daemon.common StormBase Assignment])
   (:import [org.apache.storm.zookeeper Zookeeper])
@@ -1668,7 +1668,7 @@
               executor->host+port (map-val (fn [[node port]]
                                              [(node->host node) port])
                                     executor->node+port)
-              nodeinfos (stats/extract-nodeinfos-from-hb-for-comp executor->host+port task->component false component_id)
+              nodeinfos (clojurify-structure (StatsUtil/extractNodeInfosFromHbForComp executor->host+port task->component false component_id))
               all-pending-actions-for-topology (.get-topology-profile-requests storm-cluster-state id true)
               latest-profile-actions (remove nil? (map (fn [nodeInfo]
                                                          (->> all-pending-actions-for-topology
@@ -1912,7 +1912,7 @@
                                               heartbeat (get beats executor)
                                               stats (:stats heartbeat)
                                               stats (if stats
-                                                      (stats/thriftify-executor-stats stats))]
+                                                      (StatsUtil/thriftifyExecutorStats stats))]
                                           (doto
                                               (ExecutorSummary. (thriftify-executor-id executor)
                                                                 (-> executor first task->component)
@@ -2106,14 +2106,14 @@
               last-err-fn (partial get-last-error
                                    (:storm-cluster-state info)
                                    topo-id)
-              topo-page-info (stats/agg-topo-execs-stats topo-id
+              ;;TODO: add last-error-fn to aggTopoExecsStats method
+              topo-page-info (StatsUtil/aggTopoExecsStats topo-id
                                                          exec->node+port
                                                          (:task->component info)
                                                          (:beats info)
                                                          (:topology info)
                                                          window
-                                                         include-sys?
-                                                         last-err-fn)]
+                                                         include-sys?)]
           (when-let [owner (:owner (:base info))]
             (.set_owner topo-page-info owner))
           (when-let [sched-status (.get @(:id->sched-status nimbus) topo-id)]
@@ -2154,7 +2154,7 @@
               executor->host+port (map-val (fn [[node port]]
                                              [(node->host node) port])
                                            executor->node+port)
-              comp-page-info (stats/agg-comp-execs-stats executor->host+port
+              comp-page-info (StatsUtil/aggCompExecsStats executor->host+port
                                                          (:task->component info)
                                                          (:beats info)
                                                          window

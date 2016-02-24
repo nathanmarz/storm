@@ -26,10 +26,9 @@
   (:import [org.apache.storm.utils Utils ConfigUtils])
   (:import [org.apache.storm.generated ShellComponent JavaObject])
   (:import [org.apache.storm.spout ShellSpout])
+  (:import [org.apache.storm.stats StatsUtil])
   (:import [java.util Collection List ArrayList])
   (:import [org.apache.storm Thrift])
-  (:require [org.apache.storm
-             [stats :as stats]])
   (:require [org.apache.storm.daemon.builtin-metrics :as builtin-metrics]))
 
 (defn mk-topology-context-builder [worker executor-data topology]
@@ -141,9 +140,9 @@
               (throw (IllegalArgumentException. "Cannot emitDirect to a task expecting a regular grouping")))                          
             (apply-hooks user-context .emit (EmitInfo. values stream task-id [out-task-id]))
             (when (emit-sampler)
-              (stats/emitted-tuple! executor-stats stream)
+              (StatsUtil/emittedTuple executor-stats stream)
               (if out-task-id
-                (stats/transferred-tuples! executor-stats stream 1)))
+                (StatsUtil/transferredTuples executor-stats stream, 1)))
             (if out-task-id [out-task-id])
             ))
         ([^String stream ^List values]
@@ -163,8 +162,8 @@
                    )))
              (apply-hooks user-context .emit (EmitInfo. values stream task-id out-tasks))
              (when (emit-sampler)
-               (stats/emitted-tuple! executor-stats stream)
-               (stats/transferred-tuples! executor-stats stream (count out-tasks)))
+               (StatsUtil/emittedTuple executor-stats stream)
+               (StatsUtil/transferredTuples executor-stats stream (count out-tasks)))
              out-tasks)))
     ))
 

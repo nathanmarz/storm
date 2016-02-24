@@ -15,14 +15,15 @@
 ;; limitations under the License.
 (ns org.apache.storm.nimbus-test
   (:use [clojure test])
-  (:require [org.apache.storm [util :as util] [stats :as stats]])
+  (:require [org.apache.storm [util :as util]])
   (:require [org.apache.storm.daemon [nimbus :as nimbus]])
   (:require [org.apache.storm [converter :as converter]])
   (:import [org.apache.storm.testing TestWordCounter TestWordSpout TestGlobalCount
             TestAggregatesCounter TestPlannerSpout TestPlannerBolt]
            [org.apache.storm.nimbus InMemoryTopologyActionNotifier]
            [org.apache.storm.generated GlobalStreamId]
-           [org.apache.storm Thrift])
+           [org.apache.storm Thrift]
+           [org.apache.storm.stats StatsUtil])
   (:import [org.apache.storm.testing.staticmocking MockedZookeeper])
   (:import [org.apache.storm.scheduler INimbus])
   (:import [org.apache.storm.nimbus ILeaderElector NimbusInfo])
@@ -139,7 +140,8 @@
         curr-beat (.get-worker-heartbeat state storm-id node port)
         stats (:executor-stats curr-beat)]
     (.worker-heartbeat! state storm-id node port
-      {:storm-id storm-id :time-secs (Time/currentTimeSecs) :uptime 10 :executor-stats (merge stats {executor (stats/render-stats! (stats/mk-bolt-stats 20))})}
+      {:storm-id storm-id :time-secs (Time/currentTimeSecs) :uptime 10
+       :executor-stats (merge stats {executor (clojurify-structure (StatsUtil/renderStats (StatsUtil/mkBoltStats 20)))})}
       )))
 
 (defn slot-assignments [cluster storm-id]

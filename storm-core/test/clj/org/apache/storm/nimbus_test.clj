@@ -25,7 +25,10 @@
            [org.apache.storm Thrift])
   (:import [org.apache.storm.testing.staticmocking MockedZookeeper])
   (:import [org.apache.storm.scheduler INimbus])
+  (:import [org.mockito Mockito])
+  (:import [org.mockito.exceptions.base MockitoAssertionError])
   (:import [org.apache.storm.nimbus ILeaderElector NimbusInfo])
+  (:import [org.apache.storm.testing.staticmocking MockedCluster])
   (:import [org.apache.storm.generated Credentials NotAliveException SubmitOptions
             TopologyInitialStatus TopologyStatus AlreadyAliveException KillOptions RebalanceOptions
             InvalidTopologyException AuthorizationException
@@ -37,10 +40,11 @@
   (:import [org.apache.storm.zookeeper Zookeeper])
   (:import [org.apache.commons.io FileUtils]
            [org.json.simple JSONValue])
-  (:use [org.apache.storm testing MockAutoCred util config log zookeeper])
+  (:import [org.apache.storm.cluster StormClusterStateImpl ClusterStateContext ClusterUtils])
+  (:use [org.apache.storm testing MockAutoCred util config log converter])
   (:use [org.apache.storm.daemon common])
   (:require [conjure.core])
-  (:require [org.apache.storm [cluster :as cluster]])
+
   (:use [conjure core]))
 
 (defn- from-json
@@ -60,7 +64,7 @@
 
 (defn getCredentials [cluster storm-name]
   (let [storm-id (get-storm-id (:storm-cluster-state cluster) storm-name)]
-    (.credentials (:storm-cluster-state cluster) storm-id nil)))
+    (clojurify-crdentials (.credentials (:storm-cluster-state cluster) storm-id nil))))
 
 (defn storm-component->executor-info [cluster storm-name]
   (let [storm-id (get-storm-id (:storm-cluster-state cluster) storm-name)
@@ -70,7 +74,7 @@
         task->component (storm-task-info topology storm-conf)
         state (:storm-cluster-state cluster)
         get-component (comp task->component first)]
-    (->> (.assignment-info state storm-id nil)
+    (->> (clojurify-assignment (.assignmentInfo state storm-id nil))
          :executor->node+port
          keys
          (map (fn [e] {e (get-component e)}))
@@ -80,13 +84,13 @@
 
 (defn storm-num-workers [state storm-name]
   (let [storm-id (get-storm-id state storm-name)
-        assignment (.assignment-info state storm-id nil)]
+        assignment (clojurify-assignment (.assignmentInfo state storm-id nil))]
     (count (clojurify-structure (Utils/reverseMap (:executor->node+port assignment))))
     ))
 
 (defn topology-nodes [state storm-name]
   (let [storm-id (get-storm-id state storm-name)
-        assignment (.assignment-info state storm-id nil)]
+        assignment (clojurify-assignment (.assignmentInfo state storm-id nil))]
     (->> assignment
          :executor->node+port
          vals
@@ -96,7 +100,7 @@
 
 (defn topology-slots [state storm-name]
   (let [storm-id (get-storm-id state storm-name)
-        assignment (.assignment-info state storm-id nil)]
+        assignment (clojurify-assignment (.assignmentInfo state storm-id nil))]
     (->> assignment
          :executor->node+port
          vals
@@ -107,7 +111,7 @@
 ; map-val is a temporary kluge for clojure.
 (defn topology-node-distribution [state storm-name]
   (let [storm-id (get-storm-id state storm-name)
-        assignment (.assignment-info state storm-id nil)]
+        assignment (clojurify-assignment (.assignmentInfo state storm-id nil))]
     (->> assignment
          :executor->node+port
          vals
@@ -123,28 +127,28 @@
 
 (defn executor-assignment [cluster storm-id executor-id]
   (let [state (:storm-cluster-state cluster)
-        assignment (.assignment-info state storm-id nil)]
+        assignment (clojurify-assignment (.assignmentInfo state storm-id nil))]
     ((:executor->node+port assignment) executor-id)
     ))
 
 (defn executor-start-times [cluster storm-id]
   (let [state (:storm-cluster-state cluster)
-        assignment (.assignment-info state storm-id nil)]
+        assignment (clojurify-assignment (.assignmentInfo state storm-id nil))]
     (:executor->start-time-secs assignment)))
 
 (defn do-executor-heartbeat [cluster storm-id executor]
   (let [state (:storm-cluster-state cluster)
-        executor->node+port (:executor->node+port (.assignment-info state storm-id nil))
+        executor->node+port (:executor->node+port (clojurify-assignment (.assignmentInfo state storm-id nil)))
         [node port] (get executor->node+port executor)
-        curr-beat (.get-worker-heartbeat state storm-id node port)
+        curr-beat (clojurify-zk-worker-hb (.getWorkerHeartbeat state storm-id node port))
         stats (:executor-stats curr-beat)]
-    (.worker-heartbeat! state storm-id node port
-      {:storm-id storm-id :time-secs (Time/currentTimeSecs) :uptime 10 :executor-stats (merge stats {executor (stats/render-stats! (stats/mk-bolt-stats 20))})}
+    (.workerHeartbeat state storm-id node port
+      (thriftify-zk-worker-hb {:storm-id storm-id :time-secs (Time/currentTimeSecs) :uptime 10 :executor-stats (merge stats {executor (stats/render-stats! (stats/mk-bolt-stats 20))})})
       )))
 
 (defn slot-assignments [cluster storm-id]
   (let [state (:storm-cluster-state cluster)
-        assignment (.assignment-info state storm-id nil)]
+        assignment (clojurify-assignment (.assignmentInfo state storm-id nil))]
         (clojurify-structure (Utils/reverseMap (:executor->node+port assignment)))))
 
 (defn task-ids [cluster storm-id]
@@ -155,8 +159,8 @@
 
 (defn topology-executors [cluster storm-id]
   (let [state (:storm-cluster-state cluster)
-        assignment (.assignment-info state storm-id nil)
-        ret-keys (keys (:executor->node+port assignment))
+        assignment (clojurify-assignment (.assignmentInfo state storm-id nil))
+    ret-keys (keys (:executor->node+port assignment))
         _ (log-message "ret-keys: " (pr-str ret-keys)) ]
     ret-keys
     ))
@@ -174,7 +178,7 @@
   (let [state (:storm-cluster-state cluster)
         storm-id (get-storm-id state storm-name)
         task-ids (task-ids cluster storm-id)
-        assignment (.assignment-info state storm-id nil)
+        assignment (clojurify-assignment (.assignmentInfo state storm-id nil))
         executor->node+port (:executor->node+port assignment)
         task->node+port (to-task->node+port executor->node+port)
         assigned-task-ids (mapcat executor-id->tasks (keys executor->node+port))
@@ -504,54 +508,54 @@
         (submit-local-topology (:nimbus cluster) "test" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 20, LOGS-USERS ["alice", (System/getProperty "user.name")]} topology)
         (bind storm-id (get-storm-id state "test"))
         (advance-cluster-time cluster 5)
-        (is (not-nil? (.storm-base state storm-id nil)))
-        (is (not-nil? (.assignment-info state storm-id nil)))
+        (is (not-nil? (clojurify-storm-base (.stormBase state storm-id nil))))
+        (is (not-nil? (clojurify-assignment (.assignmentInfo state storm-id nil))))
         (.killTopology (:nimbus cluster) "test")
         ;; check that storm is deactivated but alive
-        (is (= :killed (-> (.storm-base state storm-id nil) :status :type)))
-        (is (not-nil? (.assignment-info state storm-id nil)))
+        (is (= :killed (-> (clojurify-storm-base (.stormBase state storm-id nil)) :status :type)))
+        (is (not-nil? (clojurify-assignment (.assignmentInfo state storm-id nil))))
         (advance-cluster-time cluster 35)
         ;; kill topology read on group
         (submit-local-topology (:nimbus cluster) "killgrouptest" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 20, LOGS-GROUPS ["alice-group"]} topology)
         (bind storm-id-killgroup (get-storm-id state "killgrouptest"))
         (advance-cluster-time cluster 5)
-        (is (not-nil? (.storm-base state storm-id-killgroup nil)))
-        (is (not-nil? (.assignment-info state storm-id-killgroup nil)))
+        (is (not-nil? (clojurify-storm-base (.stormBase state storm-id-killgroup nil))))
+        (is (not-nil? (clojurify-assignment (.assignmentInfo state storm-id-killgroup nil))))
         (.killTopology (:nimbus cluster) "killgrouptest")
         ;; check that storm is deactivated but alive
-        (is (= :killed (-> (.storm-base state storm-id-killgroup nil) :status :type)))
-        (is (not-nil? (.assignment-info state storm-id-killgroup nil)))
+        (is (= :killed (-> (clojurify-storm-base (.stormBase state storm-id-killgroup nil)) :status :type)))
+        (is (not-nil? (clojurify-assignment (.assignmentInfo state storm-id-killgroup nil))))
         (advance-cluster-time cluster 35)
         ;; kill topology can't read
         (submit-local-topology (:nimbus cluster) "killnoreadtest" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 20} topology)
         (bind storm-id-killnoread (get-storm-id state "killnoreadtest"))
         (advance-cluster-time cluster 5)
-        (is (not-nil? (.storm-base state storm-id-killnoread nil)))
-        (is (not-nil? (.assignment-info state storm-id-killnoread nil)))
+        (is (not-nil? (clojurify-storm-base (.stormBase state storm-id-killnoread nil))))
+        (is (not-nil? (clojurify-assignment (.assignmentInfo state storm-id-killnoread nil))))
         (.killTopology (:nimbus cluster) "killnoreadtest")
         ;; check that storm is deactivated but alive
-        (is (= :killed (-> (.storm-base state storm-id-killnoread nil) :status :type)))
-        (is (not-nil? (.assignment-info state storm-id-killnoread nil)))
+        (is (= :killed (-> (clojurify-storm-base (.stormBase state storm-id-killnoread nil)) :status :type)))
+        (is (not-nil? (clojurify-assignment (.assignmentInfo state storm-id-killnoread nil))))
         (advance-cluster-time cluster 35)
 
         ;; active topology can read
         (submit-local-topology (:nimbus cluster) "2test" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10, LOGS-USERS ["alice", (System/getProperty "user.name")]} topology)
         (advance-cluster-time cluster 11)
         (bind storm-id2 (get-storm-id state "2test"))
-        (is (not-nil? (.storm-base state storm-id2 nil)))
-        (is (not-nil? (.assignment-info state storm-id2 nil)))
+        (is (not-nil? (clojurify-storm-base (.stormBase state storm-id2 nil))))
+        (is (not-nil? (clojurify-assignment (.assignmentInfo state storm-id2 nil))))
         ;; active topology can not read
         (submit-local-topology (:nimbus cluster) "testnoread" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10, LOGS-USERS ["alice"]} topology)
         (advance-cluster-time cluster 11)
         (bind storm-id3 (get-storm-id state "testnoread"))
-        (is (not-nil? (.storm-base state storm-id3 nil)))
-        (is (not-nil? (.assignment-info state storm-id3 nil)))
+        (is (not-nil? (clojurify-storm-base (.stormBase state storm-id3 nil))))
+        (is (not-nil? (clojurify-assignment (.assignmentInfo state storm-id3 nil))))
         ;; active topology can read based on group
         (submit-local-topology (:nimbus cluster) "testreadgroup" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10, LOGS-GROUPS ["alice-group"]} topology)
         (advance-cluster-time cluster 11)
         (bind storm-id4 (get-storm-id state "testreadgroup"))
-        (is (not-nil? (.storm-base state storm-id4 nil)))
-        (is (not-nil? (.assignment-info state storm-id4 nil)))
+        (is (not-nil? (clojurify-storm-base (.stormBase state storm-id4 nil))))
+        (is (not-nil? (clojurify-assignment (.assignmentInfo state storm-id4 nil))))
         ;; at this point have 1 running, 1 killed topo
         (let [hist-topo-ids (vec (sort (.get_topo_ids (.getTopologyHistory (:nimbus cluster) (System/getProperty "user.name")))))]
           (log-message "Checking user " (System/getProperty "user.name") " " hist-topo-ids)
@@ -600,22 +604,22 @@
       (submit-local-topology (:nimbus cluster) "test" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 20} topology)
       (bind storm-id (get-storm-id state "test"))
       (advance-cluster-time cluster 15)
-      (is (not-nil? (.storm-base state storm-id nil)))
-      (is (not-nil? (.assignment-info state storm-id nil)))
+      (is (not-nil? (clojurify-storm-base (.stormBase state storm-id nil))))
+      (is (not-nil? (clojurify-assignment (.assignmentInfo state storm-id nil))))
       (.killTopology (:nimbus cluster) "test")
       ;; check that storm is deactivated but alive
-      (is (= :killed (-> (.storm-base state storm-id nil) :status :type)))
-      (is (not-nil? (.assignment-info state storm-id nil)))
+      (is (= :killed (-> (clojurify-storm-base (.stormBase state storm-id nil)) :status :type)))
+      (is (not-nil? (clojurify-assignment (.assignmentInfo state storm-id nil))))
       (advance-cluster-time cluster 18)
       ;; check that storm is deactivated but alive
-      (is (= 1 (count (.heartbeat-storms state))))
+      (is (= 1 (count (.heartbeatStorms state))))
       (advance-cluster-time cluster 3)
-      (is (nil? (.storm-base state storm-id nil)))
-      (is (nil? (.assignment-info state storm-id nil)))
+      (is (nil? (clojurify-storm-base (.stormBase state storm-id nil))))
+      (is (nil? (clojurify-assignment (.assignmentInfo state storm-id nil))))
 
       ;; cleanup happens on monitoring thread
       (advance-cluster-time cluster 11)
-      (is (empty? (.heartbeat-storms state)))
+      (is (empty? (.heartbeatStorms state)))
       ;; TODO: check that code on nimbus was cleaned up locally...
 
       (is (thrown? NotAliveException (.killTopology (:nimbus cluster) "lalala")))
@@ -624,27 +628,27 @@
       (is (thrown? AlreadyAliveException (submit-local-topology (:nimbus cluster) "2test" {} topology)))
       (advance-cluster-time cluster 11)
       (bind storm-id (get-storm-id state "2test"))
-      (is (not-nil? (.storm-base state storm-id nil)))
+      (is (not-nil? (clojurify-storm-base (.stormBase state storm-id nil))))
       (.killTopology (:nimbus cluster) "2test")
       (is (thrown? AlreadyAliveException (submit-local-topology (:nimbus cluster) "2test" {} topology)))
       (advance-cluster-time cluster 11)
-      (is (= 1 (count (.heartbeat-storms state))))
+      (is (= 1 (count (.heartbeatStorms state))))
 
       (advance-cluster-time cluster 6)
-      (is (nil? (.storm-base state storm-id nil)))
-      (is (nil? (.assignment-info state storm-id nil)))
+      (is (nil? (clojurify-storm-base (.stormBase state storm-id nil))))
+      (is (nil? (clojurify-assignment (.assignmentInfo state storm-id nil))))
       (advance-cluster-time cluster 11)
-      (is (= 0 (count (.heartbeat-storms state))))
+      (is (= 0 (count (.heartbeatStorms state))))
 
       (submit-local-topology (:nimbus cluster) "test3" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 5} topology)
       (bind storm-id3 (get-storm-id state "test3"))
       (advance-cluster-time cluster 11)
-      (.remove-storm! state storm-id3)
-      (is (nil? (.storm-base state storm-id3 nil)))
-      (is (nil? (.assignment-info state storm-id3 nil)))
+      (.removeStorm state storm-id3)
+      (is (nil? (clojurify-storm-base (.stormBase state storm-id3 nil))))
+      (is (nil? (clojurify-assignment (.assignmentInfo state storm-id3 nil))))
 
       (advance-cluster-time cluster 11)
-      (is (= 0 (count (.heartbeat-storms state))))
+      (is (= 0 (count (.heartbeatStorms state))))
 
       ;; this guarantees that monitor thread won't trigger for 10 more seconds
       (advance-time-secs! 11)
@@ -660,9 +664,9 @@
 
       (.killTopology (:nimbus cluster) "test3")
       (advance-cluster-time cluster 6)
-      (is (= 1 (count (.heartbeat-storms state))))
+      (is (= 1 (count (.heartbeatStorms state))))
       (advance-cluster-time cluster 5)
-      (is (= 0 (count (.heartbeat-storms state))))
+      (is (= 0 (count (.heartbeatStorms state))))
 
       ;; test kill with opts
       (submit-local-topology (:nimbus cluster) "test4" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 100} topology)
@@ -670,9 +674,9 @@
       (.killTopologyWithOpts (:nimbus cluster) "test4" (doto (KillOptions.) (.set_wait_secs 10)))
       (bind storm-id4 (get-storm-id state "test4"))
       (advance-cluster-time cluster 9)
-      (is (not-nil? (.assignment-info state storm-id4 nil)))
+      (is (not-nil? (clojurify-assignment (.assignmentInfo state storm-id4 nil))))
       (advance-cluster-time cluster 2)
-      (is (nil? (.assignment-info state storm-id4 nil)))
+      (is (nil? (clojurify-assignment (.assignmentInfo state storm-id4 nil))))
       )))
 
 (deftest test-reassignment
@@ -1017,7 +1021,7 @@
  (let [assignments (.assignments state nil)]
    (log-message "Assignemts: " assignments)
    (let [id->node->ports (into {} (for [id assignments
-                                                :let [executor->node+port (:executor->node+port (.assignment-info state id nil))
+                                                :let [executor->node+port (:executor->node+port (clojurify-assignment (.assignmentInfo state id nil)))
                                                       node+ports (set (.values executor->node+port))
                                                       node->ports (apply merge-with (fn [a b] (distinct (concat a b))) (for [[node port] node+ports] {node [port]}))]]
                                                 {id node->ports}))
@@ -1145,7 +1149,7 @@
                             STORM-CLUSTER-MODE "local"
                             STORM-ZOOKEEPER-PORT zk-port
                             STORM-LOCAL-DIR nimbus-dir}))
-         (bind cluster-state (cluster/mk-storm-cluster-state conf))
+         (bind cluster-state (ClusterUtils/mkStormClusterState conf nil (ClusterStateContext.)))
          (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
          (bind topology (Thrift/buildTopology
                          {"1" (Thrift/prepareSpoutDetails
@@ -1160,7 +1164,7 @@
            (nimbus/blob-rm-topology-keys storm-id1 blob-store cluster-state)
            (.shutdown blob-store))
          (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
-         (is ( = #{storm-id2} (set (.active-storms cluster-state))))
+         (is ( = #{storm-id2} (set (.activeStorms cluster-state))))
          (.shutdown nimbus)
          (.disconnect cluster-state)
          )))))
@@ -1218,7 +1222,7 @@
                         STORM-CLUSTER-MODE "local"
                         STORM-ZOOKEEPER-PORT zk-port
                         STORM-LOCAL-DIR nimbus-dir}))
-          (bind cluster-state (cluster/mk-storm-cluster-state conf))
+          (bind cluster-state (ClusterUtils/mkStormClusterState conf nil (ClusterStateContext.)))
           (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
           (bind topology (Thrift/buildTopology
                            {"1" (Thrift/prepareSpoutDetails
@@ -1229,7 +1233,7 @@
                           (zkLeaderElectorImpl [conf] (mock-leader-elector :is-leader false))))]
 
             (letlocals
-              (bind non-leader-cluster-state (cluster/mk-storm-cluster-state conf))
+              (bind non-leader-cluster-state (ClusterUtils/mkStormClusterState conf nil (ClusterStateContext.)))
               (bind non-leader-nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
 
               ;first we verify that the master nimbus can perform all actions, even with another nimbus present.
@@ -1427,7 +1431,7 @@
                         :status {:type bogus-type}}
                 }
         ]
-      (stubbing [topology-bases bogus-bases
+      (stubbing [nimbus/nimbus-topology-bases bogus-bases
                  nimbus/get-blob-replication-count 1]
         (let [topos (.get_topologies (.getClusterInfo nimbus))]
           ; The number of topologies in the summary is correct.
@@ -1469,25 +1473,25 @@
           expected-acls nimbus/NIMBUS-ZK-ACLS
           fake-inimbus (reify INimbus (getForcedScheduler [this] nil))
           fake-cu (proxy [ConfigUtils] []
-                      (nimbusTopoHistoryStateImpl [conf] nil))
+                    (nimbusTopoHistoryStateImpl [conf] nil))
           fake-utils (proxy [Utils] []
                        (newInstanceImpl [_])
                        (makeUptimeComputer [] (proxy [Utils$UptimeComputer] []
-                                                (upTime [] 0))))]
+                                                (upTime [] 0))))
+          cluster-utils (Mockito/mock ClusterUtils)]
       (with-open [_ (ConfigUtilsInstaller. fake-cu)
                   _ (UtilsInstaller. fake-utils)
                   zk-le (MockedZookeeper. (proxy [Zookeeper] []
-                          (zkLeaderElectorImpl [conf] nil)))]
+                          (zkLeaderElectorImpl [conf] nil)))
+                  mocked-cluster (MockedCluster. cluster-utils)]
         (stubbing [mk-authorization-handler nil
-                   cluster/mk-storm-cluster-state nil
-                   nimbus/file-cache-map nil
-                   nimbus/mk-blob-cache-map nil
-                   nimbus/mk-bloblist-cache-map nil
-                   nimbus/mk-scheduler nil]
-                  (nimbus/nimbus-data auth-conf fake-inimbus)
-                  (verify-call-times-for cluster/mk-storm-cluster-state 1)
-                  (verify-first-call-args-for-indices cluster/mk-storm-cluster-state [2]
-                                                      expected-acls))))))
+                 nimbus/file-cache-map nil
+                 nimbus/mk-blob-cache-map nil
+                 nimbus/mk-bloblist-cache-map nil
+                 nimbus/mk-scheduler nil]
+          (nimbus/nimbus-data auth-conf fake-inimbus)
+          (.mkStormClusterStateImpl (Mockito/verify cluster-utils (Mockito/times 1)) (Mockito/any) (Mockito/eq expected-acls) (Mockito/any))
+          )))))
 
 (deftest test-file-bogus-download
   (with-local-cluster [cluster :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0 TOPOLOGY-EVENTLOGGER-EXECUTORS 0}]
@@ -1518,7 +1522,7 @@
                       STORM-CLUSTER-MODE "local"
                       STORM-ZOOKEEPER-PORT zk-port
                       STORM-LOCAL-DIR nimbus-dir}))
-        (bind cluster-state (cluster/mk-storm-cluster-state conf))
+        (bind cluster-state (ClusterUtils/mkStormClusterState conf nil (ClusterStateContext.)))
         (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
         (Time/sleepSecs 1)
         (bind topology (Thrift/buildTopology
@@ -1551,7 +1555,7 @@
                         STORM-ZOOKEEPER-PORT zk-port
                         STORM-LOCAL-DIR nimbus-dir
                         NIMBUS-TOPOLOGY-ACTION-NOTIFIER-PLUGIN (.getName InMemoryTopologyActionNotifier)}))
-          (bind cluster-state (cluster/mk-storm-cluster-state conf))
+          (bind cluster-state (ClusterUtils/mkStormClusterState conf nil (ClusterStateContext.)))
           (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
           (bind notifier (InMemoryTopologyActionNotifier.))
           (Time/sleepSecs 1)

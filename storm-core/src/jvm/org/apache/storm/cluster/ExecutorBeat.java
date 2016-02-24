@@ -15,27 +15,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.storm.cluster;
 
-/**
- * This class is intended to provide runtime-context to StateStorageFactory
- * implementors, giving information such as what daemon is creating it.
- */
-public class ClusterStateContext {
-    
-    private DaemonType daemonType;
+import org.apache.storm.generated.ExecutorStats;
 
-    public ClusterStateContext() {
-        daemonType = DaemonType.UNKNOWN;
+public class ExecutorBeat {
+    private final int timeSecs;
+    private final int uptime;
+    private final ExecutorStats stats;
+
+    public ExecutorBeat(int timeSecs, int uptime, ExecutorStats stats) {
+        this.timeSecs = timeSecs;
+        this.uptime = uptime;
+        this.stats = stats;
     }
-    
-    public ClusterStateContext(DaemonType daemonType) {
-        this.daemonType = daemonType;
+
+    public int getTimeSecs() {
+        return timeSecs;
     }
-    
-    public DaemonType getDaemonType() {
-        return daemonType;
+
+    public int getUptime() {
+        return uptime;
     }
-    
+
+    public ExecutorStats getStats() {
+        return stats;
+    }
 }

@@ -16,26 +16,10 @@
  * limitations under the License.
  */
 
-package org.apache.storm.cluster;
+package org.apache.storm.callback;
 
-/**
- * This class is intended to provide runtime-context to StateStorageFactory
- * implementors, giving information such as what daemon is creating it.
- */
-public class ClusterStateContext {
-    
-    private DaemonType daemonType;
+import org.apache.zookeeper.Watcher;
 
-    public ClusterStateContext() {
-        daemonType = DaemonType.UNKNOWN;
-    }
-    
-    public ClusterStateContext(DaemonType daemonType) {
-        this.daemonType = daemonType;
-    }
-    
-    public DaemonType getDaemonType() {
-        return daemonType;
-    }
-    
+public interface ZKStateChangedCallback {
+    public void changed(Watcher.Event.EventType type, String path);
 }

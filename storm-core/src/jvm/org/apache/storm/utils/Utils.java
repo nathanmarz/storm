@@ -1062,6 +1062,10 @@ public class Utils {
         return newCurator(conf, servers, port, root, null);
     }
 
+    public static CuratorFramework newCurator(Map conf, List<String> servers, Object port, ZookeeperAuthInfo auth) {
+        return newCurator(conf, servers, port, "", auth);
+    }
+
     public static CuratorFramework newCurator(Map conf, List<String> servers, Object port, String root, ZookeeperAuthInfo auth) {
         List<String> serverPorts = new ArrayList<String>();
         for (String zkServer : servers) {
@@ -1115,10 +1119,6 @@ public class Utils {
                                                 builder, String zkStr, Map conf, ZookeeperAuthInfo auth)
     {
         setupBuilder(builder, zkStr, conf, auth);
-    }
-
-    public static CuratorFramework newCurator(Map conf, List<String> servers, Object port, ZookeeperAuthInfo auth) {
-        return newCurator(conf, servers, port, "", auth);
     }
 
     public static CuratorFramework newCuratorStarted(Map conf, List<String> servers, Object port, String root, ZookeeperAuthInfo auth) {
@@ -1401,13 +1401,16 @@ public class Utils {
             }
             if (memoryOpts != null) {
                 int unit = 1;
-                if (memoryOpts.toLowerCase().endsWith("k")) {
+                memoryOpts = memoryOpts.toLowerCase();
+
+                if (memoryOpts.endsWith("k")) {
                     unit = 1024;
-                } else if (memoryOpts.toLowerCase().endsWith("m")) {
+                } else if (memoryOpts.endsWith("m")) {
                     unit = 1024 * 1024;
-                } else if (memoryOpts.toLowerCase().endsWith("g")) {
+                } else if (memoryOpts.endsWith("g")) {
                     unit = 1024 * 1024 * 1024;
                 }
+
                 memoryOpts = memoryOpts.replaceAll("[a-zA-Z]", "");
                 Double result =  Double.parseDouble(memoryOpts) * unit / 1024.0 / 1024.0;
                 return (result < 1.0) ? 1.0 : result;

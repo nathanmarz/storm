@@ -1,4 +1,7 @@
 ## 2.0.0
+ * STORM-1267: Port set_log_level
+ * STORM-1266: Port rebalance
+ * STORM-1265: Port monitor
  * STORM-1572: throw NPE when parsing the command line arguments by CLI
  * STORM-1273: port backtype.storm.cluster to java
  * STORM-1479: use a simple implemention for IntSerializer

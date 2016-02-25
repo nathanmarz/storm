@@ -31,7 +31,7 @@
   (:import [org.apache.storm.clojure RichShellBolt RichShellSpout])
   (:import [org.apache.storm.thrift.transport TTransport]
            (org.json.simple JSONValue))
-  (:use [org.apache.storm util config log zookeeper]))
+  (:use [org.apache.storm util config log]))
 
 (defn instantiate-java-object
   [^JavaObject obj]

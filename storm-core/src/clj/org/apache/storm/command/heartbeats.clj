@@ -18,16 +18,16 @@
              [config :refer :all]
              [log :refer :all]
              [util :refer :all]
-             [cluster :refer :all]
              [converter :refer :all]]
             [clojure.string :as string])
   (:import [org.apache.storm.generated ClusterWorkerHeartbeat]
-           [org.apache.storm.utils Utils ConfigUtils])
+           [org.apache.storm.utils Utils ConfigUtils]
+           [org.apache.storm.cluster ZKStateStorage ClusterStateContext ClusterUtils])
   (:gen-class))
 
 (defn -main [command path & args]
   (let [conf (clojurify-structure (ConfigUtils/readStormConfig))
-        cluster (mk-distributed-cluster-state conf :auth-conf conf)]
+        cluster (ClusterUtils/mkStateStorage conf conf nil (ClusterStateContext.))]
     (println "Command: [" command "]")
     (condp = command
       "list"

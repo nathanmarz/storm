@@ -19,6 +19,7 @@
             TopologyActionOptions DebugOptions ProfileRequest]
            [org.apache.storm.utils Utils]
            [org.apache.storm.stats StatsUtil])
+  (:import [org.apache.storm.cluster ExecutorBeat])
   (:use [org.apache.storm util log])
   (:require [org.apache.storm.daemon [common :as common]]))
 
@@ -223,6 +224,14 @@
      }
     {}))
 
+(defn clojurify-zk-executor-hb [^ExecutorBeat executor-hb]
+  (if executor-hb
+    {:stats (StatsUtil/clojurifyExecutorStats (.getStats executor-hb))
+     :uptime (.getUptime executor-hb)
+     :time-secs (.getTimeSecs executor-hb)
+     }
+    {}))
+
 (defn thriftify-zk-worker-hb [worker-hb]
   (if (not-empty (filter second (:executor-stats worker-hb)))
     (doto (ClusterWorkerHeartbeat.)
@@ -230,16 +239,6 @@
       (.set_storm_id (:storm-id worker-hb))
       (.set_executor_stats (StatsUtil/thriftifyStats (filter second (:executor-stats worker-hb))))
       (.set_time_secs (:time-secs worker-hb)))))
-
-(defn clojurify-error [^ErrorInfo error]
-  (if error
-    {
-      :error (.get_error error)
-      :time-secs (.get_error_time_secs error)
-      :host (.get_host error)
-      :port (.get_port error)
-      }
-    ))
 
 (defn thriftify-error [error]
   (doto (ErrorInfo. (:error error) (:time-secs error))

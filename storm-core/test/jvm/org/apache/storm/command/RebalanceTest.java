@@ -16,26 +16,26 @@
  * limitations under the License.
  */
 
-package org.apache.storm.cluster;
 
-/**
- * This class is intended to provide runtime-context to StateStorageFactory
- * implementors, giving information such as what daemon is creating it.
- */
-public class ClusterStateContext {
-    
-    private DaemonType daemonType;
+package org.apache.storm.command;
 
-    public ClusterStateContext() {
-        daemonType = DaemonType.UNKNOWN;
+import org.junit.Assert;
+import org.junit.Test;
+
+import java.util.Map;
+
+public class RebalanceTest {
+
+    @Test
+    public void testParser() throws Exception {
+        Rebalance.ExecutorParser executorParser = new Rebalance.ExecutorParser();
+        Map<String, Integer> componentParallelism = (Map<String, Integer>) executorParser.parse("comp1=3");
+        Assert.assertEquals(3, (int) componentParallelism.get("comp1"));
     }
-    
-    public ClusterStateContext(DaemonType daemonType) {
-        this.daemonType = daemonType;
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testExepction() throws Exception {
+        Rebalance.ExecutorParser executorParser = new Rebalance.ExecutorParser();
+        executorParser.parse("comp1 3");
     }
-    
-    public DaemonType getDaemonType() {
-        return daemonType;
-    }
-    
 }

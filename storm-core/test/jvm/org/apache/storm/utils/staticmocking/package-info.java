@@ -92,4 +92,4 @@
  * This class should be removed when troublesome static methods have been
  * replaced in the code.
  */
-package org.apache.storm.testing.staticmocking;
+package org.apache.storm.utils.staticmocking;

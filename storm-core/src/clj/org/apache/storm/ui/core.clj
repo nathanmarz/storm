@@ -120,12 +120,6 @@
          ACKER-FAIL-STREAM-ID]]
     (every? #(not= %1 stream) acker-streams)))
 
-(defn mk-include-sys-fn
-  [include-sys?]
-  (if include-sys?
-    (fn [_] true)
-    (fn [stream] (and (string? stream) (not (Utils/isSystemId stream))))))
-
 (defn spout-summary?
   [topology s]
   (= :spout (executor-summary-type topology s)))

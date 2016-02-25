@@ -38,6 +38,7 @@
  * STORM-1521: When using Kerberos login from keytab with multiple bolts/executors ticket is not renewed in hbase bolt.
 
 ## 1.0.0
+ * STORM-1540: Fix Debug/Sampling for Trident
  * STORM-1522: REST API throws invalid worker log links
  * STORM-1541: Change scope of 'hadoop-minicluster' to test
  * STORM-1532: Fix readCommandLineOpts to parse JSON correctly in windows

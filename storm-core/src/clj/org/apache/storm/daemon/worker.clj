@@ -156,7 +156,7 @@
         (log-debug "BP " @(:backpressure worker) " WAS " prev-backpressure-flag)
         (when (not= prev-backpressure-flag @(:backpressure worker))
           (try
-            (.workerBackpressure storm-cluster-state storm-id assignment-id port @(:backpressure worker))
+            (.workerBackpressure storm-cluster-state storm-id assignment-id (long port) @(:backpressure worker))
             (catch Exception exc
               (log-error exc "workerBackpressure update failed when connecting to ZK ... will retry"))))
         ))))

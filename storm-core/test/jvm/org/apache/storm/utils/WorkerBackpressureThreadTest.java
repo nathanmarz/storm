@@ -40,10 +40,11 @@ public class WorkerBackpressureThreadTest extends TestCase {
         };
         WorkerBackpressureThread workerBackpressureThread = new WorkerBackpressureThread(trigger, workerData, callback);
         workerBackpressureThread.start();
-        Thread.sleep(100);
         WorkerBackpressureThread.notifyBackpressureChecker(trigger);
-        Thread.sleep(100);
-        Assert.assertNotEquals("Check the calling times of backpressure events, should not be 0. ",
-                workerData.get(), 0);
+        long start = System.currentTimeMillis();
+        while (workerData.get() == 0) {
+            assertTrue("Timeout", (System.currentTimeMillis() - start) < 1000);
+            Thread.sleep(100);
+        }
     }
 }

@@ -1156,6 +1156,9 @@ public class StatsUtil {
     public static List extractDataFromHb(Map executor2hostPort, Map task2component, Map beats,
                                          boolean includeSys, StormTopology topology, String compId) {
         List ret = new ArrayList();
+        if (executor2hostPort == null) {
+            return ret;
+        }
         for (Object o : executor2hostPort.entrySet()) {
             Map.Entry entry = (Map.Entry) o;
             List key = (List) entry.getKey();

@@ -42,7 +42,6 @@
            [org.json.simple JSONValue]
            [com.lmax.disruptor.dsl ProducerType]
            [org.apache.storm StormTimer])
-  (:require [org.apache.storm [cluster :as cluster]])
   (:require [org.apache.storm.daemon [task :as task]])
   (:require [org.apache.storm.daemon.builtin-metrics :as builtin-metrics])
   (:require [clojure.set :as set]))

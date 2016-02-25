@@ -21,7 +21,7 @@
         ring.middleware.multipart-params)
   (:use [ring.middleware.json :only [wrap-json-params]])
   (:use [hiccup core page-helpers])
-  (:use [org.apache.storm config util log zookeeper converter])
+  (:use [org.apache.storm config util log converter])
   (:use [org.apache.storm.ui helpers])
   (:use [org.apache.storm.daemon [common :only [ACKER-COMPONENT-ID ACKER-INIT-STREAM-ID ACKER-ACK-STREAM-ID
                                               ACKER-FAIL-STREAM-ID mk-authorization-handler
@@ -271,6 +271,12 @@
                            :sani-stream (sanitize-stream-name (.get_streamId global-stream-id))
                            :grouping (clojure.core/name (thrift/grouping-type group))})})])]
     (into {} (doall components))))
+
+(defn mk-include-sys-fn
+  [include-sys?]
+  (if include-sys?
+    (fn [_] true)
+    (fn [stream] (and (string? stream) (not (Utils/isSystemId stream))))))
 
 (defn stream-boxes [datmap]
   (let [filter-fn (mk-include-sys-fn true)

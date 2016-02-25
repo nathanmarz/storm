@@ -50,10 +50,9 @@
             ProfileRequest ProfileAction NodeInfo LSTopoHistory])
   (:import [org.apache.storm.daemon Shutdownable])
   (:import [org.apache.storm.validation ConfigValidation])
-  (:import [org.apache.storm.cluster ClusterStateContext DaemonType])
-  (:use [org.apache.storm util config log zookeeper])
-  (:require [org.apache.storm [cluster :as cluster]
-                            [converter :as converter]])
+  (:import [org.apache.storm.cluster ClusterStateContext DaemonType StormClusterStateImpl ClusterUtils])
+  (:use [org.apache.storm util config log converter])
+  (:require [org.apache.storm [converter :as converter]])
   (:require [clojure.set :as set])
   (:import [org.apache.storm.daemon.common StormBase Assignment])
   (:import [org.apache.storm.zookeeper Zookeeper])

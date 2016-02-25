@@ -1,4 +1,5 @@
 ## 2.0.0
+ * STORM-1254: port ui.helper to java
  * STORM-1571: Improvment Kafka Spout Time Metric
  * STORM-1569: Allowing users to specify the nimbus thrift server queue size.
  * STORM-1564: fix wrong package-info in org.apache.storm.utils.staticmocking

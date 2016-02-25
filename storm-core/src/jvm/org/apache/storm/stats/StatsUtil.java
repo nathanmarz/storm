@@ -18,7 +18,6 @@
 package org.apache.storm.stats;
 
 import clojure.lang.Keyword;
-import clojure.lang.PersistentVector;
 import clojure.lang.RT;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
@@ -28,6 +27,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.storm.cluster.IStormClusterState;
 import org.apache.storm.generated.Bolt;
 import org.apache.storm.generated.BoltAggregateStats;
 import org.apache.storm.generated.BoltStats;
@@ -543,13 +543,12 @@ public class StatsUtil {
         return ret;
     }
 
-    // TODO: add last-error-fn arg to get last error
     public static TopologyPageInfo aggTopoExecsStats(
             String topologyId, Map exec2nodePort, Map task2component,
-            Map beats, StormTopology topology, String window, boolean includeSys) {
+            Map beats, StormTopology topology, String window, boolean includeSys, IStormClusterState clusterState) {
         List beatList = extractDataFromHb(exec2nodePort, task2component, beats, includeSys, topology);
         Map topoStats = aggregateTopoStats(window, includeSys, beatList);
-        topoStats = postAggregateTopoStats(task2component, exec2nodePort, topoStats);
+        topoStats = postAggregateTopoStats(task2component, exec2nodePort, topoStats, topologyId, clusterState);
 
         return thriftifyTopoPageData(topologyId, topoStats);
     }
@@ -574,7 +573,8 @@ public class StatsUtil {
         return initVal;
     }
 
-    public static Map postAggregateTopoStats(Map task2comp, Map exec2nodePort, Map accData) {
+    public static Map postAggregateTopoStats(
+            Map task2comp, Map exec2nodePort, Map accData, String topologyId, IStormClusterState clusterState) {
         Map ret = new HashMap();
         putRawKV(ret, NUM_TASKS, task2comp.size());
         putRawKV(ret, NUM_WORKERS, ((Set) getByKeyword(accData, WORKERS_SET)).size());
@@ -596,8 +596,7 @@ public class StatsUtil {
             }
             removeByKeyword(m, EXEC_LAT_TOTAL);
             removeByKeyword(m, PROC_LAT_TOTAL);
-            //TODO: get last error depends on cluster.clj
-            putRawKV(m, "last-error", null);
+            putRawKV(m, "last-error", getLastError(clusterState, topologyId, id));
 
             aggBolt2stats.put(id, m);
         }
@@ -615,8 +614,7 @@ public class StatsUtil {
                 putRawKV(m, COMP_LATENCY, compLatencyTotal / acked);
             }
             removeByKeyword(m, COMP_LAT_TOTAL);
-            //TODO: get last error depends on cluster.clj
-            putRawKV(m, "last-error", null);
+            putRawKV(m, "last-error", getLastError(clusterState, topologyId, id));
 
             spoutBolt2stats.put(id, m);
         }
@@ -1493,6 +1491,7 @@ public class StatsUtil {
     }
 
     private static ComponentAggregateStats thriftifySpoutAggStats(Map m) {
+        logger.warn("spout agg stats:{}", m);
         ComponentAggregateStats stats = new ComponentAggregateStats();
         stats.set_type(ComponentType.SPOUT);
         stats.set_last_error((ErrorInfo) getByKeyword(m, LAST_ERROR));
@@ -1958,7 +1957,10 @@ public class StatsUtil {
         return t / c;
     }
 
-    public static String floatStr(double n) {
+    public static String floatStr(Double n) {
+        if (n == null) {
+            return "0";
+        }
         return String.format("%.3f", n);
     }
 
@@ -1968,6 +1970,10 @@ public class StatsUtil {
 
     private static Keyword keyword(String key) {
         return RT.keyword(null, key);
+    }
+
+    private static ErrorInfo getLastError(IStormClusterState stormClusterState, String stormId, String compId) {
+        return stormClusterState.lastError(stormId, compId);
     }
 
     interface KeyTransformer<T> {

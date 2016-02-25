@@ -1598,7 +1598,7 @@
             (transition-name! nimbus storm-name [:kill wait-amt] true)
             (notify-topology-action-listener nimbus storm-name operation))
           (if (topology-conf TOPOLOGY-BACKPRESSURE-ENABLE)
-            (.remove-backpressure! (:storm-cluster-state nimbus) storm-id))
+            (.removeBackpressure (:storm-cluster-state nimbus) storm-id))
           (add-topology-to-history-log (get-storm-id (:storm-cluster-state nimbus) storm-name)
             nimbus topology-conf)))
 

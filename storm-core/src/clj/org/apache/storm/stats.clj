@@ -24,6 +24,7 @@
             ExecutorAggregateStats SpecificAggregateStats
             SpoutAggregateStats TopologyPageInfo TopologyStats])
   (:import [org.apache.storm.utils Utils])
+  (:import [org.apache.storm.cluster StormClusterStateImpl])
   (:import [org.apache.storm.metric.internal MultiCountStatAndMetric MultiLatencyStatAndMetric]
            [java.util Collection])
   (:use [org.apache.storm log util])
@@ -811,7 +812,7 @@
 
 (defn get-last-error
   [storm-cluster-state storm-id component-id]
-  (if-let [e (.last-error storm-cluster-state storm-id component-id)]
+  (if-let [e (clojurify-error (.lastError storm-cluster-state storm-id component-id))]
     (ErrorInfo. (:error e) (:time-secs e))))
 
 (defn component-type

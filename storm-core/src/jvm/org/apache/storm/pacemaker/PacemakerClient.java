@@ -60,6 +60,10 @@ public class PacemakerClient implements ISaslClient {
     private StormBoundedExponentialBackoffRetry backoff = new StormBoundedExponentialBackoffRetry(100, 5000, 20);
     private int retryTimes = 0;
 
+    //the constructor is invoked by pacemaker-state-factory-test
+    public PacemakerClient() {
+        bootstrap = new ClientBootstrap();
+    }
     public PacemakerClient(Map config) {
 
         String host = (String)config.get(Config.PACEMAKER_HOST);
@@ -157,7 +161,7 @@ public class PacemakerClient implements ISaslClient {
     public String secretKey() {
         return secret;
     }
-
+    public HBMessage  checkCaptured() {return null;}
     public HBMessage send(HBMessage m) {
         waitUntilReady();
         LOG.debug("Sending message: {}", m.toString());

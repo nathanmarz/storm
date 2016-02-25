@@ -136,11 +136,10 @@ public class TridentKafkaEmitter {
     }
 
     private ByteBufferMessageSet fetchMessages(SimpleConsumer consumer, Partition partition, long offset) {
-        long start = System.nanoTime();
+        long start = System.currentTimeMillis();
         ByteBufferMessageSet msgs = null;
         msgs = KafkaUtils.fetchMessages(_config, consumer, partition, offset);
-        long end = System.nanoTime();
-        long millis = (end - start) / 1000000;
+        long millis = System.currentTimeMillis() - start;
         _kafkaMeanFetchLatencyMetric.update(millis);
         _kafkaMaxFetchLatencyMetric.update(millis);
         return msgs;

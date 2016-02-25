@@ -17,13 +17,15 @@
  */
 package org.apache.storm.cluster;
 
-import clojure.lang.APersistentMap;
-import clojure.lang.IFn;
 import java.util.List;
+import java.util.Map;
+
+import org.apache.curator.framework.state.ConnectionStateListener;
+import org.apache.storm.callback.ZKStateChangedCallback;
 import org.apache.zookeeper.data.ACL;
 
 /**
- * ClusterState provides the API for the pluggable state store used by the
+ * StateStorage provides the API for the pluggable state store used by the
  * Storm daemons. Data is stored in path/value format, and the store supports
  * listing sub-paths at a given path.
  * All data should be available across all nodes with eventual consistency.
@@ -38,16 +40,19 @@ import org.apache.zookeeper.data.ACL;
  * may or may not cause a collision in "/path".
  * Never use the same paths with the *_hb* methods as you do with the others.
  */
-public interface ClusterState {
+public interface IStateStorage {
+
+    public static final String DATA = "data";
+    public static final String VERSION = "version";
 
     /**
      * Registers a callback function that gets called when CuratorEvents happen.
      * @param callback is a clojure IFn that accepts the type - translated to
-     * clojure keyword as in zookeeper.clj - and the path: (callback type path)
+     * clojure keyword as in zookeeper - and the path: (callback type path)
      * @return is an id that can be passed to unregister(...) to unregister the
      * callback.
      */
-    String register(IFn callback);
+    String register(ZKStateChangedCallback callback);
 
     /**
      * Unregisters a callback function that was registered with register(...).
@@ -73,7 +78,7 @@ public interface ClusterState {
      * @param acls The acls to apply to the path. May be null.
      * @return path
      */
-    String mkdirs(String path, List<ACL> acls);
+    void mkdirs(String path, List<ACL> acls);
 
     /**
      * Deletes the node at a given path, and any child nodes that may exist.
@@ -99,7 +104,7 @@ public interface ClusterState {
      * register method. Very useful for catching updates to nodes.
      * @return The integer version of this node.
      */
-    Integer get_version(String path, boolean watch);
+    Integer get_version(String path, boolean watch) throws Exception;
 
     /**
      * Check if a node exists and optionally set a watch on the path.
@@ -147,14 +152,14 @@ public interface ClusterState {
 
     /**
      * Get the data at the node along with its version. Data is returned
-     * in an APersistentMap with clojure keyword keys :data and :version.
+     * in an Map with the keys data and version.
      * @param path The path to look under
      * @param watch Whether or not to set a watch on the path. Watched paths
      * emit events which are consumed by functions registered with the
      * register method. Very useful for catching updates to nodes.
-     * @return An APersistentMap in the form {:data data :version version}
+     * @return An Map in the form {:data data :version version}
      */
-    APersistentMap get_data_with_version(String path, boolean watch);
+    Map get_data_with_version(String path, boolean watch);
 
     /**
      * Write a worker heartbeat at the path.
@@ -193,11 +198,11 @@ public interface ClusterState {
     void delete_worker_hb(String path);
 
     /**
-     * Add a ClusterStateListener to the connection.
-     * @param listener A ClusterStateListener to handle changing cluster state
+     * Add a StateStorageListener to the connection.
+     * @param listener A StateStorageListener to handle changing cluster state
      * events.
      */
-    void add_listener(ClusterStateListener listener);
+    void add_listener(final ConnectionStateListener listener);
 
     /**
      * Force consistency on a path. Any writes committed on the path before

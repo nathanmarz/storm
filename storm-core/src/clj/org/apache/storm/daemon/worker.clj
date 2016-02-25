@@ -155,7 +155,10 @@
         ;; update the worker's backpressure flag to zookeeper only when it has changed
         (log-debug "BP " @(:backpressure worker) " WAS " prev-backpressure-flag)
         (when (not= prev-backpressure-flag @(:backpressure worker))
-          (.workerBackpressure storm-cluster-state storm-id assignment-id port @(:backpressure worker)))
+          (try
+            (.workerBackpressure storm-cluster-state storm-id assignment-id port @(:backpressure worker))
+            (catch Exception exc
+              (log-error exc "workerBackpressure update failed when connecting to ZK ... will retry"))))
         ))))
 
 (defn- mk-disruptor-backpressure-handler [worker]

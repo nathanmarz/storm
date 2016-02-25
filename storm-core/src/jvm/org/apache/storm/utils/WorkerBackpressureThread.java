@@ -48,8 +48,10 @@ public class WorkerBackpressureThread extends Thread {
         }
     }
 
-    public void terminate() {
+    public void terminate() throws InterruptedException {
         running = false;
+        interrupt();
+        join();
     }
 
     public void run() {
@@ -60,7 +62,7 @@ public class WorkerBackpressureThread extends Thread {
                 }
                 callback.onEvent(workerData); // check all executors and update zk backpressure throttle for the worker if needed
             } catch (InterruptedException interEx) {
-                LOG.info("WorkerBackpressureThread gets interrupted! Ignoring Exception: ", interEx);
+                // ignored, we are shutting down.
             }
         }
     }
@@ -70,11 +72,8 @@ class BackpressureUncaughtExceptionHandler implements Thread.UncaughtExceptionHa
     private static final Logger LOG = LoggerFactory.getLogger(BackpressureUncaughtExceptionHandler.class);
     @Override
     public void uncaughtException(Thread t, Throwable e) {
-        try {
-            Utils.handleUncaughtException(e);
-        } catch (Error error) {
-            LOG.info("Received error in WorkerBackpressureThread.. terminating the worker...");
-            Runtime.getRuntime().exit(1);
-        }
+        // note that exception that happens during connecting to ZK has been ignored in the callback implementation
+        LOG.error("Received error or exception in WorkerBackpressureThread.. terminating the worker...", e);
+        Runtime.getRuntime().exit(1);
     }
 }

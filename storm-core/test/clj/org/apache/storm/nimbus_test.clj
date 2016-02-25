@@ -23,7 +23,7 @@
            [org.apache.storm.nimbus InMemoryTopologyActionNotifier]
            [org.apache.storm.generated GlobalStreamId]
            [org.apache.storm Thrift]
-           [org.apache.storm.stats StatsUtil])
+           [org.apache.storm.stats BoltExecutorStats])
   (:import [org.apache.storm.testing.staticmocking MockedZookeeper])
   (:import [org.apache.storm.scheduler INimbus])
   (:import [org.apache.storm.nimbus ILeaderElector NimbusInfo])
@@ -141,7 +141,7 @@
         stats (:executor-stats curr-beat)]
     (.worker-heartbeat! state storm-id node port
       {:storm-id storm-id :time-secs (Time/currentTimeSecs) :uptime 10
-       :executor-stats (merge stats {executor (clojurify-structure (StatsUtil/renderStats (StatsUtil/mkBoltStats 20)))})}
+       :executor-stats (merge stats {executor (clojurify-structure (.renderStats (BoltExecutorStats/mkBoltStats 20)))})}
       )))
 
 (defn slot-assignments [cluster storm-id]

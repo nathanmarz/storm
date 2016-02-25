@@ -17,9 +17,13 @@
  */
 package org.apache.storm.stats;
 
+import clojure.lang.PersistentVector;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.storm.metric.internal.MultiCountStatAndMetric;
 import org.apache.storm.metric.internal.MultiLatencyStatAndMetric;
 
+@SuppressWarnings("unchecked")
 public class BoltExecutorStats extends CommonStats {
 
     public static final String ACKED = "acked";
@@ -58,5 +62,46 @@ public class BoltExecutorStats extends CommonStats {
 
     public MultiLatencyStatAndMetric getExecuteLatencies() {
         return (MultiLatencyStatAndMetric) this.get(EXECUTE_LATENCIES);
+    }
+
+    public void boltExecuteTuple(String component, String stream, long latencyMs) {
+        Object key = PersistentVector.create(component, stream);
+        this.getExecuted().incBy(key, this.rate);
+        this.getExecuteLatencies().record(key, latencyMs);
+    }
+
+    public void boltAckedTuple(String component, String stream, long latencyMs) {
+        Object key = PersistentVector.create(component, stream);
+        this.getAcked().incBy(key, this.rate);
+        this.getProcessLatencies().record(key, latencyMs);
+    }
+
+    public void boltFailedTuple(String component, String stream, long latencyMs) {
+        Object key = PersistentVector.create(component, stream);
+        this.getFailed().incBy(key, this.rate);
+
+    }
+
+    public Map renderStats() {
+        cleanupStats();
+        Map ret = new HashMap();
+        ret.putAll(valueStats(CommonStats.COMMON_FIELDS));
+        ret.putAll(valueStats(BoltExecutorStats.BOLT_FIELDS));
+        StatsUtil.putRawKV(ret, StatsUtil.TYPE, StatsUtil.KW_BOLT);
+
+        return ret;
+    }
+
+    public void cleanupStats() {
+        super.cleanupStats();
+        for (String field : BOLT_FIELDS) {
+            cleanupStat(this.get(field));
+        }
+    }
+
+    public static BoltExecutorStats mkBoltStats(int rate) {
+        BoltExecutorStats stats = new BoltExecutorStats();
+        stats.setRate(rate);
+        return stats;
     }
 }

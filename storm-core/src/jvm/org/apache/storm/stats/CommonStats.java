@@ -21,7 +21,9 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.storm.metric.api.IMetric;
 import org.apache.storm.metric.internal.MultiCountStatAndMetric;
+import org.apache.storm.metric.internal.MultiLatencyStatAndMetric;
 
+@SuppressWarnings("unchecked")
 public class CommonStats {
     public static final int NUM_STAT_BUCKETS = 20;
 
@@ -62,4 +64,42 @@ public class CommonStats {
     protected void put(String field, Object value) {
         StatsUtil.putRawKV(metricMap, field, value);
     }
+
+    public void emittedTuple(String stream) {
+        this.getEmitted().incBy(stream, this.rate);
+    }
+
+    public void transferredTuples(String stream, int amount) {
+        this.getTransferred().incBy(stream, this.rate * amount);
+    }
+
+    protected void cleanupStats() {
+        for (String field : COMMON_FIELDS) {
+            cleanupStat(this.get(field));
+        }
+    }
+
+    protected void cleanupStat(IMetric metric) {
+        if (metric instanceof MultiCountStatAndMetric) {
+            ((MultiCountStatAndMetric) metric).close();
+        } else if (metric instanceof MultiLatencyStatAndMetric) {
+            ((MultiLatencyStatAndMetric) metric).close();
+        }
+    }
+
+    protected Map valueStats(String[] fields) {
+        Map ret = new HashMap();
+        for (String field : fields) {
+            IMetric metric = this.get(field);
+            if (metric instanceof MultiCountStatAndMetric) {
+                StatsUtil.putRawKV(ret, field, ((MultiCountStatAndMetric) metric).getTimeCounts());
+            } else if (metric instanceof MultiLatencyStatAndMetric) {
+                StatsUtil.putRawKV(ret, field, ((MultiLatencyStatAndMetric) metric).getTimeLatAvg());
+            }
+        }
+        StatsUtil.putRawKV(ret, CommonStats.RATE, this.getRate());
+
+        return ret;
+    }
+
 }

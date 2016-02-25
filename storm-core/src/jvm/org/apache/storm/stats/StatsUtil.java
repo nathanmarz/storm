@@ -48,9 +48,6 @@ import org.apache.storm.generated.SpoutStats;
 import org.apache.storm.generated.StormTopology;
 import org.apache.storm.generated.TopologyPageInfo;
 import org.apache.storm.generated.TopologyStats;
-import org.apache.storm.metric.api.IMetric;
-import org.apache.storm.metric.internal.MultiCountStatAndMetric;
-import org.apache.storm.metric.internal.MultiLatencyStatAndMetric;
 import org.apache.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,9 +56,11 @@ import org.slf4j.LoggerFactory;
 public class StatsUtil {
     private static final Logger logger = LoggerFactory.getLogger(StatsUtil.class);
 
-    private static final String TYPE = "type";
+    public static final String TYPE = "type";
     private static final String SPOUT = "spout";
     private static final String BOLT = "bolt";
+    public static final Keyword KW_SPOUT = keyword(SPOUT);
+    public static final Keyword KW_BOLT = keyword(BOLT);
 
     private static final String UPTIME = "uptime";
     private static final String HOST = "host";
@@ -111,9 +110,6 @@ public class StatsUtil {
     private static final String CID_SID_TO_IN_STATS = "cid+sid->input-stats";
     private static final String WORKERS_SET = "workers-set";
 
-    private static final Keyword KW_SPOUT = keyword(SPOUT);
-    private static final Keyword KW_BOLT = keyword(BOLT);
-
     public static final int TEN_MIN_IN_SECONDS = 60 * 10;
     public static final String TEN_MIN_IN_SECONDS_STR = TEN_MIN_IN_SECONDS + "";
 
@@ -122,120 +118,6 @@ public class StatsUtil {
     private static final FromGlobalStreamIdTransformer FROM_GSID = new FromGlobalStreamIdTransformer();
     private static final ToGlobalStreamIdTransformer TO_GSID = new ToGlobalStreamIdTransformer();
 
-
-    // =====================================================================================
-    // update stats methods
-    // =====================================================================================
-
-    public static BoltExecutorStats mkBoltStats(int rate) {
-        BoltExecutorStats stats = new BoltExecutorStats();
-        stats.setRate(rate);
-        return stats;
-    }
-
-    public static SpoutExecutorStats mkSpoutStats(int rate) {
-        SpoutExecutorStats stats = new SpoutExecutorStats();
-        stats.setRate(rate);
-        return stats;
-    }
-
-    public static void emittedTuple(CommonStats stats, String stream) {
-        stats.getEmitted().incBy(stream, stats.rate);
-    }
-
-    public static void transferredTuples(CommonStats stats, String stream, int amount) {
-        stats.getTransferred().incBy(stream, stats.rate * amount);
-    }
-
-    public static void boltExecuteTuple(BoltExecutorStats stats, String component, String stream, long latencyMs) {
-        Object key = PersistentVector.create(component, stream);
-        stats.getExecuted().incBy(key, stats.rate);
-        stats.getExecuteLatencies().record(key, latencyMs);
-    }
-
-    public static void boltAckedTuple(BoltExecutorStats stats, String component, String stream, long latencyMs) {
-        Object key = PersistentVector.create(component, stream);
-        stats.getAcked().incBy(key, stats.rate);
-        stats.getProcessLatencies().record(key, latencyMs);
-    }
-
-    public static void boltFailedTuple(BoltExecutorStats stats, String component, String stream, long latencyMs) {
-        Object key = PersistentVector.create(component, stream);
-        stats.getFailed().incBy(key, stats.rate);
-
-    }
-
-    public static void spoutAckedTuple(SpoutExecutorStats stats, String stream, long latencyMs) {
-        stats.getAcked().incBy(stream, stats.rate);
-        stats.getCompleteLatencies().record(stream, latencyMs);
-    }
-
-    public static void spoutFailedTuple(SpoutExecutorStats stats, String stream, long latencyMs) {
-        stats.getFailed().incBy(stream, stats.rate);
-    }
-
-    private static void cleanupStat(IMetric metric) {
-        if (metric instanceof MultiCountStatAndMetric) {
-            ((MultiCountStatAndMetric) metric).close();
-        } else if (metric instanceof MultiLatencyStatAndMetric) {
-            ((MultiLatencyStatAndMetric) metric).close();
-        }
-    }
-
-    public static Map renderStats(SpoutExecutorStats stats) {
-        cleanupSpoutStats(stats);
-        Map ret = new HashMap();
-        ret.putAll(valueStats(stats, CommonStats.COMMON_FIELDS));
-        ret.putAll(valueStats(stats, SpoutExecutorStats.SPOUT_FIELDS));
-        putRawKV(ret, TYPE, KW_SPOUT);
-
-        return ret;
-    }
-
-    public static Map renderStats(BoltExecutorStats stats) {
-        cleanupBoltStats(stats);
-        Map ret = new HashMap();
-        ret.putAll(valueStats(stats, CommonStats.COMMON_FIELDS));
-        ret.putAll(valueStats(stats, BoltExecutorStats.BOLT_FIELDS));
-        putRawKV(ret, TYPE, KW_BOLT);
-
-        return ret;
-    }
-
-    public static void cleanupSpoutStats(SpoutExecutorStats stats) {
-        cleanupCommonStats(stats);
-        for (String field : SpoutExecutorStats.SPOUT_FIELDS) {
-            cleanupStat(stats.get(field));
-        }
-    }
-
-    public static void cleanupBoltStats(BoltExecutorStats stats) {
-        cleanupCommonStats(stats);
-        for (String field : BoltExecutorStats.BOLT_FIELDS) {
-            cleanupStat(stats.get(field));
-        }
-    }
-
-    public static void cleanupCommonStats(CommonStats stats) {
-        for (String field : CommonStats.COMMON_FIELDS) {
-            cleanupStat(stats.get(field));
-        }
-    }
-
-    private static Map valueStats(CommonStats stats, String[] fields) {
-        Map ret = new HashMap();
-        for (String field : fields) {
-            IMetric metric = stats.get(field);
-            if (metric instanceof MultiCountStatAndMetric) {
-                putRawKV(ret, field, ((MultiCountStatAndMetric) metric).getTimeCounts());
-            } else if (metric instanceof MultiLatencyStatAndMetric) {
-                putRawKV(ret, field, ((MultiLatencyStatAndMetric) metric).getTimeLatAvg());
-            }
-        }
-        putRawKV(ret, CommonStats.RATE, stats.getRate());
-
-        return ret;
-    }
 
     // =====================================================================================
     // aggregation stats methods
@@ -1166,9 +1048,6 @@ public class StatsUtil {
         return ret;
     }
 
-    /**
-     * called in nimbus.clj
-     */
     public static ComponentPageInfo aggCompExecsStats(
             Map exec2hostPort, Map task2component, Map beats, String window, boolean includeSys,
             String topologyId, StormTopology topology, String componentId) {
@@ -1184,9 +1063,6 @@ public class StatsUtil {
     // clojurify stats methods
     // =====================================================================================
 
-    /**
-     * called in converter.clj
-     */
     public static Map clojurifyStats(Map stats) {
         Map ret = new HashMap();
         for (Object o : stats.entrySet()) {
@@ -1245,9 +1121,6 @@ public class StatsUtil {
         return ret;
     }
 
-    /**
-     * caller: nimbus.clj
-     */
     public static List extractNodeInfosFromHbForComp(
             Map exec2hostPort, Map task2component, boolean includeSys, String compId) {
         List ret = new ArrayList();
@@ -1340,7 +1213,7 @@ public class StatsUtil {
 
 
     /**
-     * caller: core.clj
+     * computes max bolt capacity
      *
      * @param executorSumms a list of ExecutorSummary
      * @return max bolt capacity
@@ -1774,9 +1647,6 @@ public class StatsUtil {
         return ret;
     }
 
-    /**
-     * called in converter.clj
-     */
     public static Map thriftifyStats(List stats) {
         Map ret = new HashMap();
         for (Object o : stats) {
@@ -1791,9 +1661,6 @@ public class StatsUtil {
         return ret;
     }
 
-    /**
-     * called in nimbus.clj
-     */
     public static ExecutorStats thriftifyExecutorStats(Map stats) {
         ExecutorStats ret = new ExecutorStats();
         ExecutorSpecificStats specificStats = thriftifySpecificStats(stats);
@@ -2091,16 +1958,10 @@ public class StatsUtil {
         return t / c;
     }
 
-    /**
-     * caller: core.clj
-     */
     public static String floatStr(double n) {
         return String.format("%.3f", n);
     }
 
-    /**
-     * caller: core.clj
-     */
     public static String errorSubset(String errorStr) {
         return errorStr.substring(0, 200);
     }

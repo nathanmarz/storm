@@ -17,9 +17,12 @@
  */
 package org.apache.storm.stats;
 
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.storm.metric.internal.MultiCountStatAndMetric;
 import org.apache.storm.metric.internal.MultiLatencyStatAndMetric;
 
+@SuppressWarnings("unchecked")
 public class SpoutExecutorStats extends CommonStats {
 
     public static final String ACKED = "acked";
@@ -45,5 +48,37 @@ public class SpoutExecutorStats extends CommonStats {
 
     public MultiLatencyStatAndMetric getCompleteLatencies() {
         return (MultiLatencyStatAndMetric) this.get(COMPLETE_LATENCIES);
+    }
+
+    public void spoutAckedTuple(String stream, long latencyMs) {
+        this.getAcked().incBy(stream, this.rate);
+        this.getCompleteLatencies().record(stream, latencyMs);
+    }
+
+    public void spoutFailedTuple(String stream, long latencyMs) {
+        this.getFailed().incBy(stream, this.rate);
+    }
+
+    public Map renderStats() {
+        cleanupStats();
+        Map ret = new HashMap();
+        ret.putAll(valueStats(CommonStats.COMMON_FIELDS));
+        ret.putAll(valueStats(SpoutExecutorStats.SPOUT_FIELDS));
+        StatsUtil.putRawKV(ret, StatsUtil.TYPE, StatsUtil.KW_SPOUT);
+
+        return ret;
+    }
+
+    public void cleanupStats() {
+        super.cleanupStats();
+        for (String field : SpoutExecutorStats.SPOUT_FIELDS) {
+            cleanupStat(this.get(field));
+        }
+    }
+
+    public static SpoutExecutorStats mkSpoutStats(int rate) {
+        SpoutExecutorStats stats = new SpoutExecutorStats();
+        stats.setRate(rate);
+        return stats;
     }
 }

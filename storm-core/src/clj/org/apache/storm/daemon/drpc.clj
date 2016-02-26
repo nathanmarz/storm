@@ -15,23 +15,11 @@
 ;; limitations under the License.
 
 (ns org.apache.storm.daemon.drpc
-  (:import [org.apache.storm.security.auth AuthUtils ThriftServer ThriftConnectionType ReqContext]
-           [org.apache.storm.ui UIHelpers IConfigurator FilterConfiguration])
-  (:import [org.apache.storm.security.auth.authorizer DRPCAuthorizerBase])
+  (:import [org.apache.storm.security.auth AuthUtils ReqContext]
+           [org.apache.storm.daemon DrpcServer])
   (:import [org.apache.storm.utils Utils])
-  (:import [org.apache.storm.generated DistributedRPC DistributedRPC$Iface DistributedRPC$Processor
-            DRPCRequest DRPCExecutionException DistributedRPCInvocations DistributedRPCInvocations$Iface
-            DistributedRPCInvocations$Processor])
-  (:import [java.util.concurrent Semaphore ConcurrentLinkedQueue
-            ThreadPoolExecutor ArrayBlockingQueue TimeUnit])
-  (:import [org.apache.storm.daemon Shutdownable]
-           [org.apache.storm.utils Time])
-  (:import [java.net InetAddress])
-  (:import [org.apache.storm.generated AuthorizationException]
-           [org.apache.storm.utils VersionInfo ConfigUtils]
-           [org.apache.storm.logging ThriftAccessLogger])
+  (:import [org.apache.storm.utils ConfigUtils])
   (:use [org.apache.storm config log util])
-  (:use [org.apache.storm.daemon common])
   (:use [org.apache.storm.ui helpers])
   (:use compojure.core)
   (:use ring.middleware.reload)
@@ -40,141 +28,6 @@
   (:gen-class))
 
 (defmeter drpc:num-execute-http-requests)
-(defmeter drpc:num-execute-calls)
-(defmeter drpc:num-result-calls)
-(defmeter drpc:num-failRequest-calls)
-(defmeter drpc:num-fetchRequest-calls)
-(defmeter drpc:num-shutdown-calls)
-
-(def STORM-VERSION (VersionInfo/getVersion))
-
-(defn timeout-check-secs [] 5)
-
-(defn acquire-queue [queues-atom function]
-  (swap! queues-atom
-    (fn [amap]
-      (if-not (amap function)
-        (assoc amap function (ConcurrentLinkedQueue.))
-        amap)))
-  (@queues-atom function))
-
-(defn check-authorization
-  ([aclHandler mapping operation context]
-    (if (not-nil? context)
-      (ThriftAccessLogger/logAccess (.requestID context) (.remoteAddress context) (.principal context) operation))
-    (if aclHandler
-      (let [context (or context (ReqContext/context))]
-        (if-not (.permit aclHandler context operation mapping)
-          (let [principal (.principal context)
-                user (if principal (.getName principal) "unknown")]
-              (throw (AuthorizationException.
-                       (str "DRPC request '" operation "' for '"
-                            user "' user is not authorized"))))))))
-  ([aclHandler mapping operation]
-    (check-authorization aclHandler mapping operation (ReqContext/context))))
-
-;; TODO: change this to use TimeCacheMap
-(defn service-handler [conf]
-  (let [drpc-acl-handler (mk-authorization-handler (conf DRPC-AUTHORIZER) conf)
-        ctr (atom 0)
-        id->sem (atom {})
-        id->result (atom {})
-        id->start (atom {})
-        id->function (atom {})
-        id->request (atom {})
-        request-queues (atom {})
-        cleanup (fn [id] (swap! id->sem dissoc id)
-                  (swap! id->result dissoc id)
-                  (swap! id->function dissoc id)
-                  (swap! id->request dissoc id)
-                  (swap! id->start dissoc id))
-        my-ip (.getHostAddress (InetAddress/getLocalHost))
-        clear-thread (Utils/asyncLoop
-                       (fn []
-                         (doseq [[id start] @id->start]
-                           (when (> (Time/deltaSecs start) (conf DRPC-REQUEST-TIMEOUT-SECS))
-                             (when-let [sem (@id->sem id)]
-                               (.remove (acquire-queue request-queues (@id->function id)) (@id->request id))
-                               (log-warn "Timeout DRPC request id: " id " start at " start)
-                               (.release sem))
-                             (cleanup id)))
-                         (timeout-check-secs)))]
-    (reify DistributedRPC$Iface
-      (^String execute
-        [this ^String function ^String args]
-        (mark! drpc:num-execute-calls)
-        (log-debug "Received DRPC request for " function " (" args ") at " (System/currentTimeMillis))
-        (check-authorization drpc-acl-handler
-                             {DRPCAuthorizerBase/FUNCTION_NAME function}
-                             "execute")
-        (let [id (str (swap! ctr (fn [v] (mod (inc v) 1000000000))))
-              ^Semaphore sem (Semaphore. 0)
-              req (DRPCRequest. args id)
-              ^ConcurrentLinkedQueue queue (acquire-queue request-queues function)]
-          (swap! id->start assoc id (Time/currentTimeSecs))
-          (swap! id->sem assoc id sem)
-          (swap! id->function assoc id function)
-          (swap! id->request assoc id req)
-          (.add queue req)
-          (log-debug "Waiting for DRPC result for " function " " args " at " (System/currentTimeMillis))
-          (.acquire sem)
-          (log-debug "Acquired DRPC result for " function " " args " at " (System/currentTimeMillis))
-          (let [result (@id->result id)]
-            (cleanup id)
-            (log-debug "Returning DRPC result for " function " " args " at " (System/currentTimeMillis))
-            (if (instance? DRPCExecutionException result)
-              (throw result)
-              (if (nil? result)
-                (throw (DRPCExecutionException. "Request timed out"))
-                result)))))
-
-      DistributedRPCInvocations$Iface
-
-      (^void result
-        [this ^String id ^String result]
-        (mark! drpc:num-result-calls)
-        (when-let [func (@id->function id)]
-          (check-authorization drpc-acl-handler
-                               {DRPCAuthorizerBase/FUNCTION_NAME func}
-                               "result")
-          (let [^Semaphore sem (@id->sem id)]
-            (log-debug "Received result " result " for " id " at " (System/currentTimeMillis))
-            (when sem
-              (swap! id->result assoc id result)
-              (.release sem)
-              ))))
-
-      (^void failRequest
-        [this ^String id]
-        (mark! drpc:num-failRequest-calls)
-        (when-let [func (@id->function id)]
-          (check-authorization drpc-acl-handler
-                               {DRPCAuthorizerBase/FUNCTION_NAME func}
-                               "failRequest")
-          (let [^Semaphore sem (@id->sem id)]
-            (when sem
-              (swap! id->result assoc id (DRPCExecutionException. "Request failed"))
-              (.release sem)))))
-
-      (^DRPCRequest fetchRequest
-        [this ^String func]
-        (mark! drpc:num-fetchRequest-calls)
-        (check-authorization drpc-acl-handler
-                             {DRPCAuthorizerBase/FUNCTION_NAME func}
-                             "fetchRequest")
-        (let [^ConcurrentLinkedQueue queue (acquire-queue request-queues func)
-              ret (.poll queue)]
-          (if ret
-            (do (log-debug "Fetched request for " func " at " (System/currentTimeMillis))
-              ret)
-            (DRPCRequest. "" ""))))
-
-      Shutdownable
-
-      (shutdown
-        [this]
-        (mark! drpc:num-shutdown-calls)
-        (.interrupt clear-thread)))))
 
 (defn handle-request [handler]
   (fn [request]
@@ -213,65 +66,16 @@
 
 (defn launch-server!
   ([]
-    (log-message "Starting drpc server for storm version '" STORM-VERSION "'")
     (let [conf (clojurify-structure (ConfigUtils/readStormConfig))
-          worker-threads (int (conf DRPC-WORKER-THREADS))
-          queue-size (int (conf DRPC-QUEUE-SIZE))
           drpc-http-port (int (conf DRPC-HTTP-PORT))
-          drpc-port (int (conf DRPC-PORT))
-          drpc-service-handler (service-handler conf)
-          ;; requests and returns need to be on separate thread pools, since calls to
-          ;; "execute" don't unblock until other thrift methods are called. So if
-          ;; 64 threads are calling execute, the server won't accept the result
-          ;; invocations that will unblock those threads
-          handler-server (when (> drpc-port 0)
-                           (ThriftServer. conf
-                             (DistributedRPC$Processor. drpc-service-handler)
-                             ThriftConnectionType/DRPC))
-          invoke-server (ThriftServer. conf
-                          (DistributedRPCInvocations$Processor. drpc-service-handler)
-                          ThriftConnectionType/DRPC_INVOCATIONS)
+          drpc-server (DrpcServer.)
           http-creds-handler (AuthUtils/GetDrpcHttpCredentialsPlugin conf)]
-      (Utils/addShutdownHookWithForceKillIn1Sec (fn []
-                                            (if handler-server (.stop handler-server))
-                                            (.stop invoke-server)))
-      (log-message "Starting Distributed RPC servers...")
-      (future (.serve invoke-server))
       (when (> drpc-http-port 0)
-        (let [app (-> (webapp drpc-service-handler http-creds-handler)
-                    requests-middleware)
-              filter-class (conf DRPC-HTTP-FILTER)
-              filter-params (conf DRPC-HTTP-FILTER-PARAMS)
-              filters-confs [(FilterConfiguration. filter-class filter-params)]
-              https-port (int (or (conf DRPC-HTTPS-PORT) 0))
-              https-ks-path (conf DRPC-HTTPS-KEYSTORE-PATH)
-              https-ks-password (conf DRPC-HTTPS-KEYSTORE-PASSWORD)
-              https-ks-type (conf DRPC-HTTPS-KEYSTORE-TYPE)
-              https-key-password (conf DRPC-HTTPS-KEY-PASSWORD)
-              https-ts-path (conf DRPC-HTTPS-TRUSTSTORE-PATH)
-              https-ts-password (conf DRPC-HTTPS-TRUSTSTORE-PASSWORD)
-              https-ts-type (conf DRPC-HTTPS-TRUSTSTORE-TYPE)
-              https-want-client-auth (conf DRPC-HTTPS-WANT-CLIENT-AUTH)
-              https-need-client-auth (conf DRPC-HTTPS-NEED-CLIENT-AUTH)]
-
-          (UIHelpers/stormRunJetty
-            (int drpc-http-port)
-            (reify IConfigurator (execute [this server]
-                                   (UIHelpers/configSsl server
-                                     https-port
-                                     https-ks-path
-                                     https-ks-password
-                                     https-ks-type
-                                     https-key-password
-                                     https-ts-path
-                                     https-ts-password
-                                     https-ts-type
-                                     https-need-client-auth
-                                     https-want-client-auth)
-                                   (UIHelpers/configFilter server (ring.util.servlet/servlet app) filters-confs))))))
-      (start-metrics-reporters conf)
-      (when handler-server
-        (.serve handler-server)))))
+        (let [app (-> (webapp drpc-server http-creds-handler)
+                    requests-middleware)]
+          (.setHttpServlet drpc-server (ring.util.servlet/servlet app))))
+      (.launchServer drpc-server)))
+)
 
 (defn -main []
   (Utils/setupDefaultUncaughtExceptionHandler)

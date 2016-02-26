@@ -27,6 +27,8 @@
   (:import [javax.security.auth Subject])
   (:import [java.net InetAddress])
   (:import [org.apache.storm Config])
+  (:import [org.mockito Mockito])
+  (:import [org.mockito.exceptions.base MockitoAssertionError])
   (:import [org.apache.storm.generated AuthorizationException])
   (:import [org.apache.storm.utils NimbusClient ConfigUtils])
   (:import [org.apache.storm.security.auth.authorizer SimpleWhitelistAuthorizer SimpleACLAuthorizer])

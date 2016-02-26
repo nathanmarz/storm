@@ -18,38 +18,31 @@
 package org.apache.storm;
 
 import org.apache.log4j.Logger;
-import org.apache.storm.daemon.DrpcProcess;
+import org.apache.storm.daemon.DrpcServer;
 import org.apache.storm.generated.AuthorizationException;
 import org.apache.storm.generated.DRPCExecutionException;
 import org.apache.storm.generated.DRPCRequest;
+import org.apache.storm.utils.ConfigUtils;
 import org.apache.storm.utils.ServiceRegistry;
+import org.apache.storm.utils.Utils;
 import org.apache.thrift.TException;
 
-public class LocalDRPCProcess implements ILocalDRPC {
-    private static final Logger LOG = Logger.getLogger(LocalDRPCProcess.class);
+import java.util.Map;
 
-    private DrpcProcess handler = new DrpcProcess();
+public class LocalDRPC implements ILocalDRPC {
+    private static final Logger LOG = Logger.getLogger(LocalDRPC.class);
+
+    private DrpcServer handler = new DrpcServer();
     private Thread thread;
-
     private final String serviceId;
 
-    public LocalDRPCProcess() {
-
-        thread = new Thread(new Runnable() {
-
-            @Override
-            public void run() {
-                LOG.info("Begin to init local Drpc");
-                try {
-                    handler.launchServer();
-                } catch (Exception e) {
-                    LOG.info("Failed to  start local drpc");
-                    System.exit(-1);
-                }
-                LOG.info("Successfully start local drpc");
-            }
-        });
-        thread.start();
+    public LocalDRPC() {
+        try {
+            Map conf = ConfigUtils.readStormConfig();
+            handler.launchServer(true, conf);
+        }catch (Exception e){
+            throw Utils.wrapInRuntime(e);
+        }
 
         serviceId = ServiceRegistry.registerService(handler);
     }

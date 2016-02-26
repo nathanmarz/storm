@@ -19,6 +19,8 @@ package org.apache.storm.daemon;
 
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
+import com.sun.net.httpserver.HttpsServer;
+import com.sun.org.apache.bcel.internal.generic.ARRAYLENGTH;
 import org.apache.commons.lang.StringUtils;
 import org.apache.storm.Config;
 import org.apache.storm.daemon.metrics.MetricsUtils;
@@ -27,25 +29,28 @@ import org.apache.storm.generated.*;
 import org.apache.storm.logging.ThriftAccessLogger;
 import org.apache.storm.security.auth.*;
 import org.apache.storm.security.auth.authorizer.DRPCAuthorizerBase;
+import org.apache.storm.ui.FilterConfiguration;
+import org.apache.storm.ui.IConfigurator;
+import org.apache.storm.ui.UIHelpers;
 import org.apache.storm.utils.ConfigUtils;
 import org.apache.storm.utils.Time;
 import org.apache.storm.utils.Utils;
 import org.apache.storm.utils.VersionInfo;
 import org.apache.thrift.TException;
+import org.eclipse.jetty.server.Server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.servlet.Servlet;
 import java.security.Principal;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class DrpcProcess implements DistributedRPC.Iface, DistributedRPCInvocations.Iface, Shutdownable {
+public class DrpcServer implements DistributedRPC.Iface, DistributedRPCInvocations.Iface, Shutdownable {
 
-    private static final Logger LOG = LoggerFactory.getLogger(DrpcProcess.class);
-    private final Integer timeoutCheckSecs = 5;
+    private static final Logger LOG = LoggerFactory.getLogger(DrpcServer.class);
+    private final Long timeoutCheckSecs = 5L;
 
     private Map conf;
 
@@ -57,6 +62,9 @@ public class DrpcProcess implements DistributedRPC.Iface, DistributedRPCInvocati
 
     private IAuthorizer authorizer;
 
+    // To be removed after porting drpc.clj
+    private Servlet httpServlet;
+
     private AtomicInteger ctr = new AtomicInteger(0);
     private ConcurrentHashMap<String, Semaphore> idtoSem = new ConcurrentHashMap<String, Semaphore>();
     private ConcurrentHashMap<String, Object> idtoResult = new ConcurrentHashMap<String, Object>();
@@ -65,18 +73,36 @@ public class DrpcProcess implements DistributedRPC.Iface, DistributedRPCInvocati
     private ConcurrentHashMap<String, DRPCRequest> idtoRequest = new ConcurrentHashMap<String, DRPCRequest>();
     private ConcurrentHashMap<String, ConcurrentLinkedQueue<DRPCRequest>> requestQueues = new ConcurrentHashMap<String, ConcurrentLinkedQueue<DRPCRequest>>();
 
-    private Meter meterHttpRequests = new MetricRegistry().meter("drpc:num-execute-http-requests");
-    private Meter meterExecuteCalls = new MetricRegistry().meter("drpc:num-execute-calls");
-    private Meter meterResultCalls = new MetricRegistry().meter("drpc:num-result-calls");
-    private Meter meterFailRequestCalls = new MetricRegistry().meter("drpc:num-failRequest-calls");
-    private Meter meterFetchRequestCalls = new MetricRegistry().meter("drpc:num-fetchRequest-calls");
-    private Meter meterShutdownCalls = new MetricRegistry().meter("drpc:num-shutdown-calls");
-
-    public DrpcProcess() {
+    private final Meter meterHttpRequests = new MetricRegistry().meter("drpc:num-execute-http-requests");
+    private final Meter meterExecuteCalls = new MetricRegistry().meter("drpc:num-execute-calls");
+    private final Meter meterResultCalls = new MetricRegistry().meter("drpc:num-result-calls");
+    private final Meter meterFailRequestCalls = new MetricRegistry().meter("drpc:num-failRequest-calls");
+    private final Meter meterFetchRequestCalls = new MetricRegistry().meter("drpc:num-fetchRequest-calls");
+    private final Meter meterShutdownCalls = new MetricRegistry().meter("drpc:num-shutdown-calls");
+    
+    public DrpcServer() {
 
     }
 
-    private ThriftServer initHandlerServer(Map conf, final DrpcProcess service) throws Exception {
+    public IHttpCredentialsPlugin getHttpCredsHandler() {
+        return httpCredsHandler;
+    }
+
+    public void setHttpCredsHandler(IHttpCredentialsPlugin httpCredsHandler) {
+        this.httpCredsHandler = httpCredsHandler;
+    }
+
+    public Servlet getHttpServlet() {
+        return httpServlet;
+    }
+
+    public void setHttpServlet(Servlet httpServlet) {
+        this.httpServlet = httpServlet;
+    }
+
+
+
+    private ThriftServer initHandlerServer(Map conf, final DrpcServer service) throws Exception {
         int port = (int) conf.get(Config.DRPC_PORT);
         if (port > 0) {
             handlerServer = new ThriftServer(conf, new DistributedRPC.Processor<DistributedRPC.Iface>(service), ThriftConnectionType.DRPC);
@@ -84,15 +110,14 @@ public class DrpcProcess implements DistributedRPC.Iface, DistributedRPCInvocati
         return handlerServer;
     }
 
-    private ThriftServer initInvokeServer(Map conf, final DrpcProcess service) throws Exception {
+    private ThriftServer initInvokeServer(Map conf, final DrpcServer service) throws Exception {
         invokeServer = new ThriftServer(conf, new DistributedRPCInvocations.Processor<DistributedRPCInvocations.Iface>(service),
                 ThriftConnectionType.DRPC_INVOCATIONS);
         return invokeServer;
     }
 
     private void initServer() throws Exception {
-
-        authorizer = mkAuthorizationHandler((String) (conf.get(Config.DRPC_AUTHORIZER)), conf);
+        Integer drpcHttpPort = (Integer) conf.get(Config.DRPC_HTTP_PORT);
         handlerServer = initHandlerServer(conf, this);
         invokeServer = initInvokeServer(conf, this);
         httpCredsHandler = AuthUtils.GetDrpcHttpCredentialsPlugin(conf);
@@ -116,6 +141,32 @@ public class DrpcProcess implements DistributedRPC.Iface, DistributedRPCInvocati
                 invokeServer.serve();
             }
         }).start();
+        if (drpcHttpPort != null && drpcHttpPort > 0) {
+            String filterClass = (String) (conf.get(Config.DRPC_HTTP_FILTER));
+            Map<String, String> filterParams = (Map<String, String>) (conf.get(Config.DRPC_HTTP_FILTER_PARAMS));
+            FilterConfiguration filterConfiguration = new FilterConfiguration(filterParams, filterClass);
+            final List<FilterConfiguration> filterConfigurations = Arrays.asList(filterConfiguration);
+            final Integer httpsPort = Utils.getInt(conf.get(Config.DRPC_HTTPS_PORT), 0);
+            final String httpsKsPath = (String) (conf.get(Config.DRPC_HTTPS_KEYSTORE_PATH));
+            final String httpsKsPassword = (String) (conf.get(Config.DRPC_HTTPS_KEYSTORE_PASSWORD));
+            final String httpsKsType = (String) (conf.get(Config.DRPC_HTTPS_KEYSTORE_TYPE));
+            final String httpsKeyPassword = (String) (conf.get(Config.DRPC_HTTPS_KEY_PASSWORD));
+            final String httpsTsPath = (String) (conf.get(Config.DRPC_HTTPS_TRUSTSTORE_PATH));
+            final String httpsTsPassword = (String) (conf.get(Config.DRPC_HTTPS_TRUSTSTORE_PASSWORD));
+            final String httpsTsType = (String) (conf.get(Config.DRPC_HTTPS_TRUSTSTORE_TYPE));
+            final Boolean httpsWantClientAuth = (Boolean) (conf.get(Config.DRPC_HTTPS_WANT_CLIENT_AUTH));
+            final Boolean httpsNeedClientAuth = (Boolean) (conf.get(Config.DRPC_HTTPS_NEED_CLIENT_AUTH));
+
+            UIHelpers.stormRunJetty(drpcHttpPort, new IConfigurator() {
+                @Override
+                public void execute(Server s) {
+                    UIHelpers.configSsl(s, httpsPort, httpsKsPath, httpsKsPassword, httpsKsType, httpsKeyPassword, httpsTsPath, httpsTsPassword, httpsTsType,
+                            httpsNeedClientAuth, httpsWantClientAuth);
+                    UIHelpers.configFilter(s, httpServlet, filterConfigurations);
+                }
+            });
+        }
+
         // To be replaced by Common.StartMetricsReporters
         List<PreparableReporter> reporters = MetricsUtils.getPreparableReporters(conf);
         for (PreparableReporter reporter : reporters) {
@@ -127,17 +178,14 @@ public class DrpcProcess implements DistributedRPC.Iface, DistributedRPCInvocati
             handlerServer.serve();
     }
 
-    private void webApp(DrpcProcess drpc, IHttpCredentialsPlugin httpCredsHandler){
-        meterExecuteCalls.mark();
-
-    }
     private void initClearThread() {
         clearThread = Utils.asyncLoop(new Callable() {
 
             @Override
             public Object call() throws Exception {
                 for (Map.Entry<String, Integer> e : idtoStart.entrySet()) {
-                    if (Time.deltaSecs(e.getValue()) > (int) conf.get(Config.DRPC_REQUEST_TIMEOUT_SECS)) {
+
+                    if (Time.deltaSecs(e.getValue()) > Utils.getInt(conf.get(Config.DRPC_REQUEST_TIMEOUT_SECS), 0)) {
                         String id = e.getKey();
                         Semaphore sem = idtoSem.get(id);
                         if (sem != null) {
@@ -150,19 +198,24 @@ public class DrpcProcess implements DistributedRPC.Iface, DistributedRPCInvocati
                         LOG.info("Clear request " + id);
                     }
                 }
-                return timeoutCheckSecs;
+                return getTimeoutCheckSecs();
             }
         });
     }
 
-    public void launchServer() throws Exception {
+    public Long getTimeoutCheckSecs() {
+        return timeoutCheckSecs;
+    }
+
+    public void launchServer(boolean isLocal, Map conf) throws Exception {
 
         LOG.info("Starting drpc server for storm version {}", VersionInfo.getVersion());
-        conf = ConfigUtils.readStormConfig();
+        this.conf = conf;
+        authorizer = mkAuthorizationHandler((String) (conf.get(Config.DRPC_AUTHORIZER)), conf);
 
         initClearThread();
-
-        initServer();
+        if (!isLocal)
+            initServer();
     }
 
     @Override
@@ -330,8 +383,8 @@ public class DrpcProcess implements DistributedRPC.Iface, DistributedRPCInvocati
     public static void main(String[] args) throws Exception {
 
         Utils.setupDefaultUncaughtExceptionHandler();
-        final DrpcProcess service = new DrpcProcess();
-        service.launchServer();
+        final DrpcServer service = new DrpcServer();
+        service.launchServer(false, ConfigUtils.readStormConfig());
     }
 
 }

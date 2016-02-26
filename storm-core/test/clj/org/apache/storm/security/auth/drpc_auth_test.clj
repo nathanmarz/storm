@@ -18,7 +18,8 @@
   (:require [org.apache.storm.daemon [drpc :as drpc]])
   (:import [org.apache.storm.generated AuthorizationException
             DRPCExecutionException DistributedRPC$Processor
-            DistributedRPCInvocations$Processor])
+            DistributedRPCInvocations$Processor]
+           [org.apache.storm.daemon DrpcServer])
   (:import [org.apache.storm Config])
   (:import [org.apache.storm.security.auth ReqContext SingleUserPrincipal ThriftServer ThriftConnectionType])
   (:import [org.apache.storm.utils DRPCClient ConfigUtils])
@@ -37,7 +38,7 @@
         conf (if login-cfg (assoc conf "java.security.auth.login.config" login-cfg) conf)
         conf (assoc conf DRPC-PORT client-port)
         conf (assoc conf DRPC-INVOCATIONS-PORT invocations-port)
-        service-handler (drpc/service-handler conf)
+        service-handler (let [drpc-service (DrpcServer.)] (.launchServer drpc-service true conf) drpc-service)
         handler-server (ThriftServer. conf
                                       (DistributedRPC$Processor. service-handler)
                                       ThriftConnectionType/DRPC)

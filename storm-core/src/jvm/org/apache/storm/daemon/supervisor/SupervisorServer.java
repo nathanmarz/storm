@@ -25,6 +25,10 @@ import org.apache.storm.StormTimer;
 import org.apache.storm.command.HealthCheck;
 import org.apache.storm.daemon.metrics.MetricsUtils;
 import org.apache.storm.daemon.metrics.reporters.PreparableReporter;
+import org.apache.storm.daemon.supervisor.timer.RunProfilerActions;
+import org.apache.storm.daemon.supervisor.timer.SupervisorHealthCheck;
+import org.apache.storm.daemon.supervisor.timer.SupervisorHeartbeat;
+import org.apache.storm.daemon.supervisor.timer.UpdateBlobs;
 import org.apache.storm.event.EventManagerImp;
 import org.apache.storm.localizer.Localizer;
 import org.apache.storm.messaging.IContext;
@@ -42,7 +46,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class SupervisorServer extends ShutdownWork {
+public class SupervisorServer {
     private static Logger LOG = LoggerFactory.getLogger(SupervisorServer.class);
 
     /**
@@ -98,22 +102,7 @@ public class SupervisorServer extends ShutdownWork {
                 supervisorData.getBlobUpdateTimer().scheduleRecurring(30, 30, new EventManagerPushCallback(updateBlobsThread, syncSupEventManager));
 
                 // supervisor health check
-                eventTimer.scheduleRecurring(300, 300, new Runnable() {
-                    @Override
-                    public void run() {
-                        int healthCode = HealthCheck.healthCheck(conf);
-                        Collection<String> workerIds = SupervisorUtils.supervisorWorkerIds(conf);
-                        if (healthCode != 0) {
-                            for (String workerId : workerIds) {
-                                try {
-                                    shutWorker(supervisorData, workerId);
-                                } catch (Exception e) {
-                                    throw Utils.wrapInRuntime(e);
-                                }
-                            }
-                        }
-                    }
-                });
+                eventTimer.scheduleRecurring(300, 300, new SupervisorHealthCheck(supervisorData));
 
                 // Launch a thread that Runs profiler commands . Starts with 30 seconds delay, every 30 seconds
                 eventTimer.scheduleRecurring(30, 30, new EventManagerPushCallback(runProfilerActionThread, syncSupEventManager));

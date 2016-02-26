@@ -16,10 +16,12 @@
  * limitations under the License.
  */
 
-package org.apache.storm.daemon.supervisor;
+package org.apache.storm.daemon.supervisor.timer;
 
 import org.apache.storm.Config;
 import org.apache.storm.cluster.IStormClusterState;
+import org.apache.storm.daemon.supervisor.SupervisorData;
+import org.apache.storm.daemon.supervisor.SupervisorUtils;
 import org.apache.storm.generated.ProfileAction;
 import org.apache.storm.generated.ProfileRequest;
 import org.apache.storm.utils.ConfigUtils;

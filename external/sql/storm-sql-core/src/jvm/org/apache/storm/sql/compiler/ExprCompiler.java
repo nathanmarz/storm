@@ -208,9 +208,22 @@ public class ExprCompiler implements RexVisitor<String> {
       this.translators = builder.build();
     }
 
+    private CallExprPrinter getCallExprPrinter(SqlOperator op) {
+      if (translators.containsKey(op)) {
+        return translators.get(op);
+      } else if (op instanceof SqlUserDefinedFunction) {
+        Function function = ((SqlUserDefinedFunction) op).getFunction();
+        if (function instanceof ReflectiveFunctionBase) {
+          Method method = ((ReflectiveFunctionBase) function).method;
+          return methodCall(op, method, NullPolicy.STRICT).getValue();
+        }
+      }
+      return null;
+    }
+
     private String compile(ExprCompiler compiler, RexCall call) {
       SqlOperator op = call.getOperator();
-      CallExprPrinter printer = translators.get(op);
+      CallExprPrinter printer = getCallExprPrinter(op);
       if (printer == null) {
         throw new UnsupportedOperationException();
       } else {
@@ -218,8 +231,8 @@ public class ExprCompiler implements RexVisitor<String> {
       }
     }
 
-    private Map.Entry<SqlOperator, CallExprPrinter> builtInMethod(
-            final SqlOperator op, final BuiltInMethod method, NullPolicy nullPolicy) {
+    private Map.Entry<SqlOperator, CallExprPrinter> methodCall(
+            final SqlOperator op, final Method method, NullPolicy nullPolicy) {
       if (nullPolicy != NullPolicy.STRICT) {
         throw new UnsupportedOperationException();
       }
@@ -240,12 +253,17 @@ public class ExprCompiler implements RexVisitor<String> {
               pw.print(String.format("else if (%2$s == null) { %1$s = null; }\n", val, arg));
             }
           }
-          String calc = printMethodCall(method.method, args);
+          String calc = printMethodCall(method, args);
           pw.print(String.format("else { %1$s = %2$s; }\n", val, calc));
           return val;
         }
       };
       return new AbstractMap.SimpleImmutableEntry<>(op, printer);
+    }
+
+    private Map.Entry<SqlOperator, CallExprPrinter> builtInMethod(
+        final SqlOperator op, final BuiltInMethod method, NullPolicy nullPolicy) {
+      return methodCall(op, method.method, nullPolicy);
     }
 
     private Map.Entry<SqlOperator, CallExprPrinter> infixBinary

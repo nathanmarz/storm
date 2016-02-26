@@ -18,12 +18,18 @@
 package org.apache.storm.trident.tuple;
 
 import java.util.AbstractList;
+import java.util.ArrayList;
 import java.util.List;
 
 public class ConsList extends AbstractList<Object> {
     List<Object> _elems;
     Object _first;
-    
+
+    // for kryo
+    private ConsList() {
+        _elems = new ArrayList<>();
+    }
+
     public ConsList(Object o, List<Object> elems) {
         _elems = elems;
         _first = o;
@@ -39,6 +45,16 @@ public class ConsList extends AbstractList<Object> {
 
     @Override
     public int size() {
-        return _elems.size() + 1;
+        return _first == null ? _elems.size() : _elems.size() + 1;
+    }
+
+    // for kryo
+    @Override
+    public void add(int index, Object element) {
+        if (index == 0) {
+            _first = element;
+        } else {
+            _elems.add(index - 1, element);
+        }
     }
 }

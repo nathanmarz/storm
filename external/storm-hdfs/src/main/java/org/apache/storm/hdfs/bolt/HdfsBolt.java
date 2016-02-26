@@ -96,7 +96,7 @@ public class HdfsBolt extends AbstractHdfsBolt{
     }
 
     @Override
-    void syncTuples() throws IOException {
+    protected void syncTuples() throws IOException {
         LOG.debug("Attempting to sync all data to filesystem");
         if (this.out instanceof HdfsDataOutputStream) {
             ((HdfsDataOutputStream) this.out).hsync(EnumSet.of(SyncFlag.UPDATE_LENGTH));
@@ -106,19 +106,19 @@ public class HdfsBolt extends AbstractHdfsBolt{
     }
 
     @Override
-    void writeTuple(Tuple tuple) throws IOException {
+    protected void writeTuple(Tuple tuple) throws IOException {
         byte[] bytes = this.format.format(tuple);
         out.write(bytes);
         this.offset += bytes.length;
     }
 
     @Override
-    void closeOutputFile() throws IOException {
+    protected void closeOutputFile() throws IOException {
         this.out.close();
     }
 
     @Override
-    Path createOutputFile() throws IOException {
+    protected Path createOutputFile() throws IOException {
         Path path = new Path(this.fileNameFormat.getPath(), this.fileNameFormat.getName(this.rotation, System.currentTimeMillis()));
         this.out = this.fs.create(path);
         return path;

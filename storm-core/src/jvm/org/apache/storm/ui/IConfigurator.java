@@ -15,12 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.storm.ui;
 
+import org.eclipse.jetty.server.Server;
 
-package org.apache.storm.utils;
-
-public interface WorkerBackpressureCallback {
-
-    void onEvent(Object obj);
-
+public interface IConfigurator {
+    void execute(Server s);
 }

@@ -1,4 +1,5 @@
 ## 2.0.0
+ * STORM-1545: Topology Debug Event Log in Wrong Location
  * STORM-1254: port ui.helper to java
  * STORM-1571: Improvment Kafka Spout Time Metric
  * STORM-1569: Allowing users to specify the nimbus thrift server queue size.
@@ -38,6 +39,7 @@
  * STORM-1521: When using Kerberos login from keytab with multiple bolts/executors ticket is not renewed in hbase bolt.
 
 ## 1.0.0
+ * STORM-1552: Fix topology event sampling log dir
  * STORM-1542: Remove profile action retry in case of non-zero exit code
  * STORM-1540: Fix Debug/Sampling for Trident
  * STORM-1522: REST API throws invalid worker log links

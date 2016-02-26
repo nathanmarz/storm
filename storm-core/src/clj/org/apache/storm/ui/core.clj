@@ -28,6 +28,7 @@
                                               start-metrics-reporters]]])
   (:import [org.apache.storm.utils Time]
            [org.apache.storm.generated NimbusSummary]
+           [org.apache.storm.stats StatsUtil]
            [org.apache.storm.ui UIHelpers IConfigurator FilterConfiguration])
   (:use [clojure.string :only [blank? lower-case trim split]])
   (:import [org.apache.storm.generated ExecutorSpecificStats
@@ -111,7 +112,7 @@
 
 (defn executor-summary-type
   [topology ^ExecutorSummary s]
-  (component-type topology (.get_component_id s)))
+  (StatsUtil/componentType topology (.get_component_id s)))
 
 (defn is-ack-stream
   [stream]

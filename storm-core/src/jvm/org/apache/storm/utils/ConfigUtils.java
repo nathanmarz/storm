@@ -44,7 +44,7 @@ public class ConfigUtils {
 
     // A singleton instance allows us to mock delegated static methods in our
     // tests by subclassing.
-    private static ConfigUtils _instance = new ConfigUtils();;
+    private static ConfigUtils _instance = new ConfigUtils();
 
     /**
      * Provide an instance of this class for delegates to use.  To mock out

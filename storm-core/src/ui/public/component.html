@@ -301,7 +301,7 @@ $(document).ready(function() {
             var errorTimeCells = document.getElementsByClassName("errorTimeSpan");
             for (i = 0; i < errorTimeCells.length; i++)
             {
-              var timeInMilliseconds = errorTimeCells[i].id;
+              var timeInMilliseconds = errorTimeCells[i].id * 1000;
               var time = parseInt(timeInMilliseconds);
               var date = new Date(time);
               errorTimeCells[i].innerHTML = date.toJSON();

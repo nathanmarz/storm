@@ -350,7 +350,7 @@ $(document).ready(function() {
             {
               if((errorTime[i].id))
               {
-                var a = new Date(parseInt(errorTime[i].id));
+                var a = new Date(parseInt(errorTime[i].id) * 1000);
                 var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
                 var days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat'];
                 var year = a.getFullYear();

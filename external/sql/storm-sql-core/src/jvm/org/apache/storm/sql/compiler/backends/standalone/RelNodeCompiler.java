@@ -64,7 +64,11 @@ class RelNodeCompiler extends PostOrderRelNodeVisitor<Void> {
     beginStage(filter);
     ExprCompiler compiler = new ExprCompiler(pw, typeFactory);
     String r = filter.getCondition().accept(compiler);
-    pw.print(String.format("    if (%s) { ctx.emit(_data); }\n", r));
+    if (filter.getCondition().getType().isNullable()) {
+      pw.print(String.format("    if (%s != null && %s) { ctx.emit(_data); }\n", r, r));
+    } else {
+      pw.print(String.format("    if (%s) { ctx.emit(_data); }\n", r, r));
+    }
     endStage();
     return null;
   }

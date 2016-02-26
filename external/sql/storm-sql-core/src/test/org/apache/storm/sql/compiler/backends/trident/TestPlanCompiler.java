@@ -73,7 +73,7 @@ public class TestPlanCompiler {
   @Test
   public void testInsert() throws Exception {
     final int EXPECTED_VALUE_SIZE = 1;
-    String sql = "INSERT INTO BAR SELECT ID FROM FOO WHERE ID > 3";
+    String sql = "INSERT INTO BAR SELECT ID, NAME, ADDR FROM FOO WHERE ID > 3";
     TestCompilerUtils.CalciteState state = TestCompilerUtils.sqlOverDummyTable(sql);
     PlanCompiler compiler = new PlanCompiler(typeFactory);
     final AbstractTridentProcessor proc = compiler.compile(state.tree());
@@ -82,7 +82,7 @@ public class TestPlanCompiler {
     data.put("BAR", new TestUtils.MockSqlTridentDataSource());
     final TridentTopology topo = proc.build(data);
     runTridentTopology(EXPECTED_VALUE_SIZE, proc, topo);
-    Assert.assertArrayEquals(new Values[] { new Values(4)}, getCollectedValues().toArray());
+    Assert.assertArrayEquals(new Values[] { new Values(4, "x", "y")}, getCollectedValues().toArray());
   }
 
   private void runTridentTopology(final int expectedValueSize, AbstractTridentProcessor proc,

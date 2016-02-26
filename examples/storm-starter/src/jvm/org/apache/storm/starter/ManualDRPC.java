@@ -47,7 +47,7 @@ public class ManualDRPC {
 
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception{
         TopologyBuilder builder = new TopologyBuilder();
         LocalDRPC drpc = new LocalDRPC();
 
@@ -59,6 +59,7 @@ public class ManualDRPC {
         LocalCluster cluster = new LocalCluster();
         Config conf = new Config();
         cluster.submitTopology("exclaim", conf, builder.createTopology());
+
         System.out.println(drpc.execute("exclamation", "aaa"));
         System.out.println(drpc.execute("exclamation", "bbb"));
     }

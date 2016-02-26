@@ -74,7 +74,7 @@
         (let [app (-> (webapp drpc-server http-creds-handler)
                     requests-middleware)]
           (.setHttpServlet drpc-server (ring.util.servlet/servlet app))))
-      (.launchServer drpc-server)))
+      (.launchServer drpc-server false conf)))
 )
 
 (defn -main []

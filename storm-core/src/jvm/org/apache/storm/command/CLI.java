@@ -17,18 +17,17 @@
  */
 package org.apache.storm.command;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.List;
-
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class CLI {
     private static final Logger LOG = LoggerFactory.getLogger(CLI.class);
@@ -139,6 +138,20 @@ public class CLI {
         }
     };
 
+    /**
+     * All values are returned as a map
+     */
+    public static final Assoc INTO_MAP = new Assoc() {
+        @Override
+        public Object assoc(Object current, Object value) {
+            if (null == current) {
+                current = new HashMap<Object, Object>();
+            }
+            ((Map<Object, Object>) current).putAll((Map<Object, Object>) value);
+            return current;
+        }
+    };
+
     public static class CLIBuilder {
         private final ArrayList<Opt> opts = new ArrayList<>();
         private final ArrayList<Arg> args = new ArrayList<>();
@@ -238,10 +251,13 @@ public class CLI {
             DefaultParser parser = new DefaultParser();
             CommandLine cl = parser.parse(options, rawArgs);
             HashMap<String, Object> ret = new HashMap<>();
-            for (Opt opt: opts) {
+            for (Opt opt : opts) {
                 Object current = null;
-                for (String val: cl.getOptionValues(opt.shortName)) {
-                    current = opt.process(current, val);
+                String[] strings = cl.getOptionValues(opt.shortName);
+                if (strings != null) {
+                    for (String val : strings) {
+                        current = opt.process(current, val);
+                    }
                 }
                 if (current == null) {
                     current = opt.defaultValue;

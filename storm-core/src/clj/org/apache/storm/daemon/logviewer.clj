@@ -18,8 +18,9 @@
   (:use [clojure.set :only [difference intersection]])
   (:use [clojure.string :only [blank? split]])
   (:use [hiccup core page-helpers form-helpers])
-  (:use [org.apache.storm config util log timer])
+  (:use [org.apache.storm config util log])
   (:use [org.apache.storm.ui helpers])
+  (:import [org.apache.storm StormTimer])
   (:import [org.apache.storm.utils Utils Time VersionInfo ConfigUtils])
   (:import [org.slf4j LoggerFactory])
   (:import [java.util Arrays ArrayList HashSet])
@@ -35,7 +36,7 @@
   (:import [org.apache.storm.daemon DirectoryCleaner])
   (:import [org.yaml.snakeyaml Yaml]
            [org.yaml.snakeyaml.constructor SafeConstructor])
-  (:import [org.apache.storm.ui InvalidRequestException]
+  (:import [org.apache.storm.ui InvalidRequestException UIHelpers IConfigurator FilterConfiguration]
            [org.apache.storm.security.auth AuthUtils])
   (:require [org.apache.storm.daemon common [supervisor :as supervisor]])
   (:require [compojure.route :as route]
@@ -263,13 +264,15 @@
   (let [interval-secs (conf LOGVIEWER-CLEANUP-INTERVAL-SECS)]
     (when interval-secs
       (log-debug "starting log cleanup thread at interval: " interval-secs)
-      (schedule-recurring (mk-timer :thread-name "logviewer-cleanup"
-                                    :kill-fn (fn [t]
-                                               (log-error t "Error when doing logs cleanup")
-                                               (Utils/exitProcess 20 "Error when doing log cleanup")))
-                          0 ;; Start immediately.
-                          interval-secs
-                          (fn [] (cleanup-fn! log-root-dir))))))
+
+      (let [timer (StormTimer. "logviewer-cleanup"
+                    (reify Thread$UncaughtExceptionHandler
+                      (^void uncaughtException
+                        [this ^Thread t ^Throwable e]
+                        (log-error t "Error when doing logs cleanup")
+                        (Utils/exitProcess 20 "Error when doing log cleanup"))))]
+        (.scheduleRecurring timer 0 interval-secs
+          (fn [] (cleanup-fn! log-root-dir)))))))
 
 (defn- skip-bytes
   "FileInputStream#skip may not work the first time, so ensure it successfully
@@ -396,13 +399,21 @@
                         "Next" :enabled (> next-start start))])]]))
 
 (defn- download-link [fname]
-  [[:p (link-to (url-format "/download/%s" fname) "Download Full File")]])
+  [[:p (link-to (UIHelpers/urlFormat "/download/%s" (to-array [fname])) "Download Full File")]])
 
 (defn- daemon-download-link [fname]
-  [[:p (link-to (url-format "/daemondownload/%s" fname) "Download Full File")]])
+  [[:p (link-to (UIHelpers/urlFormat "/daemondownload/%s" (to-array [fname])) "Download Full File")]])
 
 (defn- is-txt-file [fname]
   (re-find #"\.(log.*|txt|yaml|pid)$" fname))
+
+(defn unauthorized-user-html [user]
+  [[:h2 "User '" (escape-html user) "' is not authorized."]])
+
+(defn ring-response-from-exception [ex]
+  {:headers {}
+   :status 400
+   :body (.getMessage ex)})
 
 (def default-bytes-per-page 51200)
 
@@ -820,8 +831,8 @@
                   (str "Search substring must be between 1 and 1024 UTF-8 "
                     "bytes in size (inclusive)"))))
             (catch Exception ex
-              (json-response (exception->json ex) callback :status 500))))
-        (json-response (unauthorized-user-json user) callback :status 401))
+              (json-response (UIHelpers/exceptionToJson ex) callback :status 500))))
+        (json-response (UIHelpers/unauthorizedUserJson user) callback :status 401))
       (json-response {"error" "Not Found"
                       "errorMessage" "The file was not found on this node."}
         callback
@@ -1008,7 +1019,7 @@
                             filename))]
        (if (and (.exists dir) (.exists file))
          (if (or (blank? (*STORM-CONF* UI-FILTER))
-               (authorized-log-user? user 
+               (authorized-log-user? user
                                      (str topo-id Utils/FILE_PATH_SEPARATOR port Utils/FILE_PATH_SEPARATOR "worker.log")
                                      *STORM-CONF*))
            (-> (resp/response file)
@@ -1027,7 +1038,7 @@
                            port))]
        (if (.exists dir)
          (if (or (blank? (*STORM-CONF* UI-FILTER))
-               (authorized-log-user? user 
+               (authorized-log-user? user
                                      (str topo-id Utils/FILE_PATH_SEPARATOR port Utils/FILE_PATH_SEPARATOR "worker.log")
                                      *STORM-CONF*))
            (html4
@@ -1090,7 +1101,7 @@
           (.getHeader servlet-request "Origin")))
       (catch InvalidRequestException ex
         (log-error ex)
-        (json-response (exception->json ex) (:callback m) :status 400))))
+        (json-response (UIHelpers/exceptionToJson ex) (:callback m) :status 400))))
   (GET "/deepSearch/:topo-id" [:as {:keys [servlet-request servlet-response log-root]} topo-id & m]
     ;; We do not use servlet-response here, but do not remove it from the
     ;; :keys list, or this rule could stop working when an authentication
@@ -1110,7 +1121,7 @@
           (.getHeader servlet-request "Origin")))
       (catch InvalidRequestException ex
         (log-error ex)
-        (json-response (exception->json ex) (:callback m) :status 400))))
+        (json-response (UIHelpers/exceptionToJson ex) (:callback m) :status 400))))
   (GET "/searchLogs" [:as req & m]
     (try
       (let [servlet-request (:servlet-request req)
@@ -1123,7 +1134,7 @@
           (.getHeader servlet-request "Origin")))
       (catch InvalidRequestException ex
         (log-error ex)
-        (json-response (exception->json ex) (:callback m) :status 400))))
+        (json-response (UIHelpers/exceptionToJson ex) (:callback m) :status 400))))
   (GET "/listLogs" [:as req & m]
     (try
       (mark! logviewer:num-list-logs-http-requests)
@@ -1137,7 +1148,7 @@
           (.getHeader servlet-request "Origin")))
       (catch InvalidRequestException ex
         (log-error ex)
-        (json-response (exception->json ex) (:callback m) :status 400))))
+        (json-response (UIHelpers/exceptionToJson ex) (:callback m) :status 400))))
   (route/resources "/")
   (route/not-found "Page not found"))
 
@@ -1156,13 +1167,10 @@
                                 requests-middleware))  ;; query params as map
           middle (conf-middleware logapp log-root-dir daemonlog-root-dir)
           filters-confs (if (conf UI-FILTER)
-                          [{:filter-class filter-class
-                            :filter-params (or (conf UI-FILTER-PARAMS) {})}]
+                          [(FilterConfiguration. filter-class (or (conf UI-FILTER-PARAMS) {}))]
                           [])
           filters-confs (concat filters-confs
-                          [{:filter-class "org.eclipse.jetty.servlets.GzipFilter"
-                            :filter-name "Gzipper"
-                            :filter-params {}}])
+                          [(FilterConfiguration. "org.eclipse.jetty.servlets.GzipFilter" "Gzipper" {})])
           https-port (int (or (conf LOGVIEWER-HTTPS-PORT) 0))
           keystore-path (conf LOGVIEWER-HTTPS-KEYSTORE-PATH)
           keystore-pass (conf LOGVIEWER-HTTPS-KEYSTORE-PASSWORD)
@@ -1173,20 +1181,20 @@
           truststore-type (conf LOGVIEWER-HTTPS-TRUSTSTORE-TYPE)
           want-client-auth (conf LOGVIEWER-HTTPS-WANT-CLIENT-AUTH)
           need-client-auth (conf LOGVIEWER-HTTPS-NEED-CLIENT-AUTH)]
-      (storm-run-jetty {:port (int (conf LOGVIEWER-PORT))
-                        :configurator (fn [server]
-                                        (config-ssl server
-                                                    https-port
-                                                    keystore-path
-                                                    keystore-pass
-                                                    keystore-type
-                                                    key-password
-                                                    truststore-path
-                                                    truststore-password
-                                                    truststore-type
-                                                    want-client-auth
-                                                    need-client-auth)
-                                        (config-filter server middle filters-confs))}))
+      (UIHelpers/stormRunJetty (int (conf LOGVIEWER-PORT))
+        (reify IConfigurator (execute [this server]
+                               (UIHelpers/configSsl server
+                                 https-port
+                                 keystore-path
+                                 keystore-pass
+                                 keystore-type
+                                 key-password
+                                 truststore-path
+                                 truststore-password
+                                 truststore-type
+                                 want-client-auth
+                                 need-client-auth)
+                               (UIHelpers/configFilter server (ring.util.servlet/servlet middle) filters-confs)))))
   (catch Exception ex
     (log-error ex))))
 

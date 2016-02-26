@@ -323,7 +323,9 @@
           <span id="{{errorLapsedSecs}}" class="errorSpan">{{lastError}}</span>
         </td>
         <td>
+          {{#errorTime}}
           <span id="{{errorTime}}" class="errorTime" data-toggle="tooltip" title="{{errorLapsedSecs}}">{{errorTime}}</span>
+          {{/errorTime}}
         </td>
         {{/spouts}}
     </tbody>
@@ -417,7 +419,9 @@
           <span id="{{errorLapsedSecs}}" class="errorSpan">{{lastError}}</span>
         </td>
         <td>
+          {{#errorTime}}
           <span id="{{errorTime}}" class="errorTime" data-toggle="tooltip" title="{{errorLapsedSecs}}">{{errorTime}}</span>
+          {{/errorTime}}
         </td>
         {{/bolts}}
     </tbody>

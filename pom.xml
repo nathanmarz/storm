@@ -165,6 +165,15 @@
             </roles>
             <timezone>-6</timezone>
         </developer>
+        <developer>
+            <id>longda</id>
+            <name>Longda Feng</name>
+            <email>longda@apache.org</email>
+            <roles>
+                <role>Committer</role>
+            </roles>
+            <timezone>+8</timezone>
+        </developer>
     </developers>
 
 
@@ -271,6 +280,7 @@
         <module>external/storm-cassandra</module>
         <module>external/storm-mqtt</module>
         <module>examples/storm-starter</module>
+        <module>storm-clojure</module>
     </modules>
 
     <dependencies>

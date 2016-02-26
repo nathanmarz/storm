@@ -21,15 +21,15 @@
              [common :as common]
              [worker :as worker]
              [executor :as executor]])
-  (:require [org.apache.storm [process-simulator :as psim]])
   (:import [org.apache.commons.io FileUtils]
            [org.apache.storm.utils]
-           [org.apache.storm.zookeeper Zookeeper])
+           [org.apache.storm.zookeeper Zookeeper]
+           [org.apache.storm ProcessSimulator])
   (:import [java.io File])
   (:import [java.util HashMap ArrayList])
   (:import [java.util.concurrent.atomic AtomicInteger])
   (:import [java.util.concurrent ConcurrentHashMap])
-  (:import [org.apache.storm.utils Time Utils IPredicate RegisteredGlobalState ConfigUtils])
+  (:import [org.apache.storm.utils Time Utils IPredicate RegisteredGlobalState ConfigUtils LocalState])
   (:import [org.apache.storm.tuple Fields Tuple TupleImpl])
   (:import [org.apache.storm.task TopologyContext])
   (:import [org.apache.storm.generated GlobalStreamId Bolt KillOptions])
@@ -44,13 +44,16 @@
   (:import [org.apache.storm.transactional TransactionalSpoutCoordinator])
   (:import [org.apache.storm.transactional.partitioned PartitionedTransactionalSpoutExecutor])
   (:import [org.apache.storm.tuple Tuple])
+  (:import [org.apache.storm Thrift])
+  (:import [org.apache.storm Config])
   (:import [org.apache.storm.generated StormTopology])
   (:import [org.apache.storm.task TopologyContext]
            (org.apache.storm.messaging IContext)
            [org.json.simple JSONValue])
-  (:require [org.apache.storm [zookeeper :as zk]])
+  (:import [org.apache.storm.cluster ZKStateStorage ClusterStateContext StormClusterStateImpl ClusterUtils])
   (:require [org.apache.storm.daemon.acker :as acker])
-  (:use [org.apache.storm cluster util thrift config log local-state]))
+  (:use [org.apache.storm util config log local-state-converter converter])
+  (:use [org.apache.storm.internal thrift]))
 
 (defn feeder-spout
   [fields]
@@ -191,8 +194,8 @@
                      :port-counter port-counter
                      :daemon-conf daemon-conf
                      :supervisors (atom [])
-                     :state (mk-distributed-cluster-state daemon-conf)
-                     :storm-cluster-state (mk-storm-cluster-state daemon-conf)
+                     :state (ClusterUtils/mkStateStorage daemon-conf nil nil (ClusterStateContext.))
+                     :storm-cluster-state (ClusterUtils/mkStormClusterState daemon-conf nil (ClusterStateContext.))
                      :tmp-dirs (atom [nimbus-tmp zk-tmp])
                      :zookeeper (if (not-nil? zk-handle) zk-handle)
                      :shared-context context
@@ -241,7 +244,7 @@
     (.shutdown-all-workers s)
     ;; race condition here? will it launch the workers again?
     (supervisor/kill-supervisor s))
-  (psim/kill-all-processes)
+  (ProcessSimulator/killAllProcesses)
   (if (not-nil? (:zookeeper cluster-map))
     (do
       (log-message "Shutting down in process zookeeper")
@@ -283,7 +286,7 @@
   ([cluster-map timeout-ms]
   ;; wait until all workers, supervisors, and nimbus is waiting
   (let [supervisors @(:supervisors cluster-map)
-        workers (filter (partial satisfies? common/DaemonCommon) (psim/all-processes))
+        workers (filter (partial satisfies? common/DaemonCommon) (clojurify-structure (ProcessSimulator/getAllProcessHandles)))
         daemons (concat
                   [(:nimbus cluster-map)]
                   supervisors
@@ -393,14 +396,14 @@
 (defn find-worker-id
   [supervisor-conf port]
   (let [supervisor-state (ConfigUtils/supervisorState supervisor-conf)
-        worker->port (ls-approved-workers supervisor-state)]
+        worker->port (.getApprovedWorkers ^LocalState supervisor-state)]
     (first ((clojurify-structure (Utils/reverseMap worker->port)) port))))
 
 (defn find-worker-port
   [supervisor-conf worker-id]
   (let [supervisor-state (ConfigUtils/supervisorState supervisor-conf)
-        worker->port (ls-approved-workers supervisor-state)]
-    (worker->port worker-id)))
+        worker->port (.getApprovedWorkers ^LocalState supervisor-state)]
+    (if worker->port (.get worker->port worker-id))))
 
 (defn mk-capture-shutdown-fn
   [capture-atom]
@@ -447,7 +450,7 @@
                            (select-keys component->tasks component-ids)
                            component->tasks)
         task-ids (apply concat (vals component->tasks))
-        assignment (.assignment-info state storm-id nil)
+        assignment (clojurify-assignment (.assignmentInfo state storm-id nil))
         taskbeats (.taskbeats state storm-id (:task->node+port assignment))
         heartbeats (dofor [id task-ids] (get taskbeats id))
         stats (dofor [hb heartbeats] (if hb (stat-key (:stats hb)) 0))]
@@ -526,7 +529,7 @@
   (for [[_ spout-spec] spec-map]
     (-> spout-spec
         .get_spout_object
-        deserialized-component-object)))
+        (Thrift/deserializeComponentObject))))
 
 (defn capture-topology
   [topology]
@@ -543,11 +546,11 @@
                 (assoc (clojurify-structure bolts)
                   (Utils/uuid)
                   (Bolt.
-                    (serialize-component-object capturer)
-                    (mk-plain-component-common (into {} (for [[id direct?] all-streams]
+                    (Thrift/serializeComponentObject capturer)
+                    (Thrift/prepareComponentCommon (into {} (for [[id direct?] all-streams]
                                                           [id (if direct?
-                                                                (mk-direct-grouping)
-                                                                (mk-global-grouping))]))
+                                                                (Thrift/prepareDirectGrouping)
+                                                                (Thrift/prepareGlobalGrouping))]))
                                                {}
                                                nil))))
     {:topology topology
@@ -577,7 +580,7 @@
                               mock-sources)]
     (doseq [[id spout] replacements]
       (let [spout-spec (get spouts id)]
-        (.set_spout_object spout-spec (serialize-component-object spout))))
+        (.set_spout_object spout-spec (Thrift/serializeComponentObject spout))))
     (doseq [spout (spout-objects spouts)]
       (when-not (extends? CompletableSpout (.getClass spout))
         (throw (RuntimeException. (str "Cannot complete topology unless every spout is a CompletableSpout (or mocked to be); failed by " spout)))))
@@ -596,7 +599,7 @@
                      (simulate-wait cluster-map))
 
       (.killTopologyWithOpts (:nimbus cluster-map) storm-name (doto (KillOptions.) (.set_wait_secs 0)))
-      (while-timeout timeout-ms (.assignment-info state storm-id nil)
+      (while-timeout timeout-ms (clojurify-assignment (.assignmentInfo state storm-id nil))
                      (simulate-wait cluster-map))
       (when cleanup-state
         (doseq [spout (spout-objects spouts)]
@@ -636,12 +639,12 @@
    (let [track-id (::track-id tracked-cluster)
          ret (.deepCopy topology)]
      (dofor [[_ bolt] (.get_bolts ret)
-             :let [obj (deserialized-component-object (.get_bolt_object bolt))]]
-            (.set_bolt_object bolt (serialize-component-object
+             :let [obj (Thrift/deserializeComponentObject (.get_bolt_object bolt))]]
+            (.set_bolt_object bolt (Thrift/serializeComponentObject
                                      (BoltTracker. obj track-id))))
      (dofor [[_ spout] (.get_spouts ret)
-             :let [obj (deserialized-component-object (.get_spout_object spout))]]
-            (.set_spout_object spout (serialize-component-object
+             :let [obj (Thrift/deserializeComponentObject (.get_spout_object spout))]]
+            (.set_spout_object spout (Thrift/serializeComponentObject
                                        (SpoutTracker. obj track-id))))
      {:topology ret
       :last-spout-emit (atom 0)
@@ -723,8 +726,9 @@
                    (->> (iterate inc 1)
                         (take (count values))
                         (map #(str "field" %))))
-        spout-spec (mk-spout-spec* (TestWordSpout.)
-                                   {stream fields})
+        spout-spec (Thrift/prepareSerializedSpoutDetails
+                     (TestWordSpout.)
+                     {stream fields})
         topology (StormTopology. {component spout-spec} {} {})
         context (TopologyContext.
                   topology

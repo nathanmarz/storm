@@ -1,4 +1,26 @@
 ## 2.0.0
+ * STORM-1545: Topology Debug Event Log in Wrong Location
+ * STORM-1254: port ui.helper to java
+ * STORM-1571: Improvment Kafka Spout Time Metric
+ * STORM-1569: Allowing users to specify the nimbus thrift server queue size.
+ * STORM-1564: fix wrong package-info in org.apache.storm.utils.staticmocking
+ * STORM-1267: Port set_log_level
+ * STORM-1266: Port rebalance
+ * STORM-1265: Port monitor
+ * STORM-1572: throw NPE when parsing the command line arguments by CLI
+ * STORM-1273: port backtype.storm.cluster to java
+ * STORM-1479: use a simple implemention for IntSerializer
+ * STORM-1255: port storm_utils.clj to java and split Time tests into its
+ * STORM-1566: Worker exits with error o.a.s.d.worker [ERROR] Error on initialization of server mk-worker
+ * STORM-1558: Utils in java breaks component page due to illegal type cast
+ * STORM-1553: port event.clj to java
+ * STORM-1262: port backtype.storm.command.dev-zookeeper to java.
+ * STORM-1243: port backtype.storm.command.healthcheck to java.
+ * STORM-1246: port backtype.storm.local-state to java.
+ * STORM-1516: Fixed issue in writing pids with distributed cluster mode.
+ * STORM-1253: port backtype.storm.timer to java
+ * STORM-1258: port thrift.clj to Thrift.java
+ * STORM-1336: Evalute/Port JStorm cgroup support and implement cgroup support for RAS
  * STORM-1511: min/max operators implementation in Trident streams API.
  * STROM-1263: port backtype.storm.command.kill-topology to java
  * STORM-1260: port backtype.storm.command.activate to java
@@ -17,6 +39,12 @@
  * STORM-1521: When using Kerberos login from keytab with multiple bolts/executors ticket is not renewed in hbase bolt.
 
 ## 1.0.0
+ * STORM-1488: UI Topology Page component last error timestamp is from 1970
+ * STORM-1552: Fix topology event sampling log dir
+ * STORM-1542: Remove profile action retry in case of non-zero exit code
+ * STORM-1540: Fix Debug/Sampling for Trident
+ * STORM-1522: REST API throws invalid worker log links
+ * STORM-1541: Change scope of 'hadoop-minicluster' to test
  * STORM-1532: Fix readCommandLineOpts to parse JSON correctly in windows
  * STORM-1539: Improve Storm ACK-ing performance
  * STORM-1519: Storm syslog logging not confirming to RFC5426 3.1
@@ -35,7 +63,7 @@
  * STORM-1484: ignore subproject .classpath & .project file
  * STORM-1478: make bolts getComponentConfiguration method cleaner/simpler
  * STORM-1499: fix wrong package name for storm trident
- * STORM-1463: added file scehma to log4j config files for windows env
+ * STORM-1463: added file schema to log4j config files for windows env
  * STORM-1485: DRPC Connectivity Issues
  * STORM-1486: Fix storm-kafa documentation
  * STORM-1214: add javadoc for Trident Streams and Operations

@@ -59,7 +59,6 @@ public class ManualDRPC {
         LocalCluster cluster = new LocalCluster();
         Config conf = new Config();
         cluster.submitTopology("exclaim", conf, builder.createTopology());
-
         System.out.println(drpc.execute("exclamation", "aaa"));
         System.out.println(drpc.execute("exclamation", "bbb"));
     }

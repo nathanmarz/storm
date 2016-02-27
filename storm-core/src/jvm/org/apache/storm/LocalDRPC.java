@@ -70,7 +70,7 @@ public class LocalDRPC implements ILocalDRPC {
     @Override
     public void shutdown() {
         ServiceRegistry.unregisterService(this.serviceId);
-        this.handler.shutdown();
+        this.handler.close();
     }
 
     @Override

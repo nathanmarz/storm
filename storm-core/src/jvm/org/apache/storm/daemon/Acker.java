@@ -94,18 +94,19 @@ public class Acker implements IBolt {
                 pending.put(id, curr);
             }
         } else if (ACKER_FAIL_STREAM_ID.equals(streamId)) {
+            // For the case that ack_fail message arrives before ack_init
             if (curr == null) {
-                // The tuple has been already timeout or failed. So, do nothing
-                return;
+                curr = new AckObject();
             }
             curr.failed = true;
+            pending.put(id, curr);
         } else {
             LOG.warn("Unknown source stream {} from task-{}", streamId, input.getSourceTask());
             return;
         }
 
         Integer task = curr.spoutTask;
-        if (task != null) {
+        if (curr != null && task != null) {
             if (curr.val == 0) {
                 pending.remove(id);
                 collector.emitDirect(task, ACKER_ACK_STREAM_ID, new Values(id));

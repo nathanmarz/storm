@@ -67,7 +67,7 @@ public class ConfigUtils {
         } else if ((conf = readStormConfig()).get("storm.log.dir") != null) {
             dir = String.valueOf(conf.get("storm.log.dir"));
         } else if (System.getProperty("storm.local.dir") != null) {
-            dir = System.getProperty("storm.local.dir");
+            dir = System.getProperty("storm.local.dir") + FILE_SEPARATOR + "logs";
         } else if (conf.get("storm.local.dir") != null) {
             dir = conf.get("storm.local.dir") + FILE_SEPARATOR + "logs";
         } else {

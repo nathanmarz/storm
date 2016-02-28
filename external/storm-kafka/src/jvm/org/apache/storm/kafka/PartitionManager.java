@@ -170,7 +170,7 @@ public class PartitionManager {
 
 
     private void fill() {
-        long start = System.nanoTime();
+        long start = System.currentTimeMillis();
         Long offset;
 
         // Are there failed tuples? If so, fetch those first.
@@ -205,8 +205,7 @@ public class PartitionManager {
             
             return;
         }
-        long end = System.nanoTime();
-        long millis = (end - start) / 1000000;
+        long millis = System.currentTimeMillis() - start;
         _fetchAPILatencyMax.update(millis);
         _fetchAPILatencyMean.update(millis);
         _fetchAPICallCount.incr();

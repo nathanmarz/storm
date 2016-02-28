@@ -21,13 +21,14 @@
         ring.middleware.multipart-params)
   (:use [ring.middleware.json :only [wrap-json-params]])
   (:use [hiccup core page-helpers])
-  (:use [org.apache.storm config util log stats zookeeper converter])
+  (:use [org.apache.storm config util log stats converter])
   (:use [org.apache.storm.ui helpers])
   (:use [org.apache.storm.daemon [common :only [ACKER-COMPONENT-ID ACKER-INIT-STREAM-ID ACKER-ACK-STREAM-ID
                                               ACKER-FAIL-STREAM-ID mk-authorization-handler
                                               start-metrics-reporters]]])
   (:import [org.apache.storm.utils Time]
-           [org.apache.storm.generated NimbusSummary])
+           [org.apache.storm.generated NimbusSummary]
+           [org.apache.storm.ui UIHelpers IConfigurator FilterConfiguration])
   (:use [clojure.string :only [blank? lower-case trim split]])
   (:import [org.apache.storm.generated ExecutorSpecificStats
             ExecutorStats ExecutorSummary ExecutorInfo TopologyInfo SpoutStats BoltStats
@@ -53,6 +54,7 @@
   (:require [metrics.meters :refer [defmeter mark!]])
   (:import [org.apache.commons.lang StringEscapeUtils])
   (:import [org.apache.logging.log4j Level])
+  (:import [org.eclipse.jetty.server Server])
   (:gen-class))
 
 (def ^:dynamic *STORM-CONF* (clojurify-structure (ConfigUtils/readStormConfig)))
@@ -134,35 +136,32 @@
 
 (defn logviewer-link [host fname secure?]
   (if (and secure? (*STORM-CONF* LOGVIEWER-HTTPS-PORT))
-    (url-format "https://%s:%s/log?file=%s"
-      host
-      (*STORM-CONF* LOGVIEWER-HTTPS-PORT)
-      fname)
-    (url-format "http://%s:%s/log?file=%s"
-      host
-      (*STORM-CONF* LOGVIEWER-PORT)
-      fname)))
+    (UIHelpers/urlFormat "https://%s:%s/log?file=%s"
+      (to-array
+        [host
+        (*STORM-CONF* LOGVIEWER-HTTPS-PORT)
+        fname]))
+    (UIHelpers/urlFormat "http://%s:%s/log?file=%s"
+      (to-array
+        [host
+        (*STORM-CONF* LOGVIEWER-PORT)
+        fname]))))
 
 (defn event-log-link
   [topology-id component-id host port secure?]
-  (logviewer-link host (Utils/eventLogsFilename topology-id port) secure?))
+  (logviewer-link host (Utils/eventLogsFilename topology-id (str port)) secure?))
 
 (defn worker-log-link [host port topology-id secure?]
   (if (or (empty? host) (let [port_str (str port "")] (or (empty? port_str) (= "0" port_str))))
     ""
-    (let [fname (Utils/logsFilename topology-id port)]
+    (let [fname (Utils/logsFilename topology-id (str port))]
       (logviewer-link host fname secure?))))
 
 (defn nimbus-log-link [host]
-  (url-format "http://%s:%s/daemonlog?file=nimbus.log" host (*STORM-CONF* LOGVIEWER-PORT)))
+  (UIHelpers/urlFormat "http://%s:%s/daemonlog?file=nimbus.log" (to-array [host (*STORM-CONF* LOGVIEWER-PORT)])))
 
 (defn supervisor-log-link [host]
-  (url-format "http://%s:%s/daemonlog?file=supervisor.log" host (*STORM-CONF* LOGVIEWER-PORT)))
-
-(defn get-error-time
-  [error]
-  (if error
-    (Time/deltaSecs (.get_error_time_secs ^ErrorInfo error))))
+  (UIHelpers/urlFormat "http://%s:%s/daemonlog?file=supervisor.log" (to-array [host (*STORM-CONF* LOGVIEWER-PORT)])))
 
 (defn get-error-data
   [error]
@@ -185,15 +184,14 @@
 (defn get-error-time
   [error]
   (if error
-    (.get_error_time_secs ^ErrorInfo error)
-    ""))
+    (.get_error_time_secs ^ErrorInfo error)))
 
 (defn worker-dump-link [host port topology-id]
-  (url-format "http://%s:%s/dumps/%s/%s"
-              (URLEncoder/encode host)
+  (UIHelpers/urlFormat "http://%s:%s/dumps/%s/%s"
+    (to-array [(URLEncoder/encode host)
               (*STORM-CONF* LOGVIEWER-PORT)
               (URLEncoder/encode topology-id)
-              (str (URLEncoder/encode host) ":" (URLEncoder/encode port))))
+              (str (URLEncoder/encode host) ":" (URLEncoder/encode port))])))
 
 (defn stats-times
   [stats-map]
@@ -207,7 +205,7 @@
   [window]
   (if (= window ":all-time")
     "All time"
-    (pretty-uptime-sec window)))
+    (UIHelpers/prettyUptimeSec window)))
 
 (defn sanitize-stream-name
   [name]
@@ -263,7 +261,7 @@
                          (if bolt-summs
                            (mapfn bolt-summs)
                            (mapfn spout-summs)))
-                :link (url-format "/component.html?id=%s&topology_id=%s" id storm-id)
+                :link (UIHelpers/urlFormat "/component.html?id=%s&topology_id=%s" (to-array [id storm-id]))
                 :inputs (for [[global-stream-id group] inputs]
                           {:component (.get_componentId global-stream-id)
                            :stream (.get_streamId global-stream-id)
@@ -425,7 +423,7 @@
           "nimbusLogLink" (nimbus-log-link (.get_host n))
           "status" (if (.is_isLeader n) "Leader" "Not a Leader")
           "version" (.get_version n)
-          "nimbusUpTime" (pretty-uptime-sec uptime)
+          "nimbusUpTime" (UIHelpers/prettyUptimeSec uptime)
           "nimbusUpTimeSeconds" uptime}))})))
 
 (defn supervisor-summary
@@ -438,7 +436,7 @@
     (for [^SupervisorSummary s summs]
       {"id" (.get_supervisor_id s)
        "host" (.get_host s)
-       "uptime" (pretty-uptime-sec (.get_uptime_secs s))
+       "uptime" (UIHelpers/prettyUptimeSec (.get_uptime_secs s))
        "uptimeSeconds" (.get_uptime_secs s)
        "slotsTotal" (.get_num_workers s)
        "slotsUsed" (.get_num_used_workers s)
@@ -465,7 +463,7 @@
        "owner" (.get_owner t)
        "name" (.get_name t)
        "status" (.get_status t)
-       "uptime" (pretty-uptime-sec (.get_uptime_secs t))
+       "uptime" (UIHelpers/prettyUptimeSec (.get_uptime_secs t))
        "uptimeSeconds" (.get_uptime_secs t)
        "tasksTotal" (.get_num_tasks t)
        "workersTotal" (.get_num_workers t)
@@ -484,7 +482,7 @@
 
 (defn topology-stats [window stats]
   (let [times (stats-times (:emitted stats))
-        display-map (into {} (for [t times] [t pretty-uptime-sec]))
+        display-map (into {} (for [t times] [t window-hint]))
         display-map (assoc display-map ":all-time" (fn [_] "All time"))]
     (for [w (concat times [":all-time"])
           :let [disp ((display-map w) w)]]
@@ -529,7 +527,7 @@
      "errorTime" (get-error-time error-info)
      "errorHost" host
      "errorPort" port
-     "errorLapsedSecs" (get-error-time error-info)
+     "errorLapsedSecs" (if-let [t (get-error-time error-info)] (Time/deltaSecs t))
      "errorWorkerLogLink" (worker-log-link host port topo-id secure?)}))
 
 (defn- common-agg-stats-json
@@ -593,7 +591,7 @@
      "owner" (.get_owner topo-info)
      "name" (.get_name topo-info)
      "status" (.get_status topo-info)
-     "uptime" (pretty-uptime-sec uptime)
+     "uptime" (UIHelpers/prettyUptimeSec uptime)
      "uptimeSeconds" uptime
      "tasksTotal" (.get_num_tasks topo-info)
      "workersTotal" (.get_num_workers topo-info)
@@ -655,14 +653,14 @@
                     reverse)]
     {"componentErrors"
      (for [^ErrorInfo e errors]
-       {"errorTime" (* 1000 (long (.get_error_time_secs e)))
+       {"errorTime" (get-error-time e)
         "errorHost" (.get_host e)
         "errorPort"  (.get_port e)
         "errorWorkerLogLink"  (worker-log-link (.get_host e)
                                                (.get_port e)
                                                topology-id
                                                secure?)
-        "errorLapsedSecs" (get-error-time e)
+        "errorLapsedSecs" (if-let [t (get-error-time e)] (Time/deltaSecs t))
         "error" (.get_error e)})}))
 
 (defmulti unpack-comp-agg-stat
@@ -747,11 +745,11 @@
         ^CommonAggregateStats cas (.get_common_stats stats)
         host (.get_host summ)
         port (.get_port summ)
-        exec-id (pretty-executor-info info)
+        exec-id (UIHelpers/prettyExecutorInfo info)
         uptime (.get_uptime_secs summ)]
     {"id" exec-id
      "encodedId" (URLEncoder/encode exec-id)
-     "uptime" (pretty-uptime-sec uptime)
+     "uptime" (UIHelpers/prettyUptimeSec uptime)
      "uptimeSeconds" uptime
      "host" host
      "port" port
@@ -775,11 +773,11 @@
         ^CommonAggregateStats cas (.get_common_stats stats)
         host (.get_host summ)
         port (.get_port summ)
-        exec-id (pretty-executor-info info)
+        exec-id (UIHelpers/prettyExecutorInfo info)
         uptime (.get_uptime_secs summ)]
     {"id" exec-id
      "encodedId" (URLEncoder/encode exec-id)
-     "uptime" (pretty-uptime-sec uptime)
+     "uptime" (UIHelpers/prettyUptimeSec uptime)
      "uptimeSeconds" uptime
      "host" host
      "port" port
@@ -944,7 +942,7 @@
   (GET "/api/v1/cluster/configuration" [& m]
     (mark! ui:num-cluster-configuration-http-requests)
     (json-response (cluster-configuration)
-                   (:callback m) :serialize-fn identity))
+                   (:callback m) :need-serialize false))
   (GET "/api/v1/cluster/summary" [:as {:keys [cookies servlet-request]} & m]
     (mark! ui:num-cluster-summary-http-requests)
     (populate-context! servlet-request)
@@ -1004,7 +1002,7 @@
     (mark! ui:num-log-config-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "getTopology" (topology-config id))
-       (json-response (log-config id) (:callback m)))
+    (json-response (log-config id) (:callback m)))
   (POST "/api/v1/topology/:id/activate" [:as {:keys [cookies servlet-request]} id & m]
     (mark! ui:num-activate-topology-http-requests)
     (populate-context! servlet-request)
@@ -1044,7 +1042,7 @@
             enable? (= "enable" action)]
         (.debug nimbus name "" enable? (Integer/parseInt spct))
         (log-message "Debug topology [" name "] action [" action "] sampling pct [" spct "]")))
-     (json-response (topology-op-response id (str "debug/" action)) (m "callback")))
+    (json-response (topology-op-response id (str "debug/" action)) (m "callback")))
   (POST "/api/v1/topology/:id/component/:component/debug/:action/:spct" [:as {:keys [cookies servlet-request]} id component action spct & m]
     (mark! ui:num-component-op-response-http-requests)
     (populate-context! servlet-request)
@@ -1217,7 +1215,7 @@
            (json-response {"status" "ok"
                            "id" host-port}
                           (m "callback")))))
-       
+
   (GET "/api/v1/topology/:id/profiling/dumpheap/:host-port"
        [:as {:keys [servlet-request]} id host-port & m]
        (populate-context! servlet-request)
@@ -1233,7 +1231,7 @@
            (json-response {"status" "ok"
                            "id" host-port}
                           (m "callback")))))
-  
+
   (GET "/" [:as {cookies :cookies}]
     (mark! ui:num-main-page-http-requests)
     (resp/redirect "/index.html"))
@@ -1246,7 +1244,7 @@
     (try
       (handler request)
       (catch Exception ex
-        (json-response (exception->json ex) ((:query-params request) "callback") :status 500)))))
+        (json-response (UIHelpers/exceptionToJson ex) ((:query-params request) "callback") :status 500)))))
 
 (def app
   (handler/site (-> main-routes
@@ -1261,9 +1259,8 @@
   (try
     (let [conf *STORM-CONF*
           header-buffer-size (int (.get conf UI-HEADER-BUFFER-BYTES))
-          filters-confs [{:filter-class (conf UI-FILTER)
-                          :filter-params (conf UI-FILTER-PARAMS)}]
-          https-port (if (not-nil? (conf UI-HTTPS-PORT)) (conf UI-HTTPS-PORT) 0)
+          filters-confs [(FilterConfiguration. (conf UI-FILTER) (conf UI-FILTER-PARAMS))]
+          https-port (int (or (conf UI-HTTPS-PORT) 0))
           https-ks-path (conf UI-HTTPS-KEYSTORE-PATH)
           https-ks-password (conf UI-HTTPS-KEYSTORE-PASSWORD)
           https-ks-type (conf UI-HTTPS-KEYSTORE-TYPE)
@@ -1274,24 +1271,25 @@
           https-want-client-auth (conf UI-HTTPS-WANT-CLIENT-AUTH)
           https-need-client-auth (conf UI-HTTPS-NEED-CLIENT-AUTH)]
       (start-metrics-reporters conf)
-      (storm-run-jetty {:port (conf UI-PORT)
-                        :host (conf UI-HOST)
-                        :https-port https-port
-                        :configurator (fn [server]
-                                        (config-ssl server
-                                                    https-port
-                                                    https-ks-path
-                                                    https-ks-password
-                                                    https-ks-type
-                                                    https-key-password
-                                                    https-ts-path
-                                                    https-ts-password
-                                                    https-ts-type
-                                                    https-need-client-auth
-                                                    https-want-client-auth)
-                                        (doseq [connector (.getConnectors server)]
-                                          (.setRequestHeaderSize connector header-buffer-size))
-                                        (config-filter server app filters-confs))}))
+      (UIHelpers/stormRunJetty  (int (conf UI-PORT))
+                                (conf UI-HOST)
+                                https-port
+                                (reify IConfigurator
+                                  (execute [this server]
+                                    (UIHelpers/configSsl server
+                                      https-port
+                                      https-ks-path
+                                      https-ks-password
+                                      https-ks-type
+                                      https-key-password
+                                      https-ts-path
+                                      https-ts-password
+                                      https-ts-type
+                                      https-need-client-auth
+                                      https-want-client-auth)
+                                    (doseq [connector (.getConnectors server)]
+                                      (.setRequestHeaderSize connector header-buffer-size))
+                                    (UIHelpers/configFilter server (ring.util.servlet/servlet app) filters-confs)))))
    (catch Exception ex
      (log-error ex))))
 

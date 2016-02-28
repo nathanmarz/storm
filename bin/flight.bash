@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-JDKPATH="/home/y/share/yjava_jdk/java"
+JDKPATH=$JAVA_HOME
 BINPATH="/usr/bin"
 USER=`whoami`
 
@@ -59,7 +59,7 @@ function dump_record {
 
 function jstack_record {
     FILENAME=jstack-$1-${NOW}.txt
-    $BINPATH/jstack $1 > "$2/${FILENAME}"
+    $BINPATH/jstack $1 > "$2/${FILENAME}" 2>&1
 }
 
 function jmap_record {

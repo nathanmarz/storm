@@ -15,12 +15,13 @@
 ;; limitations under the License.
 (ns org.apache.storm.daemon.worker
   (:use [org.apache.storm.daemon common])
-  (:use [org.apache.storm config log util local-state-converter])
+  (:use [org.apache.storm config log util converter local-state-converter])
   (:require [clj-time.core :as time])
   (:require [clj-time.coerce :as coerce])
   (:require [org.apache.storm.daemon [executor :as executor]])
-  (:require [org.apache.storm [cluster :as cluster]])
+
   (:require [clojure.set :as set])
+  (:import [java.io File])
   (:import [java.util.concurrent Executors]
            [org.apache.storm.hooks IWorkerHook BaseWorkerHook]
            [uk.org.lidalia.sysoutslf4j.context SysOutOverSLF4J])
@@ -38,7 +39,7 @@
   (:import [org.apache.storm.task WorkerTopologyContext])
   (:import [org.apache.storm Constants])
   (:import [org.apache.storm.security.auth AuthUtils])
-  (:import [org.apache.storm.cluster ClusterStateContext DaemonType])
+  (:import [org.apache.storm.cluster ClusterStateContext DaemonType ZKStateStorage StormClusterStateImpl ClusterUtils IStateStorage])
   (:import [javax.security.auth Subject])
   (:import [java.security PrivilegedExceptionAction])
   (:import [org.apache.logging.log4j LogManager])
@@ -52,7 +53,7 @@
 
 (defn read-worker-executors [storm-conf storm-cluster-state storm-id assignment-id port assignment-versions]
   (log-message "Reading Assignments.")
-  (let [assignment (:executor->node+port (.assignment-info storm-cluster-state storm-id nil))]
+  (let [assignment (:executor->node+port (clojurify-assignment (.assignmentInfo storm-cluster-state storm-id nil)))]
     (doall
      (concat
       [Constants/SYSTEM_EXECUTOR_ID]
@@ -76,7 +77,7 @@
                }]
     ;; do the zookeeper heartbeat
     (try
-      (.worker-heartbeat! (:storm-cluster-state worker) (:storm-id worker) (:assignment-id worker) (:port worker) zk-hb)
+      (.workerHeartbeat (:storm-cluster-state worker) (:storm-id worker) (:assignment-id worker) (long (:port worker)) (thriftify-zk-worker-hb zk-hb))
       (catch Exception exc
         (log-error exc "Worker failed to write heatbeats to ZK or Pacemaker...will retry")))))
 
@@ -154,7 +155,10 @@
         ;; update the worker's backpressure flag to zookeeper only when it has changed
         (log-debug "BP " @(:backpressure worker) " WAS " prev-backpressure-flag)
         (when (not= prev-backpressure-flag @(:backpressure worker))
-          (.worker-backpressure! storm-cluster-state storm-id assignment-id port @(:backpressure worker)))
+          (try
+            (.workerBackpressure storm-cluster-state storm-id assignment-id (long port) @(:backpressure worker))
+            (catch Exception exc
+              (log-error exc "workerBackpressure update failed when connecting to ZK ... will retry"))))
         ))))
 
 (defn- mk-disruptor-backpressure-handler [worker]
@@ -250,7 +254,7 @@
         (log-error e "Error when processing event")
         (Utils/exitProcess 20 "Error when processing an event")))))
 
-(defn worker-data [conf mq-context storm-id assignment-id port worker-id storm-conf cluster-state storm-cluster-state]
+(defn worker-data [conf mq-context storm-id assignment-id port worker-id storm-conf state-store storm-cluster-state]
   (let [assignment-versions (atom {})
         executors (set (read-worker-executors storm-conf storm-cluster-state storm-id assignment-id port assignment-versions))
         transfer-queue (DisruptorQueue. "worker-transfer-queue"
@@ -277,7 +281,7 @@
       :assignment-id assignment-id
       :port port
       :worker-id worker-id
-      :cluster-state cluster-state
+      :state-store state-store
       :storm-cluster-state storm-cluster-state
       ;; when worker bootup, worker will start to setup initial connections to
       ;; other workers. When all connection is ready, we will enable this flag
@@ -382,14 +386,15 @@
         storm-id (:storm-id worker)]
     (fn refresh-connections
       ([]
-        (refresh-connections (fn [& ignored]
+        (refresh-connections (fn []
                 (.schedule
                   (:refresh-connections-timer worker) 0 refresh-connections))))
       ([callback]
-         (let [version (.assignment-version storm-cluster-state storm-id callback)
+         (let [version (.assignmentVersion storm-cluster-state storm-id callback)
                assignment (if (= version (:version (get @(:assignment-versions worker) storm-id)))
                             (:data (get @(:assignment-versions worker) storm-id))
-                            (let [new-assignment (.assignment-info-with-version storm-cluster-state storm-id callback)]
+                            (let [thriftify-assignment-version (.assignmentInfoWithVersion storm-cluster-state storm-id callback)
+                              new-assignment {:data (clojurify-assignment (.get thriftify-assignment-version (IStateStorage/DATA))) :version version}]
                               (swap! (:assignment-versions worker) assoc storm-id new-assignment)
                               (:data new-assignment)))
               my-assignment (-> assignment
@@ -436,11 +441,11 @@
 (defn refresh-storm-active
   ([worker]
     (refresh-storm-active
-      worker (fn [& ignored]
+      worker (fn []
                (.schedule
                  (:refresh-active-timer worker) 0 (partial refresh-storm-active worker)))))
   ([worker callback]
-    (let [base (.storm-base (:storm-cluster-state worker) (:storm-id worker) callback)]
+    (let [base (clojurify-storm-base (.stormBase (:storm-cluster-state worker) (:storm-id worker) callback))]
       (reset!
         (:storm-active-atom worker)
         (and (= :active (-> base :status :type)) @(:worker-active-flag worker)))
@@ -619,7 +624,7 @@
   (when-not (ConfigUtils/isLocalMode conf)
     (SysOutOverSLF4J/sendSystemOutAndErrToSLF4J)
     (let [pid (Utils/processPid)]
-      (FileUtils/touch (ConfigUtils/workerPidPath conf worker-id pid))
+      (FileUtils/touch (File. (ConfigUtils/workerPidPath conf worker-id pid)))
       (spit (ConfigUtils/workerArtifactsPidPath conf storm-id port) pid)))
 
   (declare establish-log-setting-callback)
@@ -631,14 +636,14 @@
   (let [storm-conf (ConfigUtils/readSupervisorStormConf conf storm-id)
         storm-conf (clojurify-structure (ConfigUtils/overrideLoginConfigWithSystemProperty storm-conf))
         acls (Utils/getWorkerACL storm-conf)
-        cluster-state (cluster/mk-distributed-cluster-state conf :auth-conf storm-conf :acls acls :context (ClusterStateContext. DaemonType/WORKER))
-        storm-cluster-state (cluster/mk-storm-cluster-state cluster-state :acls acls)
-        initial-credentials (.credentials storm-cluster-state storm-id nil)
+        state-store (ClusterUtils/mkStateStorage conf storm-conf  acls  (ClusterStateContext. DaemonType/WORKER))
+        storm-cluster-state (ClusterUtils/mkStormClusterState state-store acls (ClusterStateContext.))
+        initial-credentials (clojurify-crdentials (.credentials storm-cluster-state storm-id nil))
         auto-creds (AuthUtils/GetAutoCredentials storm-conf)
         subject (AuthUtils/populateSubject nil auto-creds initial-credentials)]
       (Subject/doAs subject (reify PrivilegedExceptionAction
         (run [this]
-          (let [worker (worker-data conf shared-mq-context storm-id assignment-id port worker-id storm-conf cluster-state storm-cluster-state)
+          (let [worker (worker-data conf shared-mq-context storm-id assignment-id port worker-id storm-conf state-store storm-cluster-state)
         heartbeat-fn #(do-heartbeat worker)
 
         ;; do this here so that the worker process dies if this fails
@@ -683,11 +688,11 @@
         backpressure-thread (WorkerBackpressureThread. (:backpressure-trigger worker) worker backpressure-handler)
         _ (if ((:storm-conf worker) TOPOLOGY-BACKPRESSURE-ENABLE) 
             (.start backpressure-thread))
-        callback (fn cb [& ignored]
-                   (let [throttle-on (.topology-backpressure storm-cluster-state storm-id cb)]
+        callback (fn cb []
+                   (let [throttle-on (.topologyBackpressure storm-cluster-state storm-id cb)]
                      (reset! (:throttle-on worker) throttle-on)))
         _ (if ((:storm-conf worker) TOPOLOGY-BACKPRESSURE-ENABLE)
-            (.topology-backpressure storm-cluster-state storm-id callback))
+            (.topologyBackpressure storm-cluster-state storm-id callback))
 
         shutdown* (fn []
                     (log-message "Shutting down worker " storm-id " " assignment-id " " port)
@@ -709,8 +714,7 @@
                     (.interrupt transfer-thread)
                     (.join transfer-thread)
                     (log-message "Shut down transfer thread")
-                    (.interrupt backpressure-thread)
-                    (.join backpressure-thread)
+                    (.terminate backpressure-thread)
                     (log-message "Shut down backpressure thread")
                     (.close (:heartbeat-timer worker))
                     (.close (:refresh-connections-timer worker))
@@ -725,10 +729,10 @@
                     (log-message "Trigger any worker shutdown hooks")
                     (run-worker-shutdown-hooks worker)
 
-                    (.remove-worker-heartbeat! (:storm-cluster-state worker) storm-id assignment-id port)
+                    (.removeWorkerHeartbeat (:storm-cluster-state worker) storm-id assignment-id (long port))
                     (log-message "Disconnecting from storm cluster state context")
                     (.disconnect (:storm-cluster-state worker))
-                    (.close (:cluster-state worker))
+                    (.close (:state-store worker))
                     (log-message "Shut down worker " storm-id " " assignment-id " " port))
         ret (reify
              Shutdownable
@@ -749,29 +753,29 @@
              )
         credentials (atom initial-credentials)
         check-credentials-changed (fn []
-                                    (let [new-creds (.credentials (:storm-cluster-state worker) storm-id nil)]
+                                    (let [new-creds (clojurify-crdentials (.credentials (:storm-cluster-state worker) storm-id nil))]
                                       (when-not (= new-creds @credentials) ;;This does not have to be atomic, worst case we update when one is not needed
                                         (AuthUtils/updateSubject subject auto-creds new-creds)
                                         (dofor [e @executors] (.credentials-changed e new-creds))
                                         (reset! credentials new-creds))))
        check-throttle-changed (fn []
-                                (let [callback (fn cb [& ignored]
-                                                 (let [throttle-on (.topology-backpressure (:storm-cluster-state worker) storm-id cb)]
+                                (let [callback (fn cb []
+                                                 (let [throttle-on (.topologyBackpressure (:storm-cluster-state worker) storm-id cb)]
                                                    (reset! (:throttle-on worker) throttle-on)))
-                                      new-throttle-on (.topology-backpressure (:storm-cluster-state worker) storm-id callback)]
+                                      new-throttle-on (.topologyBackpressure (:storm-cluster-state worker) storm-id callback)]
                                     (reset! (:throttle-on worker) new-throttle-on)))
         check-log-config-changed (fn []
-                                  (let [log-config (.topology-log-config (:storm-cluster-state worker) storm-id nil)]
+                                  (let [log-config (.topologyLogConfig (:storm-cluster-state worker) storm-id nil)]
                                     (process-log-config-change latest-log-config original-log-levels log-config)
                                     (establish-log-setting-callback)))]
     (reset! original-log-levels (get-logger-levels))
     (log-message "Started with log levels: " @original-log-levels)
   
     (defn establish-log-setting-callback []
-      (.topology-log-config (:storm-cluster-state worker) storm-id (fn [args] (check-log-config-changed))))
+      (.topologyLogConfig (:storm-cluster-state worker) storm-id (fn [args] (check-log-config-changed))))
 
     (establish-log-setting-callback)
-    (.credentials (:storm-cluster-state worker) storm-id (fn [args] (check-credentials-changed)))
+    (clojurify-crdentials (.credentials (:storm-cluster-state worker) storm-id (fn [] (check-credentials-changed))))
 
     (.scheduleRecurring
       (:refresh-credentials-timer worker) 0 (conf TASK-CREDENTIALS-POLL-SECS)

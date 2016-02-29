@@ -84,3 +84,22 @@ SqlNode SqlCreateTable() :
         tbl_properties, select);
     }
 }
+
+/**
+ * CREATE FUNCTION functionname AS 'classname'
+ */
+SqlNode SqlCreateFunction() :
+{
+    SqlParserPos pos;
+    SqlIdentifier functionName;
+    SqlNode className;
+}
+{
+    <CREATE> { pos = getPos(); }
+    <FUNCTION>
+    functionName = CompoundIdentifier()
+    <AS>
+    className = StringLiteral() {
+        return new SqlCreateFunction(pos, functionName, className);
+    }
+}

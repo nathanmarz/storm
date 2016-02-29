@@ -19,6 +19,9 @@ package org.apache.storm.stats;
 
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.storm.generated.ExecutorSpecificStats;
+import org.apache.storm.generated.ExecutorStats;
+import org.apache.storm.generated.SpoutStats;
 import org.apache.storm.metric.internal.MultiCountStatAndMetric;
 import org.apache.storm.metric.internal.MultiLatencyStatAndMetric;
 
@@ -31,8 +34,8 @@ public class SpoutExecutorStats extends CommonStats {
 
     public static final String[] SPOUT_FIELDS = {ACKED, FAILED, COMPLETE_LATENCIES};
 
-    public SpoutExecutorStats() {
-        super();
+    public SpoutExecutorStats(int rate) {
+        super(rate);
         this.put(ACKED, new MultiCountStatAndMetric(NUM_STAT_BUCKETS));
         this.put(FAILED, new MultiCountStatAndMetric(NUM_STAT_BUCKETS));
         this.put(COMPLETE_LATENCIES, new MultiLatencyStatAndMetric(NUM_STAT_BUCKETS));
@@ -69,16 +72,18 @@ public class SpoutExecutorStats extends CommonStats {
         return ret;
     }
 
-    public void cleanupStats() {
-        super.cleanupStats();
-        for (String field : SpoutExecutorStats.SPOUT_FIELDS) {
-            cleanupStat(this.get(field));
-        }
-    }
-
-    public static SpoutExecutorStats mkSpoutStats(int rate) {
-        SpoutExecutorStats stats = new SpoutExecutorStats();
-        stats.setRate(rate);
-        return stats;
-    }
+//    public ExecutorStats renderStats() {
+//        cleanupStats();
+//
+//        ExecutorStats ret = new ExecutorStats();
+//        ret.set_emitted(valueStat(EMITTED));
+//        ret.set_transferred(valueStat(TRANSFERRED));
+//        ret.set_rate(this.rate);
+//
+//        SpoutStats spoutStats = new SpoutStats(
+//                valueStat(ACKED), valueStat(FAILED), valueStat(COMPLETE_LATENCIES));
+//        ret.set_specific(ExecutorSpecificStats.spout(spoutStats));
+//
+//        return ret;
+//    }
 }

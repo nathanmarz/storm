@@ -1222,7 +1222,7 @@
            (json-response {"status" "ok"
                            "id" host-port}
                           (m "callback")))))
-       
+
   (GET "/api/v1/topology/:id/profiling/dumpheap/:host-port"
        [:as {:keys [servlet-request]} id host-port & m]
        (populate-context! servlet-request)
@@ -1238,7 +1238,7 @@
            (json-response {"status" "ok"
                            "id" host-port}
                           (m "callback")))))
-  
+
   (GET "/" [:as {cookies :cookies}]
     (mark! ui:num-main-page-http-requests)
     (resp/redirect "/index.html"))

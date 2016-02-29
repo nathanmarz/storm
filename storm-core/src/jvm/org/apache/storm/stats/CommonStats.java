@@ -33,20 +33,17 @@ public class CommonStats {
     public static final String TRANSFERRED = "transferred";
     public static final String[] COMMON_FIELDS = {EMITTED, TRANSFERRED};
 
-    protected int rate;
+    protected final int rate;
     protected final Map metricMap = new HashMap();
 
-    public CommonStats() {
-        put(EMITTED, new MultiCountStatAndMetric(NUM_STAT_BUCKETS));
-        put(TRANSFERRED, new MultiCountStatAndMetric(NUM_STAT_BUCKETS));
+    public CommonStats(int rate) {
+        this.rate = rate;
+        this.put(EMITTED, new MultiCountStatAndMetric(NUM_STAT_BUCKETS));
+        this.put(TRANSFERRED, new MultiCountStatAndMetric(NUM_STAT_BUCKETS));
     }
 
     public int getRate() {
         return this.rate;
-    }
-
-    public void setRate(int rate) {
-        this.rate = rate;
     }
 
     public MultiCountStatAndMetric getEmitted() {
@@ -73,13 +70,13 @@ public class CommonStats {
         this.getTransferred().incBy(stream, this.rate * amount);
     }
 
-    protected void cleanupStats() {
-        for (String field : COMMON_FIELDS) {
-            cleanupStat(this.get(field));
+    public void cleanupStats() {
+        for (Object imetric : this.metricMap.values()) {
+            cleanupStat((IMetric) imetric);
         }
     }
 
-    protected void cleanupStat(IMetric metric) {
+    private void cleanupStat(IMetric metric) {
         if (metric instanceof MultiCountStatAndMetric) {
             ((MultiCountStatAndMetric) metric).close();
         } else if (metric instanceof MultiLatencyStatAndMetric) {
@@ -100,6 +97,16 @@ public class CommonStats {
         StatsUtil.putRawKV(ret, CommonStats.RATE, this.getRate());
 
         return ret;
+    }
+
+    protected Map valueStat(String field) {
+        IMetric metric = this.get(field);
+        if (metric instanceof MultiCountStatAndMetric) {
+            return ((MultiCountStatAndMetric) metric).getTimeCounts();
+        } else if (metric instanceof MultiLatencyStatAndMetric) {
+            return ((MultiLatencyStatAndMetric) metric).getTimeLatAvg();
+        }
+        return null;
     }
 
 }

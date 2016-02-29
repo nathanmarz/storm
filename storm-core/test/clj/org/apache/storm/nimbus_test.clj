@@ -145,7 +145,7 @@
         stats (:executor-stats curr-beat)]
     (.workerHeartbeat state storm-id node port
       (thriftify-zk-worker-hb {:storm-id storm-id :time-secs (Time/currentTimeSecs) :uptime 10
-                               :executor-stats (merge stats {executor (clojurify-structure (.renderStats (BoltExecutorStats/mkBoltStats 20)))})})
+                               :executor-stats (merge stats {executor (clojurify-structure (.renderStats (BoltExecutorStats. 20)))})})
       )))
 
 (defn slot-assignments [cluster storm-id]

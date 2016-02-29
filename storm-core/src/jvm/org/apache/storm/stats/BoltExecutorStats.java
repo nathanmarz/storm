@@ -17,9 +17,14 @@
  */
 package org.apache.storm.stats;
 
-import clojure.lang.PersistentVector;
+import com.google.common.collect.Lists;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import org.apache.storm.generated.BoltStats;
+import org.apache.storm.generated.ExecutorSpecificStats;
+import org.apache.storm.generated.ExecutorStats;
+import org.apache.storm.generated.SpoutStats;
 import org.apache.storm.metric.internal.MultiCountStatAndMetric;
 import org.apache.storm.metric.internal.MultiLatencyStatAndMetric;
 
@@ -34,14 +39,14 @@ public class BoltExecutorStats extends CommonStats {
 
     public static final String[] BOLT_FIELDS = {ACKED, FAILED, EXECUTED, PROCESS_LATENCIES, EXECUTE_LATENCIES};
 
-    public BoltExecutorStats() {
-        super();
+    public BoltExecutorStats(int rate) {
+        super(rate);
 
-        put(ACKED, new MultiCountStatAndMetric(NUM_STAT_BUCKETS));
-        put(FAILED, new MultiCountStatAndMetric(NUM_STAT_BUCKETS));
-        put(EXECUTED, new MultiCountStatAndMetric(NUM_STAT_BUCKETS));
-        put(PROCESS_LATENCIES, new MultiLatencyStatAndMetric(NUM_STAT_BUCKETS));
-        put(EXECUTE_LATENCIES, new MultiLatencyStatAndMetric(NUM_STAT_BUCKETS));
+        this.put(ACKED, new MultiCountStatAndMetric(NUM_STAT_BUCKETS));
+        this.put(FAILED, new MultiCountStatAndMetric(NUM_STAT_BUCKETS));
+        this.put(EXECUTED, new MultiCountStatAndMetric(NUM_STAT_BUCKETS));
+        this.put(PROCESS_LATENCIES, new MultiLatencyStatAndMetric(NUM_STAT_BUCKETS));
+        this.put(EXECUTE_LATENCIES, new MultiLatencyStatAndMetric(NUM_STAT_BUCKETS));
     }
 
     public MultiCountStatAndMetric getAcked() {
@@ -65,19 +70,19 @@ public class BoltExecutorStats extends CommonStats {
     }
 
     public void boltExecuteTuple(String component, String stream, long latencyMs) {
-        Object key = PersistentVector.create(component, stream);
+        List key = Lists.newArrayList(component, stream);
         this.getExecuted().incBy(key, this.rate);
         this.getExecuteLatencies().record(key, latencyMs);
     }
 
     public void boltAckedTuple(String component, String stream, long latencyMs) {
-        Object key = PersistentVector.create(component, stream);
+        List key = Lists.newArrayList(component, stream);
         this.getAcked().incBy(key, this.rate);
         this.getProcessLatencies().record(key, latencyMs);
     }
 
     public void boltFailedTuple(String component, String stream, long latencyMs) {
-        Object key = PersistentVector.create(component, stream);
+        List key = Lists.newArrayList(component, stream);
         this.getFailed().incBy(key, this.rate);
 
     }
@@ -92,16 +97,22 @@ public class BoltExecutorStats extends CommonStats {
         return ret;
     }
 
-    public void cleanupStats() {
-        super.cleanupStats();
-        for (String field : BOLT_FIELDS) {
-            cleanupStat(this.get(field));
-        }
-    }
-
-    public static BoltExecutorStats mkBoltStats(int rate) {
-        BoltExecutorStats stats = new BoltExecutorStats();
-        stats.setRate(rate);
-        return stats;
-    }
+//    public ExecutorStats renderStats() {
+//        cleanupStats();
+//
+//        ExecutorStats ret = new ExecutorStats();
+//        ret.set_emitted(valueStat(EMITTED));
+//        ret.set_transferred(valueStat(TRANSFERRED));
+//        ret.set_rate(this.rate);
+//
+//        BoltStats boltStats = new BoltStats(
+//                StatsUtil.windowSetConverter(valueStat(ACKED), StatsUtil.TO_GSID, StatsUtil.IDENTITY),
+//                StatsUtil.windowSetConverter(valueStat(FAILED), StatsUtil.TO_GSID, StatsUtil.IDENTITY),
+//                StatsUtil.windowSetConverter(valueStat(PROCESS_LATENCIES), StatsUtil.TO_GSID, StatsUtil.IDENTITY),
+//                StatsUtil.windowSetConverter(valueStat(EXECUTED), StatsUtil.TO_GSID, StatsUtil.IDENTITY),
+//                StatsUtil.windowSetConverter(valueStat(EXECUTE_LATENCIES), StatsUtil.TO_GSID, StatsUtil.IDENTITY));
+//        ret.set_specific(ExecutorSpecificStats.bolt(boltStats));
+//
+//        return ret;
+//    }
 }

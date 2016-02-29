@@ -113,10 +113,10 @@ public class StatsUtil {
     public static final int TEN_MIN_IN_SECONDS = 60 * 10;
     public static final String TEN_MIN_IN_SECONDS_STR = TEN_MIN_IN_SECONDS + "";
 
-    private static final IdentityTransformer IDENTITY = new IdentityTransformer();
+    public static final IdentityTransformer IDENTITY = new IdentityTransformer();
     private static final ToStringTransformer TO_STRING = new ToStringTransformer();
     private static final FromGlobalStreamIdTransformer FROM_GSID = new FromGlobalStreamIdTransformer();
-    private static final ToGlobalStreamIdTransformer TO_GSID = new ToGlobalStreamIdTransformer();
+    public static final ToGlobalStreamIdTransformer TO_GSID = new ToGlobalStreamIdTransformer();
 
 
     // =====================================================================================
@@ -1659,6 +1659,9 @@ public class StatsUtil {
             Map executorStat = (Map) stat.get(1);
             ExecutorInfo executorInfo = new ExecutorInfo(start, end);
             ret.put(executorInfo, thriftifyExecutorStats(executorStat));
+//            ExecutorStats executorStat = (ExecutorStats) stat.get(1);
+//            ExecutorInfo executorInfo = new ExecutorInfo(start, end);
+//            ret.put(executorInfo, executorStat);
         }
         return ret;
     }

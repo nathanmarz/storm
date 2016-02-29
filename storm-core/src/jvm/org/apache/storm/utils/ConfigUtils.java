@@ -44,7 +44,7 @@ public class ConfigUtils {
 
     // A singleton instance allows us to mock delegated static methods in our
     // tests by subclassing.
-    private static ConfigUtils _instance = new ConfigUtils();;
+    private static ConfigUtils _instance = new ConfigUtils();
 
     /**
      * Provide an instance of this class for delegates to use.  To mock out
@@ -66,7 +66,11 @@ public class ConfigUtils {
             dir = System.getProperty("storm.log.dir");
         } else if ((conf = readStormConfig()).get("storm.log.dir") != null) {
             dir = String.valueOf(conf.get("storm.log.dir"));
-        } else  {
+        } else if (System.getProperty("storm.local.dir") != null) {
+            dir = System.getProperty("storm.local.dir") + FILE_SEPARATOR + "logs";
+        } else if (conf.get("storm.local.dir") != null) {
+            dir = conf.get("storm.local.dir") + FILE_SEPARATOR + "logs";
+        } else {
             dir = concatIfNotNull(System.getProperty("storm.home")) + FILE_SEPARATOR + "logs";
         }
         try {

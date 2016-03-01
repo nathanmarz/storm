@@ -33,6 +33,11 @@ public class StormParser {
     this.impl.setQuotedCasing(Lex.ORACLE.quotedCasing);
     this.impl.setUnquotedCasing(Lex.ORACLE.unquotedCasing);
     this.impl.setIdentifierMaxLength(DEFAULT_IDENTIFIER_MAX_LENGTH);
+    /*
+     *  By default parser uses [ ] for quoting identifiers. Switching to DQID (double quoted identifiers)
+     *  is needed for array and map access (m['x'] = 1 or arr[2] = 10 etc) to work.
+     */
+    this.impl.switchTo("DQID");
   }
 
   @VisibleForTesting

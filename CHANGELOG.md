@@ -40,6 +40,7 @@
  * STORM-1521: When using Kerberos login from keytab with multiple bolts/executors ticket is not renewed in hbase bolt.
 
 ## 1.0.0
+ * STORM-1570: Storm SQL support for nested fields and array
  * STORM-1576: fix ConcurrentModificationException in addCheckpointInputs
  * STORM-1488: UI Topology Page component last error timestamp is from 1970
  * STORM-1552: Fix topology event sampling log dir

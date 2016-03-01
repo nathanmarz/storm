@@ -1,4 +1,5 @@
 ## 2.0.0
+ * STORM-1245: port backtype.storm.daemon.acker to java
  * STORM-1545: Topology Debug Event Log in Wrong Location
  * STORM-1254: port ui.helper to java
  * STORM-1571: Improvment Kafka Spout Time Metric

@@ -322,6 +322,8 @@
                                 <exclude>**/metastore_db/**</exclude>
                                 <!-- anything written into build should be ignored -->
                                 <exclude>**/build/**</exclude>
+                                <!-- logs generated during test -->
+                                <exclude>**/logs/**</exclude>
 
                                 <!-- exclude CHANGELOG, VERSION, AND TODO files -->
                                 <exclude>**/CHANGELOG.md</exclude>

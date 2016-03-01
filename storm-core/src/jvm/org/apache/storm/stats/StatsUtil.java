@@ -578,7 +578,7 @@ public class StatsUtil {
         Map ret = new HashMap();
         putRawKV(ret, NUM_TASKS, task2comp.size());
         putRawKV(ret, NUM_WORKERS, ((Set) getByKeyword(accData, WORKERS_SET)).size());
-        putRawKV(ret, NUM_EXECUTORS, exec2nodePort.size());
+        putRawKV(ret, NUM_EXECUTORS, exec2nodePort != null ? exec2nodePort.size() : 0);
 
         Map bolt2stats = getMapByKeyword(accData, BOLT_TO_STATS);
         Map aggBolt2stats = new HashMap();
@@ -1339,17 +1339,28 @@ public class StatsUtil {
      */
     private static Map filterSysStreams(Map stats, boolean includeSys) {
         if (!includeSys) {
-            for (Object win : stats.keySet()) {
-                Map stream2stat = (Map) stats.get(win);
-                for (Iterator itr = stream2stat.keySet().iterator(); itr.hasNext(); ) {
-                    Object key = itr.next();
-                    if (key instanceof String && Utils.isSystemId((String) key)) {
+            for (Iterator itr = stats.keySet().iterator(); itr.hasNext(); ) {
+                Object winOrStream = itr.next();
+                if (isWindow(winOrStream)) {
+                    Map stream2stat = (Map) stats.get(winOrStream);
+                    for (Iterator subItr = stream2stat.keySet().iterator(); subItr.hasNext(); ) {
+                        Object key = subItr.next();
+                        if (key instanceof String && Utils.isSystemId((String) key)) {
+                            subItr.remove();
+                        }
+                    }
+                } else {
+                    if (winOrStream instanceof String && Utils.isSystemId((String) winOrStream)) {
                         itr.remove();
                     }
                 }
             }
         }
         return stats;
+    }
+
+    private static boolean isWindow(Object key) {
+        return key.equals("600") || key.equals("10800") || key.equals("86400") || key.equals(":all-time");
     }
 
     /**

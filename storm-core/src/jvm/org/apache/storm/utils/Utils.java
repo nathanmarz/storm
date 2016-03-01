@@ -2303,4 +2303,8 @@ public class Utils {
         }
         return process;
     }
+
+    public static long bitXor(Long a, Long b) {
+        return a ^ b;
+    }
 }

@@ -32,8 +32,11 @@ import java.util.Map;
 public class SaslPlainServer implements SaslServer {
   @SuppressWarnings("serial")
   public static class SecurityProvider extends Provider {
+
+    public static final String SASL_PLAIN_SERVER = "SaslPlainServer";
+
     public SecurityProvider() {
-      super("SaslPlainServer", 1.0, "SASL PLAIN Authentication Server");
+      super(SASL_PLAIN_SERVER, 1.0, "SASL PLAIN Authentication Server");
       put("SaslServerFactory.PLAIN",
           SaslPlainServerFactory.class.getName());
     }

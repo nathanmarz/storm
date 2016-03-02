@@ -39,7 +39,7 @@ storm.exhibitor.port: 8080
 storm.exhibitor.poll.uripath: "/exhibitor/v1/cluster/list"
 storm.cluster.mode: "distributed" # can be distributed or local
 storm.local.mode.zmq: false
-storm.thrift.transport: "org.apache.storm.security.auth.plain.PlainSaslTransportPlugin"
+storm.thrift.transport: "org.apache.storm.security.auth.SimpleTransportPlugin"
 storm.principal.tolocal: "org.apache.storm.security.auth.DefaultPrincipalToLocal"
 storm.group.mapping.service: "org.apache.storm.security.auth.ShellBasedGroupsMapping"
 storm.group.mapping.service.params: null

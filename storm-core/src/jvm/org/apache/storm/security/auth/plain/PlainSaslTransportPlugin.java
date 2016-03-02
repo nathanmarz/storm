@@ -39,7 +39,9 @@ public class PlainSaslTransportPlugin extends SaslTransportPlugin {
     protected TTransportFactory getServerTransportFactory() throws IOException {
         //create an authentication callback handler
         CallbackHandler server_callback_handler = new PlainServerCallbackHandler();
-        Security.addProvider(new SaslPlainServer.SecurityProvider());
+        if (Security.getProvider(SaslPlainServer.SecurityProvider.SASL_PLAIN_SERVER) == null) {
+            Security.addProvider(new SaslPlainServer.SecurityProvider());
+        }
         //create a transport factory that will invoke our auth callback for digest
         TSaslServerTransport.Factory factory = new TSaslServerTransport.Factory();
         factory.addServerDefinition(PLAIN, AuthUtils.SERVICE, "localhost", null, server_callback_handler);
@@ -50,19 +52,19 @@ public class PlainSaslTransportPlugin extends SaslTransportPlugin {
 
     @Override
     public TTransport connect(TTransport transport, String serverHost, String asUser) throws IOException, TTransportException {
-        PlainClientCallbackHandler client_callback_handler = new PlainClientCallbackHandler();
-        TSaslClientTransport wrapper_transport = new TSaslClientTransport(PLAIN,
+        PlainClientCallbackHandler clientCallbackHandler = new PlainClientCallbackHandler();
+        TSaslClientTransport wrapperTransport = new TSaslClientTransport(PLAIN,
             null,
             AuthUtils.SERVICE,
             serverHost,
             null,
-            client_callback_handler,
+            clientCallbackHandler,
             transport);
 
-        wrapper_transport.open();
+        wrapperTransport.open();
         LOG.debug("SASL PLAIN client transport has been established");
 
-        return wrapper_transport;
+        return wrapperTransport;
 
     }
 

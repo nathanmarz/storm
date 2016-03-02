@@ -105,10 +105,9 @@ public class SupervisorData {
 
         List<ACL> acls = null;
         if (Utils.isZkAuthenticationConfiguredStormServer(conf)) {
-            acls = new ArrayList<>();
-            acls.add(ZooDefs.Ids.CREATOR_ALL_ACL.get(0));
-            acls.add(new ACL((ZooDefs.Perms.READ ^ ZooDefs.Perms.CREATE), ZooDefs.Ids.ANYONE_ID_UNSAFE));
+            acls = SupervisorUtils.supervisorZkAcls();
         }
+
         try {
             this.stormClusterState = ClusterUtils.mkStormClusterState(conf, acls, new ClusterStateContext(DaemonType.SUPERVISOR));
         } catch (Exception e) {

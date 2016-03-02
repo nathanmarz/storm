@@ -20,7 +20,8 @@
   (:use [hiccup core page-helpers form-helpers])
   (:use [org.apache.storm config util log])
   (:use [org.apache.storm.ui helpers])
-  (:import [org.apache.storm StormTimer])
+  (:import [org.apache.storm StormTimer]
+           [org.apache.storm.daemon.supervisor SupervisorUtils])
   (:import [org.apache.storm.utils Utils Time VersionInfo ConfigUtils])
   (:import [org.slf4j LoggerFactory])
   (:import [java.util Arrays ArrayList HashSet])
@@ -38,7 +39,6 @@
            [org.yaml.snakeyaml.constructor SafeConstructor])
   (:import [org.apache.storm.ui InvalidRequestException UIHelpers IConfigurator FilterConfiguration]
            [org.apache.storm.security.auth AuthUtils])
-  (:require [org.apache.storm.daemon common [supervisor :as supervisor]])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]
             [ring.middleware.keyword-params]
@@ -159,10 +159,10 @@
 (defn get-alive-ids
   [conf now-secs]
   (->>
-    (supervisor/read-worker-heartbeats conf)
+    (clojurify-structure (SupervisorUtils/readWorkerHeartbeats conf))
     (remove
       #(or (not (val %))
-           (supervisor/is-worker-hb-timed-out? now-secs
+           (SupervisorUtils/isWorkerHbTimedOut now-secs
                                                (val %)
                                                conf)))
     keys

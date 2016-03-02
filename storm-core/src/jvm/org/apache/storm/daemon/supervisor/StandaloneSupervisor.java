@@ -20,6 +20,7 @@ package org.apache.storm.daemon.supervisor;
 import org.apache.storm.Config;
 import org.apache.storm.scheduler.ISupervisor;
 import org.apache.storm.utils.LocalState;
+import org.apache.storm.utils.Utils;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -38,7 +39,7 @@ public class StandaloneSupervisor implements ISupervisor {
             LocalState localState = new LocalState(schedulerLocalDir);
             String supervisorId = localState.getSupervisorId();
             if (supervisorId == null) {
-                supervisorId = UUID.randomUUID().toString();
+                supervisorId = generateSupervisorId();
                 localState.setSupervisorId(supervisorId);
             }
             this.conf = stormConf;
@@ -78,5 +79,9 @@ public class StandaloneSupervisor implements ISupervisor {
     @Override
     public void assigned(Collection<Integer> ports) {
 
+    }
+
+    public String generateSupervisorId(){
+        return Utils.uuid();
     }
 }

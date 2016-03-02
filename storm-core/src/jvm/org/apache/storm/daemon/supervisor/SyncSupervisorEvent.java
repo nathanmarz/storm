@@ -88,6 +88,7 @@ public class SyncSupervisorEvent implements Runnable {
             Map<Integer, LocalAssignment> allAssignment =
                     readAssignments(assignmentsSnapshot, existingAssignment, supervisorData.getAssignmentId(), supervisorData.getSyncRetry());
 
+
             Map<Integer, LocalAssignment> newAssignment = new HashMap<>();
             Set<String> assignedStormIds = new HashSet<>();
 
@@ -97,6 +98,7 @@ public class SyncSupervisorEvent implements Runnable {
                     assignedStormIds.add(entry.getValue().get_topology_id());
                 }
             }
+
             Set<String> srashStormIds = verifyDownloadedFiles(conf, supervisorData.getLocalizer(), assignedStormIds, allDownloadedTopologyIds);
             Set<String> downloadedStormIds = new HashSet<>();
             downloadedStormIds.addAll(allDownloadedTopologyIds);
@@ -312,6 +314,7 @@ public class SyncSupervisorEvent implements Runnable {
         }
 
         FileUtils.moveDirectory(new File(tmproot), new File(stormroot));
+
         SupervisorUtils.setupStormCodeDir(conf, ConfigUtils.readSupervisorStormConf(conf, stormId), stormroot);
         ClassLoader classloader = Thread.currentThread().getContextClassLoader();
 
@@ -350,7 +353,7 @@ public class SyncSupervisorEvent implements Runnable {
         String tmproot = ConfigUtils.supervisorTmpDir(conf) + Utils.FILE_PATH_SEPARATOR + Utils.uuid();
         String stormroot = ConfigUtils.supervisorStormDistRoot(conf, stormId);
         ClientBlobStore blobStore = Utils.getClientBlobStoreForSupervisor(conf);
-
+        FileUtils.forceMkdir(new File(tmproot));
         if (Utils.isOnWindows()) {
             if (Utils.getBoolean(conf.get(Config.SUPERVISOR_RUN_WORKER_AS_USER), false)) {
                 throw new RuntimeException("ERROR: Windows doesn't implement setting the correct permissions");
@@ -358,7 +361,6 @@ public class SyncSupervisorEvent implements Runnable {
         } else {
             Utils.restrictPermissions(tmproot);
         }
-        FileUtils.forceMkdir(new File(tmproot));
         String stormJarKey = ConfigUtils.masterStormJarKey(stormId);
         String stormCodeKey = ConfigUtils.masterStormCodeKey(stormId);
         String stormConfKey = ConfigUtils.masterStormConfKey(stormId);
@@ -549,7 +551,7 @@ public class SyncSupervisorEvent implements Runnable {
             for (Map.Entry<List<Long>, NodeInfo> entry : executorNodePort.entrySet()) {
                 if (entry.getValue().get_node().equals(assignmentId)) {
                     for (Long port : entry.getValue().get_port()) {
-                        LocalAssignment localAssignment = portTasks.get(port);
+                        LocalAssignment localAssignment = portTasks.get(port.intValue());
                         if (localAssignment == null) {
                             List<ExecutorInfo> executors = new ArrayList<ExecutorInfo>();
                             localAssignment = new LocalAssignment(stormId, executors);
@@ -577,8 +579,7 @@ public class SyncSupervisorEvent implements Runnable {
             assignedExecutors = new HashMap<>();
         }
         int now = Time.currentTimeSecs();
-        SyncProcessEvent syncProcesses = new SyncProcessEvent(supervisorData);
-        Map<String, StateHeartbeat> workerIdHbstate = syncProcesses.getLocalWorkerStats(assignedExecutors, now);
+        Map<String, StateHeartbeat> workerIdHbstate = syncProcesses.getLocalWorkerStats(supervisorData, assignedExecutors, now);
         LOG.debug("Allocated workers ", assignedExecutors);
         for (Map.Entry<String, StateHeartbeat> entry : workerIdHbstate.entrySet()){
             String workerId = entry.getKey();

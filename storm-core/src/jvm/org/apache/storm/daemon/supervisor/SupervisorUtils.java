@@ -20,10 +20,14 @@ package org.apache.storm.daemon.supervisor;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.utils.PathUtils;
 import org.apache.storm.Config;
+import org.apache.storm.generated.LSWorkerHeartbeat;
 import org.apache.storm.localizer.LocalResource;
 import org.apache.storm.localizer.Localizer;
 import org.apache.storm.utils.ConfigUtils;
+import org.apache.storm.utils.LocalState;
 import org.apache.storm.utils.Utils;
+import org.apache.zookeeper.ZooDefs;
+import org.apache.zookeeper.data.ACL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,13 +40,24 @@ public class SupervisorUtils {
 
     private static final Logger LOG = LoggerFactory.getLogger(SupervisorUtils.class);
 
+    private static final SupervisorUtils INSTANCE = new SupervisorUtils();
+    private static SupervisorUtils _instance = INSTANCE;
+
+    public static void setInstance(SupervisorUtils u) {
+        _instance = u;
+    }
+
+    public static void resetInstance() {
+        _instance = INSTANCE;
+    }
+
     public static Process workerLauncher(Map conf, String user, List<String> args, Map<String, String> environment, final String logPreFix,
             final Utils.ExitCodeCallable exitCodeCallback, File dir) throws IOException {
         if (StringUtils.isBlank(user)) {
             throw new IllegalArgumentException("User cannot be blank when calling workerLauncher.");
         }
         String wlinitial = (String) (conf.get(Config.SUPERVISOR_WORKER_LAUNCHER));
-        String stormHome = System.getProperty("storm.home");
+        String stormHome = ConfigUtils.concatIfNotNull(System.getProperty("storm.home"));
         String wl;
         if (StringUtils.isNotBlank(wlinitial)) {
             wl = wlinitial;
@@ -165,9 +180,94 @@ public class SupervisorUtils {
             return false;
         if (!Utils.checkFileExists(stormconfpath))
             return false;
-        if (!ConfigUtils.isLocalMode(conf) && !Utils.checkFileExists(stormjarpath))
-            return false;
-        return true;
+        if (ConfigUtils.isLocalMode(conf) || Utils.checkFileExists(stormjarpath))
+            return true;
+        return false;
+    }
+
+    public static Collection<String> myWorkerIds(Map conf){
+        return  Utils.readDirContents(ConfigUtils.workerRoot(conf));
+    }
+
+    /**
+     * Returns map from worr id to heartbeat
+     *
+     * @param conf
+     * @return
+     * @throws Exception
+     */
+    public static Map<String, LSWorkerHeartbeat> readWorkerHeartbeats(Map conf) throws Exception {
+        return _instance.readWorkerHeartbeatsImpl(conf);
+    }
+
+    public  Map<String, LSWorkerHeartbeat> readWorkerHeartbeatsImpl(Map conf) throws Exception {
+        Map<String, LSWorkerHeartbeat> workerHeartbeats = new HashMap<>();
+
+        Collection<String> workerIds = SupervisorUtils.supervisorWorkerIds(conf);
+
+        for (String workerId : workerIds) {
+            LSWorkerHeartbeat whb = readWorkerHeartbeat(conf, workerId);
+            // ATTENTION: whb can be null
+            workerHeartbeats.put(workerId, whb);
+        }
+        return workerHeartbeats;
+    }
+
+
+    /**
+     * get worker heartbeat by workerId
+     *
+     * @param conf
+     * @param workerId
+     * @return
+     * @throws IOException
+     */
+    public static LSWorkerHeartbeat readWorkerHeartbeat(Map conf, String workerId) {
+        return _instance.readWorkerHeartbeatImpl(conf, workerId);
+    }
+
+    public  LSWorkerHeartbeat readWorkerHeartbeatImpl(Map conf, String workerId) {
+        try {
+            LocalState localState = ConfigUtils.workerState(conf, workerId);
+            return localState.getWorkerHeartBeat();
+        } catch (Exception e) {
+            LOG.warn("Failed to read local heartbeat for workerId : {},Ignoring exception.", workerId, e);
+            return null;
+        }
+    }
+
+    public static boolean  isWorkerHbTimedOut(int now, LSWorkerHeartbeat whb, Map conf) {
+        return _instance.isWorkerHbTimedOutImpl(now, whb, conf);
+    }
+
+    public  boolean  isWorkerHbTimedOutImpl(int now, LSWorkerHeartbeat whb, Map conf) {
+        boolean result = false;
+        if ((now - whb.get_time_secs()) > Utils.getInt(conf.get(Config.SUPERVISOR_WORKER_TIMEOUT_SECS))) {
+            result = true;
+        }
+        return result;
+    }
+
+    public static String javaCmd(String cmd) {
+        return _instance.javaCmdImpl(cmd);
+    }
+
+    public String javaCmdImpl(String cmd) {
+        String ret = null;
+        String javaHome = System.getenv().get("JAVA_HOME");
+        if (StringUtils.isNotBlank(javaHome)) {
+            ret = javaHome + Utils.FILE_PATH_SEPARATOR + "bin" + Utils.FILE_PATH_SEPARATOR + cmd;
+        } else {
+            ret = cmd;
+        }
+        return ret;
+    }
+    
+    public static List<ACL> supervisorZkAcls() {
+        List<ACL> acls = new ArrayList<>();
+        acls.add(ZooDefs.Ids.CREATOR_ALL_ACL.get(0));
+        acls.add(new ACL((ZooDefs.Perms.READ ^ ZooDefs.Perms.CREATE), ZooDefs.Ids.ANYONE_ID_UNSAFE));
+        return acls;
     }
 
 }

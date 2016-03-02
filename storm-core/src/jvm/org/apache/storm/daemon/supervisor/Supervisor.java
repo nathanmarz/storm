@@ -22,7 +22,6 @@ import com.codahale.metrics.MetricRegistry;
 import org.apache.commons.io.FileUtils;
 import org.apache.storm.Config;
 import org.apache.storm.StormTimer;
-import org.apache.storm.command.HealthCheck;
 import org.apache.storm.daemon.metrics.MetricsUtils;
 import org.apache.storm.daemon.metrics.reporters.PreparableReporter;
 import org.apache.storm.daemon.supervisor.timer.RunProfilerActions;
@@ -46,8 +45,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class SupervisorServer {
-    private static Logger LOG = LoggerFactory.getLogger(SupervisorServer.class);
+public class Supervisor {
+    private static Logger LOG = LoggerFactory.getLogger(Supervisor.class);
+
+    //TODO: to be removed after porting worker.clj. localSyncProcess is intended to start local supervisor
+    private SyncProcessEvent localSyncProcess;
+
+    public void setLocalSyncProcess(SyncProcessEvent localSyncProcess) {
+        this.localSyncProcess = localSyncProcess;
+    }
+
 
     /**
      * in local state, supervisor stores who its current assignments are another thread launches events to restart any dead processes if necessary
@@ -58,7 +65,7 @@ public class SupervisorServer {
      * @return
      * @throws Exception
      */
-    private SupervisorManger mkSupervisor(final Map conf, IContext sharedContext, ISupervisor iSupervisor) throws Exception {
+    public SupervisorManger mkSupervisor(final Map conf, IContext sharedContext, ISupervisor iSupervisor) throws Exception {
         SupervisorManger supervisorManger = null;
         try {
             LOG.info("Starting Supervisor with conf {}", conf);
@@ -72,7 +79,7 @@ public class SupervisorServer {
             SupervisorHeartbeat hb = new SupervisorHeartbeat(conf, supervisorData);
             hb.run();
             // should synchronize supervisor so it doesn't launch anything after being down (optimization)
-            Integer heartbeatFrequency = (Integer) conf.get(Config.SUPERVISOR_HEARTBEAT_FREQUENCY_SECS);
+            Integer heartbeatFrequency = Utils.getInt(conf.get(Config.SUPERVISOR_HEARTBEAT_FREQUENCY_SECS));
             supervisorData.getHeartbeatTimer().scheduleRecurring(0, heartbeatFrequency, hb);
 
             Set<String> downdedStormId = SupervisorUtils.readDownLoadedStormIds(conf);
@@ -84,7 +91,15 @@ public class SupervisorServer {
 
             EventManagerImp syncSupEventManager = new EventManagerImp(false);
             EventManagerImp syncProcessManager = new EventManagerImp(false);
-            SyncProcessEvent syncProcessEvent = new SyncProcessEvent(supervisorData);
+
+            SyncProcessEvent syncProcessEvent = null;
+            if (ConfigUtils.isLocalMode(conf)){
+                localSyncProcess.init(supervisorData);
+                syncProcessEvent = localSyncProcess;
+            }else{
+                syncProcessEvent = new SyncProcessEvent(supervisorData);
+            }
+
             SyncSupervisorEvent syncSupervisorEvent = new SyncSupervisorEvent(supervisorData, syncProcessEvent, syncSupEventManager, syncProcessManager);
             UpdateBlobs updateBlobsThread = new UpdateBlobs(supervisorData);
             RunProfilerActions runProfilerActionThread = new RunProfilerActions(supervisorData);
@@ -95,7 +110,7 @@ public class SupervisorServer {
                 // to date even if callbacks don't all work exactly right
                 eventTimer.scheduleRecurring(0, 10, new EventManagerPushCallback(syncSupervisorEvent, syncSupEventManager));
 
-                eventTimer.scheduleRecurring(0, (Integer) conf.get(Config.SUPERVISOR_MONITOR_FREQUENCY_SECS),
+                eventTimer.scheduleRecurring(0, Utils.getInt(conf.get(Config.SUPERVISOR_MONITOR_FREQUENCY_SECS)),
                         new EventManagerPushCallback(syncProcessEvent, syncProcessManager));
 
                 // Blob update thread. Starts with 30 seconds delay, every 30 seconds
@@ -107,6 +122,7 @@ public class SupervisorServer {
                 // Launch a thread that Runs profiler commands . Starts with 30 seconds delay, every 30 seconds
                 eventTimer.scheduleRecurring(30, 30, new EventManagerPushCallback(runProfilerActionThread, syncSupEventManager));
             }
+            LOG.info("Starting supervisor with id {} at host {}.", supervisorData.getSupervisorId(), supervisorData.getHostName() );
             supervisorManger = new SupervisorManger(supervisorData, syncSupEventManager, syncProcessManager);
         } catch (Throwable t) {
             if (Utils.exceptionCauseIsInstanceOf(InterruptedIOException.class, t)) {
@@ -114,32 +130,11 @@ public class SupervisorServer {
             } else if (Utils.exceptionCauseIsInstanceOf(InterruptedException.class, t)) {
                 throw t;
             } else {
-                LOG.error("Error on initialization of server supervisor");
+                LOG.error("Error on initialization of server supervisor: {}", t);
                 Utils.exitProcess(13, "Error on initialization");
             }
         }
         return supervisorManger;
-    }
-
-    /**
-     * start local supervisor
-     */
-    public void localLaunch() {
-        LOG.info("Starting supervisor for storm version '{}'.", VersionInfo.getVersion());
-        SupervisorManger supervisorManager;
-        try {
-            Map<Object, Object> conf = Utils.readStormConfig();
-            if (!ConfigUtils.isLocalMode(conf)) {
-                throw new IllegalArgumentException("Cannot start server in distribute mode!");
-            }
-            ISupervisor iSupervisor = new StandaloneSupervisor();
-            supervisorManager = mkSupervisor(conf, null, iSupervisor);
-            if (supervisorManager != null)
-                Utils.addShutdownHookWithForceKillIn1Sec(supervisorManager);
-        } catch (Exception e) {
-            LOG.error("Failed to start supervisor\n", e);
-            System.exit(1);
-        }
     }
 
     /**
@@ -172,7 +167,7 @@ public class SupervisorServer {
         metricRegistry.register(name, new Gauge<Integer>() {
             @Override
             public Integer getValue() {
-                Collection<String> pids = Utils.readDirContents(ConfigUtils.workerRoot(conf));
+                Collection<String> pids = SupervisorUtils.myWorkerIds(conf);
                 return pids.size();
             }
         });
@@ -195,7 +190,7 @@ public class SupervisorServer {
      */
     public static void main(String[] args) {
         Utils.setupDefaultUncaughtExceptionHandler();
-        SupervisorServer instance = new SupervisorServer();
+        Supervisor instance = new Supervisor();
         instance.distributeLaunch();
     }
 }

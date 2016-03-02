@@ -14,11 +14,10 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns org.apache.storm.command.kill-workers
-  (:import [java.io File])
+  (:import [java.io File]
+           [org.apache.storm.daemon.supervisor SupervisorUtils StandaloneSupervisor SupervisorData ShutdownWork])
   (:use [org.apache.storm.daemon common])
   (:use [org.apache.storm util config])
-  (:require [org.apache.storm.daemon
-             [supervisor :as supervisor]])
   (:import [org.apache.storm.utils ConfigUtils])
   (:gen-class))
 
@@ -27,8 +26,9 @@
   [& args]
   (let [conf (clojurify-structure (ConfigUtils/readStormConfig))
         conf (assoc conf STORM-LOCAL-DIR (. (File. (conf STORM-LOCAL-DIR)) getCanonicalPath))
-        isupervisor (supervisor/standalone-supervisor)
-        supervisor-data (supervisor/supervisor-data conf nil isupervisor)
-        ids (supervisor/my-worker-ids conf)]
+        isupervisor (StandaloneSupervisor.)
+        supervisor-data (SupervisorData. conf nil isupervisor)
+        ids (SupervisorUtils/myWorkerIds conf)
+        shut-workers (ShutdownWork.)]
     (doseq [id ids]
-      (supervisor/shutdown-worker supervisor-data id))))
+      (.shutWorker shut-workers supervisor-data id))))

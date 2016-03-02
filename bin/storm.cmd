@@ -214,7 +214,7 @@
   goto :eof
   
 :supervisor
-  set CLASS=org.apache.storm.daemon.supervisor
+  set CLASS=org.apache.storm.daemon.supervisor.Supervisor
   "%JAVA%" -client -Dstorm.options= -Dstorm.conf.file= -cp "%CLASSPATH%" org.apache.storm.command.ConfigValue supervisor.childopts > %CMD_TEMP_FILE%
   FOR /F "delims=" %%i in (%CMD_TEMP_FILE%) do (
      FOR /F "tokens=1,* delims= " %%a in ("%%i") do (

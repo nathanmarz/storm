@@ -31,16 +31,15 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
-public abstract class ShutdownWork implements Shutdownable {
+public  class ShutdownWork implements Shutdownable {
 
     private static Logger LOG = LoggerFactory.getLogger(ShutdownWork.class);
 
     public void shutWorker(SupervisorData supervisorData, String workerId) throws IOException, InterruptedException {
-
         LOG.info("Shutting down {}:{}", supervisorData.getSupervisorId(), workerId);
         Map conf = supervisorData.getConf();
         Collection<String> pids = Utils.readDirContents(ConfigUtils.workerPidsRoot(conf, workerId));
-        Integer shutdownSleepSecs = (Integer) conf.get(Config.SUPERVISOR_WORKER_SHUTDOWN_SLEEP_SECS);
+        Integer shutdownSleepSecs = Utils.getInt(conf.get(Config.SUPERVISOR_WORKER_SHUTDOWN_SLEEP_SECS));
         Boolean asUser = Utils.getBoolean(conf.get(Config.SUPERVISOR_RUN_WORKER_AS_USER), false);
         String user = ConfigUtils.getWorkerUser(conf, workerId);
         String threadPid = supervisorData.getWorkerThreadPidsAtom().get(workerId);
@@ -109,13 +108,13 @@ public abstract class ShutdownWork implements Shutdownable {
                 ConfigUtils.removeWorkerUserWSE(conf, workerId);
                 supervisorData.getDeadWorkers().remove(workerId);
             }
-            if (conf.get(Config.STORM_RESOURCE_ISOLATION_PLUGIN_ENABLE) != null) {
+            if (Utils.getBoolean(conf.get(Config.STORM_RESOURCE_ISOLATION_PLUGIN_ENABLE), false)){
                 supervisorData.getResourceIsolationManager().releaseResourcesForWorker(workerId);
             }
         } catch (IOException e) {
-            LOG.warn("{} Failed to cleanup worker {}. Will retry later", e, workerId);
+            LOG.warn("Failed to cleanup worker {}. Will retry later", workerId, e);
         } catch (RuntimeException e) {
-            LOG.warn("{} Failed to cleanup worker {}. Will retry later", e, workerId);
+            LOG.warn("Failed to cleanup worker {}. Will retry later", workerId, e);
         }
     }
 

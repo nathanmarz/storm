@@ -41,7 +41,6 @@ public class RunProfilerActions implements Runnable {
     private Map conf;
     private IStormClusterState stormClusterState;
     private String hostName;
-    private String stormHome;
 
     private String profileCmd;
 
@@ -79,7 +78,6 @@ public class RunProfilerActions implements Runnable {
         this.conf = supervisorData.getConf();
         this.stormClusterState = supervisorData.getStormClusterState();
         this.hostName = supervisorData.getHostName();
-        this.stormHome = System.getProperty("storm.home");
         this.profileCmd = (String) (conf.get(Config.WORKER_PROFILER_COMMAND));
         this.supervisorData = supervisorData;
     }

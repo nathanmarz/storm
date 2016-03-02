@@ -22,6 +22,7 @@ import org.apache.storm.cluster.IStormClusterState;
 import org.apache.storm.daemon.supervisor.SupervisorData;
 import org.apache.storm.generated.SupervisorInfo;
 import org.apache.storm.utils.Time;
+import org.apache.storm.utils.Utils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -53,13 +54,16 @@ public class SupervisorHeartbeat implements Runnable {
         List<Long> usedPorts = new ArrayList<>();
         usedPorts.addAll(supervisorData.getCurrAssignment().keySet());
         supervisorInfo.set_used_ports(usedPorts);
+        List metaDatas = (List)supervisorData.getiSupervisor().getMetadata();
         List<Long> portList = new ArrayList<>();
-        Object metas = supervisorData.getiSupervisor().getMetadata();
-        if (metas != null) {
-            for (Integer port : (List<Integer>) metas) {
-                portList.add(port.longValue());
+        if (metaDatas != null){
+            for (Object data : metaDatas){
+                Integer port = Utils.getInt(data);
+                if (port != null)
+                    portList.add(port.longValue());
             }
         }
+
         supervisorInfo.set_meta(portList);
         supervisorInfo.set_scheduler_meta((Map<String, String>) conf.get(Config.SUPERVISOR_SCHEDULER_META));
         supervisorInfo.set_uptime_secs(supervisorData.getUpTime().upTime());

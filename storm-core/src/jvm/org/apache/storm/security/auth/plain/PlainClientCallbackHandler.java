@@ -25,7 +25,7 @@ public class PlainClientCallbackHandler extends AbstractSaslClientCallbackHandle
      * For plain, using constants for a pair of user name and password.
      */
     public PlainClientCallbackHandler() {
-        _username = USERNAME;
+        _username = System.getProperty("user.name");
         _password = PASSWORD;
     }
 }

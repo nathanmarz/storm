@@ -39,10 +39,17 @@ import javax.security.sasl.RealmCallback;
  * SASL server side callback handler
  */
 public class PlainServerCallbackHandler extends AbstractSaslServerCallbackHandler {
+    private static final Logger LOG = LoggerFactory.getLogger(PlainServerCallbackHandler.class);
+    public static final String PASSWORD = "password";
 
     public PlainServerCallbackHandler() throws IOException {
-        userName="username";
-        credentials.put("username", "password");
+        userName=null;
+    }
+
+    protected void handlePasswordCallback(PasswordCallback pc) {
+        LOG.debug("handlePasswordCallback");
+        pc.setPassword(PASSWORD.toCharArray());
+
     }
 
 }

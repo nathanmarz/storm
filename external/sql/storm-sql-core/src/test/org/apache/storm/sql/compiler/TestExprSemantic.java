@@ -90,6 +90,24 @@ public class TestExprSemantic {
   }
 
   @Test
+  public void testAndWithNullable() throws Exception {
+    Values v = testExpr(
+            Lists.newArrayList(
+                    "ADDR = 'a' AND NAME = 'a'", "NAME = 'a' AND ADDR = 'a'", "NAME = 'x' AND ADDR = 'a'", "ADDR = 'a' AND NAME = 'x'"
+            ));
+    assertEquals(new Values(false, false, null, null), v);
+  }
+
+  @Test
+  public void testOrWithNullable() throws Exception {
+    Values v = testExpr(
+            Lists.newArrayList(
+                    "ADDR = 'a'  OR NAME = 'a'", "NAME = 'a' OR ADDR = 'a' ", "NAME = 'x' OR ADDR = 'a' ", "ADDR = 'a'  OR NAME = 'x'"
+            ));
+    assertEquals(new Values(null, null, true, true), v);
+  }
+
+  @Test
   public void testOrWithNull() throws Exception {
     Values v = testExpr(
         Lists.newArrayList(

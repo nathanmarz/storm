@@ -273,7 +273,7 @@ public class ThroughputVsLatency {
     long acked = 0;
     long failed = 0;
     for (ExecutorSummary exec: info.get_executors()) {
-      if ("spout".equals(exec.get_component_id())) {
+      if ("spout".equals(exec.get_component_id()) && exec.get_stats() != null && exec.get_stats().get_specific() != null) {
         SpoutStats stats = exec.get_stats().get_specific().get_spout();
         Map<String, Long> failedMap = stats.get_failed().get(":all-time");
         Map<String, Long> ackedMap = stats.get_acked().get(":all-time");

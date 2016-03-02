@@ -24,15 +24,17 @@ import org.apache.storm.utils.NimbusClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class List {
-    private static final Logger LOG = LoggerFactory.getLogger(List.class);
+import java.util.List;
+
+public class ListTopologies {
+    private static final Logger LOG = LoggerFactory.getLogger(ListTopologies.class);
     private static final String MSG_FORMAT = "%-20s %-10s %-10s %-12s %-10s\n";
 
     public static void main(String [] args) throws Exception {
         NimbusClient.withConfiguredClient(new NimbusClient.WithNimbus() {
           @Override
           public void run(Nimbus.Client nimbus) throws Exception {
-              java.util.List<TopologySummary> topologies = nimbus.getClusterInfo().get_topologies();
+              List<TopologySummary> topologies = nimbus.getClusterInfo().get_topologies();
               if (topologies == null || topologies.isEmpty()) {
                   System.out.println("No topologies running.");
               } else {

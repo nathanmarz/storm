@@ -1489,7 +1489,7 @@
     (def nimbus:num-supervisors (StormMetricsRegistry/registerGauge "nimbus:num-supervisors"
       (fn [] (.size (.supervisors (:storm-cluster-state nimbus) nil)))))
 
-    (start-metrics-reporters conf)
+    (StormMetricsRegistry/startMetricsReporters conf)
 
     (reify Nimbus$Iface
       (^void submitTopologyWithOpts

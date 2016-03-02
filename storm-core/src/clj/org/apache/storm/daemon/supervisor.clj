@@ -14,7 +14,8 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns org.apache.storm.daemon.supervisor
-  (:import [java.io File IOException FileOutputStream])
+  (:import [java.io File IOException FileOutputStream]
+           [org.apache.storm.metric StormMetricsRegistry])
   (:import [org.apache.storm.scheduler ISupervisor]
            [org.apache.storm.utils LocalState Time Utils Utils$ExitCodeCallable
                                    ConfigUtils]
@@ -41,14 +42,12 @@
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
   (:import [org.yaml.snakeyaml Yaml]
            [org.yaml.snakeyaml.constructor SafeConstructor])
-  (:require [metrics.gauges :refer [defgauge]])
-  (:require [metrics.meters :refer [defmeter mark!]])
   (:import [org.apache.storm StormTimer])
   (:gen-class
     :methods [^{:static true} [launch [org.apache.storm.scheduler.ISupervisor] void]])
   (:require [clojure.string :as str]))
 
-(defmeter supervisor:num-workers-launched)
+(def supervisor:num-workers-launched (StormMetricsRegistry/registerMeter "supervisor:num-workers-launched"))
 
 (defmulti download-storm-code cluster-mode)
 (defmulti launch-worker (fn [supervisor & _] (cluster-mode (:conf supervisor))))
@@ -1322,8 +1321,9 @@
     (validate-distributed-mode! conf)
     (let [supervisor (mk-supervisor conf nil supervisor)]
       (Utils/addShutdownHookWithForceKillIn1Sec #(.shutdown supervisor)))
-    (defgauge supervisor:num-slots-used-gauge #(count (my-worker-ids conf)))
-    (start-metrics-reporters conf)))
+    (def supervisor:num-slots-used-gauge (StormMetricsRegistry/registerGauge "supervisor:num-slots-used-gauge"
+                                           #(count (my-worker-ids conf))))
+    (StormMetricsRegistry/startMetricsReporters conf)))
 
 (defn standalone-supervisor []
   (let [conf-atom (atom nil)

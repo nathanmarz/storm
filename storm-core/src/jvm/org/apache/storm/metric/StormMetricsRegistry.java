@@ -22,13 +22,16 @@ import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
+import java.util.Map;
+import org.apache.storm.daemon.metrics.MetricsUtils;
+import org.apache.storm.daemon.metrics.reporters.PreparableReporter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("unchecked")
 public class StormMetricsRegistry {
     private static final Logger LOG = LoggerFactory.getLogger(StormMetricsRegistry.class);
-    private static final MetricRegistry metrics = new MetricRegistry();
+    public static final MetricRegistry DEFAULT_REGISTRY = new MetricRegistry();
 
     public static Meter registerMeter(String name) {
         Meter meter = new Meter();
@@ -51,13 +54,25 @@ public class StormMetricsRegistry {
         return register(name, gauge);
     }
 
+    public static void startMetricsReporters(Map stormConf) {
+        for (PreparableReporter reporter : MetricsUtils.getPreparableReporters(stormConf)) {
+            startMetricsReporter(reporter, stormConf);
+        }
+    }
+
+    private static void startMetricsReporter(PreparableReporter reporter, Map stormConf) {
+        reporter.prepare(StormMetricsRegistry.DEFAULT_REGISTRY, stormConf);
+        reporter.start();
+        LOG.info("Started statistics report plugin...");
+    }
+
     private static <T extends Metric> T register(String name, T metric) {
         T ret;
         try {
-            ret = metrics.register(name, metric);
+            ret = DEFAULT_REGISTRY.register(name, metric);
         } catch (IllegalArgumentException e) {
             // swallow IllegalArgumentException when the metric exists already
-            ret = (T) metrics.getMetrics().get(name);
+            ret = (T) DEFAULT_REGISTRY.getMetrics().get(name);
             if (ret == null) {
                 throw e;
             } else {

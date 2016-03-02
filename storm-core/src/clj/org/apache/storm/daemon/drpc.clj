@@ -16,7 +16,8 @@
 
 (ns org.apache.storm.daemon.drpc
   (:import [org.apache.storm.security.auth AuthUtils ThriftServer ThriftConnectionType ReqContext]
-           [org.apache.storm.ui UIHelpers IConfigurator FilterConfiguration])
+           [org.apache.storm.ui UIHelpers IConfigurator FilterConfiguration]
+           [org.apache.storm.metric StormMetricsRegistry])
   (:import [org.apache.storm.security.auth.authorizer DRPCAuthorizerBase])
   (:import [org.apache.storm.utils Utils])
   (:import [org.apache.storm.generated DistributedRPC DistributedRPC$Iface DistributedRPC$Processor
@@ -36,15 +37,14 @@
   (:use compojure.core)
   (:use ring.middleware.reload)
   (:require [compojure.handler :as handler])
-  (:require [metrics.meters :refer [defmeter mark!]])
   (:gen-class))
 
-(defmeter drpc:num-execute-http-requests)
-(defmeter drpc:num-execute-calls)
-(defmeter drpc:num-result-calls)
-(defmeter drpc:num-failRequest-calls)
-(defmeter drpc:num-fetchRequest-calls)
-(defmeter drpc:num-shutdown-calls)
+(def drpc:num-execute-http-requests (StormMetricsRegistry/registerMeter "drpc:num-execute-http-requests"))
+(def drpc:num-execute-calls (StormMetricsRegistry/registerMeter "drpc:num-execute-calls"))
+(def drpc:num-result-calls (StormMetricsRegistry/registerMeter "drpc:num-result-calls"))
+(def drpc:num-failRequest-calls (StormMetricsRegistry/registerMeter "drpc:num-failRequest-calls"))
+(def drpc:num-fetchRequest-calls (StormMetricsRegistry/registerMeter "drpc:num-fetchRequest-calls"))
+(def drpc:num-shutdown-calls (StormMetricsRegistry/registerMeter "drpc:num-shutdown-calls"))
 
 (def STORM-VERSION (VersionInfo/getVersion))
 
@@ -102,7 +102,7 @@
     (reify DistributedRPC$Iface
       (^String execute
         [this ^String function ^String args]
-        (mark! drpc:num-execute-calls)
+        (.mark drpc:num-execute-calls)
         (log-debug "Received DRPC request for " function " (" args ") at " (System/currentTimeMillis))
         (check-authorization drpc-acl-handler
                              {DRPCAuthorizerBase/FUNCTION_NAME function}
@@ -132,7 +132,7 @@
 
       (^void result
         [this ^String id ^String result]
-        (mark! drpc:num-result-calls)
+        (.mark drpc:num-result-calls)
         (when-let [func (@id->function id)]
           (check-authorization drpc-acl-handler
                                {DRPCAuthorizerBase/FUNCTION_NAME func}
@@ -146,7 +146,7 @@
 
       (^void failRequest
         [this ^String id]
-        (mark! drpc:num-failRequest-calls)
+        (.mark drpc:num-failRequest-calls)
         (when-let [func (@id->function id)]
           (check-authorization drpc-acl-handler
                                {DRPCAuthorizerBase/FUNCTION_NAME func}
@@ -158,7 +158,7 @@
 
       (^DRPCRequest fetchRequest
         [this ^String func]
-        (mark! drpc:num-fetchRequest-calls)
+        (.mark drpc:num-fetchRequest-calls)
         (check-authorization drpc-acl-handler
                              {DRPCAuthorizerBase/FUNCTION_NAME func}
                              "fetchRequest")
@@ -173,7 +173,7 @@
 
       (shutdown
         [this]
-        (mark! drpc:num-shutdown-calls)
+        (.mark drpc:num-shutdown-calls)
         (.interrupt clear-thread)))))
 
 (defn handle-request [handler]
@@ -187,7 +187,7 @@
       (.populateContext http-creds-handler (ReqContext/context) servlet-request)))
 
 (defn webapp [handler http-creds-handler]
-  (mark! drpc:num-execute-http-requests)
+  (.mark drpc:num-execute-http-requests)
   (->
     (routes
       (POST "/drpc/:func" [:as {:keys [body servlet-request]} func & m]
@@ -268,7 +268,7 @@
                                      https-need-client-auth
                                      https-want-client-auth)
                                    (UIHelpers/configFilter server (ring.util.servlet/servlet app) filters-confs))))))
-      (start-metrics-reporters conf)
+      (StormMetricsRegistry/startMetricsReporters conf)
       (when handler-server
         (.serve handler-server)))))
 

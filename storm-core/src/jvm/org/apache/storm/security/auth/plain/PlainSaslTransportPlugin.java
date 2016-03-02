@@ -38,13 +38,13 @@ public class PlainSaslTransportPlugin extends SaslTransportPlugin {
     @Override
     protected TTransportFactory getServerTransportFactory() throws IOException {
         //create an authentication callback handler
-        CallbackHandler server_callback_handler = new PlainServerCallbackHandler();
+        CallbackHandler serverCallbackHandler = new PlainServerCallbackHandler();
         if (Security.getProvider(SaslPlainServer.SecurityProvider.SASL_PLAIN_SERVER) == null) {
             Security.addProvider(new SaslPlainServer.SecurityProvider());
         }
         //create a transport factory that will invoke our auth callback for digest
         TSaslServerTransport.Factory factory = new TSaslServerTransport.Factory();
-        factory.addServerDefinition(PLAIN, AuthUtils.SERVICE, "localhost", null, server_callback_handler);
+        factory.addServerDefinition(PLAIN, AuthUtils.SERVICE, "localhost", null, serverCallbackHandler);
 
         LOG.info("SASL PLAIN transport factory will be used");
         return factory;

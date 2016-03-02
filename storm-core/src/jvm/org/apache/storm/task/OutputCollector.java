@@ -221,6 +221,7 @@ public class OutputCollector implements IOutputCollector {
     /**
     * Resets the message timeout for any tuple trees to which the given tuple belongs.
     * The timeout is reset to Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS.
+    * Note that this is an expensive operation, and should be used sparingly.
     * @param input the tuple to reset timeout for
     */
     @Override

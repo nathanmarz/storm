@@ -52,6 +52,12 @@ public class BasicOutputCollector implements IBasicOutputCollector {
         emitDirect(taskId, Utils.DEFAULT_STREAM_ID, tuple);
     }
 
+    /**
+    * Resets the message timeout for any tuple trees to which the given tuple belongs.
+    * The timeout is reset to Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS.
+    * Note that this is an expensive operation, and should be used sparingly.
+    * @param input the tuple to reset timeout for
+    */
     public void resetTimeout(Tuple tuple){
         out.resetTimeout(tuple);
     }

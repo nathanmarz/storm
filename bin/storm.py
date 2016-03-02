@@ -293,7 +293,7 @@ def upload_credentials(*args):
         print_usage(command="upload_credentials")
         sys.exit(2)
     exec_storm_class(
-        "org.apache.storm.command.upload_credentials",
+        "org.apache.storm.command.UploadCredentials",
         args=args,
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
@@ -389,7 +389,7 @@ def listtopos(*args):
     List the running topologies and their statuses.
     """
     exec_storm_class(
-        "org.apache.storm.command.List",
+        "org.apache.storm.command.ListTopologies",
         args=args,
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, STORM_BIN_DIR])

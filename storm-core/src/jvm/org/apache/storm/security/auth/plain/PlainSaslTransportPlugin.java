@@ -19,14 +19,8 @@ package org.apache.storm.security.auth.plain;
 
 import org.apache.storm.security.auth.AuthUtils;
 import org.apache.storm.security.auth.SaslTransportPlugin;
-import org.apache.storm.utils.ExtendedThreadPoolExecutor;
-import org.apache.thrift.TProcessor;
-import org.apache.thrift.protocol.TBinaryProtocol;
-import org.apache.thrift.server.TServer;
-import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TSaslClientTransport;
 import org.apache.thrift.transport.TSaslServerTransport;
-import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.thrift.transport.TTransportFactory;
@@ -36,11 +30,6 @@ import org.slf4j.LoggerFactory;
 import javax.security.auth.callback.CallbackHandler;
 import java.io.IOException;
 import java.security.Security;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 public class PlainSaslTransportPlugin extends SaslTransportPlugin {
     public static final String PLAIN = "PLAIN";
@@ -49,11 +38,11 @@ public class PlainSaslTransportPlugin extends SaslTransportPlugin {
     @Override
     protected TTransportFactory getServerTransportFactory() throws IOException {
         //create an authentication callback handler
-        CallbackHandler serer_callback_handler = new PlainServerCallbackHandler();
+        CallbackHandler server_callback_handler = new PlainServerCallbackHandler();
         Security.addProvider(new SaslPlainServer.SecurityProvider());
         //create a transport factory that will invoke our auth callback for digest
         TSaslServerTransport.Factory factory = new TSaslServerTransport.Factory();
-        factory.addServerDefinition(PLAIN, AuthUtils.SERVICE, "localhost", null, serer_callback_handler);
+        factory.addServerDefinition(PLAIN, AuthUtils.SERVICE, "localhost", null, server_callback_handler);
 
         LOG.info("SASL PLAIN transport factory will be used");
         return factory;

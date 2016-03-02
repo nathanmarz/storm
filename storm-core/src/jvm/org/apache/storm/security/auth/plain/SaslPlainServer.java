@@ -15,18 +15,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.storm.security.auth.plain;
 
-import java.security.Provider;
-import java.util.Map;
-
-import javax.security.auth.callback.*;
+import javax.security.auth.callback.Callback;
+import javax.security.auth.callback.CallbackHandler;
+import javax.security.auth.callback.NameCallback;
+import javax.security.auth.callback.PasswordCallback;
 import javax.security.sasl.AuthorizeCallback;
 import javax.security.sasl.Sasl;
 import javax.security.sasl.SaslException;
 import javax.security.sasl.SaslServer;
 import javax.security.sasl.SaslServerFactory;
+import java.security.Provider;
+import java.util.Map;
 
 public class SaslPlainServer implements SaslServer {
   @SuppressWarnings("serial")
@@ -95,7 +96,7 @@ public class SaslPlainServer implements SaslServer {
       PasswordCallback pc = new PasswordCallback("SASL PLAIN", false);
       pc.setPassword(parts[2].toCharArray());
       AuthorizeCallback ac = new AuthorizeCallback(parts[1], parts[0]);
-      cbh.handle(new Callback[]{nc, pc, ac});      
+      cbh.handle(new Callback[]{nc, pc, ac});
       if (ac.isAuthorized()) {
         authz = ac.getAuthorizedID();
       }

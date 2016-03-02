@@ -68,13 +68,13 @@
   ([]
     (let [conf (clojurify-structure (ConfigUtils/readStormConfig))
           drpc-http-port (int (conf DRPC-HTTP-PORT))
-          drpc-server (DrpcServer.)
+          drpc-server (DrpcServer. conf)
           http-creds-handler (AuthUtils/GetDrpcHttpCredentialsPlugin conf)]
       (when (> drpc-http-port 0)
         (let [app (-> (webapp drpc-server http-creds-handler)
                     requests-middleware)]
           (.setHttpServlet drpc-server (ring.util.servlet/servlet app))))
-      (.launchServer drpc-server false conf)))
+      (.launchServer drpc-server)))
 )
 
 (defn -main []

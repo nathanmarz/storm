@@ -61,7 +61,6 @@ public class DrpcServer implements DistributedRPC.Iface, DistributedRPCInvocatio
 
     private IAuthorizer authorizer;
 
-    //TODO: To be removed after porting drpc.clj
     private Servlet httpServlet;
 
     private AtomicInteger ctr = new AtomicInteger(0);
@@ -92,18 +91,17 @@ public class DrpcServer implements DistributedRPC.Iface, DistributedRPCInvocatio
     private final static Meter meterFetchRequestCalls = new MetricRegistry().meter("drpc:num-fetchRequest-calls");
     private final static Meter meterShutdownCalls = new MetricRegistry().meter("drpc:num-shutdown-calls");
     
-    public DrpcServer() {
-
+    public DrpcServer(Map conf) {
+        this.conf = conf;
+        this.authorizer = mkAuthorizationHandler((String) (this.conf.get(Config.DRPC_AUTHORIZER)));
+        initClearThread();
     }
 
-    //TODO: to be removed
     public void setHttpServlet(Servlet httpServlet) {
         this.httpServlet = httpServlet;
     }
 
-
-
-    private ThriftServer initHandlerServer(Map conf, final DrpcServer service) throws Exception {
+    private ThriftServer initHandlerServer(final DrpcServer service) throws Exception {
         int port = (int) conf.get(Config.DRPC_PORT);
         if (port > 0) {
             handlerServer = new ThriftServer(conf, new DistributedRPC.Processor<DistributedRPC.Iface>(service), ThriftConnectionType.DRPC);
@@ -111,7 +109,7 @@ public class DrpcServer implements DistributedRPC.Iface, DistributedRPCInvocatio
         return handlerServer;
     }
 
-    private ThriftServer initInvokeServer(Map conf, final DrpcServer service) throws Exception {
+    private ThriftServer initInvokeServer(final DrpcServer service) throws Exception {
         invokeServer = new ThriftServer(conf, new DistributedRPCInvocations.Processor<DistributedRPCInvocations.Iface>(service),
                 ThriftConnectionType.DRPC_INVOCATIONS);
         return invokeServer;
@@ -149,17 +147,15 @@ public class DrpcServer implements DistributedRPC.Iface, DistributedRPCInvocatio
     }
     private void initThrift() throws Exception {
 
-        handlerServer = initHandlerServer(conf, this);
-        invokeServer = initInvokeServer(conf, this);
+        handlerServer = initHandlerServer(this);
+        invokeServer = initInvokeServer(this);
         httpCredsHandler = AuthUtils.GetDrpcHttpCredentialsPlugin(conf);
         Utils.addShutdownHookWithForceKillIn1Sec(new Runnable() {
             @Override
             public void run() {
-                if (handlerServer != null) {
+                if (handlerServer != null)
                     handlerServer.stop();
-                } else {
-                    invokeServer.stop();
-                }
+                invokeServer.stop();
             }
         });
         LOG.info("Starting Distributed RPC servers...");
@@ -189,7 +185,7 @@ public class DrpcServer implements DistributedRPC.Iface, DistributedRPCInvocatio
             public Object call() throws Exception {
                 for (Map.Entry<String, InternalRequest> e : outstandingRequests.entrySet()) {
                     InternalRequest internalRequest = e.getValue();
-                    if (Time.deltaSecs(internalRequest.startTimeSecs) > Utils.getInt(conf.get(Config.DRPC_REQUEST_TIMEOUT_SECS), 0)) {
+                    if (Time.deltaSecs(internalRequest.startTimeSecs) > Utils.getInt(conf.get(Config.DRPC_REQUEST_TIMEOUT_SECS))) {
                         String id = e.getKey();
                         Semaphore sem = internalRequest.sem;
                         if (sem != null) {
@@ -199,7 +195,6 @@ public class DrpcServer implements DistributedRPC.Iface, DistributedRPCInvocatio
                             sem.release();
                         }
                         cleanup(id);
-                        LOG.info("Clear request " + id);
                     }
                 }
                 return getTimeoutCheckSecs();
@@ -211,18 +206,10 @@ public class DrpcServer implements DistributedRPC.Iface, DistributedRPCInvocatio
         return timeoutCheckSecs;
     }
 
-    public void launchServer(boolean isLocal, Map conf) throws Exception {
-
+    public void launchServer() throws Exception {
         LOG.info("Starting drpc server for storm version {}", VersionInfo.getVersion());
-        this.conf = conf;
-        authorizer = mkAuthorizationHandler((String) (conf.get(Config.DRPC_AUTHORIZER)), conf);
-
-        initClearThread();
-        if (!isLocal){
-            initThrift();
-            initHttp();
-        }
-
+        initThrift();
+        initHttp();
     }
 
     @Override
@@ -276,11 +263,7 @@ public class DrpcServer implements DistributedRPC.Iface, DistributedRPCInvocatio
         if (result == null) {
             throw new DRPCExecutionException("Request timed out");
         }
-        try {
-            return String.valueOf(result);
-        }catch (Exception e){
-            throw new DRPCExecutionException(e.getMessage());
-        }
+        return (String) result;
     }
 
     @Override
@@ -363,16 +346,14 @@ public class DrpcServer implements DistributedRPC.Iface, DistributedRPCInvocatio
     }
 
     // TO be replaced by Common.mkAuthorizationHandler
-    private IAuthorizer mkAuthorizationHandler(String klassname, Map conf) {
+    private IAuthorizer mkAuthorizationHandler(String klassname) {
         IAuthorizer authorizer = null;
         Class aznClass = null;
         if (StringUtils.isNotBlank(klassname)) {
             try {
                 aznClass = Class.forName(klassname);
                 authorizer = (IAuthorizer) aznClass.newInstance();
-                if (authorizer != null) {
-                    authorizer.prepare(conf);
-                }
+                authorizer.prepare(conf);
             } catch (Exception e) {
                 LOG.error("mkAuthorizationHandler failed!", e);
             }

@@ -235,10 +235,9 @@
         conf {DRPC-REQUEST-TIMEOUT-SECS delay-seconds}
         mock-cu (proxy [ConfigUtils] []
                   (readStormConfigImpl [] conf))
-        drpc-handler (proxy [DrpcServer] []
+        drpc-handler (proxy [DrpcServer] [conf]
                        (acquireQueue [function] queue))]
     (with-open [_ (ConfigUtilsInstaller. mock-cu)]
-      (.launchServer drpc-handler true conf)
       (is (thrown? DRPCExecutionException
             (.execute drpc-handler "ArbitraryDRPCFunctionName" "")))
       (is (= 0 (.size queue))))))
@@ -249,11 +248,10 @@
         conf {DRPC-REQUEST-TIMEOUT-SECS delay-seconds}
         mock-cu (proxy [ConfigUtils] []
                   (readStormConfigImpl [] conf))
-        drpc-handler (proxy [DrpcServer] []
+        drpc-handler (proxy [DrpcServer] [conf]
           (acquireQueue [function] queue)
           (getTimeoutCheckSecs [] delay-seconds))]
     (with-open [_ (ConfigUtilsInstaller. mock-cu)]
-      (.launchServer drpc-handler true conf)
       (is (thrown? DRPCExecutionException
             (.execute drpc-handler "ArbitraryDRPCFunctionName" "no-args"))))))
 

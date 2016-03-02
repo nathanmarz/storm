@@ -17,7 +17,6 @@
  */
 package org.apache.storm;
 
-import org.apache.log4j.Logger;
 import org.apache.storm.daemon.DrpcServer;
 import org.apache.storm.generated.AuthorizationException;
 import org.apache.storm.generated.DRPCExecutionException;
@@ -30,20 +29,13 @@ import org.apache.thrift.TException;
 import java.util.Map;
 
 public class LocalDRPC implements ILocalDRPC {
-    private static final Logger LOG = Logger.getLogger(LocalDRPC.class);
 
-    private DrpcServer handler = new DrpcServer();
-    private Thread thread;
+    private final DrpcServer handler;
     private final String serviceId;
 
     public LocalDRPC() {
-        try {
-            Map conf = ConfigUtils.readStormConfig();
-            handler.launchServer(true, conf);
-        }catch (Exception e){
-            throw Utils.wrapInRuntime(e);
-        }
-
+        Map conf = ConfigUtils.readStormConfig();
+        handler = new DrpcServer(conf);
         serviceId = ServiceRegistry.registerService(handler);
     }
 

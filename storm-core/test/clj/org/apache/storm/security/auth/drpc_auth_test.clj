@@ -38,7 +38,7 @@
         conf (if login-cfg (assoc conf "java.security.auth.login.config" login-cfg) conf)
         conf (assoc conf DRPC-PORT client-port)
         conf (assoc conf DRPC-INVOCATIONS-PORT invocations-port)
-        service-handler (let [drpc-service (DrpcServer.)] (.launchServer drpc-service true conf) drpc-service)
+        service-handler (DrpcServer. conf)
         handler-server (ThriftServer. conf
                                       (DistributedRPC$Processor. service-handler)
                                       ThriftConnectionType/DRPC)

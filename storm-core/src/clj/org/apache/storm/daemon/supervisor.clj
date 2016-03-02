@@ -1283,7 +1283,7 @@
       (.readBlobTo blob-store (ConfigUtils/masterStormConfKey storm-id) (FileOutputStream. (ConfigUtils/supervisorStormConfPath tmproot)) nil)
       (finally
         (.shutdown blob-store)))
-    (FileUtils/moveDirectory (File. tmproot) (File. stormroot))
+     (FileUtils/moveDirectory (File. tmproot) (File. stormroot))
 
     (setup-storm-code-dir conf (clojurify-structure (ConfigUtils/readSupervisorStormConf conf storm-id)) stormroot)
     (let [classloader (.getContextClassLoader (Thread/currentThread))

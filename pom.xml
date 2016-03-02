@@ -915,21 +915,22 @@
                     </executions>
                 </plugin>
                 <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-antrun-plugin</artifactId>
-                    <version>1.8</version>
+                    <artifactId>maven-clean-plugin</artifactId>
+                    <version>2.5</version>
                     <executions>
                         <execution>
-                            <phase>install</phase>
+                            <id>cleanup</id>
+                            <phase>clean</phase>
                             <goals>
-                                <goal>run</goal>
+                                <goal>clean</goal>
                             </goals>
                             <configuration>
-                                <tasks>
-                                    <delete quiet="true" includeEmptyDirs="true" failonerror="false">
-                                        <fileset dir="logs"/>
-                                    </delete>
-                                </tasks>
+                                <excludeDefaultDirectories>true</excludeDefaultDirectories>
+                                <filesets>
+                                    <fileset>
+                                        <directory>./logs/</directory>
+                                    </fileset>
+                                </filesets>
                             </configuration>
                         </execution>
                     </executions>

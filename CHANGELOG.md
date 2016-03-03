@@ -317,6 +317,7 @@
 
 ## 0.10.1
 
+ * STORM-1596: Do not use single Kerberos TGT instance between multiple threads
  * STORM-1481: avoid Math.abs(Integer) get a negative value
  * STORM-1121: Deprecate test only configuraton nimbus.reassign
  * STORM-1180: FLUX logo wasn't appearing quite right

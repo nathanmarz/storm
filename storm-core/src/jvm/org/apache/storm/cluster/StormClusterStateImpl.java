@@ -446,7 +446,12 @@ public class StormClusterStateImpl implements IStormClusterState {
             backPressureCallback.put(stormId, callback);
         }
         String path = ClusterUtils.backpressureStormRoot(stormId);
-        List<String> childrens = stateStorage.get_children(path, callback != null);
+        List<String> childrens = null;
+        if(stateStorage.node_exists(path, false)) {
+            childrens = stateStorage.get_children(path, callback != null);
+        } else {
+            childrens = new ArrayList<>();
+        }
         return childrens.size() > 0;
 
     }

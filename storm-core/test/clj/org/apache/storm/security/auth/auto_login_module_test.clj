@@ -19,8 +19,12 @@
   (:import [org.apache.storm.security.auth.kerberos AutoTGT
             AutoTGTKrb5LoginModule AutoTGTKrb5LoginModuleTest])
   (:import [javax.security.auth Subject Subject])
-  (:import [javax.security.auth.kerberos KerberosTicket])
+  (:import [javax.security.auth.kerberos KerberosTicket KerberosPrincipal])
   (:import [org.mockito Mockito])
+  (:import [java.text SimpleDateFormat])
+  (:import [java.util Date])
+  (:import [java.util Arrays])
+  (:import [java.net InetAddress])
   )
 
 (deftest login-module-no-subj-no-tgt-test
@@ -82,7 +86,23 @@
     (let [login-module (AutoTGTKrb5LoginModuleTest.)
           _ (set! (. login-module client) (Mockito/mock
                                             java.security.Principal))
-          ticket (Mockito/mock KerberosTicket)]
+          endTime (.parse (java.text.SimpleDateFormat. "ddMMyyyy") "31122030")
+          asn1Enc (byte-array 10)
+          _ (Arrays/fill asn1Enc (byte 122))
+          sessionKey (byte-array 10)
+          _ (Arrays/fill sessionKey (byte 123))
+          ticket (KerberosTicket.
+                   asn1Enc
+                   (KerberosPrincipal. "client/localhost@local.com")
+                   (KerberosPrincipal. "server/localhost@local.com")
+                   sessionKey
+                   234
+                   (boolean-array (map even? (range 3 10)))
+                   (Date.)
+                   (Date.)
+                   endTime,
+                   endTime,
+                   (into-array InetAddress [(InetAddress/getByName "localhost")]))]
       (.initialize login-module (Subject.) nil nil nil)
       (.setKerbTicket login-module ticket)
       (is (.login login-module))

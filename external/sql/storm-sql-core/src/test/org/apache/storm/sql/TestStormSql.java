@@ -17,11 +17,7 @@
  */
 package org.apache.storm.sql;
 
-import org.apache.storm.Config;
-import org.apache.storm.ILocalCluster;
-import org.apache.storm.StormSubmitter;
-import org.apache.storm.generated.SubmitOptions;
-import org.apache.storm.generated.TopologyInitialStatus;
+import com.google.common.collect.ImmutableMap;
 import org.apache.storm.tuple.Values;
 import org.apache.storm.sql.runtime.*;
 import org.junit.AfterClass;
@@ -31,9 +27,9 @@ import org.junit.Test;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 public class TestStormSql {
   private static class MockDataSourceProvider implements DataSourcesProvider {
@@ -56,14 +52,37 @@ public class TestStormSql {
     }
   }
 
+  private static class MockNestedDataSourceProvider implements DataSourcesProvider {
+    @Override
+    public String scheme() {
+      return "mocknested";
+    }
+
+    @Override
+    public DataSource construct(
+            URI uri, String inputFormatClass, String outputFormatClass,
+            List<FieldInfo> fields) {
+      return new TestUtils.MockNestedDataSource();
+    }
+
+    @Override
+    public ISqlTridentDataSource constructTrident(URI uri, String inputFormatClass, String outputFormatClass,
+                                                  String properties, List<FieldInfo> fields) {
+      throw new UnsupportedOperationException("Not supported");
+    }
+  }
+
+
   @BeforeClass
   public static void setUp() {
     DataSourcesRegistry.providerMap().put("mock", new MockDataSourceProvider());
+    DataSourcesRegistry.providerMap().put("mocknested", new MockNestedDataSourceProvider());
   }
 
   @AfterClass
   public static void tearDown() {
     DataSourcesRegistry.providerMap().remove("mock");
+    DataSourcesRegistry.providerMap().remove("mocknested");
   }
 
   @Test
@@ -78,5 +97,36 @@ public class TestStormSql {
     Assert.assertEquals(2, values.size());
     Assert.assertEquals(4, values.get(0).get(0));
     Assert.assertEquals(5, values.get(1).get(0));
+  }
+
+  @Test
+  public void testExternalDataSourceNested() throws Exception {
+    List<String> stmt = new ArrayList<>();
+    stmt.add("CREATE EXTERNAL TABLE FOO (ID INT, MAPFIELD ANY, NESTEDMAPFIELD ANY, ARRAYFIELD ANY) LOCATION 'mocknested:///foo'");
+    stmt.add("SELECT STREAM ID, MAPFIELD, NESTEDMAPFIELD, ARRAYFIELD " +
+                     "FROM FOO " +
+                     "WHERE NESTEDMAPFIELD['a']['b'] = 2 AND ARRAYFIELD[1] = 200");
+    StormSql sql = StormSql.construct();
+    List<Values> values = new ArrayList<>();
+    ChannelHandler h = new TestUtils.CollectDataChannelHandler(values);
+    sql.execute(stmt, h);
+    System.out.println(values);
+    Map<String, Integer> map = ImmutableMap.of("b", 2, "c", 4);
+    Map<String, Map<String, Integer>> nestedMap = ImmutableMap.of("a", map);
+    Assert.assertEquals(new Values(2, map, nestedMap, Arrays.asList(100, 200, 300)), values.get(0));
+  }
+
+  @Test
+  public void testExternalNestedInvalidAccess() throws Exception {
+    List<String> stmt = new ArrayList<>();
+    stmt.add("CREATE EXTERNAL TABLE FOO (ID INT, MAPFIELD ANY, NESTEDMAPFIELD ANY, ARRAYFIELD ANY) LOCATION 'mocknested:///foo'");
+    stmt.add("SELECT STREAM ID, MAPFIELD, NESTEDMAPFIELD, ARRAYFIELD " +
+                     "FROM FOO " +
+                     "WHERE NESTEDMAPFIELD['a']['b'] = 2 AND ARRAYFIELD['a'] = 200");
+    StormSql sql = StormSql.construct();
+    List<Values> values = new ArrayList<>();
+    ChannelHandler h = new TestUtils.CollectDataChannelHandler(values);
+    sql.execute(stmt, h);
+    Assert.assertEquals(0, values.size());
   }
 }

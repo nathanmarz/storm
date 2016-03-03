@@ -322,6 +322,8 @@
                                 <exclude>**/metastore_db/**</exclude>
                                 <!-- anything written into build should be ignored -->
                                 <exclude>**/build/**</exclude>
+                                <!-- logs generated during test -->
+                                <exclude>**/logs/**</exclude>
 
                                 <!-- exclude CHANGELOG, VERSION, AND TODO files -->
                                 <exclude>**/CHANGELOG.md</exclude>
@@ -909,6 +911,27 @@
                                 <goal>integration-test</goal>
                                 <goal>verify</goal>
                             </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-clean-plugin</artifactId>
+                    <version>2.5</version>
+                    <executions>
+                        <execution>
+                            <id>cleanup</id>
+                            <phase>clean</phase>
+                            <goals>
+                                <goal>clean</goal>
+                            </goals>
+                            <configuration>
+                                <excludeDefaultDirectories>true</excludeDefaultDirectories>
+                                <filesets>
+                                    <fileset>
+                                        <directory>./logs/</directory>
+                                    </fileset>
+                                </filesets>
+                            </configuration>
                         </execution>
                     </executions>
                 </plugin>

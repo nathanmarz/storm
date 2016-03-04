@@ -302,7 +302,6 @@
           mock-worker-id "fake-worker-id"
           mock-cp (str Utils/FILE_PATH_SEPARATOR "base" Utils/CLASS_PATH_SEPARATOR Utils/FILE_PATH_SEPARATOR "stormjar.jar")
           mock-sensitivity "S3"
-          mock-cp "/base:/stormjar.jar"
           exp-args-fn (fn [opts topo-opts classpath]
                         (let [file-prefix (let [os (System/getProperty "os.name")]
                                             (if (.startsWith os "Windows") (str "file:///")
@@ -372,14 +371,12 @@
 
           (with-open [_ (ConfigUtilsInstaller. cu-proxy)
                       _ (UtilsInstaller. utils-spy)]
-                (.launchDistributeWorker process-proxy mock-supervisor nil
+                (.launchWorker process-proxy mock-supervisor nil
                                       "" mock-storm-id mock-port
                                       mock-worker-id
                                       (WorkerResources.) nil nil)
-            ;I update "(Matchers/eq exp-args)" to "(Matchers/any) " as exp-args is different with the first argument.
-            ;But I find they have same values from supervisor-test.xml. I don't kown what happened here?
                 (. (Mockito/verify utils-spy)
-                   (launchProcessImpl (Matchers/any)
+                   (launchProcessImpl (Matchers/eq exp-args)
                                       (Matchers/any)
                                       (Matchers/any)
                                       (Matchers/any)
@@ -410,13 +407,13 @@
                               (createBlobstoreLinks [conf stormId workerId] nil))]
             (with-open [_ (ConfigUtilsInstaller. cu-proxy)
                         _ (UtilsInstaller. utils-spy)]
-                  (.launchDistributeWorker process-proxy mock-supervisor nil
+                  (.launchWorker process-proxy mock-supervisor nil
                                             "" mock-storm-id
                                             mock-port
                                             mock-worker-id
                                             (WorkerResources.) nil nil)
                   (. (Mockito/verify utils-spy)
-                     (launchProcessImpl (Matchers/any)
+                     (launchProcessImpl (Matchers/eq exp-args)
                                         (Matchers/any)
                                         (Matchers/any)
                                         (Matchers/any)
@@ -445,13 +442,13 @@
                               (createBlobstoreLinks [conf stormId workerId] nil))]
           (with-open [_ (ConfigUtilsInstaller. cu-proxy)
                       _ (UtilsInstaller. utils-spy)]
-                  (.launchDistributeWorker process-proxy mock-supervisor nil
+                  (.launchWorker process-proxy mock-supervisor nil
                                                "" mock-storm-id
                                               mock-port
                                               mock-worker-id
                                               (WorkerResources.) nil nil)
                   (. (Mockito/verify utils-spy)
-                     (launchProcessImpl (Matchers/any)
+                     (launchProcessImpl (Matchers/eq exp-args)
                                         (Matchers/any)
                                         (Matchers/any)
                                         (Matchers/any)
@@ -480,7 +477,7 @@
                               (createBlobstoreLinks [conf stormId workerId] nil))]
           (with-open [_ (ConfigUtilsInstaller. cu-proxy)
                       _ (UtilsInstaller. utils-spy)]
-            (.launchDistributeWorker process-proxy mock-supervisor nil
+            (.launchWorker process-proxy mock-supervisor nil
                                         "" mock-storm-id
                                         mock-port
                                         mock-worker-id
@@ -494,21 +491,24 @@
 
 (deftest test-worker-launch-command-run-as-user
   (testing "*.worker.childopts configuration"
-    (let [mock-port 42
+    (let [file-prefix (let [os (System/getProperty "os.name")]
+                        (if (.startsWith os "Windows") (str "file:///")
+                          (str "")))
+          mock-port 42
           mock-storm-id "fake-storm-id"
           mock-worker-id "fake-worker-id"
           mock-sensitivity "S3"
           mock-cp "mock-classpath'quote-on-purpose"
           attrs (make-array FileAttribute 0)
           storm-local (.getCanonicalPath (.toFile (Files/createTempDirectory "storm-local" attrs)))
-          worker-script (str storm-local "/workers/" mock-worker-id "/storm-worker-script.sh")
+          worker-script (str storm-local Utils/FILE_PATH_SEPARATOR "workers" Utils/FILE_PATH_SEPARATOR mock-worker-id Utils/FILE_PATH_SEPARATOR "storm-worker-script.sh")
           exp-launch ["/bin/worker-launcher"
                       "me"
                       "worker"
-                      (str storm-local "/workers/" mock-worker-id)
+                      (str storm-local Utils/FILE_PATH_SEPARATOR "workers" Utils/FILE_PATH_SEPARATOR mock-worker-id)
                       worker-script]
           exp-script-fn (fn [opts topo-opts]
-                          (str "#!/bin/bash\n'export' 'LD_LIBRARY_PATH=';\n\nexec 'java'"
+                          (str "#!/bin/bash\r\n'export' 'LD_LIBRARY_PATH=';\r\n\r\nexec 'java'"
                                " '-cp' 'mock-classpath'\"'\"'quote-on-purpose'"
                                " '-Dlogfile.name=" "worker.log'"
                                " '-Dstorm.home='"
@@ -516,8 +516,8 @@
                                " '-Dstorm.id=" mock-storm-id "'"
                                " '-Dworker.id=" mock-worker-id "'"
                                " '-Dworker.port=" mock-port "'"
-                               " '-Dstorm.log.dir=/logs'"
-                               " '-Dlog4j.configurationFile=/log4j2/worker.xml'"
+                               " '-Dstorm.log.dir=" (ConfigUtils/getLogDir) "'"
+                               " '-Dlog4j.configurationFile=" (str file-prefix Utils/FILE_PATH_SEPARATOR "log4j2" Utils/FILE_PATH_SEPARATOR "worker.xml'")
                                " '-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector'"
                                " 'org.apache.storm.LogWriter'"
                                " 'java' '-server'"
@@ -529,9 +529,9 @@
                                " '-Dworkers.artifacts=" (str storm-local "/workers-artifacts'")
                                " '-Dstorm.conf.file='"
                                " '-Dstorm.options='"
-                               " '-Dstorm.log.dir=/logs'"
+                               " '-Dstorm.log.dir=" (ConfigUtils/getLogDir) "'"
                                " '-Dlogging.sensitivity=" mock-sensitivity "'"
-                               " '-Dlog4j.configurationFile=/log4j2/worker.xml'"
+                               " '-Dlog4j.configurationFile=" (str file-prefix Utils/FILE_PATH_SEPARATOR "log4j2" Utils/FILE_PATH_SEPARATOR "worker.xml'")
                                " '-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector'"
                                " '-Dstorm.id=" mock-storm-id "'"
                                " '-Dworker.id=" mock-worker-id "'"
@@ -539,6 +539,7 @@
                                " '-cp' 'mock-classpath'\"'\"'quote-on-purpose'"
                                " 'org.apache.storm.daemon.worker'"
                                " '" mock-storm-id "'"
+                               " '""'"
                                " '" mock-port "'"
                                " '" mock-worker-id "';"))]
       (try
@@ -573,20 +574,19 @@
             (with-open [_ (ConfigUtilsInstaller. cu-proxy)
                         _ (UtilsInstaller. utils-spy)
                         _ (MockedSupervisorUtils. supervisor-utils)]
-              (.launchDistributeWorker process-proxy mock-supervisor nil
+              (. (Mockito/when (.javaCmdImpl supervisor-utils (Mockito/any))) (thenReturn (str "java")))
+              (.launchWorker process-proxy mock-supervisor nil
                                           "" mock-storm-id
                                           mock-port
                                           mock-worker-id
                                           (WorkerResources.) nil nil)
-                (. (Mockito/when (.javaCmdImpl supervisor-utils (Mockito/any))) (thenReturn "java"))
                 (. (Mockito/verify utils-spy)
-                   (launchProcessImpl (Matchers/any)
+                   (launchProcessImpl (Matchers/eq exp-launch)
                                       (Matchers/any)
                                       (Matchers/any)
                                       (Matchers/any)
                                       (Matchers/any))))
-           ;can't pass here
-           ; (is (= (slurp worker-script) exp-script))
+            (is (= (slurp worker-script) exp-script))
             ))
         (finally (Utils/forceDelete storm-local)))
       (.mkdirs (io/file storm-local "workers" mock-worker-id))
@@ -620,19 +620,19 @@
             (with-open [_ (ConfigUtilsInstaller. cu-proxy)
                         _ (UtilsInstaller. utils-spy)
                         _ (MockedSupervisorUtils. supervisor-utils)]
-              (.launchDistributeWorker process-proxy mock-supervisor nil
+              (. (Mockito/when (.javaCmdImpl supervisor-utils (Mockito/any))) (thenReturn (str "java")))
+              (.launchWorker process-proxy mock-supervisor nil
                                           "" mock-storm-id
                                           mock-port
                                           mock-worker-id
                                           (WorkerResources.) nil nil)
-                (. (Mockito/when (.javaCmdImpl supervisor-utils (Mockito/any))) (thenReturn "java"))
                 (. (Mockito/verify utils-spy)
                  (launchProcessImpl (Matchers/any)
                                     (Matchers/any)
                                     (Matchers/any)
                                     (Matchers/any)
                                     (Matchers/any))))
-           ; (is (= (slurp worker-script) exp-script))
+            (is (= (slurp worker-script) exp-script))
             ))
         (finally (Utils/forceDelete storm-local))))))
 

@@ -140,7 +140,7 @@ public class Supervisor {
     /**
      * start distribute supervisor
      */
-    private void distributeLaunch() {
+    private void launch() {
         LOG.info("Starting supervisor for storm version '{}'.", VersionInfo.getVersion());
         SupervisorManger supervisorManager;
         try {
@@ -191,6 +191,6 @@ public class Supervisor {
     public static void main(String[] args) {
         Utils.setupDefaultUncaughtExceptionHandler();
         Supervisor instance = new Supervisor();
-        instance.distributeLaunch();
+        instance.launch();
     }
 }

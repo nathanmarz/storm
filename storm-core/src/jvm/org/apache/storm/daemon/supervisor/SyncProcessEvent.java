@@ -78,7 +78,6 @@ public class SyncProcessEvent extends ShutdownWork implements Runnable {
     public SyncProcessEvent(){
 
     }
-
     public SyncProcessEvent(SupervisorData supervisorData) {
         init(supervisorData);
     }
@@ -245,9 +244,9 @@ public class SyncProcessEvent extends ShutdownWork implements Runnable {
     }
 
     /**
-     * launch a worker in local mode. But it may exist question???
+     * launch a worker in local mode.
      */
-    protected void launchLocalWorker(SupervisorData supervisorData, String stormId, Long port, String workerId, WorkerResources resources) throws IOException {
+    protected void launchWorker(SupervisorData supervisorData, String stormId, Long port, String workerId, WorkerResources resources) throws IOException {
         // port this function after porting worker to java
     }
 
@@ -309,7 +308,7 @@ public class SyncProcessEvent extends ShutdownWork implements Runnable {
      * supervisorId for testing
      * @throws IOException
      */
-    protected void launchDistributeWorker(Map conf, String supervisorId, String assignmentId, String stormId, Long port, String workerId,
+    protected void launchWorker(Map conf, String supervisorId, String assignmentId, String stormId, Long port, String workerId,
             WorkerResources resources, CgroupManager cgroupManager, ConcurrentHashSet deadWorkers) throws IOException {
 
         Boolean runWorkerAsUser = Utils.getBoolean(conf.get(Config.SUPERVISOR_RUN_WORKER_AS_USER), false);
@@ -527,10 +526,10 @@ public class SyncProcessEvent extends ShutdownWork implements Runnable {
                 FileUtils.forceMkdir(new File(hbPath));
 
                 if (clusterMode.endsWith("distributed")) {
-                    launchDistributeWorker(conf, supervisorId, supervisorData.getAssignmentId(), stormId, port.longValue(), workerId, resources,
+                    launchWorker(conf, supervisorId, supervisorData.getAssignmentId(), stormId, port.longValue(), workerId, resources,
                             supervisorData.getResourceIsolationManager(), supervisorData.getDeadWorkers());
                 } else if (clusterMode.endsWith("local")) {
-                    launchLocalWorker(supervisorData, stormId, port.longValue(), workerId, resources);
+                    launchWorker(supervisorData, stormId, port.longValue(), workerId, resources);
                 }
                 newValidWorkerIds.put(workerId, port);
 

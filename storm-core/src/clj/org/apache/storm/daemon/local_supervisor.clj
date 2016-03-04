@@ -45,7 +45,7 @@
 (defn local-process []
   "Create a local process event"
   (proxy [SyncProcessEvent] []
-    (launchLocalWorker [supervisorData stormId port workerId resources]
+    (launchWorker [supervisorData stormId port workerId resources]
       (launch-local-worker supervisorData stormId port workerId resources))
     (shutWorker [supervisorData workerId] (shutdown-local-worker supervisorData workerId))))
 

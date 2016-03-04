@@ -52,7 +52,6 @@
            (org.apache.storm.messaging IContext)
            [org.json.simple JSONValue])
   (:import [org.apache.storm.cluster ZKStateStorage ClusterStateContext StormClusterStateImpl ClusterUtils])
-  (:require [org.apache.storm.daemon.acker :as acker])
   (:use [org.apache.storm util config log local-state-converter converter])
   (:use [org.apache.storm.internal thrift]))
 
@@ -683,9 +682,9 @@
          (.put "transferred" (AtomicInteger. 0))
          (.put "processed" (AtomicInteger. 0))))
      (with-var-roots
-       [acker/mk-acker-bolt
-        (let [old# acker/mk-acker-bolt]
-          (fn [& args#] (NonRichBoltTracker. (apply old# args#) id#)))
+       [common/mk-acker-bolt
+        (let [old# common/mk-acker-bolt]
+         (fn [& args#] (NonRichBoltTracker. (apply old# args#) id#)))
         ;; critical that this particular function is overridden here,
         ;; since the transferred stat needs to be incremented at the moment
         ;; of tuple emission (and not on a separate thread later) for

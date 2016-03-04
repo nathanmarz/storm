@@ -35,6 +35,8 @@ import org.apache.storm.trident.spout.IBatchSpout;
 import org.apache.storm.trident.tuple.TridentTuple;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -44,7 +46,31 @@ public class TestUtils {
 
     public MockDataSource() {
       for (int i = 0; i < 5; ++i) {
-        RECORDS.add(new Values(i));
+        RECORDS.add(new Values(i, "x", null));
+      }
+    }
+
+    @Override
+    public void open(ChannelContext ctx) {
+      for (Values v : RECORDS) {
+        ctx.emit(v);
+      }
+      ctx.fireChannelInactive();
+    }
+  }
+
+  public static class MockNestedDataSource implements DataSource {
+    private final ArrayList<Values> RECORDS = new ArrayList<>();
+
+    public MockNestedDataSource() {
+      List<Integer> ints = Arrays.asList(100, 200, 300);
+      for (int i = 0; i < 5; ++i) {
+        Map<String, Integer> map = new HashMap<>();
+        map.put("b", i);
+        map.put("c", i*i);
+        Map<String, Map<String, Integer>> mm = new HashMap<>();
+        mm.put("a", map);
+        RECORDS.add(new Values(i, map, mm, ints));
       }
     }
 
@@ -85,11 +111,11 @@ public class TestUtils {
 
     private static class MockSpout implements IBatchSpout {
       private final ArrayList<Values> RECORDS = new ArrayList<>();
-      private final Fields OUTPUT_FIELDS = new Fields("ID");
+      private final Fields OUTPUT_FIELDS = new Fields("ID", "NAME", "ADDR");
 
       public MockSpout() {
         for (int i = 0; i < 5; ++i) {
-          RECORDS.add(new Values(i));
+          RECORDS.add(new Values(i, "x", "y"));
         }
       }
 

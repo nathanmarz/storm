@@ -308,7 +308,6 @@ public class StormCommon {
         return inputs;
     }
 
-    public static String clusterId = null;
     public static IBolt makeAckerBolt() {
         return _instance.makeAckerBoltImpl();
     }

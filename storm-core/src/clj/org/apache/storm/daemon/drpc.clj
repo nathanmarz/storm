@@ -24,7 +24,7 @@
             DistributedRPCInvocations$Processor])
   (:import [java.util.concurrent Semaphore ConcurrentLinkedQueue
             ThreadPoolExecutor ArrayBlockingQueue TimeUnit])
-  (:import [org.apache.storm.daemon Shutdownable]
+  (:import [org.apache.storm.daemon Shutdownable StormCommon]
            [org.apache.storm.utils Time])
   (:import [java.net InetAddress])
   (:import [org.apache.storm.generated AuthorizationException]
@@ -75,7 +75,7 @@
 
 ;; TODO: change this to use TimeCacheMap
 (defn service-handler [conf]
-  (let [drpc-acl-handler (mk-authorization-handler (conf DRPC-AUTHORIZER) conf)
+  (let [drpc-acl-handler (StormCommon/mkAuthorizationHandler (conf DRPC-AUTHORIZER) conf)
         ctr (atom 0)
         id->sem (atom {})
         id->result (atom {})
@@ -268,7 +268,7 @@
                                      https-need-client-auth
                                      https-want-client-auth)
                                    (UIHelpers/configFilter server (ring.util.servlet/servlet app) filters-confs))))))
-      (start-metrics-reporters conf)
+      (StormCommon/startMetricsReporters conf)
       (when handler-server
         (.serve handler-server)))))
 

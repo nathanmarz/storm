@@ -73,6 +73,13 @@
                                                           (:worker->resources assignment)))))
     thrift-assignment))
 
+(defn clojurify-task->node_port [task->node_port]
+  (into {}
+    (map-val
+      (fn [nodeInfo]
+        (concat [(.get_node nodeInfo)] (.get_port nodeInfo))) ;nodeInfo should be converted to [node,port1,port2..]
+      task->node_port)))
+
 ;TODO: when translating this function, you should replace the map-key with a proper for loop HERE
 (defn clojurify-executor->node_port [executor->node_port]
   (into {}
@@ -83,6 +90,14 @@
         (fn [list-of-executors]
           (into [] list-of-executors)) ; list of executors must be coverted to clojure vector to ensure it is sortable.
         executor->node_port))))
+
+(defn thriftify-executor->node_port [executor->node_port]
+  (into {}
+    (map (fn [[k v]]
+            [(map long k)
+             (NodeInfo. (first v) (set (map long (rest v))))])
+          executor->node_port))
+)
 
 (defn clojurify-worker->resources [worker->resources]
   "convert worker info to be [node, port]

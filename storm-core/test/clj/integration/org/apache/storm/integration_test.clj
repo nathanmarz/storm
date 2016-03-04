@@ -24,9 +24,9 @@
   (:import [org.apache.storm.cluster StormClusterStateImpl])
   (:use [org.apache.storm.internal clojure])
   (:use [org.apache.storm testing config util])
-  (:use [org.apache.storm.daemon common])
   (:import [org.apache.storm Thrift])
-  (:import [org.apache.storm.utils Utils]))
+  (:import [org.apache.storm.utils Utils]) 
+  (:import [org.apache.storm.daemon StormCommon]))
 
 (deftest test-basic-topology
   (doseq [zmq-on? [true false]]
@@ -582,7 +582,7 @@
                                               }
                                              (:topology tracked))
             _ (advance-cluster-time cluster 11)
-            storm-id (get-storm-id state "test-errors")
+            storm-id (StormCommon/getStormId state "test-errors")
             errors-count (fn [] (count (.errors state storm-id "2")))]
 
         (is (nil? (clojurify-error (.lastError state storm-id "2"))))

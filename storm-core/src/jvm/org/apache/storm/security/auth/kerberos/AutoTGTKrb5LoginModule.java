@@ -21,6 +21,7 @@ package org.apache.storm.security.auth.kerberos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.apache.storm.security.auth.AuthUtils;
 import java.security.Principal;
 import java.util.Map;
 import javax.security.auth.Subject;
@@ -79,7 +80,10 @@ public class AutoTGTKrb5LoginModule implements LoginModule {
             throw new LoginException("Authentication failed because the Subject is invalid.");
         }
         // Let us add the kerbClientPrinc and kerbTicket
-        subject.getPrivateCredentials().add(kerbTicket);
+        // We need to clone the ticket because java.security.auth.kerberos assumes TGT is unique for each subject
+        // So, sharing TGT with multiple subjects can cause expired TGT to never refresh.
+        KerberosTicket kerbTicketCopy = AuthUtils.cloneKerberosTicket(kerbTicket);
+        subject.getPrivateCredentials().add(kerbTicketCopy);
         subject.getPrincipals().add(getKerbTicketClient());
         LOG.debug("Commit Succeeded.");
         return true;
@@ -96,7 +100,7 @@ public class AutoTGTKrb5LoginModule implements LoginModule {
     public boolean logout() throws LoginException {
         if (subject != null && !subject.isReadOnly() && kerbTicket != null) {
             subject.getPrincipals().remove(kerbTicket.getClient());
-            subject.getPrivateCredentials().remove(kerbTicket);
+            AutoTGT.clearCredentials(subject, null);
         }
         kerbTicket = null;
         return true;

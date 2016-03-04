@@ -1742,13 +1742,8 @@ public class Utils {
         return UUID.randomUUID().toString();
     }
 
-    public static void exitProcess (int val, Object... msg) {
-        StringBuilder errorMessage = new StringBuilder();
-        errorMessage.append("Halting process: ");
-        for (Object oneMessage: msg) {
-            errorMessage.append(oneMessage);
-        }
-        String combinedErrorMessage = errorMessage.toString();
+    public static void exitProcess (int val, String msg) {
+        String combinedErrorMessage = "Halting process: " + msg;
         LOG.error(combinedErrorMessage, new RuntimeException(combinedErrorMessage));
         Runtime.getRuntime().exit(val);
     }

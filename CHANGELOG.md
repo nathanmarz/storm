@@ -1,4 +1,7 @@
 ## 2.0.0
+ * STORM-1592: clojure code calling into Utils.exitProcess throws ClassCastException
+ * STORM-1579: Fix NoSuchFileException when running tests in storm-core
+ * STORM-1244: port backtype.storm.command.upload-credentials to java
  * STORM-1245: port backtype.storm.daemon.acker to java
  * STORM-1545: Topology Debug Event Log in Wrong Location
  * STORM-1254: port ui.helper to java
@@ -40,6 +43,8 @@
  * STORM-1521: When using Kerberos login from keytab with multiple bolts/executors ticket is not renewed in hbase bolt.
 
 ## 1.0.0
+ * STORM-1574: Better handle backpressure exception etc.
+ * STORM-1587: Avoid NPE while prining Metrics
  * STORM-1570: Storm SQL support for nested fields and array
  * STORM-1576: fix ConcurrentModificationException in addCheckpointInputs
  * STORM-1488: UI Topology Page component last error timestamp is from 1970
@@ -312,6 +317,7 @@
 
 ## 0.10.1
 
+ * STORM-1596: Do not use single Kerberos TGT instance between multiple threads
  * STORM-1481: avoid Math.abs(Integer) get a negative value
  * STORM-1121: Deprecate test only configuraton nimbus.reassign
  * STORM-1180: FLUX logo wasn't appearing quite right

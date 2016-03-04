@@ -1,4 +1,5 @@
 ## 2.0.0
+ * STORM-1283: port backtype.storm.MockAutoCred to java
  * STORM-1592: clojure code calling into Utils.exitProcess throws ClassCastException
  * STORM-1579: Fix NoSuchFileException when running tests in storm-core
  * STORM-1244: port backtype.storm.command.upload-credentials to java

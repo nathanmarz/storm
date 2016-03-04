@@ -239,8 +239,8 @@ public class StormCommon {
             ComponentCommon common = getComponentCommon(componentObj);
             if (common != null) {
                 int parallelismHintNum = Thrift.getParallelismHint(common);
-                Integer taskNum = Utils.parseInt(conf.get(Config.TOPOLOGY_TASKS));
-                if (taskNum != null && taskNum > 0 && parallelismHintNum <= 0) {
+                Integer taskNum = Utils.getInt(conf.get(Config.TOPOLOGY_TASKS), 0);
+                if (taskNum > 0 && parallelismHintNum <= 0) {
                     throw new InvalidTopologyException("Number of executors must be greater than 0 when number of tasks is greater than 0");
                 }
             }
@@ -317,7 +317,7 @@ public class StormCommon {
     }
 
     public static void addAcker(Map conf, StormTopology topology) {
-        int ackerNum = Utils.parseInt(conf.get(Config.TOPOLOGY_ACKER_EXECUTORS), Utils.parseInt(conf.get(Config.TOPOLOGY_WORKERS)));
+        int ackerNum = Utils.getInt(conf.get(Config.TOPOLOGY_ACKER_EXECUTORS), Utils.getInt(conf.get(Config.TOPOLOGY_WORKERS)));
         Map<GlobalStreamId, Grouping> inputs = ackerInputs(topology);
 
         Map<String, StreamInfo> outputStreams = new HashMap<String, StreamInfo>();
@@ -326,7 +326,7 @@ public class StormCommon {
 
         Map<String, Object> ackerConf = new HashMap<String, Object>();
         ackerConf.put(Config.TOPOLOGY_TASKS, ackerNum);
-        ackerConf.put(Config.TOPOLOGY_TICK_TUPLE_FREQ_SECS, Utils.parseInt(conf.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS)));
+        ackerConf.put(Config.TOPOLOGY_TICK_TUPLE_FREQ_SECS, Utils.getInt(conf.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS)));
 
         Bolt acker = Thrift.prepareSerializedBoltDetails(inputs, makeAckerBolt(), outputStreams, ackerNum, ackerConf);
 
@@ -339,7 +339,7 @@ public class StormCommon {
         for (SpoutSpec spout : topology.get_spouts().values()) {
             ComponentCommon common = spout.get_common();
             Map spoutConf = componentConf(spout);
-            spoutConf.put(Config.TOPOLOGY_TICK_TUPLE_FREQ_SECS, Utils.parseInt(conf.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS)));
+            spoutConf.put(Config.TOPOLOGY_TICK_TUPLE_FREQ_SECS, Utils.getInt(conf.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS)));
             common.set_json_conf(JSONValue.toJSONString(spoutConf));
             common.put_to_streams(ACKER_INIT_STREAM_ID, Thrift.outputFields(Arrays.asList("id", "init-val", "spout-task")));
             common.put_to_inputs(Utils.getGlobalStreamId(ACKER_COMPONENT_ID, ACKER_ACK_STREAM_ID), Thrift.prepareDirectGrouping());
@@ -404,10 +404,10 @@ public class StormCommon {
     }
 
     public static void addEventLogger(Map conf, StormTopology topology) {
-        Integer numExecutors = Utils.parseInt(conf.get(Config.TOPOLOGY_EVENTLOGGER_EXECUTORS), Utils.parseInt(conf.get(Config.TOPOLOGY_WORKERS)));
+        Integer numExecutors = Utils.getInt(conf.get(Config.TOPOLOGY_EVENTLOGGER_EXECUTORS), Utils.getInt(conf.get(Config.TOPOLOGY_WORKERS)));
         HashMap<String, Object> componentConf = new HashMap<String, Object>();
         componentConf.put(Config.TOPOLOGY_TASKS, numExecutors);
-        componentConf.put(Config.TOPOLOGY_TICK_TUPLE_FREQ_SECS, Utils.parseInt(conf.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS)));
+        componentConf.put(Config.TOPOLOGY_TICK_TUPLE_FREQ_SECS, Utils.getInt(conf.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS)));
         Bolt eventLoggerBolt = Thrift.prepareSerializedBoltDetails(eventLoggerInputs(topology), new EventLoggerBolt(), null, numExecutors, componentConf);
 
         for(Object component : allComponents(topology).values()) {
@@ -437,7 +437,7 @@ public class StormCommon {
             for (Map<String, Object> info : registerInfo) {
                 String className = (String) info.get("class");
                 Object argument = info.get("argument");
-                Integer phintNum = Utils.parseInt(info.get("parallelism.hint"), 1);
+                Integer phintNum = Utils.getInt(info.get("parallelism.hint"), 1);
                 Map<String, Object> metricsConsumerConf = new HashMap<String, Object>();
                 metricsConsumerConf.put(Config.TOPOLOGY_TASKS, phintNum);
                 Bolt metricsConsumerBolt = Thrift.prepareSerializedBoltDetails(inputs, new MetricsConsumerBolt(className, argument), null, phintNum, metricsConsumerConf);
@@ -499,8 +499,8 @@ public class StormCommon {
     }
 
     public static boolean hasAckers(Map stormConf) {
-        Integer ackerNum = Utils.parseInt(stormConf.get(Config.TOPOLOGY_ACKER_EXECUTORS));
-        if (ackerNum == null || ackerNum > 0) {
+        Object ackerNum = stormConf.get(Config.TOPOLOGY_ACKER_EXECUTORS);
+        if (ackerNum == null || Utils.getInt(ackerNum) > 0) {
             return true;
         } else {
             return false;
@@ -508,8 +508,8 @@ public class StormCommon {
     }
 
     public static boolean hasEventLoggers(Map stormConf) {
-        Integer eventLoggerNum = Utils.parseInt(stormConf.get(Config.TOPOLOGY_EVENTLOGGER_EXECUTORS));
-        if (eventLoggerNum == null || eventLoggerNum > 0) {
+        Object eventLoggerNum = stormConf.get(Config.TOPOLOGY_EVENTLOGGER_EXECUTORS);
+        if (eventLoggerNum == null || Utils.getInt(eventLoggerNum) > 0) {
             return true;
         } else {
             return false;
@@ -539,9 +539,9 @@ public class StormCommon {
         Map<String, Integer> componentIdToTaskNum = new TreeMap<String, Integer>();
         for (Map.Entry<String, Object> entry : components.entrySet()) {
             Map conf = componentConf(entry.getValue());
-            Integer taskNum = Utils.parseInt(conf.get(Config.TOPOLOGY_TASKS));
+            Object taskNum = conf.get(Config.TOPOLOGY_TASKS);
             if (taskNum != null) {
-                componentIdToTaskNum.put(entry.getKey(), taskNum);
+                componentIdToTaskNum.put(entry.getKey(), Utils.getInt(taskNum));
             }
         }
 

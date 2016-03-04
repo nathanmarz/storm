@@ -2303,40 +2303,6 @@ public class Utils {
         return a ^ b;
     }
 
-    public static Integer parseInt(Object o) {
-        if (o == null) {
-            return null;
-        }
-
-        if (o instanceof String) {
-            return Integer.parseInt(String.valueOf(o));
-        } else if (o instanceof Long) {
-            long value = (Long) o;
-            return (int) value;
-        } else if (o instanceof Integer) {
-            return (Integer) o;
-        } else {
-            throw new RuntimeException("Invalid value " + o.getClass().getName() + " " + o);
-        }
-    }
-
-    public static Integer parseInt(Object o, int defaultValue) {
-        if (o == null) {
-            return defaultValue;
-        }
-
-        if (o instanceof String) {
-            return Integer.parseInt(String.valueOf(o));
-        } else if (o instanceof Long) {
-            long value = (Long) o;
-            return (int) value;
-        } else if (o instanceof Integer) {
-            return (Integer) o;
-        } else {
-            return defaultValue;
-        }
-    }
-
     public static List<String> getRepeat(List<String> list) {
         List<String> rtn = new ArrayList<String>();
         Set<String> idSet = new HashSet<String>();

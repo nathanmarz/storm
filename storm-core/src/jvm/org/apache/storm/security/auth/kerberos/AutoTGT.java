@@ -24,10 +24,6 @@ import org.apache.storm.security.auth.AuthUtils;
 
 import java.util.Map;
 import java.util.Set;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.lang.reflect.Method;
 import java.lang.reflect.Constructor;
 import java.security.Principal;
@@ -110,12 +106,9 @@ public class AutoTGT implements IAutoCredentials, ICredentialsRenewer {
 
     public static void saveTGT(KerberosTicket tgt, Map<String, String> credentials) {
         try {
-            ByteArrayOutputStream bao = new ByteArrayOutputStream();
-            ObjectOutputStream out = new ObjectOutputStream(bao);
-            out.writeObject(tgt);
-            out.flush();
-            out.close();
-            credentials.put("TGT", DatatypeConverter.printBase64Binary(bao.toByteArray()));
+
+            byte[] bytes = AuthUtils.serializeKerberosTicket(tgt);
+            credentials.put("TGT", DatatypeConverter.printBase64Binary(bytes));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -123,15 +116,8 @@ public class AutoTGT implements IAutoCredentials, ICredentialsRenewer {
 
     public static KerberosTicket getTGT(Map<String, String> credentials) {
         KerberosTicket ret = null;
-        if (credentials != null && credentials.containsKey("TGT")) {
-            try {
-                ByteArrayInputStream bin = new ByteArrayInputStream(DatatypeConverter.parseBase64Binary(credentials.get("TGT")));
-                ObjectInputStream in = new ObjectInputStream(bin);
-                ret = (KerberosTicket)in.readObject();
-                in.close();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
+        if (credentials != null && credentials.containsKey("TGT") && credentials.get("TGT") != null) {
+            ret = AuthUtils.deserializeKerberosTicket(DatatypeConverter.parseBase64Binary(credentials.get("TGT")));
         }
         return ret;
     }
@@ -150,27 +136,33 @@ public class AutoTGT implements IAutoCredentials, ICredentialsRenewer {
     private void populateSubjectWithTGT(Subject subject, Map<String, String> credentials) {
         KerberosTicket tgt = getTGT(credentials);
         if (tgt != null) {
-            Set<Object> creds = subject.getPrivateCredentials();
-            synchronized(creds) {
-                Iterator<Object> iterator = creds.iterator();
-                while (iterator.hasNext()) {
-                    Object o = iterator.next();
-                    if (o instanceof KerberosTicket) {
-                        KerberosTicket t = (KerberosTicket)o;
-                        iterator.remove();
-                        try {
-                            t.destroy();
-                        } catch (DestroyFailedException  e) {
-                            LOG.warn("Failed to destroy ticket ", e);
-                        }
-                    }
-                }
-                creds.add(tgt);
-            }
+            clearCredentials(subject, tgt);
             subject.getPrincipals().add(tgt.getClient());
             kerbTicket.set(tgt);
         } else {
             LOG.info("No TGT found in credentials");
+        }
+    }
+
+    public static void clearCredentials(Subject subject, KerberosTicket tgt) {
+        Set<Object> creds = subject.getPrivateCredentials();
+        synchronized(creds) {
+            Iterator<Object> iterator = creds.iterator();
+            while (iterator.hasNext()) {
+                Object o = iterator.next();
+                if (o instanceof KerberosTicket) {
+                    KerberosTicket t = (KerberosTicket)o;
+                    iterator.remove();
+                    try {
+                        t.destroy();
+                    } catch (DestroyFailedException e) {
+                        LOG.warn("Failed to destory ticket ", e);
+                    }
+                }
+            }
+            if(tgt != null) {
+                creds.add(tgt);
+            }
         }
     }
 

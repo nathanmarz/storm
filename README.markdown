@@ -253,7 +253,12 @@ under the License.
 * Aaron Dixon ([@atdixon](https://github.com/atdixon))
 * Roshan Naik ([@roshannaik](https://github.com/roshannaik))
 * John Fang ([@hustfxj](https://github.com/hustfxj))
-* Dan Bahir([#dbahir](https://github.com/dbahir))
+* Dan Bahir ([#dbahir](https://github.com/dbahir))
+* Alessandro Bellina ([#abellina](https://github.com/abellina))
+* Basti Liu ([@basti](https://github.com/bastiliu))
+* Jark Wu ([@jark](https://github.com/wuchong))
+* Cody Wang ([@unsleepy22](https://github.com/unsleepy22))
+
 
 ## Acknowledgements
 

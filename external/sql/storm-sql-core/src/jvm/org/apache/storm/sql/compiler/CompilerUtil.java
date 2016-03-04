@@ -79,8 +79,11 @@ public class CompilerUtil {
     private Statistic stats;
 
     public TableBuilderInfo field(String name, SqlTypeName type) {
-      RelDataType dataType = typeFactory.createSqlType(type);
-      fields.add(new FieldType(name, dataType));
+      return field(name, typeFactory.createSqlType(type));
+    }
+
+    public TableBuilderInfo field(String name, RelDataType type) {
+      fields.add(new FieldType(name, type));
       return this;
     }
 

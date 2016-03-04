@@ -15,7 +15,7 @@
 ;; limitations under the License.
 (ns org.apache.storm.daemon.common
   (:use [org.apache.storm log config util])
-  (:import [org.apache.storm.generated StormTopology
+  (:import [org.apache.storm.generated StormTopology NodeInfo
             InvalidTopologyException GlobalStreamId Grouping Grouping$_Fields]
            [org.apache.storm.utils Utils ConfigUtils IPredicate ThriftTopologyUtils]
            [org.apache.storm.daemon.metrics.reporters PreparableReporter]
@@ -23,15 +23,16 @@
   (:import [org.apache.storm.daemon.metrics MetricsUtils])
   (:import [org.apache.storm.task WorkerTopologyContext])
   (:import [org.apache.storm Constants])
+  (:import [org.apache.storm.cluster StormClusterStateImpl])
   (:import [org.apache.storm.metric SystemBolt])
   (:import [org.apache.storm.metric EventLoggerBolt])
   (:import [org.apache.storm.security.auth IAuthorizer])
   (:import [java.io InterruptedIOException]
            [org.json.simple JSONValue])
   (:import [java.util HashMap])
-  (:import [org.apache.storm Thrift])
+  (:import [org.apache.storm Thrift]
+           (org.apache.storm.daemon Acker))
   (:require [clojure.set :as set])
-  (:require [org.apache.storm.daemon.acker :as acker])
   (:require [metrics.reporters.jmx :as jmx])
   (:require [metrics.core  :refer [default-registry]]))
 
@@ -46,10 +47,10 @@
     (start-metrics-reporter reporter conf)))
 
 
-(def ACKER-COMPONENT-ID acker/ACKER-COMPONENT-ID)
-(def ACKER-INIT-STREAM-ID acker/ACKER-INIT-STREAM-ID)
-(def ACKER-ACK-STREAM-ID acker/ACKER-ACK-STREAM-ID)
-(def ACKER-FAIL-STREAM-ID acker/ACKER-FAIL-STREAM-ID)
+(def ACKER-COMPONENT-ID Acker/ACKER_COMPONENT_ID)
+(def ACKER-INIT-STREAM-ID Acker/ACKER_INIT_STREAM_ID)
+(def ACKER-ACK-STREAM-ID Acker/ACKER_ACK_STREAM_ID)
+(def ACKER-FAIL-STREAM-ID Acker/ACKER_FAIL_STREAM_ID)
 
 (def SYSTEM-STREAM-ID "__system")
 
@@ -85,17 +86,18 @@
 (defn new-executor-stats []
   (ExecutorStats. 0 0 0 0 0))
 
+
 (defn get-storm-id [storm-cluster-state storm-name]
-  (let [active-storms (.active-storms storm-cluster-state)
-        pred  (reify IPredicate (test [this x] (= storm-name (:storm-name (.storm-base storm-cluster-state x nil)))))]
+  (let [active-storms (.activeStorms storm-cluster-state)
+        pred  (reify IPredicate (test [this x] (= storm-name (.get_name (.stormBase storm-cluster-state x nil)))))]
     (Utils/findOne pred active-storms)
     ))
 
 (defn topology-bases [storm-cluster-state]
-  (let [active-topologies (.active-storms storm-cluster-state)]
+  (let [active-topologies (.activeStorms storm-cluster-state)]
     (into {}
           (dofor [id active-topologies]
-                 [id (.storm-base storm-cluster-state id nil)]
+                 [id  (.stormBase storm-cluster-state id nil)]
                  ))
     ))
 
@@ -222,10 +224,13 @@
                         ))]
     (merge spout-inputs bolt-inputs)))
 
+(defn mk-acker-bolt []
+  (Acker.))
+
 (defn add-acker! [storm-conf ^StormTopology ret]
   (let [num-executors (if (nil? (storm-conf TOPOLOGY-ACKER-EXECUTORS)) (storm-conf TOPOLOGY-WORKERS) (storm-conf TOPOLOGY-ACKER-EXECUTORS))
         acker-bolt (Thrift/prepareSerializedBoltDetails (acker-inputs ret)
-                                                        (new org.apache.storm.daemon.acker)
+                                                        (mk-acker-bolt)
                                                         {ACKER-ACK-STREAM-ID (Thrift/directOutputFields ["id"])
                                                          ACKER-FAIL-STREAM-ID (Thrift/directOutputFields ["id"])
                                                         }

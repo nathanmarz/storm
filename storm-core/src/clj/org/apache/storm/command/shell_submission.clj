@@ -17,7 +17,7 @@
   (:import [org.apache.storm StormSubmitter]
            [org.apache.storm.utils Utils]
            [org.apache.storm.zookeeper Zookeeper])
-  (:use [org.apache.storm util config log zookeeper])
+  (:use [org.apache.storm util config log])
   (:require [clojure.string :as str])
   (:import [org.apache.storm.utils ConfigUtils])
   (:gen-class))

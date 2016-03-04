@@ -17,7 +17,6 @@
   (:use [clojure test])
   (:require [org.apache.storm [testing :as testing]])
   (:require [org.apache.storm.daemon [nimbus :as nimbus]])
-  (:require [org.apache.storm [zookeeper :as zk]])
   (:require [org.apache.storm.security.auth [auth-test :refer [nimbus-timeout]]])
   (:import [java.nio ByteBuffer])
   (:import [org.apache.storm Config])
@@ -25,7 +24,7 @@
   (:import [org.apache.storm.generated NotAliveException])
   (:import [org.apache.storm.security.auth AuthUtils ThriftServer ThriftClient 
                                          ReqContext ThriftConnectionType])
-  (:use [org.apache.storm cluster util config log])
+  (:use [org.apache.storm util config log])
   (:use [org.apache.storm.daemon common nimbus])
   (:import [org.apache.storm.generated Nimbus Nimbus$Client Nimbus$Processor 
             AuthorizationException SubmitOptions TopologyInitialStatus KillOptions])

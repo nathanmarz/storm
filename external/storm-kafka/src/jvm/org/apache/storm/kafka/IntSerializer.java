@@ -30,10 +30,12 @@ public class IntSerializer implements Serializer<Integer> {
 
   @Override
   public byte[] serialize(String topic, Integer val) {
-    byte[] r = new byte[4];
-    IntBuffer b = ByteBuffer.wrap(r).asIntBuffer();
-    b.put(val);
-    return r;
+    return new byte[] {
+            (byte) (val >>> 24),
+            (byte) (val >>> 16),
+            (byte) (val >>> 8),
+            val.byteValue()
+        };
   }
 
   @Override

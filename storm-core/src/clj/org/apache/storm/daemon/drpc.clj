@@ -15,7 +15,8 @@
 ;; limitations under the License.
 
 (ns org.apache.storm.daemon.drpc
-  (:import [org.apache.storm.security.auth AuthUtils ThriftServer ThriftConnectionType ReqContext])
+  (:import [org.apache.storm.security.auth AuthUtils ThriftServer ThriftConnectionType ReqContext]
+           [org.apache.storm.ui UIHelpers IConfigurator FilterConfiguration])
   (:import [org.apache.storm.security.auth.authorizer DRPCAuthorizerBase])
   (:import [org.apache.storm.utils Utils])
   (:import [org.apache.storm.generated DistributedRPC DistributedRPC$Iface DistributedRPC$Processor
@@ -240,9 +241,8 @@
                     requests-middleware)
               filter-class (conf DRPC-HTTP-FILTER)
               filter-params (conf DRPC-HTTP-FILTER-PARAMS)
-              filters-confs [{:filter-class filter-class
-                              :filter-params filter-params}]
-              https-port (int (conf DRPC-HTTPS-PORT))
+              filters-confs [(FilterConfiguration. filter-class filter-params)]
+              https-port (int (or (conf DRPC-HTTPS-PORT) 0))
               https-ks-path (conf DRPC-HTTPS-KEYSTORE-PATH)
               https-ks-password (conf DRPC-HTTPS-KEYSTORE-PASSWORD)
               https-ks-type (conf DRPC-HTTPS-KEYSTORE-TYPE)
@@ -253,21 +253,21 @@
               https-want-client-auth (conf DRPC-HTTPS-WANT-CLIENT-AUTH)
               https-need-client-auth (conf DRPC-HTTPS-NEED-CLIENT-AUTH)]
 
-          (storm-run-jetty
-           {:port drpc-http-port
-            :configurator (fn [server]
-                            (config-ssl server
-                                        https-port
-                                        https-ks-path
-                                        https-ks-password
-                                        https-ks-type
-                                        https-key-password
-                                        https-ts-path
-                                        https-ts-password
-                                        https-ts-type
-                                        https-need-client-auth
-                                        https-want-client-auth)
-                            (config-filter server app filters-confs))})))
+          (UIHelpers/stormRunJetty
+            (int drpc-http-port)
+            (reify IConfigurator (execute [this server]
+                                   (UIHelpers/configSsl server
+                                     https-port
+                                     https-ks-path
+                                     https-ks-password
+                                     https-ks-type
+                                     https-key-password
+                                     https-ts-path
+                                     https-ts-password
+                                     https-ts-type
+                                     https-need-client-auth
+                                     https-want-client-auth)
+                                   (UIHelpers/configFilter server (ring.util.servlet/servlet app) filters-confs))))))
       (start-metrics-reporters conf)
       (when handler-server
         (.serve handler-server)))))

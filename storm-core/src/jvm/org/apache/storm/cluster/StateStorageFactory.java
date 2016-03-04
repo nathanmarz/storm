@@ -15,9 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.storm.cluster;
 
-package org.apache.storm.callback;
+import java.util.List;
+import java.util.Map;
 
-public interface Callback {
-    public <T> Object execute(T... args);
+import org.apache.zookeeper.data.ACL;
+
+public interface StateStorageFactory {
+
+    IStateStorage mkStore(Map config, Map auth_conf, List<ACL> acls, ClusterStateContext context);
 }

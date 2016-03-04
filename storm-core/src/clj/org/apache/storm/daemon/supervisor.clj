@@ -585,6 +585,16 @@
           (rm-topo-files conf storm-id localizer false)
           storm-id)))))
 
+(defn kill-existing-workers-with-change-in-components [supervisor existing-assignment new-assignment]
+  (let [assigned-executors (or (ls-local-assignments (:local-state supervisor)) {})
+        allocated (read-allocated-workers supervisor assigned-executors (Time/currentTimeSecs))
+        valid-allocated (filter-val (fn [[state _]] (= state :valid)) allocated)
+        port->worker-id (clojure.set/map-invert (map-val #((nth % 1) :port) valid-allocated))]
+    (doseq [p (set/intersection (set (keys existing-assignment))
+                                (set (keys new-assignment)))]
+      (if (not= (:executors (existing-assignment p)) (:executors (new-assignment p)))
+        (shutdown-worker supervisor (port->worker-id p))))))
+
 (defn ->LocalAssignment
   [{storm-id :storm-id executors :executors resources :resources}]
   (let [assignment (LocalAssignment. storm-id (->ExecutorInfo-list executors))]
@@ -662,6 +672,7 @@
       (doseq [p (set/difference (set (keys existing-assignment))
                                 (set (keys new-assignment)))]
         (.killedWorker isupervisor (int p)))
+      (kill-existing-workers-with-change-in-components supervisor existing-assignment new-assignment)
       (.assigned isupervisor (keys new-assignment))
       (ls-local-assignments! local-state
             new-assignment)

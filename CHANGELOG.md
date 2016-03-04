@@ -43,6 +43,7 @@
  * STORM-1521: When using Kerberos login from keytab with multiple bolts/executors ticket is not renewed in hbase bolt.
 
 ## 1.0.0
+ * STORM-1601: Check if /backpressure/storm-id node exists before requesting children
  * STORM-1574: Better handle backpressure exception etc.
  * STORM-1587: Avoid NPE while prining Metrics
  * STORM-1570: Storm SQL support for nested fields and array

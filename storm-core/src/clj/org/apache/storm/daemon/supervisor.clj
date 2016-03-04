@@ -290,6 +290,7 @@
             (Utils/forceDelete (ConfigUtils/workerHeartbeatsRoot conf id))
             ;; this avoids a race condition with worker or subprocess writing pid around same time
             (Utils/forceDelete (ConfigUtils/workerPidsRoot conf id))
+            (Utils/forceDelete (ConfigUtils/workerTmpRoot conf id))
             (Utils/forceDelete (ConfigUtils/workerRoot conf id))))
         (ConfigUtils/removeWorkerUserWSE conf id)
         (remove-dead-worker id)
@@ -416,6 +417,7 @@
               (log-message "Launching worker with assignment "
                 (get-worker-assignment-helper-msg assignment supervisor port id))
               (FileUtils/forceMkdir (File. pids-path))
+              (FileUtils/forceMkdir (File. (ConfigUtils/workerTmpRoot conf id)))
               (FileUtils/forceMkdir (File. hb-path))
               (launch-worker supervisor
                 (:storm-id assignment)
@@ -1157,6 +1159,7 @@
           storm-home (System/getProperty "storm.home")
           storm-options (System/getProperty "storm.options")
           storm-conf-file (System/getProperty "storm.conf.file")
+          worker-tmp-dir (ConfigUtils/workerTmpRoot conf worker-id)
           storm-log-dir (ConfigUtils/getLogDir)
           storm-log-conf-dir (conf STORM-LOG4J2-CONF-DIR)
           storm-log4j2-conf-dir (if storm-log-conf-dir
@@ -1233,6 +1236,7 @@
                      (str "-Dstorm.conf.file=" storm-conf-file)
                      (str "-Dstorm.options=" storm-options)
                      (str "-Dstorm.log.dir=" storm-log-dir)
+                     (str "-Djava.io.tmpdir=" worker-tmp-dir)
                      (str "-Dlogging.sensitivity=" logging-sensitivity)
                      (str "-Dlog4j.configurationFile=" log4j-configuration-file)
                      (str "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector")

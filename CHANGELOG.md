@@ -1,4 +1,5 @@
 ## 2.0.0
+ * STORM-1543: DRPCSpout should always try to reconnect disconnected DRPCInvocationsClient
  * STORM-1528: Fix CsvPreparableReporter log directory
  * STORM-1561: Supervisor should relaunch worker if assignments have changed
  * STORM-1283: port backtype.storm.MockAutoCred to java

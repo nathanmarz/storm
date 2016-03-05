@@ -22,7 +22,7 @@
             TestAggregatesCounter TestPlannerSpout TestPlannerBolt]
            [org.apache.storm.nimbus InMemoryTopologyActionNotifier]
            [org.apache.storm.generated GlobalStreamId]
-           [org.apache.storm ThriftMockAutoCred]
+           [org.apache.storm Thrift MockAutoCred]
            [org.apache.storm.stats BoltExecutorStats])
   (:import [org.apache.storm.testing.staticmocking MockedZookeeper])
   (:import [org.apache.storm.scheduler INimbus])

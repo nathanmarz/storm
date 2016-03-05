@@ -34,7 +34,7 @@ public class CommonStats {
     public static final String[] COMMON_FIELDS = {EMITTED, TRANSFERRED};
 
     protected final int rate;
-    protected final Map metricMap = new HashMap();
+    protected final Map<String, IMetric> metricMap = new HashMap<>();
 
     public CommonStats(int rate) {
         this.rate = rate;
@@ -55,11 +55,11 @@ public class CommonStats {
     }
 
     public IMetric get(String field) {
-        return (IMetric) StatsUtil.getByKeyword(metricMap, field);
+        return (IMetric) StatsUtil.getByKey(metricMap, field);
     }
 
     protected void put(String field, Object value) {
-        StatsUtil.putRawKV(metricMap, field, value);
+        StatsUtil.putKV(metricMap, field, value);
     }
 
     public void emittedTuple(String stream) {
@@ -89,12 +89,12 @@ public class CommonStats {
         for (String field : fields) {
             IMetric metric = this.get(field);
             if (metric instanceof MultiCountStatAndMetric) {
-                StatsUtil.putRawKV(ret, field, ((MultiCountStatAndMetric) metric).getTimeCounts());
+                StatsUtil.putKV(ret, field, ((MultiCountStatAndMetric) metric).getTimeCounts());
             } else if (metric instanceof MultiLatencyStatAndMetric) {
-                StatsUtil.putRawKV(ret, field, ((MultiLatencyStatAndMetric) metric).getTimeLatAvg());
+                StatsUtil.putKV(ret, field, ((MultiLatencyStatAndMetric) metric).getTimeLatAvg());
             }
         }
-        StatsUtil.putRawKV(ret, CommonStats.RATE, this.getRate());
+        StatsUtil.putKV(ret, CommonStats.RATE, this.getRate());
 
         return ret;
     }

@@ -19,9 +19,6 @@ package org.apache.storm.stats;
 
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.storm.generated.ExecutorSpecificStats;
-import org.apache.storm.generated.ExecutorStats;
-import org.apache.storm.generated.SpoutStats;
 import org.apache.storm.metric.internal.MultiCountStatAndMetric;
 import org.apache.storm.metric.internal.MultiLatencyStatAndMetric;
 
@@ -67,7 +64,7 @@ public class SpoutExecutorStats extends CommonStats {
         Map ret = new HashMap();
         ret.putAll(valueStats(CommonStats.COMMON_FIELDS));
         ret.putAll(valueStats(SpoutExecutorStats.SPOUT_FIELDS));
-        StatsUtil.putRawKV(ret, StatsUtil.TYPE, StatsUtil.KW_SPOUT);
+        StatsUtil.putKV(ret, StatsUtil.TYPE, StatsUtil.KW_SPOUT);
 
         return ret;
     }

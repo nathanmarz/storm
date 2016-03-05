@@ -132,9 +132,9 @@ public class StatsUtil {
      */
     public static Map aggBoltLatAndCount(Map id2execAvg, Map id2procAvg, Map id2numExec) {
         Map ret = new HashMap();
-        putRawKV(ret, EXEC_LAT_TOTAL, weightAvgAndSum(id2execAvg, id2numExec));
-        putRawKV(ret, PROC_LAT_TOTAL, weightAvgAndSum(id2procAvg, id2numExec));
-        putRawKV(ret, EXECUTED, sumValues(id2numExec));
+        putKV(ret, EXEC_LAT_TOTAL, weightAvgAndSum(id2execAvg, id2numExec));
+        putKV(ret, PROC_LAT_TOTAL, weightAvgAndSum(id2procAvg, id2numExec));
+        putKV(ret, EXECUTED, sumValues(id2numExec));
 
         return ret;
     }
@@ -144,8 +144,8 @@ public class StatsUtil {
      */
     public static Map aggSpoutLatAndCount(Map id2compAvg, Map id2numAcked) {
         Map ret = new HashMap();
-        putRawKV(ret, COMP_LAT_TOTAL, weightAvgAndSum(id2compAvg, id2numAcked));
-        putRawKV(ret, ACKED, sumValues(id2numAcked));
+        putKV(ret, COMP_LAT_TOTAL, weightAvgAndSum(id2compAvg, id2numAcked));
+        putKV(ret, ACKED, sumValues(id2numAcked));
 
         return ret;
     }
@@ -160,9 +160,9 @@ public class StatsUtil {
         }
         for (Object k : id2execAvg.keySet()) {
             Map subMap = new HashMap();
-            putRawKV(subMap, EXEC_LAT_TOTAL, weightAvg(id2execAvg, id2numExec, k));
-            putRawKV(subMap, PROC_LAT_TOTAL, weightAvg(id2procAvg, id2numExec, k));
-            putRawKV(subMap, EXECUTED, id2numExec.get(k));
+            putKV(subMap, EXEC_LAT_TOTAL, weightAvg(id2execAvg, id2numExec, k));
+            putKV(subMap, PROC_LAT_TOTAL, weightAvg(id2procAvg, id2numExec, k));
+            putKV(subMap, EXECUTED, id2numExec.get(k));
             ret.put(k, subMap);
         }
         return ret;
@@ -178,8 +178,8 @@ public class StatsUtil {
         }
         for (Object k : id2compAvg.keySet()) {
             Map subMap = new HashMap();
-            putRawKV(subMap, COMP_LAT_TOTAL, weightAvg(id2compAvg, id2acked, k));
-            putRawKV(subMap, ACKED, id2acked.get(k));
+            putKV(subMap, COMP_LAT_TOTAL, weightAvg(id2compAvg, id2acked, k));
+            putKV(subMap, ACKED, id2acked.get(k));
             ret.put(k, subMap);
         }
         return ret;
@@ -187,80 +187,80 @@ public class StatsUtil {
 
     public static Map aggPreMergeCompPageBolt(Map m, String window, boolean includeSys) {
         Map ret = new HashMap();
-        putRawKV(ret, EXECUTOR_ID, getByKeyword(m, "exec-id"));
-        putRawKV(ret, HOST, getByKeyword(m, HOST));
-        putRawKV(ret, PORT, getByKeyword(m, PORT));
-        putRawKV(ret, UPTIME, getByKeyword(m, UPTIME));
-        putRawKV(ret, NUM_EXECUTORS, 1);
-        putRawKV(ret, NUM_TASKS, getByKeyword(m, NUM_TASKS));
+        putKV(ret, EXECUTOR_ID, getByKey(m, "exec-id"));
+        putKV(ret, HOST, getByKey(m, HOST));
+        putKV(ret, PORT, getByKey(m, PORT));
+        putKV(ret, UPTIME, getByKey(m, UPTIME));
+        putKV(ret, NUM_EXECUTORS, 1);
+        putKV(ret, NUM_TASKS, getByKey(m, NUM_TASKS));
 
-        Map stat2win2sid2num = getMapByKeyword(m, STATS);
-        putRawKV(ret, CAPACITY, computeAggCapacity(stat2win2sid2num, getByKeywordOr0(m, UPTIME).intValue()));
+        Map stat2win2sid2num = getMapByKey(m, STATS);
+        putKV(ret, CAPACITY, computeAggCapacity(stat2win2sid2num, getByKeywordOr0(m, UPTIME).intValue()));
 
         // calc cid+sid->input_stats
         Map inputStats = new HashMap();
-        Map sid2acked = (Map) windowSetConverter(getMapByKeyword(stat2win2sid2num, ACKED), TO_STRING).get(window);
-        Map sid2failed = (Map) windowSetConverter(getMapByKeyword(stat2win2sid2num, FAILED), TO_STRING).get(window);
-        putRawKV(inputStats, ACKED, sid2acked != null ? sid2acked : new HashMap());
-        putRawKV(inputStats, FAILED, sid2failed != null ? sid2failed : new HashMap());
+        Map sid2acked = (Map) windowSetConverter(getMapByKey(stat2win2sid2num, ACKED), TO_STRING).get(window);
+        Map sid2failed = (Map) windowSetConverter(getMapByKey(stat2win2sid2num, FAILED), TO_STRING).get(window);
+        putKV(inputStats, ACKED, sid2acked != null ? sid2acked : new HashMap());
+        putKV(inputStats, FAILED, sid2failed != null ? sid2failed : new HashMap());
 
         inputStats = swapMapOrder(inputStats);
 
-        Map sid2execLat = (Map) windowSetConverter(getMapByKeyword(stat2win2sid2num, EXEC_LATENCIES), TO_STRING).get(window);
-        Map sid2procLat = (Map) windowSetConverter(getMapByKeyword(stat2win2sid2num, PROC_LATENCIES), TO_STRING).get(window);
-        Map sid2exec = (Map) windowSetConverter(getMapByKeyword(stat2win2sid2num, EXECUTED), TO_STRING).get(window);
+        Map sid2execLat = (Map) windowSetConverter(getMapByKey(stat2win2sid2num, EXEC_LATENCIES), TO_STRING).get(window);
+        Map sid2procLat = (Map) windowSetConverter(getMapByKey(stat2win2sid2num, PROC_LATENCIES), TO_STRING).get(window);
+        Map sid2exec = (Map) windowSetConverter(getMapByKey(stat2win2sid2num, EXECUTED), TO_STRING).get(window);
         mergeMaps(inputStats, aggBoltStreamsLatAndCount(sid2execLat, sid2procLat, sid2exec));
-        putRawKV(ret, CID_SID_TO_IN_STATS, inputStats);
+        putKV(ret, CID_SID_TO_IN_STATS, inputStats);
 
         // calc sid->output_stats
         Map outputStats = new HashMap();
-        Map sid2emitted = (Map) windowSetConverter(getMapByKeyword(stat2win2sid2num, EMITTED), TO_STRING).get(window);
-        Map sid2transferred = (Map) windowSetConverter(getMapByKeyword(stat2win2sid2num, TRANSFERRED), TO_STRING).get(window);
+        Map sid2emitted = (Map) windowSetConverter(getMapByKey(stat2win2sid2num, EMITTED), TO_STRING).get(window);
+        Map sid2transferred = (Map) windowSetConverter(getMapByKey(stat2win2sid2num, TRANSFERRED), TO_STRING).get(window);
         if (sid2emitted != null) {
-            putRawKV(outputStats, EMITTED, filterSysStreams(sid2emitted, includeSys));
+            putKV(outputStats, EMITTED, filterSysStreams(sid2emitted, includeSys));
         } else {
-            putRawKV(outputStats, EMITTED, new HashMap());
+            putKV(outputStats, EMITTED, new HashMap());
         }
         if (sid2transferred != null) {
-            putRawKV(outputStats, TRANSFERRED, filterSysStreams(sid2transferred, includeSys));
+            putKV(outputStats, TRANSFERRED, filterSysStreams(sid2transferred, includeSys));
         } else {
-            putRawKV(outputStats, TRANSFERRED, new HashMap());
+            putKV(outputStats, TRANSFERRED, new HashMap());
         }
         outputStats = swapMapOrder(outputStats);
-        putRawKV(ret, SID_TO_OUT_STATS, outputStats);
+        putKV(ret, SID_TO_OUT_STATS, outputStats);
 
         return ret;
     }
 
     public static Map aggPreMergeCompPageSpout(Map m, String window, boolean includeSys) {
         Map ret = new HashMap();
-        putRawKV(ret, EXECUTOR_ID, getByKeyword(m, "exec-id"));
-        putRawKV(ret, HOST, getByKeyword(m, HOST));
-        putRawKV(ret, PORT, getByKeyword(m, PORT));
-        putRawKV(ret, UPTIME, getByKeyword(m, UPTIME));
-        putRawKV(ret, NUM_EXECUTORS, 1);
-        putRawKV(ret, NUM_TASKS, getByKeyword(m, NUM_TASKS));
+        putKV(ret, EXECUTOR_ID, getByKey(m, "exec-id"));
+        putKV(ret, HOST, getByKey(m, HOST));
+        putKV(ret, PORT, getByKey(m, PORT));
+        putKV(ret, UPTIME, getByKey(m, UPTIME));
+        putKV(ret, NUM_EXECUTORS, 1);
+        putKV(ret, NUM_TASKS, getByKey(m, NUM_TASKS));
 
-        Map stat2win2sid2num = getMapByKeyword(m, STATS);
+        Map stat2win2sid2num = getMapByKey(m, STATS);
 
         // calc sid->output-stats
         Map outputStats = new HashMap();
-        Map win2sid2acked = windowSetConverter(getMapByKeyword(stat2win2sid2num, ACKED), TO_STRING);
-        Map win2sid2failed = windowSetConverter(getMapByKeyword(stat2win2sid2num, FAILED), TO_STRING);
-        Map win2sid2emitted = windowSetConverter(getMapByKeyword(stat2win2sid2num, EMITTED), TO_STRING);
-        Map win2sid2transferred = windowSetConverter(getMapByKeyword(stat2win2sid2num, TRANSFERRED), TO_STRING);
-        Map win2sid2compLat = windowSetConverter(getMapByKeyword(stat2win2sid2num, COMP_LATENCIES), TO_STRING);
+        Map win2sid2acked = windowSetConverter(getMapByKey(stat2win2sid2num, ACKED), TO_STRING);
+        Map win2sid2failed = windowSetConverter(getMapByKey(stat2win2sid2num, FAILED), TO_STRING);
+        Map win2sid2emitted = windowSetConverter(getMapByKey(stat2win2sid2num, EMITTED), TO_STRING);
+        Map win2sid2transferred = windowSetConverter(getMapByKey(stat2win2sid2num, TRANSFERRED), TO_STRING);
+        Map win2sid2compLat = windowSetConverter(getMapByKey(stat2win2sid2num, COMP_LATENCIES), TO_STRING);
 
-        putRawKV(outputStats, ACKED, win2sid2acked.get(window));
-        putRawKV(outputStats, FAILED, win2sid2failed.get(window));
-        putRawKV(outputStats, EMITTED, filterSysStreams((Map) win2sid2emitted.get(window), includeSys));
-        putRawKV(outputStats, TRANSFERRED, filterSysStreams((Map) win2sid2transferred.get(window), includeSys));
+        putKV(outputStats, ACKED, win2sid2acked.get(window));
+        putKV(outputStats, FAILED, win2sid2failed.get(window));
+        putKV(outputStats, EMITTED, filterSysStreams((Map) win2sid2emitted.get(window), includeSys));
+        putKV(outputStats, TRANSFERRED, filterSysStreams((Map) win2sid2transferred.get(window), includeSys));
         outputStats = swapMapOrder(outputStats);
 
         Map sid2compLat = (Map) win2sid2compLat.get(window);
         Map sid2acked = (Map) win2sid2acked.get(window);
         mergeMaps(outputStats, aggSpoutStreamsLatAndCount(sid2compLat, sid2acked));
-        putRawKV(ret, SID_TO_OUT_STATS, outputStats);
+        putKV(ret, SID_TO_OUT_STATS, outputStats);
 
         return ret;
     }
@@ -269,14 +269,14 @@ public class StatsUtil {
         Map ret = new HashMap();
 
         Map subRet = new HashMap();
-        putRawKV(subRet, NUM_EXECUTORS, 1);
-        putRawKV(subRet, NUM_TASKS, getByKeyword(m, NUM_TASKS));
+        putKV(subRet, NUM_EXECUTORS, 1);
+        putKV(subRet, NUM_TASKS, getByKey(m, NUM_TASKS));
 
-        Map stat2win2sid2num = getMapByKeyword(m, STATS);
-        putRawKV(subRet, CAPACITY, computeAggCapacity(stat2win2sid2num, getByKeywordOr0(m, UPTIME).intValue()));
+        Map stat2win2sid2num = getMapByKey(m, STATS);
+        putKV(subRet, CAPACITY, computeAggCapacity(stat2win2sid2num, getByKeywordOr0(m, UPTIME).intValue()));
 
         for (String key : new String[]{EMITTED, TRANSFERRED, ACKED, FAILED}) {
-            Map stat = (Map) windowSetConverter(getMapByKeyword(stat2win2sid2num, key), TO_STRING).get(window);
+            Map stat = (Map) windowSetConverter(getMapByKey(stat2win2sid2num, key), TO_STRING).get(window);
             if (EMITTED.equals(key) || TRANSFERRED.equals(key)) {
                 stat = filterSysStreams(stat, includeSys);
             }
@@ -286,16 +286,16 @@ public class StatsUtil {
                     sum += ((Number) o).longValue();
                 }
             }
-            putRawKV(subRet, key, sum);
+            putKV(subRet, key, sum);
         }
 
-        Map win2sid2execLat = windowSetConverter(getMapByKeyword(stat2win2sid2num, EXEC_LATENCIES), TO_STRING);
-        Map win2sid2procLat = windowSetConverter(getMapByKeyword(stat2win2sid2num, PROC_LATENCIES), TO_STRING);
-        Map win2sid2exec = windowSetConverter(getMapByKeyword(stat2win2sid2num, EXECUTED), TO_STRING);
+        Map win2sid2execLat = windowSetConverter(getMapByKey(stat2win2sid2num, EXEC_LATENCIES), TO_STRING);
+        Map win2sid2procLat = windowSetConverter(getMapByKey(stat2win2sid2num, PROC_LATENCIES), TO_STRING);
+        Map win2sid2exec = windowSetConverter(getMapByKey(stat2win2sid2num, EXECUTED), TO_STRING);
         subRet.putAll(aggBoltLatAndCount(
                 (Map) win2sid2execLat.get(window), (Map) win2sid2procLat.get(window), (Map) win2sid2exec.get(window)));
 
-        ret.put(getByKeyword(m, "comp-id"), subRet);
+        ret.put(getByKey(m, "comp-id"), subRet);
         return ret;
     }
 
@@ -303,13 +303,13 @@ public class StatsUtil {
         Map ret = new HashMap();
 
         Map subRet = new HashMap();
-        putRawKV(subRet, NUM_EXECUTORS, 1);
-        putRawKV(subRet, NUM_TASKS, getByKeyword(m, NUM_TASKS));
+        putKV(subRet, NUM_EXECUTORS, 1);
+        putKV(subRet, NUM_TASKS, getByKey(m, NUM_TASKS));
 
         // no capacity for spout
-        Map stat2win2sid2num = getMapByKeyword(m, STATS);
+        Map stat2win2sid2num = getMapByKey(m, STATS);
         for (String key : new String[]{EMITTED, TRANSFERRED, FAILED}) {
-            Map stat = (Map) windowSetConverter(getMapByKeyword(stat2win2sid2num, key), TO_STRING).get(window);
+            Map stat = (Map) windowSetConverter(getMapByKey(stat2win2sid2num, key), TO_STRING).get(window);
             if (EMITTED.equals(key) || TRANSFERRED.equals(key)) {
                 stat = filterSysStreams(stat, includeSys);
             }
@@ -319,60 +319,60 @@ public class StatsUtil {
                     sum += ((Number) o).longValue();
                 }
             }
-            putRawKV(subRet, key, sum);
+            putKV(subRet, key, sum);
         }
 
-        Map win2sid2compLat = windowSetConverter(getMapByKeyword(stat2win2sid2num, COMP_LATENCIES), TO_STRING);
-        Map win2sid2acked = windowSetConverter(getMapByKeyword(stat2win2sid2num, ACKED), TO_STRING);
+        Map win2sid2compLat = windowSetConverter(getMapByKey(stat2win2sid2num, COMP_LATENCIES), TO_STRING);
+        Map win2sid2acked = windowSetConverter(getMapByKey(stat2win2sid2num, ACKED), TO_STRING);
         subRet.putAll(aggSpoutLatAndCount((Map) win2sid2compLat.get(window), (Map) win2sid2acked.get(window)));
 
-        ret.put(getByKeyword(m, "comp-id"), subRet);
+        ret.put(getByKey(m, "comp-id"), subRet);
         return ret;
     }
 
     public static Map mergeAggCompStatsCompPageBolt(Map accBoltStats, Map boltStats) {
         Map ret = new HashMap();
 
-        Map accIn = getMapByKeyword(accBoltStats, CID_SID_TO_IN_STATS);
-        Map accOut = getMapByKeyword(accBoltStats, SID_TO_OUT_STATS);
-        Map boltIn = getMapByKeyword(boltStats, CID_SID_TO_IN_STATS);
-        Map boltOut = getMapByKeyword(boltStats, SID_TO_OUT_STATS);
+        Map accIn = getMapByKey(accBoltStats, CID_SID_TO_IN_STATS);
+        Map accOut = getMapByKey(accBoltStats, SID_TO_OUT_STATS);
+        Map boltIn = getMapByKey(boltStats, CID_SID_TO_IN_STATS);
+        Map boltOut = getMapByKey(boltStats, SID_TO_OUT_STATS);
 
         int numExecutors = getByKeywordOr0(accBoltStats, NUM_EXECUTORS).intValue();
-        putRawKV(ret, NUM_EXECUTORS, numExecutors + 1);
-        putRawKV(ret, NUM_TASKS, sumOr0(
+        putKV(ret, NUM_EXECUTORS, numExecutors + 1);
+        putKV(ret, NUM_TASKS, sumOr0(
                 getByKeywordOr0(accBoltStats, NUM_TASKS), getByKeywordOr0(boltStats, NUM_TASKS)));
 
         // (merge-with (partial merge-with sum-or-0) acc-out spout-out)
-        putRawKV(ret, SID_TO_OUT_STATS, fullMergeWithSum(accOut, boltOut));
-        putRawKV(ret, CID_SID_TO_IN_STATS, fullMergeWithSum(accIn, boltIn));
+        putKV(ret, SID_TO_OUT_STATS, fullMergeWithSum(accOut, boltOut));
+        putKV(ret, CID_SID_TO_IN_STATS, fullMergeWithSum(accIn, boltIn));
 
         long executed = sumStreamsLong(boltIn, EXECUTED);
-        putRawKV(ret, EXECUTED, executed);
+        putKV(ret, EXECUTED, executed);
 
         Map executorStats = new HashMap();
-        putRawKV(executorStats, EXECUTOR_ID, getByKeyword(boltStats, EXECUTOR_ID));
-        putRawKV(executorStats, UPTIME, getByKeyword(boltStats, UPTIME));
-        putRawKV(executorStats, HOST, getByKeyword(boltStats, HOST));
-        putRawKV(executorStats, PORT, getByKeyword(boltStats, PORT));
-        putRawKV(executorStats, CAPACITY, getByKeyword(boltStats, CAPACITY));
+        putKV(executorStats, EXECUTOR_ID, getByKey(boltStats, EXECUTOR_ID));
+        putKV(executorStats, UPTIME, getByKey(boltStats, UPTIME));
+        putKV(executorStats, HOST, getByKey(boltStats, HOST));
+        putKV(executorStats, PORT, getByKey(boltStats, PORT));
+        putKV(executorStats, CAPACITY, getByKey(boltStats, CAPACITY));
 
-        putRawKV(executorStats, EMITTED, sumStreamsLong(boltOut, EMITTED));
-        putRawKV(executorStats, TRANSFERRED, sumStreamsLong(boltOut, TRANSFERRED));
-        putRawKV(executorStats, ACKED, sumStreamsLong(boltIn, ACKED));
-        putRawKV(executorStats, FAILED, sumStreamsLong(boltIn, FAILED));
-        putRawKV(executorStats, EXECUTED, executed);
+        putKV(executorStats, EMITTED, sumStreamsLong(boltOut, EMITTED));
+        putKV(executorStats, TRANSFERRED, sumStreamsLong(boltOut, TRANSFERRED));
+        putKV(executorStats, ACKED, sumStreamsLong(boltIn, ACKED));
+        putKV(executorStats, FAILED, sumStreamsLong(boltIn, FAILED));
+        putKV(executorStats, EXECUTED, executed);
 
         if (executed > 0) {
-            putRawKV(executorStats, EXEC_LATENCY, sumStreamsDouble(boltIn, EXEC_LAT_TOTAL) / executed);
-            putRawKV(executorStats, PROC_LATENCY, sumStreamsDouble(boltIn, PROC_LAT_TOTAL) / executed);
+            putKV(executorStats, EXEC_LATENCY, sumStreamsDouble(boltIn, EXEC_LAT_TOTAL) / executed);
+            putKV(executorStats, PROC_LATENCY, sumStreamsDouble(boltIn, PROC_LAT_TOTAL) / executed);
         } else {
-            putRawKV(executorStats, EXEC_LATENCY, null);
-            putRawKV(executorStats, PROC_LATENCY, null);
+            putKV(executorStats, EXEC_LATENCY, null);
+            putKV(executorStats, PROC_LATENCY, null);
         }
-        List executorStatsList = ((List) getByKeyword(accBoltStats, EXECUTOR_STATS));
+        List executorStatsList = ((List) getByKey(accBoltStats, EXECUTOR_STATS));
         executorStatsList.add(executorStats);
-        putRawKV(ret, EXECUTOR_STATS, executorStatsList);
+        putKV(ret, EXECUTOR_STATS, executorStatsList);
 
         return ret;
     }
@@ -380,34 +380,34 @@ public class StatsUtil {
     public static Map mergeAggCompStatsCompPageSpout(Map accSpoutStats, Map spoutStats) {
         Map ret = new HashMap();
 
-        Map accOut = getMapByKeyword(accSpoutStats, SID_TO_OUT_STATS);
-        Map spoutOut = getMapByKeyword(spoutStats, SID_TO_OUT_STATS);
+        Map accOut = getMapByKey(accSpoutStats, SID_TO_OUT_STATS);
+        Map spoutOut = getMapByKey(spoutStats, SID_TO_OUT_STATS);
 
         int numExecutors = getByKeywordOr0(accSpoutStats, NUM_EXECUTORS).intValue();
-        putRawKV(ret, NUM_EXECUTORS, numExecutors + 1);
-        putRawKV(ret, NUM_TASKS, sumOr0(
+        putKV(ret, NUM_EXECUTORS, numExecutors + 1);
+        putKV(ret, NUM_TASKS, sumOr0(
                 getByKeywordOr0(accSpoutStats, NUM_TASKS), getByKeywordOr0(spoutStats, NUM_TASKS)));
-        putRawKV(ret, SID_TO_OUT_STATS, fullMergeWithSum(accOut, spoutOut));
+        putKV(ret, SID_TO_OUT_STATS, fullMergeWithSum(accOut, spoutOut));
 
         Map executorStats = new HashMap();
-        putRawKV(executorStats, EXECUTOR_ID, getByKeyword(spoutStats, EXECUTOR_ID));
-        putRawKV(executorStats, UPTIME, getByKeyword(spoutStats, UPTIME));
-        putRawKV(executorStats, HOST, getByKeyword(spoutStats, HOST));
-        putRawKV(executorStats, PORT, getByKeyword(spoutStats, PORT));
+        putKV(executorStats, EXECUTOR_ID, getByKey(spoutStats, EXECUTOR_ID));
+        putKV(executorStats, UPTIME, getByKey(spoutStats, UPTIME));
+        putKV(executorStats, HOST, getByKey(spoutStats, HOST));
+        putKV(executorStats, PORT, getByKey(spoutStats, PORT));
 
-        putRawKV(executorStats, EMITTED, sumStreamsLong(spoutOut, EMITTED));
-        putRawKV(executorStats, TRANSFERRED, sumStreamsLong(spoutOut, TRANSFERRED));
-        putRawKV(executorStats, FAILED, sumStreamsLong(spoutOut, FAILED));
+        putKV(executorStats, EMITTED, sumStreamsLong(spoutOut, EMITTED));
+        putKV(executorStats, TRANSFERRED, sumStreamsLong(spoutOut, TRANSFERRED));
+        putKV(executorStats, FAILED, sumStreamsLong(spoutOut, FAILED));
         long acked = sumStreamsLong(spoutOut, ACKED);
-        putRawKV(executorStats, ACKED, acked);
+        putKV(executorStats, ACKED, acked);
         if (acked > 0) {
-            putRawKV(executorStats, COMP_LATENCY, sumStreamsDouble(spoutOut, COMP_LAT_TOTAL) / acked);
+            putKV(executorStats, COMP_LATENCY, sumStreamsDouble(spoutOut, COMP_LAT_TOTAL) / acked);
         } else {
-            putRawKV(executorStats, COMP_LATENCY, null);
+            putKV(executorStats, COMP_LATENCY, null);
         }
-        List executorStatsList = ((List) getByKeyword(accSpoutStats, EXECUTOR_STATS));
+        List executorStatsList = ((List) getByKey(accSpoutStats, EXECUTOR_STATS));
         executorStatsList.add(executorStats);
-        putRawKV(ret, EXECUTOR_STATS, executorStatsList);
+        putKV(ret, EXECUTOR_STATS, executorStatsList);
 
         return ret;
     }
@@ -415,24 +415,24 @@ public class StatsUtil {
     public static Map mergeAggCompStatsTopoPageBolt(Map accBoltStats, Map boltStats) {
         Map ret = new HashMap();
         Integer numExecutors = getByKeywordOr0(accBoltStats, NUM_EXECUTORS).intValue();
-        putRawKV(ret, NUM_EXECUTORS, numExecutors + 1);
-        putRawKV(ret, NUM_TASKS, sumOr0(
+        putKV(ret, NUM_EXECUTORS, numExecutors + 1);
+        putKV(ret, NUM_TASKS, sumOr0(
                 getByKeywordOr0(accBoltStats, NUM_TASKS), getByKeywordOr0(boltStats, NUM_TASKS)));
-        putRawKV(ret, EMITTED, sumOr0(
+        putKV(ret, EMITTED, sumOr0(
                 getByKeywordOr0(accBoltStats, EMITTED), getByKeywordOr0(boltStats, EMITTED)));
-        putRawKV(ret, TRANSFERRED, sumOr0(
+        putKV(ret, TRANSFERRED, sumOr0(
                 getByKeywordOr0(accBoltStats, TRANSFERRED), getByKeywordOr0(boltStats, TRANSFERRED)));
-        putRawKV(ret, EXEC_LAT_TOTAL, sumOr0(
+        putKV(ret, EXEC_LAT_TOTAL, sumOr0(
                 getByKeywordOr0(accBoltStats, EXEC_LAT_TOTAL), getByKeywordOr0(boltStats, EXEC_LAT_TOTAL)));
-        putRawKV(ret, PROC_LAT_TOTAL, sumOr0(
+        putKV(ret, PROC_LAT_TOTAL, sumOr0(
                 getByKeywordOr0(accBoltStats, PROC_LAT_TOTAL), getByKeywordOr0(boltStats, PROC_LAT_TOTAL)));
-        putRawKV(ret, EXECUTED, sumOr0(
+        putKV(ret, EXECUTED, sumOr0(
                 getByKeywordOr0(accBoltStats, EXECUTED), getByKeywordOr0(boltStats, EXECUTED)));
-        putRawKV(ret, ACKED, sumOr0(
+        putKV(ret, ACKED, sumOr0(
                 getByKeywordOr0(accBoltStats, ACKED), getByKeywordOr0(boltStats, ACKED)));
-        putRawKV(ret, FAILED, sumOr0(
+        putKV(ret, FAILED, sumOr0(
                 getByKeywordOr0(accBoltStats, FAILED), getByKeywordOr0(boltStats, FAILED)));
-        putRawKV(ret, CAPACITY, maxOr0(
+        putKV(ret, CAPACITY, maxOr0(
                 getByKeywordOr0(accBoltStats, CAPACITY), getByKeywordOr0(boltStats, CAPACITY)));
 
         return ret;
@@ -441,18 +441,18 @@ public class StatsUtil {
     public static Map mergeAggCompStatsTopoPageSpout(Map accSpoutStats, Map spoutStats) {
         Map ret = new HashMap();
         Integer numExecutors = getByKeywordOr0(accSpoutStats, NUM_EXECUTORS).intValue();
-        putRawKV(ret, NUM_EXECUTORS, numExecutors + 1);
-        putRawKV(ret, NUM_TASKS, sumOr0(
+        putKV(ret, NUM_EXECUTORS, numExecutors + 1);
+        putKV(ret, NUM_TASKS, sumOr0(
                 getByKeywordOr0(accSpoutStats, NUM_TASKS), getByKeywordOr0(spoutStats, NUM_TASKS)));
-        putRawKV(ret, EMITTED, sumOr0(
+        putKV(ret, EMITTED, sumOr0(
                 getByKeywordOr0(accSpoutStats, EMITTED), getByKeywordOr0(spoutStats, EMITTED)));
-        putRawKV(ret, TRANSFERRED, sumOr0(
+        putKV(ret, TRANSFERRED, sumOr0(
                 getByKeywordOr0(accSpoutStats, TRANSFERRED), getByKeywordOr0(spoutStats, TRANSFERRED)));
-        putRawKV(ret, COMP_LAT_TOTAL, sumOr0(
+        putKV(ret, COMP_LAT_TOTAL, sumOr0(
                 getByKeywordOr0(accSpoutStats, COMP_LAT_TOTAL), getByKeywordOr0(spoutStats, COMP_LAT_TOTAL)));
-        putRawKV(ret, ACKED, sumOr0(
+        putKV(ret, ACKED, sumOr0(
                 getByKeywordOr0(accSpoutStats, ACKED), getByKeywordOr0(spoutStats, ACKED)));
-        putRawKV(ret, FAILED, sumOr0(
+        putKV(ret, FAILED, sumOr0(
                 getByKeywordOr0(accSpoutStats, FAILED), getByKeywordOr0(spoutStats, FAILED)));
 
         return ret;
@@ -465,15 +465,15 @@ public class StatsUtil {
     public static Map aggTopoExecStats(String window, boolean includeSys, Map accStats, Map newData, String compType) {
         Map ret = new HashMap();
 
-        Set workerSet = (Set) getByKeyword(accStats, WORKERS_SET);
-        Map bolt2stats = getMapByKeyword(accStats, BOLT_TO_STATS);
-        Map spout2stats = getMapByKeyword(accStats, SPOUT_TO_STATS);
-        Map win2emitted = getMapByKeyword(accStats, WIN_TO_EMITTED);
-        Map win2transferred = getMapByKeyword(accStats, WIN_TO_TRANSFERRED);
-        Map win2compLatWgtAvg = getMapByKeyword(accStats, WIN_TO_COMP_LAT_WGT_AVG);
-        Map win2acked = getMapByKeyword(accStats, WIN_TO_ACKED);
-        Map win2failed = getMapByKeyword(accStats, WIN_TO_FAILED);
-        Map stats = getMapByKeyword(newData, STATS);
+        Set workerSet = (Set) getByKey(accStats, WORKERS_SET);
+        Map bolt2stats = getMapByKey(accStats, BOLT_TO_STATS);
+        Map spout2stats = getMapByKey(accStats, SPOUT_TO_STATS);
+        Map win2emitted = getMapByKey(accStats, WIN_TO_EMITTED);
+        Map win2transferred = getMapByKey(accStats, WIN_TO_TRANSFERRED);
+        Map win2compLatWgtAvg = getMapByKey(accStats, WIN_TO_COMP_LAT_WGT_AVG);
+        Map win2acked = getMapByKey(accStats, WIN_TO_ACKED);
+        Map win2failed = getMapByKey(accStats, WIN_TO_FAILED);
+        Map stats = getMapByKey(newData, STATS);
 
         boolean isSpout = compType.equals(SPOUT);
         Map cid2stat2num;
@@ -484,37 +484,37 @@ public class StatsUtil {
         }
 
         Map w2compLatWgtAvg, w2acked;
-        Map compLatStats = getMapByKeyword(stats, COMP_LATENCIES);
+        Map compLatStats = getMapByKey(stats, COMP_LATENCIES);
         if (isSpout) { // agg spout stats
             Map mm = new HashMap();
 
-            Map acked = getMapByKeyword(stats, ACKED);
+            Map acked = getMapByKey(stats, ACKED);
             for (Object win : acked.keySet()) {
                 mm.put(win, aggSpoutLatAndCount((Map) compLatStats.get(win), (Map) acked.get(win)));
             }
             mm = swapMapOrder(mm);
-            w2compLatWgtAvg = getMapByKeyword(mm, COMP_LAT_TOTAL);
-            w2acked = getMapByKeyword(mm, ACKED);
+            w2compLatWgtAvg = getMapByKey(mm, COMP_LAT_TOTAL);
+            w2acked = getMapByKey(mm, ACKED);
         } else {
             w2compLatWgtAvg = null;
-            w2acked = aggregateCountStreams(getMapByKeyword(stats, ACKED));
+            w2acked = aggregateCountStreams(getMapByKey(stats, ACKED));
         }
 
-        workerSet.add(Lists.newArrayList(getByKeyword(newData, HOST), getByKeyword(newData, PORT)));
-        putRawKV(ret, WORKERS_SET, workerSet);
-        putRawKV(ret, BOLT_TO_STATS, bolt2stats);
-        putRawKV(ret, SPOUT_TO_STATS, spout2stats);
-        putRawKV(ret, WIN_TO_EMITTED, mergeWithSum(win2emitted, aggregateCountStreams(
-                filterSysStreams(getMapByKeyword(stats, EMITTED), includeSys))));
-        putRawKV(ret, WIN_TO_TRANSFERRED, mergeWithSum(win2transferred, aggregateCountStreams(
-                filterSysStreams(getMapByKeyword(stats, TRANSFERRED), includeSys))));
-        putRawKV(ret, WIN_TO_COMP_LAT_WGT_AVG, mergeWithSum(win2compLatWgtAvg, w2compLatWgtAvg));
+        workerSet.add(Lists.newArrayList(getByKey(newData, HOST), getByKey(newData, PORT)));
+        putKV(ret, WORKERS_SET, workerSet);
+        putKV(ret, BOLT_TO_STATS, bolt2stats);
+        putKV(ret, SPOUT_TO_STATS, spout2stats);
+        putKV(ret, WIN_TO_EMITTED, mergeWithSum(win2emitted, aggregateCountStreams(
+                filterSysStreams(getMapByKey(stats, EMITTED), includeSys))));
+        putKV(ret, WIN_TO_TRANSFERRED, mergeWithSum(win2transferred, aggregateCountStreams(
+                filterSysStreams(getMapByKey(stats, TRANSFERRED), includeSys))));
+        putKV(ret, WIN_TO_COMP_LAT_WGT_AVG, mergeWithSum(win2compLatWgtAvg, w2compLatWgtAvg));
 
-        //boolean isSpoutStat = SPOUT.equals(((Keyword) getByKeyword(stats, TYPE)).getName());
-        putRawKV(ret, WIN_TO_ACKED, isSpout ? mergeWithSum(win2acked, w2acked) : win2acked);
-        putRawKV(ret, WIN_TO_FAILED, isSpout ?
-                mergeWithSum(aggregateCountStreams(getMapByKeyword(stats, FAILED)), win2failed) : win2failed);
-        putRawKV(ret, TYPE, getByKeyword(stats, TYPE));
+        //boolean isSpoutStat = SPOUT.equals(((Keyword) getByKey(stats, TYPE)).getName());
+        putKV(ret, WIN_TO_ACKED, isSpout ? mergeWithSum(win2acked, w2acked) : win2acked);
+        putKV(ret, WIN_TO_FAILED, isSpout ?
+                mergeWithSum(aggregateCountStreams(getMapByKey(stats, FAILED)), win2failed) : win2failed);
+        putKV(ret, TYPE, getByKey(stats, TYPE));
 
         // (merge-with merge-agg-comp-stats-topo-page-bolt/spout (acc-stats comp-key) cid->statk->num)
         // (acc-stats comp-key) ==> bolt2stats/spout2stats
@@ -527,7 +527,7 @@ public class StatsUtil {
             for (Object k : keySet) {
                 mm.put(k, mergeAggCompStatsTopoPageSpout((Map) spout2stats.get(k), (Map) cid2stat2num.get(k)));
             }
-            putRawKV(ret, SPOUT_TO_STATS, mm);
+            putKV(ret, SPOUT_TO_STATS, mm);
         } else {
             Set<Object> keySet = new HashSet<>();
             keySet.addAll(bolt2stats.keySet());
@@ -537,7 +537,7 @@ public class StatsUtil {
             for (Object k : keySet) {
                 mm.put(k, mergeAggCompStatsTopoPageBolt((Map) bolt2stats.get(k), (Map) cid2stat2num.get(k)));
             }
-            putRawKV(ret, BOLT_TO_STATS, mm);
+            putKV(ret, BOLT_TO_STATS, mm);
         }
 
         return ret;
@@ -555,18 +555,18 @@ public class StatsUtil {
 
     public static Map aggregateTopoStats(String win, boolean includeSys, List data) {
         Map initVal = new HashMap();
-        putRawKV(initVal, WORKERS_SET, new HashSet());
-        putRawKV(initVal, BOLT_TO_STATS, new HashMap());
-        putRawKV(initVal, SPOUT_TO_STATS, new HashMap());
-        putRawKV(initVal, WIN_TO_EMITTED, new HashMap());
-        putRawKV(initVal, WIN_TO_TRANSFERRED, new HashMap());
-        putRawKV(initVal, WIN_TO_COMP_LAT_WGT_AVG, new HashMap());
-        putRawKV(initVal, WIN_TO_ACKED, new HashMap());
-        putRawKV(initVal, WIN_TO_FAILED, new HashMap());
+        putKV(initVal, WORKERS_SET, new HashSet());
+        putKV(initVal, BOLT_TO_STATS, new HashMap());
+        putKV(initVal, SPOUT_TO_STATS, new HashMap());
+        putKV(initVal, WIN_TO_EMITTED, new HashMap());
+        putKV(initVal, WIN_TO_TRANSFERRED, new HashMap());
+        putKV(initVal, WIN_TO_COMP_LAT_WGT_AVG, new HashMap());
+        putKV(initVal, WIN_TO_ACKED, new HashMap());
+        putKV(initVal, WIN_TO_FAILED, new HashMap());
 
         for (Object o : data) {
             Map newData = (Map) o;
-            String compType = ((Keyword) getByKeyword(newData, TYPE)).getName();
+            String compType = ((Keyword) getByKey(newData, TYPE)).getName();
             initVal = aggTopoExecStats(win, includeSys, initVal, newData, compType);
         }
 
@@ -576,11 +576,11 @@ public class StatsUtil {
     public static Map postAggregateTopoStats(
             Map task2comp, Map exec2nodePort, Map accData, String topologyId, IStormClusterState clusterState) {
         Map ret = new HashMap();
-        putRawKV(ret, NUM_TASKS, task2comp.size());
-        putRawKV(ret, NUM_WORKERS, ((Set) getByKeyword(accData, WORKERS_SET)).size());
-        putRawKV(ret, NUM_EXECUTORS, exec2nodePort != null ? exec2nodePort.size() : 0);
+        putKV(ret, NUM_TASKS, task2comp.size());
+        putKV(ret, NUM_WORKERS, ((Set) getByKey(accData, WORKERS_SET)).size());
+        putKV(ret, NUM_EXECUTORS, exec2nodePort != null ? exec2nodePort.size() : 0);
 
-        Map bolt2stats = getMapByKeyword(accData, BOLT_TO_STATS);
+        Map bolt2stats = getMapByKey(accData, BOLT_TO_STATS);
         Map aggBolt2stats = new HashMap();
         for (Object o : bolt2stats.entrySet()) {
             Map.Entry e = (Map.Entry) o;
@@ -589,20 +589,20 @@ public class StatsUtil {
             long executed = getByKeywordOr0(m, EXECUTED).longValue();
             if (executed > 0) {
                 double execLatencyTotal = getByKeywordOr0(m, EXEC_LAT_TOTAL).doubleValue();
-                putRawKV(m, EXEC_LATENCY, execLatencyTotal / executed);
+                putKV(m, EXEC_LATENCY, execLatencyTotal / executed);
 
                 double procLatencyTotal = getByKeywordOr0(m, PROC_LAT_TOTAL).doubleValue();
-                putRawKV(m, PROC_LATENCY, procLatencyTotal / executed);
+                putKV(m, PROC_LATENCY, procLatencyTotal / executed);
             }
-            removeByKeyword(m, EXEC_LAT_TOTAL);
-            removeByKeyword(m, PROC_LAT_TOTAL);
-            putRawKV(m, "last-error", getLastError(clusterState, topologyId, id));
+            remove(m, EXEC_LAT_TOTAL);
+            remove(m, PROC_LAT_TOTAL);
+            putKV(m, "last-error", getLastError(clusterState, topologyId, id));
 
             aggBolt2stats.put(id, m);
         }
-        putRawKV(ret, BOLT_TO_STATS, aggBolt2stats);
+        putKV(ret, BOLT_TO_STATS, aggBolt2stats);
 
-        Map spout2stats = getMapByKeyword(accData, SPOUT_TO_STATS);
+        Map spout2stats = getMapByKey(accData, SPOUT_TO_STATS);
         Map spoutBolt2stats = new HashMap();
         for (Object o : spout2stats.entrySet()) {
             Map.Entry e = (Map.Entry) o;
@@ -611,20 +611,20 @@ public class StatsUtil {
             long acked = getByKeywordOr0(m, ACKED).longValue();
             if (acked > 0) {
                 double compLatencyTotal = getByKeywordOr0(m, COMP_LAT_TOTAL).doubleValue();
-                putRawKV(m, COMP_LATENCY, compLatencyTotal / acked);
+                putKV(m, COMP_LATENCY, compLatencyTotal / acked);
             }
-            removeByKeyword(m, COMP_LAT_TOTAL);
-            putRawKV(m, "last-error", getLastError(clusterState, topologyId, id));
+            remove(m, COMP_LAT_TOTAL);
+            putKV(m, "last-error", getLastError(clusterState, topologyId, id));
 
             spoutBolt2stats.put(id, m);
         }
-        putRawKV(ret, SPOUT_TO_STATS, spoutBolt2stats);
+        putKV(ret, SPOUT_TO_STATS, spoutBolt2stats);
 
-        putRawKV(ret, WIN_TO_EMITTED, mapKeyStr(getMapByKeyword(accData, WIN_TO_EMITTED)));
-        putRawKV(ret, WIN_TO_TRANSFERRED, mapKeyStr(getMapByKeyword(accData, WIN_TO_TRANSFERRED)));
-        putRawKV(ret, WIN_TO_ACKED, mapKeyStr(getMapByKeyword(accData, WIN_TO_ACKED)));
-        putRawKV(ret, WIN_TO_FAILED, mapKeyStr(getMapByKeyword(accData, WIN_TO_FAILED)));
-        putRawKV(ret, WIN_TO_COMP_LAT, computeWeightedAveragesPerWindow(
+        putKV(ret, WIN_TO_EMITTED, mapKeyStr(getMapByKey(accData, WIN_TO_EMITTED)));
+        putKV(ret, WIN_TO_TRANSFERRED, mapKeyStr(getMapByKey(accData, WIN_TO_TRANSFERRED)));
+        putKV(ret, WIN_TO_ACKED, mapKeyStr(getMapByKey(accData, WIN_TO_ACKED)));
+        putKV(ret, WIN_TO_FAILED, mapKeyStr(getMapByKey(accData, WIN_TO_FAILED)));
+        putKV(ret, WIN_TO_COMP_LAT, computeWeightedAveragesPerWindow(
                 accData, WIN_TO_COMP_LAT_WGT_AVG, WIN_TO_ACKED));
         return ret;
     }
@@ -654,11 +654,11 @@ public class StatsUtil {
             executeLatencies.add(stat.get_specific().get_bolt().get_execute_ms_avg());
         }
         mergeMaps(ret, commonStats);
-        putRawKV(ret, ACKED, aggregateCounts(acked));
-        putRawKV(ret, FAILED, aggregateCounts(failed));
-        putRawKV(ret, EXECUTED, aggregateCounts(executed));
-        putRawKV(ret, PROC_LATENCIES, aggregateAverages(processLatencies, acked));
-        putRawKV(ret, EXEC_LATENCIES, aggregateAverages(executeLatencies, executed));
+        putKV(ret, ACKED, aggregateCounts(acked));
+        putKV(ret, FAILED, aggregateCounts(failed));
+        putKV(ret, EXECUTED, aggregateCounts(executed));
+        putKV(ret, PROC_LATENCIES, aggregateAverages(processLatencies, acked));
+        putKV(ret, EXEC_LATENCIES, aggregateAverages(executeLatencies, executed));
 
         return ret;
     }
@@ -684,9 +684,9 @@ public class StatsUtil {
             completeLatencies.add(stat.get_specific().get_spout().get_complete_ms_avg());
         }
         mergeMaps(ret, commonStats);
-        putRawKV(ret, ACKED, aggregateCounts(acked));
-        putRawKV(ret, FAILED, aggregateCounts(failed));
-        putRawKV(ret, COMP_LATENCIES, aggregateAverages(completeLatencies, acked));
+        putKV(ret, ACKED, aggregateCounts(acked));
+        putKV(ret, FAILED, aggregateCounts(failed));
+        putKV(ret, COMP_LATENCIES, aggregateAverages(completeLatencies, acked));
 
         return ret;
     }
@@ -702,17 +702,17 @@ public class StatsUtil {
             transferred.add(stat.get_transferred());
         }
 
-        putRawKV(ret, EMITTED, aggregateCounts(emitted));
-        putRawKV(ret, TRANSFERRED, aggregateCounts(transferred));
+        putKV(ret, EMITTED, aggregateCounts(emitted));
+        putKV(ret, TRANSFERRED, aggregateCounts(transferred));
         return ret;
     }
 
     public static Map preProcessStreamSummary(Map streamSummary, boolean includeSys) {
-        Map emitted = getMapByKeyword(streamSummary, EMITTED);
-        Map transferred = getMapByKeyword(streamSummary, TRANSFERRED);
+        Map emitted = getMapByKey(streamSummary, EMITTED);
+        Map transferred = getMapByKey(streamSummary, TRANSFERRED);
 
-        putRawKV(streamSummary, EMITTED, filterSysStreams(emitted, includeSys));
-        putRawKV(streamSummary, TRANSFERRED, filterSysStreams(transferred, includeSys));
+        putKV(streamSummary, EMITTED, filterSysStreams(emitted, includeSys));
+        putKV(streamSummary, TRANSFERRED, filterSysStreams(transferred, includeSys));
 
         return streamSummary;
     }
@@ -785,26 +785,26 @@ public class StatsUtil {
 
     public static Map aggregateSpoutStreams(Map stats) {
         Map ret = new HashMap();
-        putRawKV(ret, ACKED, aggregateCountStreams(getMapByKeyword(stats, ACKED)));
-        putRawKV(ret, FAILED, aggregateCountStreams(getMapByKeyword(stats, FAILED)));
-        putRawKV(ret, EMITTED, aggregateCountStreams(getMapByKeyword(stats, EMITTED)));
-        putRawKV(ret, TRANSFERRED, aggregateCountStreams(getMapByKeyword(stats, TRANSFERRED)));
-        putRawKV(ret, COMP_LATENCIES, aggregateAvgStreams(
-                getMapByKeyword(stats, COMP_LATENCIES), getMapByKeyword(stats, ACKED)));
+        putKV(ret, ACKED, aggregateCountStreams(getMapByKey(stats, ACKED)));
+        putKV(ret, FAILED, aggregateCountStreams(getMapByKey(stats, FAILED)));
+        putKV(ret, EMITTED, aggregateCountStreams(getMapByKey(stats, EMITTED)));
+        putKV(ret, TRANSFERRED, aggregateCountStreams(getMapByKey(stats, TRANSFERRED)));
+        putKV(ret, COMP_LATENCIES, aggregateAvgStreams(
+                getMapByKey(stats, COMP_LATENCIES), getMapByKey(stats, ACKED)));
         return ret;
     }
 
     public static Map aggregateBoltStreams(Map stats) {
         Map ret = new HashMap();
-        putRawKV(ret, ACKED, aggregateCountStreams(getMapByKeyword(stats, ACKED)));
-        putRawKV(ret, FAILED, aggregateCountStreams(getMapByKeyword(stats, FAILED)));
-        putRawKV(ret, EMITTED, aggregateCountStreams(getMapByKeyword(stats, EMITTED)));
-        putRawKV(ret, TRANSFERRED, aggregateCountStreams(getMapByKeyword(stats, TRANSFERRED)));
-        putRawKV(ret, EXECUTED, aggregateCountStreams(getMapByKeyword(stats, EXECUTED)));
-        putRawKV(ret, PROC_LATENCIES, aggregateAvgStreams(
-                getMapByKeyword(stats, PROC_LATENCIES), getMapByKeyword(stats, ACKED)));
-        putRawKV(ret, EXEC_LATENCIES, aggregateAvgStreams(
-                getMapByKeyword(stats, EXEC_LATENCIES), getMapByKeyword(stats, EXECUTED)));
+        putKV(ret, ACKED, aggregateCountStreams(getMapByKey(stats, ACKED)));
+        putKV(ret, FAILED, aggregateCountStreams(getMapByKey(stats, FAILED)));
+        putKV(ret, EMITTED, aggregateCountStreams(getMapByKey(stats, EMITTED)));
+        putKV(ret, TRANSFERRED, aggregateCountStreams(getMapByKey(stats, TRANSFERRED)));
+        putKV(ret, EXECUTED, aggregateCountStreams(getMapByKey(stats, EXECUTED)));
+        putKV(ret, PROC_LATENCIES, aggregateAvgStreams(
+                getMapByKey(stats, PROC_LATENCIES), getMapByKey(stats, ACKED)));
+        putKV(ret, EXEC_LATENCIES, aggregateAvgStreams(
+                getMapByKey(stats, EXEC_LATENCIES), getMapByKey(stats, EXECUTED)));
         return ret;
     }
 
@@ -815,38 +815,38 @@ public class StatsUtil {
         Map ret = new HashMap();
 
         Map m = new HashMap();
-        for (Object win : getMapByKeyword(newStats, EXECUTED).keySet()) {
+        for (Object win : getMapByKey(newStats, EXECUTED).keySet()) {
             m.put(win, aggBoltLatAndCount(
-                    (Map) (getMapByKeyword(newStats, EXEC_LATENCIES)).get(win),
-                    (Map) (getMapByKeyword(newStats, PROC_LATENCIES)).get(win),
-                    (Map) (getMapByKeyword(newStats, EXECUTED)).get(win)));
+                    (Map) (getMapByKey(newStats, EXEC_LATENCIES)).get(win),
+                    (Map) (getMapByKey(newStats, PROC_LATENCIES)).get(win),
+                    (Map) (getMapByKey(newStats, EXECUTED)).get(win)));
         }
         m = swapMapOrder(m);
 
-        Map win2execLatWgtAvg = getMapByKeyword(m, EXEC_LAT_TOTAL);
-        Map win2procLatWgtAvg = getMapByKeyword(m, PROC_LAT_TOTAL);
-        Map win2executed = getMapByKeyword(m, EXECUTED);
+        Map win2execLatWgtAvg = getMapByKey(m, EXEC_LAT_TOTAL);
+        Map win2procLatWgtAvg = getMapByKey(m, PROC_LAT_TOTAL);
+        Map win2executed = getMapByKey(m, EXECUTED);
 
-        Map emitted = getMapByKeyword(newStats, EMITTED);
+        Map emitted = getMapByKey(newStats, EMITTED);
         emitted = mergeWithSum(aggregateCountStreams(filterSysStreams(emitted, includeSys)),
-                getMapByKeyword(accStats, WIN_TO_EMITTED));
-        putRawKV(ret, WIN_TO_EMITTED, emitted);
+                getMapByKey(accStats, WIN_TO_EMITTED));
+        putKV(ret, WIN_TO_EMITTED, emitted);
 
-        Map transferred = getMapByKeyword(newStats, TRANSFERRED);
+        Map transferred = getMapByKey(newStats, TRANSFERRED);
         transferred = mergeWithSum(aggregateCountStreams(filterSysStreams(transferred, includeSys)),
-                getMapByKeyword(accStats, WIN_TO_TRANSFERRED));
-        putRawKV(ret, WIN_TO_TRANSFERRED, transferred);
+                getMapByKey(accStats, WIN_TO_TRANSFERRED));
+        putKV(ret, WIN_TO_TRANSFERRED, transferred);
 
-        putRawKV(ret, WIN_TO_EXEC_LAT_WGT_AVG, mergeWithSum(
-                getMapByKeyword(accStats, WIN_TO_EXEC_LAT_WGT_AVG), win2execLatWgtAvg));
-        putRawKV(ret, WIN_TO_PROC_LAT_WGT_AVG, mergeWithSum(
-                getMapByKeyword(accStats, WIN_TO_PROC_LAT_WGT_AVG), win2procLatWgtAvg));
-        putRawKV(ret, WIN_TO_EXECUTED, mergeWithSum(
-                getMapByKeyword(accStats, WIN_TO_EXECUTED), win2executed));
-        putRawKV(ret, WIN_TO_ACKED, mergeWithSum(
-                aggregateCountStreams(getMapByKeyword(newStats, ACKED)), getMapByKeyword(accStats, WIN_TO_ACKED)));
-        putRawKV(ret, WIN_TO_FAILED, mergeWithSum(
-                aggregateCountStreams(getMapByKeyword(newStats, FAILED)), getMapByKeyword(accStats, WIN_TO_FAILED)));
+        putKV(ret, WIN_TO_EXEC_LAT_WGT_AVG, mergeWithSum(
+                getMapByKey(accStats, WIN_TO_EXEC_LAT_WGT_AVG), win2execLatWgtAvg));
+        putKV(ret, WIN_TO_PROC_LAT_WGT_AVG, mergeWithSum(
+                getMapByKey(accStats, WIN_TO_PROC_LAT_WGT_AVG), win2procLatWgtAvg));
+        putKV(ret, WIN_TO_EXECUTED, mergeWithSum(
+                getMapByKey(accStats, WIN_TO_EXECUTED), win2executed));
+        putKV(ret, WIN_TO_ACKED, mergeWithSum(
+                aggregateCountStreams(getMapByKey(newStats, ACKED)), getMapByKey(accStats, WIN_TO_ACKED)));
+        putKV(ret, WIN_TO_FAILED, mergeWithSum(
+                aggregateCountStreams(getMapByKey(newStats, FAILED)), getMapByKey(accStats, WIN_TO_FAILED)));
 
         return ret;
     }
@@ -858,32 +858,32 @@ public class StatsUtil {
         Map ret = new HashMap();
 
         Map m = new HashMap();
-        for (Object win : getMapByKeyword(newStats, ACKED).keySet()) {
+        for (Object win : getMapByKey(newStats, ACKED).keySet()) {
             m.put(win, aggSpoutLatAndCount(
-                    (Map) (getMapByKeyword(newStats, COMP_LATENCIES)).get(win),
-                    (Map) (getMapByKeyword(newStats, ACKED)).get(win)));
+                    (Map) (getMapByKey(newStats, COMP_LATENCIES)).get(win),
+                    (Map) (getMapByKey(newStats, ACKED)).get(win)));
         }
         m = swapMapOrder(m);
 
-        Map win2compLatWgtAvg = getMapByKeyword(m, COMP_LAT_TOTAL);
-        Map win2acked = getMapByKeyword(m, ACKED);
+        Map win2compLatWgtAvg = getMapByKey(m, COMP_LAT_TOTAL);
+        Map win2acked = getMapByKey(m, ACKED);
 
-        Map emitted = getMapByKeyword(newStats, EMITTED);
+        Map emitted = getMapByKey(newStats, EMITTED);
         emitted = mergeWithSum(aggregateCountStreams(filterSysStreams(emitted, includeSys)),
-                getMapByKeyword(accStats, WIN_TO_EMITTED));
-        putRawKV(ret, WIN_TO_EMITTED, emitted);
+                getMapByKey(accStats, WIN_TO_EMITTED));
+        putKV(ret, WIN_TO_EMITTED, emitted);
 
-        Map transferred = getMapByKeyword(newStats, TRANSFERRED);
+        Map transferred = getMapByKey(newStats, TRANSFERRED);
         transferred = mergeWithSum(aggregateCountStreams(filterSysStreams(transferred, includeSys)),
-                getMapByKeyword(accStats, WIN_TO_TRANSFERRED));
-        putRawKV(ret, WIN_TO_TRANSFERRED, transferred);
+                getMapByKey(accStats, WIN_TO_TRANSFERRED));
+        putKV(ret, WIN_TO_TRANSFERRED, transferred);
 
-        putRawKV(ret, WIN_TO_COMP_LAT_WGT_AVG, mergeWithSum(
-                getMapByKeyword(accStats, WIN_TO_COMP_LAT_WGT_AVG), win2compLatWgtAvg));
-        putRawKV(ret, WIN_TO_ACKED, mergeWithSum(
-                getMapByKeyword(accStats, WIN_TO_ACKED), win2acked));
-        putRawKV(ret, WIN_TO_FAILED, mergeWithSum(
-                aggregateCountStreams(getMapByKeyword(newStats, FAILED)), getMapByKeyword(accStats, WIN_TO_FAILED)));
+        putKV(ret, WIN_TO_COMP_LAT_WGT_AVG, mergeWithSum(
+                getMapByKey(accStats, WIN_TO_COMP_LAT_WGT_AVG), win2compLatWgtAvg));
+        putKV(ret, WIN_TO_ACKED, mergeWithSum(
+                getMapByKey(accStats, WIN_TO_ACKED), win2acked));
+        putKV(ret, WIN_TO_FAILED, mergeWithSum(
+                aggregateCountStreams(getMapByKey(newStats, FAILED)), getMapByKey(accStats, WIN_TO_FAILED)));
 
         return ret;
     }
@@ -925,25 +925,25 @@ public class StatsUtil {
         boolean isSpout = SPOUT.equals(compType);
 
         Map initVal = new HashMap();
-        putRawKV(initVal, WIN_TO_ACKED, new HashMap());
-        putRawKV(initVal, WIN_TO_FAILED, new HashMap());
-        putRawKV(initVal, WIN_TO_EMITTED, new HashMap());
-        putRawKV(initVal, WIN_TO_TRANSFERRED, new HashMap());
+        putKV(initVal, WIN_TO_ACKED, new HashMap());
+        putKV(initVal, WIN_TO_FAILED, new HashMap());
+        putKV(initVal, WIN_TO_EMITTED, new HashMap());
+        putKV(initVal, WIN_TO_TRANSFERRED, new HashMap());
 
         Map stats = new HashMap();
-        putRawKV(stats, EXECUTOR_STATS, new ArrayList());
-        putRawKV(stats, SID_TO_OUT_STATS, new HashMap());
+        putKV(stats, EXECUTOR_STATS, new ArrayList());
+        putKV(stats, SID_TO_OUT_STATS, new HashMap());
         if (isSpout) {
-            putRawKV(initVal, TYPE, KW_SPOUT);
-            putRawKV(initVal, WIN_TO_COMP_LAT_WGT_AVG, new HashMap());
+            putKV(initVal, TYPE, KW_SPOUT);
+            putKV(initVal, WIN_TO_COMP_LAT_WGT_AVG, new HashMap());
         } else {
-            putRawKV(initVal, TYPE, KW_BOLT);
-            putRawKV(initVal, WIN_TO_EXECUTED, new HashMap());
-            putRawKV(stats, CID_SID_TO_IN_STATS, new HashMap());
-            putRawKV(initVal, WIN_TO_EXEC_LAT_WGT_AVG, new HashMap());
-            putRawKV(initVal, WIN_TO_PROC_LAT_WGT_AVG, new HashMap());
+            putKV(initVal, TYPE, KW_BOLT);
+            putKV(initVal, WIN_TO_EXECUTED, new HashMap());
+            putKV(stats, CID_SID_TO_IN_STATS, new HashMap());
+            putKV(initVal, WIN_TO_EXEC_LAT_WGT_AVG, new HashMap());
+            putKV(initVal, WIN_TO_PROC_LAT_WGT_AVG, new HashMap());
         }
-        putRawKV(initVal, STATS, stats);
+        putKV(initVal, STATS, stats);
 
         for (Object o : data) {
             initVal = aggCompExecStats(window, includeSys, initVal, (Map) o, compType);
@@ -959,17 +959,17 @@ public class StatsUtil {
     public static Map aggCompExecStats(String window, boolean includeSys, Map accStats, Map newData, String compType) {
         Map ret = new HashMap();
         if (SPOUT.equals(compType)) {
-            ret.putAll(aggSpoutExecWinStats(accStats, getMapByKeyword(newData, STATS), includeSys));
-            putRawKV(ret, STATS, mergeAggCompStatsCompPageSpout(
-                    getMapByKeyword(accStats, STATS),
+            ret.putAll(aggSpoutExecWinStats(accStats, getMapByKey(newData, STATS), includeSys));
+            putKV(ret, STATS, mergeAggCompStatsCompPageSpout(
+                    getMapByKey(accStats, STATS),
                     aggPreMergeCompPageSpout(newData, window, includeSys)));
         } else {
-            ret.putAll(aggBoltExecWinStats(accStats, getMapByKeyword(newData, STATS), includeSys));
-            putRawKV(ret, STATS, mergeAggCompStatsCompPageBolt(
-                    getMapByKeyword(accStats, STATS),
+            ret.putAll(aggBoltExecWinStats(accStats, getMapByKey(newData, STATS), includeSys));
+            putKV(ret, STATS, mergeAggCompStatsCompPageBolt(
+                    getMapByKey(accStats, STATS),
                     aggPreMergeCompPageBolt(newData, window, includeSys)));
         }
-        putRawKV(ret, TYPE, keyword(compType));
+        putKV(ret, TYPE, keyword(compType));
 
         return ret;
     }
@@ -977,23 +977,23 @@ public class StatsUtil {
     public static Map postAggregateCompStats(Map task2component, Map exec2hostPort, Map accData) {
         Map ret = new HashMap();
 
-        String compType = ((Keyword) getByKeyword(accData, TYPE)).getName();
-        Map stats = getMapByKeyword(accData, STATS);
+        String compType = ((Keyword) getByKey(accData, TYPE)).getName();
+        Map stats = getMapByKey(accData, STATS);
         Integer numTasks = getByKeywordOr0(stats, NUM_TASKS).intValue();
         Integer numExecutors = getByKeywordOr0(stats, NUM_EXECUTORS).intValue();
-        Map outStats = getMapByKeyword(stats, SID_TO_OUT_STATS);
+        Map outStats = getMapByKey(stats, SID_TO_OUT_STATS);
 
-        putRawKV(ret, TYPE, keyword(compType));
-        putRawKV(ret, NUM_TASKS, numTasks);
-        putRawKV(ret, NUM_EXECUTORS, numExecutors);
-        putRawKV(ret, EXECUTOR_STATS, getByKeyword(stats, EXECUTOR_STATS));
-        putRawKV(ret, WIN_TO_EMITTED, mapKeyStr(getMapByKeyword(accData, WIN_TO_EMITTED)));
-        putRawKV(ret, WIN_TO_TRANSFERRED, mapKeyStr(getMapByKeyword(accData, WIN_TO_TRANSFERRED)));
-        putRawKV(ret, WIN_TO_ACKED, mapKeyStr(getMapByKeyword(accData, WIN_TO_ACKED)));
-        putRawKV(ret, WIN_TO_FAILED, mapKeyStr(getMapByKeyword(accData, WIN_TO_FAILED)));
+        putKV(ret, TYPE, keyword(compType));
+        putKV(ret, NUM_TASKS, numTasks);
+        putKV(ret, NUM_EXECUTORS, numExecutors);
+        putKV(ret, EXECUTOR_STATS, getByKey(stats, EXECUTOR_STATS));
+        putKV(ret, WIN_TO_EMITTED, mapKeyStr(getMapByKey(accData, WIN_TO_EMITTED)));
+        putKV(ret, WIN_TO_TRANSFERRED, mapKeyStr(getMapByKey(accData, WIN_TO_TRANSFERRED)));
+        putKV(ret, WIN_TO_ACKED, mapKeyStr(getMapByKey(accData, WIN_TO_ACKED)));
+        putKV(ret, WIN_TO_FAILED, mapKeyStr(getMapByKey(accData, WIN_TO_FAILED)));
 
         if (BOLT.equals(compType)) {
-            Map inStats = getMapByKeyword(stats, CID_SID_TO_IN_STATS);
+            Map inStats = getMapByKey(stats, CID_SID_TO_IN_STATS);
 
             Map inStats2 = new HashMap();
             for (Object o : inStats.entrySet()) {
@@ -1004,23 +1004,23 @@ public class StatsUtil {
                 if (executed > 0) {
                     double executeLatencyTotal = getByKeywordOr0(v, EXEC_LAT_TOTAL).doubleValue();
                     double processLatencyTotal = getByKeywordOr0(v, PROC_LAT_TOTAL).doubleValue();
-                    putRawKV(v, EXEC_LATENCY, executeLatencyTotal / executed);
-                    putRawKV(v, PROC_LATENCY, processLatencyTotal / executed);
+                    putKV(v, EXEC_LATENCY, executeLatencyTotal / executed);
+                    putKV(v, PROC_LATENCY, processLatencyTotal / executed);
                 } else {
-                    putRawKV(v, EXEC_LATENCY, 0.0);
-                    putRawKV(v, PROC_LATENCY, 0.0);
+                    putKV(v, EXEC_LATENCY, 0.0);
+                    putKV(v, PROC_LATENCY, 0.0);
                 }
-                removeByKeyword(v, EXEC_LAT_TOTAL);
-                removeByKeyword(v, PROC_LAT_TOTAL);
+                remove(v, EXEC_LAT_TOTAL);
+                remove(v, PROC_LAT_TOTAL);
                 inStats2.put(k, v);
             }
-            putRawKV(ret, CID_SID_TO_IN_STATS, inStats2);
+            putKV(ret, CID_SID_TO_IN_STATS, inStats2);
 
-            putRawKV(ret, SID_TO_OUT_STATS, outStats);
-            putRawKV(ret, WIN_TO_EXECUTED, mapKeyStr(getMapByKeyword(accData, WIN_TO_EXECUTED)));
-            putRawKV(ret, WIN_TO_EXEC_LAT, computeWeightedAveragesPerWindow(
+            putKV(ret, SID_TO_OUT_STATS, outStats);
+            putKV(ret, WIN_TO_EXECUTED, mapKeyStr(getMapByKey(accData, WIN_TO_EXECUTED)));
+            putKV(ret, WIN_TO_EXEC_LAT, computeWeightedAveragesPerWindow(
                     accData, WIN_TO_EXEC_LAT_WGT_AVG, WIN_TO_EXECUTED));
-            putRawKV(ret, WIN_TO_PROC_LAT, computeWeightedAveragesPerWindow(
+            putKV(ret, WIN_TO_PROC_LAT, computeWeightedAveragesPerWindow(
                     accData, WIN_TO_PROC_LAT_WGT_AVG, WIN_TO_EXECUTED));
         } else {
             Map outStats2 = new HashMap();
@@ -1031,15 +1031,15 @@ public class StatsUtil {
                 long acked = getByKeywordOr0(v, ACKED).longValue();
                 if (acked > 0) {
                     double compLatencyTotal = getByKeywordOr0(v, COMP_LAT_TOTAL).doubleValue();
-                    putRawKV(v, COMP_LATENCY, compLatencyTotal / acked);
+                    putKV(v, COMP_LATENCY, compLatencyTotal / acked);
                 } else {
-                    putRawKV(v, COMP_LATENCY, 0.0);
+                    putKV(v, COMP_LATENCY, 0.0);
                 }
-                removeByKeyword(v, COMP_LAT_TOTAL);
+                remove(v, COMP_LAT_TOTAL);
                 outStats2.put(k, v);
             }
-            putRawKV(ret, SID_TO_OUT_STATS, outStats2);
-            putRawKV(ret, WIN_TO_COMP_LAT, computeWeightedAveragesPerWindow(
+            putKV(ret, SID_TO_OUT_STATS, outStats2);
+            putKV(ret, WIN_TO_COMP_LAT, computeWeightedAveragesPerWindow(
                     accData, WIN_TO_COMP_LAT_WGT_AVG, WIN_TO_ACKED));
         }
 
@@ -1077,16 +1077,16 @@ public class StatsUtil {
     public static Map clojurifyExecutorStats(ExecutorStats stats) {
         Map ret = new HashMap();
 
-        putRawKV(ret, EMITTED, stats.get_emitted());
-        putRawKV(ret, TRANSFERRED, stats.get_transferred());
-        putRawKV(ret, "rate", stats.get_rate());
+        putKV(ret, EMITTED, stats.get_emitted());
+        putKV(ret, TRANSFERRED, stats.get_transferred());
+        putKV(ret, "rate", stats.get_rate());
 
         if (stats.get_specific().is_set_bolt()) {
             mergeMaps(ret, clojurifySpecificStats(stats.get_specific().get_bolt()));
-            putRawKV(ret, TYPE, KW_BOLT);
+            putKV(ret, TYPE, KW_BOLT);
         } else {
             mergeMaps(ret, clojurifySpecificStats(stats.get_specific().get_spout()));
-            putRawKV(ret, TYPE, KW_SPOUT);
+            putKV(ret, TYPE, KW_SPOUT);
         }
 
         return ret;
@@ -1094,9 +1094,9 @@ public class StatsUtil {
 
     public static Map clojurifySpecificStats(SpoutStats stats) {
         Map ret = new HashMap();
-        putRawKV(ret, ACKED, stats.get_acked());
-        putRawKV(ret, FAILED, stats.get_failed());
-        putRawKV(ret, COMP_LATENCIES, stats.get_complete_ms_avg());
+        putKV(ret, ACKED, stats.get_acked());
+        putKV(ret, FAILED, stats.get_failed());
+        putKV(ret, COMP_LATENCIES, stats.get_complete_ms_avg());
 
         return ret;
     }
@@ -1110,11 +1110,11 @@ public class StatsUtil {
         Map executed = windowSetConverter(stats.get_executed(), FROM_GSID, IDENTITY);
         Map executeAvg = windowSetConverter(stats.get_execute_ms_avg(), FROM_GSID, IDENTITY);
 
-        putRawKV(ret, ACKED, acked);
-        putRawKV(ret, FAILED, failed);
-        putRawKV(ret, PROC_LATENCIES, processAvg);
-        putRawKV(ret, EXECUTED, executed);
-        putRawKV(ret, EXEC_LATENCIES, executeAvg);
+        putKV(ret, ACKED, acked);
+        putKV(ret, FAILED, failed);
+        putKV(ret, PROC_LATENCIES, processAvg);
+        putKV(ret, EXECUTED, executed);
+        putKV(ret, EXEC_LATENCIES, executeAvg);
 
         return ret;
     }
@@ -1140,22 +1140,25 @@ public class StatsUtil {
 
         for (List hostPort : hostPorts) {
             Map m = new HashMap();
-            putRawKV(m, HOST, hostPort.get(0));
-            putRawKV(m, PORT, hostPort.get(1));
+            putKV(m, HOST, hostPort.get(0));
+            putKV(m, PORT, hostPort.get(1));
             ret.add(m);
         }
 
         return ret;
     }
 
-    public static List extractDataFromHb(Map executor2hostPort, Map task2component, Map beats,
-                                         boolean includeSys, StormTopology topology) {
+    /**
+     * extracts a list of executor data from heart beats
+     */
+    public static List<Map<String, Object>> extractDataFromHb(Map executor2hostPort, Map task2component, Map beats,
+                                                              boolean includeSys, StormTopology topology) {
         return extractDataFromHb(executor2hostPort, task2component, beats, includeSys, topology, null);
     }
 
-    public static List extractDataFromHb(Map executor2hostPort, Map task2component, Map beats,
-                                         boolean includeSys, StormTopology topology, String compId) {
-        List ret = new ArrayList();
+    public static List<Map<String, Object>> extractDataFromHb(Map executor2hostPort, Map task2component, Map beats,
+                                                              boolean includeSys, StormTopology topology, String compId) {
+        List<Map<String, Object>> ret = new ArrayList<>();
         if (executor2hostPort == null) {
             return ret;
         }
@@ -1176,21 +1179,21 @@ public class StatsUtil {
             }
             String id = (String) task2component.get(start);
 
-            Map m = new HashMap();
+            Map<String, Object> m = new HashMap<>();
             if ((compId == null || compId.equals(id)) && (includeSys || !Utils.isSystemId(id))) {
-                putRawKV(m, "exec-id", entry.getKey());
-                putRawKV(m, "comp-id", id);
-                putRawKV(m, NUM_TASKS, end - start + 1);
-                putRawKV(m, HOST, host);
-                putRawKV(m, PORT, port);
-                putRawKV(m, UPTIME, beat.get(keyword(UPTIME)));
-                putRawKV(m, STATS, beat.get(keyword(STATS)));
+                putKV(m, "exec-id", entry.getKey());
+                putKV(m, "comp-id", id);
+                putKV(m, NUM_TASKS, end - start + 1);
+                putKV(m, HOST, host);
+                putKV(m, PORT, port);
+                putKV(m, UPTIME, beat.get(keyword(UPTIME)));
+                putKV(m, STATS, beat.get(keyword(STATS)));
 
                 Keyword type = componentType(topology, compId);
                 if (type != null) {
-                    putRawKV(m, TYPE, type);
+                    putKV(m, TYPE, type);
                 } else {
-                    putRawKV(m, TYPE, getByKeyword(getMapByKeyword(beat, STATS), TYPE));
+                    putKV(m, TYPE, getByKey(getMapByKey(beat, STATS), TYPE));
                 }
                 ret.add(m);
             }
@@ -1200,11 +1203,11 @@ public class StatsUtil {
 
     private static Map computeWeightedAveragesPerWindow(Map accData, String wgtAvgKey, String divisorKey) {
         Map ret = new HashMap();
-        for (Object o : getMapByKeyword(accData, wgtAvgKey).entrySet()) {
+        for (Object o : getMapByKey(accData, wgtAvgKey).entrySet()) {
             Map.Entry e = (Map.Entry) o;
             Object window = e.getKey();
             double wgtAvg = ((Number) e.getValue()).doubleValue();
-            long divisor = ((Number) getMapByKeyword(accData, divisorKey).get(window)).longValue();
+            long divisor = ((Number) getMapByKey(accData, divisorKey).get(window)).longValue();
             if (divisor > 0) {
                 ret.put(window.toString(), wgtAvg / divisor);
             }
@@ -1238,7 +1241,7 @@ public class StatsUtil {
         } else {
             Map m = aggregateBoltStats(Lists.newArrayList(stats), true);
             m = swapMapOrder(aggregateBoltStreams(m));
-            Map data = getMapByKeyword(m, TEN_MIN_IN_SECONDS_STR);
+            Map data = getMapByKey(m, TEN_MIN_IN_SECONDS_STR);
 
             int uptime = summ.get_uptime_secs();
             int win = Math.min(uptime, TEN_MIN_IN_SECONDS);
@@ -1459,20 +1462,20 @@ public class StatsUtil {
         Integer numTasks = getByKeywordOr0(data, NUM_TASKS).intValue();
         Integer numWorkers = getByKeywordOr0(data, NUM_WORKERS).intValue();
         Integer numExecutors = getByKeywordOr0(data, NUM_EXECUTORS).intValue();
-        Map spout2stats = getMapByKeyword(data, SPOUT_TO_STATS);
-        Map bolt2stats = getMapByKeyword(data, BOLT_TO_STATS);
-        Map win2emitted = getMapByKeyword(data, WIN_TO_EMITTED);
-        Map win2transferred = getMapByKeyword(data, WIN_TO_TRANSFERRED);
-        Map win2compLatency = getMapByKeyword(data, WIN_TO_COMP_LAT);
-        Map win2acked = getMapByKeyword(data, WIN_TO_ACKED);
-        Map win2failed = getMapByKeyword(data, WIN_TO_FAILED);
+        Map spout2stats = getMapByKey(data, SPOUT_TO_STATS);
+        Map bolt2stats = getMapByKey(data, BOLT_TO_STATS);
+        Map win2emitted = getMapByKey(data, WIN_TO_EMITTED);
+        Map win2transferred = getMapByKey(data, WIN_TO_TRANSFERRED);
+        Map win2compLatency = getMapByKey(data, WIN_TO_COMP_LAT);
+        Map win2acked = getMapByKey(data, WIN_TO_ACKED);
+        Map win2failed = getMapByKey(data, WIN_TO_FAILED);
 
         Map<String, ComponentAggregateStats> spoutAggStats = new HashMap<>();
         for (Object o : spout2stats.entrySet()) {
             Map.Entry e = (Map.Entry) o;
             String id = (String) e.getKey();
             Map v = (Map) e.getValue();
-            putRawKV(v, TYPE, KW_SPOUT);
+            putKV(v, TYPE, KW_SPOUT);
 
             spoutAggStats.put(id, thriftifySpoutAggStats(v));
         }
@@ -1482,7 +1485,7 @@ public class StatsUtil {
             Map.Entry e = (Map.Entry) o;
             String id = (String) e.getKey();
             Map v = (Map) e.getValue();
-            putRawKV(v, TYPE, KW_BOLT);
+            putKV(v, TYPE, KW_BOLT);
 
             boltAggStats.put(id, thriftifyBoltAggStats(v));
         }
@@ -1508,7 +1511,7 @@ public class StatsUtil {
         logger.warn("spout agg stats:{}", m);
         ComponentAggregateStats stats = new ComponentAggregateStats();
         stats.set_type(ComponentType.SPOUT);
-        stats.set_last_error((ErrorInfo) getByKeyword(m, LAST_ERROR));
+        stats.set_last_error((ErrorInfo) getByKey(m, LAST_ERROR));
         thriftifyCommonAggStats(stats, m);
 
         SpoutAggregateStats spoutAggStats = new SpoutAggregateStats();
@@ -1522,7 +1525,7 @@ public class StatsUtil {
     private static ComponentAggregateStats thriftifyBoltAggStats(Map m) {
         ComponentAggregateStats stats = new ComponentAggregateStats();
         stats.set_type(ComponentType.BOLT);
-        stats.set_last_error((ErrorInfo) getByKeyword(m, LAST_ERROR));
+        stats.set_last_error((ErrorInfo) getByKey(m, LAST_ERROR));
         thriftifyCommonAggStats(stats, m);
 
         BoltAggregateStats boltAggStats = new BoltAggregateStats();
@@ -1540,11 +1543,11 @@ public class StatsUtil {
         ExecutorAggregateStats stats = new ExecutorAggregateStats();
 
         ExecutorSummary executorSummary = new ExecutorSummary();
-        List executor = (List) getByKeyword(m, EXECUTOR_ID);
+        List executor = (List) getByKey(m, EXECUTOR_ID);
         executorSummary.set_executor_info(new ExecutorInfo(((Number) executor.get(0)).intValue(),
                 ((Number) executor.get(1)).intValue()));
         executorSummary.set_component_id(compId);
-        executorSummary.set_host((String) getByKeyword(m, HOST));
+        executorSummary.set_host((String) getByKey(m, HOST));
         executorSummary.set_port(getByKeywordOr0(m, PORT).intValue());
         int uptime = getByKeywordOr0(m, UPTIME).intValue();
         executorSummary.set_uptime_secs(uptime);
@@ -1604,26 +1607,26 @@ public class StatsUtil {
         ret.set_component_id(compId);
 
         Map win2stats = new HashMap();
-        putRawKV(win2stats, EMITTED, getMapByKeyword(data, WIN_TO_EMITTED));
-        putRawKV(win2stats, TRANSFERRED, getMapByKeyword(data, WIN_TO_TRANSFERRED));
-        putRawKV(win2stats, ACKED, getMapByKeyword(data, WIN_TO_ACKED));
-        putRawKV(win2stats, FAILED, getMapByKeyword(data, WIN_TO_FAILED));
+        putKV(win2stats, EMITTED, getMapByKey(data, WIN_TO_EMITTED));
+        putKV(win2stats, TRANSFERRED, getMapByKey(data, WIN_TO_TRANSFERRED));
+        putKV(win2stats, ACKED, getMapByKey(data, WIN_TO_ACKED));
+        putKV(win2stats, FAILED, getMapByKey(data, WIN_TO_FAILED));
 
-        Keyword type = (Keyword) getByKeyword(data, TYPE);
+        Keyword type = (Keyword) getByKey(data, TYPE);
         String compType = type.getName();
         if (compType.equals(SPOUT)) {
             ret.set_component_type(ComponentType.SPOUT);
-            putRawKV(win2stats, COMP_LATENCY, getMapByKeyword(data, WIN_TO_COMP_LAT));
+            putKV(win2stats, COMP_LATENCY, getMapByKey(data, WIN_TO_COMP_LAT));
         } else {
             ret.set_component_type(ComponentType.BOLT);
-            putRawKV(win2stats, EXEC_LATENCY, getMapByKeyword(data, WIN_TO_EXEC_LAT));
-            putRawKV(win2stats, PROC_LATENCY, getMapByKeyword(data, WIN_TO_PROC_LAT));
-            putRawKV(win2stats, EXECUTED, getMapByKeyword(data, WIN_TO_EXECUTED));
+            putKV(win2stats, EXEC_LATENCY, getMapByKey(data, WIN_TO_EXEC_LAT));
+            putKV(win2stats, PROC_LATENCY, getMapByKey(data, WIN_TO_PROC_LAT));
+            putKV(win2stats, EXECUTED, getMapByKey(data, WIN_TO_EXECUTED));
         }
         win2stats = swapMapOrder(win2stats);
 
         List<ExecutorAggregateStats> execStats = new ArrayList<>();
-        List executorStats = (List) getByKeyword(data, EXECUTOR_STATS);
+        List executorStats = (List) getByKey(data, EXECUTOR_STATS);
         if (executorStats != null) {
             for (Object o : executorStats) {
                 execStats.add(thriftifyExecAggStats(compId, type, (Map) o));
@@ -1638,15 +1641,15 @@ public class StatsUtil {
             }
             win2stats = tmp;
             gsid2inputStats = null;
-            sid2outputStats = thriftifySpoutOutputStats(getMapByKeyword(data, SID_TO_OUT_STATS));
+            sid2outputStats = thriftifySpoutOutputStats(getMapByKey(data, SID_TO_OUT_STATS));
         } else {
             Map tmp = new HashMap();
             for (Object k : win2stats.keySet()) {
                 tmp.put(k, thriftifyBoltAggStats((Map) win2stats.get(k)));
             }
             win2stats = tmp;
-            gsid2inputStats = thriftifyBoltInputStats(getMapByKeyword(data, CID_SID_TO_IN_STATS));
-            sid2outputStats = thriftifyBoltOutputStats(getMapByKeyword(data, SID_TO_OUT_STATS));
+            gsid2inputStats = thriftifyBoltInputStats(getMapByKey(data, CID_SID_TO_IN_STATS));
+            sid2outputStats = thriftifyBoltOutputStats(getMapByKey(data, SID_TO_OUT_STATS));
         }
         ret.set_num_executors(getByKeywordOr0(data, NUM_EXECUTORS).intValue());
         ret.set_num_tasks(getByKeywordOr0(data, NUM_TASKS).intValue());
@@ -1682,9 +1685,9 @@ public class StatsUtil {
         ExecutorSpecificStats specificStats = thriftifySpecificStats(stats);
         ret.set_specific(specificStats);
 
-        ret.set_emitted(windowSetConverter(getMapByKeyword(stats, EMITTED), TO_STRING, TO_STRING));
-        ret.set_transferred(windowSetConverter(getMapByKeyword(stats, TRANSFERRED), TO_STRING, TO_STRING));
-        ret.set_rate(((Number) getByKeyword(stats, "rate")).doubleValue());
+        ret.set_emitted(windowSetConverter(getMapByKey(stats, EMITTED), TO_STRING, TO_STRING));
+        ret.set_transferred(windowSetConverter(getMapByKey(stats, TRANSFERRED), TO_STRING, TO_STRING));
+        ret.set_rate(((Number) getByKey(stats, "rate")).doubleValue());
 
         return ret;
     }
@@ -1692,20 +1695,20 @@ public class StatsUtil {
     private static ExecutorSpecificStats thriftifySpecificStats(Map stats) {
         ExecutorSpecificStats specificStats = new ExecutorSpecificStats();
 
-        String compType = ((Keyword) getByKeyword(stats, TYPE)).getName();
+        String compType = ((Keyword) getByKey(stats, TYPE)).getName();
         if (BOLT.equals(compType)) {
             BoltStats boltStats = new BoltStats();
-            boltStats.set_acked(windowSetConverter(getMapByKeyword(stats, ACKED), TO_GSID, TO_STRING));
-            boltStats.set_executed(windowSetConverter(getMapByKeyword(stats, EXECUTED), TO_GSID, TO_STRING));
-            boltStats.set_execute_ms_avg(windowSetConverter(getMapByKeyword(stats, EXEC_LATENCIES), TO_GSID, TO_STRING));
-            boltStats.set_failed(windowSetConverter(getMapByKeyword(stats, FAILED), TO_GSID, TO_STRING));
-            boltStats.set_process_ms_avg(windowSetConverter(getMapByKeyword(stats, PROC_LATENCIES), TO_GSID, TO_STRING));
+            boltStats.set_acked(windowSetConverter(getMapByKey(stats, ACKED), TO_GSID, TO_STRING));
+            boltStats.set_executed(windowSetConverter(getMapByKey(stats, EXECUTED), TO_GSID, TO_STRING));
+            boltStats.set_execute_ms_avg(windowSetConverter(getMapByKey(stats, EXEC_LATENCIES), TO_GSID, TO_STRING));
+            boltStats.set_failed(windowSetConverter(getMapByKey(stats, FAILED), TO_GSID, TO_STRING));
+            boltStats.set_process_ms_avg(windowSetConverter(getMapByKey(stats, PROC_LATENCIES), TO_GSID, TO_STRING));
             specificStats.set_bolt(boltStats);
         } else {
             SpoutStats spoutStats = new SpoutStats();
-            spoutStats.set_acked(windowSetConverter(getMapByKeyword(stats, ACKED), TO_STRING, TO_STRING));
-            spoutStats.set_failed(windowSetConverter(getMapByKeyword(stats, FAILED), TO_STRING, TO_STRING));
-            spoutStats.set_complete_ms_avg(windowSetConverter(getMapByKeyword(stats, COMP_LATENCIES), TO_STRING, TO_STRING));
+            spoutStats.set_acked(windowSetConverter(getMapByKey(stats, ACKED), TO_STRING, TO_STRING));
+            spoutStats.set_failed(windowSetConverter(getMapByKey(stats, FAILED), TO_STRING, TO_STRING));
+            spoutStats.set_complete_ms_avg(windowSetConverter(getMapByKey(stats, COMP_LATENCIES), TO_STRING, TO_STRING));
             specificStats.set_spout(spoutStats);
         }
         return specificStats;
@@ -1748,8 +1751,8 @@ public class StatsUtil {
      */
     private static double computeAggCapacity(Map m, Integer uptime) {
         if (uptime != null) {
-            Map execAvg = (Map) ((Map) getByKeyword(m, EXEC_LATENCIES)).get(TEN_MIN_IN_SECONDS_STR);
-            Map exec = (Map) ((Map) getByKeyword(m, EXECUTED)).get(TEN_MIN_IN_SECONDS_STR);
+            Map execAvg = (Map) ((Map) getByKey(m, EXEC_LATENCIES)).get(TEN_MIN_IN_SECONDS_STR);
+            Map exec = (Map) ((Map) getByKey(m, EXECUTED)).get(TEN_MIN_IN_SECONDS_STR);
 
             Set<Object> allKeys = new HashSet<>();
             if (execAvg != null) {
@@ -1829,23 +1832,23 @@ public class StatsUtil {
         return KW_SPOUT;
     }
 
-    public static void putRawKV(Map map, String k, Object v) {
-        map.put(keyword(k), v);
+    public static void putKV(Map map, String k, Object v) {
+        map.put(k, v);
     }
 
-    private static void removeByKeyword(Map map, String k) {
-        map.remove(keyword(k));
+    private static void remove(Map map, String k) {
+        map.remove(k);
     }
 
-    public static Object getByKeyword(Map map, String key) {
-        return map.get(keyword(key));
+    public static Object getByKey(Map map, String key) {
+        return map.get(key);
     }
 
-    public static Map getMapByKeyword(Map map, String key) {
+    public static Map getMapByKey(Map map, String key) {
         if (map == null) {
             return null;
         }
-        return (Map) map.get(keyword(key));
+        return (Map) map.get(key);
     }
 
     private static Number add(Number n1, Number n2) {

@@ -323,6 +323,7 @@
                                 "-Dstorm.conf.file="
                                 "-Dstorm.options="
                                 (str "-Dstorm.log.dir=" storm-log-dir)
+                                (str "-Djava.io.tmpdir=/tmp/workers" Utils/FILE_PATH_SEPARATOR mock-worker-id Utils/FILE_PATH_SEPARATOR "tmp")
                                 (str "-Dlogging.sensitivity=" mock-sensitivity)
                                 (str "-Dlog4j.configurationFile=" Utils/FILE_PATH_SEPARATOR "log4j2" Utils/FILE_PATH_SEPARATOR "worker.xml")
                                 "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector"
@@ -354,6 +355,7 @@
                                                        ([conf storm-id] nil))
                           (readSupervisorStormConfImpl [conf storm-id] mocked-supervisor-storm-conf)
                           (setWorkerUserWSEImpl [conf worker-id user] nil)
+                          (workerRootImpl [conf] "/tmp/workers")
                           (workerArtifactsRootImpl [conf] "/tmp/workers-artifacts"))]
           (with-open [_ (ConfigUtilsInstaller. cu-proxy)
                       _ (UtilsInstaller. utils-spy)]
@@ -385,6 +387,7 @@
                                                        ([conf storm-id] nil))
                           (readSupervisorStormConfImpl [conf storm-id] mocked-supervisor-storm-conf)
                           (setWorkerUserWSEImpl [conf worker-id user] nil)
+                          (workerRootImpl [conf] "/tmp/workers")
                           (workerArtifactsRootImpl [conf] "/tmp/workers-artifacts"))
               utils-spy (->>
                           (proxy [Utils] []
@@ -418,6 +421,7 @@
                                                        ([conf storm-id] nil))
                           (readSupervisorStormConfImpl [conf storm-id] mocked-supervisor-storm-conf)
                           (setWorkerUserWSEImpl [conf worker-id user] nil)
+                          (workerRootImpl [conf] "/tmp/workers")
                           (workerArtifactsRootImpl [conf] "/tmp/workers-artifacts"))
               utils-spy (->>
                           (proxy [Utils] []
@@ -452,6 +456,7 @@
                                                        ([conf storm-id] nil))
                           (readSupervisorStormConfImpl [conf storm-id] mocked-supervisor-storm-conf)
                           (setWorkerUserWSEImpl [conf worker-id user] nil)
+                          (workerRootImpl [conf] "/tmp/workers")
                           (workerArtifactsRootImpl [conf] "/tmp/workers-artifacts"))
               utils-spy (->>
                           (proxy [Utils] []
@@ -515,6 +520,7 @@
                                " '-Dstorm.conf.file='"
                                " '-Dstorm.options='"
                                " '-Dstorm.log.dir=" storm-log-dir "'"
+                               " '-Djava.io.tmpdir=" (str  storm-local "/workers/" mock-worker-id "/tmp'")
                                " '-Dlogging.sensitivity=" mock-sensitivity "'"
                                " '-Dlog4j.configurationFile=/log4j2/worker.xml'"
                                " '-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector'"

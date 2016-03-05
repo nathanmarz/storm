@@ -21,10 +21,6 @@ import com.google.common.collect.Lists;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.storm.generated.BoltStats;
-import org.apache.storm.generated.ExecutorSpecificStats;
-import org.apache.storm.generated.ExecutorStats;
-import org.apache.storm.generated.SpoutStats;
 import org.apache.storm.metric.internal.MultiCountStatAndMetric;
 import org.apache.storm.metric.internal.MultiLatencyStatAndMetric;
 
@@ -92,7 +88,7 @@ public class BoltExecutorStats extends CommonStats {
         Map ret = new HashMap();
         ret.putAll(valueStats(CommonStats.COMMON_FIELDS));
         ret.putAll(valueStats(BoltExecutorStats.BOLT_FIELDS));
-        StatsUtil.putRawKV(ret, StatsUtil.TYPE, StatsUtil.KW_BOLT);
+        StatsUtil.putKV(ret, StatsUtil.TYPE, StatsUtil.KW_BOLT);
 
         return ret;
     }

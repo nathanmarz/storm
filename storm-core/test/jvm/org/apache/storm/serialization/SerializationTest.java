@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
+ * <p/>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,8 +23,6 @@ import org.apache.storm.testing.TestSerObject;
 import org.apache.storm.utils.Utils;
 import org.junit.Assert;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -33,10 +31,8 @@ import java.util.Map;
 
 public class SerializationTest {
 
-    private static final Logger LOG = LoggerFactory.getLogger(SerializationTest.class);
-
     @Test
-    public void testJavaSerialization() {
+    public void testJavaSerialization() throws IOException {
         Object obj = new TestSerObject(1, 2);
         List<Object> vals = Lists.newArrayList(obj);
 
@@ -57,7 +53,7 @@ public class SerializationTest {
     }
 
     @Test
-    public void testKryoDecorator() {
+    public void testKryoDecorator() throws IOException {
         Object obj = new TestSerObject(1, 2);
         List<Object> vals = Lists.newArrayList(obj);
 
@@ -74,7 +70,7 @@ public class SerializationTest {
     }
 
     @Test
-    public void testStringSerialization() {
+    public void testStringSerialization() throws IOException {
         isRoundtrip(Lists.newArrayList("a", "bb", "cbe"));
         isRoundtrip(Lists.newArrayList(mkString(64 * 1024)));
         isRoundtrip(Lists.newArrayList(mkString(1024 * 1024)));
@@ -97,18 +93,12 @@ public class SerializationTest {
         return deserializer.deserialize(bytes);
     }
 
-    private List roundtrip(List vals) {
+    private List roundtrip(List vals) throws IOException {
         return roundtrip(vals, new HashMap());
     }
 
-    private List roundtrip(List vals, Map conf) {
-        List ret = null;
-        try {
-            ret = deserialize(serialize(vals, conf), conf);
-        } catch (IOException e) {
-            LOG.error("Exception when serialize/deserialize ", e);
-        }
-        return ret;
+    private List roundtrip(List vals, Map conf) throws IOException {
+        return deserialize(serialize(vals, conf), conf);
     }
 
     private String mkString(int size) {
@@ -119,7 +109,7 @@ public class SerializationTest {
         return sb.toString();
     }
 
-    public void isRoundtrip(List vals) {
+    public void isRoundtrip(List vals) throws IOException {
         Assert.assertEquals(vals, roundtrip(vals));
     }
 }

@@ -103,6 +103,7 @@ public  class ShutdownWork implements Shutdownable {
                 } else {
                     Utils.forceDelete(ConfigUtils.workerHeartbeatsRoot(conf, workerId));
                     Utils.forceDelete(ConfigUtils.workerPidsRoot(conf, workerId));
+                    Utils.forceDelete(ConfigUtils.workerTmpRoot(conf, workerId));
                     Utils.forceDelete(ConfigUtils.workerRoot(conf, workerId));
                 }
                 ConfigUtils.removeWorkerUserWSE(conf, workerId);

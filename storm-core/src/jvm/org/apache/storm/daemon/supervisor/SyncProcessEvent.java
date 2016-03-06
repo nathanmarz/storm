@@ -315,6 +315,8 @@ public class SyncProcessEvent extends ShutdownWork implements Runnable {
         String stormHome = ConfigUtils.concatIfNotNull(System.getProperty("storm.home"));
         String stormOptions = ConfigUtils.concatIfNotNull(System.getProperty("storm.options"));
         String stormConfFile = ConfigUtils.concatIfNotNull(System.getProperty("storm.conf.file"));
+        String workerTmpDir = ConfigUtils.workerTmpRoot(conf, workerId);
+
         String stormLogDir = ConfigUtils.getLogDir();
         String stormLogConfDir = (String) (conf.get(Config.STORM_LOG4J2_CONF_DIR));
 
@@ -441,6 +443,7 @@ public class SyncProcessEvent extends ShutdownWork implements Runnable {
         commandList.add("-Dstorm.conf.file=" + stormConfFile);
         commandList.add("-Dstorm.options=" + stormOptions);
         commandList.add("-Dstorm.log.dir=" + stormLogDir);
+        commandList.add("-Djava.io.tmpdir=" + workerTmpDir);
         commandList.add("-Dlogging.sensitivity=" + loggingSensitivity);
         commandList.add("-Dlog4j.configurationFile=" + log4jConfigurationFile);
         commandList.add("-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector");
@@ -523,6 +526,7 @@ public class SyncProcessEvent extends ShutdownWork implements Runnable {
                         workerId);
 
                 FileUtils.forceMkdir(new File(pidsPath));
+                FileUtils.forceMkdir(new File(ConfigUtils.workerTmpRoot(conf, workerId)));
                 FileUtils.forceMkdir(new File(hbPath));
 
                 if (clusterMode.endsWith("distributed")) {

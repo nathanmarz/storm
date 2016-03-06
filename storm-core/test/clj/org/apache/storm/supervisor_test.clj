@@ -327,6 +327,7 @@
                                           "-Dstorm.conf.file="
                                           "-Dstorm.options="
                                           (str "-Dstorm.log.dir=" (ConfigUtils/getLogDir))
+                                          (str "-Djava.io.tmpdir=/tmp/workers" Utils/FILE_PATH_SEPARATOR mock-worker-id Utils/FILE_PATH_SEPARATOR "tmp")
                                           (str "-Dlogging.sensitivity=" mock-sensitivity)
                                           (str "-Dlog4j.configurationFile=" file-prefix Utils/FILE_PATH_SEPARATOR "log4j2" Utils/FILE_PATH_SEPARATOR "worker.xml")
                                           "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector"
@@ -363,6 +364,7 @@
                                                        ([conf storm-id] nil))
                           (readSupervisorStormConfImpl [conf storm-id] mocked-supervisor-storm-conf)
                           (setWorkerUserWSEImpl [conf worker-id user] nil)
+                         (workerRootImpl [conf] "/tmp/workers")
                           (workerArtifactsRootImpl [conf] "/tmp/workers-artifacts"))
               process-proxy (proxy [SyncProcessEvent] []
                               (jlp [stormRoot conf] "")
@@ -395,6 +397,7 @@
                                                        ([conf storm-id] nil))
                           (readSupervisorStormConfImpl [conf storm-id] mocked-supervisor-storm-conf)
                           (setWorkerUserWSEImpl [conf worker-id user] nil)
+                          (workerRootImpl [conf] "/tmp/workers")
                           (workerArtifactsRootImpl [conf] "/tmp/workers-artifacts"))
               utils-spy (->>
                           (proxy [Utils] []
@@ -429,6 +432,7 @@
                                                        ([conf storm-id] nil))
                           (readSupervisorStormConfImpl [conf storm-id] mocked-supervisor-storm-conf)
                           (setWorkerUserWSEImpl [conf worker-id user] nil)
+                          (workerRootImpl [conf] "/tmp/workers")
                           (workerArtifactsRootImpl [conf] "/tmp/workers-artifacts"))
               utils-spy (->>
                           (proxy [Utils] []
@@ -464,6 +468,7 @@
                                                        ([conf storm-id] nil))
                           (readSupervisorStormConfImpl [conf storm-id] mocked-supervisor-storm-conf)
                           (setWorkerUserWSEImpl [conf worker-id user] nil)
+                          (workerRootImpl [conf] "/tmp/workers")
                           (workerArtifactsRootImpl [conf] "/tmp/workers-artifacts"))
               utils-spy (->>
                           (proxy [Utils] []
@@ -508,7 +513,7 @@
                       (str storm-local Utils/FILE_PATH_SEPARATOR "workers" Utils/FILE_PATH_SEPARATOR mock-worker-id)
                       worker-script]
           exp-script-fn (fn [opts topo-opts]
-                          (str "#!/bin/bash\r\n'export' 'LD_LIBRARY_PATH=';\r\n\r\nexec 'java'"
+                          (str "#!/bin/bash\n'export' 'LD_LIBRARY_PATH=';\n\nexec 'java'"
                                " '-cp' 'mock-classpath'\"'\"'quote-on-purpose'"
                                " '-Dlogfile.name=" "worker.log'"
                                " '-Dstorm.home='"
@@ -530,6 +535,7 @@
                                " '-Dstorm.conf.file='"
                                " '-Dstorm.options='"
                                " '-Dstorm.log.dir=" (ConfigUtils/getLogDir) "'"
+                               " '-Djava.io.tmpdir=" (str  storm-local "/workers/" mock-worker-id "/tmp'")
                                " '-Dlogging.sensitivity=" mock-sensitivity "'"
                                " '-Dlog4j.configurationFile=" (str file-prefix Utils/FILE_PATH_SEPARATOR "log4j2" Utils/FILE_PATH_SEPARATOR "worker.xml'")
                                " '-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector'"
@@ -627,7 +633,7 @@
                                           mock-worker-id
                                           (WorkerResources.) nil nil)
                 (. (Mockito/verify utils-spy)
-                 (launchProcessImpl (Matchers/any)
+                 (launchProcessImpl (Matchers/eq exp-launch)
                                     (Matchers/any)
                                     (Matchers/any)
                                     (Matchers/any)

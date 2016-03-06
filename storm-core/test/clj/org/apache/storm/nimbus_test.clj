@@ -22,7 +22,7 @@
             TestAggregatesCounter TestPlannerSpout TestPlannerBolt]
            [org.apache.storm.nimbus InMemoryTopologyActionNotifier]
            [org.apache.storm.generated GlobalStreamId]
-           [org.apache.storm Thrift])
+           [org.apache.storm Thrift MockAutoCred])
   (:import [org.apache.storm.testing.staticmocking MockedZookeeper])
   (:import [org.apache.storm.scheduler INimbus])
   (:import [org.mockito Mockito])
@@ -41,7 +41,7 @@
   (:import [org.apache.commons.io FileUtils]
            [org.json.simple JSONValue])
   (:import [org.apache.storm.cluster StormClusterStateImpl ClusterStateContext ClusterUtils])
-  (:use [org.apache.storm testing MockAutoCred util config log converter])
+  (:use [org.apache.storm testing util config log converter])
   (:use [org.apache.storm.daemon common])
   (:require [conjure.core])
 
@@ -316,12 +316,12 @@
                                                                } topology submitOptions)
           credentials (getCredentials cluster topology-name)]
       ; check that the credentials have nimbus auto generated cred
-      (is (= (.get credentials nimbus-cred-key) nimbus-cred-val))
+      (is (= (.get credentials MockAutoCred/NIMBUS_CRED_KEY) MockAutoCred/NIMBUS_CRED_VAL))
       ;advance cluster time so the renewers can execute
       (advance-cluster-time cluster 20)
       ;check that renewed credentials replace the original credential.
-      (is (= (.get (getCredentials cluster topology-name) nimbus-cred-key) nimbus-cred-renew-val))
-      (is (= (.get (getCredentials cluster topology-name) gateway-cred-key) gateway-cred-renew-val)))))
+      (is (= (.get (getCredentials cluster topology-name) MockAutoCred/NIMBUS_CRED_KEY) MockAutoCred/NIMBUS_CRED_RENEW_VAL))
+      (is (= (.get (getCredentials cluster topology-name) MockAutoCred/GATEWAY_CRED_KEY) MockAutoCred/GATEWAY_CRED_RENEW_VAL)))))
 
 (defmacro letlocals
   [& body]

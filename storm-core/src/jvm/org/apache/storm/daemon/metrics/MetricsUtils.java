@@ -86,7 +86,7 @@ public class MetricsUtils {
     public static File getCsvLogDir(Map stormConf) {
         String csvMetricsLogDirectory = Utils.getString(stormConf.get(Config.STORM_DAEMON_METRICS_REPORTER_CSV_LOG_DIR), null);
         if (csvMetricsLogDirectory == null) {
-            csvMetricsLogDirectory = ConfigUtils.absoluteHealthCheckDir(stormConf);
+            csvMetricsLogDirectory = ConfigUtils.absoluteStormLocalDir(stormConf);
             csvMetricsLogDirectory = csvMetricsLogDirectory + ConfigUtils.FILE_SEPARATOR + "csvmetrics";
         }
         File csvMetricsDir = new File(csvMetricsLogDirectory);

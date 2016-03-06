@@ -145,6 +145,8 @@ public class SyncSupervisorEvent implements Runnable {
                 supervisorData.getiSupervisor().killedWorker(port);
             }
 
+            killExistingWorkersWithChangeInComponents(supervisorData, existingAssignment, newAssignment);
+
             supervisorData.getiSupervisor().assigned(newAssignment.keySet());
             localState.setLocalAssignmentsMap(newAssignment);
             supervisorData.setAssignmentVersions(assignmentsSnapshot);
@@ -176,6 +178,48 @@ public class SyncSupervisorEvent implements Runnable {
 
     }
 
+    private void killExistingWorkersWithChangeInComponents(SupervisorData supervisorData, Map<Integer, LocalAssignment> existingAssignment,
+            Map<Integer, LocalAssignment> newAssignment) throws Exception {
+        LocalState localState = supervisorData.getLocalState();
+        Map<Integer, LocalAssignment> assignedExecutors = localState.getLocalAssignmentsMap();
+        if (assignedExecutors == null) {
+            assignedExecutors = new HashMap<>();
+        }
+        int now = Time.currentTimeSecs();
+        Map<String, StateHeartbeat> workerIdHbstate = syncProcesses.getLocalWorkerStats(supervisorData, assignedExecutors, now);
+        Map<Integer, String> vaildPortToWorkerIds = new HashMap<>();
+        for (Map.Entry<String, StateHeartbeat> entry : workerIdHbstate.entrySet()) {
+            String workerId = entry.getKey();
+            StateHeartbeat stateHeartbeat = entry.getValue();
+            if (stateHeartbeat != null && stateHeartbeat.getState() == State.valid) {
+                vaildPortToWorkerIds.put(stateHeartbeat.getHeartbeat().get_port(), workerId);
+            }
+        }
+
+        Map<Integer, LocalAssignment> intersectAssignment = new HashMap<>();
+        for (Map.Entry<Integer, LocalAssignment> entry : newAssignment.entrySet()) {
+            Integer port = entry.getKey();
+            if (existingAssignment.containsKey(port)) {
+                intersectAssignment.put(port, entry.getValue());
+            }
+        }
+
+        for (Integer port : intersectAssignment.keySet()) {
+            List<ExecutorInfo> existExecutors = existingAssignment.get(port).get_executors();
+            List<ExecutorInfo> newExecutors = newAssignment.get(port).get_executors();
+            if (newExecutors.size() != existExecutors.size()) {
+                syncProcesses.shutWorker(supervisorData, vaildPortToWorkerIds.get(port));
+                continue;
+            }
+            for (ExecutorInfo executorInfo : newExecutors) {
+                if (!existExecutors.contains(executorInfo)) {
+                    syncProcesses.shutWorker(supervisorData, vaildPortToWorkerIds.get(port));
+                    break;
+                }
+            }
+
+        }
+    }
     protected Map<String, Map<String, Object>> getAssignmentsSnapshot(IStormClusterState stormClusterState, List<String> stormIds,
             Map<String, Map<String, Object>> localAssignmentVersion, Runnable callback) throws Exception {
         Map<String, Map<String, Object>> updateAssignmentVersion = new HashMap<>();
@@ -572,7 +616,6 @@ public class SyncSupervisorEvent implements Runnable {
     // I konw it's not a good idea to create SyncProcessEvent, but I only hope SyncProcessEvent is responsible for start/shutdown
     //workers, and SyncSupervisorEvent is responsible for download/remove topologys' binary.
     protected void shutdownDisallowedWorkers() throws Exception{
-        Map conf = supervisorData.getConf();
         LocalState localState = supervisorData.getLocalState();
         Map<Integer, LocalAssignment> assignedExecutors = localState.getLocalAssignmentsMap();
         if (assignedExecutors == null) {

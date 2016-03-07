@@ -116,7 +116,6 @@ public class CheckpointTupleForwarder implements IRichBolt {
     protected void handleTuple(Tuple input) {
         collector.setContext(input);
         bolt.execute(input);
-        collector.ack(input);
     }
 
     /**

@@ -1,4 +1,5 @@
 ## 2.0.0
+ * STORM-1590: port defmeters/defgauge/defhistogram... to java for all of our code to use
  * STORM-1529: Change default worker temp directory location for workers
  * STORM-1543: DRPCSpout should always try to reconnect disconnected DRPCInvocationsClient
  * STORM-1528: Fix CsvPreparableReporter log directory

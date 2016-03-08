@@ -1,4 +1,12 @@
 ## 2.0.0
+ * STORM-1590: port defmeters/defgauge/defhistogram... to java for all of our code to use
+ * STORM-1529: Change default worker temp directory location for workers
+ * STORM-1543: DRPCSpout should always try to reconnect disconnected DRPCInvocationsClient
+ * STORM-1528: Fix CsvPreparableReporter log directory
+ * STORM-1561: Supervisor should relaunch worker if assignments have changed
+ * STORM-1283: port backtype.storm.MockAutoCred to java
+ * STORM-1592: clojure code calling into Utils.exitProcess throws ClassCastException
+ * STORM-1579: Fix NoSuchFileException when running tests in storm-core
  * STORM-1244: port backtype.storm.command.upload-credentials to java
  * STORM-1245: port backtype.storm.daemon.acker to java
  * STORM-1545: Topology Debug Event Log in Wrong Location
@@ -41,6 +49,10 @@
  * STORM-1521: When using Kerberos login from keytab with multiple bolts/executors ticket is not renewed in hbase bolt.
 
 ## 1.0.0
+ * STORM-1469: Adding Plain Sasl Transport Plugin
+ * STORM-1588: Do not add event logger details if number of event loggers is zero
+ * STORM-1606: print the information of testcase which is on failure
+ * STORM-1601: Check if /backpressure/storm-id node exists before requesting children
  * STORM-1574: Better handle backpressure exception etc.
  * STORM-1587: Avoid NPE while prining Metrics
  * STORM-1570: Storm SQL support for nested fields and array
@@ -315,6 +327,7 @@
 
 ## 0.10.1
 
+ * STORM-1596: Do not use single Kerberos TGT instance between multiple threads
  * STORM-1481: avoid Math.abs(Integer) get a negative value
  * STORM-1121: Deprecate test only configuraton nimbus.reassign
  * STORM-1180: FLUX logo wasn't appearing quite right

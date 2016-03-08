@@ -16,7 +16,8 @@
 
 (ns org.apache.storm.daemon.drpc
   (:import [org.apache.storm.security.auth AuthUtils ReqContext]
-           [org.apache.storm.daemon DrpcServer])
+           [org.apache.storm.daemon DrpcServer]
+           [org.apache.storm.metric StormMetricsRegistry])
   (:import [org.apache.storm.utils Utils])
   (:import [org.apache.storm.utils ConfigUtils])
   (:use [org.apache.storm config log util])
@@ -24,10 +25,9 @@
   (:use compojure.core)
   (:use ring.middleware.reload)
   (:require [compojure.handler :as handler])
-  (:require [metrics.meters :refer [defmeter mark!]])
   (:gen-class))
 
-(defmeter drpc:num-execute-http-requests)
+(def drpc:num-execute-http-requests (StormMetricsRegistry/registerMeter "drpc:num-execute-http-requests"))
 
 (defn handle-request [handler]
   (fn [request]
@@ -40,7 +40,7 @@
       (.populateContext http-creds-handler (ReqContext/context) servlet-request)))
 
 (defn webapp [handler http-creds-handler]
-  (mark! drpc:num-execute-http-requests)
+  (.mark drpc:num-execute-http-requests)
   (->
     (routes
       (POST "/drpc/:func" [:as {:keys [body servlet-request]} func & m]

@@ -18,14 +18,12 @@
 package org.apache.storm.daemon;
 
 import com.codahale.metrics.Meter;
-import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.lang.StringUtils;
 import org.apache.storm.Config;
-import org.apache.storm.daemon.metrics.MetricsUtils;
-import org.apache.storm.daemon.metrics.reporters.PreparableReporter;
 import org.apache.storm.generated.*;
 import org.apache.storm.logging.ThriftAccessLogger;
+import org.apache.storm.metric.StormMetricsRegistry;
 import org.apache.storm.security.auth.*;
 import org.apache.storm.security.auth.authorizer.DRPCAuthorizerBase;
 import org.apache.storm.ui.FilterConfiguration;
@@ -44,7 +42,6 @@ import java.security.Principal;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
-
 
 public class DrpcServer implements DistributedRPC.Iface, DistributedRPCInvocations.Iface, AutoCloseable {
 
@@ -80,17 +77,16 @@ public class DrpcServer implements DistributedRPC.Iface, DistributedRPCInvocatio
             this.request = request;
         }
     }
+
     private ConcurrentHashMap<String, InternalRequest> outstandingRequests = new ConcurrentHashMap<>();
 
+    private final static Meter meterHttpRequests = StormMetricsRegistry.registerMeter("drpc:num-execute-http-requests");
+    private final static Meter meterExecuteCalls = StormMetricsRegistry.registerMeter("drpc:num-execute-calls");
+    private final static Meter meterResultCalls = StormMetricsRegistry.registerMeter("drpc:num-result-calls");
+    private final static Meter meterFailRequestCalls = StormMetricsRegistry.registerMeter("drpc:num-failRequest-calls");
+    private final static Meter meterFetchRequestCalls = StormMetricsRegistry.registerMeter("drpc:num-fetchRequest-calls");
+    private final static Meter meterShutdownCalls = StormMetricsRegistry.registerMeter("drpc:num-shutdown-calls");
 
-    //TODO: to be replaced by a common registry
-    private final static Meter meterHttpRequests = new MetricRegistry().meter("drpc:num-execute-http-requests");
-    private final static Meter meterExecuteCalls = new MetricRegistry().meter("drpc:num-execute-calls");
-    private final static Meter meterResultCalls = new MetricRegistry().meter("drpc:num-result-calls");
-    private final static Meter meterFailRequestCalls = new MetricRegistry().meter("drpc:num-failRequest-calls");
-    private final static Meter meterFetchRequestCalls = new MetricRegistry().meter("drpc:num-fetchRequest-calls");
-    private final static Meter meterShutdownCalls = new MetricRegistry().meter("drpc:num-shutdown-calls");
-    
     public DrpcServer(Map conf) {
         this.conf = conf;
         this.authorizer = mkAuthorizationHandler((String) (this.conf.get(Config.DRPC_AUTHORIZER)));
@@ -115,7 +111,7 @@ public class DrpcServer implements DistributedRPC.Iface, DistributedRPCInvocatio
         return invokeServer;
     }
 
-    private void initHttp() throws Exception{
+    private void initHttp() throws Exception {
         LOG.info("Starting  RPC Http servers...");
         Integer drpcHttpPort = (Integer) conf.get(Config.DRPC_HTTP_PORT);
         if (drpcHttpPort != null && drpcHttpPort > 0) {
@@ -145,6 +141,7 @@ public class DrpcServer implements DistributedRPC.Iface, DistributedRPCInvocatio
         }
 
     }
+
     private void initThrift() throws Exception {
 
         handlerServer = initHandlerServer(this);
@@ -167,13 +164,8 @@ public class DrpcServer implements DistributedRPC.Iface, DistributedRPCInvocatio
             }
         }).start();
 
-        //TODO: To be replaced by Common.StartMetricsReporters
-        List<PreparableReporter> reporters = MetricsUtils.getPreparableReporters(conf);
-        for (PreparableReporter reporter : reporters) {
-            reporter.prepare(new MetricRegistry(), conf);
-            reporter.start();
-            LOG.info("Started statistics report plugin: {}", reporter);
-        }
+        StormMetricsRegistry.startMetricsReporters(conf);
+
         if (handlerServer != null)
             handlerServer.serve();
     }
@@ -257,8 +249,8 @@ public class DrpcServer implements DistributedRPC.Iface, DistributedRPCInvocatio
 
         this.cleanup(strid);
 
-        if (result instanceof DRPCExecutionException ) {
-            throw (DRPCExecutionException)result;
+        if (result instanceof DRPCExecutionException) {
+            throw (DRPCExecutionException) result;
         }
         if (result == null) {
             throw new DRPCExecutionException("Request timed out");

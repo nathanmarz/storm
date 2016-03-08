@@ -33,18 +33,7 @@
   (:import [org.apache.storm Thrift]
            (org.apache.storm.daemon Acker))
   (:require [clojure.set :as set])
-  (:require [metrics.reporters.jmx :as jmx])
-  (:require [metrics.core  :refer [default-registry]]))
-
-(defn start-metrics-reporter [reporter conf]
-  (doto reporter
-    (.prepare default-registry conf)
-    (.start))
-  (log-message "Started statistics report plugin..."))
-
-(defn start-metrics-reporters [conf]
-  (doseq [reporter (MetricsUtils/getPreparableReporters conf)]
-    (start-metrics-reporter reporter conf)))
+  (:require [metrics.reporters.jmx :as jmx]))
 
 
 (def ACKER-COMPONENT-ID Acker/ACKER_COMPONENT_ID)

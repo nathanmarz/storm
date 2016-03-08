@@ -18,9 +18,10 @@
 package org.apache.storm.stats;
 
 import com.google.common.collect.Lists;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import org.apache.storm.generated.BoltStats;
+import org.apache.storm.generated.ExecutorSpecificStats;
+import org.apache.storm.generated.ExecutorStats;
 import org.apache.storm.metric.internal.MultiCountStatAndMetric;
 import org.apache.storm.metric.internal.MultiLatencyStatAndMetric;
 
@@ -32,8 +33,6 @@ public class BoltExecutorStats extends CommonStats {
     public static final String EXECUTED = "executed";
     public static final String PROCESS_LATENCIES = "process-latencies";
     public static final String EXECUTE_LATENCIES = "execute-latencies";
-
-    public static final String[] BOLT_FIELDS = {ACKED, FAILED, EXECUTED, PROCESS_LATENCIES, EXECUTE_LATENCIES};
 
     public BoltExecutorStats(int rate) {
         super(rate);
@@ -83,32 +82,24 @@ public class BoltExecutorStats extends CommonStats {
 
     }
 
-    public Map renderStats() {
+    public ExecutorStats renderStats() {
         cleanupStats();
-        Map ret = new HashMap();
-        ret.putAll(valueStats(CommonStats.COMMON_FIELDS));
-        ret.putAll(valueStats(BoltExecutorStats.BOLT_FIELDS));
-        StatsUtil.putKV(ret, StatsUtil.TYPE, StatsUtil.KW_BOLT);
+
+        ExecutorStats ret = new ExecutorStats();
+        // common stats
+        ret.set_emitted(valueStat(EMITTED));
+        ret.set_transferred(valueStat(TRANSFERRED));
+        ret.set_rate(this.rate);
+
+        // bolt stats
+        BoltStats boltStats = new BoltStats(
+                StatsUtil.windowSetConverter(valueStat(ACKED), StatsUtil.TO_GSID, StatsUtil.IDENTITY),
+                StatsUtil.windowSetConverter(valueStat(FAILED), StatsUtil.TO_GSID, StatsUtil.IDENTITY),
+                StatsUtil.windowSetConverter(valueStat(PROCESS_LATENCIES), StatsUtil.TO_GSID, StatsUtil.IDENTITY),
+                StatsUtil.windowSetConverter(valueStat(EXECUTED), StatsUtil.TO_GSID, StatsUtil.IDENTITY),
+                StatsUtil.windowSetConverter(valueStat(EXECUTE_LATENCIES), StatsUtil.TO_GSID, StatsUtil.IDENTITY));
+        ret.set_specific(ExecutorSpecificStats.bolt(boltStats));
 
         return ret;
     }
-
-//    public ExecutorStats renderStats() {
-//        cleanupStats();
-//
-//        ExecutorStats ret = new ExecutorStats();
-//        ret.set_emitted(valueStat(EMITTED));
-//        ret.set_transferred(valueStat(TRANSFERRED));
-//        ret.set_rate(this.rate);
-//
-//        BoltStats boltStats = new BoltStats(
-//                StatsUtil.windowSetConverter(valueStat(ACKED), StatsUtil.TO_GSID, StatsUtil.IDENTITY),
-//                StatsUtil.windowSetConverter(valueStat(FAILED), StatsUtil.TO_GSID, StatsUtil.IDENTITY),
-//                StatsUtil.windowSetConverter(valueStat(PROCESS_LATENCIES), StatsUtil.TO_GSID, StatsUtil.IDENTITY),
-//                StatsUtil.windowSetConverter(valueStat(EXECUTED), StatsUtil.TO_GSID, StatsUtil.IDENTITY),
-//                StatsUtil.windowSetConverter(valueStat(EXECUTE_LATENCIES), StatsUtil.TO_GSID, StatsUtil.IDENTITY));
-//        ret.set_specific(ExecutorSpecificStats.bolt(boltStats));
-//
-//        return ret;
-//    }
 }

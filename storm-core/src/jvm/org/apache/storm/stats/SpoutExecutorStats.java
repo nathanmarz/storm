@@ -19,6 +19,9 @@ package org.apache.storm.stats;
 
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.storm.generated.ExecutorSpecificStats;
+import org.apache.storm.generated.ExecutorStats;
+import org.apache.storm.generated.SpoutStats;
 import org.apache.storm.metric.internal.MultiCountStatAndMetric;
 import org.apache.storm.metric.internal.MultiLatencyStatAndMetric;
 
@@ -28,8 +31,6 @@ public class SpoutExecutorStats extends CommonStats {
     public static final String ACKED = "acked";
     public static final String FAILED = "failed";
     public static final String COMPLETE_LATENCIES = "complete-latencies";
-
-    public static final String[] SPOUT_FIELDS = {ACKED, FAILED, COMPLETE_LATENCIES};
 
     public SpoutExecutorStats(int rate) {
         super(rate);
@@ -59,28 +60,20 @@ public class SpoutExecutorStats extends CommonStats {
         this.getFailed().incBy(stream, this.rate);
     }
 
-    public Map renderStats() {
+    public ExecutorStats renderStats() {
         cleanupStats();
-        Map ret = new HashMap();
-        ret.putAll(valueStats(CommonStats.COMMON_FIELDS));
-        ret.putAll(valueStats(SpoutExecutorStats.SPOUT_FIELDS));
-        StatsUtil.putKV(ret, StatsUtil.TYPE, StatsUtil.KW_SPOUT);
+
+        ExecutorStats ret = new ExecutorStats();
+        // common fields
+        ret.set_emitted(valueStat(EMITTED));
+        ret.set_transferred(valueStat(TRANSFERRED));
+        ret.set_rate(this.rate);
+
+        // spout stats
+        SpoutStats spoutStats = new SpoutStats(
+                valueStat(ACKED), valueStat(FAILED), valueStat(COMPLETE_LATENCIES));
+        ret.set_specific(ExecutorSpecificStats.spout(spoutStats));
 
         return ret;
     }
-
-//    public ExecutorStats renderStats() {
-//        cleanupStats();
-//
-//        ExecutorStats ret = new ExecutorStats();
-//        ret.set_emitted(valueStat(EMITTED));
-//        ret.set_transferred(valueStat(TRANSFERRED));
-//        ret.set_rate(this.rate);
-//
-//        SpoutStats spoutStats = new SpoutStats(
-//                valueStat(ACKED), valueStat(FAILED), valueStat(COMPLETE_LATENCIES));
-//        ret.set_specific(ExecutorSpecificStats.spout(spoutStats));
-//
-//        return ret;
-//    }
 }

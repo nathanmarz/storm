@@ -124,11 +124,11 @@
 
 (defn spout-summary?
   [topology s]
-  (= :spout (executor-summary-type topology s)))
+  (= "spout" (executor-summary-type topology s)))
 
 (defn bolt-summary?
   [topology s]
-  (= :bolt (executor-summary-type topology s)))
+  (= "bolt" (executor-summary-type topology s)))
 
 (defn group-by-comp
   [summs]
@@ -230,8 +230,8 @@
   (let [components (for [[id spec] spout-bolt]
             [id
              (let [inputs (.get_inputs (.get_common spec))
-                   bolt-summs (get bolt-comp-summs id)
-                   spout-summs (get spout-comp-summs id)
+                   bolt-summs (.get bolt-comp-summs id)
+                   spout-summs (.get spout-comp-summs id)
                    bolt-cap (if bolt-summs
                               (StatsUtil/computeBoltCapacity bolt-summs)
                               0)]
@@ -240,17 +240,17 @@
                 :latency (if bolt-summs
                            (get-in
                              (clojurify-structure (StatsUtil/boltStreamsStats bolt-summs true))
-                             [:process-latencies window])
+                             ["process-latencies" window])
                            (get-in
                              (clojurify-structure (StatsUtil/spoutStreamsStats spout-summs true))
-                             [:complete-latencies window]))
+                             ["complete-latencies" window]))
                 :transferred (or
                                (get-in
                                  (clojurify-structure (StatsUtil/spoutStreamsStats spout-summs true))
-                                 [:transferred window])
+                                 ["transferred" window])
                                (get-in
                                  (clojurify-structure (StatsUtil/boltStreamsStats bolt-summs true))
-                                 [:transferred window]))
+                                 ["transferred" window]))
                 :stats (let [mapfn (fn [dat]
                                      (map (fn [^ExecutorSummary summ]
                                             {:host (.get_host summ)

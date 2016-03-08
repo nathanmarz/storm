@@ -406,7 +406,7 @@
     (reify
       RunningExecutor
       (render-stats [this]
-        (clojurify-structure (.renderStats (:stats executor-data))))
+        (.renderStats (:stats executor-data)))
       (get-executor-id [this]
         executor-id)
       (credentials-changed [this creds]

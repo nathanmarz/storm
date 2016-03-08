@@ -559,48 +559,17 @@
                       executor->component
                       (:launch-time-secs storm-base))))
 
-;; Does not assume that clocks are synchronized. Executor heartbeat is only used so that
-;; nimbus knows when it's received a new heartbeat. All timing is done by nimbus and
-;; tracked through heartbeat-cache
-(defn- update-executor-cache [curr hb timeout]
-  (let [reported-time (:time-secs hb)
-        {last-nimbus-time :nimbus-time
-         last-reported-time :executor-reported-time} curr
-        reported-time (cond reported-time reported-time
-                            last-reported-time last-reported-time
-                            :else 0)
-        nimbus-time (if (or (not last-nimbus-time)
-                        (not= last-reported-time reported-time))
-                      (Time/currentTimeSecs)
-                      last-nimbus-time
-                      )]
-      {:is-timed-out (and
-                       nimbus-time
-                       (>= (Time/deltaSecs nimbus-time) timeout))
-       :nimbus-time nimbus-time
-       :executor-reported-time reported-time
-       :heartbeat hb}))
-
-(defn update-heartbeat-cache [cache executor-beats all-executors timeout]
-  (let [cache (select-keys cache all-executors)]
-    (into {}
-      (for [executor all-executors :let [curr (cache executor)]]
-        [executor
-         (update-executor-cache curr (get executor-beats executor) timeout)]
-         ))))
 
 (defn update-heartbeats! [nimbus storm-id all-executors existing-assignment]
   (log-debug "Updating heartbeats for " storm-id " " (pr-str all-executors))
   (let [storm-cluster-state (:storm-cluster-state nimbus)
-        executor-beats (let [executor-stats-java-map (.executorBeats storm-cluster-state storm-id (.get_executor_node_port (thriftify-assignment existing-assignment)))
-                             executor-stats-clojurify (clojurify-structure executor-stats-java-map)]
-                         (->> (dofor [[^ExecutorInfo executor-info  ^ExecutorBeat executor-heartbeat] executor-stats-clojurify]
-                             {[(.get_task_start executor-info) (.get_task_end executor-info)] (clojurify-zk-executor-hb executor-heartbeat)})
-                           (apply merge)))
-        cache (update-heartbeat-cache (@(:heartbeats-cache nimbus) storm-id)
+        executor-beats (let [executor-stats-java-map (.executorBeats storm-cluster-state storm-id
+                                                       (.get_executor_node_port (thriftify-assignment existing-assignment)))]
+                         (StatsUtil/convertExecutorBeats executor-stats-java-map))
+        cache (StatsUtil/updateHeartbeatCache (@(:heartbeats-cache nimbus) storm-id)
                                       executor-beats
-                                      all-executors
-                                      ((:conf nimbus) NIMBUS-TASK-TIMEOUT-SECS))]
+                                      (StatsUtil/convertExecutors all-executors)
+                                      (int ((:conf nimbus) NIMBUS-TASK-TIMEOUT-SECS)))]
       (swap! (:heartbeats-cache nimbus) assoc storm-id cache)))
 
 (defn- update-all-heartbeats! [nimbus existing-assignments topology->executors]
@@ -625,7 +594,7 @@
     (->> all-executors
         (filter (fn [executor]
           (let [start-time (get executor-start-times executor)
-                is-timed-out (-> heartbeats-cache (get executor) :is-timed-out)]
+                is-timed-out (.get (.get heartbeats-cache (StatsUtil/convertExecutor executor)) "is-timed-out")]
             (if (and start-time
                    (or
                     (< (Time/deltaSecs start-time)
@@ -1415,8 +1384,7 @@
                                      (throw
                                        (NotAliveException. (str storm-id))))
                   assignment (clojurify-assignment (.assignmentInfo storm-cluster-state storm-id nil))
-                  beats (map-val :heartbeat (get @(:heartbeats-cache nimbus)
-                                                 storm-id))
+                  beats (get @(:heartbeats-cache nimbus) storm-id)
                   all-components (set (vals task->component))]
               {:storm-name storm-name
                :storm-cluster-state storm-cluster-state
@@ -1919,9 +1887,9 @@
                           (map (fn [c] [c (errors-fn storm-cluster-state storm-id c)]))
                           (into {}))
               executor-summaries (dofor [[executor [node port]] (:executor->node+port assignment)]
-                                        (let [host (-> assignment :node->host (get node))
-                                              heartbeat (get beats executor)
-                                              excutorstats (:stats heartbeat)
+                                     (let [host (-> assignment :node->host (get node))
+                                              heartbeat (.get beats (StatsUtil/convertExecutor executor))
+                                              excutorstats (.get (.get heartbeat "heartbeat") "stats")
                                               excutorstats (if excutorstats
                                                       (StatsUtil/thriftifyExecutorStats excutorstats))]
                                               
@@ -1930,7 +1898,7 @@
                                                                 (-> executor first task->component)
                                                                 host
                                                                 port
-                                                                (Utils/nullToZero (:uptime heartbeat)))
+                                                                (Utils/nullToZero (.get heartbeat "uptime")))
                                             (.set_stats excutorstats))
                                           ))
               topo-info  (TopologyInfo. storm-id

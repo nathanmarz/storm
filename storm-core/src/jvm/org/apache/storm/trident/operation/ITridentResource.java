@@ -15,15 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.storm.topology;
+package org.apache.storm.trident.operation;
 
 import java.util.Map;
 
-public interface ComponentConfigurationDeclarer<T extends ComponentConfigurationDeclarer> extends ResourceDeclarer<T> {
-    T addConfigurations(Map<String, Object> conf);
-    T addConfiguration(String config, Object value);
-    T setDebug(boolean debug);
-    T setMaxTaskParallelism(Number val);
-    T setMaxSpoutPending(Number val);
-    T setNumTasks(Number val);
+public interface ITridentResource {
+    Map<String, Number> getResources();
 }

@@ -1,4 +1,5 @@
 ## 2.0.0
+ * STORM-1590: port defmeters/defgauge/defhistogram... to java for all of our code to use
  * STORM-1529: Change default worker temp directory location for workers
  * STORM-1543: DRPCSpout should always try to reconnect disconnected DRPCInvocationsClient
  * STORM-1528: Fix CsvPreparableReporter log directory
@@ -48,6 +49,9 @@
  * STORM-1521: When using Kerberos login from keytab with multiple bolts/executors ticket is not renewed in hbase bolt.
 
 ## 1.0.0
+ * STORM-1469: Adding Plain Sasl Transport Plugin
+ * STORM-1588: Do not add event logger details if number of event loggers is zero
+ * STORM-1606: print the information of testcase which is on failure
  * STORM-1601: Check if /backpressure/storm-id node exists before requesting children
  * STORM-1574: Better handle backpressure exception etc.
  * STORM-1587: Avoid NPE while prining Metrics

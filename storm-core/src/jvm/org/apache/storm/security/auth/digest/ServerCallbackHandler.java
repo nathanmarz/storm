@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.storm.security.auth.AbstractSaslServerCallbackHandler;
 import org.apache.storm.security.auth.ReqContext;
 import org.apache.storm.security.auth.SaslTransportPlugin;
 import org.slf4j.Logger;
@@ -41,13 +42,10 @@ import org.apache.storm.security.auth.AuthUtils;
 /**
  * SASL server side callback handler
  */
-public class ServerCallbackHandler implements CallbackHandler {
-    private static final String USER_PREFIX = "user_";
+public class ServerCallbackHandler extends AbstractSaslServerCallbackHandler {
     private static final Logger LOG = LoggerFactory.getLogger(ServerCallbackHandler.class);
-    private static final String SYSPROP_SUPER_PASSWORD = "storm.SASLAuthenticationProvider.superPassword";
-
-    private String userName;
-    private final Map<String,String> credentials = new HashMap<>();
+    private static final String USER_PREFIX = "user_";
+    public static final String SYSPROP_SUPER_PASSWORD = "storm.SASLAuthenticationProvider.superPassword";
 
     public ServerCallbackHandler(Configuration configuration) throws IOException {
         if (configuration==null) return;
@@ -72,61 +70,16 @@ public class ServerCallbackHandler implements CallbackHandler {
         }
     }
 
-    public void handle(Callback[] callbacks) throws UnsupportedCallbackException {
-        for (Callback callback : callbacks) {
-            if (callback instanceof NameCallback) {
-                handleNameCallback((NameCallback) callback);
-            } else if (callback instanceof PasswordCallback) {
-                handlePasswordCallback((PasswordCallback) callback);
-            } else if (callback instanceof RealmCallback) {
-                handleRealmCallback((RealmCallback) callback);
-            } else if (callback instanceof AuthorizeCallback) {
-                handleAuthorizeCallback((AuthorizeCallback) callback);
-            }
-        }
-    }
-
-    private void handleNameCallback(NameCallback nc) {
-        LOG.debug("handleNameCallback");
-        userName = nc.getDefaultName();
-        nc.setName(nc.getDefaultName());
-    }
-
-    private void handlePasswordCallback(PasswordCallback pc) {
+    @Override
+    protected void handlePasswordCallback(PasswordCallback pc) {
         LOG.debug("handlePasswordCallback");
         if ("super".equals(this.userName) && System.getProperty(SYSPROP_SUPER_PASSWORD) != null) {
             // superuser: use Java system property for password, if available.
             pc.setPassword(System.getProperty(SYSPROP_SUPER_PASSWORD).toCharArray());
-        } else if (credentials.containsKey(userName) ) {
-            pc.setPassword(credentials.get(userName).toCharArray());
         } else {
-            LOG.warn("No password found for user: " + userName);
-        }
-    }
-
-    private void handleRealmCallback(RealmCallback rc) {
-        LOG.debug("handleRealmCallback: "+ rc.getDefaultText());
-        rc.setText(rc.getDefaultText());
-    }
-
-    private void handleAuthorizeCallback(AuthorizeCallback ac) {
-        String authenticationID = ac.getAuthenticationID();
-        LOG.info("Successfully authenticated client: authenticationID = " + authenticationID + " authorizationID = " + ac.getAuthorizationID());
-
-        //if authorizationId is not set, set it to authenticationId.
-        if(ac.getAuthorizationID() == null) {
-            ac.setAuthorizedID(authenticationID);
+            super.handlePasswordCallback(pc);
         }
 
-        //When authNid and authZid are not equal , authNId is attempting to impersonate authZid, We
-        //add the authNid as the real user in reqContext's subject which will be used during authorization.
-        if(!authenticationID.equals(ac.getAuthorizationID())) {
-            LOG.info("Impersonation attempt  authenticationID = " + ac.getAuthenticationID() + " authorizationID = " + ac.getAuthorizationID());
-            ReqContext.context().setRealPrincipal(new SaslTransportPlugin.User(ac.getAuthenticationID()));
-        } else {
-            ReqContext.context().setRealPrincipal(null);
-        }
-
-        ac.setAuthorized(true);
     }
+
 }

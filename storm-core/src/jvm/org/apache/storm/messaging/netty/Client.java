@@ -115,7 +115,6 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
      */
     private final long CHANNEL_ALIVE_INTERVAL_MS = 30000L;
 
-
     /**
      * Number of messages buffered in memory.
      */
@@ -138,10 +137,6 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
     private final MessageBuffer batcher;
 
     private final Object writeLock = new Object();
-
-    static {
-        timer = new Timer("Netty-ChannelAlive-Timer", true);
-    }
 
     @SuppressWarnings("rawtypes")
     Client(Map stormConf, ChannelFactory factory, HashedWheelTimer scheduler, String host, int port, Context context) {
@@ -178,12 +173,20 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
     private void launchChannelAliveThread() {
         // netty TimerTask is already defined and hence a fully
         // qualified name
+        if (timer == null) {
+            synchronized (Client.class) {
+                if (timer == null) {
+                    timer = new Timer("Netty-ChannelAlive-Timer", true);
+                }
+            }
+        }
         timer.schedule(new java.util.TimerTask() {
             public void run() {
                 try {
                     LOG.debug("running timer task, address {}", dstAddress);
                     if(closing) {
                         this.cancel();
+                        return;
                     }
                     getConnectedChannel();
                 } catch (Exception exp) {

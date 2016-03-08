@@ -2121,14 +2121,14 @@
          ^String component-id
          ^String window
          ^boolean include-sys?]
-        (mark! nimbus:num-getComponentPageInfo-calls)
+        (.mark nimbus:num-getComponentPageInfo-calls)
         (let [info (get-common-topo-info topo-id "getComponentPageInfo")
               {:keys [executor->node+port node->host]} (:assignment info)
               ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
               executor->host+port (map-val (fn [[node port]]
                                              [(node->host node) port])
                                            executor->node+port)
-              comp-page-info (stats/agg-comp-execs-stats executor->host+port
+              comp-page-info (StatsUtil/aggCompExecsStats executor->host+port
                                                          (:task->component info)
                                                          (:beats info)
                                                          window

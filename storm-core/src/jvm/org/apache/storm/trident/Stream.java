@@ -124,6 +124,31 @@ public class Stream implements IAggregatableStream {
     }
 
     /**
+     * Sets the CPU Load resource for the current node
+     */
+    public Stream setCPULoad(Number load) {
+        _node.setCPULoad(load);
+        return this;
+    }
+
+    /**
+     * Sets the Memory Load resources for the current node.
+     * offHeap becomes default
+     */
+    public Stream setMemoryLoad(Number onHeap) {
+        _node.setMemoryLoad(onHeap);
+        return this;
+    }
+
+    /**
+     * Sets the Memory Load resources for the current node
+     */
+    public Stream setMemoryLoad(Number onHeap, Number offHeap) {
+        _node.setMemoryLoad(onHeap, offHeap);
+        return this;
+    }
+
+    /**
      * Filters out fields from a stream, resulting in a Stream containing only the fields specified by `keepFields`.
      *
      * For example, if you had a Stream `mystream` containing the fields `["a", "b", "c","d"]`, calling"

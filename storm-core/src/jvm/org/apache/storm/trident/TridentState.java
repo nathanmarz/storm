@@ -23,18 +23,33 @@ import org.apache.storm.trident.planner.Node;
 public class TridentState {
     TridentTopology _topology;
     Node _node;
-    
+
     protected TridentState(TridentTopology topology, Node node) {
         _topology = topology;
         _node = node;
     }
-    
+
     public Stream newValuesStream() {
         return new Stream(_topology, _node.name, _node);
     }
-    
+
     public TridentState parallelismHint(int parallelism) {
         _node.parallelismHint = parallelism;
+        return this;
+    }
+
+    public TridentState setCPULoad(Number load) {
+        _node.setCPULoad(load);
+        return this;
+    }
+
+    public TridentState setMemoryLoad(Number onHeap) {
+        _node.setMemoryLoad(onHeap);
+        return this;
+    }
+
+    public TridentState setMemoryLoad(Number onHeap, Number offHeap) {
+        _node.setMemoryLoad(onHeap, offHeap);
         return this;
     }
 }

@@ -55,7 +55,8 @@ public class PaceMakerStateStorageFactory implements StateStorageFactory {
     }
 
     public IStateStorage initZKstateImpl(Map config, Map auth_conf, List<ACL> acls, ClusterStateContext context) throws Exception {
-        return ClusterUtils.mkStateStorage(config, auth_conf, acls, context);
+        ZKStateStorageFactory zkStateStorageFactory = new ZKStateStorageFactory();
+        return zkStateStorageFactory.mkStore(config, auth_conf, acls, context);
     }
 
     public PacemakerClient initMakeClientImpl(Map config) {

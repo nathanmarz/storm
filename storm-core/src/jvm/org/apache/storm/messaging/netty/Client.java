@@ -75,7 +75,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
     private static final Logger LOG = LoggerFactory.getLogger(Client.class);
     private static final String PREFIX = "Netty-Client-";
     private static final long NO_DELAY_MS = 0L;
-    private static Timer timer;
+    private static final Timer timer = new Timer("Netty-ChannelAlive-Timer", true);
 
     private final Map stormConf;
     private final StormBoundedExponentialBackoffRetry retryPolicy;
@@ -173,13 +173,6 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
     private void launchChannelAliveThread() {
         // netty TimerTask is already defined and hence a fully
         // qualified name
-        if (timer == null) {
-            synchronized (Client.class) {
-                if (timer == null) {
-                    timer = new Timer("Netty-ChannelAlive-Timer", true);
-                }
-            }
-        }
         timer.schedule(new java.util.TimerTask() {
             public void run() {
                 try {

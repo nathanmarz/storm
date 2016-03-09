@@ -63,6 +63,7 @@ public class DrpcServer implements DistributedRPC.Iface, DistributedRPCInvocatio
     private AtomicInteger ctr = new AtomicInteger(0);
     private ConcurrentHashMap<String, ConcurrentLinkedQueue<DRPCRequest>> requestQueues = new ConcurrentHashMap<String, ConcurrentLinkedQueue<DRPCRequest>>();
 
+
     private static class InternalRequest {
         public final Semaphore sem;
         public final int startTimeSecs;
@@ -200,8 +201,8 @@ public class DrpcServer implements DistributedRPC.Iface, DistributedRPCInvocatio
 
     public void launchServer() throws Exception {
         LOG.info("Starting drpc server for storm version {}", VersionInfo.getVersion());
-        initThrift();
         initHttp();
+        initThrift();
     }
 
     @Override

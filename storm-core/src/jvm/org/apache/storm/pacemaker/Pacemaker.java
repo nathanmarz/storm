@@ -34,7 +34,7 @@ public class Pacemaker implements IServerMessageHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(Pacemaker.class);
 
-    private Map heartbeats;
+    private Map<String, byte[]> heartbeats;
     private PacemakerStats pacemakerStats;
     private Map conf;
     private final long sleepSeconds = 60;
@@ -137,18 +137,17 @@ public class Pacemaker implements IServerMessageHandler {
         LOG.debug("List all nodes for path {}", path);
         if (authenticated) {
             Set<String> pulseIds = new HashSet<>();
-            for (Object key : heartbeats.keySet()) {
-                String k = (String) key;
-                String[] replaceStr = k.replaceFirst(path, "").split("/");
-                String trimmmed = null;
+            for (String key : heartbeats.keySet()) {
+                String[] replaceStr = key.replaceFirst(path, "").split("/");
+                String trimmed = null;
                 for (String str : replaceStr) {
                     if (!str.equals("")) {
-                        trimmmed = str;
+                        trimmed = str;
                         break;
                     }
                 }
-                if (trimmmed != null && k.indexOf(path) == 0) {
-                    pulseIds.add(trimmmed);
+                if (trimmed != null && key.indexOf(path) == 0) {
+                    pulseIds.add(trimmed);
                 }
             }
             HBMessageData hbMessageData = HBMessageData.nodes(new HBNodes(new ArrayList(pulseIds)));
@@ -160,7 +159,7 @@ public class Pacemaker implements IServerMessageHandler {
 
     private HBMessage getPulse(String path, boolean authenticated) {
         if (authenticated) {
-            byte[] details = (byte[]) heartbeats.get(path);
+            byte[] details = heartbeats.get(path);
             LOG.debug("Getting Pulse for path [ {} ]...data [ {} ].", path, details);
             pacemakerStats.getPulseCount.incrementAndGet();
             if (details != null) {
@@ -177,9 +176,9 @@ public class Pacemaker implements IServerMessageHandler {
 
     private HBMessage deletePath(String path) {
         String prefix = path.endsWith("/") ? path : (path + "/");
-        for (Object key : heartbeats.keySet()) {
-            if (((String) key).indexOf(prefix) == 0)
-                deletePulseId((String) key);
+        for (String key : heartbeats.keySet()) {
+            if (key.indexOf(prefix) == 0)
+                deletePulseId(key);
         }
         return new HBMessage(HBServerMessageType.DELETE_PATH_RESPONSE, null);
     }
@@ -203,11 +202,10 @@ public class Pacemaker implements IServerMessageHandler {
     }
 
     private void updateAverageHbSize(int size) {
-        int newValue = size;
         while (true) {
             int oldValue = pacemakerStats.averageHeartbeatSize.get();
             int count = pacemakerStats.sendPulseCount.get();
-            newValue = ((count * oldValue) + newValue) / (count + 1);
+            int newValue = ((count * oldValue) + size) / (count + 1);
             if (!pacemakerStats.averageHeartbeatSize.compareAndSet(oldValue, newValue))
                 continue;
             break;

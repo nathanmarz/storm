@@ -26,6 +26,9 @@ import org.junit.Test;
 
 public class PaceMakerStateStorageFactoryTest {
 
+    private PacemakerClient clientProxy;
+    private PaceMakerStateStorage stateStorage;
+
     private class PaceMakerClientProxy extends PacemakerClient {
         private HBMessage response;
         private HBMessage captured;
@@ -34,22 +37,28 @@ public class PaceMakerStateStorageFactoryTest {
             this.response = response;
             this.captured = captured;
         }
+
         @Override
         public HBMessage send(HBMessage m) {
             captured = m;
             return response;
         }
+
         @Override
         public HBMessage checkCaptured() {
             return captured;
         }
     }
 
+    public void createPaceMakerStateStorage(HBServerMessageType messageType, HBMessageData messageData) throws Exception {
+        HBMessage response = new HBMessage(messageType, messageData);
+        clientProxy = new PaceMakerClientProxy(response, null);
+        stateStorage = new PaceMakerStateStorage(clientProxy, null);
+    }
+
     @Test
     public void testSetWorkerHb() throws Exception {
-        HBMessage response = new HBMessage(HBServerMessageType.SEND_PULSE_RESPONSE, null);
-        PaceMakerClientProxy clientProxy = new PaceMakerClientProxy(response, null);
-        PaceMakerStateStorage stateStorage = new PaceMakerStateStorage(clientProxy, null);
+        createPaceMakerStateStorage(HBServerMessageType.SEND_PULSE_RESPONSE, null);
         stateStorage.set_worker_hb("/foo", Utils.javaSerialize("data"), null);
         HBMessage sent = clientProxy.checkCaptured();
         HBPulse pulse = sent.get_data().get_pulse();
@@ -60,17 +69,13 @@ public class PaceMakerStateStorageFactoryTest {
 
     @Test(expected = RuntimeException.class)
     public void testSetWorkerHbResponseType() throws Exception {
-        HBMessage response = new HBMessage(HBServerMessageType.SEND_PULSE, null);
-        PaceMakerClientProxy clientProxy = new PaceMakerClientProxy(response, null);
-        PaceMakerStateStorage stateStorage = new PaceMakerStateStorage(clientProxy, null);
+        createPaceMakerStateStorage(HBServerMessageType.SEND_PULSE, null);
         stateStorage.set_worker_hb("/foo", Utils.javaSerialize("data"), null);
     }
 
     @Test
     public void testDeleteWorkerHb() throws Exception {
-        HBMessage response = new HBMessage(HBServerMessageType.DELETE_PATH_RESPONSE, null);
-        PaceMakerClientProxy clientProxy = new PaceMakerClientProxy(response, null);
-        PaceMakerStateStorage stateStorage = new PaceMakerStateStorage(clientProxy, null);
+        createPaceMakerStateStorage(HBServerMessageType.DELETE_PATH_RESPONSE, null);
         stateStorage.delete_worker_hb("/foo/bar");
         HBMessage sent = clientProxy.checkCaptured();
         Assert.assertEquals(HBServerMessageType.DELETE_PATH, sent.get_type());
@@ -79,9 +84,7 @@ public class PaceMakerStateStorageFactoryTest {
 
     @Test(expected = RuntimeException.class)
     public void testDeleteWorkerHbResponseType() throws Exception {
-        HBMessage response = new HBMessage(HBServerMessageType.DELETE_PATH, null);
-        PaceMakerClientProxy clientProxy = new PaceMakerClientProxy(response, null);
-        PaceMakerStateStorage stateStorage = new PaceMakerStateStorage(clientProxy, null);
+        createPaceMakerStateStorage(HBServerMessageType.DELETE_PATH, null);
         stateStorage.delete_worker_hb("/foo/bar");
     }
 
@@ -90,9 +93,7 @@ public class PaceMakerStateStorageFactoryTest {
         HBPulse hbPulse = new HBPulse();
         hbPulse.set_id("/foo");
         hbPulse.set_details(Utils.javaSerialize("some data"));
-        HBMessage response = new HBMessage(HBServerMessageType.GET_PULSE_RESPONSE, HBMessageData.pulse(hbPulse));
-        PaceMakerClientProxy clientProxy = new PaceMakerClientProxy(response, null);
-        PaceMakerStateStorage stateStorage = new PaceMakerStateStorage(clientProxy, null);
+        createPaceMakerStateStorage(HBServerMessageType.GET_PULSE_RESPONSE, HBMessageData.pulse(hbPulse));
         stateStorage.get_worker_hb("/foo", false);
         HBMessage sent = clientProxy.checkCaptured();
         Assert.assertEquals(HBServerMessageType.GET_PULSE, sent.get_type());
@@ -101,25 +102,19 @@ public class PaceMakerStateStorageFactoryTest {
 
     @Test(expected = RuntimeException.class)
     public void testGetWorkerHbBadResponse() throws Exception {
-        HBMessage response = new HBMessage(HBServerMessageType.GET_PULSE, null);
-        PaceMakerClientProxy clientProxy = new PaceMakerClientProxy(response, null);
-        PaceMakerStateStorage stateStorage = new PaceMakerStateStorage(clientProxy, null);
+        createPaceMakerStateStorage(HBServerMessageType.GET_PULSE, null);
         stateStorage.get_worker_hb("/foo", false);
     }
 
     @Test(expected = RuntimeException.class)
     public void testGetWorkerHbBadData() throws Exception {
-        HBMessage response = new HBMessage(HBServerMessageType.GET_PULSE_RESPONSE, null);
-        PaceMakerClientProxy clientProxy = new PaceMakerClientProxy(response, null);
-        PaceMakerStateStorage stateStorage = new PaceMakerStateStorage(clientProxy, null);
+        createPaceMakerStateStorage(HBServerMessageType.GET_PULSE_RESPONSE, null);
         stateStorage.get_worker_hb("/foo", false);
     }
 
     @Test
     public void testGetWorkerHbChildren() throws Exception {
-        HBMessage response = new HBMessage(HBServerMessageType.GET_ALL_NODES_FOR_PATH_RESPONSE, HBMessageData.nodes(new HBNodes()));
-        PaceMakerClientProxy clientProxy = new PaceMakerClientProxy(response, null);
-        PaceMakerStateStorage stateStorage = new PaceMakerStateStorage(clientProxy, null);
+        createPaceMakerStateStorage(HBServerMessageType.GET_ALL_NODES_FOR_PATH_RESPONSE, HBMessageData.nodes(new HBNodes()));
         stateStorage.get_worker_hb_children("/foo", false);
         HBMessage sent = clientProxy.checkCaptured();
         Assert.assertEquals(HBServerMessageType.GET_ALL_NODES_FOR_PATH, sent.get_type());
@@ -128,17 +123,13 @@ public class PaceMakerStateStorageFactoryTest {
 
     @Test(expected = RuntimeException.class)
     public void testGetWorkerHbChildrenBadResponse() throws Exception {
-        HBMessage response = new HBMessage(HBServerMessageType.DELETE_PATH, null);
-        PaceMakerClientProxy clientProxy = new PaceMakerClientProxy(response, null);
-        PaceMakerStateStorage stateStorage = new PaceMakerStateStorage(clientProxy, null);
+        createPaceMakerStateStorage(HBServerMessageType.DELETE_PATH, null);
         stateStorage.get_worker_hb_children("/foo", false);
     }
 
     @Test(expected = RuntimeException.class)
     public void testGetWorkerHbChildrenBadData() throws Exception {
-        HBMessage response = new HBMessage(HBServerMessageType.GET_ALL_NODES_FOR_PATH_RESPONSE, null);
-        PaceMakerClientProxy clientProxy = new PaceMakerClientProxy(response, null);
-        PaceMakerStateStorage stateStorage = new PaceMakerStateStorage(clientProxy, null);
+        createPaceMakerStateStorage(HBServerMessageType.GET_ALL_NODES_FOR_PATH_RESPONSE, null);
         stateStorage.get_worker_hb_children("/foo", false);
     }
 

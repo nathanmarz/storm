@@ -24,8 +24,17 @@ import org.apache.storm.Thrift;
 import org.apache.storm.cluster.IStormClusterState;
 import org.apache.storm.daemon.metrics.MetricsUtils;
 import org.apache.storm.daemon.metrics.reporters.PreparableReporter;
-import org.apache.storm.generated.*;
+import org.apache.storm.generated.Bolt;
+import org.apache.storm.generated.ComponentCommon;
+import org.apache.storm.generated.GlobalStreamId;
+import org.apache.storm.generated.Grouping;
+import org.apache.storm.generated.InvalidTopologyException;
+import org.apache.storm.generated.NodeInfo;
+import org.apache.storm.generated.SpoutSpec;
+import org.apache.storm.generated.StateSpoutSpec;
 import org.apache.storm.generated.StormBase;
+import org.apache.storm.generated.StormTopology;
+import org.apache.storm.generated.StreamInfo;
 import org.apache.storm.metric.EventLoggerBolt;
 import org.apache.storm.metric.MetricsConsumerBolt;
 import org.apache.storm.metric.SystemBolt;
@@ -40,7 +49,14 @@ import org.json.simple.JSONValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 
 public class StormCommon {
     // A singleton instance allows us to mock delegated static methods in our
@@ -105,22 +121,20 @@ public class StormCommon {
         for (StormTopology._Fields field : Thrift.getTopologyFields()) {
             if (ThriftTopologyUtils.isWorkerHook(field) == false) {
                 Object value = topology.getFieldValue(field);
-                if (value != null) {
-                    Map<String, Object> componentMap = (Map<String, Object>) value;
-                    componentIds.addAll(componentMap.keySet());
+                Map<String, Object> componentMap = (Map<String, Object>) value;
+                componentIds.addAll(componentMap.keySet());
 
-                    for (String id : componentMap.keySet()) {
-                        if (Utils.isSystemId(id)) {
-                            throw new InvalidTopologyException(id + " is not a valid component id.");
-                        }
+                for (String id : componentMap.keySet()) {
+                    if (Utils.isSystemId(id)) {
+                        throw new InvalidTopologyException(id + " is not a valid component id.");
                     }
-                    for (Object componentObj : componentMap.values()) {
-                        ComponentCommon common = getComponentCommon(componentObj);
-                        Set<String> streamIds = common.get_streams().keySet();
-                        for (String id : streamIds) {
-                            if (Utils.isSystemId(id)) {
-                                throw new InvalidTopologyException(id + " is not a valid stream id.");
-                            }
+                }
+                for (Object componentObj : componentMap.values()) {
+                    ComponentCommon common = getComponentCommon(componentObj);
+                    Set<String> streamIds = common.get_streams().keySet();
+                    for (String id : streamIds) {
+                        if (Utils.isSystemId(id)) {
+                            throw new InvalidTopologyException(id + " is not a valid stream id.");
                         }
                     }
                 }

@@ -255,7 +255,7 @@
         (Utils/exitProcess 20 "Error when processing an event")))))
 
 (defn executor->tasks [executor-id]
-  clojurify-structure (StormCommon/executorIdToTasks executor-id))
+  (StormCommon/executorIdToTasks executor-id))
 
 (defn worker-data [conf mq-context storm-id assignment-id port worker-id storm-conf state-store storm-cluster-state]
   (let [assignment-versions (atom {})

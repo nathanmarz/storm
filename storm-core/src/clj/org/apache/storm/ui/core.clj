@@ -25,7 +25,8 @@
   (:use [org.apache.storm.ui helpers])
   (:import [org.apache.storm.utils Time]
            [org.apache.storm.generated NimbusSummary]
-           [org.apache.storm.ui UIHelpers IConfigurator FilterConfiguration])
+           [org.apache.storm.ui UIHelpers IConfigurator FilterConfiguration]
+           [org.apache.storm.metric StormMetricsRegistry])
   (:use [clojure.string :only [blank? lower-case trim split]])
   (:import [org.apache.storm.generated ExecutorSpecificStats
             ExecutorStats ExecutorSummary ExecutorInfo TopologyInfo SpoutStats BoltStats
@@ -48,10 +49,9 @@
             [compojure.handler :as handler]
             [ring.util.response :as resp]
             [org.apache.storm.internal [thrift :as thrift]])
-  (:require [metrics.meters :refer [defmeter mark!]])
   (:import [org.apache.commons.lang StringEscapeUtils])
   (:import [org.apache.logging.log4j Level]
-           (org.apache.storm.daemon StormCommon))
+           (org.apache.storm.daemon StormCommon Acker))
   (:import [org.eclipse.jetty.server Server])
   (:gen-class))
 
@@ -61,24 +61,24 @@
 (def http-creds-handler (AuthUtils/GetUiHttpCredentialsPlugin *STORM-CONF*))
 (def STORM-VERSION (VersionInfo/getVersion))
 
-(defmeter ui:num-cluster-configuration-http-requests)
-(defmeter ui:num-cluster-summary-http-requests)
-(defmeter ui:num-nimbus-summary-http-requests)
-(defmeter ui:num-supervisor-summary-http-requests)
-(defmeter ui:num-all-topologies-summary-http-requests)
-(defmeter ui:num-topology-page-http-requests)
-(defmeter ui:num-build-visualization-http-requests)
-(defmeter ui:num-mk-visualization-data-http-requests)
-(defmeter ui:num-component-page-http-requests)
-(defmeter ui:num-log-config-http-requests)
-(defmeter ui:num-activate-topology-http-requests)
-(defmeter ui:num-deactivate-topology-http-requests)
-(defmeter ui:num-debug-topology-http-requests)
-(defmeter ui:num-component-op-response-http-requests)
-(defmeter ui:num-topology-op-response-http-requests)
-(defmeter ui:num-topology-op-response-http-requests)
-(defmeter ui:num-topology-op-response-http-requests)
-(defmeter ui:num-main-page-http-requests)
+(def ui:num-cluster-configuration-http-requests (StormMetricsRegistry/registerMeter "ui:num-cluster-configuration-http-requests")) 
+(def ui:num-cluster-summary-http-requests (StormMetricsRegistry/registerMeter "ui:num-cluster-summary-http-requests")) 
+(def ui:num-nimbus-summary-http-requests (StormMetricsRegistry/registerMeter "ui:num-nimbus-summary-http-requests")) 
+(def ui:num-supervisor-summary-http-requests (StormMetricsRegistry/registerMeter "ui:num-supervisor-summary-http-requests")) 
+(def ui:num-all-topologies-summary-http-requests (StormMetricsRegistry/registerMeter "ui:num-all-topologies-summary-http-requests")) 
+(def ui:num-topology-page-http-requests (StormMetricsRegistry/registerMeter "ui:num-topology-page-http-requests")) 
+(def ui:num-build-visualization-http-requests (StormMetricsRegistry/registerMeter "ui:num-build-visualization-http-requests")) 
+(def ui:num-mk-visualization-data-http-requests (StormMetricsRegistry/registerMeter "ui:num-mk-visualization-data-http-requests")) 
+(def ui:num-component-page-http-requests (StormMetricsRegistry/registerMeter "ui:num-component-page-http-requests")) 
+(def ui:num-log-config-http-requests (StormMetricsRegistry/registerMeter "ui:num-log-config-http-requests")) 
+(def ui:num-activate-topology-http-requests (StormMetricsRegistry/registerMeter "ui:num-activate-topology-http-requests")) 
+(def ui:num-deactivate-topology-http-requests (StormMetricsRegistry/registerMeter "ui:num-deactivate-topology-http-requests")) 
+(def ui:num-debug-topology-http-requests (StormMetricsRegistry/registerMeter "ui:num-debug-topology-http-requests")) 
+(def ui:num-component-op-response-http-requests (StormMetricsRegistry/registerMeter "ui:num-component-op-response-http-requests")) 
+(def ui:num-topology-op-response-http-requests (StormMetricsRegistry/registerMeter "ui:num-topology-op-response-http-requests")) 
+(def ui:num-topology-op-response-http-requests (StormMetricsRegistry/registerMeter "ui:num-topology-op-response-http-requests")) 
+(def ui:num-topology-op-response-http-requests (StormMetricsRegistry/registerMeter "ui:num-topology-op-response-http-requests")) 
+(def ui:num-main-page-http-requests (StormMetricsRegistry/registerMeter "ui:num-main-page-http-requests")) 
 
 (defn assert-authorized-user
   ([op]
@@ -114,9 +114,9 @@
 (defn is-ack-stream
   [stream]
   (let [acker-streams
-        [StormCommon/ACKER_INIT_STREAM_ID
-         StormCommon/ACKER_ACK_STREAM_ID
-         StormCommon/ACKER_FAIL_STREAM_ID]]
+        [Acker/ACKER_INIT_STREAM_ID
+         Acker/ACKER_ACK_STREAM_ID
+         Acker/ACKER_FAIL_STREAM_ID]]
     (every? #(not= %1 stream) acker-streams)))
 
 (defn spout-summary?
@@ -938,11 +938,11 @@
 
 (defroutes main-routes
   (GET "/api/v1/cluster/configuration" [& m]
-    (mark! ui:num-cluster-configuration-http-requests)
+    (.mark ui:num-cluster-configuration-http-requests)
     (json-response (cluster-configuration)
                    (:callback m) :need-serialize false))
   (GET "/api/v1/cluster/summary" [:as {:keys [cookies servlet-request]} & m]
-    (mark! ui:num-cluster-summary-http-requests)
+    (.mark ui:num-cluster-summary-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "getClusterInfo")
     (let [user (get-user-name servlet-request)]
@@ -950,7 +950,7 @@
                           "bugtracker-url" (*STORM-CONF* UI-PROJECT-BUGTRACKER-URL)
                           "central-log-url" (*STORM-CONF* UI-CENTRAL-LOGGING-URL)) (:callback m))))
   (GET "/api/v1/nimbus/summary" [:as {:keys [cookies servlet-request]} & m]
-    (mark! ui:num-nimbus-summary-http-requests)
+    (.mark ui:num-nimbus-summary-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "getClusterInfo")
     (json-response (nimbus-summary) (:callback m)))
@@ -958,13 +958,13 @@
     (let [user (.getUserName http-creds-handler servlet-request)]
       (json-response (topology-history-info user) (:callback m))))
   (GET "/api/v1/supervisor/summary" [:as {:keys [cookies servlet-request]} & m]
-    (mark! ui:num-supervisor-summary-http-requests)
+    (.mark ui:num-supervisor-summary-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "getClusterInfo")
     (json-response (assoc (supervisor-summary)
                      "logviewerPort" (*STORM-CONF* LOGVIEWER-PORT)) (:callback m)))
   (GET "/api/v1/topology/summary" [:as {:keys [cookies servlet-request]} & m]
-    (mark! ui:num-all-topologies-summary-http-requests)
+    (.mark ui:num-all-topologies-summary-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "getClusterInfo")
     (json-response (all-topologies-summary) (:callback m)))
@@ -973,23 +973,23 @@
       (json-response {"hostPortList" (worker-host-port id)
                       "logviewerPort" (*STORM-CONF* LOGVIEWER-PORT)} (:callback m))))
   (GET "/api/v1/topology/:id" [:as {:keys [cookies servlet-request scheme]} id & m]
-    (mark! ui:num-topology-page-http-requests)
+    (.mark ui:num-topology-page-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "getTopology" (topology-config id))
     (let [user (get-user-name servlet-request)]
       (json-response (topology-page id (:window m) (check-include-sys? (:sys m)) user (= scheme :https)) (:callback m))))
   (GET "/api/v1/topology/:id/visualization-init" [:as {:keys [cookies servlet-request]} id & m]
-    (mark! ui:num-build-visualization-http-requests)
+    (.mark ui:num-build-visualization-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "getTopology" (topology-config id))
     (json-response (build-visualization id (:window m) (check-include-sys? (:sys m))) (:callback m)))
   (GET "/api/v1/topology/:id/visualization" [:as {:keys [cookies servlet-request]} id & m]
-    (mark! ui:num-mk-visualization-data-http-requests)
+    (.mark ui:num-mk-visualization-data-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "getTopology" (topology-config id))
     (json-response (mk-visualization-data id (:window m) (check-include-sys? (:sys m))) (:callback m)))
   (GET "/api/v1/topology/:id/component/:component" [:as {:keys [cookies servlet-request scheme]} id component & m]
-    (mark! ui:num-component-page-http-requests)
+    (.mark ui:num-component-page-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "getTopology" (topology-config id))
     (let [user (get-user-name servlet-request)]
@@ -997,12 +997,12 @@
           (component-page id component (:window m) (check-include-sys? (:sys m)) user (= scheme :https))
           (:callback m))))
   (GET "/api/v1/topology/:id/logconfig" [:as {:keys [cookies servlet-request]} id & m]
-    (mark! ui:num-log-config-http-requests)
+    (.mark ui:num-log-config-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "getTopology" (topology-config id))
     (json-response (log-config id) (:callback m)))
   (POST "/api/v1/topology/:id/activate" [:as {:keys [cookies servlet-request]} id & m]
-    (mark! ui:num-activate-topology-http-requests)
+    (.mark ui:num-activate-topology-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "activate" (topology-config id))
     (thrift/with-configured-nimbus-connection nimbus
@@ -1015,7 +1015,7 @@
         (log-message "Activating topology '" name "'")))
     (json-response (topology-op-response id "activate") (m "callback")))
   (POST "/api/v1/topology/:id/deactivate" [:as {:keys [cookies servlet-request]} id & m]
-    (mark! ui:num-deactivate-topology-http-requests)
+    (.mark ui:num-deactivate-topology-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "deactivate" (topology-config id))
     (thrift/with-configured-nimbus-connection nimbus
@@ -1028,7 +1028,7 @@
         (log-message "Deactivating topology '" name "'")))
     (json-response (topology-op-response id "deactivate") (m "callback")))
   (POST "/api/v1/topology/:id/debug/:action/:spct" [:as {:keys [cookies servlet-request]} id action spct & m]
-    (mark! ui:num-debug-topology-http-requests)
+    (.mark ui:num-debug-topology-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "debug" (topology-config id))
     (thrift/with-configured-nimbus-connection nimbus
@@ -1042,7 +1042,7 @@
         (log-message "Debug topology [" name "] action [" action "] sampling pct [" spct "]")))
     (json-response (topology-op-response id (str "debug/" action)) (m "callback")))
   (POST "/api/v1/topology/:id/component/:component/debug/:action/:spct" [:as {:keys [cookies servlet-request]} id component action spct & m]
-    (mark! ui:num-component-op-response-http-requests)
+    (.mark ui:num-component-op-response-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "debug" (topology-config id))
     (thrift/with-configured-nimbus-connection nimbus
@@ -1056,7 +1056,7 @@
         (log-message "Debug topology [" name "] component [" component "] action [" action "] sampling pct [" spct "]")))
     (json-response (component-op-response id component (str "/debug/" action)) (m "callback")))
   (POST "/api/v1/topology/:id/rebalance/:wait-time" [:as {:keys [cookies servlet-request]} id wait-time & m]
-    (mark! ui:num-topology-op-response-http-requests)
+    (.mark ui:num-topology-op-response-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "rebalance" (topology-config id))
     (thrift/with-configured-nimbus-connection nimbus
@@ -1077,7 +1077,7 @@
         (log-message "Rebalancing topology '" name "' with wait time: " wait-time " secs")))
     (json-response (topology-op-response id "rebalance") (m "callback")))
   (POST "/api/v1/topology/:id/kill/:wait-time" [:as {:keys [cookies servlet-request]} id wait-time & m]
-    (mark! ui:num-topology-op-response-http-requests)
+    (.mark ui:num-topology-op-response-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "killTopology" (topology-config id))
     (thrift/with-configured-nimbus-connection nimbus
@@ -1092,7 +1092,7 @@
         (log-message "Killing topology '" name "' with wait time: " wait-time " secs")))
     (json-response (topology-op-response id "kill") (m "callback")))
   (POST "/api/v1/topology/:id/logconfig" [:as {:keys [cookies servlet-request]} id namedLoggerLevels & m]
-    (mark! ui:num-topology-op-response-http-requests)
+    (.mark ui:num-topology-op-response-http-requests)
     (populate-context! servlet-request)
     (assert-authorized-user "setLogConfig" (topology-config id))
     (thrift/with-configured-nimbus-connection
@@ -1231,7 +1231,7 @@
                           (m "callback")))))
 
   (GET "/" [:as {cookies :cookies}]
-    (mark! ui:num-main-page-http-requests)
+    (.mark ui:num-main-page-http-requests)
     (resp/redirect "/index.html"))
   (route/resources "/")
   (route/not-found "Page not found"))
@@ -1268,7 +1268,7 @@
           https-ts-type (conf UI-HTTPS-TRUSTSTORE-TYPE)
           https-want-client-auth (conf UI-HTTPS-WANT-CLIENT-AUTH)
           https-need-client-auth (conf UI-HTTPS-NEED-CLIENT-AUTH)]
-      (StormCommon/startMetricsReporters conf)
+      (StormMetricsRegistry/startMetricsReporters conf)
       (UIHelpers/stormRunJetty  (int (conf UI-PORT))
                                 (conf UI-HOST)
                                 https-port

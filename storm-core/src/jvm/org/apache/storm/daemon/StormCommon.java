@@ -62,65 +62,18 @@ public class StormCommon {
 
     private static final Logger LOG = LoggerFactory.getLogger(StormCommon.class);
 
-    public static final String ACKER_COMPONENT_ID = Acker.ACKER_COMPONENT_ID;
-    public static final String ACKER_INIT_STREAM_ID = Acker.ACKER_INIT_STREAM_ID;
-    public static final String ACKER_ACK_STREAM_ID = Acker.ACKER_ACK_STREAM_ID;
-    public static final String ACKER_FAIL_STREAM_ID = Acker.ACKER_FAIL_STREAM_ID;
-
     public static final String SYSTEM_STREAM_ID = "__system";
 
     public static final String EVENTLOGGER_COMPONENT_ID = "__eventlogger";
     public static final String EVENTLOGGER_STREAM_ID = "__eventlog";
 
-    public static void startMetricsReporter(PreparableReporter report, Map conf) {
-        report.prepare(new MetricRegistry(), conf);
-        report.start();
-        LOG.info("Started statistics report plugin...");
-    }
-
-    public static void startMetricsReporters(Map conf) {
-        List<PreparableReporter> reporters = MetricsUtils.getPreparableReporters(conf);
-        for (PreparableReporter reporter : reporters) {
-            startMetricsReporter(reporter, conf);
-        }
-    }
-
-    public static String getTopologyNameById(String topologyId) {
-        String topologyName = null;
-        try {
-            topologyName = topologyIdToName(topologyId);
-        } catch (InvalidTopologyException e) {
-            LOG.error("Invalid topologyId=" + topologyId);
-        }
-        return topologyName;
-    }
-
-    /**
-     * Convert topologyId to topologyName. TopologyId = topoloygName-counter-timeStamp
-     *
-     * @param topologyId
-     * @return
-     */
-    public static String topologyIdToName(String topologyId) throws InvalidTopologyException {
-        String ret = null;
-        int index = topologyId.lastIndexOf('-');
-        if (index != -1 && index > 2) {
-            index = topologyId.lastIndexOf('-', index - 1);
-            if (index != -1 && index > 0)
-                ret = topologyId.substring(0, index);
-            else
-                throw new InvalidTopologyException(topologyId + " is not a valid topologyId");
-        } else
-            throw new InvalidTopologyException(topologyId + " is not a valid topologyId");
-        return ret;
-    }
-
-    public static String getStormId(IStormClusterState stormClusterState, final String topologyName) {
+    public static String getStormId(final IStormClusterState stormClusterState, final String topologyName) {
         List<String> activeTopologys = stormClusterState.activeStorms();
         IPredicate pred = new IPredicate<String>() {
             @Override
             public boolean test(String obj) {
-                return obj != null ? getTopologyNameById(obj).equals(topologyName) : false;
+                String name = stormClusterState.stormBase(obj, null).get_name();
+                return name.equals(topologyName);
             }
         };
         return Utils.findOne(pred, activeTopologys);
@@ -133,13 +86,9 @@ public class StormCommon {
     protected Map<String, StormBase> topologyBasesImpl(IStormClusterState stormClusterState) {
         List<String> activeTopologys = stormClusterState.activeStorms();
         Map<String, StormBase> stormBases = new HashMap<String, StormBase>();
-        if (activeTopologys != null) {
-            for (String topologyId : activeTopologys) {
-                StormBase base = stormClusterState.stormBase(topologyId, null);
-                if (base != null) {
-                    stormBases.put(topologyId, base);
-                }
-            }
+        for (String topologyId : activeTopologys) {
+            StormBase base = stormClusterState.stormBase(topologyId, null);
+            stormBases.put(topologyId, base);
         }
         return stormBases;
     }
@@ -185,9 +134,7 @@ public class StormCommon {
     }
 
     private static boolean isEmptyInputs(ComponentCommon common) {
-        if (common == null) {
-            return true;
-        } else if (common.get_inputs() == null) {
+        if (common.get_inputs() == null) {
             return true;
         } else {
             return common.get_inputs().isEmpty();
@@ -208,11 +155,9 @@ public class StormCommon {
     public static Map componentConf(Object component) {
         Map<Object, Object> conf = new HashMap<Object, Object>();
         ComponentCommon common = getComponentCommon(component);
-        if (common != null) {
-            String jconf = common.get_json_conf();
-            if (jconf != null) {
-                conf.putAll((Map<Object, Object>) JSONValue.parse(jconf));
-            }
+        String jconf = common.get_json_conf();
+        if (jconf != null) {
+            conf.putAll((Map<Object, Object>) JSONValue.parse(jconf));
         }
         return conf;
     }
@@ -220,8 +165,7 @@ public class StormCommon {
     public static void validateBasic(StormTopology topology) throws InvalidTopologyException {
         validateIds(topology);
 
-        List<StormTopology._Fields> spoutFields = Arrays.asList(Thrift.getSpoutFields());
-        for (StormTopology._Fields field : spoutFields) {
+        for (StormTopology._Fields field : Thrift.getSpoutFields()) {
             Map<String, Object> spoutComponents = (Map<String, Object>) topology.getFieldValue(field);
             if (spoutComponents != null) {
                 for (Object obj : spoutComponents.values()) {
@@ -237,22 +181,18 @@ public class StormCommon {
         for (Object componentObj : componentMap.values()) {
             Map conf = componentConf(componentObj);
             ComponentCommon common = getComponentCommon(componentObj);
-            if (common != null) {
-                int parallelismHintNum = Thrift.getParallelismHint(common);
-                Integer taskNum = Utils.getInt(conf.get(Config.TOPOLOGY_TASKS), 0);
-                if (taskNum > 0 && parallelismHintNum <= 0) {
-                    throw new InvalidTopologyException("Number of executors must be greater than 0 when number of tasks is greater than 0");
-                }
+            int parallelismHintNum = Thrift.getParallelismHint(common);
+            Integer taskNum = Utils.getInt(conf.get(Config.TOPOLOGY_TASKS), 0);
+            if (taskNum > 0 && parallelismHintNum <= 0) {
+                throw new InvalidTopologyException("Number of executors must be greater than 0 when number of tasks is greater than 0");
             }
         }
     }
 
     private static Set<String> getStreamOutputFields(Map<String, StreamInfo> streams) {
         Set<String> outputFields = new HashSet<String>();
-        if (streams != null) {
-            for (StreamInfo streamInfo : streams.values()) {
-                outputFields.addAll(streamInfo.get_output_fields());
-            }
+        for (StreamInfo streamInfo : streams.values()) {
+            outputFields.addAll(streamInfo.get_output_fields());
         }
         return outputFields;
     }
@@ -262,30 +202,29 @@ public class StormCommon {
         for (Map.Entry<String, Object> entry : componentMap.entrySet()) {
             String componentId = entry.getKey();
             ComponentCommon common = getComponentCommon(entry.getValue());
-            if (common != null) {
-                Map<GlobalStreamId, Grouping> inputs = common.get_inputs();
-                for (Map.Entry<GlobalStreamId, Grouping> input : inputs.entrySet()) {
-                    String sourceStreamId = input.getKey().get_streamId();
-                    String sourceComponentId = input.getKey().get_componentId();
-                    if(componentMap.keySet().contains(sourceComponentId) == false) {
-                        throw new InvalidTopologyException("Component: [" + componentId + "] subscribes from non-existent component [" + sourceComponentId + "]");
-                    }
+            Map<GlobalStreamId, Grouping> inputs = common.get_inputs();
+            for (Map.Entry<GlobalStreamId, Grouping> input : inputs.entrySet()) {
+                String sourceStreamId = input.getKey().get_streamId();
+                String sourceComponentId = input.getKey().get_componentId();
+                if(componentMap.keySet().contains(sourceComponentId) == false) {
+                    throw new InvalidTopologyException("Component: [" + componentId + "] subscribes from non-existent component [" + sourceComponentId + "]");
+                }
 
-                    ComponentCommon sourceComponent = getComponentCommon(componentMap.get(sourceComponentId));
-                    if (sourceComponent == null || sourceComponent.get_streams().containsKey(sourceStreamId) == false) {
-                        throw new InvalidTopologyException("Component: [" + componentId + "] subscribes from non-existent stream: " +
-                                "[" + sourceStreamId + "] of component [" + sourceComponentId + "]");
-                    }
+                ComponentCommon sourceComponent = getComponentCommon(componentMap.get(sourceComponentId));
+                if (sourceComponent.get_streams().containsKey(sourceStreamId) == false) {
+                    throw new InvalidTopologyException("Component: [" + componentId + "] subscribes from non-existent stream: " +
+                            "[" + sourceStreamId + "] of component [" + sourceComponentId + "]");
+                }
 
-                    Grouping grouping = input.getValue();
-                    if (Thrift.groupingType(grouping) == Grouping._Fields.FIELDS) {
-                        List<String> fields = grouping.get_fields();
-                        Map<String, StreamInfo> streams = sourceComponent.get_streams();
-                        Set<String> sourceOutputFields = getStreamOutputFields(streams);
-                        if (sourceOutputFields.containsAll(fields) == false) {
-                            throw new InvalidTopologyException("Component: [" + componentId + "] subscribes from stream: [" + sourceStreamId  +"] of component " +
-                                    "[" + sourceComponentId + "] + with non-existent fields: " + fields);
-                        }
+                Grouping grouping = input.getValue();
+                if (Thrift.groupingType(grouping) == Grouping._Fields.FIELDS) {
+                    List<String> fields = new ArrayList<String>(grouping.get_fields());
+                    Map<String, StreamInfo> streams = sourceComponent.get_streams();
+                    Set<String> sourceOutputFields = getStreamOutputFields(streams);
+                    fields.removeAll(sourceOutputFields);
+                    if (fields.size() != 0) {
+                        throw new InvalidTopologyException("Component: [" + componentId + "] subscribes from stream: [" + sourceStreamId  +"] of component " +
+                                "[" + sourceComponentId + "] + with non-existent fields: " + fields);
                     }
                 }
             }
@@ -298,12 +237,12 @@ public class StormCommon {
         Set<String> spoutIds = topology.get_spouts().keySet();
 
         for(String id : spoutIds) {
-            inputs.put(Utils.getGlobalStreamId(id, ACKER_INIT_STREAM_ID), Thrift.prepareFieldsGrouping(Arrays.asList("id")));
+            inputs.put(Utils.getGlobalStreamId(id, Acker.ACKER_INIT_STREAM_ID), Thrift.prepareFieldsGrouping(Arrays.asList("id")));
         }
 
         for(String id : boltIds) {
-            inputs.put(Utils.getGlobalStreamId(id, ACKER_ACK_STREAM_ID), Thrift.prepareFieldsGrouping(Arrays.asList("id")));
-            inputs.put(Utils.getGlobalStreamId(id, ACKER_FAIL_STREAM_ID), Thrift.prepareFieldsGrouping(Arrays.asList("id")));
+            inputs.put(Utils.getGlobalStreamId(id, Acker.ACKER_ACK_STREAM_ID), Thrift.prepareFieldsGrouping(Arrays.asList("id")));
+            inputs.put(Utils.getGlobalStreamId(id, Acker.ACKER_FAIL_STREAM_ID), Thrift.prepareFieldsGrouping(Arrays.asList("id")));
         }
         return inputs;
     }
@@ -320,8 +259,8 @@ public class StormCommon {
         Map<GlobalStreamId, Grouping> inputs = ackerInputs(topology);
 
         Map<String, StreamInfo> outputStreams = new HashMap<String, StreamInfo>();
-        outputStreams.put(ACKER_ACK_STREAM_ID, Thrift.directOutputFields(Arrays.asList("id")));
-        outputStreams.put(ACKER_FAIL_STREAM_ID, Thrift.directOutputFields(Arrays.asList("id")));
+        outputStreams.put(Acker.ACKER_ACK_STREAM_ID, Thrift.directOutputFields(Arrays.asList("id")));
+        outputStreams.put(Acker.ACKER_FAIL_STREAM_ID, Thrift.directOutputFields(Arrays.asList("id")));
 
         Map<String, Object> ackerConf = new HashMap<String, Object>();
         ackerConf.put(Config.TOPOLOGY_TASKS, ackerNum);
@@ -331,8 +270,8 @@ public class StormCommon {
 
         for(Bolt bolt : topology.get_bolts().values()) {
             ComponentCommon common = bolt.get_common();
-            common.put_to_streams(ACKER_ACK_STREAM_ID, Thrift.outputFields(Arrays.asList("id", "ack-val")));
-            common.put_to_streams(ACKER_FAIL_STREAM_ID, Thrift.outputFields(Arrays.asList("id")));
+            common.put_to_streams(Acker.ACKER_ACK_STREAM_ID, Thrift.outputFields(Arrays.asList("id", "ack-val")));
+            common.put_to_streams(Acker.ACKER_FAIL_STREAM_ID, Thrift.outputFields(Arrays.asList("id")));
         }
 
         for (SpoutSpec spout : topology.get_spouts().values()) {
@@ -340,19 +279,15 @@ public class StormCommon {
             Map spoutConf = componentConf(spout);
             spoutConf.put(Config.TOPOLOGY_TICK_TUPLE_FREQ_SECS, Utils.getInt(conf.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS)));
             common.set_json_conf(JSONValue.toJSONString(spoutConf));
-            common.put_to_streams(ACKER_INIT_STREAM_ID, Thrift.outputFields(Arrays.asList("id", "init-val", "spout-task")));
-            common.put_to_inputs(Utils.getGlobalStreamId(ACKER_COMPONENT_ID, ACKER_ACK_STREAM_ID), Thrift.prepareDirectGrouping());
-            common.put_to_inputs(Utils.getGlobalStreamId(ACKER_COMPONENT_ID, ACKER_FAIL_STREAM_ID), Thrift.prepareDirectGrouping());
+            common.put_to_streams(Acker.ACKER_INIT_STREAM_ID, Thrift.outputFields(Arrays.asList("id", "init-val", "spout-task")));
+            common.put_to_inputs(Utils.getGlobalStreamId(Acker.ACKER_COMPONENT_ID, Acker.ACKER_ACK_STREAM_ID), Thrift.prepareDirectGrouping());
+            common.put_to_inputs(Utils.getGlobalStreamId(Acker.ACKER_COMPONENT_ID, Acker.ACKER_FAIL_STREAM_ID), Thrift.prepareDirectGrouping());
         }
 
-        topology.put_to_bolts(ACKER_COMPONENT_ID, acker);
+        topology.put_to_bolts(Acker.ACKER_COMPONENT_ID, acker);
     }
 
     public static ComponentCommon getComponentCommon(Object component) {
-        if (component == null) {
-            return null;
-        }
-
         ComponentCommon common = null;
         if (component instanceof StateSpoutSpec) {
             common = ((StateSpoutSpec) component).get_common();
@@ -367,20 +302,16 @@ public class StormCommon {
     public static void addMetricStreams(StormTopology topology) {
         for (Object component : allComponents(topology).values()) {
             ComponentCommon common = getComponentCommon(component);
-            if (common != null) {
-                StreamInfo streamInfo = Thrift.outputFields(Arrays.asList("task-info", "data-points"));
-                common.put_to_streams(Constants.METRICS_STREAM_ID, streamInfo);
-            }
+            StreamInfo streamInfo = Thrift.outputFields(Arrays.asList("task-info", "data-points"));
+            common.put_to_streams(Constants.METRICS_STREAM_ID, streamInfo);
         }
     }
 
     public static void addSystemStreams(StormTopology topology) {
         for (Object component : allComponents(topology).values()) {
             ComponentCommon common = getComponentCommon(component);
-            if (common != null) {
-                StreamInfo streamInfo = Thrift.outputFields(Arrays.asList("event"));
-                common.put_to_streams(SYSTEM_STREAM_ID, streamInfo);
-            }
+            StreamInfo streamInfo = Thrift.outputFields(Arrays.asList("event"));
+            common.put_to_streams(SYSTEM_STREAM_ID, streamInfo);
         }
     }
 
@@ -411,9 +342,7 @@ public class StormCommon {
 
         for(Object component : allComponents(topology).values()) {
             ComponentCommon common = getComponentCommon(component);
-            if (common != null) {
-                common.put_to_streams(EVENTLOGGER_STREAM_ID, Thrift.outputFields(eventLoggerBoltFields()));
-            }
+            common.put_to_streams(EVENTLOGGER_STREAM_ID, Thrift.outputFields(eventLoggerBoltFields()));
         }
         topology.put_to_bolts(EVENTLOGGER_COMPONENT_ID, eventLoggerBolt);
     }
@@ -517,20 +446,16 @@ public class StormCommon {
 
     public static int numStartExecutors(Object component) throws InvalidTopologyException {
         ComponentCommon common = getComponentCommon(component);
-        if (common == null) {
-            throw new InvalidTopologyException("unknown component type " + component.getClass().getName());
-        }
-        int parallelismHintNum = Thrift.getParallelismHint(common);
-        return parallelismHintNum;
+        return Thrift.getParallelismHint(common);
     }
 
-    public static Map stormTaskInfo(StormTopology userTopology, Map stormConf) throws InvalidTopologyException {
+    public static Map<Integer, String> stormTaskInfo(StormTopology userTopology, Map stormConf) throws InvalidTopologyException {
         return _instance.stormTaskInfoImpl(userTopology, stormConf);
     }
     /*
      * Returns map from task -> componentId
      */
-    protected Map stormTaskInfoImpl(StormTopology userTopology, Map stormConf) throws InvalidTopologyException {
+    protected Map<Integer, String> stormTaskInfoImpl(StormTopology userTopology, Map stormConf) throws InvalidTopologyException {
         Map<Integer, String> taskIdToComponentId = new HashMap<Integer, String>();
 
         StormTopology systemTopology = systemTopology(stormConf, userTopology);
@@ -539,9 +464,7 @@ public class StormCommon {
         for (Map.Entry<String, Object> entry : components.entrySet()) {
             Map conf = componentConf(entry.getValue());
             Object taskNum = conf.get(Config.TOPOLOGY_TASKS);
-            if (taskNum != null) {
-                componentIdToTaskNum.put(entry.getKey(), Utils.getInt(taskNum));
-            }
+            componentIdToTaskNum.put(entry.getKey(), Utils.getInt(taskNum));
         }
 
         int taskId = 1;
@@ -578,25 +501,21 @@ public class StormCommon {
         return tasksToNodeport;
     }
 
-    public static IAuthorizer mkAuthorizationHandler(String klassName, Map conf) {
+    public static IAuthorizer mkAuthorizationHandler(String klassName, Map conf) throws IllegalAccessException, InstantiationException, ClassNotFoundException {
         return _instance.mkAuthorizationHandlerImpl(klassName, conf);
     }
 
-    protected IAuthorizer mkAuthorizationHandlerImpl(String klassName, Map conf) {
+    protected IAuthorizer mkAuthorizationHandlerImpl(String klassName, Map conf) throws ClassNotFoundException, IllegalAccessException, InstantiationException {
         IAuthorizer aznHandler = null;
-        try {
-            if (klassName != null) {
-                Class aznClass = Class.forName(klassName);
-                if (aznClass != null) {
-                    aznHandler = (IAuthorizer) aznClass.newInstance();
-                    if (aznHandler != null) {
-                        aznHandler.prepare(conf);
-                    }
-                    LOG.debug("authorization class name:{}, class:{}, handler:{}",klassName, aznClass, aznHandler);
+        if (klassName != null) {
+            Class aznClass = Class.forName(klassName);
+            if (aznClass != null) {
+                aznHandler = (IAuthorizer) aznClass.newInstance();
+                if (aznHandler != null) {
+                    aznHandler.prepare(conf);
                 }
+                LOG.debug("authorization class name:{}, class:{}, handler:{}",klassName, aznClass, aznHandler);
             }
-        } catch (Exception e) {
-            LOG.error("Failed to make authorization handler, klassName:{}", klassName);
         }
 
         return aznHandler;

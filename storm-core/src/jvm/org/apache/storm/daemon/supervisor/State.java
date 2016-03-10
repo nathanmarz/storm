@@ -18,5 +18,5 @@
 package org.apache.storm.daemon.supervisor;
 
 public enum State {
-    valid, disallowed, notStarted, timedOut;
+    VALID, DISALLOWED, NOT_STARTED, TIMED_OUT;
 }

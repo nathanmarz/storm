@@ -75,7 +75,7 @@ public class SyncSupervisorEvent implements Runnable {
             Runnable syncCallback = new EventManagerPushCallback(this, syncSupEventManager);
             List<String> stormIds = stormClusterState.assignments(syncCallback);
             Map<String, Map<String, Object>> assignmentsSnapshot =
-                    getAssignmentsSnapshot(stormClusterState, stormIds, supervisorData.getAssignmentVersions(), syncCallback);
+                    getAssignmentsSnapshot(stormClusterState, stormIds, supervisorData.getAssignmentVersions().get(), syncCallback);
             Map<String, List<ProfileRequest>> stormIdToProfilerActions = getProfileActions(stormClusterState, stormIds);
 
             Set<String> allDownloadedTopologyIds = SupervisorUtils.readDownLoadedStormIds(conf);
@@ -191,7 +191,7 @@ public class SyncSupervisorEvent implements Runnable {
         for (Map.Entry<String, StateHeartbeat> entry : workerIdHbstate.entrySet()) {
             String workerId = entry.getKey();
             StateHeartbeat stateHeartbeat = entry.getValue();
-            if (stateHeartbeat != null && stateHeartbeat.getState() == State.valid) {
+            if (stateHeartbeat != null && stateHeartbeat.getState() == State.VALID) {
                 vaildPortToWorkerIds.put(stateHeartbeat.getHeartbeat().get_port(), workerId);
             }
         }
@@ -277,7 +277,7 @@ public class SyncSupervisorEvent implements Runnable {
             for (Map.Entry<String, Map<String, Object>> entry : blobstoreMap.entrySet()) {
                 String key = entry.getKey();
                 Map<String, Object> blobInfo = entry.getValue();
-                localizer.removeBlobReference(key, user, topoName, SupervisorUtils.isShouldUncompressBlob(blobInfo));
+                localizer.removeBlobReference(key, user, topoName, SupervisorUtils.shouldUncompressBlob(blobInfo));
             }
         }
     }
@@ -312,7 +312,7 @@ public class SyncSupervisorEvent implements Runnable {
         Set<String> srashStormIds = new HashSet<>();
         for (String stormId : allDownloadedTopologyIds) {
             if (assignedStormIds.contains(stormId)) {
-                if (!SupervisorUtils.checkTopoFilesExist(conf, stormId)) {
+                if (!SupervisorUtils.doRequiredTopoFilesExist(conf, stormId)) {
                     LOG.debug("Files not present in topology directory");
                     rmTopoFiles(conf, stormId, localizer, false);
                     srashStormIds.add(stormId);
@@ -357,7 +357,12 @@ public class SyncSupervisorEvent implements Runnable {
             blobStore.shutdown();
         }
 
-        FileUtils.moveDirectory(new File(tmproot), new File(stormroot));
+        try {
+            FileUtils.moveDirectory(new File(tmproot), new File(stormroot));
+        }catch (Exception e){
+            ;
+        }
+
 
         SupervisorUtils.setupStormCodeDir(conf, ConfigUtils.readSupervisorStormConf(conf, stormId), stormroot);
         ClassLoader classloader = Thread.currentThread().getContextClassLoader();
@@ -627,7 +632,7 @@ public class SyncSupervisorEvent implements Runnable {
         for (Map.Entry<String, StateHeartbeat> entry : workerIdHbstate.entrySet()){
             String workerId = entry.getKey();
             StateHeartbeat stateHeartbeat = entry.getValue();
-            if (stateHeartbeat.getState() == State.disallowed){
+            if (stateHeartbeat.getState() == State.DISALLOWED){
                 syncProcesses.shutWorker(supervisorData, workerId);
                 LOG.debug("{}'s state disallowed, so shutdown this worker");
             }

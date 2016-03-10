@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Collection;
 import java.util.Map;
 
-public class SupervisorHealthCheck extends ShutdownWork implements Runnable {
+public class SupervisorHealthCheck implements Runnable {
 
     private static final Logger LOG = LoggerFactory.getLogger(SupervisorHealthCheck.class);
 
@@ -47,7 +47,7 @@ public class SupervisorHealthCheck extends ShutdownWork implements Runnable {
         if (healthCode != 0) {
             for (String workerId : workerIds) {
                 try {
-                    shutWorker(supervisorData, workerId);
+                    SupervisorUtils.shutWorker(supervisorData, workerId);
                 } catch (Exception e) {
                     throw Utils.wrapInRuntime(e);
                 }

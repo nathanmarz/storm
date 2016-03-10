@@ -84,7 +84,7 @@ public class RunProfilerActions implements Runnable {
 
     @Override
     public void run() {
-        Map<String, List<ProfileRequest>> stormIdToActions = supervisorData.getStormIdToProfileActions();
+        Map<String, List<ProfileRequest>> stormIdToActions = supervisorData.getStormIdToProfileActions().get();
         try {
             for (Map.Entry<String, List<ProfileRequest>> entry : stormIdToActions.entrySet()) {
                 String stormId = entry.getKey();

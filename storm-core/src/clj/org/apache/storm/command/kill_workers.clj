@@ -28,7 +28,6 @@
         conf (assoc conf STORM-LOCAL-DIR (. (File. (conf STORM-LOCAL-DIR)) getCanonicalPath))
         isupervisor (StandaloneSupervisor.)
         supervisor-data (SupervisorData. conf nil isupervisor)
-        ids (SupervisorUtils/myWorkerIds conf)
-        shut-workers (ShutdownWork.)]
+        ids (SupervisorUtils/supervisorWorkerIds conf)]
     (doseq [id ids]
-      (.shutWorker shut-workers supervisor-data id))))
+      (SupervisorUtils/shutWorker supervisor-data id))))

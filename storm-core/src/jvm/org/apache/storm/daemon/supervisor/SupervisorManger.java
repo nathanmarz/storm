@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Collection;
 import java.util.Map;
 
-public class SupervisorManger extends ShutdownWork implements SupervisorDaemon, DaemonCommon, Runnable {
+public class SupervisorManger implements SupervisorDaemon, DaemonCommon, Runnable {
 
     private static final Logger LOG = LoggerFactory.getLogger(SupervisorManger.class);
 
@@ -41,7 +41,6 @@ public class SupervisorManger extends ShutdownWork implements SupervisorDaemon, 
         this.processesEventManager = processesEventManager;
     }
 
-    @Override
     public void shutdown() {
         LOG.info("Shutting down supervisor{}", supervisorData.getSupervisorId());
         supervisorData.setActive(false);
@@ -63,7 +62,7 @@ public class SupervisorManger extends ShutdownWork implements SupervisorDaemon, 
         Collection<String> workerIds = SupervisorUtils.supervisorWorkerIds(supervisorData.getConf());
         try {
             for (String workerId : workerIds) {
-                shutWorker(supervisorData, workerId);
+                SupervisorUtils.shutWorker(supervisorData, workerId);
             }
         } catch (Exception e) {
             LOG.error("shutWorker failed");

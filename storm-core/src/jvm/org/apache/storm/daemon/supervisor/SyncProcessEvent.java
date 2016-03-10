@@ -45,13 +45,15 @@ import java.util.*;
  * ids, write new "approved workers" to LS 5. create local dir for worker id 5. launch new workers (give worker-id, port, and supervisor-id) 6. wait for workers
  * launch
  */
-public class SyncProcessEvent extends ShutdownWork implements Runnable {
+public class SyncProcessEvent implements Runnable {
 
     private static Logger LOG = LoggerFactory.getLogger(SyncProcessEvent.class);
 
     private  LocalState localState;
 
     private SupervisorData supervisorData;
+
+    public static final ExecutorInfo SYSTEM_EXECUTOR_INFO = new ExecutorInfo(-1, -1);
 
     private class ProcessExitCallback implements Utils.ExitCodeCallable {
         private final String logPrefix;
@@ -113,7 +115,7 @@ public class SyncProcessEvent extends ShutdownWork implements Runnable {
             Set<Integer> keepPorts = new HashSet<>();
             for (Map.Entry<String, StateHeartbeat> entry : localWorkerStats.entrySet()) {
                 StateHeartbeat stateHeartbeat = entry.getValue();
-                if (stateHeartbeat.getState() == State.valid) {
+                if (stateHeartbeat.getState() == State.VALID) {
                     keeperWorkerIds.add(entry.getKey());
                     keepPorts.add(stateHeartbeat.getHeartbeat().get_port());
                 }
@@ -129,7 +131,7 @@ public class SyncProcessEvent extends ShutdownWork implements Runnable {
 
             for (Map.Entry<String, StateHeartbeat> entry : localWorkerStats.entrySet()) {
                 StateHeartbeat stateHeartbeat = entry.getValue();
-                if (stateHeartbeat.getState() != State.valid) {
+                if (stateHeartbeat.getState() != State.VALID) {
                     LOG.info("Shutting down and clearing state for id {}, Current supervisor time: {}, State: {}, Heartbeat: {}", entry.getKey(), now,
                             stateHeartbeat.getState(), stateHeartbeat.getHeartbeat());
                     shutWorker(supervisorData, entry.getKey());
@@ -180,9 +182,7 @@ public class SyncProcessEvent extends ShutdownWork implements Runnable {
         }
         return reassignExecutors;
     }
-
-
-
+    
     /**
      * Returns map from worker id to worker heartbeat. if the heartbeat is nil, then the worker is dead
      * 
@@ -205,16 +205,16 @@ public class SyncProcessEvent extends ShutdownWork implements Runnable {
             LSWorkerHeartbeat whb = entry.getValue();
             State state;
             if (whb == null) {
-                state = State.notStarted;
+                state = State.NOT_STARTED;
             } else if (!approvedIds.contains(workerId) || !matchesAssignment(whb, assignedExecutors)) {
-                state = State.disallowed;
+                state = State.DISALLOWED;
             } else if (supervisorData.getDeadWorkers().contains(workerId)) {
-                LOG.info("Worker Process {}as died", workerId);
-                state = State.timedOut;
+                LOG.info("Worker Process {} has died", workerId);
+                state = State.TIMED_OUT;
             } else if (SupervisorUtils.isWorkerHbTimedOut(now, whb, conf)) {
-                state = State.timedOut;
+                state = State.TIMED_OUT;
             } else {
-                state = State.valid;
+                state = State.VALID;
             }
             LOG.debug("Worker:{} state:{} WorkerHeartbeat:{} at supervisor time-secs {}", workerId, state, whb, now);
             workerIdHbstate.put(workerId, new StateHeartbeat(state, whb));
@@ -230,7 +230,7 @@ public class SyncProcessEvent extends ShutdownWork implements Runnable {
         List<ExecutorInfo> executorInfos = new ArrayList<>();
         executorInfos.addAll(whb.get_executors());
         // remove SYSTEM_EXECUTOR_ID
-        executorInfos.remove(new ExecutorInfo(-1, -1));
+        executorInfos.remove(SYSTEM_EXECUTOR_INFO);
         List<ExecutorInfo> localExecuorInfos = localAssignment.get_executors();
 
         if (localExecuorInfos.size() != executorInfos.size())
@@ -518,7 +518,7 @@ public class SyncProcessEvent extends ShutdownWork implements Runnable {
             WorkerResources resources = assignment.get_resources();
 
             // This condition checks for required files exist before launching the worker
-            if (SupervisorUtils.checkTopoFilesExist(conf, stormId)) {
+            if (SupervisorUtils.doRequiredTopoFilesExist(conf, stormId)) {
                 String pidsPath = ConfigUtils.workerPidsRoot(conf, workerId);
                 String hbPath = ConfigUtils.workerHeartbeatsRoot(conf, workerId);
 
@@ -665,5 +665,10 @@ public class SyncProcessEvent extends ShutdownWork implements Runnable {
         for (String fileName : blobFileNames) {
             Utils.createSymlink(workerRoot, stormRoot, fileName, fileName);
         }
+    }
+
+    //for supervisor-test
+    public void shutWorker(SupervisorData supervisorData, String workerId) throws IOException, InterruptedException{
+        SupervisorUtils.shutWorker(supervisorData, workerId);
     }
 }

@@ -14,7 +14,7 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns org.apache.storm.daemon.local-supervisor
-  (:import [org.apache.storm.daemon.supervisor SyncProcessEvent SupervisorData ShutdownWork Supervisor]
+  (:import [org.apache.storm.daemon.supervisor SyncProcessEvent SupervisorData ShutdownWork Supervisor SupervisorUtils]
            [org.apache.storm.utils Utils ConfigUtils]
            [org.apache.storm ProcessSimulator])
   (:use [org.apache.storm.daemon common]
@@ -38,9 +38,8 @@
     ))
 
 (defn shutdown-local-worker [supervisorData workerId]
-  (let [shut-workers (ShutdownWork.)]
     (log-message "shutdown-local-worker")
-    (.shutWorker shut-workers supervisorData workerId)))
+    (SupervisorUtils/shutWorker supervisorData workerId))
 
 (defn local-process []
   "Create a local process event"

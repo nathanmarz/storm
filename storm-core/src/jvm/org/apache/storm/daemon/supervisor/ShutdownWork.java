@@ -26,7 +26,6 @@ import org.apache.storm.utils.Time;
 import org.apache.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
@@ -42,7 +41,7 @@ public  class ShutdownWork implements Shutdownable {
         Integer shutdownSleepSecs = Utils.getInt(conf.get(Config.SUPERVISOR_WORKER_SHUTDOWN_SLEEP_SECS));
         Boolean asUser = Utils.getBoolean(conf.get(Config.SUPERVISOR_RUN_WORKER_AS_USER), false);
         String user = ConfigUtils.getWorkerUser(conf, workerId);
-        String threadPid = supervisorData.getWorkerThreadPidsAtom().get(workerId);
+        String threadPid = supervisorData.getWorkerThreadPids().get(workerId);
         if (StringUtils.isNotBlank(threadPid)) {
             ProcessSimulator.killProcess(threadPid);
         }
@@ -53,7 +52,7 @@ public  class ShutdownWork implements Shutdownable {
                 commands.add("signal");
                 commands.add(pid);
                 commands.add("15");
-                String logPrefix = "kill - 15 " + pid;
+                String logPrefix = "kill -15 " + pid;
                 SupervisorUtils.workerLauncherAndWait(conf, user, commands, null, logPrefix);
             } else {
                 Utils.killProcessWithSigTerm(pid);
@@ -71,7 +70,7 @@ public  class ShutdownWork implements Shutdownable {
                 commands.add("signal");
                 commands.add(pid);
                 commands.add("9");
-                String logPrefix = "kill - 9 " + pid;
+                String logPrefix = "kill -9 " + pid;
                 SupervisorUtils.workerLauncherAndWait(conf, user, commands, null, logPrefix);
             } else {
                 Utils.forceKillProcess(pid);

@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * downloads all blobs listed in the topology configuration for all topologies assigned to this supervisor, and creates version files with a suffix. The
@@ -58,9 +59,9 @@ public class UpdateBlobs implements Runnable {
         try {
             Map conf = supervisorData.getConf();
             Set<String> downloadedStormIds = SupervisorUtils.readDownLoadedStormIds(conf);
-            ConcurrentHashMap<Long, LocalAssignment> newAssignment = supervisorData.getCurrAssignment();
+            AtomicReference<Map<Long, LocalAssignment>> newAssignment = supervisorData.getCurrAssignment();
             Set<String> assignedStormIds = new HashSet<>();
-            for (LocalAssignment localAssignment : newAssignment.values()) {
+            for (LocalAssignment localAssignment : newAssignment.get().values()) {
                 assignedStormIds.add(localAssignment.get_topology_id());
             }
             for (String stormId : downloadedStormIds) {

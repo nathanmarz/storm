@@ -31,12 +31,10 @@ import java.util.Map;
 
 public class SupervisorHeartbeat implements Runnable {
 
-    private IStormClusterState stormClusterState;
-    private String supervisorId;
-    private Map conf;
-    private SupervisorInfo supervisorInfo;
-
-    private SupervisorData supervisorData;
+     private final IStormClusterState stormClusterState;
+     private final String supervisorId;
+     private final Map conf;
+     private final SupervisorData supervisorData;
 
     public SupervisorHeartbeat(Map conf, SupervisorData supervisorData) {
         this.stormClusterState = supervisorData.getStormClusterState();
@@ -46,13 +44,13 @@ public class SupervisorHeartbeat implements Runnable {
     }
 
     private SupervisorInfo update(Map conf, SupervisorData supervisorData) {
-        supervisorInfo = new SupervisorInfo();
+        SupervisorInfo supervisorInfo = new SupervisorInfo();
         supervisorInfo.set_time_secs(Time.currentTimeSecs());
         supervisorInfo.set_hostname(supervisorData.getHostName());
         supervisorInfo.set_assignment_id(supervisorData.getAssignmentId());
 
         List<Long> usedPorts = new ArrayList<>();
-        usedPorts.addAll(supervisorData.getCurrAssignment().keySet());
+        usedPorts.addAll(supervisorData.getCurrAssignment().get().keySet());
         supervisorInfo.set_used_ports(usedPorts);
         List metaDatas = (List)supervisorData.getiSupervisor().getMetadata();
         List<Long> portList = new ArrayList<>();

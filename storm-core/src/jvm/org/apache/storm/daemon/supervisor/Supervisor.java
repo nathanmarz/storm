@@ -140,7 +140,7 @@ public class Supervisor {
     /**
      * start distribute supervisor
      */
-    private void launch() {
+    private void launch(ISupervisor iSupervisor) {
         LOG.info("Starting supervisor for storm version '{}'.", VersionInfo.getVersion());
         SupervisorManger supervisorManager;
         try {
@@ -148,11 +148,10 @@ public class Supervisor {
             if (ConfigUtils.isLocalMode(conf)) {
                 throw new IllegalArgumentException("Cannot start server in local mode!");
             }
-            ISupervisor iSupervisor = new StandaloneSupervisor();
             supervisorManager = mkSupervisor(conf, null, iSupervisor);
             if (supervisorManager != null)
                 Utils.addShutdownHookWithForceKillIn1Sec(supervisorManager);
-            registerWorkerNumGauge("drpc:num-execute-http-requests", conf);
+            registerWorkerNumGauge("supervisor:num-slots-used-gauge", conf);
             startMetricsReporters(conf);
         } catch (Exception e) {
             LOG.error("Failed to start supervisor\n", e);
@@ -167,7 +166,7 @@ public class Supervisor {
         metricRegistry.register(name, new Gauge<Integer>() {
             @Override
             public Integer getValue() {
-                Collection<String> pids = SupervisorUtils.myWorkerIds(conf);
+                Collection<String> pids = SupervisorUtils.supervisorWorkerIds(conf);
                 return pids.size();
             }
         });
@@ -191,6 +190,6 @@ public class Supervisor {
     public static void main(String[] args) {
         Utils.setupDefaultUncaughtExceptionHandler();
         Supervisor instance = new Supervisor();
-        instance.launch();
+        instance.launch(new StandaloneSupervisor());
     }
 }

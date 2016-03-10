@@ -19,7 +19,7 @@
   (:import [org.apache.storm.scheduler ISupervisor]
            [org.apache.storm.utils LocalState Time Utils Utils$ExitCodeCallable
                                    ConfigUtils]
-           [org.apache.storm.daemon Shutdownable]
+           [org.apache.storm.daemon Shutdownable StormCommon DaemonCommon]
            [org.apache.storm Constants]
            [org.apache.storm.cluster ClusterStateContext DaemonType StormClusterStateImpl ClusterUtils IStateStorage]
            [java.net JarURLConnection]
@@ -36,7 +36,6 @@
   (:use [org.apache.storm.daemon common])
   (:import [org.apache.storm.command HealthCheck])
   (:require [org.apache.storm.daemon [worker :as worker]]
-
             [clojure.set :as set])
   (:import [org.apache.thrift.transport TTransportException])
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
@@ -968,7 +967,7 @@
            (shutdown-worker supervisor id)
            )))
      DaemonCommon
-     (waiting? [this]
+     (isWaiting [this]
        (or (not @(:active supervisor))
            (and
             (.isTimerWaiting (:heartbeat-timer supervisor))
@@ -1297,7 +1296,7 @@
       (.readBlobTo blob-store (ConfigUtils/masterStormConfKey storm-id) (FileOutputStream. (ConfigUtils/supervisorStormConfPath tmproot)) nil)
       (finally
         (.shutdown blob-store)))
-     (FileUtils/moveDirectory (File. tmproot) (File. stormroot))
+    (FileUtils/moveDirectory (File. tmproot) (File. stormroot))
 
     (setup-storm-code-dir conf (clojurify-structure (ConfigUtils/readSupervisorStormConf conf storm-id)) stormroot)
     (let [classloader (.getContextClassLoader (Thread/currentThread))
@@ -1333,7 +1332,7 @@
   [supervisor]
   (log-message "Starting supervisor for storm version '" STORM-VERSION "'")
   (let [conf (clojurify-structure (ConfigUtils/readStormConfig))]
-    (validate-distributed-mode! conf)
+    (StormCommon/validateDistributedMode conf)
     (let [supervisor (mk-supervisor conf nil supervisor)]
       (Utils/addShutdownHookWithForceKillIn1Sec #(.shutdown supervisor)))
     (def supervisor:num-slots-used-gauge (StormMetricsRegistry/registerGauge "supervisor:num-slots-used-gauge"

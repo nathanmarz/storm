@@ -40,7 +40,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -220,10 +219,6 @@ public class SupervisorData {
 
     public Localizer getLocalizer() {
         return localizer;
-    }
-
-    public void setLocalizer(Localizer localizer) {
-        this.localizer = localizer;
     }
 
     public AtomicInteger getSyncRetry() {

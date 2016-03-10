@@ -35,8 +35,8 @@
             LogConfig LogLevel LogLevelAction])
   (:import [java.util HashMap])
   (:import [java.io File])
-  (:import [org.apache.storm.utils Time Utils Utils$UptimeComputer ConfigUtils IPredicate]
-           [org.apache.storm.utils.staticmocking ConfigUtilsInstaller UtilsInstaller CommonInstaller])
+  (:import [org.apache.storm.utils Time Utils Utils$UptimeComputer ConfigUtils IPredicate StormCommonInstaller]
+           [org.apache.storm.utils.staticmocking ConfigUtilsInstaller UtilsInstaller])
   (:import [org.apache.storm.zookeeper Zookeeper])
   (:import [org.apache.commons.io FileUtils])
   (:import [org.json.simple JSONValue])
@@ -1355,7 +1355,7 @@
                              (proxy [StormCommon] []
                                     (systemTopologyImpl [conf topology] nil))
                            Mockito/spy)]
-            (with-open [- (CommonInstaller. common-spy)]
+            (with-open [- (StormCommonInstaller. common-spy)]
               (stubbing [nimbus/check-authorization! nil
                        nimbus/try-read-storm-conf expected-conf
                        nimbus/try-read-storm-topology nil]
@@ -1492,7 +1492,7 @@
                              (mkAuthorizationHandler [_] nil))]
       (with-open [_ (ConfigUtilsInstaller. fake-cu)
                   _ (UtilsInstaller. fake-utils)
-                  - (CommonInstaller. fake-common)
+                  - (StormCommonInstaller. fake-common)
                   zk-le (MockedZookeeper. (proxy [Zookeeper] []
                           (zkLeaderElectorImpl [conf] nil)))
                   mocked-cluster (MockedCluster. cluster-utils)]

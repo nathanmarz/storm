@@ -32,7 +32,7 @@
   (:import [org.apache.storm.grouping LoadMapping])
   (:import [org.apache.storm.messaging TransportFactory])
   (:import [org.apache.storm.messaging TaskMessage IContext IConnection ConnectionWithStatus ConnectionWithStatus$Status DeserializingConnectionCallback])
-  (:import [org.apache.storm.daemon Shutdownable])
+  (:import [org.apache.storm.daemon Shutdownable StormCommon DaemonCommon])
   (:import [org.apache.storm.serialization KryoTupleSerializer])
   (:import [org.apache.storm.generated StormTopology LSWorkerHeartbeat])
   (:import [org.apache.storm.tuple AddressedTuple Fields])
@@ -254,6 +254,9 @@
         (log-error e "Error when processing event")
         (Utils/exitProcess 20 "Error when processing an event")))))
 
+(defn executor->tasks [executor-id]
+  (StormCommon/executorIdToTasks executor-id))
+
 (defn worker-data [conf mq-context storm-id assignment-id port worker-id storm-conf state-store storm-cluster-state]
   (let [assignment-versions (atom {})
         executors (set (read-worker-executors storm-conf storm-cluster-state storm-id assignment-id port assignment-versions))
@@ -265,7 +268,7 @@
         executor-receive-queue-map (mk-receive-queue-map storm-conf executors)
 
         receive-queue-map (->> executor-receive-queue-map
-                               (mapcat (fn [[e queue]] (for [t (executor-id->tasks e)] [t queue])))
+                               (mapcat (fn [[e queue]] (for [t (executor->tasks e)] [t queue])))
                                (into {}))
 
         topology (ConfigUtils/readSupervisorTopology conf storm-id)
@@ -293,7 +296,7 @@
       :task-ids (->> receive-queue-map keys (map int) sort)
       :storm-conf storm-conf
       :topology topology
-      :system-topology (system-topology! storm-conf topology)
+      :system-topology (StormCommon/systemTopology storm-conf topology)
       :heartbeat-timer (mk-halting-timer "heartbeat-timer")
       :refresh-load-timer (mk-halting-timer "refresh-load-timer")
       :refresh-connections-timer (mk-halting-timer "refresh-connections-timer")
@@ -302,7 +305,7 @@
       :refresh-active-timer (mk-halting-timer "refresh-active-timer")
       :executor-heartbeat-timer (mk-halting-timer "executor-heartbeat-timer")
       :user-timer (mk-halting-timer "user-timer")
-      :task->component (HashMap. (storm-task-info topology storm-conf)) ; for optimized access when used in tasks later on
+      :task->component (StormCommon/stormTaskInfo topology storm-conf) ; for optimized access when used in tasks later on
       :component->stream->fields (component->stream->fields (:system-topology <>))
       ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
       :component->sorted-tasks (->> (:task->component <>) (Utils/reverseMap) (clojurify-structure) (map-val sort))
@@ -314,7 +317,7 @@
       ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
       :short-executor-receive-queue-map (map-key first executor-receive-queue-map)
       :task->short-executor (->> executors
-                                 (mapcat (fn [e] (for [t (executor-id->tasks e)] [t (first e)])))
+                                 (mapcat (fn [e] (for [t (executor->tasks e)] [t (first e)])))
                                  (into {})
                                  (HashMap.))
       :suicide-fn (mk-suicide-fn conf)
@@ -378,6 +381,11 @@
          ~@body
          (finally (.unlock wlock#))))))
 
+(defn task->node_port [executor->node_port]
+  (let [executor->nodeport (thriftify-executor->node_port executor->node_port)]
+    (clojurify-task->node_port (StormCommon/taskToNodeport executor->nodeport)))
+  )
+
 ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defn mk-refresh-connections [worker]
   (let [outbound-tasks (worker-outbound-tasks worker)
@@ -399,7 +407,7 @@
                               (:data new-assignment)))
               my-assignment (-> assignment
                                 :executor->node+port
-                                to-task->node+port
+                                task->node_port
                                 (select-keys outbound-tasks)
                                 ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
                                 (#(map-val endpoint->string %)))
@@ -740,7 +748,7 @@
               [this]
               (shutdown*))
              DaemonCommon
-             (waiting? [this]
+             (isWaiting [this]
                (and
                  (.isTimerWaiting (:heartbeat-timer worker))
                  (.isTimerWaiting (:refresh-connections-timer worker))
@@ -810,6 +818,6 @@
 (defn -main [storm-id assignment-id port-str worker-id]
   (let [conf (clojurify-structure (ConfigUtils/readStormConfig))]
     (Utils/setupDefaultUncaughtExceptionHandler)
-    (validate-distributed-mode! conf)
+    (StormCommon/validateDistributedMode conf)
     (let [worker (mk-worker conf nil storm-id assignment-id (Integer/parseInt port-str) worker-id)]
       (Utils/addShutdownHookWithForceKillIn1Sec #(.shutdown worker)))))

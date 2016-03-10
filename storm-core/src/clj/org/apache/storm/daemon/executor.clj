@@ -31,7 +31,7 @@
   (:import [org.apache.storm.utils Utils ConfigUtils TupleUtils MutableObject RotatingMap RotatingMap$ExpiredCallback MutableLong Time DisruptorQueue WorkerBackpressureThread DisruptorBackpressureCallback])
   (:import [com.lmax.disruptor InsufficientCapacityException])
   (:import [org.apache.storm.serialization KryoTupleSerializer])
-  (:import [org.apache.storm.daemon Shutdownable])
+  (:import [org.apache.storm.daemon Shutdownable StormCommon Acker])
   (:import [org.apache.storm.metric.api IMetric IMetricsConsumer$TaskInfo IMetricsConsumer$DataPoint StateMetric])
   (:import [org.apache.storm Config Constants])
   (:import [org.apache.storm.cluster ClusterStateContext DaemonType StormClusterStateImpl ClusterUtils])
@@ -228,7 +228,7 @@
 
 (defn mk-executor-data [worker executor-id]
   (let [worker-context (worker-context worker)
-        task-ids (executor-id->tasks executor-id)
+        task-ids (clojurify-structure (StormCommon/executorIdToTasks executor-id))
         component-id (.getComponentId worker-context (first task-ids))
         storm-conf (normalized-component-conf (:storm-conf worker) worker-context component-id)
         executor-type (executor-type worker-context component-id)
@@ -498,7 +498,7 @@
       (when (and (> spct 0) (< (* 100 (.nextDouble random)) spct))
         (task/send-unanchored
           task-data
-          EVENTLOGGER-STREAM-ID
+          StormCommon/EVENTLOGGER_STREAM_ID
           [component-id message-id (System/currentTimeMillis) values]))))
 
 (defmethod mk-threads :spout [executor-data task-datas initial-credentials]
@@ -536,17 +536,17 @@
                                     (throw (RuntimeException. (str "Fatal error, mismatched task ids: " task-id " " stored-task-id))))
                                   (let [time-delta (if start-time-ms (Time/deltaMs start-time-ms))]
                                     (condp = stream-id
-                                      ACKER-ACK-STREAM-ID (ack-spout-msg executor-data (get task-datas task-id)
-                                                                         spout-id tuple-finished-info time-delta id)
-                                      ACKER-FAIL-STREAM-ID (fail-spout-msg executor-data (get task-datas task-id)
+                                      Acker/ACKER_ACK_STREAM_ID (ack-spout-msg executor-data (get task-datas task-id)
+                                                                               spout-id tuple-finished-info time-delta id)
+                                      Acker/ACKER_FAIL_STREAM_ID (fail-spout-msg executor-data (get task-datas task-id)
                                                                            spout-id tuple-finished-info time-delta "FAIL-STREAM" id)
                                       )))
                                 ;; TODO: on failure, emit tuple to failure stream
                                 ))))
         receive-queue (:receive-queue executor-data)
         event-handler (mk-task-receiver executor-data tuple-action-fn)
-        has-ackers? (has-ackers? storm-conf)
-        has-eventloggers? (has-eventloggers? storm-conf)
+        has-ackers? (StormCommon/hasAckers storm-conf)
+        has-eventloggers? (StormCommon/hasEventLoggers storm-conf)
         emitted-count (MutableLong. 0)
         empty-emit-streak (MutableLong. 0)
         spout-transfer-fn (fn []
@@ -587,7 +587,7 @@
                                                                                          :values (if debug? values nil)}
                                                                                         (if (sampler) (System/currentTimeMillis))])
                                                                  (task/send-unanchored task-data
-                                                                                       ACKER-INIT-STREAM-ID
+                                                                                       Acker/ACKER_INIT_STREAM_ID
                                                                                        [root-id (Utils/bitXorVals out-ids) task-id]))
                                                                (when message-id
                                                                  (ack-spout-msg executor-data task-data message-id
@@ -742,7 +742,7 @@
                                                                (.getSourceComponent tuple)
                                                                (.getSourceStreamId tuple)
                                                                delta)))))))
-        has-eventloggers? (has-eventloggers? storm-conf)
+        has-eventloggers? (StormCommon/hasEventLoggers storm-conf)
         bolt-transfer-fn (fn []
                            ;; If topology was started in inactive state, don't call prepare bolt until it's activated first.
                            (while (not @(:storm-active-atom executor-data))
@@ -803,7 +803,7 @@
                                                   ack-val (.getAckVal tuple)]
                                               (fast-map-iter [[root id] (.. tuple getMessageId getAnchorsToIds)]
                                                              (task/send-unanchored task-data
-                                                                                   ACKER-ACK-STREAM-ID
+                                                                                   Acker/ACKER_ACK_STREAM_ID
                                                                                    [root (bit-xor id ack-val)])))
                                             (let [delta (tuple-time-delta! tuple)
                                                   debug? (= true (storm-conf TOPOLOGY-DEBUG))]
@@ -818,7 +818,7 @@
                                           (^void fail [this ^Tuple tuple]
                                             (fast-list-iter [root (.. tuple getMessageId getAnchors)]
                                                             (task/send-unanchored task-data
-                                                                                  ACKER-FAIL-STREAM-ID
+                                                                                  Acker/ACKER_FAIL_STREAM_ID
                                                                                   [root]))
                                             (let [delta (tuple-time-delta! tuple)
                                                   debug? (= true (storm-conf TOPOLOGY-DEBUG))]

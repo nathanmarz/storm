@@ -34,7 +34,7 @@
            [java.net URLDecoder])
   (:import [java.nio.file Files Path Paths DirectoryStream])
   (:import [java.nio ByteBuffer])
-  (:import [org.apache.storm.daemon DirectoryCleaner])
+  (:import [org.apache.storm.daemon DirectoryCleaner StormCommon])
   (:import [org.yaml.snakeyaml Yaml]
            [org.yaml.snakeyaml.constructor SafeConstructor])
   (:import [org.apache.storm.ui InvalidRequestException UIHelpers IConfigurator FilterConfiguration]

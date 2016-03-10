@@ -2302,4 +2302,20 @@ public class Utils {
     public static long bitXor(Long a, Long b) {
         return a ^ b;
     }
+
+    public static List<String> getRepeat(List<String> list) {
+        List<String> rtn = new ArrayList<String>();
+        Set<String> idSet = new HashSet<String>();
+
+        for (String id : list) {
+            if (idSet.contains(id)) {
+                rtn.add(id);
+            } else {
+                idSet.add(id);
+            }
+        }
+
+        return rtn;
+    }
 }
+

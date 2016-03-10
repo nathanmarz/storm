@@ -1,4 +1,5 @@
 ## 2.0.0
+ * STORM-1269: port backtype.storm.daemon.common to java
  * STORM-1270: port drpc to java
  * STORM-1274: port LocalDRPC to java
  * STORM-1590: port defmeters/defgauge/defhistogram... to java for all of our code to use

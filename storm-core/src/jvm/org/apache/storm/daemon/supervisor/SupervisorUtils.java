@@ -18,7 +18,6 @@
 package org.apache.storm.daemon.supervisor;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.curator.utils.PathUtils;
 import org.apache.storm.Config;
 import org.apache.storm.ProcessSimulator;
 import org.apache.storm.generated.LSWorkerHeartbeat;
@@ -44,11 +43,9 @@ public class SupervisorUtils {
 
     private static final SupervisorUtils INSTANCE = new SupervisorUtils();
     private static SupervisorUtils _instance = INSTANCE;
-
     public static void setInstance(SupervisorUtils u) {
         _instance = u;
     }
-
     public static void resetInstance() {
         _instance = INSTANCE;
     }

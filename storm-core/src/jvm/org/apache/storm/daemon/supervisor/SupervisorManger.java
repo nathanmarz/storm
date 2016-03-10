@@ -28,11 +28,8 @@ import java.util.Map;
 public class SupervisorManger implements SupervisorDaemon, DaemonCommon, Runnable {
 
     private static final Logger LOG = LoggerFactory.getLogger(SupervisorManger.class);
-
     private final EventManager eventManager;
-
     private final EventManager processesEventManager;
-
     private SupervisorData supervisorData;
 
     public SupervisorManger(SupervisorData supervisorData, EventManager eventManager, EventManager processesEventManager) {

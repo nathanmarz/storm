@@ -50,9 +50,7 @@ public class SyncProcessEvent implements Runnable {
     private static Logger LOG = LoggerFactory.getLogger(SyncProcessEvent.class);
 
     private  LocalState localState;
-
-    private SupervisorData supervisorData;
-
+    private  SupervisorData supervisorData;
     public static final ExecutorInfo SYSTEM_EXECUTOR_INFO = new ExecutorInfo(-1, -1);
 
     private class ProcessExitCallback implements Utils.ExitCodeCallable {

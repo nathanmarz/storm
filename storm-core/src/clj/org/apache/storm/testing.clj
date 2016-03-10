@@ -25,7 +25,7 @@
            [org.apache.storm.utils]
            [org.apache.storm.zookeeper Zookeeper]
            [org.apache.storm ProcessSimulator]
-           [org.apache.storm.daemon.supervisor StandaloneSupervisor SupervisorData ShutdownWork SupervisorManger])
+           [org.apache.storm.daemon.supervisor StandaloneSupervisor SupervisorData SupervisorManger SupervisorUtils])
   (:import [java.io File])
   (:import [java.util HashMap ArrayList])
   (:import [java.util.concurrent.atomic AtomicInteger])
@@ -412,7 +412,6 @@
 
 (defn mk-capture-shutdown-fn
   [capture-atom]
-  (let [shut-down (ShutdownWork.)]
     (fn [supervisorData workerId]
       (let [conf (.getConf supervisorData)
             supervisor-id (.getSupervisorId supervisorData)
@@ -420,7 +419,7 @@
             existing (get @capture-atom [supervisor-id port] 0)]
         (log-message "mk-capture-shutdown-fn")
         (swap! capture-atom assoc [supervisor-id port] (inc existing))
-        (.shutWorker shut-down supervisorData workerId)))))
+        (SupervisorUtils/shutWorker supervisorData workerId))))
 
 (defmacro capture-changed-workers
   [& body]

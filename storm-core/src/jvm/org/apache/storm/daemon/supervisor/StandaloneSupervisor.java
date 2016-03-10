@@ -25,7 +25,6 @@ import org.apache.storm.utils.Utils;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
-import java.util.UUID;
 
 public class StandaloneSupervisor implements ISupervisor {
     private String supervisorId;

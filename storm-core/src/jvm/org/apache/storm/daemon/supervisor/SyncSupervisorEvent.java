@@ -49,11 +49,8 @@ public class SyncSupervisorEvent implements Runnable {
 
     private EventManager syncSupEventManager;
     private EventManager syncProcessManager;
-
     private IStormClusterState stormClusterState;
-
     private LocalState localState;
-
     private SyncProcessEvent syncProcesses;
     private SupervisorData supervisorData;
 
@@ -81,13 +78,12 @@ public class SyncSupervisorEvent implements Runnable {
             Set<String> allDownloadedTopologyIds = SupervisorUtils.readDownLoadedStormIds(conf);
             Map<String, String> stormcodeMap = readStormCodeLocations(assignmentsSnapshot);
             Map<Integer, LocalAssignment> existingAssignment = localState.getLocalAssignmentsMap();
-            if (existingAssignment == null){
+            if (existingAssignment == null) {
                 existingAssignment = new HashMap<>();
             }
 
             Map<Integer, LocalAssignment> allAssignment =
                     readAssignments(assignmentsSnapshot, existingAssignment, supervisorData.getAssignmentId(), supervisorData.getSyncRetry());
-
 
             Map<Integer, LocalAssignment> newAssignment = new HashMap<>();
             Set<String> assignedStormIds = new HashSet<>();
@@ -220,6 +216,7 @@ public class SyncSupervisorEvent implements Runnable {
 
         }
     }
+
     protected Map<String, Map<String, Object>> getAssignmentsSnapshot(IStormClusterState stormClusterState, List<String> stormIds,
             Map<String, Map<String, Object>> localAssignmentVersion, Runnable callback) throws Exception {
         Map<String, Map<String, Object>> updateAssignmentVersion = new HashMap<>();
@@ -356,14 +353,7 @@ public class SyncSupervisorEvent implements Runnable {
         } finally {
             blobStore.shutdown();
         }
-
-        try {
-            FileUtils.moveDirectory(new File(tmproot), new File(stormroot));
-        }catch (Exception e){
-            ;
-        }
-
-
+        FileUtils.moveDirectory(new File(tmproot), new File(stormroot));
         SupervisorUtils.setupStormCodeDir(conf, ConfigUtils.readSupervisorStormConf(conf, stormId), stormroot);
         ClassLoader classloader = Thread.currentThread().getContextClassLoader();
 
@@ -619,8 +609,8 @@ public class SyncSupervisorEvent implements Runnable {
     }
 
     // I konw it's not a good idea to create SyncProcessEvent, but I only hope SyncProcessEvent is responsible for start/shutdown
-    //workers, and SyncSupervisorEvent is responsible for download/remove topologys' binary.
-    protected void shutdownDisallowedWorkers() throws Exception{
+    // workers, and SyncSupervisorEvent is responsible for download/remove topologys' binary.
+    protected void shutdownDisallowedWorkers() throws Exception {
         LocalState localState = supervisorData.getLocalState();
         Map<Integer, LocalAssignment> assignedExecutors = localState.getLocalAssignmentsMap();
         if (assignedExecutors == null) {
@@ -629,10 +619,10 @@ public class SyncSupervisorEvent implements Runnable {
         int now = Time.currentTimeSecs();
         Map<String, StateHeartbeat> workerIdHbstate = syncProcesses.getLocalWorkerStats(supervisorData, assignedExecutors, now);
         LOG.debug("Allocated workers ", assignedExecutors);
-        for (Map.Entry<String, StateHeartbeat> entry : workerIdHbstate.entrySet()){
+        for (Map.Entry<String, StateHeartbeat> entry : workerIdHbstate.entrySet()) {
             String workerId = entry.getKey();
             StateHeartbeat stateHeartbeat = entry.getValue();
-            if (stateHeartbeat.getState() == State.DISALLOWED){
+            if (stateHeartbeat.getState() == State.DISALLOWED) {
                 syncProcesses.shutWorker(supervisorData, workerId);
                 LOG.debug("{}'s state disallowed, so shutdown this worker");
             }

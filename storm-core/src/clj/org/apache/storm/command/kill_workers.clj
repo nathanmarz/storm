@@ -15,7 +15,7 @@
 ;; limitations under the License.
 (ns org.apache.storm.command.kill-workers
   (:import [java.io File]
-           [org.apache.storm.daemon.supervisor SupervisorUtils StandaloneSupervisor SupervisorData ShutdownWork])
+           [org.apache.storm.daemon.supervisor SupervisorUtils StandaloneSupervisor SupervisorData])
   (:use [org.apache.storm.daemon common])
   (:use [org.apache.storm util config])
   (:import [org.apache.storm.utils ConfigUtils])

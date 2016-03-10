@@ -19,7 +19,7 @@
 <configuration monitorInterval="60">
   <Appenders>
     <Console name="Console" target="SYSTEM_OUT">
-     <PatternLayout pattern="%-4r [%t] %-5p %c{1.} - %msg%n"/>
+     <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5p %c{1.} - %msg%n"/>
     </Console>
   </Appenders>
   <Loggers>

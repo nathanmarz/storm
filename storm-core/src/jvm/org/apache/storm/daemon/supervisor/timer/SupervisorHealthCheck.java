@@ -19,7 +19,6 @@
 package org.apache.storm.daemon.supervisor.timer;
 
 import org.apache.storm.command.HealthCheck;
-import org.apache.storm.daemon.supervisor.ShutdownWork;
 import org.apache.storm.daemon.supervisor.SupervisorData;
 import org.apache.storm.daemon.supervisor.SupervisorUtils;
 import org.apache.storm.utils.Utils;

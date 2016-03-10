@@ -14,7 +14,7 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns org.apache.storm.daemon.local-supervisor
-  (:import [org.apache.storm.daemon.supervisor SyncProcessEvent SupervisorData ShutdownWork Supervisor SupervisorUtils]
+  (:import [org.apache.storm.daemon.supervisor SyncProcessEvent SupervisorData Supervisor SupervisorUtils]
            [org.apache.storm.utils Utils ConfigUtils]
            [org.apache.storm ProcessSimulator])
   (:use [org.apache.storm.daemon common]

@@ -17,13 +17,9 @@
  */
 package org.apache.storm.daemon.supervisor;
 
-import com.codahale.metrics.Gauge;
-import com.codahale.metrics.MetricRegistry;
 import org.apache.commons.io.FileUtils;
 import org.apache.storm.Config;
 import org.apache.storm.StormTimer;
-import org.apache.storm.daemon.metrics.MetricsUtils;
-import org.apache.storm.daemon.metrics.reporters.PreparableReporter;
 import org.apache.storm.daemon.supervisor.timer.RunProfilerActions;
 import org.apache.storm.daemon.supervisor.timer.SupervisorHealthCheck;
 import org.apache.storm.daemon.supervisor.timer.SupervisorHeartbeat;
@@ -31,6 +27,7 @@ import org.apache.storm.daemon.supervisor.timer.UpdateBlobs;
 import org.apache.storm.event.EventManagerImp;
 import org.apache.storm.localizer.Localizer;
 import org.apache.storm.messaging.IContext;
+import org.apache.storm.metric.StormMetricsRegistry;
 import org.apache.storm.scheduler.ISupervisor;
 import org.apache.storm.utils.ConfigUtils;
 import org.apache.storm.utils.Utils;
@@ -41,20 +38,19 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.InterruptedIOException;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
 
 public class Supervisor {
     private static Logger LOG = LoggerFactory.getLogger(Supervisor.class);
 
-    //TODO: to be removed after porting worker.clj. localSyncProcess is intended to start local supervisor
+    // TODO: to be removed after porting worker.clj. localSyncProcess is intended to start local supervisor
     private SyncProcessEvent localSyncProcess;
 
     public void setLocalSyncProcess(SyncProcessEvent localSyncProcess) {
         this.localSyncProcess = localSyncProcess;
     }
-
 
     /**
      * in local state, supervisor stores who its current assignments are another thread launches events to restart any dead processes if necessary
@@ -93,10 +89,10 @@ public class Supervisor {
             EventManagerImp syncProcessManager = new EventManagerImp(false);
 
             SyncProcessEvent syncProcessEvent = null;
-            if (ConfigUtils.isLocalMode(conf)){
+            if (ConfigUtils.isLocalMode(conf)) {
                 localSyncProcess.init(supervisorData);
                 syncProcessEvent = localSyncProcess;
-            }else{
+            } else {
                 syncProcessEvent = new SyncProcessEvent(supervisorData);
             }
 
@@ -122,7 +118,7 @@ public class Supervisor {
                 // Launch a thread that Runs profiler commands . Starts with 30 seconds delay, every 30 seconds
                 eventTimer.scheduleRecurring(30, 30, new EventManagerPushCallback(runProfilerActionThread, syncSupEventManager));
             }
-            LOG.info("Starting supervisor with id {} at host {}.", supervisorData.getSupervisorId(), supervisorData.getHostName() );
+            LOG.info("Starting supervisor with id {} at host {}.", supervisorData.getSupervisorId(), supervisorData.getHostName());
             supervisorManger = new SupervisorManger(supervisorData, syncSupEventManager, syncProcessManager);
         } catch (Throwable t) {
             if (Utils.exceptionCauseIsInstanceOf(InterruptedIOException.class, t)) {
@@ -152,34 +148,21 @@ public class Supervisor {
             if (supervisorManager != null)
                 Utils.addShutdownHookWithForceKillIn1Sec(supervisorManager);
             registerWorkerNumGauge("supervisor:num-slots-used-gauge", conf);
-            startMetricsReporters(conf);
+            StormMetricsRegistry.startMetricsReporters(conf);
         } catch (Exception e) {
             LOG.error("Failed to start supervisor\n", e);
             System.exit(1);
         }
     }
 
-    // To be removed
     private void registerWorkerNumGauge(String name, final Map conf) {
-        MetricRegistry metricRegistry = new MetricRegistry();
-        metricRegistry.remove(name);
-        metricRegistry.register(name, new Gauge<Integer>() {
+        StormMetricsRegistry.registerGauge("supervisor:num-slots-used-gauge", new Callable<Integer>() {
             @Override
-            public Integer getValue() {
+            public Integer call() throws Exception {
                 Collection<String> pids = SupervisorUtils.supervisorWorkerIds(conf);
                 return pids.size();
             }
         });
-    }
-
-    // To be removed
-    private void startMetricsReporters(Map conf) {
-        List<PreparableReporter> preparableReporters = MetricsUtils.getPreparableReporters(conf);
-        for (PreparableReporter reporter : preparableReporters) {
-            reporter.prepare(new MetricRegistry(), conf);
-            reporter.start();
-        }
-        LOG.info("Started statistics report plugin...");
     }
 
     /**

@@ -23,8 +23,6 @@
   (:use [hiccup core page-helpers])
   (:use [org.apache.storm config util log stats converter])
   (:use [org.apache.storm.ui helpers])
-  (:use [org.apache.storm.daemon [common :only [ACKER-COMPONENT-ID ACKER-INIT-STREAM-ID ACKER-ACK-STREAM-ID
-                                              ACKER-FAIL-STREAM-ID mk-authorization-handler]]])
   (:import [org.apache.storm.utils Time]
            [org.apache.storm.generated NimbusSummary]
            [org.apache.storm.ui UIHelpers IConfigurator FilterConfiguration]
@@ -52,13 +50,14 @@
             [ring.util.response :as resp]
             [org.apache.storm.internal [thrift :as thrift]])
   (:import [org.apache.commons.lang StringEscapeUtils])
-  (:import [org.apache.logging.log4j Level])
+  (:import [org.apache.logging.log4j Level]
+           (org.apache.storm.daemon StormCommon Acker))
   (:import [org.eclipse.jetty.server Server])
   (:gen-class))
 
 (def ^:dynamic *STORM-CONF* (clojurify-structure (ConfigUtils/readStormConfig)))
-(def ^:dynamic *UI-ACL-HANDLER* (mk-authorization-handler (*STORM-CONF* NIMBUS-AUTHORIZER) *STORM-CONF*))
-(def ^:dynamic *UI-IMPERSONATION-HANDLER* (mk-authorization-handler (*STORM-CONF* NIMBUS-IMPERSONATION-AUTHORIZER) *STORM-CONF*))
+(def ^:dynamic *UI-ACL-HANDLER* (StormCommon/mkAuthorizationHandler (*STORM-CONF* NIMBUS-AUTHORIZER) *STORM-CONF*))
+(def ^:dynamic *UI-IMPERSONATION-HANDLER* (StormCommon/mkAuthorizationHandler (*STORM-CONF* NIMBUS-IMPERSONATION-AUTHORIZER) *STORM-CONF*))
 (def http-creds-handler (AuthUtils/GetUiHttpCredentialsPlugin *STORM-CONF*))
 (def STORM-VERSION (VersionInfo/getVersion))
 
@@ -115,9 +114,9 @@
 (defn is-ack-stream
   [stream]
   (let [acker-streams
-        [ACKER-INIT-STREAM-ID
-         ACKER-ACK-STREAM-ID
-         ACKER-FAIL-STREAM-ID]]
+        [Acker/ACKER_INIT_STREAM_ID
+         Acker/ACKER_ACK_STREAM_ID
+         Acker/ACKER_FAIL_STREAM_ID]]
     (every? #(not= %1 stream) acker-streams)))
 
 (defn spout-summary?

@@ -37,6 +37,7 @@
   (:import [org.apache.storm.cluster StormClusterStateImpl ClusterStateContext ClusterUtils]
            [org.apache.storm.utils.staticmocking ConfigUtilsInstaller UtilsInstaller])
   (:import [java.nio.file.attribute FileAttribute])
+  (:import [org.apache.storm.daemon StormCommon])
   (:use [org.apache.storm config testing util log converter])
   (:use [org.apache.storm.daemon common])
   (:require [org.apache.storm.daemon [worker :as worker] [local-supervisor :as local-supervisor]])
@@ -137,7 +138,7 @@
                       (advance-cluster-time cluster 2)
                       (heartbeat-workers cluster "sup1" [1 2 3])
                       (advance-cluster-time cluster 10)))
-      (bind storm-id (get-storm-id (:storm-cluster-state cluster) "test"))
+      (bind storm-id (StormCommon/getStormId (:storm-cluster-state cluster) "test"))
       (is (empty? (:shutdown changed)))
       (validate-launched-once (:launched changed) {"sup1" [1 2 3]} storm-id)
       (bind changed (capture-changed-workers
@@ -197,7 +198,7 @@
                       (heartbeat-workers cluster "sup1" [1 2])
                       (heartbeat-workers cluster "sup2" [1])
                       ))
-      (bind storm-id (get-storm-id (:storm-cluster-state cluster) "test"))
+      (bind storm-id (StormCommon/getStormId (:storm-cluster-state cluster) "test"))
       (is (empty? (:shutdown changed)))
       (validate-launched-once (:launched changed) {"sup1" [1 2] "sup2" [1]} storm-id)
       (bind changed (capture-changed-workers
@@ -222,7 +223,7 @@
                       (heartbeat-workers cluster "sup1" [3])
                       (heartbeat-workers cluster "sup2" [2])
                       ))
-      (bind storm-id2 (get-storm-id (:storm-cluster-state cluster) "test2"))
+      (bind storm-id2 (StormCommon/getStormId (:storm-cluster-state cluster) "test2"))
       (is (empty? (:shutdown changed)))
       (validate-launched-once (:launched changed) {"sup1" [3] "sup2" [2]} storm-id2)
       (bind changed (capture-changed-workers
@@ -871,8 +872,8 @@
                         ))
         (validate-launched-once (:launched changed)
           {"sup1" [1 2]}
-          (get-storm-id (:storm-cluster-state cluster) "topology1"))
+          (StormCommon/getStormId (:storm-cluster-state cluster) "topology1"))
         (validate-launched-once (:launched changed)
           {"sup1" [3 4]}
-          (get-storm-id (:storm-cluster-state cluster) "topology2"))
+          (StormCommon/getStormId (:storm-cluster-state cluster) "topology2"))
         )))

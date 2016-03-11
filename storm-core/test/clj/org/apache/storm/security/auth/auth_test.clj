@@ -32,6 +32,7 @@
   (:import [org.apache.storm.security.auth.authorizer SimpleWhitelistAuthorizer SimpleACLAuthorizer])
   (:import [org.apache.storm.security.auth AuthUtils ThriftServer ThriftClient ShellBasedGroupsMapping
             ReqContext SimpleTransportPlugin KerberosPrincipalToLocal ThriftConnectionType])
+  (:import [org.apache.storm.daemon StormCommon])
   (:use [org.apache.storm util config])
   (:use [org.apache.storm.daemon common])
   (:use [org.apache.storm testing])
@@ -58,7 +59,7 @@
   (let [forced-scheduler (.getForcedScheduler inimbus)]
     {:conf storm-conf
      :inimbus inimbus
-     :authorization-handler (mk-authorization-handler (storm-conf NIMBUS-AUTHORIZER) storm-conf)
+     :authorization-handler (StormCommon/mkAuthorizationHandler (storm-conf NIMBUS-AUTHORIZER) storm-conf)
      :submitted-count (atom 0)
      :storm-cluster-state nil
      :submit-lock (Object.)

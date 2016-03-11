@@ -489,17 +489,10 @@ public class StormClusterStateImpl implements IStormClusterState {
 
     @Override
     public void removeWorkerBackpressure(String stormId, String node, Long port) {
-        try {
-            String path = ClusterUtils.backpressurePath(stormId, node, port);
+        String path = ClusterUtils.backpressurePath(stormId, node, port);
+        boolean existed = stateStorage.node_exists(path, false);
+        if (existed) {
             stateStorage.delete_node(path);
-        } catch (Exception e) {
-            if (Utils.exceptionCauseIsInstanceOf(KeeperException.class, e)) {
-                // do nothing
-                LOG.warn("Could not teardown worker backpressure node for {} {} {}.", 
-                            stormId, node, port);
-            } else {
-                throw e;
-            }
         }
     }
 

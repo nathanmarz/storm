@@ -74,7 +74,7 @@ public class StormClusterStateImplTest {
     }
 
     @Test
-    public void removeBackpressureTest() {
+    public void removeBackpressureDoesNotThrowTest() {
         // setup to throw
         Mockito.doThrow(new RuntimeException(new KeeperException.NoNodeException("foo")))
                .when(storage)
@@ -90,20 +90,27 @@ public class StormClusterStateImplTest {
     }
 
     @Test
-    public void removeWorkerBackpressureTest() {
+    public void removeWorkerBackpressureDoesntAttemptForNonExistentZNodeTest() {
         // setup to throw
-        Mockito.doThrow(new RuntimeException(new KeeperException.NoNodeException("foo")))
-               .when(storage)
+        Mockito.when(storage.node_exists(Matchers.anyString(), Matchers.anyBoolean()))
+               .thenReturn(false);
+
+        state.removeWorkerBackpressure("bogus-topo-id", "bogus-host", new Long(1234));
+
+        Mockito.verify(storage, Mockito.never())
                .delete_node(Matchers.anyString());
+    }
 
-        try {
-            state.removeWorkerBackpressure("bogus-topo-id", "bogus-host", new Long(1234));
+    @Test
+    public void removeWorkerBackpressureCleansForExistingZNodeTest() {
+        // setup to throw
+        Mockito.when(storage.node_exists(Matchers.anyString(), Matchers.anyBoolean()))
+               .thenReturn(true);
 
-            Mockito.verify(storage)
-                   .delete_node(ClusterUtils.backpressurePath("bogus-topo-id", "bogus-host", new Long(1234)));
-        } catch (Exception e) {
-            Assert.fail("Exception thrown when it shouldn't have: " + e);
-        }
+        state.removeWorkerBackpressure("bogus-topo-id", "bogus-host", new Long(1234));
+
+        Mockito.verify(storage)
+               .delete_node(ClusterUtils.backpressurePath("bogus-topo-id", "bogus-host", new Long(1234)));
     }
 }
 

@@ -401,12 +401,7 @@ public class TridentTopology {
             Integer parallelism = parallelisms.get(grouper.nodeGroup(sn));
 
             Map<String, Number> spoutRes = null;
-            if(sn instanceof ITridentResource) {
-                spoutRes = mergeDefaultResources(((ITridentResource)sn).getResources(), defaults);
-            }
-            else {
-                spoutRes = mergeDefaultResources(null, defaults);
-            }
+            spoutRes = mergeDefaultResources(sn.getResources(), defaults);
             Number onHeap = spoutRes.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB);
             Number offHeap = spoutRes.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB);
             Number cpuLoad = spoutRes.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT);

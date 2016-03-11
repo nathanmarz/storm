@@ -313,10 +313,6 @@
               (setCPULoad 100)
               (setMemoryLoad 2048)))
         (with-topology [cluster topo storm-topo]
-;          (log-message "\n")
-;          (log-message "Getting json confs from bolts:")
-;;          (log-message "Bolts: " (. storm-topo get_bolts) "(" (. storm-topo get_bolts_size) ")")
-;          (doall (map (fn [[k v]] (log-message k ":" (.. v get_common get_json_conf))) (. storm-topo get_bolts)))
 
           (let [parse-fn (fn [[k v]]
                            [k (clojurify-structure (. (JSONParser.) parse (.. v get_common get_json_conf)))])
@@ -350,7 +346,7 @@
             (testing "bolt combinations"
               (is (= (-> (json-confs "b-1")
                          (get TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB))
-                     1536.0))
+                     (+ 1024.0 512.0)))
 
               (is (= (-> (json-confs "b-1")
                          (get TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT))

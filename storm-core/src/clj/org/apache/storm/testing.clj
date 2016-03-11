@@ -296,7 +296,7 @@
                   [(:nimbus cluster-map)]
                   ; because a worker may already be dead
                   workers)]
-    (while-timeout timeout-ms (or (not (every? (memfn isWaiting?) daemons))
+    (while-timeout timeout-ms (or (not (every? (memfn isWaiting) daemons))
                                 (not (every? is-supervisor-waiting supervisors)))
                    (Thread/sleep (rand-int 20))
                    ;;      (doseq [d daemons]

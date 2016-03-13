@@ -51,12 +51,15 @@ fi
 STORM_BIN_DIR=`dirname ${PRG}`
 export STORM_BASE_DIR=`cd ${STORM_BIN_DIR}/..;pwd`
 
-#check to see if the conf dir is given as an optional argument
+#check to see if the conf dir or file is given as an optional argument
 if [ $# -gt 1 ]; then
   if [ "--config" = "$1" ]; then
     conf_file=$2
+    if [ -d "$conf_file" ]; then
+      conf_file=$conf_file/storm.yaml
+    fi
     if [ ! -f "$conf_file" ]; then
-      echo "Error: Cannot find configuration directory: $conf_file"
+      echo "Error: Cannot find configuration file: $conf_file"
       exit 1
     fi
     STORM_CONF_FILE=$conf_file

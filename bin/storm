@@ -30,16 +30,8 @@ while [ -h "${PRG}" ]; do
   fi
 done
 
-# find python >= 2.6
-if [ -a /usr/bin/python2.6 ]; then
-  PYTHON=/usr/bin/python2.6
-fi
-
-if [ -z "$PYTHON" ]; then
-  PYTHON=/usr/bin/python
-fi
-
 # check for version
+PYTHON="/usr/bin/env python"
 majversion=`$PYTHON -V 2>&1 | awk '{print $2}' | cut -d'.' -f1`
 minversion=`$PYTHON -V 2>&1 | awk '{print $2}' | cut -d'.' -f2`
 numversion=$(( 10 * $majversion + $minversion))
@@ -74,4 +66,4 @@ if [ -f "${STORM_CONF_DIR}/storm-env.sh" ]; then
   . "${STORM_CONF_DIR}/storm-env.sh"
 fi
 
-exec "$PYTHON" "${STORM_BIN_DIR}/storm.py" "$@"
+exec "${STORM_BIN_DIR}/storm.py" "$@"

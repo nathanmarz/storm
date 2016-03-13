@@ -1,4 +1,5 @@
 ## 2.0.0
+ * STORM-1250: port backtype.storm.serialization-test to java
  * STORM-1605: use '/usr/bin/env python' to check python version
  * STORM-1618: Add the option of passing config directory
  * STORM-1269: port backtype.storm.daemon.common to java

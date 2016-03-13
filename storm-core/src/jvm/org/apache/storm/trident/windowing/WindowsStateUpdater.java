@@ -36,7 +36,7 @@ import java.util.Map;
  */
 public class WindowsStateUpdater implements StateUpdater<WindowsState> {
 
-    private static final Logger log = LoggerFactory.getLogger(WindowsStateUpdater.class);
+    private static final Logger LOG = LoggerFactory.getLogger(WindowsStateUpdater.class);
 
     private final WindowsStoreFactory windowStoreFactory;
     private WindowsStore windowsStore;
@@ -48,7 +48,7 @@ public class WindowsStateUpdater implements StateUpdater<WindowsState> {
     @Override
     public void updateState(WindowsState state, List<TridentTuple> tuples, TridentCollector collector) {
         Long currentTxId = state.getCurrentTxId();
-        log.debug("Removing triggers using WindowStateUpdater, txnId: {} ", currentTxId);
+        LOG.debug("Removing triggers using WindowStateUpdater, txnId: [{}] ", currentTxId);
         for (TridentTuple tuple : tuples) {
             try {
                 Object fieldValue = tuple.getValueByField(WindowTridentProcessor.TRIGGER_FIELD_NAME);
@@ -58,11 +58,11 @@ public class WindowsStateUpdater implements StateUpdater<WindowsState> {
                 WindowTridentProcessor.TriggerInfo triggerInfo = (WindowTridentProcessor.TriggerInfo) fieldValue;
                 String triggerCompletedKey = WindowTridentProcessor.getWindowTriggerInprocessIdPrefix(triggerInfo.windowTaskId)+currentTxId;
 
-                log.debug("Removing trigger key [{}] and trigger completed key [{}] from store: [{}]", triggerInfo, triggerCompletedKey, windowsStore);
+                LOG.debug("Removing trigger key [{}] and trigger completed key [{}] from store: [{}]", triggerInfo, triggerCompletedKey, windowsStore);
 
                 windowsStore.removeAll(Lists.newArrayList(triggerInfo.generateTriggerKey(), triggerCompletedKey));
             } catch (Exception ex) {
-                log.warn(ex.getMessage());
+                LOG.warn(ex.getMessage());
                 collector.reportError(ex);
                 throw new FailedException(ex);
             }

@@ -33,7 +33,7 @@ import java.util.List;
  * This {@code ITridentWindowManager} instance stores all the tuples and trigger related information inmemory.
  */
 public class InMemoryTridentWindowManager extends AbstractTridentWindowManager<TridentTuple> {
-    private static final Logger log = LoggerFactory.getLogger(InMemoryTridentWindowManager.class);
+    private static final Logger LOG = LoggerFactory.getLogger(InMemoryTridentWindowManager.class);
 
     public InMemoryTridentWindowManager(WindowConfig windowConfig, String windowTaskId, WindowsStore windowStore, Aggregator aggregator,
                                         BatchOutputCollector delegateCollector) {
@@ -42,7 +42,7 @@ public class InMemoryTridentWindowManager extends AbstractTridentWindowManager<T
 
     @Override
     protected void initialize() {
-        log.debug("noop in initialize");
+        LOG.debug("noop in initialize");
     }
 
     @Override
@@ -52,17 +52,17 @@ public class InMemoryTridentWindowManager extends AbstractTridentWindowManager<T
 
     @Override
     public void onTuplesExpired(List<TridentTuple> expiredTuples) {
-        log.debug("InMemoryTridentWindowManager.onTuplesExpired");
+        LOG.debug("InMemoryTridentWindowManager.onTuplesExpired");
     }
 
     public void addTuplesBatch(Object batchId, List<TridentTuple> tuples) {
         // check if they are already added then ignore these tuples. This batch is replayed.
         if (activeBatches.contains(getBatchTxnId(batchId))) {
-            log.info("Ignoring already added tuples with batch: %s", batchId);
+            LOG.info("Ignoring already added tuples with batch: [{}]", batchId);
             return;
         }
 
-        log.debug("Adding tuples to window-manager for batch: ", batchId);
+        LOG.debug("Adding tuples to window-manager for batch: [{}]", batchId);
         for (TridentTuple tridentTuple : tuples) {
             windowManager.add(tridentTuple);
         }

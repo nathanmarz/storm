@@ -47,7 +47,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  */
 public abstract class AbstractTridentWindowManager<T> implements ITridentWindowManager {
-    private static final Logger log = LoggerFactory.getLogger(AbstractTridentWindowManager.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractTridentWindowManager.class);
 
     protected final WindowManager<T> windowManager;
     protected final Aggregator aggregator;
@@ -89,12 +89,12 @@ public abstract class AbstractTridentWindowManager<T> implements ITridentWindowM
     }
 
     private void preInitialize() {
-        log.debug("Getting current trigger count for this component/task");
+        LOG.debug("Getting current trigger count for this component/task");
         // get trigger count value from store
         Object result = windowStore.get(windowTriggerCountId);
         Integer currentCount = 0;
         if(result == null) {
-            log.info("No current trigger count in windows store.");
+            LOG.info("No current trigger count in windows store.");
         } else {
             currentCount = (Integer) result + 1;
         }
@@ -119,13 +119,13 @@ public abstract class AbstractTridentWindowManager<T> implements ITridentWindowM
 
         @Override
         public void onExpiry(List<T> expiredEvents) {
-            log.debug("onExpiry is invoked");
+            LOG.debug("onExpiry is invoked");
             onTuplesExpired(expiredEvents);
         }
 
         @Override
         public void onActivation(List<T> events, List<T> newEvents, List<T> expired) {
-            log.debug("onActivation is invoked with events size: {}", events.size());
+            LOG.debug("onActivation is invoked with events size: [{}]", events.size());
             // trigger occurred, create an aggregation and keep them in store
             int currentTriggerId = triggerId.incrementAndGet();
             execAggregatorAndStoreResult(currentTriggerId, events);
@@ -230,10 +230,10 @@ public abstract class AbstractTridentWindowManager<T> implements ITridentWindowM
 
     public void shutdown() {
         try {
-            log.info("window manager [{}] is being shutdown", windowManager);
+            LOG.info("window manager [{}] is being shutdown", windowManager);
             windowManager.shutdown();
         } finally {
-            log.info("window store [{}] is being shutdown", windowStore);
+            LOG.info("window store [{}] is being shutdown", windowStore);
             windowStore.shutdown();
         }
     }

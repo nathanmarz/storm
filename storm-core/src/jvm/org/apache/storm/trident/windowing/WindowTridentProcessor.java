@@ -46,7 +46,7 @@ import java.util.Queue;
  *
  */
 public class WindowTridentProcessor implements TridentProcessor {
-    private static final Logger log = LoggerFactory.getLogger(WindowTridentProcessor.class);
+    private static final Logger LOG = LoggerFactory.getLogger(WindowTridentProcessor.class);
 
     public static final String TRIGGER_INPROCESS_PREFIX = "tip" + WindowsStore.KEY_SEPARATOR;
     public static final String TRIGGER_PREFIX = "tr" + WindowsStore.KEY_SEPARATOR;
@@ -127,8 +127,13 @@ public class WindowTridentProcessor implements TridentProcessor {
 
     @Override
     public void cleanup() {
-        log.info("shutting down window manager");
-        tridentWindowManager.shutdown();
+        LOG.info("shutting down window manager");
+        try {
+            tridentWindowManager.shutdown();
+        } catch (Exception ex) {
+            LOG.error("Error occurred while cleaning up window processor", ex);
+            throw ex;
+        }
     }
 
     @Override
@@ -150,7 +155,7 @@ public class WindowTridentProcessor implements TridentProcessor {
         Object batchId = processorContext.batchId;
         Object batchTxnId = getBatchTxnId(batchId);
 
-        log.debug("Received finishBatch of : {} ", batchId);
+        LOG.debug("Received finishBatch of : [{}] ", batchId);
         // get all the tuples in a batch and add it to trident-window-manager
         List<TridentTuple> tuples = (List<TridentTuple>) processorContext.state[tridentContext.getStateIndex()];
         tridentWindowManager.addTuplesBatch(batchId, tuples);
@@ -171,7 +176,7 @@ public class WindowTridentProcessor implements TridentProcessor {
         if(triggerValues == null) {
             pendingTriggerIds = new ArrayList<>();
             Queue<StoreBasedTridentWindowManager.TriggerResult> pendingTriggers = tridentWindowManager.getPendingTriggers();
-            log.debug("pending triggers at batch: {} and triggers.size: {} ", batchId, pendingTriggers.size());
+            LOG.debug("pending triggers at batch: [{}] and triggers.size: [{}] ", batchId, pendingTriggers.size());
             try {
                 Iterator<StoreBasedTridentWindowManager.TriggerResult> pendingTriggersIter = pendingTriggers.iterator();
                 List<Object> values = new ArrayList<>();

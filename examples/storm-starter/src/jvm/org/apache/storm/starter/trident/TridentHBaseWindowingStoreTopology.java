@@ -23,7 +23,6 @@ import org.apache.storm.LocalCluster;
 import org.apache.storm.StormSubmitter;
 import org.apache.storm.generated.StormTopology;
 import org.apache.storm.hbase.trident.windowing.HBaseWindowsStoreFactory;
-import org.apache.storm.topology.base.BaseWindowedBolt;
 import org.apache.storm.trident.Stream;
 import org.apache.storm.trident.TridentTopology;
 import org.apache.storm.trident.operation.BaseFunction;
@@ -44,13 +43,12 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 /**
  *
  */
 public class TridentHBaseWindowingStoreTopology {
-    private static final Logger log = LoggerFactory.getLogger(TridentHBaseWindowingStoreTopology.class);
+    private static final Logger LOG = LoggerFactory.getLogger(TridentHBaseWindowingStoreTopology.class);
 
     public static StormTopology buildTopology(WindowsStoreFactory windowsStore) throws Exception {
         FixedBatchSpout spout = new FixedBatchSpout(new Fields("sentence"), 3, new Values("the cow jumped over the moon"),
@@ -84,7 +82,7 @@ public class TridentHBaseWindowingStoreTopology {
 
         @Override
         public void execute(TridentTuple tuple, TridentCollector collector) {
-            log.info("##########Echo.execute: " + tuple);
+            LOG.info("##########Echo.execute: " + tuple);
             collector.emit(tuple.getValues());
         }
 

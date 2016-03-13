@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
  *
  */
 public class WindowsState implements State {
-    private static final Logger log = LoggerFactory.getLogger(WindowsState.class);
+    private static final Logger LOG = LoggerFactory.getLogger(WindowsState.class);
 
     private Long currentTxId;
 
@@ -38,12 +38,12 @@ public class WindowsState implements State {
     @Override
     public void beginCommit(Long txId) {
         currentTxId = txId;
-        log.debug(" WindowsState.beginCommit:: [{}] ", txId);
+        LOG.debug(" WindowsState.beginCommit:: [{}] ", txId);
     }
 
     @Override
     public void commit(Long txId) {
-        log.debug("WindowsState.commit :: [{}]", txId);
+        LOG.debug("WindowsState.commit :: [{}]", txId);
     }
 
     public Long getCurrentTxId() {

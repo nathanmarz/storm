@@ -25,7 +25,6 @@ import org.apache.storm.generated.StormTopology;
 import org.apache.storm.topology.base.BaseWindowedBolt;
 import org.apache.storm.trident.Stream;
 import org.apache.storm.trident.TridentTopology;
-import org.apache.storm.trident.operation.BaseAggregator;
 import org.apache.storm.trident.operation.BaseFunction;
 import org.apache.storm.trident.operation.Function;
 import org.apache.storm.trident.operation.TridentCollector;
@@ -53,10 +52,10 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
- *
+ * Sample application of trident windowing which uses inmemory store for storing tuples in window.
  */
 public class TridentWindowingInmemoryStoreTopology {
-    private static final Logger log = LoggerFactory.getLogger(TridentWindowingInmemoryStoreTopology.class);
+    private static final Logger LOG = LoggerFactory.getLogger(TridentWindowingInmemoryStoreTopology.class);
 
     public static StormTopology buildTopology(WindowsStoreFactory windowStore, WindowConfig windowConfig) throws Exception {
         FixedBatchSpout spout = new FixedBatchSpout(new Fields("sentence"), 3, new Values("the cow jumped over the moon"),
@@ -91,7 +90,7 @@ public class TridentWindowingInmemoryStoreTopology {
 
         @Override
         public void execute(TridentTuple tuple, TridentCollector collector) {
-            log.info("##########Echo.execute: " + tuple);
+            LOG.info("##########Echo.execute: " + tuple);
             collector.emit(tuple.getValues());
         }
 

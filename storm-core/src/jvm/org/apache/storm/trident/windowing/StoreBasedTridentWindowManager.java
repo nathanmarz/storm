@@ -40,7 +40,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  */
 public class StoreBasedTridentWindowManager extends AbstractTridentWindowManager<TridentBatchTuple> {
-    private static final Logger log = LoggerFactory.getLogger(StoreBasedTridentWindowManager.class);
+    private static final Logger LOG = LoggerFactory.getLogger(StoreBasedTridentWindowManager.class);
 
     private static final String TUPLE_PREFIX = "tu" + WindowsStore.KEY_SEPARATOR;
 
@@ -75,14 +75,14 @@ public class StoreBasedTridentWindowManager extends AbstractTridentWindowManager
             if (key.startsWith(windowTupleTaskId)) {
                 int tupleIndexValue = lastPart(key);
                 String batchId = secondLastPart(key);
-                log.debug("Received tuple with batch [{}] and tuple index [{}]", batchId, tupleIndexValue);
+                LOG.debug("Received tuple with batch [{}] and tuple index [{}]", batchId, tupleIndexValue);
                 windowManager.add(new TridentBatchTuple(batchId, System.currentTimeMillis(), tupleIndexValue));
             } else if (key.startsWith(windowTriggerTaskId)) {
                 triggerKeys.add(key);
-                log.debug("Received trigger with key [{}]", key);
+                LOG.debug("Received trigger with key [{}]", key);
             } else if(key.startsWith(windowTriggerInprocessId)) {
                 attemptedTriggerKeys.add(key);
-                log.debug("Received earlier unsuccessful trigger [{}] from windows store [{}]", key);
+                LOG.debug("Received earlier unsuccessful trigger [{}] from windows store [{}]", key);
             }
         }
 
@@ -99,7 +99,7 @@ public class StoreBasedTridentWindowManager extends AbstractTridentWindowManager
         for (Object triggerObject : triggerObjects) {
             int id = lastPart(triggerKeys.get(i++));
             if(!triggersToBeIgnored.contains(id)) {
-                log.info("Adding pending trigger value [{}]", triggerObject);
+                LOG.info("Adding pending trigger value [{}]", triggerObject);
                 pendingTriggers.add(new TriggerResult(id, (List<List<Object>>) triggerObject));
             }
         }
@@ -131,11 +131,11 @@ public class StoreBasedTridentWindowManager extends AbstractTridentWindowManager
     public void addTuplesBatch(Object batchId, List<TridentTuple> tuples) {
         // check if they are already added then ignore these tuples. This batch is replayed.
         if (activeBatches.contains(getBatchTxnId(batchId))) {
-            log.info("Ignoring already added tuples with batch: %s", batchId);
+            LOG.info("Ignoring already added tuples with batch: [{}]", batchId);
             return;
         }
 
-        log.debug("Adding tuples to window-manager for batch: ", batchId);
+        LOG.debug("Adding tuples to window-manager for batch: [{}]", batchId);
         List<WindowsStore.Entry> entries = new ArrayList<>();
         for (int i = 0; i < tuples.size(); i++) {
             String key = keyOf(batchId);

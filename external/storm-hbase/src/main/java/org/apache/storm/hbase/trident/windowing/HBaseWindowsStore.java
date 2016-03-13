@@ -51,7 +51,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  *
  */
 public class HBaseWindowsStore implements WindowsStore {
-    private static final Logger log = LoggerFactory.getLogger(HBaseWindowsStore.class);
+    private static final Logger LOG = LoggerFactory.getLogger(HBaseWindowsStore.class);
     public static final String UTF_8 = "utf-8";
 
     private final ThreadLocal<HTable> threadLocalHtable;
@@ -136,7 +136,7 @@ public class HBaseWindowsStore implements WindowsStore {
         for (int i=0; i<results.length; i++) {
             Result result = results[i];
             if(result.isEmpty()) {
-                log.error("Got empty result for key [{}]", keys.get(i));
+                LOG.error("Got empty result for key [{}]", keys.get(i));
                 throw new RuntimeException("Received empty result for key: "+keys.get(i));
             }
             Input input = new Input(result.getValue(family, qualifier));
@@ -267,7 +267,7 @@ public class HBaseWindowsStore implements WindowsStore {
             try {
                 htable.close();
             } catch (IOException e) {
-                log.error(e.getMessage(), e);
+                LOG.error(e.getMessage(), e);
             }
         }
     }

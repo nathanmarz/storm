@@ -18,9 +18,18 @@
  */
 package org.apache.storm.trident.windowing;
 
+import org.apache.storm.trident.operation.Aggregator;
+import org.apache.storm.trident.operation.TridentCollector;
+import org.apache.storm.trident.windowing.config.WindowConfig;
+import org.apache.storm.tuple.Fields;
+
+import java.util.List;
+
 /**
- * InMemoryWindowsStoreFactory contains a single instance of {@code InMemoryWindowsStore} which will be used for
- * storing tuples and triggers of the window and successfully emitted triggers can be removed from {@code StateUpdater}.
+ * InMemoryWindowsStoreFactory contains a single instance of {@link InMemoryWindowsStore} which will be used for
+ * storing tuples and triggers of the window. The same InMemoryWindowsStoreFactory instance is passed to {@link WindowsStateUpdater},
+ * which removes successfully emitted triggers from the same {@code inMemoryWindowsStore} instance in
+ * {@link WindowsStateUpdater#updateState(WindowsState, List, TridentCollector)}.
  *
  */
 public class InMemoryWindowsStoreFactory implements WindowsStoreFactory {

@@ -340,7 +340,7 @@ public class DefaultWorkerManager implements IWorkerManager {
         String os = System.getProperty("os.name").replaceAll("\\s+", "_");
         String arch = System.getProperty("os.arch");
         String archResourceRoot = resourceRoot + Utils.FILE_PATH_SEPARATOR + os + "-" + arch;
-        String ret = archResourceRoot + Utils.FILE_PATH_SEPARATOR + resourceRoot + Utils.FILE_PATH_SEPARATOR + conf.get(Config.JAVA_LIBRARY_PATH);
+        String ret = archResourceRoot + Utils.CLASS_PATH_SEPARATOR + resourceRoot + Utils.CLASS_PATH_SEPARATOR + conf.get(Config.JAVA_LIBRARY_PATH);
         return ret;
     }
 
@@ -373,23 +373,28 @@ public class DefaultWorkerManager implements IWorkerManager {
         List<String> rets = new ArrayList<>();
         if (value instanceof String) {
             String string = (String) value;
-            string = string.replace("%ID%", String.valueOf(port));
-            string = string.replace("%WORKER-ID%", workerId);
-            string = string.replace("%TOPOLOGY-ID%", stormId);
-            string = string.replace("%WORKER-PORT%", String.valueOf(port));
-            string = string.replace("%HEAP-MEM%", String.valueOf(memOnheap));
-            String[] strings = string.split("\\s+");
-            rets.addAll(Arrays.asList(strings));
+            if (StringUtils.isNotBlank(string)){
+                string = string.replace("%ID%", String.valueOf(port));
+                string = string.replace("%WORKER-ID%", workerId);
+                string = string.replace("%TOPOLOGY-ID%", stormId);
+                string = string.replace("%WORKER-PORT%", String.valueOf(port));
+                string = string.replace("%HEAP-MEM%", String.valueOf(memOnheap));
+                String[] strings = string.split("\\s+");
+                rets.addAll(Arrays.asList(strings));
+            }
+
         } else if (value instanceof List) {
             List<Object> objects = (List<Object>) value;
             for (Object object : objects) {
                 String str = (String) object;
-                str = str.replace("%ID%", String.valueOf(port));
-                str = str.replace("%WORKER-ID%", workerId);
-                str = str.replace("%TOPOLOGY-ID%", stormId);
-                str = str.replace("%WORKER-PORT%", String.valueOf(port));
-                str = str.replace("%HEAP-MEM%", String.valueOf(memOnheap));
-                rets.add(str);
+                if (StringUtils.isNotBlank(str)){
+                    str = str.replace("%ID%", String.valueOf(port));
+                    str = str.replace("%WORKER-ID%", workerId);
+                    str = str.replace("%TOPOLOGY-ID%", stormId);
+                    str = str.replace("%WORKER-PORT%", String.valueOf(port));
+                    str = str.replace("%HEAP-MEM%", String.valueOf(memOnheap));
+                    rets.add(str);
+                }
             }
         }
         return rets;

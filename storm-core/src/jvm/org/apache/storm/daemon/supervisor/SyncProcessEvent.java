@@ -21,6 +21,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.storm.Config;
 import org.apache.storm.container.cgroup.CgroupManager;
+import org.apache.storm.daemon.supervisor.workermanager.IWorkerManager;
 import org.apache.storm.generated.ExecutorInfo;
 import org.apache.storm.generated.LSWorkerHeartbeat;
 import org.apache.storm.generated.LocalAssignment;
@@ -88,13 +89,6 @@ public class SyncProcessEvent implements Runnable {
         this.localState = supervisorData.getLocalState();
     }
 
-
-    /**
-     * 1. to kill are those in allocated that are dead or disallowed 2. kill the ones that should be dead - read pids, kill -9 and individually remove file -
-     * rmr heartbeat dir, rmdir pid dir, rmdir id dir (catch exception and log) 3. of the rest, figure out what assignments aren't yet satisfied 4. generate new
-     * worker ids, write new "approved workers" to LS 5. create local dir for worker id 5. launch new workers (give worker-id, port, and supervisor-id) 6. wait
-     * for workers launch
-     */
     @Override
     public void run() {
         LOG.debug("Syncing processes");
@@ -132,7 +126,7 @@ public class SyncProcessEvent implements Runnable {
                 if (stateHeartbeat.getState() != State.VALID) {
                     LOG.info("Shutting down and clearing state for id {}, Current supervisor time: {}, State: {}, Heartbeat: {}", entry.getKey(), now,
                             stateHeartbeat.getState(), stateHeartbeat.getHeartbeat());
-                    shutWorker(supervisorData, entry.getKey());
+                    shutWorker(supervisorData, supervisorData.getWorkerManager(), entry.getKey());
                 }
             }
             // start new workers
@@ -244,261 +238,24 @@ public class SyncProcessEvent implements Runnable {
     /**
      * launch a worker in local mode.
      */
-    protected void launchWorker(SupervisorData supervisorData, String stormId, Long port, String workerId, WorkerResources resources) throws IOException {
+    protected void launchLocalWorker(SupervisorData supervisorData, String stormId, Long port, String workerId, WorkerResources resources) throws IOException {
         // port this function after porting worker to java
     }
 
-    protected String getWorkerClassPath(String stormJar, Map stormConf) {
-        List<String> topoClasspath = new ArrayList<>();
-        Object object = stormConf.get(Config.TOPOLOGY_CLASSPATH);
-
-        if (object instanceof List) {
-            topoClasspath.addAll((List<String>) object);
-        } else if (object instanceof String){
-            topoClasspath.add((String)object);
-        }else {
-            //ignore
-        }
-        String classPath = Utils.workerClasspath();
-        String classAddPath = Utils.addToClasspath(classPath, Arrays.asList(stormJar));
-        return Utils.addToClasspath(classAddPath, topoClasspath);
-    }
-
-    /**
-     * "Generates runtime childopts by replacing keys with topology-id, worker-id, port, mem-onheap"
-     * 
-     * @param value
-     * @param workerId
-     * @param stormId
-     * @param port
-     * @param memOnheap
-     */
-    public List<String> substituteChildopts(Object value, String workerId, String stormId, Long port, int memOnheap) {
-        List<String> rets = new ArrayList<>();
-        if (value instanceof String) {
-            String string = (String) value;
-            string = string.replace("%ID%", String.valueOf(port));
-            string = string.replace("%WORKER-ID%", workerId);
-            string = string.replace("%TOPOLOGY-ID%", stormId);
-            string = string.replace("%WORKER-PORT%", String.valueOf(port));
-            string = string.replace("%HEAP-MEM%", String.valueOf(memOnheap));
-            String[] strings = string.split("\\s+");
-            rets.addAll(Arrays.asList(strings));
-        } else if (value instanceof List) {
-            List<Object> objects = (List<Object>) value;
-            for (Object object : objects) {
-                String str = (String)object;
-                str = str.replace("%ID%", String.valueOf(port));
-                str = str.replace("%WORKER-ID%", workerId);
-                str = str.replace("%TOPOLOGY-ID%", stormId);
-                str = str.replace("%WORKER-PORT%", String.valueOf(port));
-                str = str.replace("%HEAP-MEM%", String.valueOf(memOnheap));
-                rets.add(str);
-            }
-        }
-        return rets;
-    }
-
-
-
-    /**
-     * launch a worker in distributed mode
-     * supervisorId for testing
-     * @throws IOException
-     */
-    protected void launchWorker(Map conf, String supervisorId, String assignmentId, String stormId, Long port, String workerId,
-            WorkerResources resources, CgroupManager cgroupManager, ConcurrentHashSet deadWorkers) throws IOException {
-
-        Boolean runWorkerAsUser = Utils.getBoolean(conf.get(Config.SUPERVISOR_RUN_WORKER_AS_USER), false);
-        String stormHome = ConfigUtils.concatIfNotNull(System.getProperty("storm.home"));
-        String stormOptions = ConfigUtils.concatIfNotNull(System.getProperty("storm.options"));
-        String stormConfFile = ConfigUtils.concatIfNotNull(System.getProperty("storm.conf.file"));
-        String workerTmpDir = ConfigUtils.workerTmpRoot(conf, workerId);
-
-        String stormLogDir = ConfigUtils.getLogDir();
-        String stormLogConfDir = (String) (conf.get(Config.STORM_LOG4J2_CONF_DIR));
-
-        String stormLog4j2ConfDir;
-        if (StringUtils.isNotBlank(stormLogConfDir)) {
-            if (Utils.isAbsolutePath(stormLogConfDir)) {
-                stormLog4j2ConfDir = stormLogConfDir;
-            } else {
-                stormLog4j2ConfDir = stormHome + Utils.FILE_PATH_SEPARATOR + stormLogConfDir;
-            }
-        } else {
-            stormLog4j2ConfDir = stormHome + Utils.FILE_PATH_SEPARATOR + "log4j2";
-        }
-
-        String stormRoot = ConfigUtils.supervisorStormDistRoot(conf, stormId);
-
-        String jlp = jlp(stormRoot, conf);
-
-        String stormJar = ConfigUtils.supervisorStormJarPath(stormRoot);
-
+    protected void launchDistributedWorker(IWorkerManager workerManager, Map conf, String supervisorId, String assignmentId, String stormId, Long port, String workerId,
+                                           WorkerResources resources, ConcurrentHashSet deadWorkers) throws IOException {
         Map stormConf = ConfigUtils.readSupervisorStormConf(conf, stormId);
-
-        String workerClassPath = getWorkerClassPath(stormJar, stormConf);
-
-        Object topGcOptsObject = stormConf.get(Config.TOPOLOGY_WORKER_GC_CHILDOPTS);
-        List<String> topGcOpts = new ArrayList<>();
-        if (topGcOptsObject instanceof String) {
-            topGcOpts.add((String) topGcOptsObject);
-        } else if (topGcOptsObject instanceof List) {
-            topGcOpts.addAll((List<String>) topGcOptsObject);
-        }
-
-        int memOnheap = 0;
-        if (resources.get_mem_on_heap() > 0) {
-            memOnheap = (int) Math.ceil(resources.get_mem_on_heap());
-        } else {
-            //set the default heap memory size for supervisor-test
-            memOnheap = Utils.getInt(stormConf.get(Config.WORKER_HEAP_MEMORY_MB), 768);
-        }
-
-        int memoffheap = (int) Math.ceil(resources.get_mem_off_heap());
-
-        int cpu = (int) Math.ceil(resources.get_cpu());
-
-        List<String> gcOpts = null;
-
-        if (topGcOpts != null) {
-            gcOpts = substituteChildopts(topGcOpts, workerId, stormId, port, memOnheap);
-        } else {
-            gcOpts = substituteChildopts(conf.get(Config.WORKER_GC_CHILDOPTS), workerId, stormId, port, memOnheap);
-        }
-
-        Object topoWorkerLogwriterObject = stormConf.get(Config.TOPOLOGY_WORKER_LOGWRITER_CHILDOPTS);
-        List<String> topoWorkerLogwriterChildopts = new ArrayList<>();
-        if (topoWorkerLogwriterObject instanceof String) {
-            topoWorkerLogwriterChildopts.add((String) topoWorkerLogwriterObject);
-        } else if (topoWorkerLogwriterObject instanceof List) {
-            topoWorkerLogwriterChildopts.addAll((List<String>) topoWorkerLogwriterObject);
-        }
-
         String user = (String) stormConf.get(Config.TOPOLOGY_SUBMITTER_USER);
-
-        String logfileName = "worker.log";
-
-        String workersArtifacets = ConfigUtils.workerArtifactsRoot(conf);
-
-        String loggingSensitivity = (String) stormConf.get(Config.TOPOLOGY_LOGGING_SENSITIVITY);
-        if (loggingSensitivity == null) {
-            loggingSensitivity = "S3";
-        }
-
-        List<String> workerChildopts = substituteChildopts(conf.get(Config.WORKER_CHILDOPTS), workerId, stormId, port, memOnheap);
-
-        List<String> topWorkerChildopts = substituteChildopts(stormConf.get(Config.TOPOLOGY_WORKER_CHILDOPTS), workerId, stormId, port, memOnheap);
-
-        List<String> workerProfilerChildopts = null;
-        if (Utils.getBoolean(conf.get(Config.WORKER_PROFILER_ENABLED), false)) {
-            workerProfilerChildopts = substituteChildopts(conf.get(Config.WORKER_PROFILER_CHILDOPTS), workerId, stormId, port, memOnheap);
-        }else {
-            workerProfilerChildopts = new ArrayList<>();
-        }
-
-        Map<String, String> topEnvironment = new HashMap<String, String>();
-        Map<String, String> environment = (Map<String, String>) stormConf.get(Config.TOPOLOGY_ENVIRONMENT);
-        if (environment != null) {
-            topEnvironment.putAll(environment);
-        }
-        topEnvironment.put("LD_LIBRARY_PATH", jlp);
-
-        String log4jConfigurationFile = null;
-        if (System.getProperty("os.name").startsWith("Windows") && !stormLog4j2ConfDir.startsWith("file:")) {
-            log4jConfigurationFile = "file:///" + stormLog4j2ConfDir;
-        } else {
-            log4jConfigurationFile = stormLog4j2ConfDir;
-        }
-        log4jConfigurationFile = log4jConfigurationFile + Utils.FILE_PATH_SEPARATOR + "worker.xml";
-
-        List<String> commandList = new ArrayList<>();
-        commandList.add(SupervisorUtils.javaCmd("java"));
-        commandList.add("-cp");
-        commandList.add(workerClassPath);
-        commandList.addAll(topoWorkerLogwriterChildopts);
-        commandList.add("-Dlogfile.name=" + logfileName);
-        commandList.add("-Dstorm.home=" + stormHome);
-        commandList.add("-Dworkers.artifacts=" + workersArtifacets);
-        commandList.add("-Dstorm.id=" + stormId);
-        commandList.add("-Dworker.id=" + workerId);
-        commandList.add("-Dworker.port=" + port);
-        commandList.add("-Dstorm.log.dir=" + stormLogDir);
-        commandList.add("-Dlog4j.configurationFile=" + log4jConfigurationFile);
-        commandList.add("-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector");
-        commandList.add("org.apache.storm.LogWriter");
-
-        commandList.add(SupervisorUtils.javaCmd("java"));
-        commandList.add("-server");
-        commandList.addAll(workerChildopts);
-        commandList.addAll(topWorkerChildopts);
-        commandList.addAll(gcOpts);
-        commandList.addAll(workerProfilerChildopts);
-        commandList.add("-Djava.library.path=" + jlp);
-        commandList.add("-Dlogfile.name=" + logfileName);
-        commandList.add("-Dstorm.home=" + stormHome);
-        commandList.add("-Dworkers.artifacts=" + workersArtifacets);
-        commandList.add("-Dstorm.conf.file=" + stormConfFile);
-        commandList.add("-Dstorm.options=" + stormOptions);
-        commandList.add("-Dstorm.log.dir=" + stormLogDir);
-        commandList.add("-Djava.io.tmpdir=" + workerTmpDir);
-        commandList.add("-Dlogging.sensitivity=" + loggingSensitivity);
-        commandList.add("-Dlog4j.configurationFile=" + log4jConfigurationFile);
-        commandList.add("-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector");
-        commandList.add("-Dstorm.id=" + stormId);
-        commandList.add("-Dworker.id=" + workerId);
-        commandList.add("-Dworker.port=" + port);
-        commandList.add("-cp");
-        commandList.add(workerClassPath);
-        commandList.add("org.apache.storm.daemon.worker");
-        commandList.add(stormId);
-        commandList.add(assignmentId);
-        commandList.add(String.valueOf(port));
-        commandList.add(workerId);
-
-        // {"cpu" cpu "memory" (+ mem-onheap mem-offheap (int (Math/ceil (conf STORM-CGROUP-MEMORY-LIMIT-TOLERANCE-MARGIN-MB))))
-        if (Utils.getBoolean(conf.get(Config.STORM_RESOURCE_ISOLATION_PLUGIN_ENABLE), false)) {
-            int cgRoupMem = (int) (Math.ceil((double) conf.get(Config.STORM_CGROUP_MEMORY_LIMIT_TOLERANCE_MARGIN_MB)));
-            int memoryValue = memoffheap + memOnheap + cgRoupMem;
-            int cpuValue = cpu;
-            Map<String, Number> map = new HashMap<>();
-            map.put("cpu", cpuValue);
-            map.put("memory", memoryValue);
-            cgroupManager.reserveResourcesForWorker(workerId, map);
-            commandList = cgroupManager.getLaunchCommand(workerId, commandList);
-        }
-
-        LOG.info("Launching worker with command: {}. ", Utils.shellCmd(commandList));
         writeLogMetadata(stormConf, user, workerId, stormId, port, conf);
         ConfigUtils.setWorkerUserWSE(conf, workerId, user);
         createArtifactsLink(conf, stormId, port, workerId);
 
         String logPrefix = "Worker Process " + workerId;
-        String workerDir = ConfigUtils.workerRoot(conf, workerId);
-
         if (deadWorkers != null)
             deadWorkers.remove(workerId);
         createBlobstoreLinks(conf, stormId, workerId);
-
         ProcessExitCallback processExitCallback = new ProcessExitCallback(logPrefix, workerId);
-        if (runWorkerAsUser) {
-            List<String> args = new ArrayList<>();
-            args.add("worker");
-            args.add(workerDir);
-            args.add(Utils.writeScript(workerDir, commandList, topEnvironment));
-            SupervisorUtils.workerLauncher(conf, user, args, null, logPrefix, processExitCallback, new File(workerDir));
-        } else {
-            Utils.launchProcess(commandList, topEnvironment, logPrefix, processExitCallback, new File(workerDir));
-        }
-    }
-
-    protected String jlp(String stormRoot, Map conf) {
-        String resourceRoot = stormRoot + Utils.FILE_PATH_SEPARATOR + ConfigUtils.RESOURCES_SUBDIR;
-        String os = System.getProperty("os.name").replaceAll("\\s+", "_");
-        String arch = System.getProperty("os.arch");
-        String archResourceRoot = resourceRoot + Utils.FILE_PATH_SEPARATOR + os + "-" + arch;
-        String ret = archResourceRoot + Utils.FILE_PATH_SEPARATOR + resourceRoot + Utils.FILE_PATH_SEPARATOR + conf.get(Config.JAVA_LIBRARY_PATH);
-        return ret;
+        workerManager.launchWorker(supervisorId, assignmentId, stormId, port, workerId, resources, processExitCallback);
     }
 
     protected Map<String, Integer> startNewWorkers(Map<Integer, String> newWorkerIds, Map<Integer, LocalAssignment> reassignExecutors) throws IOException {
@@ -528,10 +285,9 @@ public class SyncProcessEvent implements Runnable {
                 FileUtils.forceMkdir(new File(hbPath));
 
                 if (clusterMode.endsWith("distributed")) {
-                    launchWorker(conf, supervisorId, supervisorData.getAssignmentId(), stormId, port.longValue(), workerId, resources,
-                            supervisorData.getResourceIsolationManager(), supervisorData.getDeadWorkers());
+                    launchDistributedWorker(supervisorData.getWorkerManager(), conf, supervisorId, supervisorData.getAssignmentId(), stormId, port.longValue(), workerId, resources, supervisorData.getDeadWorkers());
                 } else if (clusterMode.endsWith("local")) {
-                    launchWorker(supervisorData, stormId, port.longValue(), workerId, resources);
+                    launchLocalWorker(supervisorData, stormId, port.longValue(), workerId, resources);
                 }
                 newValidWorkerIds.put(workerId, port);
 
@@ -559,9 +315,7 @@ public class SyncProcessEvent implements Runnable {
         }
         if (stormconf.get(Config.TOPOLOGY_GROUPS) != null) {
             List<String> topGroups = (List<String>) stormconf.get(Config.TOPOLOGY_GROUPS);
-            for (String group : topGroups){
-                logsGroups.add(group);
-            }
+            logsGroups.addAll(topGroups);
         }
         data.put(Config.LOGS_GROUPS, logsGroups.toArray());
 
@@ -609,7 +363,6 @@ public class SyncProcessEvent implements Runnable {
         }finally {
             writer.close();
         }
-
     }
 
     /**
@@ -665,8 +418,11 @@ public class SyncProcessEvent implements Runnable {
         }
     }
 
-    //for supervisor-test
-    public void shutWorker(SupervisorData supervisorData, String workerId) throws IOException, InterruptedException{
-        SupervisorUtils.shutWorker(supervisorData, workerId);
+    public void shutWorker(SupervisorData supervisorData, IWorkerManager workerManager, String workerId) throws IOException, InterruptedException{
+        workerManager.shutdownWorker(supervisorData.getSupervisorId(), workerId, supervisorData.getWorkerThreadPids());
+        boolean success = workerManager.cleanupWorker(workerId);
+        if (success){
+            supervisorData.getDeadWorkers().remove(workerId);
+        }
     }
 }

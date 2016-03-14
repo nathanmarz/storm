@@ -17,6 +17,8 @@
  */
 package org.apache.storm.daemon.supervisor;
 
+import org.apache.storm.daemon.DaemonCommon;
+import org.apache.storm.daemon.supervisor.workermanager.IWorkerManager;
 import org.apache.storm.event.EventManager;
 import org.apache.storm.utils.Utils;
 import org.slf4j.Logger;
@@ -25,14 +27,14 @@ import org.slf4j.LoggerFactory;
 import java.util.Collection;
 import java.util.Map;
 
-public class SupervisorManger implements SupervisorDaemon, DaemonCommon, Runnable {
+public class SupervisorManager implements SupervisorDaemon, DaemonCommon, Runnable {
 
-    private static final Logger LOG = LoggerFactory.getLogger(SupervisorManger.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SupervisorManager.class);
     private final EventManager eventManager;
     private final EventManager processesEventManager;
     private SupervisorData supervisorData;
 
-    public SupervisorManger(SupervisorData supervisorData, EventManager eventManager, EventManager processesEventManager) {
+    public SupervisorManager(SupervisorData supervisorData, EventManager eventManager, EventManager processesEventManager) {
         this.eventManager = eventManager;
         this.supervisorData = supervisorData;
         this.processesEventManager = processesEventManager;
@@ -55,11 +57,15 @@ public class SupervisorManger implements SupervisorDaemon, DaemonCommon, Runnabl
 
     @Override
     public void shutdownAllWorkers() {
-
         Collection<String> workerIds = SupervisorUtils.supervisorWorkerIds(supervisorData.getConf());
+        IWorkerManager workerManager = supervisorData.getWorkerManager();
         try {
             for (String workerId : workerIds) {
-                SupervisorUtils.shutWorker(supervisorData, workerId);
+                workerManager.shutdownWorker(supervisorData.getSupervisorId(), workerId, supervisorData.getWorkerThreadPids());
+                boolean success = workerManager.cleanupWorker(workerId);
+                if (success){
+                    supervisorData.getDeadWorkers().remove(workerId);
+                }
             }
         } catch (Exception e) {
             LOG.error("shutWorker failed");

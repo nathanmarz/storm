@@ -15,8 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.storm.daemon.supervisor;
+package org.apache.storm.daemon.supervisor.workermanager;
 
-public interface DaemonCommon {
-    boolean isWaiting();
+public interface IWorkerResult {
 }

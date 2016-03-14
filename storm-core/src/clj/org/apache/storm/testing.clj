@@ -25,7 +25,7 @@
            [org.apache.storm.utils]
            [org.apache.storm.zookeeper Zookeeper]
            [org.apache.storm ProcessSimulator]
-           [org.apache.storm.daemon.supervisor StandaloneSupervisor SupervisorData SupervisorManger SupervisorUtils])
+           [org.apache.storm.daemon.supervisor StandaloneSupervisor SupervisorData SupervisorManager SupervisorUtils SupervisorManager])
   (:import [java.io File])
   (:import [java.util HashMap ArrayList])
   (:import [java.util.concurrent.atomic AtomicInteger])
@@ -137,7 +137,8 @@
         supervisor-conf (merge (:daemon-conf cluster-map)
                                conf
                                {STORM-LOCAL-DIR tmp-dir
-                                SUPERVISOR-SLOTS-PORTS port-ids})
+                                SUPERVISOR-SLOTS-PORTS port-ids
+                                STORM-SUPERVISOR-WORKER-MANAGER-PLUGIN "org.apache.storm.daemon.supervisor.workermanager.DefaultWorkerManager"})
         id-fn (if id id (Utils/uuid))
         isupervisor (proxy [StandaloneSupervisor] []
                         (generateSupervisorId [] id-fn))
@@ -282,7 +283,7 @@
   ([timeout-ms apredicate]
     (while-timeout timeout-ms (not (apredicate))
       (Time/sleep 100))))
-(defn is-supervisor-waiting [^SupervisorManger supervisor]
+(defn is-supervisor-waiting [^SupervisorManager supervisor]
   (.isWaiting supervisor))
 
 (defn wait-until-cluster-waiting
@@ -415,15 +416,18 @@
 
 (defn mk-capture-shutdown-fn
   [capture-atom]
-    (fn [supervisorData workerId]
+    (fn [supervisorData worker-manager workerId]
       (let [conf (.getConf supervisorData)
             supervisor-id (.getSupervisorId supervisorData)
             port (find-worker-port conf workerId)
+            worker-pids (.getWorkerThreadPids supervisorData)
+            dead-workers (.getDeadWorkers supervisorData)
             existing (get @capture-atom [supervisor-id port] 0)]
         (log-message "mk-capture-shutdown-fn")
         (swap! capture-atom assoc [supervisor-id port] (inc existing))
-        (SupervisorUtils/shutWorker supervisorData workerId))))
-
+        (.shutdownWorker worker-manager supervisor-id workerId worker-pids)
+        (if (.cleanupWorker worker-manager workerId)
+          (.remove dead-workers workerId)))))
 (defmacro capture-changed-workers
   [& body]
   `(let [launch-captured# (atom {})

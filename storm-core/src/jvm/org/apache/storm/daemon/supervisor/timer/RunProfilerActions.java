@@ -171,7 +171,7 @@ public class RunProfilerActions implements Runnable {
             newCommands.add("profiler");
             newCommands.add(targetDir);
             newCommands.add(script);
-            SupervisorUtils.workerLauncher(conf, user, newCommands, environment, logPrefix, exitCodeCallable, targetFile);
+            SupervisorUtils.processLauncher(conf, user, newCommands, environment, logPrefix, exitCodeCallable, targetFile);
         } else {
             Utils.launchProcess(commands, environment, logPrefix, exitCodeCallable, targetFile);
         }

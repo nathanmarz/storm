@@ -289,6 +289,10 @@ storm.daemon.metrics.reporter.plugins:
 storm.resource.isolation.plugin: "org.apache.storm.container.cgroup.CgroupManager"
 storm.resource.isolation.plugin.enable: false
 
+
+# Default plugin to use for manager worker
+storm.supervisor.worker.manager.plugin: org.apache.storm.daemon.supervisor.workermanager.DefaultWorkerManager
+
 # Configs for CGroup support
 storm.cgroup.hierarchy.dir: "/cgroup/storm_resources"
 storm.cgroup.resources:

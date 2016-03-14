@@ -18,6 +18,7 @@
 package org.apache.storm;
 
 import org.apache.storm.container.ResourceIsolationInterface;
+import org.apache.storm.daemon.supervisor.workermanager.IWorkerManager;
 import org.apache.storm.scheduler.resource.strategies.eviction.IEvictionStrategy;
 import org.apache.storm.scheduler.resource.strategies.priority.ISchedulingPriorityStrategy;
 import org.apache.storm.scheduler.resource.strategies.scheduling.IStrategy;
@@ -2210,6 +2211,12 @@ public class Config extends HashMap<String, Object> {
      */
     @isImplementationOfClass(implementsClass = ResourceIsolationInterface.class)
     public static final Object STORM_RESOURCE_ISOLATION_PLUGIN = "storm.resource.isolation.plugin";
+
+    /**
+     * The plugin to be used for manager worker
+     */
+    @isImplementationOfClass(implementsClass = IWorkerManager.class)
+    public static final Object STORM_SUPERVISOR_WORKER_MANAGER_PLUGIN = "storm.supervisor.worker.manager.plugin";
 
     /**
      * CGroup Setting below

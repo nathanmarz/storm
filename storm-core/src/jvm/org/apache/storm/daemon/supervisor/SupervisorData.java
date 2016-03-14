@@ -23,7 +23,7 @@ import org.apache.storm.cluster.ClusterStateContext;
 import org.apache.storm.cluster.ClusterUtils;
 import org.apache.storm.cluster.DaemonType;
 import org.apache.storm.cluster.IStormClusterState;
-import org.apache.storm.container.cgroup.CgroupManager;
+import org.apache.storm.daemon.supervisor.workermanager.IWorkerManager;
 import org.apache.storm.generated.LocalAssignment;
 import org.apache.storm.generated.ProfileRequest;
 import org.apache.storm.localizer.Localizer;
@@ -73,8 +73,8 @@ public class SupervisorData {
     private AtomicInteger syncRetry;
     private final Object downloadLock = new Object();
     private AtomicReference<Map<String, List<ProfileRequest>>> stormIdToProfileActions;
-    private CgroupManager resourceIsolationManager;
     private ConcurrentHashSet<String> deadWorkers;
+    private final IWorkerManager workerManager;
 
     public SupervisorData(Map conf, IContext sharedContext, ISupervisor iSupervisor) {
         this.conf = conf;
@@ -124,17 +124,8 @@ public class SupervisorData {
         this.assignmentVersions = new AtomicReference<Map<String, Map<String, Object>>>(new HashMap<String, Map<String, Object>>());
         this.syncRetry = new AtomicInteger(0);
         this.stormIdToProfileActions = new AtomicReference<Map<String, List<ProfileRequest>>>(new HashMap<String, List<ProfileRequest>>());
-        if (Utils.getBoolean(conf.get(Config.STORM_RESOURCE_ISOLATION_PLUGIN_ENABLE), false)) {
-            try {
-                this.resourceIsolationManager = (CgroupManager) Utils.newInstance((String) conf.get(Config.STORM_RESOURCE_ISOLATION_PLUGIN));
-                this.resourceIsolationManager.prepare(conf);
-                LOG.info("Using resource isolation plugin {} {}", conf.get(Config.STORM_RESOURCE_ISOLATION_PLUGIN), resourceIsolationManager);
-            } catch (IOException e) {
-                throw Utils.wrapInRuntime(e);
-            }
-        } else {
-            this.resourceIsolationManager = null;
-        }
+        this.workerManager =  Utils.newInstance((String) conf.get(Config.STORM_SUPERVISOR_WORKER_MANAGER_PLUGIN));
+        this.workerManager.prepareWorker(conf, localizer);
     }
 
     public AtomicReference<Map<String, List<ProfileRequest>>> getStormIdToProfileActions() {
@@ -233,12 +224,11 @@ public class SupervisorData {
         this.assignmentVersions.set(assignmentVersions);
     }
 
-    public CgroupManager getResourceIsolationManager() {
-        return resourceIsolationManager;
-    }
-
     public ConcurrentHashSet getDeadWorkers() {
         return deadWorkers;
     }
 
+    public IWorkerManager getWorkerManager() {
+        return workerManager;
+    }
 }

@@ -36,17 +36,21 @@
     (ProcessSimulator/registerProcess pid worker)
     (.put (.getWorkerThreadPids supervisorData) workerId pid)
     ))
-
-(defn shutdown-local-worker [supervisorData workerId]
-    (log-message "shutdown-local-worker")
-    (SupervisorUtils/shutWorker supervisorData workerId))
+(defn shutdown-local-worker [supervisorData worker-manager workerId]
+  (log-message "shutdown-local-worker")
+  (let [supervisor-id (.getSupervisorId supervisorData)
+        worker-pids (.getWorkerThreadPids supervisorData)
+        dead-workers (.getDeadWorkers supervisorData)]
+    (.shutdownWorker worker-manager supervisor-id workerId worker-pids)
+    (if (.cleanupWorker worker-manager workerId)
+      (.remove dead-workers workerId))))
 
 (defn local-process []
   "Create a local process event"
   (proxy [SyncProcessEvent] []
-    (launchWorker [supervisorData stormId port workerId resources]
+    (launchLocalWorker [supervisorData stormId port workerId resources]
       (launch-local-worker supervisorData stormId port workerId resources))
-    (shutWorker [supervisorData workerId] (shutdown-local-worker supervisorData workerId))))
+    (shutWorker [supervisorData worker-manager workerId] (shutdown-local-worker supervisorData worker-manager workerId))))
 
 
 (defserverfn mk-local-supervisor [conf shared-context isupervisor]

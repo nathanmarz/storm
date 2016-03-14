@@ -28,6 +28,13 @@
         conf (assoc conf STORM-LOCAL-DIR (. (File. (conf STORM-LOCAL-DIR)) getCanonicalPath))
         isupervisor (StandaloneSupervisor.)
         supervisor-data (SupervisorData. conf nil isupervisor)
-        ids (SupervisorUtils/supervisorWorkerIds conf)]
+        worker-manager  (.getWorkerManager supervisor-data)
+        ids (SupervisorUtils/supervisorWorkerIds conf)
+        supervisor-id (.getSupervisorId supervisor-data)
+        worker-pids (.getWorkerThreadPids supervisor-data)
+        dead-workers (.getDeadWorkers supervisor-data)]
     (doseq [id ids]
-      (SupervisorUtils/shutWorker supervisor-data id))))
+      (.shutdownWorker worker-manager supervisor-id id worker-pids)
+      (if (.cleanupWorker worker-manager id)
+        (.remove dead-workers id))
+      )))

@@ -57,7 +57,6 @@ public class StandaloneSupervisor implements ISupervisor {
     }
 
     @Override
-    // @return is vector which need be converted to be int
     public Object getMetadata() {
         Object ports = conf.get(Config.SUPERVISOR_SLOTS_PORTS);
         return ports;

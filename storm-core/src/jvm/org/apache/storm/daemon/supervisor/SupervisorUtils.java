@@ -50,10 +50,10 @@ public class SupervisorUtils {
         _instance = INSTANCE;
     }
 
-    public static Process workerLauncher(Map conf, String user, List<String> args, Map<String, String> environment, final String logPreFix,
-            final Utils.ExitCodeCallable exitCodeCallback, File dir) throws IOException {
+    public static Process processLauncher(Map conf, String user, List<String> args, Map<String, String> environment, final String logPreFix,
+                                          final Utils.ExitCodeCallable exitCodeCallback, File dir) throws IOException {
         if (StringUtils.isBlank(user)) {
-            throw new IllegalArgumentException("User cannot be blank when calling workerLauncher.");
+            throw new IllegalArgumentException("User cannot be blank when calling processLauncher.");
         }
         String wlinitial = (String) (conf.get(Config.SUPERVISOR_WORKER_LAUNCHER));
         String stormHome = ConfigUtils.concatIfNotNull(System.getProperty("storm.home"));
@@ -71,10 +71,10 @@ public class SupervisorUtils {
         return Utils.launchProcess(commands, environment, logPreFix, exitCodeCallback, dir);
     }
 
-    public static int workerLauncherAndWait(Map conf, String user, List<String> args, final Map<String, String> environment, final String logPreFix)
+    public static int processLauncherAndWait(Map conf, String user, List<String> args, final Map<String, String> environment, final String logPreFix)
             throws IOException {
         int ret = 0;
-        Process process = workerLauncher(conf, user, args, environment, logPreFix, null, null);
+        Process process = processLauncher(conf, user, args, environment, logPreFix, null, null);
         if (StringUtils.isNotBlank(logPreFix))
             Utils.readAndLogStream(logPreFix, process.getInputStream());
         try {
@@ -92,7 +92,7 @@ public class SupervisorUtils {
             List<String> commands = new ArrayList<>();
             commands.add("code-dir");
             commands.add(dir);
-            workerLauncherAndWait(conf, (String) (stormConf.get(Config.TOPOLOGY_SUBMITTER_USER)), commands, null, logPrefix);
+            processLauncherAndWait(conf, (String) (stormConf.get(Config.TOPOLOGY_SUBMITTER_USER)), commands, null, logPrefix);
         }
     }
 
@@ -102,7 +102,7 @@ public class SupervisorUtils {
         List<String> commands = new ArrayList<>();
         commands.add("rmr");
         commands.add(path);
-        SupervisorUtils.workerLauncherAndWait(conf, user, commands, null, logPreFix);
+        SupervisorUtils.processLauncherAndWait(conf, user, commands, null, logPreFix);
         if (Utils.checkFileExists(path)) {
             throw new RuntimeException(path + " was not deleted.");
         }
@@ -116,11 +116,11 @@ public class SupervisorUtils {
      * @return
      */
     public static Boolean shouldUncompressBlob(Map<String, Object> blobInfo) {
-        return new Boolean((String) blobInfo.get("uncompress"));
+        return Utils.getBoolean(blobInfo.get("uncompress"), false);
     }
 
     /**
-     * Remove a reference to a blob when its no longer needed
+     * Returns a list of LocalResources based on the blobstore-map passed in
      * 
      * @param blobstoreMap
      * @return
@@ -186,7 +186,7 @@ public class SupervisorUtils {
     }
 
     /**
-     * Returns map from worr id to heartbeat
+     * map from worker id to heartbeat
      *
      * @param conf
      * @return
@@ -265,89 +265,4 @@ public class SupervisorUtils {
         acls.add(new ACL((ZooDefs.Perms.READ ^ ZooDefs.Perms.CREATE), ZooDefs.Ids.ANYONE_ID_UNSAFE));
         return acls;
     }
-
-    public static void shutWorker(SupervisorData supervisorData, String workerId) throws IOException, InterruptedException {
-        LOG.info("Shutting down {}:{}", supervisorData.getSupervisorId(), workerId);
-        Map conf = supervisorData.getConf();
-        Collection<String> pids = Utils.readDirContents(ConfigUtils.workerPidsRoot(conf, workerId));
-        Integer shutdownSleepSecs = Utils.getInt(conf.get(Config.SUPERVISOR_WORKER_SHUTDOWN_SLEEP_SECS));
-        Boolean asUser = Utils.getBoolean(conf.get(Config.SUPERVISOR_RUN_WORKER_AS_USER), false);
-        String user = ConfigUtils.getWorkerUser(conf, workerId);
-        String threadPid = supervisorData.getWorkerThreadPids().get(workerId);
-        if (StringUtils.isNotBlank(threadPid)) {
-            ProcessSimulator.killProcess(threadPid);
-        }
-
-        for (String pid : pids) {
-            if (asUser) {
-                List<String> commands = new ArrayList<>();
-                commands.add("signal");
-                commands.add(pid);
-                commands.add("15");
-                String logPrefix = "kill -15 " + pid;
-                SupervisorUtils.workerLauncherAndWait(conf, user, commands, null, logPrefix);
-            } else {
-                Utils.killProcessWithSigTerm(pid);
-            }
-        }
-
-        if (pids.size() > 0) {
-            LOG.info("Sleep {} seconds for execution of cleanup threads on worker.", shutdownSleepSecs);
-            Time.sleepSecs(shutdownSleepSecs);
-        }
-
-        for (String pid : pids) {
-            if (asUser) {
-                List<String> commands = new ArrayList<>();
-                commands.add("signal");
-                commands.add(pid);
-                commands.add("9");
-                String logPrefix = "kill -9 " + pid;
-                SupervisorUtils.workerLauncherAndWait(conf, user, commands, null, logPrefix);
-            } else {
-                Utils.forceKillProcess(pid);
-            }
-            String path = ConfigUtils.workerPidPath(conf, workerId, pid);
-            if (asUser) {
-                SupervisorUtils.rmrAsUser(conf, workerId, path);
-            } else {
-                try {
-                    LOG.debug("Removing path {}", path);
-                    new File(path).delete();
-                } catch (Exception e) {
-                    // on windows, the supervisor may still holds the lock on the worker directory
-                    // ignore
-                }
-            }
-        }
-        tryCleanupWorker(conf, supervisorData, workerId);
-        LOG.info("Shut down {}:{}", supervisorData.getSupervisorId(), workerId);
-
-    }
-
-    public static void tryCleanupWorker(Map conf, SupervisorData supervisorData, String workerId) {
-        try {
-            String workerRoot = ConfigUtils.workerRoot(conf, workerId);
-            if (Utils.checkFileExists(workerRoot)) {
-                if (Utils.getBoolean(conf.get(Config.SUPERVISOR_RUN_WORKER_AS_USER), false)) {
-                    SupervisorUtils.rmrAsUser(conf, workerId, workerRoot);
-                } else {
-                    Utils.forceDelete(ConfigUtils.workerHeartbeatsRoot(conf, workerId));
-                    Utils.forceDelete(ConfigUtils.workerPidsRoot(conf, workerId));
-                    Utils.forceDelete(ConfigUtils.workerTmpRoot(conf, workerId));
-                    Utils.forceDelete(ConfigUtils.workerRoot(conf, workerId));
-                }
-                ConfigUtils.removeWorkerUserWSE(conf, workerId);
-                supervisorData.getDeadWorkers().remove(workerId);
-            }
-            if (Utils.getBoolean(conf.get(Config.STORM_RESOURCE_ISOLATION_PLUGIN_ENABLE), false)){
-                supervisorData.getResourceIsolationManager().releaseResourcesForWorker(workerId);
-            }
-        } catch (IOException e) {
-            LOG.warn("Failed to cleanup worker {}. Will retry later", workerId, e);
-        } catch (RuntimeException e) {
-            LOG.warn("Failed to cleanup worker {}. Will retry later", workerId, e);
-        }
-    }
-
 }

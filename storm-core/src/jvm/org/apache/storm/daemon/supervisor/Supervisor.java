@@ -61,8 +61,8 @@ public class Supervisor {
      * @return
      * @throws Exception
      */
-    public SupervisorManger mkSupervisor(final Map conf, IContext sharedContext, ISupervisor iSupervisor) throws Exception {
-        SupervisorManger supervisorManger = null;
+    public SupervisorManager mkSupervisor(final Map conf, IContext sharedContext, ISupervisor iSupervisor) throws Exception {
+        SupervisorManager supervisorManager = null;
         try {
             LOG.info("Starting Supervisor with conf {}", conf);
             iSupervisor.prepare(conf, ConfigUtils.supervisorIsupervisorDir(conf));
@@ -78,8 +78,8 @@ public class Supervisor {
             Integer heartbeatFrequency = Utils.getInt(conf.get(Config.SUPERVISOR_HEARTBEAT_FREQUENCY_SECS));
             supervisorData.getHeartbeatTimer().scheduleRecurring(0, heartbeatFrequency, hb);
 
-            Set<String> downdedStormId = SupervisorUtils.readDownLoadedStormIds(conf);
-            for (String stormId : downdedStormId) {
+            Set<String> downloadedStormIds = SupervisorUtils.readDownLoadedStormIds(conf);
+            for (String stormId : downloadedStormIds) {
                 SupervisorUtils.addBlobReferences(localizer, stormId, conf);
             }
             // do this after adding the references so we don't try to clean things being used
@@ -119,7 +119,7 @@ public class Supervisor {
                 eventTimer.scheduleRecurring(30, 30, new EventManagerPushCallback(runProfilerActionThread, syncSupEventManager));
             }
             LOG.info("Starting supervisor with id {} at host {}.", supervisorData.getSupervisorId(), supervisorData.getHostName());
-            supervisorManger = new SupervisorManger(supervisorData, syncSupEventManager, syncProcessManager);
+            supervisorManager = new SupervisorManager(supervisorData, syncSupEventManager, syncProcessManager);
         } catch (Throwable t) {
             if (Utils.exceptionCauseIsInstanceOf(InterruptedIOException.class, t)) {
                 throw t;
@@ -130,7 +130,7 @@ public class Supervisor {
                 Utils.exitProcess(13, "Error on initialization");
             }
         }
-        return supervisorManger;
+        return supervisorManager;
     }
 
     /**
@@ -138,7 +138,7 @@ public class Supervisor {
      */
     private void launch(ISupervisor iSupervisor) {
         LOG.info("Starting supervisor for storm version '{}'.", VersionInfo.getVersion());
-        SupervisorManger supervisorManager;
+        SupervisorManager supervisorManager;
         try {
             Map<Object, Object> conf = Utils.readStormConfig();
             if (ConfigUtils.isLocalMode(conf)) {

@@ -109,6 +109,7 @@ public class SyncSupervisorEvent implements Runnable {
             LOG.debug("Checked Downloaded Ids {}", srashStormIds);
             LOG.debug("Downloaded Ids {}", downloadedStormIds);
             LOG.debug("Storm Ids Profiler Actions {}", stormIdToProfilerActions);
+
             // download code first
             // This might take awhile
             // - should this be done separately from usual monitoring?
@@ -204,12 +205,12 @@ public class SyncSupervisorEvent implements Runnable {
             List<ExecutorInfo> existExecutors = existingAssignment.get(port).get_executors();
             List<ExecutorInfo> newExecutors = newAssignment.get(port).get_executors();
             if (newExecutors.size() != existExecutors.size()) {
-                syncProcesses.shutWorker(supervisorData, vaildPortToWorkerIds.get(port));
+                syncProcesses.shutWorker(supervisorData, supervisorData.getWorkerManager(), vaildPortToWorkerIds.get(port));
                 continue;
             }
             for (ExecutorInfo executorInfo : newExecutors) {
                 if (!existExecutors.contains(executorInfo)) {
-                    syncProcesses.shutWorker(supervisorData, vaildPortToWorkerIds.get(port));
+                    syncProcesses.shutWorker(supervisorData, supervisorData.getWorkerManager(), vaildPortToWorkerIds.get(port));
                     break;
                 }
             }
@@ -353,7 +354,12 @@ public class SyncSupervisorEvent implements Runnable {
         } finally {
             blobStore.shutdown();
         }
-        FileUtils.moveDirectory(new File(tmproot), new File(stormroot));
+        try {
+            FileUtils.moveDirectory(new File(tmproot), new File(stormroot));
+        }catch (Exception e){
+            //igonre
+        }
+
         SupervisorUtils.setupStormCodeDir(conf, ConfigUtils.readSupervisorStormConf(conf, stormId), stormroot);
         ClassLoader classloader = Thread.currentThread().getContextClassLoader();
 
@@ -503,7 +509,7 @@ public class SyncSupervisorEvent implements Runnable {
     protected void setupBlobPermission(Map conf, String user, String path) throws IOException {
         if (Utils.getBoolean(Config.SUPERVISOR_RUN_WORKER_AS_USER, false)) {
             String logPrefix = "setup blob permissions for " + path;
-            SupervisorUtils.workerLauncherAndWait(conf, user, Arrays.asList("blob", path), null, logPrefix);
+            SupervisorUtils.processLauncherAndWait(conf, user, Arrays.asList("blob", path), null, logPrefix);
         }
 
     }
@@ -623,7 +629,7 @@ public class SyncSupervisorEvent implements Runnable {
             String workerId = entry.getKey();
             StateHeartbeat stateHeartbeat = entry.getValue();
             if (stateHeartbeat.getState() == State.DISALLOWED) {
-                syncProcesses.shutWorker(supervisorData, workerId);
+                syncProcesses.shutWorker(supervisorData, supervisorData.getWorkerManager(), workerId);
                 LOG.debug("{}'s state disallowed, so shutdown this worker");
             }
         }

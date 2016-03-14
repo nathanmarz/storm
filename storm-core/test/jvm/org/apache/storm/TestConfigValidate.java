@@ -18,6 +18,8 @@
 
 package org.apache.storm;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import org.apache.storm.utils.Utils;
 import org.apache.storm.validation.ConfigValidation;
 import org.apache.storm.validation.ConfigValidation.*;
@@ -228,6 +230,24 @@ public class TestConfigValidate {
         testList.add(new Long("4"));
         conf.put("eee", testList);
         Utils.isValidConf(conf);
+    }
+
+    @Test
+    public void testKryoRegValidator() {
+        KryoRegValidator validator = new KryoRegValidator();
+
+        // fail cases
+        Object[] failCases = {ImmutableMap.of("f", "g"), ImmutableList.of(1), Arrays.asList(ImmutableMap.of("a", 1))};
+        for (Object value : failCases) {
+            try {
+                validator.validateField("test", value);
+                Assert.fail("Expected Exception not Thrown for value: " + value);
+            } catch (IllegalArgumentException e) {
+            }
+        }
+
+        // pass cases
+        validator.validateField("test", Arrays.asList("a", "b", "c", ImmutableMap.of("d", "e"), ImmutableMap.of("f", "g")));
     }
 
     @Test

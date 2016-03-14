@@ -354,12 +354,7 @@ public class SyncSupervisorEvent implements Runnable {
         } finally {
             blobStore.shutdown();
         }
-        try {
-            FileUtils.moveDirectory(new File(tmproot), new File(stormroot));
-        }catch (Exception e){
-            //igonre
-        }
-
+        FileUtils.moveDirectory(new File(tmproot), new File(stormroot));
         SupervisorUtils.setupStormCodeDir(conf, ConfigUtils.readSupervisorStormConf(conf, stormId), stormroot);
         ClassLoader classloader = Thread.currentThread().getContextClassLoader();
 

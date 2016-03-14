@@ -1,4 +1,7 @@
 ## 2.0.0
+ * STORM-1250: port backtype.storm.serialization-test to java
+ * STORM-1605: use '/usr/bin/env python' to check python version
+ * STORM-1618: Add the option of passing config directory
  * STORM-1269: port backtype.storm.daemon.common to java
  * STORM-1270: port drpc to java
  * STORM-1274: port LocalDRPC to java
@@ -52,6 +55,8 @@
  * STORM-1521: When using Kerberos login from keytab with multiple bolts/executors ticket is not renewed in hbase bolt.
 
 ## 1.0.0
+ * STORM-1609: Netty Client is not best effort delivery on failed Connection
+ * STORM-1620: Update curator to fix CURATOR-209
  * STORM-1469: Adding Plain Sasl Transport Plugin
  * STORM-1588: Do not add event logger details if number of event loggers is zero
  * STORM-1606: print the information of testcase which is on failure

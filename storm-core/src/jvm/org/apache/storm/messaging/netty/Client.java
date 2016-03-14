@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.Collection;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Timer;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -74,6 +75,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
     private static final Logger LOG = LoggerFactory.getLogger(Client.class);
     private static final String PREFIX = "Netty-Client-";
     private static final long NO_DELAY_MS = 0L;
+    private static final Timer timer = new Timer("Netty-ChannelAlive-Timer", true);
 
     private final Map stormConf;
     private final StormBoundedExponentialBackoffRetry retryPolicy;
@@ -106,6 +108,12 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
      * Number of messages that could not be sent to the remote destination.
      */
     private final AtomicInteger messagesLost = new AtomicInteger(0);
+
+    /**
+     * Periodically checks for connected channel in order to avoid loss
+     * of messages
+     */
+    private final long CHANNEL_ALIVE_INTERVAL_MS = 30000L;
 
     /**
      * Number of messages buffered in memory.
@@ -151,8 +159,34 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
         bootstrap = createClientBootstrap(factory, bufferSize, stormConf);
         dstAddress = new InetSocketAddress(host, port);
         dstAddressPrefixedName = prefixedName(dstAddress);
+        launchChannelAliveThread();
         scheduleConnect(NO_DELAY_MS);
         batcher = new MessageBuffer(messageBatchSize);
+    }
+
+    /**
+     * This thread helps us to check for channel connection periodically.
+     * This is performed just to know whether the destination address
+     * is alive or attempts to refresh connections if not alive. This
+     * solution is better than what we have now in case of a bad channel.
+     */
+    private void launchChannelAliveThread() {
+        // netty TimerTask is already defined and hence a fully
+        // qualified name
+        timer.schedule(new java.util.TimerTask() {
+            public void run() {
+                try {
+                    LOG.debug("running timer task, address {}", dstAddress);
+                    if(closing) {
+                        this.cancel();
+                        return;
+                    }
+                    getConnectedChannel();
+                } catch (Exception exp) {
+                    LOG.error("channel connection error {}", exp);
+                }
+            }
+        }, 0, CHANNEL_ALIVE_INTERVAL_MS);
     }
 
     private ClientBootstrap createClientBootstrap(ChannelFactory factory, int bufferSize, Map stormConf) {

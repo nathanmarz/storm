@@ -20,7 +20,12 @@ package org.apache.storm.topology;
 import org.apache.storm.state.State;
 
 /**
- * A bolt abstraction for supporting stateful computation.
+ * A bolt abstraction for supporting stateful computation. The state of the bolt is
+ * periodically checkpointed.
+ *
+ * <p>The framework provides at-least once guarantee for the
+ * state updates. The stateful bolts are expected to anchor the tuples while emitting
+ * and ack the input tuples once its processed.</p>
  */
 public interface IStatefulBolt<T extends State> extends IStatefulComponent<T>, IRichBolt {
 }

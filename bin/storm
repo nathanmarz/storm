@@ -30,16 +30,8 @@ while [ -h "${PRG}" ]; do
   fi
 done
 
-# find python >= 2.6
-if [ -a /usr/bin/python2.6 ]; then
-  PYTHON=/usr/bin/python2.6
-fi
-
-if [ -z "$PYTHON" ]; then
-  PYTHON=/usr/bin/python
-fi
-
 # check for version
+PYTHON="/usr/bin/env python"
 majversion=`$PYTHON -V 2>&1 | awk '{print $2}' | cut -d'.' -f1`
 minversion=`$PYTHON -V 2>&1 | awk '{print $2}' | cut -d'.' -f2`
 numversion=$(( 10 * $majversion + $minversion))
@@ -51,12 +43,15 @@ fi
 STORM_BIN_DIR=`dirname ${PRG}`
 export STORM_BASE_DIR=`cd ${STORM_BIN_DIR}/..;pwd`
 
-#check to see if the conf dir is given as an optional argument
+#check to see if the conf dir or file is given as an optional argument
 if [ $# -gt 1 ]; then
   if [ "--config" = "$1" ]; then
     conf_file=$2
+    if [ -d "$conf_file" ]; then
+      conf_file=$conf_file/storm.yaml
+    fi
     if [ ! -f "$conf_file" ]; then
-      echo "Error: Cannot find configuration directory: $conf_file"
+      echo "Error: Cannot find configuration file: $conf_file"
       exit 1
     fi
     STORM_CONF_FILE=$conf_file
@@ -71,4 +66,4 @@ if [ -f "${STORM_CONF_DIR}/storm-env.sh" ]; then
   . "${STORM_CONF_DIR}/storm-env.sh"
 fi
 
-exec "$PYTHON" "${STORM_BIN_DIR}/storm.py" "$@"
+exec "${STORM_BIN_DIR}/storm.py" "$@"

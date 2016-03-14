@@ -27,7 +27,8 @@
   (:import [org.apache.storm.generated ShellComponent JavaObject])
   (:import [org.apache.storm.spout ShellSpout])
   (:import [java.util Collection List ArrayList])
-  (:import [org.apache.storm Thrift])
+  (:import [org.apache.storm Thrift]
+           (org.apache.storm.daemon StormCommon))
   (:require [org.apache.storm
              [stats :as stats]])
   (:require [org.apache.storm.daemon.builtin-metrics :as builtin-metrics]))
@@ -186,6 +187,6 @@
       (.addTaskHook ^TopologyContext (:user-context task-data) (-> klass Class/forName .newInstance)))
     ;; when this is called, the threads for the executor haven't been started yet,
     ;; so we won't be risking trampling on the single-threaded claim strategy disruptor queue
-    (send-unanchored task-data SYSTEM-STREAM-ID ["startup"])
+    (send-unanchored task-data StormCommon/SYSTEM_STREAM_ID ["startup"])
     task-data
     ))

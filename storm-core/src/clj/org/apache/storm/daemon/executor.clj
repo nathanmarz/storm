@@ -529,7 +529,7 @@
                                       spout-obj (:object task-data)]
                                   (when (instance? ICredentialsListener spout-obj)
                                     (.setCredentials spout-obj (.getValue tuple 0))))
-                              ACKER-RESET-TIMEOUT-STREAM-ID 
+                              Acker/ACKER_RESET_TIMEOUT_STREAM_ID 
                                 (let [id (.getValue tuple 0)
                                       pending-for-id (.get pending id)]
                                    (when pending-for-id
@@ -838,7 +838,7 @@
                                           (^void resetTimeout [this ^Tuple tuple]
                                             (fast-list-iter [root (.. tuple getMessageId getAnchors)]
                                                             (task/send-unanchored task-data
-                                                                                  ACKER-RESET-TIMEOUT-STREAM-ID
+                                                                                  Acker/ACKER_RESET_TIMEOUT_STREAM_ID
                                                                                   [root])))
                                           (reportError [this error]
                                             (report-error error))))))

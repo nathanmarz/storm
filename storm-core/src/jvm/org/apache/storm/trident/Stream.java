@@ -611,20 +611,6 @@ public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
     /**
      * Returns a stream of tuples which are aggregated results of a tumbling window with every {@code windowCount} of tuples.
      *
-     * @param windowCount represents window tuples count
-     * @param inputFields projected fields for aggregator
-     * @param aggregator aggregator to run on the window of tuples to compute the result and emit to the stream.
-     * @param functionFields fields of values to emit with aggregation.
-     *
-     * @return
-     */
-    public Stream tumblingCountWindow(int windowCount, Fields inputFields, Aggregator aggregator, Fields functionFields) {
-        return window(TumblingCountWindow.of(windowCount), inputFields, aggregator, functionFields);
-    }
-
-    /**
-     * Returns a stream of tuples which are aggregated results of a tumbling window with every {@code windowCount} of tuples.
-     *
      * @param windowCount represents no of tuples in the window
      * @param windowStoreFactory intermediary tuple store for storing windowing tuples
      * @param inputFields projected fields for aggregator
@@ -633,7 +619,7 @@ public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
      *
      * @return
      */
-    public Stream tumblingCountWindow(int windowCount, WindowsStoreFactory windowStoreFactory,
+    public Stream tumblingWindow(int windowCount, WindowsStoreFactory windowStoreFactory,
                                       Fields inputFields, Aggregator aggregator, Fields functionFields) {
         return window(TumblingCountWindow.of(windowCount), windowStoreFactory, inputFields, aggregator, functionFields);
     }
@@ -651,7 +637,7 @@ public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
      *
      * @return
      */
-    public Stream slidingCountWindow(int windowCount, int slideCount, WindowsStoreFactory windowStoreFactory,
+    public Stream slidingWindow(int windowCount, int slideCount, WindowsStoreFactory windowStoreFactory,
                                      Fields inputFields, Aggregator aggregator, Fields functionFields) {
         return window(SlidingCountWindow.of(windowCount, slideCount), windowStoreFactory, inputFields, aggregator, functionFields);
     }
@@ -667,7 +653,7 @@ public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
      *
      * @return
      */
-    public Stream tumblingTimeWindow(BaseWindowedBolt.Duration windowDuration, WindowsStoreFactory windowStoreFactory,
+    public Stream tumblingWindow(BaseWindowedBolt.Duration windowDuration, WindowsStoreFactory windowStoreFactory,
                                      Fields inputFields, Aggregator aggregator, Fields functionFields) {
         return window(TumblingDurationWindow.of(windowDuration), windowStoreFactory, inputFields, aggregator, functionFields);
     }
@@ -685,7 +671,7 @@ public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
      *
      * @return
      */
-    public Stream slidingTimeWindow(BaseWindowedBolt.Duration windowDuration, BaseWindowedBolt.Duration slideDuration,
+    public Stream slidingWindow(BaseWindowedBolt.Duration windowDuration, BaseWindowedBolt.Duration slideDuration,
                                     WindowsStoreFactory windowStoreFactory, Fields inputFields, Aggregator aggregator, Fields functionFields) {
         return window(SlidingDurationWindow.of(windowDuration, slideDuration), windowStoreFactory, inputFields, aggregator, functionFields);
     }

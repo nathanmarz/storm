@@ -22,7 +22,8 @@
             [clojure.string :as string])
   (:import [org.apache.storm.generated ClusterWorkerHeartbeat]
            [org.apache.storm.utils Utils ConfigUtils]
-           [org.apache.storm.cluster ZKStateStorage ClusterStateContext ClusterUtils])
+           [org.apache.storm.cluster ZKStateStorage ClusterStateContext ClusterUtils]
+           [org.apache.storm.stats StatsUtil])
   (:gen-class))
 
 (defn -main [command path & args]
@@ -37,7 +38,7 @@
       "get"
       (log-message 
        (if-let [hb (.get_worker_hb cluster path false)]
-         (clojurify-zk-worker-hb
+         (StatsUtil/convertZkWorkerHb
           (Utils/deserialize
            hb
            ClusterWorkerHeartbeat))

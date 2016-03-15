@@ -23,7 +23,8 @@
   (:use [org.apache.storm.util :only [clojurify-structure defnk not-nil?]])
   (:use [clj-time coerce format])
   (:import [org.apache.storm.generated ExecutorInfo ExecutorSummary]
-           [org.apache.storm.ui UIHelpers])
+           [org.apache.storm.ui UIHelpers]
+           [org.apache.storm.metric StormMetricsRegistry])
   (:import [org.apache.storm.logging.filters AccessLoggingFilter])
   (:import [java.util EnumSet]
            [java.net URLEncoder])
@@ -37,16 +38,15 @@
            (org.json.simple JSONValue))
   (:require [ring.util servlet])
   (:require [compojure.route :as route]
-            [compojure.handler :as handler])
-  (:require [metrics.meters :refer [defmeter mark!]]))
+            [compojure.handler :as handler]))
 
 ;; TODO this function and its callings will be replace when ui.core and logviewer and drpc move to Java
-(defmeter num-web-requests)
+(def num-web-requests (StormMetricsRegistry/registerMeter "num-web-requests"))
 (defn requests-middleware
   "Coda Hale metric for counting the number of web requests."
   [handler]
   (fn [req]
-    (mark! num-web-requests)
+    (.mark num-web-requests)
     (handler req)))
 
 ;; TODO this function and its callings will be replace when ui.core and logviewer move to Java

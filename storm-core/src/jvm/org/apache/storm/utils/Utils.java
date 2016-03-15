@@ -100,6 +100,7 @@ import java.net.InetAddress;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.net.UnknownHostException;
+import java.net.ServerSocket;
 import java.nio.ByteBuffer;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -1501,6 +1502,22 @@ public class Utils {
         }
     }
 
+    public static int getAvailablePort(int prefferedPort) {
+        int localPort = -1;
+        try(ServerSocket socket = new ServerSocket(prefferedPort)) {
+            localPort = socket.getLocalPort();
+        } catch(IOException exp) {
+            if (prefferedPort > 0) {
+                return getAvailablePort(0);
+            }
+        }
+        return localPort;
+    }
+
+    public static int getAvailablePort() {
+        return getAvailablePort(0);
+    }
+
     /**
      * Determines if a zip archive contains a particular directory.
      *
@@ -1742,13 +1759,8 @@ public class Utils {
         return UUID.randomUUID().toString();
     }
 
-    public static void exitProcess (int val, Object... msg) {
-        StringBuilder errorMessage = new StringBuilder();
-        errorMessage.append("Halting process: ");
-        for (Object oneMessage: msg) {
-            errorMessage.append(oneMessage);
-        }
-        String combinedErrorMessage = errorMessage.toString();
+    public static void exitProcess (int val, String msg) {
+        String combinedErrorMessage = "Halting process: " + msg;
         LOG.error(combinedErrorMessage, new RuntimeException(combinedErrorMessage));
         Runtime.getRuntime().exit(val);
     }
@@ -2307,4 +2319,20 @@ public class Utils {
     public static long bitXor(Long a, Long b) {
         return a ^ b;
     }
+
+    public static List<String> getRepeat(List<String> list) {
+        List<String> rtn = new ArrayList<String>();
+        Set<String> idSet = new HashSet<String>();
+
+        for (String id : list) {
+            if (idSet.contains(id)) {
+                rtn.add(id);
+            } else {
+                idSet.add(id);
+            }
+        }
+
+        return rtn;
+    }
 }
+

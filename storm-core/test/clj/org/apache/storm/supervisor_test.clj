@@ -34,6 +34,7 @@
   (:import [org.apache.storm.cluster StormClusterStateImpl ClusterStateContext ClusterUtils]
            [org.apache.storm.utils.staticmocking ConfigUtilsInstaller UtilsInstaller])
   (:import [java.nio.file.attribute FileAttribute])
+  (:import [org.apache.storm.daemon StormCommon])
   (:use [org.apache.storm config testing util log converter])
   (:use [org.apache.storm.daemon common])
   (:require [org.apache.storm.daemon [worker :as worker] [supervisor :as supervisor]])
@@ -134,7 +135,7 @@
                       (advance-cluster-time cluster 2)
                       (heartbeat-workers cluster "sup1" [1 2 3])
                       (advance-cluster-time cluster 10)))
-      (bind storm-id (get-storm-id (:storm-cluster-state cluster) "test"))
+      (bind storm-id (StormCommon/getStormId (:storm-cluster-state cluster) "test"))
       (is (empty? (:shutdown changed)))
       (validate-launched-once (:launched changed) {"sup1" [1 2 3]} storm-id)
       (bind changed (capture-changed-workers
@@ -194,7 +195,7 @@
                       (heartbeat-workers cluster "sup1" [1 2])
                       (heartbeat-workers cluster "sup2" [1])
                       ))
-      (bind storm-id (get-storm-id (:storm-cluster-state cluster) "test"))
+      (bind storm-id (StormCommon/getStormId (:storm-cluster-state cluster) "test"))
       (is (empty? (:shutdown changed)))
       (validate-launched-once (:launched changed) {"sup1" [1 2] "sup2" [1]} storm-id)
       (bind changed (capture-changed-workers
@@ -219,7 +220,7 @@
                       (heartbeat-workers cluster "sup1" [3])
                       (heartbeat-workers cluster "sup2" [2])
                       ))
-      (bind storm-id2 (get-storm-id (:storm-cluster-state cluster) "test2"))
+      (bind storm-id2 (StormCommon/getStormId (:storm-cluster-state cluster) "test2"))
       (is (empty? (:shutdown changed)))
       (validate-launched-once (:launched changed) {"sup1" [3] "sup2" [2]} storm-id2)
       (bind changed (capture-changed-workers
@@ -297,6 +298,7 @@
     (let [mock-port "42"
           mock-storm-id "fake-storm-id"
           mock-worker-id "fake-worker-id"
+          storm-log-dir (ConfigUtils/getLogDir)
           mock-cp (str Utils/FILE_PATH_SEPARATOR "base" Utils/CLASS_PATH_SEPARATOR Utils/FILE_PATH_SEPARATOR "stormjar.jar")
           mock-sensitivity "S3"
           mock-cp "/base:/stormjar.jar"
@@ -308,7 +310,7 @@
                                (str "-Dstorm.id=" mock-storm-id)
                                (str "-Dworker.id=" mock-worker-id)
                                (str "-Dworker.port=" mock-port)
-                               "-Dstorm.log.dir=/logs"
+                               (str "-Dstorm.log.dir=" storm-log-dir)
                                "-Dlog4j.configurationFile=/log4j2/worker.xml"
                                "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector"
                                "org.apache.storm.LogWriter"]
@@ -321,7 +323,8 @@
                                 "-Dworkers.artifacts=/tmp/workers-artifacts"
                                 "-Dstorm.conf.file="
                                 "-Dstorm.options="
-                                (str "-Dstorm.log.dir=" Utils/FILE_PATH_SEPARATOR "logs")
+                                (str "-Dstorm.log.dir=" storm-log-dir)
+                                (str "-Djava.io.tmpdir=/tmp/workers" Utils/FILE_PATH_SEPARATOR mock-worker-id Utils/FILE_PATH_SEPARATOR "tmp")
                                 (str "-Dlogging.sensitivity=" mock-sensitivity)
                                 (str "-Dlog4j.configurationFile=" Utils/FILE_PATH_SEPARATOR "log4j2" Utils/FILE_PATH_SEPARATOR "worker.xml")
                                 "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector"
@@ -353,6 +356,7 @@
                                                        ([conf storm-id] nil))
                           (readSupervisorStormConfImpl [conf storm-id] mocked-supervisor-storm-conf)
                           (setWorkerUserWSEImpl [conf worker-id user] nil)
+                          (workerRootImpl [conf] "/tmp/workers")
                           (workerArtifactsRootImpl [conf] "/tmp/workers-artifacts"))]
           (with-open [_ (ConfigUtilsInstaller. cu-proxy)
                       _ (UtilsInstaller. utils-spy)]
@@ -384,6 +388,7 @@
                                                        ([conf storm-id] nil))
                           (readSupervisorStormConfImpl [conf storm-id] mocked-supervisor-storm-conf)
                           (setWorkerUserWSEImpl [conf worker-id user] nil)
+                          (workerRootImpl [conf] "/tmp/workers")
                           (workerArtifactsRootImpl [conf] "/tmp/workers-artifacts"))
               utils-spy (->>
                           (proxy [Utils] []
@@ -417,6 +422,7 @@
                                                        ([conf storm-id] nil))
                           (readSupervisorStormConfImpl [conf storm-id] mocked-supervisor-storm-conf)
                           (setWorkerUserWSEImpl [conf worker-id user] nil)
+                          (workerRootImpl [conf] "/tmp/workers")
                           (workerArtifactsRootImpl [conf] "/tmp/workers-artifacts"))
               utils-spy (->>
                           (proxy [Utils] []
@@ -451,6 +457,7 @@
                                                        ([conf storm-id] nil))
                           (readSupervisorStormConfImpl [conf storm-id] mocked-supervisor-storm-conf)
                           (setWorkerUserWSEImpl [conf worker-id user] nil)
+                          (workerRootImpl [conf] "/tmp/workers")
                           (workerArtifactsRootImpl [conf] "/tmp/workers-artifacts"))
               utils-spy (->>
                           (proxy [Utils] []
@@ -484,6 +491,7 @@
           mock-cp "mock-classpath'quote-on-purpose"
           attrs (make-array FileAttribute 0)
           storm-local (.getCanonicalPath (.toFile (Files/createTempDirectory "storm-local" attrs)))
+          storm-log-dir (ConfigUtils/getLogDir)
           worker-script (str storm-local "/workers/" mock-worker-id "/storm-worker-script.sh")
           exp-launch ["/bin/worker-launcher"
                       "me"
@@ -499,7 +507,7 @@
                                " '-Dstorm.id=" mock-storm-id "'"
                                " '-Dworker.id=" mock-worker-id "'"
                                " '-Dworker.port=" mock-port "'"
-                               " '-Dstorm.log.dir=/logs'"
+                               " '-Dstorm.log.dir=" storm-log-dir "'"
                                " '-Dlog4j.configurationFile=/log4j2/worker.xml'"
                                " '-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector'"
                                " 'org.apache.storm.LogWriter'"
@@ -512,7 +520,8 @@
                                " '-Dworkers.artifacts=" (str storm-local "/workers-artifacts'")
                                " '-Dstorm.conf.file='"
                                " '-Dstorm.options='"
-                               " '-Dstorm.log.dir=/logs'"
+                               " '-Dstorm.log.dir=" storm-log-dir "'"
+                               " '-Djava.io.tmpdir=" (str  storm-local "/workers/" mock-worker-id "/tmp'")
                                " '-Dlogging.sensitivity=" mock-sensitivity "'"
                                " '-Dlog4j.configurationFile=/log4j2/worker.xml'"
                                " '-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector'"
@@ -831,8 +840,9 @@
                         ))
         (validate-launched-once (:launched changed)
           {"sup1" [1 2]}
-          (get-storm-id (:storm-cluster-state cluster) "topology1"))
+          (StormCommon/getStormId (:storm-cluster-state cluster) "topology1"))
         (validate-launched-once (:launched changed)
           {"sup1" [3 4]}
-          (get-storm-id (:storm-cluster-state cluster) "topology2"))
+          (StormCommon/getStormId (:storm-cluster-state cluster) "topology2"))
         )))
+

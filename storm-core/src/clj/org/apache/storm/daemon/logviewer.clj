@@ -20,7 +20,8 @@
   (:use [hiccup core page-helpers form-helpers])
   (:use [org.apache.storm config util log])
   (:use [org.apache.storm.ui helpers])
-  (:import [org.apache.storm StormTimer])
+  (:import [org.apache.storm StormTimer]
+           [org.apache.storm.metric StormMetricsRegistry])
   (:import [org.apache.storm.utils Utils Time VersionInfo ConfigUtils])
   (:import [org.slf4j LoggerFactory])
   (:import [java.util Arrays ArrayList HashSet])
@@ -33,7 +34,7 @@
            [java.net URLDecoder])
   (:import [java.nio.file Files Path Paths DirectoryStream])
   (:import [java.nio ByteBuffer])
-  (:import [org.apache.storm.daemon DirectoryCleaner])
+  (:import [org.apache.storm.daemon DirectoryCleaner StormCommon])
   (:import [org.yaml.snakeyaml Yaml]
            [org.yaml.snakeyaml.constructor SafeConstructor])
   (:import [org.apache.storm.ui InvalidRequestException UIHelpers IConfigurator FilterConfiguration]
@@ -45,8 +46,6 @@
             [ring.util.codec :as codec]
             [ring.util.response :as resp]
             [clojure.string :as string])
-  (:require [metrics.meters :refer [defmeter mark!]])
-  (:use [org.apache.storm.daemon.common :only [start-metrics-reporters]])
   (:gen-class))
 
 (def ^:dynamic *STORM-CONF* (clojurify-structure (ConfigUtils/readStormConfig)))
@@ -54,11 +53,11 @@
 
 (def worker-log-filename-pattern  #"^worker.log(.*)")
 
-(defmeter logviewer:num-log-page-http-requests)
-(defmeter logviewer:num-daemonlog-page-http-requests)
-(defmeter logviewer:num-download-log-file-http-requests)
-(defmeter logviewer:num-download-log-daemon-file-http-requests)
-(defmeter logviewer:num-list-logs-http-requests)
+(def logviewer:num-log-page-http-requests (StormMetricsRegistry/registerMeter "logviewer:num-log-page-http-requests"))
+(def logviewer:num-daemonlog-page-http-requests (StormMetricsRegistry/registerMeter "logviewer:num-daemonlog-page-http-requests"))
+(def logviewer:num-download-log-file-http-requests (StormMetricsRegistry/registerMeter "logviewer:num-download-log-file-http-requests"))
+(def logviewer:num-download-log-daemon-file-http-requests (StormMetricsRegistry/registerMeter "logviewer:num-download-log-daemon-file-http-requests"))
+(def logviewer:num-list-logs-http-requests (StormMetricsRegistry/registerMeter "logviewer:num-list-logs-http-requests"))
 
 (defn cleanup-cutoff-age-millis [conf now-millis]
   (- now-millis (* (conf LOGVIEWER-CLEANUP-AGE-MINS) 60 1000)))
@@ -989,7 +988,7 @@
 (defroutes log-routes
   (GET "/log" [:as req & m]
     (try
-      (mark! logviewer:num-log-page-http-requests)
+      (.mark logviewer:num-log-page-http-requests)
       (let [servlet-request (:servlet-request req)
             log-root (:log-root req)
             user (.getUserName http-creds-handler servlet-request)
@@ -1057,7 +1056,7 @@
            (resp/status 404)))))
   (GET "/daemonlog" [:as req & m]
     (try
-      (mark! logviewer:num-daemonlog-page-http-requests)
+      (.mark logviewer:num-daemonlog-page-http-requests)
       (let [servlet-request (:servlet-request req)
             daemonlog-root (:daemonlog-root req)
             user (.getUserName http-creds-handler servlet-request)
@@ -1071,7 +1070,7 @@
         (ring-response-from-exception ex))))
   (GET "/download/:file" [:as {:keys [servlet-request servlet-response log-root]} file & m]
     (try
-      (mark! logviewer:num-download-log-file-http-requests)
+      (.mark logviewer:num-download-log-file-http-requests)
       (let [user (.getUserName http-creds-handler servlet-request)]
         (download-log-file file servlet-request servlet-response user log-root))
       (catch InvalidRequestException ex
@@ -1079,7 +1078,7 @@
         (ring-response-from-exception ex))))
   (GET "/daemondownload/:file" [:as {:keys [servlet-request servlet-response daemonlog-root]} file & m]
     (try
-      (mark! logviewer:num-download-log-daemon-file-http-requests)
+      (.mark logviewer:num-download-log-daemon-file-http-requests)
       (let [user (.getUserName http-creds-handler servlet-request)]
         (download-log-file file servlet-request servlet-response user daemonlog-root))
       (catch InvalidRequestException ex
@@ -1137,7 +1136,7 @@
         (json-response (UIHelpers/exceptionToJson ex) (:callback m) :status 400))))
   (GET "/listLogs" [:as req & m]
     (try
-      (mark! logviewer:num-list-logs-http-requests)
+      (.mark logviewer:num-list-logs-http-requests)
       (let [servlet-request (:servlet-request req)
             user (.getUserName http-creds-handler servlet-request)]
         (list-log-files user
@@ -1208,4 +1207,4 @@
                  STORM-VERSION
                  "'")
     (start-logviewer! conf log-root daemonlog-root)
-    (start-metrics-reporters conf)))
+    (StormMetricsRegistry/startMetricsReporters conf)))

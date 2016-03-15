@@ -14,11 +14,12 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns org.apache.storm.daemon.supervisor
-  (:import [java.io File IOException FileOutputStream])
+  (:import [java.io File IOException FileOutputStream]
+           [org.apache.storm.metric StormMetricsRegistry])
   (:import [org.apache.storm.scheduler ISupervisor]
            [org.apache.storm.utils LocalState Time Utils Utils$ExitCodeCallable
                                    ConfigUtils]
-           [org.apache.storm.daemon Shutdownable]
+           [org.apache.storm.daemon Shutdownable StormCommon DaemonCommon]
            [org.apache.storm Constants]
            [org.apache.storm.cluster ClusterStateContext DaemonType StormClusterStateImpl ClusterUtils IStateStorage]
            [java.net JarURLConnection]
@@ -35,20 +36,17 @@
   (:use [org.apache.storm.daemon common])
   (:import [org.apache.storm.command HealthCheck])
   (:require [org.apache.storm.daemon [worker :as worker]]
-
             [clojure.set :as set])
   (:import [org.apache.thrift.transport TTransportException])
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
   (:import [org.yaml.snakeyaml Yaml]
            [org.yaml.snakeyaml.constructor SafeConstructor])
-  (:require [metrics.gauges :refer [defgauge]])
-  (:require [metrics.meters :refer [defmeter mark!]])
   (:import [org.apache.storm StormTimer])
   (:gen-class
     :methods [^{:static true} [launch [org.apache.storm.scheduler.ISupervisor] void]])
   (:require [clojure.string :as str]))
 
-(defmeter supervisor:num-workers-launched)
+(def supervisor:num-workers-launched (StormMetricsRegistry/registerMeter "supervisor:num-workers-launched"))
 
 (defmulti download-storm-code cluster-mode)
 (defmulti launch-worker (fn [supervisor & _] (cluster-mode (:conf supervisor))))
@@ -290,6 +288,7 @@
             (Utils/forceDelete (ConfigUtils/workerHeartbeatsRoot conf id))
             ;; this avoids a race condition with worker or subprocess writing pid around same time
             (Utils/forceDelete (ConfigUtils/workerPidsRoot conf id))
+            (Utils/forceDelete (ConfigUtils/workerTmpRoot conf id))
             (Utils/forceDelete (ConfigUtils/workerRoot conf id))))
         (ConfigUtils/removeWorkerUserWSE conf id)
         (remove-dead-worker id)
@@ -416,6 +415,7 @@
               (log-message "Launching worker with assignment "
                 (get-worker-assignment-helper-msg assignment supervisor port id))
               (FileUtils/forceMkdir (File. pids-path))
+              (FileUtils/forceMkdir (File. (ConfigUtils/workerTmpRoot conf id)))
               (FileUtils/forceMkdir (File. hb-path))
               (launch-worker supervisor
                 (:storm-id assignment)
@@ -585,6 +585,16 @@
           (rm-topo-files conf storm-id localizer false)
           storm-id)))))
 
+(defn kill-existing-workers-with-change-in-components [supervisor existing-assignment new-assignment]
+  (let [assigned-executors (or (ls-local-assignments (:local-state supervisor)) {})
+        allocated (read-allocated-workers supervisor assigned-executors (Time/currentTimeSecs))
+        valid-allocated (filter-val (fn [[state _]] (= state :valid)) allocated)
+        port->worker-id (clojure.set/map-invert (map-val #((nth % 1) :port) valid-allocated))]
+    (doseq [p (set/intersection (set (keys existing-assignment))
+                                (set (keys new-assignment)))]
+      (if (not= (:executors (existing-assignment p)) (:executors (new-assignment p)))
+        (shutdown-worker supervisor (port->worker-id p))))))
+
 (defn ->LocalAssignment
   [{storm-id :storm-id executors :executors resources :resources}]
   (let [assignment (LocalAssignment. storm-id (->ExecutorInfo-list executors))]
@@ -662,6 +672,7 @@
       (doseq [p (set/difference (set (keys existing-assignment))
                                 (set (keys new-assignment)))]
         (.killedWorker isupervisor (int p)))
+      (kill-existing-workers-with-change-in-components supervisor existing-assignment new-assignment)
       (.assigned isupervisor (keys new-assignment))
       (ls-local-assignments! local-state
             new-assignment)
@@ -956,7 +967,7 @@
            (shutdown-worker supervisor id)
            )))
      DaemonCommon
-     (waiting? [this]
+     (isWaiting [this]
        (or (not @(:active supervisor))
            (and
             (.isTimerWaiting (:heartbeat-timer supervisor))
@@ -1146,6 +1157,7 @@
           storm-home (System/getProperty "storm.home")
           storm-options (System/getProperty "storm.options")
           storm-conf-file (System/getProperty "storm.conf.file")
+          worker-tmp-dir (ConfigUtils/workerTmpRoot conf worker-id)
           storm-log-dir (ConfigUtils/getLogDir)
           storm-log-conf-dir (conf STORM-LOG4J2-CONF-DIR)
           storm-log4j2-conf-dir (if storm-log-conf-dir
@@ -1222,6 +1234,7 @@
                      (str "-Dstorm.conf.file=" storm-conf-file)
                      (str "-Dstorm.options=" storm-options)
                      (str "-Dstorm.log.dir=" storm-log-dir)
+                     (str "-Djava.io.tmpdir=" worker-tmp-dir)
                      (str "-Dlogging.sensitivity=" logging-sensitivity)
                      (str "-Dlog4j.configurationFile=" log4j-configuration-file)
                      (str "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector")
@@ -1319,11 +1332,12 @@
   [supervisor]
   (log-message "Starting supervisor for storm version '" STORM-VERSION "'")
   (let [conf (clojurify-structure (ConfigUtils/readStormConfig))]
-    (validate-distributed-mode! conf)
+    (StormCommon/validateDistributedMode conf)
     (let [supervisor (mk-supervisor conf nil supervisor)]
       (Utils/addShutdownHookWithForceKillIn1Sec #(.shutdown supervisor)))
-    (defgauge supervisor:num-slots-used-gauge #(count (my-worker-ids conf)))
-    (start-metrics-reporters conf)))
+    (def supervisor:num-slots-used-gauge (StormMetricsRegistry/registerGauge "supervisor:num-slots-used-gauge"
+                                           #(count (my-worker-ids conf))))
+    (StormMetricsRegistry/startMetricsReporters conf)))
 
 (defn standalone-supervisor []
   (let [conf-atom (atom nil)

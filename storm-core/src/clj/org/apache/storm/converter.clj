@@ -17,9 +17,10 @@
   (:import [org.apache.storm.generated SupervisorInfo NodeInfo Assignment WorkerResources
             StormBase TopologyStatus ClusterWorkerHeartbeat ExecutorInfo ErrorInfo Credentials RebalanceOptions KillOptions
             TopologyActionOptions DebugOptions ProfileRequest]
-           [org.apache.storm.utils Utils])
+           [org.apache.storm.utils Utils]
+           [org.apache.storm.stats StatsUtil])
   (:import [org.apache.storm.cluster ExecutorBeat])
-  (:use [org.apache.storm util stats log])
+  (:use [org.apache.storm util log])
   (:require [org.apache.storm.daemon [common :as common]]))
 
 (defn thriftify-supervisor-info [supervisor-info]
@@ -73,6 +74,13 @@
                                                           (:worker->resources assignment)))))
     thrift-assignment))
 
+(defn clojurify-task->node_port [task->node_port]
+  (into {}
+    (map-val
+      (fn [nodeInfo]
+        (concat [(.get_node nodeInfo)] (.get_port nodeInfo))) ;nodeInfo should be converted to [node,port1,port2..]
+      task->node_port)))
+
 ;TODO: when translating this function, you should replace the map-key with a proper for loop HERE
 (defn clojurify-executor->node_port [executor->node_port]
   (into {}
@@ -83,6 +91,14 @@
         (fn [list-of-executors]
           (into [] list-of-executors)) ; list of executors must be coverted to clojure vector to ensure it is sortable.
         executor->node_port))))
+
+(defn thriftify-executor->node_port [executor->node_port]
+  (into {}
+    (map (fn [[k v]]
+            [(map long k)
+             (NodeInfo. (first v) (set (map long (rest v))))])
+          executor->node_port))
+)
 
 (defn clojurify-worker->resources [worker->resources]
   "convert worker info to be [node, port]
@@ -213,47 +229,6 @@
       (clojurify-topology-action-options (.get_topology_action_options storm-base))
       (convert-to-symbol-from-status (.get_prev_status storm-base))
       (map-val clojurify-debugoptions (.get_component_debug storm-base)))))
-
-;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
-(defn thriftify-stats [stats]
-  (if stats
-    (map-val thriftify-executor-stats
-      (map-key #(ExecutorInfo. (int (first %1)) (int (last %1)))
-        stats))
-    {}))
-
-;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
-(defn clojurify-stats [stats]
-  (if stats
-    (map-val clojurify-executor-stats
-      (map-key (fn [x] (list (.get_task_start x) (.get_task_end x)))
-        stats))
-    {}))
-
-(defn clojurify-zk-worker-hb [^ClusterWorkerHeartbeat worker-hb]
-  (if worker-hb
-    {:storm-id (.get_storm_id worker-hb)
-     :executor-stats (clojurify-stats (into {} (.get_executor_stats worker-hb)))
-     :uptime (.get_uptime_secs worker-hb)
-     :time-secs (.get_time_secs worker-hb)
-     }
-    {}))
-
-(defn clojurify-zk-executor-hb [^ExecutorBeat executor-hb]
-  (if executor-hb
-    {:stats (clojurify-executor-stats (.getStats executor-hb))
-     :uptime (.getUptime executor-hb)
-     :time-secs (.getTimeSecs executor-hb)
-     }
-    {}))
-
-(defn thriftify-zk-worker-hb [worker-hb]
-  (if (not-empty (filter second (:executor-stats worker-hb)))
-    (doto (ClusterWorkerHeartbeat.)
-      (.set_uptime_secs (:uptime worker-hb))
-      (.set_storm_id (:storm-id worker-hb))
-      (.set_executor_stats (thriftify-stats (filter second (:executor-stats worker-hb))))
-      (.set_time_secs (:time-secs worker-hb)))))
 
 (defn thriftify-error [error]
   (doto (ErrorInfo. (:error error) (:time-secs error))

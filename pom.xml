@@ -210,7 +210,7 @@
         <commons-codec.version>1.6</commons-codec.version>
         <commons-cli.version>1.3.1</commons-cli.version>
         <clj-time.version>0.8.0</clj-time.version>
-        <curator.version>2.9.0</curator.version>
+        <curator.version>2.10.0</curator.version>
         <json-simple.version>1.1</json-simple.version>
         <ring.version>1.3.0</ring.version>
         <ring-json.version>0.3.1</ring-json.version>
@@ -279,6 +279,7 @@
         <module>external/storm-metrics</module>
         <module>external/storm-cassandra</module>
         <module>external/storm-mqtt</module>
+        <module>external/storm-mongodb</module>
         <module>examples/storm-starter</module>
         <module>storm-clojure</module>
     </modules>
@@ -322,6 +323,8 @@
                                 <exclude>**/metastore_db/**</exclude>
                                 <!-- anything written into build should be ignored -->
                                 <exclude>**/build/**</exclude>
+                                <!-- logs generated during test -->
+                                <exclude>**/logs/**</exclude>
 
                                 <!-- exclude CHANGELOG, VERSION, AND TODO files -->
                                 <exclude>**/CHANGELOG.md</exclude>
@@ -909,6 +912,27 @@
                                 <goal>integration-test</goal>
                                 <goal>verify</goal>
                             </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-clean-plugin</artifactId>
+                    <version>2.5</version>
+                    <executions>
+                        <execution>
+                            <id>cleanup</id>
+                            <phase>clean</phase>
+                            <goals>
+                                <goal>clean</goal>
+                            </goals>
+                            <configuration>
+                                <excludeDefaultDirectories>true</excludeDefaultDirectories>
+                                <filesets>
+                                    <fileset>
+                                        <directory>./logs/</directory>
+                                    </fileset>
+                                </filesets>
+                            </configuration>
                         </execution>
                     </executions>
                 </plugin>

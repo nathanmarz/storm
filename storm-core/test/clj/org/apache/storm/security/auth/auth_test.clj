@@ -32,12 +32,14 @@
   (:import [org.apache.storm.security.auth.authorizer SimpleWhitelistAuthorizer SimpleACLAuthorizer])
   (:import [org.apache.storm.security.auth AuthUtils ThriftServer ThriftClient ShellBasedGroupsMapping
             ReqContext SimpleTransportPlugin KerberosPrincipalToLocal ThriftConnectionType])
+  (:import [org.apache.storm.daemon StormCommon])
   (:use [org.apache.storm util config])
   (:use [org.apache.storm.daemon common])
   (:use [org.apache.storm testing])
   (:import [org.apache.storm.generated Nimbus Nimbus$Client Nimbus$Iface StormTopology SubmitOptions
             KillOptions RebalanceOptions ClusterSummary TopologyInfo Nimbus$Processor]
-           (org.json.simple JSONValue)))
+           (org.json.simple JSONValue))
+  (:import [org.apache.storm.utils Utils]))
 
 (defn mk-principal [name]
   (reify Principal
@@ -58,7 +60,7 @@
   (let [forced-scheduler (.getForcedScheduler inimbus)]
     {:conf storm-conf
      :inimbus inimbus
-     :authorization-handler (mk-authorization-handler (storm-conf NIMBUS-AUTHORIZER) storm-conf)
+     :authorization-handler (StormCommon/mkAuthorizationHandler (storm-conf NIMBUS-AUTHORIZER) storm-conf)
      :submitted-count (atom 0)
      :storm-cluster-state nil
      :submit-lock (Object.)
@@ -158,7 +160,7 @@
     (is (= "someone" (.toLocal kptol (mk-principal "someone/host@realm"))))))
 
 (deftest Simple-authentication-test
-  (let [a-port (available-port)]
+  (let [a-port (Utils/getAvailablePort)]
     (with-server [a-port nil nil "org.apache.storm.security.auth.SimpleTransportPlugin" nil]
       (let [storm-conf (merge (clojurify-structure (ConfigUtils/readStormConfig))
                               {STORM-THRIFT-TRANSPORT-PLUGIN "org.apache.storm.security.auth.SimpleTransportPlugin"})
@@ -176,7 +178,7 @@
                               (NimbusClient. storm-conf "localhost" a-port nimbus-timeout))))))))
 
 (deftest negative-whitelist-authorization-test
-  (let [a-port (available-port)]
+  (let [a-port (Utils/getAvailablePort)]
     (with-server [a-port nil
                   "org.apache.storm.security.auth.authorizer.SimpleWhitelistAuthorizer"
                   "org.apache.storm.testing.SingleUserSimpleTransport" nil]
@@ -190,7 +192,7 @@
         (.close client)))))
 
 (deftest positive-whitelist-authorization-test
-    (let [a-port (available-port)]
+    (let [a-port (Utils/getAvailablePort)]
       (with-server [a-port nil
                     "org.apache.storm.security.auth.authorizer.SimpleWhitelistAuthorizer"
                     "org.apache.storm.testing.SingleUserSimpleTransport" {SimpleWhitelistAuthorizer/WHITELIST_USERS_CONF ["user"]}]
@@ -333,7 +335,7 @@
 
 
 (deftest positive-authorization-test
-  (let [a-port (available-port)]
+  (let [a-port (Utils/getAvailablePort)]
     (with-server [a-port nil
                   "org.apache.storm.security.auth.authorizer.NoopAuthorizer"
                   "org.apache.storm.security.auth.SimpleTransportPlugin" nil]
@@ -346,7 +348,7 @@
         (.close client)))))
 
 (deftest deny-authorization-test
-  (let [a-port (available-port)]
+  (let [a-port (Utils/getAvailablePort)]
     (with-server [a-port nil
                   "org.apache.storm.security.auth.authorizer.DenyAuthorizer"
                   "org.apache.storm.security.auth.SimpleTransportPlugin" nil]
@@ -362,7 +364,7 @@
         (.close client)))))
 
 (deftest digest-authentication-test
-  (let [a-port (available-port)]
+  (let [a-port (Utils/getAvailablePort)]
     (with-server [a-port
                   "test/clj/org/apache/storm/security/auth/jaas_digest.conf"
                   nil

@@ -14,7 +14,9 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns org.apache.storm.daemon.nimbus
-  (:import [org.apache.thrift.server THsHaServer THsHaServer$Args])
+  (:import [org.apache.thrift.server THsHaServer THsHaServer$Args]
+           [org.apache.storm.stats StatsUtil]
+           [org.apache.storm.metric StormMetricsRegistry])
   (:import [org.apache.storm.generated KeyNotFoundException])
   (:import [org.apache.storm.blobstore LocalFsBlobStore])
   (:import [org.apache.thrift.protocol TBinaryProtocol TBinaryProtocol$Factory])
@@ -47,12 +49,11 @@
             ExecutorSummary AuthorizationException GetInfoOptions NumErrorsChoice SettableBlobMeta ReadableBlobMeta
             BeginDownloadResult ListBlobsResult ComponentPageInfo TopologyPageInfo LogConfig LogLevel LogLevelAction
             ProfileRequest ProfileAction NodeInfo LSTopoHistory])
-  (:import [org.apache.storm.daemon Shutdownable])
+  (:import [org.apache.storm.daemon Shutdownable StormCommon DaemonCommon])
   (:import [org.apache.storm.validation ConfigValidation])
   (:import [org.apache.storm.cluster ClusterStateContext DaemonType StormClusterStateImpl ClusterUtils])
   (:use [org.apache.storm util config log converter])
-  (:require [org.apache.storm [converter :as converter]
-                              [stats :as stats]])
+  (:require [org.apache.storm [converter :as converter]])
   (:require [clojure.set :as set])
   (:import [org.apache.storm.daemon.common StormBase Assignment])
   (:import [org.apache.storm.zookeeper Zookeeper])
@@ -63,40 +64,38 @@
            [org.json.simple JSONValue])
   (:require [clj-time.core :as time])
   (:require [clj-time.coerce :as coerce])
-  (:require [metrics.meters :refer [defmeter mark!]])
-  (:require [metrics.gauges :refer [defgauge]])
   (:import [org.apache.storm StormTimer])
   (:gen-class
     :methods [^{:static true} [launch [org.apache.storm.scheduler.INimbus] void]]))
 
-(defmeter nimbus:num-submitTopologyWithOpts-calls)
-(defmeter nimbus:num-submitTopology-calls)
-(defmeter nimbus:num-killTopologyWithOpts-calls)
-(defmeter nimbus:num-killTopology-calls)
-(defmeter nimbus:num-rebalance-calls)
-(defmeter nimbus:num-activate-calls)
-(defmeter nimbus:num-deactivate-calls)
-(defmeter nimbus:num-debug-calls)
-(defmeter nimbus:num-setWorkerProfiler-calls)
-(defmeter nimbus:num-getComponentPendingProfileActions-calls)
-(defmeter nimbus:num-setLogConfig-calls)
-(defmeter nimbus:num-uploadNewCredentials-calls)
-(defmeter nimbus:num-beginFileUpload-calls)
-(defmeter nimbus:num-uploadChunk-calls)
-(defmeter nimbus:num-finishFileUpload-calls)
-(defmeter nimbus:num-beginFileDownload-calls)
-(defmeter nimbus:num-downloadChunk-calls)
-(defmeter nimbus:num-getNimbusConf-calls)
-(defmeter nimbus:num-getLogConfig-calls)
-(defmeter nimbus:num-getTopologyConf-calls)
-(defmeter nimbus:num-getTopology-calls)
-(defmeter nimbus:num-getUserTopology-calls)
-(defmeter nimbus:num-getClusterInfo-calls)
-(defmeter nimbus:num-getTopologyInfoWithOpts-calls)
-(defmeter nimbus:num-getTopologyInfo-calls)
-(defmeter nimbus:num-getTopologyPageInfo-calls)
-(defmeter nimbus:num-getComponentPageInfo-calls)
-(defmeter nimbus:num-shutdown-calls)
+(def nimbus:num-submitTopologyWithOpts-calls (StormMetricsRegistry/registerMeter "nimbus:num-submitTopologyWithOpts-calls"))
+(def nimbus:num-submitTopology-calls (StormMetricsRegistry/registerMeter "nimbus:num-submitTopology-calls"))
+(def nimbus:num-killTopologyWithOpts-calls (StormMetricsRegistry/registerMeter "nimbus:num-killTopologyWithOpts-calls"))
+(def nimbus:num-killTopology-calls (StormMetricsRegistry/registerMeter "nimbus:num-killTopology-calls")) 
+(def nimbus:num-rebalance-calls (StormMetricsRegistry/registerMeter "nimbus:num-rebalance-calls"))
+(def nimbus:num-activate-calls (StormMetricsRegistry/registerMeter "nimbus:num-activate-calls"))
+(def nimbus:num-deactivate-calls (StormMetricsRegistry/registerMeter "nimbus:num-deactivate-calls"))
+(def nimbus:num-debug-calls (StormMetricsRegistry/registerMeter "nimbus:num-debug-calls"))
+(def nimbus:num-setWorkerProfiler-calls (StormMetricsRegistry/registerMeter "nimbus:num-setWorkerProfiler-calls"))
+(def nimbus:num-getComponentPendingProfileActions-calls (StormMetricsRegistry/registerMeter "nimbus:num-getComponentPendingProfileActions-calls"))
+(def nimbus:num-setLogConfig-calls (StormMetricsRegistry/registerMeter "nimbus:num-setLogConfig-calls"))
+(def nimbus:num-uploadNewCredentials-calls (StormMetricsRegistry/registerMeter "nimbus:num-uploadNewCredentials-calls"))
+(def nimbus:num-beginFileUpload-calls (StormMetricsRegistry/registerMeter "nimbus:num-beginFileUpload-calls"))
+(def nimbus:num-uploadChunk-calls (StormMetricsRegistry/registerMeter "nimbus:num-uploadChunk-calls"))
+(def nimbus:num-finishFileUpload-calls (StormMetricsRegistry/registerMeter "nimbus:num-finishFileUpload-calls"))
+(def nimbus:num-beginFileDownload-calls (StormMetricsRegistry/registerMeter "nimbus:num-beginFileDownload-calls"))
+(def nimbus:num-downloadChunk-calls (StormMetricsRegistry/registerMeter "nimbus:num-downloadChunk-calls"))
+(def nimbus:num-getNimbusConf-calls (StormMetricsRegistry/registerMeter "nimbus:num-getNimbusConf-calls"))
+(def nimbus:num-getLogConfig-calls (StormMetricsRegistry/registerMeter "nimbus:num-getLogConfig-calls"))
+(def nimbus:num-getTopologyConf-calls (StormMetricsRegistry/registerMeter "nimbus:num-getTopologyConf-calls"))
+(def nimbus:num-getTopology-calls (StormMetricsRegistry/registerMeter "nimbus:num-getTopology-calls"))
+(def nimbus:num-getUserTopology-calls (StormMetricsRegistry/registerMeter "nimbus:num-getUserTopology-calls"))
+(def nimbus:num-getClusterInfo-calls (StormMetricsRegistry/registerMeter "nimbus:num-getClusterInfo-calls"))
+(def nimbus:num-getTopologyInfoWithOpts-calls (StormMetricsRegistry/registerMeter "nimbus:num-getTopologyInfoWithOpts-calls"))
+(def nimbus:num-getTopologyInfo-calls (StormMetricsRegistry/registerMeter "nimbus:num-getTopologyInfo-calls"))
+(def nimbus:num-getTopologyPageInfo-calls (StormMetricsRegistry/registerMeter "nimbus:num-getTopologyPageInfo-calls"))
+(def nimbus:num-getComponentPageInfo-calls (StormMetricsRegistry/registerMeter "nimbus:num-getComponentPageInfo-calls"))
+(def nimbus:num-shutdown-calls (StormMetricsRegistry/registerMeter "nimbus:num-shutdown-calls"))
 
 (def STORM-VERSION (VersionInfo/getVersion))
 
@@ -173,8 +172,8 @@
     {:conf conf
      :nimbus-host-port-info (NimbusInfo/fromConf conf)
      :inimbus inimbus
-     :authorization-handler (mk-authorization-handler (conf NIMBUS-AUTHORIZER) conf)
-     :impersonation-authorization-handler (mk-authorization-handler (conf NIMBUS-IMPERSONATION-AUTHORIZER) conf)
+     :authorization-handler (StormCommon/mkAuthorizationHandler (conf NIMBUS-AUTHORIZER) conf)
+     :impersonation-authorization-handler (StormCommon/mkAuthorizationHandler (conf NIMBUS-IMPERSONATION-AUTHORIZER) conf)
      :submitted-count (atom 0)
      :storm-cluster-state (ClusterUtils/mkStormClusterState conf  (when
                                                                        (Utils/isZkAuthenticationConfiguredStormServer
@@ -371,7 +370,7 @@
        )))
 
 (defn transition-name! [nimbus storm-name event & args]
-  (let [storm-id (get-storm-id (:storm-cluster-state nimbus) storm-name)]
+  (let [storm-id (StormCommon/getStormId (:storm-cluster-state nimbus) storm-name)]
     (when-not storm-id
       (throw (NotAliveException. storm-name)))
     (apply transition! nimbus storm-id event args)))
@@ -559,48 +558,16 @@
                       executor->component
                       (:launch-time-secs storm-base))))
 
-;; Does not assume that clocks are synchronized. Executor heartbeat is only used so that
-;; nimbus knows when it's received a new heartbeat. All timing is done by nimbus and
-;; tracked through heartbeat-cache
-(defn- update-executor-cache [curr hb timeout]
-  (let [reported-time (:time-secs hb)
-        {last-nimbus-time :nimbus-time
-         last-reported-time :executor-reported-time} curr
-        reported-time (cond reported-time reported-time
-                            last-reported-time last-reported-time
-                            :else 0)
-        nimbus-time (if (or (not last-nimbus-time)
-                        (not= last-reported-time reported-time))
-                      (Time/currentTimeSecs)
-                      last-nimbus-time
-                      )]
-      {:is-timed-out (and
-                       nimbus-time
-                       (>= (Time/deltaSecs nimbus-time) timeout))
-       :nimbus-time nimbus-time
-       :executor-reported-time reported-time
-       :heartbeat hb}))
-
-(defn update-heartbeat-cache [cache executor-beats all-executors timeout]
-  (let [cache (select-keys cache all-executors)]
-    (into {}
-      (for [executor all-executors :let [curr (cache executor)]]
-        [executor
-         (update-executor-cache curr (get executor-beats executor) timeout)]
-         ))))
-
 (defn update-heartbeats! [nimbus storm-id all-executors existing-assignment]
   (log-debug "Updating heartbeats for " storm-id " " (pr-str all-executors))
   (let [storm-cluster-state (:storm-cluster-state nimbus)
-        executor-beats (let [executor-stats-java-map (.executorBeats storm-cluster-state storm-id (.get_executor_node_port (thriftify-assignment existing-assignment)))
-                             executor-stats-clojurify (clojurify-structure executor-stats-java-map)]
-                         (->> (dofor [[^ExecutorInfo executor-info  ^ExecutorBeat executor-heartbeat] executor-stats-clojurify]
-                             {[(.get_task_start executor-info) (.get_task_end executor-info)] (clojurify-zk-executor-hb executor-heartbeat)})
-                           (apply merge)))
-        cache (update-heartbeat-cache (@(:heartbeats-cache nimbus) storm-id)
+        executor-beats (let [executor-stats-java-map (.executorBeats storm-cluster-state storm-id
+                                                       (.get_executor_node_port (thriftify-assignment existing-assignment)))]
+                         (StatsUtil/convertExecutorBeats executor-stats-java-map))
+        cache (StatsUtil/updateHeartbeatCache (@(:heartbeats-cache nimbus) storm-id)
                                       executor-beats
-                                      all-executors
-                                      ((:conf nimbus) NIMBUS-TASK-TIMEOUT-SECS))]
+                                      (StatsUtil/convertExecutors all-executors)
+                                      (int ((:conf nimbus) NIMBUS-TASK-TIMEOUT-SECS)))]
       (swap! (:heartbeats-cache nimbus) assoc storm-id cache)))
 
 (defn- update-all-heartbeats! [nimbus existing-assignments topology->executors]
@@ -625,7 +592,7 @@
     (->> all-executors
         (filter (fn [executor]
           (let [start-time (get executor-start-times executor)
-                is-timed-out (-> heartbeats-cache (get executor) :is-timed-out)]
+                is-timed-out (.get (.get heartbeats-cache (StatsUtil/convertExecutor executor)) "is-timed-out")]
             (if (and start-time
                    (or
                     (< (Time/deltaSecs start-time)
@@ -651,8 +618,8 @@
         component->executors (:component->executors storm-base)
         storm-conf (read-storm-conf-as-nimbus storm-id blob-store)
         topology (read-storm-topology-as-nimbus storm-id blob-store)
-        task->component (storm-task-info topology storm-conf)]
-    (->> (storm-task-info topology storm-conf)
+        task->component (clojurify-structure(StormCommon/stormTaskInfo topology storm-conf))]
+    (->> (StormCommon/stormTaskInfo topology storm-conf)
          (Utils/reverseMap)
          clojurify-structure
          (map-val sort)
@@ -669,7 +636,7 @@
         executors (compute-executors nimbus storm-id)
         topology (read-storm-topology-as-nimbus storm-id blob-store)
         storm-conf (read-storm-conf-as-nimbus storm-id blob-store)
-        task->component (storm-task-info topology storm-conf)
+        task->component (clojurify-structure (StormCommon/stormTaskInfo topology storm-conf))
         executor->component (into {} (for [executor executors
                                            :let [start-task (first executor)
                                                  component (task->component start-task)]]
@@ -1001,8 +968,8 @@
         conf (:conf nimbus)
         blob-store (:blob-store nimbus)
         storm-conf (read-storm-conf conf storm-id blob-store)
-        topology (system-topology! storm-conf (read-storm-topology storm-id blob-store))
-        num-executors (->> (all-components topology) (map-val num-start-executors))]
+        topology (StormCommon/systemTopology storm-conf (read-storm-topology storm-id blob-store))
+        num-executors (->> (clojurify-structure (StormCommon/allComponents topology)) (map-val #(StormCommon/numStartExecutors %)))]
     (log-message "Activating " storm-name ": " storm-id)
     (.activateStorm storm-cluster-state
                       storm-id
@@ -1024,7 +991,7 @@
 ;; 3. start storm - necessary in case master goes down, when goes back up can remember to take down the storm (2 states: on or off)
 
 (defn storm-active? [storm-cluster-state storm-name]
-  (not-nil? (get-storm-id storm-cluster-state storm-name)))
+  (not-nil? (StormCommon/getStormId storm-cluster-state storm-name)))
 
 (defn check-storm-active! [nimbus storm-name active?]
   (if (= (not active?)
@@ -1085,8 +1052,8 @@
        ))
 
 (defn- component-parallelism [storm-conf component]
-  (let [storm-conf (merge storm-conf (component-conf component))
-        num-tasks (or (storm-conf TOPOLOGY-TASKS) (num-start-executors component))
+  (let [storm-conf (merge storm-conf (clojurify-structure (StormCommon/componentConf component)))
+        num-tasks (or (storm-conf TOPOLOGY-TASKS) (StormCommon/numStartExecutors component))
         max-parallelism (storm-conf TOPOLOGY-MAX-TASK-PARALLELISM)
         ]
     (if max-parallelism
@@ -1095,11 +1062,11 @@
 
 (defn normalize-topology [storm-conf ^StormTopology topology]
   (let [ret (.deepCopy topology)]
-    (doseq [[_ component] (all-components ret)]
+    (doseq [[_ component] (clojurify-structure (StormCommon/allComponents ret))]
       (.set_json_conf
         (.get_common component)
         (->> {TOPOLOGY-TASKS (component-parallelism storm-conf component)}
-             (merge (component-conf component))
+             (merge (clojurify-structure (StormCommon/componentConf component)))
              JSONValue/toJSONString)))
     ret ))
 
@@ -1255,7 +1222,7 @@
   [conf storm-name nimbus]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
         blob-store (:blob-store nimbus)
-        id (get-storm-id storm-cluster-state storm-name)]
+        id (StormCommon/getStormId storm-cluster-state storm-name)]
     (try-read-storm-conf conf id blob-store)))
 
 (defn try-read-storm-topology
@@ -1337,7 +1304,7 @@
 (defn validate-topology-size [topo-conf nimbus-conf topology]
   (let [workers-count (get topo-conf TOPOLOGY-WORKERS)
         workers-allowed (get nimbus-conf NIMBUS-SLOTS-PER-TOPOLOGY)
-        num-executors (->> (all-components topology) (map-val num-start-executors))
+        num-executors (->> (StormCommon/allComponents topology) clojurify-structure (map-val #(StormCommon/numStartExecutors %)))
         executors-count (reduce + (vals num-executors))
         executors-allowed (get nimbus-conf NIMBUS-EXECUTORS-PER-TOPOLOGY)]
     (when (and
@@ -1354,12 +1321,8 @@
         (str "Failed to submit topology. Topology requests more than " workers-allowed " workers."))))))
 
 (defn nimbus-topology-bases [storm-cluster-state]
-  (let [active-topologies (.activeStorms storm-cluster-state)]
-    (into {}
-      (dofor [id active-topologies]
-        [id  (clojurify-storm-base (.stormBase storm-cluster-state id nil))]
-        ))
-    ))
+  map-val #(clojurify-storm-base %) (clojurify-structure
+                                        (StormCommon/topologyBases storm-cluster-state)))
 
 (defn- set-logger-timeouts [log-config]
   (let [timeout-secs (.get_reset_log_level_timeout_secs log-config)
@@ -1409,14 +1372,13 @@
                                           topology-conf
                                           operation)
                   topology (try-read-storm-topology storm-id blob-store)
-                  task->component (storm-task-info topology topology-conf)
+                  task->component (clojurify-structure (StormCommon/stormTaskInfo topology topology-conf))
                   base (clojurify-storm-base (.stormBase storm-cluster-state storm-id nil))
                   launch-time-secs (if base (:launch-time-secs base)
                                      (throw
                                        (NotAliveException. (str storm-id))))
                   assignment (clojurify-assignment (.assignmentInfo storm-cluster-state storm-id nil))
-                  beats (map-val :heartbeat (get @(:heartbeats-cache nimbus)
-                                                 storm-id))
+                  beats (get @(:heartbeats-cache nimbus) storm-id)
                   all-components (set (vals task->component))]
               {:storm-name storm-name
                :storm-cluster-state storm-cluster-state
@@ -1487,17 +1449,17 @@
       (fn []
         (renew-credentials nimbus)))
 
-    (defgauge nimbus:num-supervisors
-      (fn [] (.size (.supervisors (:storm-cluster-state nimbus) nil))))
+    (def nimbus:num-supervisors (StormMetricsRegistry/registerGauge "nimbus:num-supervisors"
+      (fn [] (.size (.supervisors (:storm-cluster-state nimbus) nil)))))
 
-    (start-metrics-reporters conf)
-
+    (StormMetricsRegistry/startMetricsReporters conf)
+    
     (reify Nimbus$Iface
       (^void submitTopologyWithOpts
         [this ^String storm-name ^String uploadedJarLocation ^String serializedConf ^StormTopology topology
          ^SubmitOptions submitOptions]
         (try
-          (mark! nimbus:num-submitTopologyWithOpts-calls)
+          (.mark nimbus:num-submitTopologyWithOpts-calls)
           (is-leader nimbus)
           (assert (not-nil? submitOptions))
           (validate-topology-name! storm-name)
@@ -1546,7 +1508,7 @@
               (.populateCredentials nimbus-autocred-plugin credentials (Collections/unmodifiableMap storm-conf))))
             (if (and (conf SUPERVISOR-RUN-WORKER-AS-USER) (or (nil? submitter-user) (.isEmpty (.trim submitter-user))))
               (throw (AuthorizationException. "Could not determine the user to run this topology as.")))
-            (system-topology! total-storm-conf topology) ;; this validates the structure of the topology
+            (StormCommon/systemTopology total-storm-conf topology) ;; this validates the structure of the topology
             (validate-topology-size topo-conf conf topology)
             (when (and (Utils/isZkAuthenticationConfiguredStormServer conf)
                        (not (Utils/isZkAuthenticationConfiguredTopology storm-conf)))
@@ -1577,16 +1539,16 @@
 
       (^void submitTopology
         [this ^String storm-name ^String uploadedJarLocation ^String serializedConf ^StormTopology topology]
-        (mark! nimbus:num-submitTopology-calls)
+        (.mark nimbus:num-submitTopology-calls)
         (.submitTopologyWithOpts this storm-name uploadedJarLocation serializedConf topology
                                  (SubmitOptions. TopologyInitialStatus/ACTIVE)))
 
       (^void killTopology [this ^String name]
-        (mark! nimbus:num-killTopology-calls)
+        (.mark nimbus:num-killTopology-calls)
         (.killTopologyWithOpts this name (KillOptions.)))
 
       (^void killTopologyWithOpts [this ^String storm-name ^KillOptions options]
-        (mark! nimbus:num-killTopologyWithOpts-calls)
+        (.mark nimbus:num-killTopologyWithOpts-calls)
         (check-storm-active! nimbus storm-name true)
         (let [topology-conf (try-read-storm-conf-from-name conf storm-name nimbus)
               storm-id (topology-conf STORM-ID)
@@ -1599,11 +1561,11 @@
             (notify-topology-action-listener nimbus storm-name operation))
           (if (topology-conf TOPOLOGY-BACKPRESSURE-ENABLE)
             (.removeBackpressure (:storm-cluster-state nimbus) storm-id))
-          (add-topology-to-history-log (get-storm-id (:storm-cluster-state nimbus) storm-name)
+          (add-topology-to-history-log (StormCommon/getStormId (:storm-cluster-state nimbus) storm-name)
             nimbus topology-conf)))
 
       (^void rebalance [this ^String storm-name ^RebalanceOptions options]
-        (mark! nimbus:num-rebalance-calls)
+        (.mark nimbus:num-rebalance-calls)
         (check-storm-active! nimbus storm-name true)
         (let [topology-conf (try-read-storm-conf-from-name conf storm-name nimbus)
               operation "rebalance"]
@@ -1624,7 +1586,7 @@
             (notify-topology-action-listener nimbus storm-name operation))))
 
       (activate [this storm-name]
-        (mark! nimbus:num-activate-calls)
+        (.mark nimbus:num-activate-calls)
         (let [topology-conf (try-read-storm-conf-from-name conf storm-name nimbus)
               operation "activate"]
           (check-authorization! nimbus storm-name topology-conf operation)
@@ -1632,7 +1594,7 @@
           (notify-topology-action-listener nimbus storm-name operation)))
 
       (deactivate [this storm-name]
-        (mark! nimbus:num-deactivate-calls)
+        (.mark nimbus:num-deactivate-calls)
         (let [topology-conf (try-read-storm-conf-from-name conf storm-name nimbus)
               operation "deactivate"]
           (check-authorization! nimbus storm-name topology-conf operation)
@@ -1640,9 +1602,9 @@
           (notify-topology-action-listener nimbus storm-name operation)))
 
       (debug [this storm-name component-id enable? samplingPct]
-        (mark! nimbus:num-debug-calls)
+        (.mark nimbus:num-debug-calls)
         (let [storm-cluster-state (:storm-cluster-state nimbus)
-              storm-id (get-storm-id storm-cluster-state storm-name)
+              storm-id (StormCommon/getStormId storm-cluster-state storm-name)
               topology-conf (try-read-storm-conf conf storm-id blob-store)
               ;; make sure samplingPct is within bounds.
               spct (Math/max (Math/min samplingPct 100.0) 0.0)
@@ -1661,7 +1623,7 @@
 
       (^void setWorkerProfiler
         [this ^String id ^ProfileRequest profileRequest]
-        (mark! nimbus:num-setWorkerProfiler-calls)
+        (.mark nimbus:num-setWorkerProfiler-calls)
         (let [topology-conf (try-read-storm-conf conf id (:blob-store nimbus))
               storm-name (topology-conf TOPOLOGY-NAME)
               _ (check-authorization! nimbus storm-name topology-conf "setWorkerProfiler")
@@ -1670,7 +1632,7 @@
 
       (^List getComponentPendingProfileActions
         [this ^String id ^String component_id ^ProfileAction action]
-        (mark! nimbus:num-getComponentPendingProfileActions-calls)
+        (.mark nimbus:num-getComponentPendingProfileActions-calls)
         (let [info (get-common-topo-info id "getComponentPendingProfileActions")
               storm-cluster-state (:storm-cluster-state info)
               task->component (:task->component info)
@@ -1679,7 +1641,7 @@
               executor->host+port (map-val (fn [[node port]]
                                              [(node->host node) port])
                                     executor->node+port)
-              nodeinfos (stats/extract-nodeinfos-from-hb-for-comp executor->host+port task->component false component_id)
+              nodeinfos (clojurify-structure (StatsUtil/extractNodeInfosFromHbForComp executor->host+port task->component false component_id))
               all-pending-actions-for-topology (clojurify-profile-request (.getTopologyProfileRequests storm-cluster-state id))
               latest-profile-actions (remove nil? (map (fn [nodeInfo]
                                                          (->> all-pending-actions-for-topology
@@ -1693,7 +1655,7 @@
           latest-profile-actions))
 
       (^void setLogConfig [this ^String id ^LogConfig log-config-msg]
-        (mark! nimbus:num-setLogConfig-calls)
+        (.mark nimbus:num-setLogConfig-calls)
         (let [topology-conf (try-read-storm-conf conf id (:blob-store nimbus))
               storm-name (topology-conf TOPOLOGY-NAME)
               _ (check-authorization! nimbus storm-name topology-conf "setLogConfig")
@@ -1719,16 +1681,16 @@
             (.setTopologyLogConfig storm-cluster-state id merged-log-config)))
 
       (uploadNewCredentials [this storm-name credentials]
-        (mark! nimbus:num-uploadNewCredentials-calls)
+        (.mark nimbus:num-uploadNewCredentials-calls)
         (let [storm-cluster-state (:storm-cluster-state nimbus)
-              storm-id (get-storm-id storm-cluster-state storm-name)
+              storm-id (StormCommon/getStormId storm-cluster-state storm-name)
               topology-conf (try-read-storm-conf conf storm-id blob-store)
               creds (when credentials (.get_creds credentials))]
           (check-authorization! nimbus storm-name topology-conf "uploadNewCredentials")
           (locking (:cred-update-lock nimbus) (.setCredentials storm-cluster-state storm-id (thriftify-credentials creds) topology-conf))))
 
       (beginFileUpload [this]
-        (mark! nimbus:num-beginFileUpload-calls)
+        (.mark nimbus:num-beginFileUpload-calls)
         (check-authorization! nimbus nil nil "fileUpload")
         (let [fileloc (str (inbox nimbus) "/stormjar-" (Utils/uuid) ".jar")]
           (.put (:uploaders nimbus)
@@ -1739,7 +1701,7 @@
           ))
 
       (^void uploadChunk [this ^String location ^ByteBuffer chunk]
-        (mark! nimbus:num-uploadChunk-calls)
+        (.mark nimbus:num-uploadChunk-calls)
         (check-authorization! nimbus nil nil "fileUpload")
         (let [uploaders (:uploaders nimbus)
               ^WritableByteChannel channel (.get uploaders location)]
@@ -1751,7 +1713,7 @@
           ))
 
       (^void finishFileUpload [this ^String location]
-        (mark! nimbus:num-finishFileUpload-calls)
+        (.mark nimbus:num-finishFileUpload-calls)
         (check-authorization! nimbus nil nil "fileUpload")
         (let [uploaders (:uploaders nimbus)
               ^WritableByteChannel channel (.get uploaders location)]
@@ -1765,7 +1727,7 @@
 
       (^String beginFileDownload
         [this ^String file]
-        (mark! nimbus:num-beginFileDownload-calls)
+        (.mark nimbus:num-beginFileDownload-calls)
         (check-authorization! nimbus nil nil "fileDownload")
         (let [is (BufferInputStream. (.getBlob (:blob-store nimbus) file nil) 
               ^Integer (Utils/getInt (conf STORM-BLOBSTORE-INPUTSTREAM-BUFFER-SIZE-BYTES) 
@@ -1775,7 +1737,7 @@
           id))
 
       (^ByteBuffer downloadChunk [this ^String id]
-        (mark! nimbus:num-downloadChunk-calls)
+        (.mark nimbus:num-downloadChunk-calls)
         (check-authorization! nimbus nil nil "fileDownload")
         (let [downloaders (:downloaders nimbus)
               ^BufferFileInputStream is (.get downloaders id)]
@@ -1790,12 +1752,12 @@
             )))
 
       (^String getNimbusConf [this]
-        (mark! nimbus:num-getNimbusConf-calls)
+        (.mark nimbus:num-getNimbusConf-calls)
         (check-authorization! nimbus nil nil "getNimbusConf")
         (JSONValue/toJSONString (:conf nimbus)))
 
       (^LogConfig getLogConfig [this ^String id]
-        (mark! nimbus:num-getLogConfig-calls)
+        (.mark nimbus:num-getLogConfig-calls)
         (let [topology-conf (try-read-storm-conf conf id (:blob-store nimbus))
               storm-name (topology-conf TOPOLOGY-NAME)
               _ (check-authorization! nimbus storm-name topology-conf "getLogConfig")
@@ -1804,28 +1766,28 @@
            (if log-config log-config (LogConfig.))))
 
       (^String getTopologyConf [this ^String id]
-        (mark! nimbus:num-getTopologyConf-calls)
+        (.mark nimbus:num-getTopologyConf-calls)
         (let [topology-conf (try-read-storm-conf conf id (:blob-store nimbus))
               storm-name (topology-conf TOPOLOGY-NAME)]
               (check-authorization! nimbus storm-name topology-conf "getTopologyConf")
               (JSONValue/toJSONString topology-conf)))
 
       (^StormTopology getTopology [this ^String id]
-        (mark! nimbus:num-getTopology-calls)
+        (.mark nimbus:num-getTopology-calls)
         (let [topology-conf (try-read-storm-conf conf id (:blob-store nimbus))
               storm-name (topology-conf TOPOLOGY-NAME)]
               (check-authorization! nimbus storm-name topology-conf "getTopology")
-              (system-topology! topology-conf (try-read-storm-topology id (:blob-store nimbus)))))
+              (StormCommon/systemTopology topology-conf (try-read-storm-topology id (:blob-store nimbus)))))
 
       (^StormTopology getUserTopology [this ^String id]
-        (mark! nimbus:num-getUserTopology-calls)
+        (.mark nimbus:num-getUserTopology-calls)
         (let [topology-conf (try-read-storm-conf conf id (:blob-store nimbus))
               storm-name (topology-conf TOPOLOGY-NAME)]
               (check-authorization! nimbus storm-name topology-conf "getUserTopology")
               (try-read-storm-topology id blob-store)))
 
       (^ClusterSummary getClusterInfo [this]
-        (mark! nimbus:num-getClusterInfo-calls)
+        (.mark nimbus:num-getClusterInfo-calls)
         (check-authorization! nimbus nil nil "getClusterInfo")
         (let [storm-cluster-state (:storm-cluster-state nimbus)
               supervisor-infos (all-supervisor-info storm-cluster-state)
@@ -1863,7 +1825,7 @@
                                                      (:storm-name base)
                                                      (->> (:executor->node+port assignment)
                                                        keys
-                                                       (mapcat executor-id->tasks)
+                                                       (mapcat #(clojurify-structure (StormCommon/executorIdToTasks %)))
                                                        count)
                                                      (->> (:executor->node+port assignment)
                                                        keys
@@ -1892,7 +1854,7 @@
               ret))
 
       (^TopologyInfo getTopologyInfoWithOpts [this ^String storm-id ^GetInfoOptions options]
-        (mark! nimbus:num-getTopologyInfoWithOpts-calls)
+        (.mark nimbus:num-getTopologyInfoWithOpts-calls)
         (let [{:keys [storm-name
                       storm-cluster-state
                       all-components
@@ -1919,17 +1881,17 @@
                           (map (fn [c] [c (errors-fn storm-cluster-state storm-id c)]))
                           (into {}))
               executor-summaries (dofor [[executor [node port]] (:executor->node+port assignment)]
-                                        (let [host (-> assignment :node->host (get node))
-                                              heartbeat (get beats executor)
-                                              excutorstats (:stats heartbeat)
-                                              excutorstats (if excutorstats
-                                                      (stats/thriftify-executor-stats excutorstats))]
+                                   (let [host (-> assignment :node->host (get node))
+                                            heartbeat (.get beats (StatsUtil/convertExecutor executor))
+                                            excutorstats (.get (.get heartbeat "heartbeat") "stats")
+                                            excutorstats (if excutorstats
+                                                    (StatsUtil/thriftifyExecutorStats excutorstats))]
                                           (doto
                                               (ExecutorSummary. (thriftify-executor-id executor)
                                                                 (-> executor first task->component)
                                                                 host
                                                                 port
-                                                                (Utils/nullToZero (:uptime heartbeat)))
+                                                                (Utils/nullToZero (.get heartbeat "uptime")))
                                             (.set_stats excutorstats))
                                           ))
               topo-info  (TopologyInfo. storm-id
@@ -1955,7 +1917,7 @@
           topo-info))
 
       (^TopologyInfo getTopologyInfo [this ^String topology-id]
-        (mark! nimbus:num-getTopologyInfo-calls)
+        (.mark nimbus:num-getTopologyInfo-calls)
         (.getTopologyInfoWithOpts this
                                   topology-id
                                   (doto (GetInfoOptions.) (.set_num_err_choice NumErrorsChoice/ALL))))
@@ -2110,21 +2072,18 @@
 
       (^TopologyPageInfo getTopologyPageInfo
         [this ^String topo-id ^String window ^boolean include-sys?]
-        (mark! nimbus:num-getTopologyPageInfo-calls)
+        (.mark nimbus:num-getTopologyPageInfo-calls)
         (let [info (get-common-topo-info topo-id "getTopologyPageInfo")
 
               exec->node+port (:executor->node+port (:assignment info))
-              last-err-fn (partial get-last-error
-                                   (:storm-cluster-state info)
-                                   topo-id)
-              topo-page-info (stats/agg-topo-execs-stats topo-id
-                                                         exec->node+port
-                                                         (:task->component info)
-                                                         (:beats info)
-                                                         (:topology info)
-                                                         window
-                                                         include-sys?
-                                                         last-err-fn)]
+              topo-page-info (StatsUtil/aggTopoExecsStats topo-id
+                                                          exec->node+port
+                                                          (:task->component info)
+                                                          (:beats info)
+                                                          (:topology info)
+                                                          window
+                                                          include-sys?
+                                                          (:storm-cluster-state info))]
           (when-let [owner (:owner (:base info))]
             (.set_owner topo-page-info owner))
           (when-let [sched-status (.get @(:id->sched-status nimbus) topo-id)]
@@ -2158,14 +2117,14 @@
          ^String component-id
          ^String window
          ^boolean include-sys?]
-        (mark! nimbus:num-getComponentPageInfo-calls)
+        (.mark nimbus:num-getComponentPageInfo-calls)
         (let [info (get-common-topo-info topo-id "getComponentPageInfo")
               {:keys [executor->node+port node->host]} (:assignment info)
               ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
               executor->host+port (map-val (fn [[node port]]
                                              [(node->host node) port])
                                            executor->node+port)
-              comp-page-info (stats/agg-comp-execs-stats executor->host+port
+              comp-page-info (StatsUtil/aggCompExecsStats executor->host+port
                                                          (:task->component info)
                                                          (:beats info)
                                                          window
@@ -2185,26 +2144,26 @@
               comp-page-info
               (converter/thriftify-debugoptions debug-options)))
           ;; Add the event logger details.
-          (let [component->tasks (clojurify-structure (Utils/reverseMap (:task->component info)))
-                eventlogger-tasks (sort (get component->tasks
-                                             EVENTLOGGER-COMPONENT-ID))
-                ;; Find the task the events from this component route to.
-                task-index (mod (TupleUtils/listHashCode [component-id])
-                                (count eventlogger-tasks))
-                task-id (nth eventlogger-tasks task-index)
-                eventlogger-exec (first (filter (fn [[start stop]]
-                                                  (between? task-id start stop))
-                                                (keys executor->host+port)))
-                [host port] (get executor->host+port eventlogger-exec)]
-            (if (and host port)
-              (doto comp-page-info
-                (.set_eventlog_host host)
-                (.set_eventlog_port port))))
+          (let [component->tasks (clojurify-structure (Utils/reverseMap (:task->component info)))]
+            (if (contains? component->tasks StormCommon/EVENTLOGGER_COMPONENT_ID)
+              (let [eventlogger-tasks (sort (get component->tasks
+                                                 StormCommon/EVENTLOGGER_COMPONENT_ID))
+                    ;; Find the task the events from this component route to.
+                    task-index (mod (TupleUtils/listHashCode [component-id])
+                                    (count eventlogger-tasks))
+                    task-id (nth eventlogger-tasks task-index)
+                    eventlogger-exec (first (filter (fn [[start stop]]
+                                                      (between? task-id start stop))
+                                                    (keys executor->host+port)))
+                    [host port] (get executor->host+port eventlogger-exec)]
+                (if (and host port)
+                  (doto comp-page-info
+                    (.set_eventlog_host host)
+                    (.set_eventlog_port port))))))
           comp-page-info))
 
       (^TopologyHistoryInfo getTopologyHistory [this ^String user]
         (let [storm-cluster-state (:storm-cluster-state nimbus)
-              bases (topology-bases storm-cluster-state)
               assigned-topology-ids (.assignments storm-cluster-state nil)
               user-group-match-fn (fn [topo-id user conf]
                                     (let [topology-conf (try-read-storm-conf conf topo-id (:blob-store nimbus))
@@ -2219,7 +2178,7 @@
 
       Shutdownable
       (shutdown [this]
-        (mark! nimbus:num-shutdown-calls)
+        (.mark nimbus:num-shutdown-calls)
         (log-message "Shutting down master")
         (.close (:timer nimbus))
         (.disconnect (:storm-cluster-state nimbus))
@@ -2230,7 +2189,7 @@
         (when (:nimbus-topology-action-notifier nimbus) (.cleanup (:nimbus-topology-action-notifier nimbus)))
         (log-message "Shut down master"))
       DaemonCommon
-      (waiting? [this]
+      (isWaiting [this]
         (.isTimerWaiting (:timer nimbus))))))
 
 (defn validate-port-available[conf]
@@ -2242,7 +2201,7 @@
       (System/exit 0))))
 
 (defn launch-server! [conf nimbus]
-  (validate-distributed-mode! conf)
+  (StormCommon/validateDistributedMode conf)
   (validate-port-available conf)
   (let [service-handler (service-handler conf nimbus)
         server (ThriftServer. conf (Nimbus$Processor. service-handler)

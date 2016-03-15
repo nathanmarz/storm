@@ -55,6 +55,7 @@
  * STORM-1521: When using Kerberos login from keytab with multiple bolts/executors ticket is not renewed in hbase bolt.
 
 ## 1.0.0
+ * STORM-1483: add storm-mongodb connector
  * STORM-1609: Netty Client is not best effort delivery on failed Connection
  * STORM-1620: Update curator to fix CURATOR-209
  * STORM-1469: Adding Plain Sasl Transport Plugin

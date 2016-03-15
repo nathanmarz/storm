@@ -27,7 +27,7 @@
   (:import [org.apache.storm.generated Nimbus Nimbus$Client Nimbus$Processor
             AuthorizationException SubmitOptions TopologyInitialStatus KillOptions])
   (:import [org.apache.storm.utils Utils])
-  (:use [org.apache.storm cluster util config log])
+  (:use [org.apache.storm util config log])
   (:use [org.apache.storm.daemon common nimbus])
   (:require [conjure.core])
   (:use [conjure core]))

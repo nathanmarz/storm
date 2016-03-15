@@ -1142,7 +1142,7 @@
   (blob-rm-key blob-store (ConfigUtils/masterStormConfKey id) storm-cluster-state)
   (blob-rm-key blob-store (ConfigUtils/masterStormCodeKey id) storm-cluster-state))
 
-(defn force-delete-dir [conf id]
+(defn force-delete-topo-dist-dir [conf id]
   (Utils/forceDelete (ConfigUtils/masterStormDistRoot conf id)))
 
 (defn do-cleanup [nimbus]
@@ -1159,7 +1159,7 @@
             (.teardownHeartbeats storm-cluster-state id)
             (.teardownTopologyErrors storm-cluster-state id)
             (.removeBackpressure storm-cluster-state id)
-            (force-delete-dir conf id)
+            (force-delete-topo-dist-dir conf id)
             (blob-rm-topology-keys id blob-store storm-cluster-state)
             (swap! (:heartbeats-cache nimbus) dissoc id)))))
     (log-message "not a leader, skipping cleanup")))

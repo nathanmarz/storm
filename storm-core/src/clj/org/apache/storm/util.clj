@@ -143,17 +143,6 @@
                true (throw ~error-local)
                )))))
 
-(letfn [(try-port [port]
-                  (with-open [socket (java.net.ServerSocket. port)]
-                    (.getLocalPort socket)))]
-  (defn available-port
-    ([] (try-port 0))
-    ([preferred]
-     (try
-       (try-port preferred)
-       (catch java.io.IOException e
-         (available-port))))))
-
 (defn clojurify-structure
   [s]
   (prewalk (fn [x]

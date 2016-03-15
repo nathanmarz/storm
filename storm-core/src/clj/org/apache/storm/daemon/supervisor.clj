@@ -1060,9 +1060,13 @@
     (if (download-blobs-for-topology-succeed? (ConfigUtils/supervisorStormConfPath tmproot) tmproot)
       (do
         (log-message "Successfully downloaded blob resources for storm-id " storm-id)
-        (FileUtils/forceMkdir (File. stormroot))
-        (Files/move (.toPath (File. tmproot)) (.toPath (File. stormroot))
-          (doto (make-array StandardCopyOption 1) (aset 0 StandardCopyOption/ATOMIC_MOVE)))
+        (if (Utils/isOnWindows)
+          ; Files/move with non-empty directory doesn't work well on Windows
+          (FileUtils/moveDirectory (File. tmproot) (File. stormroot))
+          (do
+            (FileUtils/forceMkdir (File. stormroot))
+            (Files/move (.toPath (File. tmproot)) (.toPath (File. stormroot))
+                        (doto (make-array StandardCopyOption 1) (aset 0 StandardCopyOption/ATOMIC_MOVE)))))
         (setup-storm-code-dir conf (clojurify-structure (ConfigUtils/readSupervisorStormConf conf storm-id)) stormroot))
       (do
         (log-message "Failed to download blob resources for storm-id " storm-id)

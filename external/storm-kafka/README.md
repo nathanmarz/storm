@@ -56,7 +56,6 @@ behavior specific to KafkaSpout. The Zkroot will be used as root to store your c
 identify your spout.
 ```java
 public SpoutConfig(BrokerHosts hosts, String topic, String zkRoot, String id);
-public SpoutConfig(BrokerHosts hosts, String topic, String id);
 ```
 In addition to these parameters, SpoutConfig contains the following fields that control how KafkaSpout behaves:
 ```java

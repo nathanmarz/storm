@@ -100,7 +100,7 @@ public class EvenScheduler implements IScheduler {
 
     private static Map<ExecutorDetails, WorkerSlot> scheduleTopology(TopologyDetails topology, Cluster cluster) {
         List<WorkerSlot> availableSlots = cluster.getAvailableSlots();
-        Set<ExecutorDetails> allExecutors = (Set<ExecutorDetails>) topology.getExecutors();
+        Set<ExecutorDetails> allExecutors = topology.getExecutors();
         Map<WorkerSlot, List<ExecutorDetails>> aliveAssigned = getAliveAssignedWorkerSlotExecutors(cluster, topology.getId());
         int totalSlotsToUse = Math.min(topology.getNumWorkers(), availableSlots.size() + aliveAssigned.size());
 

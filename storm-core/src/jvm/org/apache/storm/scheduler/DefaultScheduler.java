@@ -73,7 +73,7 @@ public class DefaultScheduler implements IScheduler {
         List<TopologyDetails> needsSchedulingTopologies = cluster.needsSchedulingTopologies(topologies);
         for (TopologyDetails topology : needsSchedulingTopologies) {
             List<WorkerSlot> availableSlots = cluster.getAvailableSlots();
-            Set<ExecutorDetails> allExecutors = (Set<ExecutorDetails>) topology.getExecutors();
+            Set<ExecutorDetails> allExecutors = topology.getExecutors();
 
             Map<WorkerSlot, List<ExecutorDetails>> aliveAssigned = EvenScheduler.getAliveAssignedWorkerSlotExecutors(cluster, topology.getId());
             Set<ExecutorDetails> aliveExecutors = new HashSet<ExecutorDetails>();

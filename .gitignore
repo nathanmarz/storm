@@ -38,3 +38,5 @@ metastore_db
 .settings/
 .project
 .classpath
+logs
+build

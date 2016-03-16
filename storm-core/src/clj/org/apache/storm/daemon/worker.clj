@@ -15,43 +15,46 @@
 ;; limitations under the License.
 (ns org.apache.storm.daemon.worker
   (:use [org.apache.storm.daemon common])
-  (:use [org.apache.storm config log util timer local-state])
+  (:use [org.apache.storm config log util converter local-state-converter])
   (:require [clj-time.core :as time])
   (:require [clj-time.coerce :as coerce])
   (:require [org.apache.storm.daemon [executor :as executor]])
-  (:require [org.apache.storm [disruptor :as disruptor] [cluster :as cluster]])
+
   (:require [clojure.set :as set])
+  (:import [java.io File]
+           [org.apache.storm.stats StatsUtil])
   (:import [java.util.concurrent Executors]
            [org.apache.storm.hooks IWorkerHook BaseWorkerHook]
            [uk.org.lidalia.sysoutslf4j.context SysOutOverSLF4J])
+  (:import [org.apache.storm.utils Utils ConfigUtils TransferDrainer ThriftTopologyUtils WorkerBackpressureThread DisruptorQueue Time WorkerBackpressureCallback DisruptorBackpressureCallback])
   (:import [java.util ArrayList HashMap]
            [java.util.concurrent.locks ReentrantReadWriteLock])
   (:import [org.apache.commons.io FileUtils])
-  (:import [org.apache.storm.utils Utils ConfigUtils TransferDrainer ThriftTopologyUtils WorkerBackpressureThread DisruptorQueue Time])
   (:import [org.apache.storm.grouping LoadMapping])
   (:import [org.apache.storm.messaging TransportFactory])
   (:import [org.apache.storm.messaging TaskMessage IContext IConnection ConnectionWithStatus ConnectionWithStatus$Status DeserializingConnectionCallback])
-  (:import [org.apache.storm.daemon Shutdownable])
+  (:import [org.apache.storm.daemon Shutdownable StormCommon DaemonCommon])
   (:import [org.apache.storm.serialization KryoTupleSerializer])
-  (:import [org.apache.storm.generated StormTopology])
+  (:import [org.apache.storm.generated StormTopology LSWorkerHeartbeat])
   (:import [org.apache.storm.tuple AddressedTuple Fields])
   (:import [org.apache.storm.task WorkerTopologyContext])
   (:import [org.apache.storm Constants])
   (:import [org.apache.storm.security.auth AuthUtils])
-  (:import [org.apache.storm.cluster ClusterStateContext DaemonType])
+  (:import [org.apache.storm.cluster ClusterStateContext DaemonType ZKStateStorage StormClusterStateImpl ClusterUtils IStateStorage])
   (:import [javax.security.auth Subject])
   (:import [java.security PrivilegedExceptionAction])
   (:import [org.apache.logging.log4j LogManager])
   (:import [org.apache.logging.log4j Level])
   (:import [org.apache.logging.log4j.core.config LoggerConfig])
   (:import [org.apache.storm.generated LogConfig LogLevelAction])
+  (:import [org.apache.storm StormTimer])
   (:gen-class))
 
 (defmulti mk-suicide-fn cluster-mode)
 
 (defn read-worker-executors [storm-conf storm-cluster-state storm-id assignment-id port assignment-versions]
   (log-message "Reading Assignments.")
-  (let [assignment (:executor->node+port (.assignment-info storm-cluster-state storm-id nil))]
+  (let [assignment (:executor->node+port (clojurify-assignment (.assignmentInfo storm-cluster-state storm-id nil)))]
     (doall
      (concat
       [Constants/SYSTEM_EXECUTOR_ID]
@@ -64,18 +67,15 @@
 (defnk do-executor-heartbeats [worker :executors nil]
   ;; stats is how we know what executors are assigned to this worker 
   (let [stats (if-not executors
-                  (into {} (map (fn [e] {e nil}) (:executors worker)))
-                  (->> executors
+                  (StatsUtil/mkEmptyExecutorZkHbs (:executors worker))
+                  (StatsUtil/convertExecutorZkHbs (->> executors
                     (map (fn [e] {(executor/get-executor-id e) (executor/render-stats e)}))
-                    (apply merge)))
-        zk-hb {:storm-id (:storm-id worker)
-               :executor-stats stats
-               :uptime (. (:uptime worker) upTime)
-               :time-secs (Time/currentTimeSecs)
-               }]
+                    (apply merge))))
+        zk-hb (StatsUtil/mkZkWorkerHb (:storm-id worker) stats (. (:uptime worker) upTime))]
     ;; do the zookeeper heartbeat
     (try
-      (.worker-heartbeat! (:storm-cluster-state worker) (:storm-id worker) (:assignment-id worker) (:port worker) zk-hb)
+      (.workerHeartbeat (:storm-cluster-state worker) (:storm-id worker) (:assignment-id worker) (long (:port worker))
+        (StatsUtil/thriftifyZkWorkerHb zk-hb))
       (catch Exception exc
         (log-error exc "Worker failed to write heatbeats to ZK or Pacemaker...will retry")))))
 
@@ -83,7 +83,11 @@
   (let [conf (:conf worker)
         state (ConfigUtils/workerState conf (:worker-id worker))]
     ;; do the local-file-system heartbeat.
-    (ls-worker-heartbeat! state (Time/currentTimeSecs) (:storm-id worker) (:executors worker) (:port worker))
+    (.setWorkerHeartBeat state (LSWorkerHeartbeat.
+                                 (Time/currentTimeSecs)
+                                 (:storm-id worker)
+                                 (->ExecutorInfo-list (:executors worker))
+                                 (:port worker)))
     (.cleanup state 60) ; this is just in case supervisor is down so that disk doesn't fill up.
                          ; it shouldn't take supervisor 120 seconds between listing dir and reading it
 
@@ -124,7 +128,7 @@
         (fast-map-iter [[short-executor pairs] grouped]
           (let [q (short-executor-receive-queue-map short-executor)]
             (if q
-              (disruptor/publish q pairs)
+              (.publish ^DisruptorQueue q pairs)
               (log-warn "Received invalid messages for unknown tasks. Dropping... ")
               )))))))
 
@@ -135,8 +139,8 @@
 
 (defn- mk-backpressure-handler [executors]
   "make a handler that checks and updates worker's backpressure flag"
-  (disruptor/worker-backpressure-handler
-    (fn [worker]
+  (reify WorkerBackpressureCallback
+    (onEvent [this worker]
       (let [storm-id (:storm-id worker)
             assignment-id (:assignment-id worker)
             port (:port worker)
@@ -149,17 +153,20 @@
         ;; update the worker's backpressure flag to zookeeper only when it has changed
         (log-debug "BP " @(:backpressure worker) " WAS " prev-backpressure-flag)
         (when (not= prev-backpressure-flag @(:backpressure worker))
-          (.worker-backpressure! storm-cluster-state storm-id assignment-id port @(:backpressure worker)))
+          (try
+            (.workerBackpressure storm-cluster-state storm-id assignment-id (long port) @(:backpressure worker))
+            (catch Exception exc
+              (log-error exc "workerBackpressure update failed when connecting to ZK ... will retry"))))
         ))))
 
 (defn- mk-disruptor-backpressure-handler [worker]
   "make a handler for the worker's send disruptor queue to
   check highWaterMark and lowWaterMark for backpressure"
-  (disruptor/disruptor-backpressure-handler
-    (fn []
+  (reify DisruptorBackpressureCallback
+    (highWaterMark [this]
       (reset! (:transfer-backpressure worker) true)
       (WorkerBackpressureThread/notifyBackpressureChecker (:backpressure-trigger worker)))
-    (fn []
+    (lowWaterMark [this]
       (reset! (:transfer-backpressure worker) false)
       (WorkerBackpressureThread/notifyBackpressureChecker (:backpressure-trigger worker)))))
 
@@ -191,7 +198,7 @@
                        )))))
 
               (when (not (.isEmpty local)) (local-transfer local))
-              (when (not (.isEmpty remoteMap)) (disruptor/publish transfer-queue remoteMap))))]
+              (when (not (.isEmpty remoteMap)) (.publish ^DisruptorQueue transfer-queue remoteMap))))]
     (if try-serialize-local
       (do
         (log-warn "WILL TRY TO SERIALIZE ALL TUPLES (Turn off " TOPOLOGY-TESTING-ALWAYS-TRY-SERIALIZE " for production)")
@@ -203,11 +210,11 @@
 (defn- mk-receive-queue-map [storm-conf executors]
   (->> executors
        ;; TODO: this depends on the type of executor
-       (map (fn [e] [e (disruptor/disruptor-queue (str "receive-queue" e)
-                                                  (storm-conf TOPOLOGY-EXECUTOR-RECEIVE-BUFFER-SIZE)
-                                                  (storm-conf TOPOLOGY-DISRUPTOR-WAIT-TIMEOUT-MILLIS)
-                                                  :batch-size (storm-conf TOPOLOGY-DISRUPTOR-BATCH-SIZE)
-                                                  :batch-timeout (storm-conf TOPOLOGY-DISRUPTOR-BATCH-TIMEOUT-MILLIS))]))
+       (map (fn [e] [e (DisruptorQueue. (str "receive-queue" e)
+                                       (storm-conf TOPOLOGY-EXECUTOR-RECEIVE-BUFFER-SIZE)
+                                       (storm-conf TOPOLOGY-DISRUPTOR-WAIT-TIMEOUT-MILLIS)
+                                       (storm-conf TOPOLOGY-DISRUPTOR-BATCH-SIZE)
+                                       (storm-conf TOPOLOGY-DISRUPTOR-BATCH-TIMEOUT-MILLIS))]))
        (into {})
        ))
 
@@ -238,23 +245,28 @@
   {})
 
 (defn mk-halting-timer [timer-name]
-  (mk-timer :kill-fn (fn [t]
-                       (log-error t "Error when processing event")
-                       (Utils/exitProcess 20 "Error when processing an event")
-                       )
-            :timer-name timer-name))
+  (StormTimer. timer-name
+    (reify Thread$UncaughtExceptionHandler
+      (^void uncaughtException
+        [this ^Thread t ^Throwable e]
+        (log-error e "Error when processing event")
+        (Utils/exitProcess 20 "Error when processing an event")))))
 
-(defn worker-data [conf mq-context storm-id assignment-id port worker-id storm-conf cluster-state storm-cluster-state]
+(defn executor->tasks [executor-id]
+  (StormCommon/executorIdToTasks executor-id))
+
+(defn worker-data [conf mq-context storm-id assignment-id port worker-id storm-conf state-store storm-cluster-state]
   (let [assignment-versions (atom {})
         executors (set (read-worker-executors storm-conf storm-cluster-state storm-id assignment-id port assignment-versions))
-        transfer-queue (disruptor/disruptor-queue "worker-transfer-queue" (storm-conf TOPOLOGY-TRANSFER-BUFFER-SIZE)
+        transfer-queue (DisruptorQueue. "worker-transfer-queue"
+                                                  (storm-conf TOPOLOGY-TRANSFER-BUFFER-SIZE)
                                                   (storm-conf TOPOLOGY-DISRUPTOR-WAIT-TIMEOUT-MILLIS)
-                                                  :batch-size (storm-conf TOPOLOGY-DISRUPTOR-BATCH-SIZE)
-                                                  :batch-timeout (storm-conf TOPOLOGY-DISRUPTOR-BATCH-TIMEOUT-MILLIS))
+                                                  (storm-conf TOPOLOGY-DISRUPTOR-BATCH-SIZE)
+                                                  (storm-conf TOPOLOGY-DISRUPTOR-BATCH-TIMEOUT-MILLIS))
         executor-receive-queue-map (mk-receive-queue-map storm-conf executors)
 
         receive-queue-map (->> executor-receive-queue-map
-                               (mapcat (fn [[e queue]] (for [t (executor-id->tasks e)] [t queue])))
+                               (mapcat (fn [[e queue]] (for [t (executor->tasks e)] [t queue])))
                                (into {}))
 
         topology (ConfigUtils/readSupervisorTopology conf storm-id)
@@ -270,7 +282,7 @@
       :assignment-id assignment-id
       :port port
       :worker-id worker-id
-      :cluster-state cluster-state
+      :state-store state-store
       :storm-cluster-state storm-cluster-state
       ;; when worker bootup, worker will start to setup initial connections to
       ;; other workers. When all connection is ready, we will enable this flag
@@ -282,7 +294,7 @@
       :task-ids (->> receive-queue-map keys (map int) sort)
       :storm-conf storm-conf
       :topology topology
-      :system-topology (system-topology! storm-conf topology)
+      :system-topology (StormCommon/systemTopology storm-conf topology)
       :heartbeat-timer (mk-halting-timer "heartbeat-timer")
       :refresh-load-timer (mk-halting-timer "refresh-load-timer")
       :refresh-connections-timer (mk-halting-timer "refresh-connections-timer")
@@ -291,7 +303,7 @@
       :refresh-active-timer (mk-halting-timer "refresh-active-timer")
       :executor-heartbeat-timer (mk-halting-timer "executor-heartbeat-timer")
       :user-timer (mk-halting-timer "user-timer")
-      :task->component (HashMap. (storm-task-info topology storm-conf)) ; for optimized access when used in tasks later on
+      :task->component (StormCommon/stormTaskInfo topology storm-conf) ; for optimized access when used in tasks later on
       :component->stream->fields (component->stream->fields (:system-topology <>))
       ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
       :component->sorted-tasks (->> (:task->component <>) (Utils/reverseMap) (clojurify-structure) (map-val sort))
@@ -303,7 +315,7 @@
       ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
       :short-executor-receive-queue-map (map-key first executor-receive-queue-map)
       :task->short-executor (->> executors
-                                 (mapcat (fn [e] (for [t (executor-id->tasks e)] [t (first e)])))
+                                 (mapcat (fn [e] (for [t (executor->tasks e)] [t (first e)])))
                                  (into {})
                                  (HashMap.))
       :suicide-fn (mk-suicide-fn conf)
@@ -367,25 +379,33 @@
          ~@body
          (finally (.unlock wlock#))))))
 
+(defn task->node_port [executor->node_port]
+  (let [executor->nodeport (thriftify-executor->node_port executor->node_port)]
+    (clojurify-task->node_port (StormCommon/taskToNodeport executor->nodeport)))
+  )
+
 ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defn mk-refresh-connections [worker]
   (let [outbound-tasks (worker-outbound-tasks worker)
         conf (:conf worker)
         storm-cluster-state (:storm-cluster-state worker)
         storm-id (:storm-id worker)]
-    (fn this
+    (fn refresh-connections
       ([]
-        (this (fn [& ignored] (schedule (:refresh-connections-timer worker) 0 this))))
+        (refresh-connections (fn []
+                (.schedule
+                  (:refresh-connections-timer worker) 0 refresh-connections))))
       ([callback]
-         (let [version (.assignment-version storm-cluster-state storm-id callback)
+         (let [version (.assignmentVersion storm-cluster-state storm-id callback)
                assignment (if (= version (:version (get @(:assignment-versions worker) storm-id)))
                             (:data (get @(:assignment-versions worker) storm-id))
-                            (let [new-assignment (.assignment-info-with-version storm-cluster-state storm-id callback)]
+                            (let [thriftify-assignment-version (.assignmentInfoWithVersion storm-cluster-state storm-id callback)
+                              new-assignment {:data (clojurify-assignment (.get thriftify-assignment-version (IStateStorage/DATA))) :version version}]
                               (swap! (:assignment-versions worker) assoc storm-id new-assignment)
                               (:data new-assignment)))
               my-assignment (-> assignment
                                 :executor->node+port
-                                to-task->node+port
+                                task->node_port
                                 (select-keys outbound-tasks)
                                 ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
                                 (#(map-val endpoint->string %)))
@@ -426,9 +446,12 @@
 
 (defn refresh-storm-active
   ([worker]
-    (refresh-storm-active worker (fn [& ignored] (schedule (:refresh-active-timer worker) 0 (partial refresh-storm-active worker)))))
+    (refresh-storm-active
+      worker (fn []
+               (.schedule
+                 (:refresh-active-timer worker) 0 (partial refresh-storm-active worker)))))
   ([worker callback]
-    (let [base (.storm-base (:storm-cluster-state worker) (:storm-id worker) callback)]
+    (let [base (clojurify-storm-base (.stormBase (:storm-cluster-state worker) (:storm-id worker) callback))]
       (reset!
         (:storm-active-atom worker)
         (and (= :active (-> base :status :type)) @(:worker-active-flag worker)))
@@ -437,21 +460,20 @@
 
 ;; TODO: consider having a max batch size besides what disruptor does automagically to prevent latency issues
 (defn mk-transfer-tuples-handler [worker]
-  (let [^DisruptorQueue transfer-queue (:transfer-queue worker)
+   (let [^DisruptorQueue transfer-queue (:transfer-queue worker)
         drainer (TransferDrainer.)
         node+port->socket (:cached-node+port->socket worker)
         task->node+port (:cached-task->node+port worker)
         endpoint-socket-lock (:endpoint-socket-lock worker)
         ]
-    (disruptor/clojure-handler
-      (fn [packets _ batch-end?]
+    (reify com.lmax.disruptor.EventHandler
+      (onEvent [this packets seqId batch-end?]
         (.add drainer packets)
-
         (when batch-end?
           (read-locked endpoint-socket-lock
-             (let [node+port->socket @node+port->socket
-                   task->node+port @task->node+port]
-               (.send drainer task->node+port node+port->socket)))
+                       (let [node+port->socket @node+port->socket
+                             task->node+port @task->node+port]
+                         (.send drainer task->node+port node+port->socket)))
           (.clear drainer))))))
 
 ;; Check whether this messaging connection is ready to send data
@@ -474,16 +496,15 @@
   (let [timer (:refresh-active-timer worker)
         delay-secs 0
         recur-secs 1]
-    (schedule timer
+    (.schedule timer
       delay-secs
       (fn this []
-        (if (all-connections-ready worker)
-          (do
-            (log-message "All connections are ready for worker " (:assignment-id worker) ":" (:port worker)
-              " with id "(:worker-id worker))
-            (reset! (:worker-active-flag worker) true))
-          (schedule timer recur-secs this :check-active false)
-            )))))
+          (if (all-connections-ready worker)
+            (do
+              (log-message "All connections are ready for worker " (:assignment-id worker) ":" (:port worker)
+                " with id " (:worker-id worker))
+              (reset! (:worker-active-flag worker) true))
+            (.schedule timer recur-secs this false 0))))))
 
 (defn register-callbacks [worker]
   (let [transfer-local-fn (:transfer-local-fn worker)
@@ -603,13 +624,13 @@
 (defserverfn mk-worker [conf shared-mq-context storm-id assignment-id port worker-id]
   (log-message "Launching worker for " storm-id " on " assignment-id ":" port " with id " worker-id
                " and conf " conf)
-  (if-not (ConfigUtils/isLocalMode conf)
-    (SysOutOverSLF4J/sendSystemOutAndErrToSLF4J))
   ;; because in local mode, its not a separate
   ;; process. supervisor will register it in this case
-  (when (= :distributed (ConfigUtils/clusterMode conf))
+  ;; if (ConfigUtils/isLocalMode conf) returns false then it is in distributed mode.
+  (when-not (ConfigUtils/isLocalMode conf)
+    (SysOutOverSLF4J/sendSystemOutAndErrToSLF4J)
     (let [pid (Utils/processPid)]
-      (FileUtils/touch (ConfigUtils/workerPidPath conf worker-id pid))
+      (FileUtils/touch (File. (ConfigUtils/workerPidPath conf worker-id pid)))
       (spit (ConfigUtils/workerArtifactsPidPath conf storm-id port) pid)))
 
   (declare establish-log-setting-callback)
@@ -621,14 +642,14 @@
   (let [storm-conf (ConfigUtils/readSupervisorStormConf conf storm-id)
         storm-conf (clojurify-structure (ConfigUtils/overrideLoginConfigWithSystemProperty storm-conf))
         acls (Utils/getWorkerACL storm-conf)
-        cluster-state (cluster/mk-distributed-cluster-state conf :auth-conf storm-conf :acls acls :context (ClusterStateContext. DaemonType/WORKER))
-        storm-cluster-state (cluster/mk-storm-cluster-state cluster-state :acls acls)
-        initial-credentials (.credentials storm-cluster-state storm-id nil)
+        state-store (ClusterUtils/mkStateStorage conf storm-conf  acls  (ClusterStateContext. DaemonType/WORKER))
+        storm-cluster-state (ClusterUtils/mkStormClusterState state-store acls (ClusterStateContext.))
+        initial-credentials (clojurify-crdentials (.credentials storm-cluster-state storm-id nil))
         auto-creds (AuthUtils/GetAutoCredentials storm-conf)
         subject (AuthUtils/populateSubject nil auto-creds initial-credentials)]
       (Subject/doAs subject (reify PrivilegedExceptionAction
         (run [this]
-          (let [worker (worker-data conf shared-mq-context storm-id assignment-id port worker-id storm-conf cluster-state storm-cluster-state)
+          (let [worker (worker-data conf shared-mq-context storm-id assignment-id port worker-id storm-conf state-store storm-cluster-state)
         heartbeat-fn #(do-heartbeat worker)
 
         ;; do this here so that the worker process dies if this fails
@@ -638,8 +659,10 @@
         executors (atom nil)
         ;; launch heartbeat threads immediately so that slow-loading tasks don't cause the worker to timeout
         ;; to the supervisor
-        _ (schedule-recurring (:heartbeat-timer worker) 0 (conf WORKER-HEARTBEAT-FREQUENCY-SECS) heartbeat-fn)
-        _ (schedule-recurring (:executor-heartbeat-timer worker) 0 (conf TASK-HEARTBEAT-FREQUENCY-SECS) #(do-executor-heartbeats worker :executors @executors))
+        _ (.scheduleRecurring (:heartbeat-timer worker) 0 (conf WORKER-HEARTBEAT-FREQUENCY-SECS) heartbeat-fn)
+
+        _ (.scheduleRecurring (:executor-heartbeat-timer worker) 0 (conf TASK-HEARTBEAT-FREQUENCY-SECS)
+            (fn [] (do-executor-heartbeats worker :executors @executors)))
 
         _ (register-callbacks worker)
 
@@ -658,7 +681,9 @@
 
         transfer-tuples (mk-transfer-tuples-handler worker)
         
-        transfer-thread (disruptor/consume-loop* (:transfer-queue worker) transfer-tuples)               
+        transfer-thread (Utils/asyncLoop
+                          (fn []
+                            (.consumeBatchWhenAvailable ^DisruptorQueue (:transfer-queue worker) transfer-tuples) 0))
 
         disruptor-handler (mk-disruptor-backpressure-handler worker)
         _ (.registerBackpressureCallback (:transfer-queue worker) disruptor-handler)
@@ -669,11 +694,11 @@
         backpressure-thread (WorkerBackpressureThread. (:backpressure-trigger worker) worker backpressure-handler)
         _ (if ((:storm-conf worker) TOPOLOGY-BACKPRESSURE-ENABLE) 
             (.start backpressure-thread))
-        callback (fn cb [& ignored]
-                   (let [throttle-on (.topology-backpressure storm-cluster-state storm-id cb)]
+        callback (fn cb []
+                   (let [throttle-on (.topologyBackpressure storm-cluster-state storm-id cb)]
                      (reset! (:throttle-on worker) throttle-on)))
         _ (if ((:storm-conf worker) TOPOLOGY-BACKPRESSURE-ENABLE)
-            (.topology-backpressure storm-cluster-state storm-id callback))
+            (.topologyBackpressure storm-cluster-state storm-id callback))
 
         shutdown* (fn []
                     (log-message "Shutting down worker " storm-id " " assignment-id " " port)
@@ -690,31 +715,30 @@
                     ;;in which case it's a noop
                     (.term ^IContext (:mq-context worker))
                     (log-message "Shutting down transfer thread")
-                    (disruptor/halt-with-interrupt! (:transfer-queue worker))
+                    (.haltWithInterrupt ^DisruptorQueue (:transfer-queue worker))
 
                     (.interrupt transfer-thread)
                     (.join transfer-thread)
                     (log-message "Shut down transfer thread")
-                    (.interrupt backpressure-thread)
-                    (.join backpressure-thread)
+                    (.terminate backpressure-thread)
                     (log-message "Shut down backpressure thread")
-                    (cancel-timer (:heartbeat-timer worker))
-                    (cancel-timer (:refresh-connections-timer worker))
-                    (cancel-timer (:refresh-credentials-timer worker))
-                    (cancel-timer (:refresh-active-timer worker))
-                    (cancel-timer (:executor-heartbeat-timer worker))
-                    (cancel-timer (:user-timer worker))
-                    (cancel-timer (:refresh-load-timer worker))
-
+                    (.close (:heartbeat-timer worker))
+                    (.close (:refresh-connections-timer worker))
+                    (.close (:refresh-credentials-timer worker))
+                    (.close (:refresh-active-timer worker))
+                    (.close (:executor-heartbeat-timer worker))
+                    (.close (:user-timer worker))
+                    (.close (:refresh-load-timer worker))
+                    (.close (:reset-log-levels-timer worker))
                     (close-resources worker)
 
                     (log-message "Trigger any worker shutdown hooks")
                     (run-worker-shutdown-hooks worker)
 
-                    (.remove-worker-heartbeat! (:storm-cluster-state worker) storm-id assignment-id port)
+                    (.removeWorkerHeartbeat (:storm-cluster-state worker) storm-id assignment-id (long port))
                     (log-message "Disconnecting from storm cluster state context")
                     (.disconnect (:storm-cluster-state worker))
-                    (.close (:cluster-state worker))
+                    (.close (:state-store worker))
                     (log-message "Shut down worker " storm-id " " assignment-id " " port))
         ret (reify
              Shutdownable
@@ -722,54 +746,60 @@
               [this]
               (shutdown*))
              DaemonCommon
-             (waiting? [this]
+             (isWaiting [this]
                (and
-                 (timer-waiting? (:heartbeat-timer worker))
-                 (timer-waiting? (:refresh-connections-timer worker))
-                 (timer-waiting? (:refresh-load-timer worker))
-                 (timer-waiting? (:refresh-credentials-timer worker))
-                 (timer-waiting? (:refresh-active-timer worker))
-                 (timer-waiting? (:executor-heartbeat-timer worker))
-                 (timer-waiting? (:user-timer worker))
+                 (.isTimerWaiting (:heartbeat-timer worker))
+                 (.isTimerWaiting (:refresh-connections-timer worker))
+                 (.isTimerWaiting (:refresh-load-timer worker))
+                 (.isTimerWaiting (:refresh-credentials-timer worker))
+                 (.isTimerWaiting (:refresh-active-timer worker))
+                 (.isTimerWaiting (:executor-heartbeat-timer worker))
+                 (.isTimerWaiting (:user-timer worker))
                  ))
              )
         credentials (atom initial-credentials)
         check-credentials-changed (fn []
-                                    (let [new-creds (.credentials (:storm-cluster-state worker) storm-id nil)]
+                                    (let [new-creds (clojurify-crdentials (.credentials (:storm-cluster-state worker) storm-id nil))]
                                       (when-not (= new-creds @credentials) ;;This does not have to be atomic, worst case we update when one is not needed
                                         (AuthUtils/updateSubject subject auto-creds new-creds)
                                         (dofor [e @executors] (.credentials-changed e new-creds))
                                         (reset! credentials new-creds))))
        check-throttle-changed (fn []
-                                (let [callback (fn cb [& ignored]
-                                                 (let [throttle-on (.topology-backpressure (:storm-cluster-state worker) storm-id cb)]
+                                (let [callback (fn cb []
+                                                 (let [throttle-on (.topologyBackpressure (:storm-cluster-state worker) storm-id cb)]
                                                    (reset! (:throttle-on worker) throttle-on)))
-                                      new-throttle-on (.topology-backpressure (:storm-cluster-state worker) storm-id callback)]
+                                      new-throttle-on (.topologyBackpressure (:storm-cluster-state worker) storm-id callback)]
                                     (reset! (:throttle-on worker) new-throttle-on)))
         check-log-config-changed (fn []
-                                  (let [log-config (.topology-log-config (:storm-cluster-state worker) storm-id nil)]
+                                  (let [log-config (.topologyLogConfig (:storm-cluster-state worker) storm-id nil)]
                                     (process-log-config-change latest-log-config original-log-levels log-config)
                                     (establish-log-setting-callback)))]
     (reset! original-log-levels (get-logger-levels))
     (log-message "Started with log levels: " @original-log-levels)
   
     (defn establish-log-setting-callback []
-      (.topology-log-config (:storm-cluster-state worker) storm-id (fn [args] (check-log-config-changed))))
+      (.topologyLogConfig (:storm-cluster-state worker) storm-id (fn [args] (check-log-config-changed))))
 
     (establish-log-setting-callback)
-    (.credentials (:storm-cluster-state worker) storm-id (fn [args] (check-credentials-changed)))
-    (schedule-recurring (:refresh-credentials-timer worker) 0 (conf TASK-CREDENTIALS-POLL-SECS)
-                        (fn [& args]
-                          (check-credentials-changed)
-                          (if ((:storm-conf worker) TOPOLOGY-BACKPRESSURE-ENABLE)
-                            (check-throttle-changed))))
+    (clojurify-crdentials (.credentials (:storm-cluster-state worker) storm-id (fn [] (check-credentials-changed))))
+
+    (.scheduleRecurring
+      (:refresh-credentials-timer worker) 0 (conf TASK-CREDENTIALS-POLL-SECS)
+        (fn []
+          (check-credentials-changed)
+          (if ((:storm-conf worker) TOPOLOGY-BACKPRESSURE-ENABLE)
+            (check-throttle-changed))))
     ;; The jitter allows the clients to get the data at different times, and avoids thundering herd
     (when-not (.get conf TOPOLOGY-DISABLE-LOADAWARE-MESSAGING)
-      (schedule-recurring-with-jitter (:refresh-load-timer worker) 0 1 500 refresh-load))
-    (schedule-recurring (:refresh-connections-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) refresh-connections)
-    (schedule-recurring (:reset-log-levels-timer worker) 0 (conf WORKER-LOG-LEVEL-RESET-POLL-SECS) (fn [] (reset-log-levels latest-log-config)))
-    (schedule-recurring (:refresh-active-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) (partial refresh-storm-active worker))
-
+      (.scheduleRecurringWithJitter
+        (:refresh-load-timer worker) 0 1 500 refresh-load))
+    (.scheduleRecurring
+      (:refresh-connections-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) refresh-connections)
+    (.scheduleRecurring
+      (:reset-log-levels-timer worker) 0 (conf WORKER-LOG-LEVEL-RESET-POLL-SECS)
+        (fn [] (reset-log-levels latest-log-config)))
+    (.scheduleRecurring
+      (:refresh-active-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) (partial refresh-storm-active worker))
     (log-message "Worker has topology config " (Utils/redactValue (:storm-conf worker) STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD))
     (log-message "Worker " worker-id " for storm " storm-id " on " assignment-id ":" port " has finished loading")
     ret
@@ -786,6 +816,6 @@
 (defn -main [storm-id assignment-id port-str worker-id]
   (let [conf (clojurify-structure (ConfigUtils/readStormConfig))]
     (Utils/setupDefaultUncaughtExceptionHandler)
-    (validate-distributed-mode! conf)
+    (StormCommon/validateDistributedMode conf)
     (let [worker (mk-worker conf nil storm-id assignment-id (Integer/parseInt port-str) worker-id)]
       (Utils/addShutdownHookWithForceKillIn1Sec #(.shutdown worker)))))

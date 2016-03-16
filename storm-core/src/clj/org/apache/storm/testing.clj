@@ -21,15 +21,15 @@
              [common :as common]
              [worker :as worker]
              [executor :as executor]])
-  (:require [org.apache.storm [process-simulator :as psim]])
   (:import [org.apache.commons.io FileUtils]
            [org.apache.storm.utils]
-           [org.apache.storm.zookeeper Zookeeper])
+           [org.apache.storm.zookeeper Zookeeper]
+           [org.apache.storm ProcessSimulator])
   (:import [java.io File])
   (:import [java.util HashMap ArrayList])
   (:import [java.util.concurrent.atomic AtomicInteger])
   (:import [java.util.concurrent ConcurrentHashMap])
-  (:import [org.apache.storm.utils Time Utils IPredicate RegisteredGlobalState ConfigUtils])
+  (:import [org.apache.storm.utils Time Utils IPredicate RegisteredGlobalState ConfigUtils LocalState StormCommonInstaller])
   (:import [org.apache.storm.tuple Fields Tuple TupleImpl])
   (:import [org.apache.storm.task TopologyContext])
   (:import [org.apache.storm.generated GlobalStreamId Bolt KillOptions])
@@ -44,13 +44,16 @@
   (:import [org.apache.storm.transactional TransactionalSpoutCoordinator])
   (:import [org.apache.storm.transactional.partitioned PartitionedTransactionalSpoutExecutor])
   (:import [org.apache.storm.tuple Tuple])
+  (:import [org.apache.storm Thrift])
+  (:import [org.apache.storm Config])
   (:import [org.apache.storm.generated StormTopology])
   (:import [org.apache.storm.task TopologyContext]
            (org.apache.storm.messaging IContext)
-           [org.json.simple JSONValue])
-  (:require [org.apache.storm [zookeeper :as zk]])
-  (:require [org.apache.storm.daemon.acker :as acker])
-  (:use [org.apache.storm cluster util thrift config log local-state]))
+           [org.json.simple JSONValue]
+           (org.apache.storm.daemon StormCommon Acker DaemonCommon))
+  (:import [org.apache.storm.cluster ZKStateStorage ClusterStateContext StormClusterStateImpl ClusterUtils])
+  (:use [org.apache.storm util config log local-state-converter converter])
+  (:use [org.apache.storm.internal thrift]))
 
 (defn feeder-spout
   [fields]
@@ -191,8 +194,8 @@
                      :port-counter port-counter
                      :daemon-conf daemon-conf
                      :supervisors (atom [])
-                     :state (mk-distributed-cluster-state daemon-conf)
-                     :storm-cluster-state (mk-storm-cluster-state daemon-conf)
+                     :state (ClusterUtils/mkStateStorage daemon-conf nil nil (ClusterStateContext.))
+                     :storm-cluster-state (ClusterUtils/mkStormClusterState daemon-conf nil (ClusterStateContext.))
                      :tmp-dirs (atom [nimbus-tmp zk-tmp])
                      :zookeeper (if (not-nil? zk-handle) zk-handle)
                      :shared-context context
@@ -241,7 +244,7 @@
     (.shutdown-all-workers s)
     ;; race condition here? will it launch the workers again?
     (supervisor/kill-supervisor s))
-  (psim/kill-all-processes)
+  (ProcessSimulator/killAllProcesses)
   (if (not-nil? (:zookeeper cluster-map))
     (do
       (log-message "Shutting down in process zookeeper")
@@ -283,13 +286,13 @@
   ([cluster-map timeout-ms]
   ;; wait until all workers, supervisors, and nimbus is waiting
   (let [supervisors @(:supervisors cluster-map)
-        workers (filter (partial satisfies? common/DaemonCommon) (psim/all-processes))
+        workers (filter (partial instance? DaemonCommon) (clojurify-structure (ProcessSimulator/getAllProcessHandles)))
         daemons (concat
                   [(:nimbus cluster-map)]
                   supervisors
                   ; because a worker may already be dead
                   workers)]
-    (while-timeout timeout-ms (not (every? (memfn waiting?) daemons))
+    (while-timeout timeout-ms (not (every? (memfn isWaiting) daemons))
                    (Thread/sleep (rand-int 20))
                    ;;      (doseq [d daemons]
                    ;;        (if-not ((memfn waiting?) d)
@@ -350,7 +353,7 @@
 
 (defn mocked-convert-assignments-to-worker->resources [storm-cluster-state storm-name worker->resources]
   (fn [existing-assignments]
-    (let [topology-id (common/get-storm-id storm-cluster-state storm-name)
+    (let [topology-id (StormCommon/getStormId storm-cluster-state storm-name)
           existing-assignments (into {} (for [[tid assignment] existing-assignments]
                                           {tid (:worker->resources assignment)}))
           new-assignments (assoc existing-assignments topology-id worker->resources)]
@@ -358,7 +361,7 @@
 
 (defn mocked-compute-new-topology->executor->node+port [storm-cluster-state storm-name executor->node+port]
   (fn [new-scheduler-assignments existing-assignments]
-    (let [topology-id (common/get-storm-id storm-cluster-state storm-name)
+    (let [topology-id (StormCommon/getStormId storm-cluster-state storm-name)
           existing-assignments (into {} (for [[tid assignment] existing-assignments]
                                           {tid (:executor->node+port assignment)}))
           new-assignments (assoc existing-assignments topology-id executor->node+port)]
@@ -370,17 +373,19 @@
 
 (defn submit-mocked-assignment
   [nimbus storm-cluster-state storm-name conf topology task->component executor->node+port worker->resources]
-  (with-var-roots [common/storm-task-info (fn [& ignored] task->component)
-                   nimbus/compute-new-scheduler-assignments (mocked-compute-new-scheduler-assignments)
-                   nimbus/convert-assignments-to-worker->resources (mocked-convert-assignments-to-worker->resources
-                                                          storm-cluster-state
-                                                          storm-name
-                                                          worker->resources)
-                   nimbus/compute-new-topology->executor->node+port (mocked-compute-new-topology->executor->node+port
-                                                                      storm-cluster-state
-                                                                      storm-name
-                                                                      executor->node+port)]
-    (submit-local-topology nimbus storm-name conf topology)))
+  (let [fake-common (proxy [StormCommon] []
+                      (stormTaskInfoImpl [_] task->component))]
+    (with-open [- (StormCommonInstaller. fake-common)]
+      (with-var-roots [nimbus/compute-new-scheduler-assignments (mocked-compute-new-scheduler-assignments)
+                       nimbus/convert-assignments-to-worker->resources (mocked-convert-assignments-to-worker->resources
+                                                              storm-cluster-state
+                                                              storm-name
+                                                              worker->resources)
+                       nimbus/compute-new-topology->executor->node+port (mocked-compute-new-topology->executor->node+port
+                                                                          storm-cluster-state
+                                                                          storm-name
+                                                                          executor->node+port)]
+        (submit-local-topology nimbus storm-name conf topology)))))
 
 (defn mk-capture-launch-fn [capture-atom]
   (fn [supervisor storm-id port worker-id mem-onheap]
@@ -393,14 +398,14 @@
 (defn find-worker-id
   [supervisor-conf port]
   (let [supervisor-state (ConfigUtils/supervisorState supervisor-conf)
-        worker->port (ls-approved-workers supervisor-state)]
+        worker->port (.getApprovedWorkers ^LocalState supervisor-state)]
     (first ((clojurify-structure (Utils/reverseMap worker->port)) port))))
 
 (defn find-worker-port
   [supervisor-conf worker-id]
   (let [supervisor-state (ConfigUtils/supervisorState supervisor-conf)
-        worker->port (ls-approved-workers supervisor-state)]
-    (worker->port worker-id)))
+        worker->port (.getApprovedWorkers ^LocalState supervisor-state)]
+    (if worker->port (.get worker->port worker-id))))
 
 (defn mk-capture-shutdown-fn
   [capture-atom]
@@ -435,9 +440,9 @@
   [cluster-map storm-name stat-key :component-ids nil]
   (let [state (:storm-cluster-state cluster-map)
         nimbus (:nimbus cluster-map)
-        storm-id (common/get-storm-id state storm-name)
+        storm-id (StormCommon/getStormId state storm-name)
         component->tasks (clojurify-structure (Utils/reverseMap
-                           (common/storm-task-info
+                           (StormCommon/stormTaskInfo
                              (.getUserTopology nimbus storm-id)
                              (->>
                                (.getTopologyConf nimbus storm-id)
@@ -447,10 +452,10 @@
                            (select-keys component->tasks component-ids)
                            component->tasks)
         task-ids (apply concat (vals component->tasks))
-        assignment (.assignment-info state storm-id nil)
+        assignment (clojurify-assignment (.assignmentInfo state storm-id nil))
         taskbeats (.taskbeats state storm-id (:task->node+port assignment))
         heartbeats (dofor [id task-ids] (get taskbeats id))
-        stats (dofor [hb heartbeats] (if hb (stat-key (:stats hb)) 0))]
+        stats (dofor [hb heartbeats] (if hb (.get (.get hb "stats") stat-key) 0))]
     (reduce + stats)))
 
 (defn emitted-spout-tuples
@@ -458,16 +463,16 @@
   (aggregated-stat
     cluster-map
     storm-name
-    :emitted
+    "emitted"
     :component-ids (keys (.get_spouts topology))))
 
 (defn transferred-tuples
   [cluster-map storm-name]
-  (aggregated-stat cluster-map storm-name :transferred))
+  (aggregated-stat cluster-map storm-name "transferred"))
 
 (defn acked-tuples
   [cluster-map storm-name]
-  (aggregated-stat cluster-map storm-name :acked))
+  (aggregated-stat cluster-map storm-name "acked"))
 
 (defn simulate-wait
   [cluster-map]
@@ -526,7 +531,7 @@
   (for [[_ spout-spec] spec-map]
     (-> spout-spec
         .get_spout_object
-        deserialized-component-object)))
+        (Thrift/deserializeComponentObject))))
 
 (defn capture-topology
   [topology]
@@ -543,11 +548,11 @@
                 (assoc (clojurify-structure bolts)
                   (Utils/uuid)
                   (Bolt.
-                    (serialize-component-object capturer)
-                    (mk-plain-component-common (into {} (for [[id direct?] all-streams]
+                    (Thrift/serializeComponentObject capturer)
+                    (Thrift/prepareComponentCommon (into {} (for [[id direct?] all-streams]
                                                           [id (if direct?
-                                                                (mk-direct-grouping)
-                                                                (mk-global-grouping))]))
+                                                                (Thrift/prepareDirectGrouping)
+                                                                (Thrift/prepareGlobalGrouping))]))
                                                {}
                                                nil))))
     {:topology topology
@@ -577,7 +582,7 @@
                               mock-sources)]
     (doseq [[id spout] replacements]
       (let [spout-spec (get spouts id)]
-        (.set_spout_object spout-spec (serialize-component-object spout))))
+        (.set_spout_object spout-spec (Thrift/serializeComponentObject spout))))
     (doseq [spout (spout-objects spouts)]
       (when-not (extends? CompletableSpout (.getClass spout))
         (throw (RuntimeException. (str "Cannot complete topology unless every spout is a CompletableSpout (or mocked to be); failed by " spout)))))
@@ -588,7 +593,7 @@
     (submit-local-topology (:nimbus cluster-map) storm-name storm-conf topology)
     (advance-cluster-time cluster-map 11)
 
-    (let [storm-id (common/get-storm-id state storm-name)]
+    (let [storm-id (StormCommon/getStormId state storm-name)]
       ;;Give the topology time to come up without using it to wait for the spouts to complete
       (simulate-wait cluster-map)
 
@@ -596,7 +601,7 @@
                      (simulate-wait cluster-map))
 
       (.killTopologyWithOpts (:nimbus cluster-map) storm-name (doto (KillOptions.) (.set_wait_secs 0)))
-      (while-timeout timeout-ms (.assignment-info state storm-id nil)
+      (while-timeout timeout-ms (clojurify-assignment (.assignmentInfo state storm-id nil))
                      (simulate-wait cluster-map))
       (when cleanup-state
         (doseq [spout (spout-objects spouts)]
@@ -636,12 +641,12 @@
    (let [track-id (::track-id tracked-cluster)
          ret (.deepCopy topology)]
      (dofor [[_ bolt] (.get_bolts ret)
-             :let [obj (deserialized-component-object (.get_bolt_object bolt))]]
-            (.set_bolt_object bolt (serialize-component-object
+             :let [obj (Thrift/deserializeComponentObject (.get_bolt_object bolt))]]
+            (.set_bolt_object bolt (Thrift/serializeComponentObject
                                      (BoltTracker. obj track-id))))
      (dofor [[_ spout] (.get_spouts ret)
-             :let [obj (deserialized-component-object (.get_spout_object spout))]]
-            (.set_spout_object spout (serialize-component-object
+             :let [obj (Thrift/deserializeComponentObject (.get_spout_object spout))]]
+            (.set_spout_object spout (Thrift/serializeComponentObject
                                        (SpoutTracker. obj track-id))))
      {:topology ret
       :last-spout-emit (atom 0)
@@ -665,34 +670,35 @@
 
 (defmacro with-tracked-cluster
   [[cluster-sym & cluster-args] & body]
-  `(let [id# (Utils/uuid)]
-     (RegisteredGlobalState/setState
-       id#
-       (doto (ConcurrentHashMap.)
-         (.put "spout-emitted" (AtomicInteger. 0))
-         (.put "transferred" (AtomicInteger. 0))
-         (.put "processed" (AtomicInteger. 0))))
-     (with-var-roots
-       [acker/mk-acker-bolt
-        (let [old# acker/mk-acker-bolt]
-          (fn [& args#] (NonRichBoltTracker. (apply old# args#) id#)))
-        ;; critical that this particular function is overridden here,
-        ;; since the transferred stat needs to be incremented at the moment
-        ;; of tuple emission (and not on a separate thread later) for
-        ;; topologies to be tracked correctly. This is because "transferred" *must*
-        ;; be incremented before "processing".
-        executor/mk-executor-transfer-fn
-        (let [old# executor/mk-executor-transfer-fn]
-          (fn [& args#]
-            (let [transferrer# (apply old# args#)]
-              (fn [& args2#]
-                ;; (log-message "Transferring: " transfer-args#)
-                (increment-global! id# "transferred" 1)
-                (apply transferrer# args2#)))))]
-       (with-simulated-time-local-cluster [~cluster-sym ~@cluster-args]
-                           (let [~cluster-sym (assoc-track-id ~cluster-sym id#)]
-                             ~@body)))
-     (RegisteredGlobalState/clearState id#)))
+  `(let [id# (Utils/uuid)
+         fake-common# (proxy [StormCommon] []
+                        (makeAckerBoltImpl [] (let [tracker-acker# (NonRichBoltTracker. (Acker.) (String. id#))]
+                                                tracker-acker#)))]
+    (with-open [-# (StormCommonInstaller. fake-common#)]
+      (RegisteredGlobalState/setState
+        id#
+        (doto (ConcurrentHashMap.)
+          (.put "spout-emitted" (AtomicInteger. 0))
+          (.put "transferred" (AtomicInteger. 0))
+          (.put "processed" (AtomicInteger. 0))))
+      (with-var-roots
+        [;; critical that this particular function is overridden here,
+         ;; since the transferred stat needs to be incremented at the moment
+         ;; of tuple emission (and not on a separate thread later) for
+         ;; topologies to be tracked correctly. This is because "transferred" *must*
+         ;; be incremented before "processing".
+         executor/mk-executor-transfer-fn
+         (let [old# executor/mk-executor-transfer-fn]
+           (fn [& args#]
+             (let [transferrer# (apply old# args#)]
+               (fn [& args2#]
+                 ;; (log-message "Transferring: " transfer-args#)
+                 (increment-global! id# "transferred" 1)
+                 (apply transferrer# args2#)))))]
+          (with-simulated-time-local-cluster [~cluster-sym ~@cluster-args]
+                              (let [~cluster-sym (assoc-track-id ~cluster-sym id#)]
+                                ~@body)))
+      (RegisteredGlobalState/clearState id#))))
 
 (defn tracked-wait
   "Waits until topology is idle and 'amt' more tuples have been emitted by spouts."
@@ -723,8 +729,9 @@
                    (->> (iterate inc 1)
                         (take (count values))
                         (map #(str "field" %))))
-        spout-spec (mk-spout-spec* (TestWordSpout.)
-                                   {stream fields})
+        spout-spec (Thrift/prepareSerializedSpoutDetails
+                     (TestWordSpout.)
+                     {stream fields})
         topology (StormTopology. {component spout-spec} {} {})
         context (TopologyContext.
                   topology

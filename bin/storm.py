@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
@@ -278,7 +278,7 @@ def kill(*args):
         print_usage(command="kill")
         sys.exit(2)
     exec_storm_class(
-        "org.apache.storm.command.kill_topology",
+        "org.apache.storm.command.KillTopology",
         args=args,
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
@@ -293,7 +293,7 @@ def upload_credentials(*args):
         print_usage(command="upload_credentials")
         sys.exit(2)
     exec_storm_class(
-        "org.apache.storm.command.upload_credentials",
+        "org.apache.storm.command.UploadCredentials",
         args=args,
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
@@ -345,7 +345,7 @@ def activate(*args):
         print_usage(command="activate")
         sys.exit(2)
     exec_storm_class(
-        "org.apache.storm.command.activate",
+        "org.apache.storm.command.Activate",
         args=args,
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
@@ -378,7 +378,7 @@ def set_log_level(*args):
         Clears settings, resetting back to the original level
     """
     exec_storm_class(
-        "org.apache.storm.command.set_log_level",
+        "org.apache.storm.command.SetLogLevel",
         args=args,
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
@@ -389,7 +389,7 @@ def listtopos(*args):
     List the running topologies and their statuses.
     """
     exec_storm_class(
-        "org.apache.storm.command.list",
+        "org.apache.storm.command.ListTopologies",
         args=args,
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
@@ -403,7 +403,7 @@ def deactivate(*args):
         print_usage(command="deactivate")
         sys.exit(2)
     exec_storm_class(
-        "org.apache.storm.command.deactivate",
+        "org.apache.storm.command.Deactivate",
         args=args,
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
@@ -433,7 +433,7 @@ def rebalance(*args):
         print_usage(command="rebalance")
         sys.exit(2)
     exec_storm_class(
-        "org.apache.storm.command.rebalance",
+        "org.apache.storm.command.Rebalance",
         args=args,
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
@@ -460,7 +460,7 @@ def healthcheck(*args):
     Run health checks on the local supervisor.
     """
     exec_storm_class(
-        "org.apache.storm.command.healthcheck",
+        "org.apache.storm.command.HealthCheck",
         args=args,
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, os.path.join(STORM_DIR, "bin")])
@@ -651,7 +651,7 @@ def dev_zookeeper():
     """
     cppaths = [CLUSTER_CONF_DIR]
     exec_storm_class(
-        "org.apache.storm.command.dev_zookeeper",
+        "org.apache.storm.command.DevZookeeper",
         jvmtype="-server",
         extrajars=[CLUSTER_CONF_DIR])
 
@@ -685,7 +685,7 @@ def monitor(*args):
         watch-item is 'emitted';
     """
     exec_storm_class(
-        "org.apache.storm.command.monitor",
+        "org.apache.storm.command.Monitor",
         args=args,
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, STORM_BIN_DIR])

@@ -15,32 +15,37 @@
 ;; limitations under the License.
 (ns org.apache.storm.nimbus-test
   (:use [clojure test])
-  (:require [org.apache.storm [util :as util] [stats :as stats]])
+  (:require [org.apache.storm [util :as util]])
   (:require [org.apache.storm.daemon [nimbus :as nimbus]])
   (:require [org.apache.storm [converter :as converter]])
   (:import [org.apache.storm.testing TestWordCounter TestWordSpout TestGlobalCount
             TestAggregatesCounter TestPlannerSpout TestPlannerBolt]
-           [org.apache.storm.nimbus InMemoryTopologyActionNotifier])
+           [org.apache.storm.nimbus InMemoryTopologyActionNotifier]
+           [org.apache.storm.generated GlobalStreamId]
+           [org.apache.storm Thrift MockAutoCred]
+           [org.apache.storm.stats BoltExecutorStats StatsUtil])
   (:import [org.apache.storm.testing.staticmocking MockedZookeeper])
   (:import [org.apache.storm.scheduler INimbus])
+  (:import [org.mockito Mockito Matchers])
+  (:import [org.mockito.exceptions.base MockitoAssertionError])
   (:import [org.apache.storm.nimbus ILeaderElector NimbusInfo])
+  (:import [org.apache.storm.testing.staticmocking MockedCluster])
   (:import [org.apache.storm.generated Credentials NotAliveException SubmitOptions
             TopologyInitialStatus TopologyStatus AlreadyAliveException KillOptions RebalanceOptions
             InvalidTopologyException AuthorizationException
             LogConfig LogLevel LogLevelAction])
   (:import [java.util HashMap])
   (:import [java.io File])
-  (:import [org.apache.storm.utils Time Utils Utils$UptimeComputer ConfigUtils IPredicate]
+  (:import [org.apache.storm.utils Time Utils Utils$UptimeComputer ConfigUtils IPredicate StormCommonInstaller]
            [org.apache.storm.utils.staticmocking ConfigUtilsInstaller UtilsInstaller])
   (:import [org.apache.storm.zookeeper Zookeeper])
-  (:import [org.apache.commons.io FileUtils]
-           [org.json.simple JSONValue])
-  (:use [org.apache.storm testing MockAutoCred util config log timer zookeeper])
-  (:use [org.apache.storm.daemon common])
-  (:require [conjure.core])
-  (:require [org.apache.storm
-             [thrift :as thrift]
-             [cluster :as cluster]])
+  (:import [org.apache.commons.io FileUtils])
+  (:import [org.json.simple JSONValue])
+  (:import [org.apache.storm.daemon StormCommon])
+  (:import [org.apache.storm.cluster StormClusterStateImpl ClusterStateContext ClusterUtils])
+  (:use [org.apache.storm testing util config log converter])
+    (:require [conjure.core] [org.apache.storm.daemon.worker :as worker])
+
   (:use [conjure core]))
 
 (defn- from-json
@@ -51,26 +56,26 @@
          nil))
 
 (defn storm-component->task-info [cluster storm-name]
-  (let [storm-id (get-storm-id (:storm-cluster-state cluster) storm-name)
+  (let [storm-id (StormCommon/getStormId (:storm-cluster-state cluster) storm-name)
         nimbus (:nimbus cluster)]
     (-> (.getUserTopology nimbus storm-id)
-        (storm-task-info (from-json (.getTopologyConf nimbus storm-id)))
+        (#(StormCommon/stormTaskInfo % (from-json (.getTopologyConf nimbus storm-id))))
         (Utils/reverseMap)
         clojurify-structure)))
 
 (defn getCredentials [cluster storm-name]
-  (let [storm-id (get-storm-id (:storm-cluster-state cluster) storm-name)]
-    (.credentials (:storm-cluster-state cluster) storm-id nil)))
+  (let [storm-id (StormCommon/getStormId (:storm-cluster-state cluster) storm-name)]
+    (clojurify-crdentials (.credentials (:storm-cluster-state cluster) storm-id nil))))
 
 (defn storm-component->executor-info [cluster storm-name]
-  (let [storm-id (get-storm-id (:storm-cluster-state cluster) storm-name)
+  (let [storm-id (StormCommon/getStormId (:storm-cluster-state cluster) storm-name)
         nimbus (:nimbus cluster)
         storm-conf (from-json (.getTopologyConf nimbus storm-id))
         topology (.getUserTopology nimbus storm-id)
-        task->component (storm-task-info topology storm-conf)
+        task->component (clojurify-structure (StormCommon/stormTaskInfo topology storm-conf))
         state (:storm-cluster-state cluster)
         get-component (comp task->component first)]
-    (->> (.assignment-info state storm-id nil)
+    (->> (clojurify-assignment (.assignmentInfo state storm-id nil))
          :executor->node+port
          keys
          (map (fn [e] {e (get-component e)}))
@@ -79,14 +84,14 @@
          clojurify-structure)))
 
 (defn storm-num-workers [state storm-name]
-  (let [storm-id (get-storm-id state storm-name)
-        assignment (.assignment-info state storm-id nil)]
+  (let [storm-id (StormCommon/getStormId state storm-name)
+        assignment (clojurify-assignment (.assignmentInfo state storm-id nil))]
     (count (clojurify-structure (Utils/reverseMap (:executor->node+port assignment))))
     ))
 
 (defn topology-nodes [state storm-name]
-  (let [storm-id (get-storm-id state storm-name)
-        assignment (.assignment-info state storm-id nil)]
+  (let [storm-id (StormCommon/getStormId state storm-name)
+        assignment (clojurify-assignment (.assignmentInfo state storm-id nil))]
     (->> assignment
          :executor->node+port
          vals
@@ -95,8 +100,8 @@
          )))
 
 (defn topology-slots [state storm-name]
-  (let [storm-id (get-storm-id state storm-name)
-        assignment (.assignment-info state storm-id nil)]
+  (let [storm-id (StormCommon/getStormId state storm-name)
+        assignment (clojurify-assignment (.assignmentInfo state storm-id nil))]
     (->> assignment
          :executor->node+port
          vals
@@ -106,8 +111,8 @@
 ;TODO: when translating this function, don't call map-val, but instead use an inline for loop.
 ; map-val is a temporary kluge for clojure.
 (defn topology-node-distribution [state storm-name]
-  (let [storm-id (get-storm-id state storm-name)
-        assignment (.assignment-info state storm-id nil)]
+  (let [storm-id (StormCommon/getStormId state storm-name)
+        assignment (clojurify-assignment (.assignmentInfo state storm-id nil))]
     (->> assignment
          :executor->node+port
          vals
@@ -123,40 +128,47 @@
 
 (defn executor-assignment [cluster storm-id executor-id]
   (let [state (:storm-cluster-state cluster)
-        assignment (.assignment-info state storm-id nil)]
+        assignment (clojurify-assignment (.assignmentInfo state storm-id nil))]
     ((:executor->node+port assignment) executor-id)
     ))
 
 (defn executor-start-times [cluster storm-id]
   (let [state (:storm-cluster-state cluster)
-        assignment (.assignment-info state storm-id nil)]
+        assignment (clojurify-assignment (.assignmentInfo state storm-id nil))]
     (:executor->start-time-secs assignment)))
 
 (defn do-executor-heartbeat [cluster storm-id executor]
   (let [state (:storm-cluster-state cluster)
-        executor->node+port (:executor->node+port (.assignment-info state storm-id nil))
+        executor->node+port (:executor->node+port (clojurify-assignment (.assignmentInfo state storm-id nil)))
         [node port] (get executor->node+port executor)
-        curr-beat (.get-worker-heartbeat state storm-id node port)
-        stats (:executor-stats curr-beat)]
-    (.worker-heartbeat! state storm-id node port
-      {:storm-id storm-id :time-secs (Time/currentTimeSecs) :uptime 10 :executor-stats (merge stats {executor (stats/render-stats! (stats/mk-bolt-stats 20))})}
-      )))
+        curr-beat (StatsUtil/convertZkWorkerHb (.getWorkerHeartbeat state storm-id node port))
+        stats (if (get curr-beat "executor-stats")
+                (get curr-beat "executor-stats")
+                (HashMap.))]
+    (log-warn "curr-beat:" (prn-str curr-beat) ",stats:" (prn-str stats))
+    (log-warn "stats type:" (type stats))
+    (.put stats (StatsUtil/convertExecutor executor) (.renderStats (BoltExecutorStats. 20)))
+    (log-warn "merged:" stats)
+
+    (.workerHeartbeat state storm-id node port
+      (StatsUtil/thriftifyZkWorkerHb (StatsUtil/mkZkWorkerHb storm-id stats (int 10))))))
 
 (defn slot-assignments [cluster storm-id]
   (let [state (:storm-cluster-state cluster)
-        assignment (.assignment-info state storm-id nil)]
+        assignment (clojurify-assignment (.assignmentInfo state storm-id nil))]
         (clojurify-structure (Utils/reverseMap (:executor->node+port assignment)))))
 
 (defn task-ids [cluster storm-id]
   (let [nimbus (:nimbus cluster)]
     (-> (.getUserTopology nimbus storm-id)
-        (storm-task-info (from-json (.getTopologyConf nimbus storm-id)))
+        (#(StormCommon/stormTaskInfo % (from-json (.getTopologyConf nimbus storm-id))))
+        clojurify-structure
         keys)))
 
 (defn topology-executors [cluster storm-id]
   (let [state (:storm-cluster-state cluster)
-        assignment (.assignment-info state storm-id nil)
-        ret-keys (keys (:executor->node+port assignment))
+        assignment (clojurify-assignment (.assignmentInfo state storm-id nil))
+    ret-keys (keys (:executor->node+port assignment))
         _ (log-message "ret-keys: " (pr-str ret-keys)) ]
     ret-keys
     ))
@@ -170,14 +182,17 @@
     (= (count combined) (count (set combined)))
     ))
 
+(defn executor->tasks [executor-id]
+  clojurify-structure (StormCommon/executorIdToTasks executor-id))
+
 (defnk check-consistency [cluster storm-name :assigned? true]
   (let [state (:storm-cluster-state cluster)
-        storm-id (get-storm-id state storm-name)
+        storm-id (StormCommon/getStormId state storm-name)
         task-ids (task-ids cluster storm-id)
-        assignment (.assignment-info state storm-id nil)
+        assignment (clojurify-assignment (.assignmentInfo state storm-id nil))
         executor->node+port (:executor->node+port assignment)
-        task->node+port (to-task->node+port executor->node+port)
-        assigned-task-ids (mapcat executor-id->tasks (keys executor->node+port))
+        task->node+port (worker/task->node_port executor->node+port)
+        assigned-task-ids (mapcat executor->tasks (keys executor->node+port))
         all-nodes (set (map first (vals executor->node+port)))]
     (when assigned?
       (is (= (sort task-ids) (sort assigned-task-ids)))
@@ -211,16 +226,34 @@
                        :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0 TOPOLOGY-EVENTLOGGER-EXECUTORS 0}]
     (let [state (:storm-cluster-state cluster)
           nimbus (:nimbus cluster)
-          topology (thrift/mk-topology
-                    {"1" (thrift/mk-spout-spec (TestPlannerSpout. false) :parallelism-hint 3)}
-                    {"2" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 4)
-                     "3" (thrift/mk-bolt-spec {"2" :none} (TestPlannerBolt.))})
-          topology2 (thrift/mk-topology
-                     {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 12)}
-                     {"2" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 6)
-                      "3" (thrift/mk-bolt-spec {"1" :global} (TestPlannerBolt.) :parallelism-hint 8)
-                      "4" (thrift/mk-bolt-spec {"1" :global "2" :none} (TestPlannerBolt.) :parallelism-hint 4)}
-                     )
+          topology (Thrift/buildTopology
+                     {"1" (Thrift/prepareSpoutDetails
+                            (TestPlannerSpout. false) (Integer. 3))}
+                     {"2" (Thrift/prepareBoltDetails
+                            {(Utils/getGlobalStreamId "1" nil)
+                             (Thrift/prepareNoneGrouping)}
+                            (TestPlannerBolt.) (Integer. 4))
+                      "3" (Thrift/prepareBoltDetails
+                            {(Utils/getGlobalStreamId "2" nil)
+                             (Thrift/prepareNoneGrouping)}
+                            (TestPlannerBolt.))})
+          topology2 (Thrift/buildTopology
+                      {"1" (Thrift/prepareSpoutDetails
+                             (TestPlannerSpout. true) (Integer. 12))}
+                      {"2" (Thrift/prepareBoltDetails
+                             {(Utils/getGlobalStreamId "1" nil)
+                              (Thrift/prepareNoneGrouping)}
+                             (TestPlannerBolt.) (Integer. 6))
+                       "3" (Thrift/prepareBoltDetails
+                             {(Utils/getGlobalStreamId "1" nil)
+                              (Thrift/prepareGlobalGrouping)}
+                             (TestPlannerBolt.) (Integer. 8))
+                       "4" (Thrift/prepareBoltDetails
+                             {(Utils/getGlobalStreamId "1" nil)
+                              (Thrift/prepareGlobalGrouping)
+                              (Utils/getGlobalStreamId "2" nil)
+                              (Thrift/prepareNoneGrouping)}
+                             (TestPlannerBolt.) (Integer. 4))})
           _ (submit-local-topology nimbus "mystorm" {TOPOLOGY-WORKERS 4} topology)
           _ (advance-cluster-time cluster 11)
           task-info (storm-component->task-info cluster "mystorm")]
@@ -278,21 +311,28 @@
           topology-name "test-auto-cred-storm"
           submitOptions (SubmitOptions. TopologyInitialStatus/INACTIVE)
           - (.set_creds submitOptions (Credentials. (HashMap.)))
-          topology (thrift/mk-topology
-                     {"1" (thrift/mk-spout-spec (TestPlannerSpout. false) :parallelism-hint 3)}
-                     {"2" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 4)
-                      "3" (thrift/mk-bolt-spec {"2" :none} (TestPlannerBolt.))})
+          topology (Thrift/buildTopology
+                     {"1" (Thrift/prepareSpoutDetails
+                            (TestPlannerSpout. false) (Integer. 3))}
+                     {"2" (Thrift/prepareBoltDetails
+                            {(Utils/getGlobalStreamId "1" nil)
+                             (Thrift/prepareNoneGrouping)}
+                            (TestPlannerBolt.) (Integer. 4))
+                      "3" (Thrift/prepareBoltDetails
+                            {(Utils/getGlobalStreamId "2" nil)
+                             (Thrift/prepareNoneGrouping)}
+                            (TestPlannerBolt.))})
           _ (submit-local-topology-with-opts nimbus topology-name {TOPOLOGY-WORKERS 4
                                                                TOPOLOGY-AUTO-CREDENTIALS (list "org.apache.storm.MockAutoCred")
                                                                } topology submitOptions)
           credentials (getCredentials cluster topology-name)]
       ; check that the credentials have nimbus auto generated cred
-      (is (= (.get credentials nimbus-cred-key) nimbus-cred-val))
+      (is (= (.get credentials MockAutoCred/NIMBUS_CRED_KEY) MockAutoCred/NIMBUS_CRED_VAL))
       ;advance cluster time so the renewers can execute
       (advance-cluster-time cluster 20)
       ;check that renewed credentials replace the original credential.
-      (is (= (.get (getCredentials cluster topology-name) nimbus-cred-key) nimbus-cred-renew-val))
-      (is (= (.get (getCredentials cluster topology-name) gateway-cred-key) gateway-cred-renew-val)))))
+      (is (= (.get (getCredentials cluster topology-name) MockAutoCred/NIMBUS_CRED_KEY) MockAutoCred/NIMBUS_CRED_RENEW_VAL))
+      (is (= (.get (getCredentials cluster topology-name) MockAutoCred/GATEWAY_CRED_KEY) MockAutoCred/GATEWAY_CRED_RENEW_VAL)))))
 
 (defmacro letlocals
   [& body]
@@ -320,10 +360,17 @@
     (letlocals
       (bind state (:storm-cluster-state cluster))
       (bind nimbus (:nimbus cluster))
-      (bind topology (thrift/mk-topology
-                      {"1" (thrift/mk-spout-spec (TestPlannerSpout. false) :parallelism-hint 3)}
-                      {"2" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 5)
-                       "3" (thrift/mk-bolt-spec {"2" :none} (TestPlannerBolt.))}))
+      (bind topology (Thrift/buildTopology
+                      {"1" (Thrift/prepareSpoutDetails
+                             (TestPlannerSpout. false) (Integer. 3))}
+                      {"2" (Thrift/prepareBoltDetails
+                             {(Utils/getGlobalStreamId "1" nil)
+                              (Thrift/prepareNoneGrouping)}
+                             (TestPlannerBolt.) (Integer. 5))
+                       "3" (Thrift/prepareBoltDetails
+                             {(Utils/getGlobalStreamId "2" nil)
+                              (Thrift/prepareNoneGrouping)}
+                             (TestPlannerBolt.))}))
 
       (submit-local-topology nimbus "noniso" {TOPOLOGY-WORKERS 4} topology)
       (advance-cluster-time cluster 11)
@@ -365,10 +412,20 @@
   (with-simulated-time-local-cluster [cluster :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0 TOPOLOGY-EVENTLOGGER-EXECUTORS 0}]
     (let [state (:storm-cluster-state cluster)
           nimbus (:nimbus cluster)
-          topology (thrift/mk-topology
-                    {"1" (thrift/mk-spout-spec (TestPlannerSpout. false) :parallelism-hint 3 :conf {TOPOLOGY-TASKS 0})}
-                    {"2" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 1 :conf {TOPOLOGY-TASKS 2})
-                     "3" (thrift/mk-bolt-spec {"2" :none} (TestPlannerBolt.) :conf {TOPOLOGY-TASKS 5})})
+          topology (Thrift/buildTopology
+                    {"1" (Thrift/prepareSpoutDetails
+                           (TestPlannerSpout. false) (Integer. 3)
+                           {TOPOLOGY-TASKS 0})}
+                    {"2" (Thrift/prepareBoltDetails
+                           {(Utils/getGlobalStreamId "1" nil)
+                            (Thrift/prepareNoneGrouping)}
+                           (TestPlannerBolt.) (Integer. 1)
+                           {TOPOLOGY-TASKS 2})
+                     "3" (Thrift/prepareBoltDetails
+                           {(Utils/getGlobalStreamId "2" nil)
+                            (Thrift/prepareNoneGrouping)}
+                           (TestPlannerBolt.) nil
+                           {TOPOLOGY-TASKS 5})})
           _ (submit-local-topology nimbus "mystorm" {TOPOLOGY-WORKERS 4} topology)
           _ (advance-cluster-time cluster 11)
           task-info (storm-component->task-info cluster "mystorm")]
@@ -383,15 +440,24 @@
 (deftest test-executor-assignments
   (with-simulated-time-local-cluster[cluster :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0 TOPOLOGY-EVENTLOGGER-EXECUTORS 0}]
     (let [nimbus (:nimbus cluster)
-          topology (thrift/mk-topology
-                    {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3 :conf {TOPOLOGY-TASKS 5})}
-                    {"2" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 8 :conf {TOPOLOGY-TASKS 2})
-                     "3" (thrift/mk-bolt-spec {"2" :none} (TestPlannerBolt.) :parallelism-hint 3)})
+          topology (Thrift/buildTopology
+                    {"1" (Thrift/prepareSpoutDetails
+                           (TestPlannerSpout. true) (Integer. 3)
+                           {TOPOLOGY-TASKS 5})}
+                    {"2" (Thrift/prepareBoltDetails
+                           {(Utils/getGlobalStreamId "1" nil)
+                            (Thrift/prepareNoneGrouping)}
+                           (TestPlannerBolt.) (Integer. 8)
+                           {TOPOLOGY-TASKS 2})
+                     "3" (Thrift/prepareBoltDetails
+                           {(Utils/getGlobalStreamId "2" nil)
+                            (Thrift/prepareNoneGrouping)}
+                           (TestPlannerBolt.) (Integer. 3))})
           _ (submit-local-topology nimbus "mystorm" {TOPOLOGY-WORKERS 4} topology)
           _ (advance-cluster-time cluster 11)
           task-info (storm-component->task-info cluster "mystorm")
           executor-info (->> (storm-component->executor-info cluster "mystorm")
-                             (map-val #(map executor-id->tasks %)))]
+                             (map-val #(map executor->tasks %)))]
       (check-consistency cluster "mystorm")
       (is (= 5 (count (task-info "1"))))
       (check-distribution (executor-info "1") [2 2 1])
@@ -408,12 +474,21 @@
                        :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0 TOPOLOGY-EVENTLOGGER-EXECUTORS 0}]
     (let [state (:storm-cluster-state cluster)
           nimbus (:nimbus cluster)
-          topology (thrift/mk-topology
-                     {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 21)}
-                     {"2" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 9)
-                      "3" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 2)
-                      "4" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 10)}
-                     )
+          topology (Thrift/buildTopology
+                     {"1" (Thrift/prepareSpoutDetails
+                            (TestPlannerSpout. true) (Integer. 21))}
+                     {"2" (Thrift/prepareBoltDetails
+                            {(Utils/getGlobalStreamId "1" nil)
+                             (Thrift/prepareNoneGrouping)}
+                            (TestPlannerBolt.) (Integer. 9))
+                      "3" (Thrift/prepareBoltDetails
+                            {(Utils/getGlobalStreamId "1" nil)
+                             (Thrift/prepareNoneGrouping)}
+                            (TestPlannerBolt.) (Integer. 2))
+                      "4" (Thrift/prepareBoltDetails
+                            {(Utils/getGlobalStreamId "1" nil)
+                             (Thrift/prepareNoneGrouping)}
+                            (TestPlannerBolt.) (Integer. 10))})
           _ (submit-local-topology nimbus "test" {TOPOLOGY-WORKERS 7} topology)
           _ (advance-cluster-time cluster 11)
           task-info (storm-component->task-info cluster "test")]
@@ -436,62 +511,62 @@
     (stubbing [nimbus/user-groups ["alice-group"]]
       (letlocals
         (bind conf (:daemon-conf cluster))
-        (bind topology (thrift/mk-topology
-                         {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 4)}
-                         {}
-                         ))
+        (bind topology (Thrift/buildTopology
+                         {"1" (Thrift/prepareSpoutDetails
+                                (TestPlannerSpout. true) (Integer. 4))}
+                         {}))
         (bind state (:storm-cluster-state cluster))
         (submit-local-topology (:nimbus cluster) "test" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 20, LOGS-USERS ["alice", (System/getProperty "user.name")]} topology)
-        (bind storm-id (get-storm-id state "test"))
+        (bind storm-id (StormCommon/getStormId state "test"))
         (advance-cluster-time cluster 5)
-        (is (not-nil? (.storm-base state storm-id nil)))
-        (is (not-nil? (.assignment-info state storm-id nil)))
+        (is (not-nil? (clojurify-storm-base (.stormBase state storm-id nil))))
+        (is (not-nil? (clojurify-assignment (.assignmentInfo state storm-id nil))))
         (.killTopology (:nimbus cluster) "test")
         ;; check that storm is deactivated but alive
-        (is (= :killed (-> (.storm-base state storm-id nil) :status :type)))
-        (is (not-nil? (.assignment-info state storm-id nil)))
+        (is (= :killed (-> (clojurify-storm-base (.stormBase state storm-id nil)) :status :type)))
+        (is (not-nil? (clojurify-assignment (.assignmentInfo state storm-id nil))))
         (advance-cluster-time cluster 35)
         ;; kill topology read on group
         (submit-local-topology (:nimbus cluster) "killgrouptest" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 20, LOGS-GROUPS ["alice-group"]} topology)
-        (bind storm-id-killgroup (get-storm-id state "killgrouptest"))
+        (bind storm-id-killgroup (StormCommon/getStormId state "killgrouptest"))
         (advance-cluster-time cluster 5)
-        (is (not-nil? (.storm-base state storm-id-killgroup nil)))
-        (is (not-nil? (.assignment-info state storm-id-killgroup nil)))
+        (is (not-nil? (clojurify-storm-base (.stormBase state storm-id-killgroup nil))))
+        (is (not-nil? (clojurify-assignment (.assignmentInfo state storm-id-killgroup nil))))
         (.killTopology (:nimbus cluster) "killgrouptest")
         ;; check that storm is deactivated but alive
-        (is (= :killed (-> (.storm-base state storm-id-killgroup nil) :status :type)))
-        (is (not-nil? (.assignment-info state storm-id-killgroup nil)))
+        (is (= :killed (-> (clojurify-storm-base (.stormBase state storm-id-killgroup nil)) :status :type)))
+        (is (not-nil? (clojurify-assignment (.assignmentInfo state storm-id-killgroup nil))))
         (advance-cluster-time cluster 35)
         ;; kill topology can't read
         (submit-local-topology (:nimbus cluster) "killnoreadtest" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 20} topology)
-        (bind storm-id-killnoread (get-storm-id state "killnoreadtest"))
+        (bind storm-id-killnoread (StormCommon/getStormId state "killnoreadtest"))
         (advance-cluster-time cluster 5)
-        (is (not-nil? (.storm-base state storm-id-killnoread nil)))
-        (is (not-nil? (.assignment-info state storm-id-killnoread nil)))
+        (is (not-nil? (clojurify-storm-base (.stormBase state storm-id-killnoread nil))))
+        (is (not-nil? (clojurify-assignment (.assignmentInfo state storm-id-killnoread nil))))
         (.killTopology (:nimbus cluster) "killnoreadtest")
         ;; check that storm is deactivated but alive
-        (is (= :killed (-> (.storm-base state storm-id-killnoread nil) :status :type)))
-        (is (not-nil? (.assignment-info state storm-id-killnoread nil)))
+        (is (= :killed (-> (clojurify-storm-base (.stormBase state storm-id-killnoread nil)) :status :type)))
+        (is (not-nil? (clojurify-assignment (.assignmentInfo state storm-id-killnoread nil))))
         (advance-cluster-time cluster 35)
 
         ;; active topology can read
         (submit-local-topology (:nimbus cluster) "2test" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10, LOGS-USERS ["alice", (System/getProperty "user.name")]} topology)
         (advance-cluster-time cluster 11)
-        (bind storm-id2 (get-storm-id state "2test"))
-        (is (not-nil? (.storm-base state storm-id2 nil)))
-        (is (not-nil? (.assignment-info state storm-id2 nil)))
+        (bind storm-id2 (StormCommon/getStormId state "2test"))
+        (is (not-nil? (clojurify-storm-base (.stormBase state storm-id2 nil))))
+        (is (not-nil? (clojurify-assignment (.assignmentInfo state storm-id2 nil))))
         ;; active topology can not read
         (submit-local-topology (:nimbus cluster) "testnoread" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10, LOGS-USERS ["alice"]} topology)
         (advance-cluster-time cluster 11)
-        (bind storm-id3 (get-storm-id state "testnoread"))
-        (is (not-nil? (.storm-base state storm-id3 nil)))
-        (is (not-nil? (.assignment-info state storm-id3 nil)))
+        (bind storm-id3 (StormCommon/getStormId state "testnoread"))
+        (is (not-nil? (clojurify-storm-base (.stormBase state storm-id3 nil))))
+        (is (not-nil? (clojurify-assignment (.assignmentInfo state storm-id3 nil))))
         ;; active topology can read based on group
         (submit-local-topology (:nimbus cluster) "testreadgroup" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10, LOGS-GROUPS ["alice-group"]} topology)
         (advance-cluster-time cluster 11)
-        (bind storm-id4 (get-storm-id state "testreadgroup"))
-        (is (not-nil? (.storm-base state storm-id4 nil)))
-        (is (not-nil? (.assignment-info state storm-id4 nil)))
+        (bind storm-id4 (StormCommon/getStormId state "testreadgroup"))
+        (is (not-nil? (clojurify-storm-base (.stormBase state storm-id4 nil))))
+        (is (not-nil? (clojurify-assignment (.assignmentInfo state storm-id4 nil))))
         ;; at this point have 1 running, 1 killed topo
         (let [hist-topo-ids (vec (sort (.get_topo_ids (.getTopologyHistory (:nimbus cluster) (System/getProperty "user.name")))))]
           (log-message "Checking user " (System/getProperty "user.name") " " hist-topo-ids)
@@ -532,30 +607,30 @@
                   TOPOLOGY-EVENTLOGGER-EXECUTORS 0}]
     (letlocals
       (bind conf (:daemon-conf cluster))
-      (bind topology (thrift/mk-topology
-                       {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 14)}
-                       {}
-                       ))
+      (bind topology (Thrift/buildTopology
+                       {"1" (Thrift/prepareSpoutDetails
+                              (TestPlannerSpout. true) (Integer. 14))}
+                       {}))
       (bind state (:storm-cluster-state cluster))
       (submit-local-topology (:nimbus cluster) "test" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 20} topology)
-      (bind storm-id (get-storm-id state "test"))
+      (bind storm-id (StormCommon/getStormId state "test"))
       (advance-cluster-time cluster 15)
-      (is (not-nil? (.storm-base state storm-id nil)))
-      (is (not-nil? (.assignment-info state storm-id nil)))
+      (is (not-nil? (clojurify-storm-base (.stormBase state storm-id nil))))
+      (is (not-nil? (clojurify-assignment (.assignmentInfo state storm-id nil))))
       (.killTopology (:nimbus cluster) "test")
       ;; check that storm is deactivated but alive
-      (is (= :killed (-> (.storm-base state storm-id nil) :status :type)))
-      (is (not-nil? (.assignment-info state storm-id nil)))
+      (is (= :killed (-> (clojurify-storm-base (.stormBase state storm-id nil)) :status :type)))
+      (is (not-nil? (clojurify-assignment (.assignmentInfo state storm-id nil))))
       (advance-cluster-time cluster 18)
       ;; check that storm is deactivated but alive
-      (is (= 1 (count (.heartbeat-storms state))))
+      (is (= 1 (count (.heartbeatStorms state))))
       (advance-cluster-time cluster 3)
-      (is (nil? (.storm-base state storm-id nil)))
-      (is (nil? (.assignment-info state storm-id nil)))
+      (is (nil? (clojurify-storm-base (.stormBase state storm-id nil))))
+      (is (nil? (clojurify-assignment (.assignmentInfo state storm-id nil))))
 
       ;; cleanup happens on monitoring thread
       (advance-cluster-time cluster 11)
-      (is (empty? (.heartbeat-storms state)))
+      (is (empty? (.heartbeatStorms state)))
       ;; TODO: check that code on nimbus was cleaned up locally...
 
       (is (thrown? NotAliveException (.killTopology (:nimbus cluster) "lalala")))
@@ -563,35 +638,35 @@
       (advance-cluster-time cluster 11)
       (is (thrown? AlreadyAliveException (submit-local-topology (:nimbus cluster) "2test" {} topology)))
       (advance-cluster-time cluster 11)
-      (bind storm-id (get-storm-id state "2test"))
-      (is (not-nil? (.storm-base state storm-id nil)))
+      (bind storm-id (StormCommon/getStormId state "2test"))
+      (is (not-nil? (clojurify-storm-base (.stormBase state storm-id nil))))
       (.killTopology (:nimbus cluster) "2test")
       (is (thrown? AlreadyAliveException (submit-local-topology (:nimbus cluster) "2test" {} topology)))
       (advance-cluster-time cluster 11)
-      (is (= 1 (count (.heartbeat-storms state))))
+      (is (= 1 (count (.heartbeatStorms state))))
 
       (advance-cluster-time cluster 6)
-      (is (nil? (.storm-base state storm-id nil)))
-      (is (nil? (.assignment-info state storm-id nil)))
+      (is (nil? (clojurify-storm-base (.stormBase state storm-id nil))))
+      (is (nil? (clojurify-assignment (.assignmentInfo state storm-id nil))))
       (advance-cluster-time cluster 11)
-      (is (= 0 (count (.heartbeat-storms state))))
+      (is (= 0 (count (.heartbeatStorms state))))
 
       (submit-local-topology (:nimbus cluster) "test3" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 5} topology)
-      (bind storm-id3 (get-storm-id state "test3"))
+      (bind storm-id3 (StormCommon/getStormId state "test3"))
       (advance-cluster-time cluster 11)
-      (.remove-storm! state storm-id3)
-      (is (nil? (.storm-base state storm-id3 nil)))
-      (is (nil? (.assignment-info state storm-id3 nil)))
+      (.removeStorm state storm-id3)
+      (is (nil? (clojurify-storm-base (.stormBase state storm-id3 nil))))
+      (is (nil? (clojurify-assignment (.assignmentInfo state storm-id3 nil))))
 
       (advance-cluster-time cluster 11)
-      (is (= 0 (count (.heartbeat-storms state))))
+      (is (= 0 (count (.heartbeatStorms state))))
 
       ;; this guarantees that monitor thread won't trigger for 10 more seconds
       (advance-time-secs! 11)
       (wait-until-cluster-waiting cluster)
 
       (submit-local-topology (:nimbus cluster) "test3" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 5} topology)
-      (bind storm-id3 (get-storm-id state "test3"))
+      (bind storm-id3 (StormCommon/getStormId state "test3"))
 
       (advance-cluster-time cluster 11)
       (bind executor-id (first (topology-executors cluster storm-id3)))
@@ -600,19 +675,19 @@
 
       (.killTopology (:nimbus cluster) "test3")
       (advance-cluster-time cluster 6)
-      (is (= 1 (count (.heartbeat-storms state))))
+      (is (= 1 (count (.heartbeatStorms state))))
       (advance-cluster-time cluster 5)
-      (is (= 0 (count (.heartbeat-storms state))))
+      (is (= 0 (count (.heartbeatStorms state))))
 
       ;; test kill with opts
       (submit-local-topology (:nimbus cluster) "test4" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 100} topology)
       (advance-cluster-time cluster 11)
       (.killTopologyWithOpts (:nimbus cluster) "test4" (doto (KillOptions.) (.set_wait_secs 10)))
-      (bind storm-id4 (get-storm-id state "test4"))
+      (bind storm-id4 (StormCommon/getStormId state "test4"))
       (advance-cluster-time cluster 9)
-      (is (not-nil? (.assignment-info state storm-id4 nil)))
+      (is (not-nil? (clojurify-assignment (.assignmentInfo state storm-id4 nil))))
       (advance-cluster-time cluster 2)
-      (is (nil? (.assignment-info state storm-id4 nil)))
+      (is (nil? (clojurify-assignment (.assignmentInfo state storm-id4 nil))))
       )))
 
 (deftest test-reassignment
@@ -626,15 +701,15 @@
                   TOPOLOGY-EVENTLOGGER-EXECUTORS 0}]
     (letlocals
       (bind conf (:daemon-conf cluster))
-      (bind topology (thrift/mk-topology
-                       {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 2)}
-                       {}
-                       ))
+      (bind topology (Thrift/buildTopology
+                       {"1" (Thrift/prepareSpoutDetails
+                              (TestPlannerSpout. true) (Integer. 2))}
+                       {}))
       (bind state (:storm-cluster-state cluster))
       (submit-local-topology (:nimbus cluster) "test" {TOPOLOGY-WORKERS 2} topology)
       (advance-cluster-time cluster 11)
       (check-consistency cluster "test")
-      (bind storm-id (get-storm-id state "test"))
+      (bind storm-id (StormCommon/getStormId state "test"))
       (bind [executor-id1 executor-id2]  (topology-executors cluster storm-id))
       (bind ass1 (executor-assignment cluster storm-id executor-id1))
       (bind ass2 (executor-assignment cluster storm-id executor-id2))
@@ -747,15 +822,15 @@
       (add-supervisor cluster :ports 1 :id "a")
       (add-supervisor cluster :ports 1 :id "b")
       (bind conf (:daemon-conf cluster))
-      (bind topology (thrift/mk-topology
-                       {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 2)}
-                       {}
-                       ))
+      (bind topology (Thrift/buildTopology
+                       {"1" (Thrift/prepareSpoutDetails
+                              (TestPlannerSpout. true) (Integer. 2))}
+                       {}))
       (bind state (:storm-cluster-state cluster))
       (submit-local-topology (:nimbus cluster) "test" {TOPOLOGY-WORKERS 2} topology)
       (advance-cluster-time cluster 11)
       (check-consistency cluster "test")
-      (bind storm-id (get-storm-id state "test"))
+      (bind storm-id (StormCommon/getStormId state "test"))
       (bind [executor-id1 executor-id2]  (topology-executors cluster storm-id))
       (bind ass1 (executor-assignment cluster storm-id executor-id1))
       (bind ass2 (executor-assignment cluster storm-id executor-id2))
@@ -803,13 +878,14 @@
                   TOPOLOGY-ACKER-EXECUTORS 0
                   TOPOLOGY-EVENTLOGGER-EXECUTORS 0}]
     (letlocals
-      (bind topology (thrift/mk-topology
-                        {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 9)}
+      (bind topology (Thrift/buildTopology
+                        {"1" (Thrift/prepareSpoutDetails
+                               (TestPlannerSpout. true) (Integer. 9))}
                         {}))
       (bind state (:storm-cluster-state cluster))
       (submit-local-topology (:nimbus cluster) "test" {TOPOLOGY-WORKERS 4} topology)  ; distribution should be 2, 2, 2, 3 ideally
       (advance-cluster-time cluster 11)
-      (bind storm-id (get-storm-id state "test"))
+      (bind storm-id (StormCommon/getStormId state "test"))
       (bind slot-executors (slot-assignments cluster storm-id))
       (check-executor-distribution slot-executors [9])
       (check-consistency cluster "test")
@@ -852,8 +928,9 @@
                   TOPOLOGY-ACKER-EXECUTORS 0
                   TOPOLOGY-EVENTLOGGER-EXECUTORS 0}]
     (letlocals
-      (bind topology (thrift/mk-topology
-                        {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
+      (bind topology (Thrift/buildTopology
+                        {"1" (Thrift/prepareSpoutDetails
+                               (TestPlannerSpout. true) (Integer. 3))}
                         {}))
       (bind state (:storm-cluster-state cluster))
       (submit-local-topology (:nimbus cluster)
@@ -861,7 +938,7 @@
                              {TOPOLOGY-WORKERS 3
                               TOPOLOGY-MESSAGE-TIMEOUT-SECS 60} topology)
       (advance-cluster-time cluster 11)
-      (bind storm-id (get-storm-id state "test"))
+      (bind storm-id (StormCommon/getStormId state "test"))
       (add-supervisor cluster :ports 3)
       (add-supervisor cluster :ports 3)
 
@@ -898,10 +975,10 @@
                   TOPOLOGY-ACKER-EXECUTORS 0
                   TOPOLOGY-EVENTLOGGER-EXECUTORS 0}]
     (letlocals
-      (bind topology (thrift/mk-topology
-                        {"1" (thrift/mk-spout-spec (TestPlannerSpout. true)
-                                :parallelism-hint 6
-                                :conf {TOPOLOGY-TASKS 12})}
+      (bind topology (Thrift/buildTopology
+                        {"1" (Thrift/prepareSpoutDetails
+                               (TestPlannerSpout. true) (Integer. 6)
+                                {TOPOLOGY-TASKS 12})}
                         {}))
       (bind state (:storm-cluster-state cluster))
       (submit-local-topology (:nimbus cluster)
@@ -909,7 +986,7 @@
                              {TOPOLOGY-WORKERS 3
                               TOPOLOGY-MESSAGE-TIMEOUT-SECS 30} topology)
       (advance-cluster-time cluster 11)
-      (bind storm-id (get-storm-id state "test"))
+      (bind storm-id (StormCommon/getStormId state "test"))
       (bind checker (fn [distribution]
                       (check-executor-distribution
                         (slot-assignments cluster storm-id)
@@ -944,7 +1021,7 @@
       (check-consistency cluster "test")
 
       (bind executor-info (->> (storm-component->executor-info cluster "test")
-                               (map-val #(map executor-id->tasks %))))
+                               (map-val #(map executor->tasks %))))
       (check-distribution (executor-info "1") [2 2 2 2 1 1 1 1])
 
       )))
@@ -955,7 +1032,7 @@
  (let [assignments (.assignments state nil)]
    (log-message "Assignemts: " assignments)
    (let [id->node->ports (into {} (for [id assignments
-                                                :let [executor->node+port (:executor->node+port (.assignment-info state id nil))
+                                                :let [executor->node+port (:executor->node+port (clojurify-assignment (.assignmentInfo state id nil)))
                                                       node+ports (set (.values executor->node+port))
                                                       node->ports (apply merge-with (fn [a b] (distinct (concat a b))) (for [[node port] node+ports] {node [port]}))]]
                                                 {id node->ports}))
@@ -976,14 +1053,17 @@
                   TOPOLOGY-ACKER-EXECUTORS 0
                   TOPOLOGY-EVENTLOGGER-EXECUTORS 0}]
     (letlocals
-      (bind topology (thrift/mk-topology
-                        {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
+      (bind topology (Thrift/buildTopology
+                        {"1" (Thrift/prepareSpoutDetails
+                               (TestPlannerSpout. true) (Integer. 3))}
                         {}))
-      (bind topology2 (thrift/mk-topology
-                        {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
+      (bind topology2 (Thrift/buildTopology
+                        {"1" (Thrift/prepareSpoutDetails
+                               (TestPlannerSpout. true) (Integer. 3))}
                         {}))
-      (bind topology3 (thrift/mk-topology
-                        {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
+      (bind topology3 (Thrift/buildTopology
+                        {"1" (Thrift/prepareSpoutDetails
+                               (TestPlannerSpout. true) (Integer. 3))}
                         {}))
       (bind state (:storm-cluster-state cluster))
       (submit-local-topology (:nimbus cluster)
@@ -1023,18 +1103,20 @@
                   NIMBUS-EXECUTORS-PER-TOPOLOGY 8
                   NIMBUS-SLOTS-PER-TOPOLOGY 8}]
     (letlocals
-      (bind topology (thrift/mk-topology
-                        {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 1 :conf {TOPOLOGY-TASKS 1})}
+      (bind topology (Thrift/buildTopology
+                        {"1" (Thrift/prepareSpoutDetails
+                               (TestPlannerSpout. true) (Integer. 1)
+                               {TOPOLOGY-TASKS 1})}
                         {}))
       (is (thrown? InvalidTopologyException
         (submit-local-topology (:nimbus cluster)
                                "test/aaa"
                                {}
                                topology)))
-      (bind topology (thrift/mk-topology
-                      {"1" (thrift/mk-spout-spec (TestPlannerSpout. true)
-                                                 :parallelism-hint 16
-                                                 :conf {TOPOLOGY-TASKS 16})}
+      (bind topology (Thrift/buildTopology
+                      {"1" (Thrift/prepareSpoutDetails
+                             (TestPlannerSpout. true) (Integer. 16)
+                             {TOPOLOGY-TASKS 16})}
                       {}))
       (bind state (:storm-cluster-state cluster))
       (is (thrown? InvalidTopologyException
@@ -1042,10 +1124,10 @@
                                           "test"
                                           {TOPOLOGY-WORKERS 3}
                                           topology)))
-      (bind topology (thrift/mk-topology
-                      {"1" (thrift/mk-spout-spec (TestPlannerSpout. true)
-                                                 :parallelism-hint 5
-                                                 :conf {TOPOLOGY-TASKS 5})}
+      (bind topology (Thrift/buildTopology
+                      {"1" (Thrift/prepareSpoutDetails
+                             (TestPlannerSpout. true) (Integer. 5)
+                             {TOPOLOGY-TASKS 5})}
                       {}))
       (is (thrown? InvalidTopologyException
                    (submit-local-topology (:nimbus cluster)
@@ -1078,21 +1160,22 @@
                             STORM-CLUSTER-MODE "local"
                             STORM-ZOOKEEPER-PORT zk-port
                             STORM-LOCAL-DIR nimbus-dir}))
-         (bind cluster-state (cluster/mk-storm-cluster-state conf))
+         (bind cluster-state (ClusterUtils/mkStormClusterState conf nil (ClusterStateContext.)))
          (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
-         (bind topology (thrift/mk-topology
-                         {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
+         (bind topology (Thrift/buildTopology
+                         {"1" (Thrift/prepareSpoutDetails
+                                (TestPlannerSpout. true) (Integer. 3))}
                          {}))
          (submit-local-topology nimbus "t1" {} topology)
          (submit-local-topology nimbus "t2" {} topology)
-         (bind storm-id1 (get-storm-id cluster-state "t1"))
-         (bind storm-id2 (get-storm-id cluster-state "t2"))
+         (bind storm-id1 (StormCommon/getStormId cluster-state "t1"))
+         (bind storm-id2 (StormCommon/getStormId cluster-state "t2"))
          (.shutdown nimbus)
          (let [blob-store (Utils/getNimbusBlobStore conf nil)]
            (nimbus/blob-rm-topology-keys storm-id1 blob-store cluster-state)
            (.shutdown blob-store))
          (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
-         (is ( = #{storm-id2} (set (.active-storms cluster-state))))
+         (is ( = #{storm-id2} (set (.activeStorms cluster-state))))
          (.shutdown nimbus)
          (.disconnect cluster-state)
          )))))
@@ -1150,17 +1233,18 @@
                         STORM-CLUSTER-MODE "local"
                         STORM-ZOOKEEPER-PORT zk-port
                         STORM-LOCAL-DIR nimbus-dir}))
-          (bind cluster-state (cluster/mk-storm-cluster-state conf))
+          (bind cluster-state (ClusterUtils/mkStormClusterState conf nil (ClusterStateContext.)))
           (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
-          (bind topology (thrift/mk-topology
-                           {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
+          (bind topology (Thrift/buildTopology
+                           {"1" (Thrift/prepareSpoutDetails
+                                  (TestPlannerSpout. true) (Integer. 3))}
                            {}))
 
           (with-open [_ (MockedZookeeper. (proxy [Zookeeper] []
                           (zkLeaderElectorImpl [conf] (mock-leader-elector :is-leader false))))]
 
             (letlocals
-              (bind non-leader-cluster-state (cluster/mk-storm-cluster-state conf))
+              (bind non-leader-cluster-state (ClusterUtils/mkStormClusterState conf nil (ClusterStateContext.)))
               (bind non-leader-nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
 
               ;first we verify that the master nimbus can perform all actions, even with another nimbus present.
@@ -1204,7 +1288,7 @@
                           "org.apache.storm.security.auth.authorizer.DenyAuthorizer"}]
     (let [
           nimbus (:nimbus cluster)
-          topology (thrift/mk-topology {} {})
+          topology (Thrift/buildTopology {} {})
          ]
       (is (thrown? AuthorizationException
           (submit-local-topology-with-opts nimbus "mystorm" {} topology
@@ -1220,7 +1304,7 @@
                           "org.apache.storm.security.auth.authorizer.DenyAuthorizer"}]
     (let [
           nimbus (:nimbus cluster)
-          topology (thrift/mk-topology {} {})
+          topology (Thrift/buildTopology {} {})
          ]
       ; Fake good authorization as part of setup.
       (mocking [nimbus/check-authorization!]
@@ -1247,7 +1331,7 @@
                        :daemon-conf {NIMBUS-AUTHORIZER "org.apache.storm.security.auth.authorizer.NoopAuthorizer"}]
     (let [nimbus (:nimbus cluster)
           topology-name "test-nimbus-check-autho-params"
-          topology (thrift/mk-topology {} {})]
+          topology (Thrift/buildTopology {} {})]
 
       (submit-local-topology-with-opts nimbus topology-name {} topology
           (SubmitOptions. TopologyInitialStatus/INACTIVE))
@@ -1273,20 +1357,25 @@
                       [1 2 3] expected-name expected-conf expected-operation))))))
 
         (testing "getTopology calls check-authorization! with the correct parameters."
-          (let [expected-operation "getTopology"]
-            (stubbing [nimbus/check-authorization! nil
+          (let [expected-operation "getTopology"
+                common-spy (->>
+                             (proxy [StormCommon] []
+                                    (systemTopologyImpl [conf topology] nil))
+                           Mockito/spy)]
+            (with-open [- (StormCommonInstaller. common-spy)]
+              (stubbing [nimbus/check-authorization! nil
                        nimbus/try-read-storm-conf expected-conf
-                       nimbus/try-read-storm-topology nil
-                       system-topology! nil]
-              (try
-                (.getTopology nimbus "fake-id")
-                (catch NotAliveException e)
-                (finally
-                  (verify-first-call-args-for-indices
-                    nimbus/check-authorization!
-                      [1 2 3] expected-name expected-conf expected-operation)
-                  (verify-first-call-args-for-indices
-                    system-topology! [0] expected-conf))))))
+                       nimbus/try-read-storm-topology nil]
+                (try
+                  (.getTopology nimbus "fake-id")
+                  (catch NotAliveException e)
+                  (finally
+                    (verify-first-call-args-for-indices
+                      nimbus/check-authorization!
+                        [1 2 3] expected-name expected-conf expected-operation)
+                    (. (Mockito/verify common-spy)
+                      (systemTopologyImpl (Matchers/eq expected-conf)
+                                          (Matchers/any)))))))))
 
         (testing "getUserTopology calls check-authorization with the correct parameters."
           (let [expected-operation "getUserTopology"]
@@ -1358,7 +1447,7 @@
                         :status {:type bogus-type}}
                 }
         ]
-      (stubbing [topology-bases bogus-bases
+      (stubbing [nimbus/nimbus-topology-bases bogus-bases
                  nimbus/get-blob-replication-count 1]
         (let [topos (.get_topologies (.getClusterInfo nimbus))]
           ; The number of topologies in the summary is correct.
@@ -1400,26 +1489,27 @@
           expected-acls nimbus/NIMBUS-ZK-ACLS
           fake-inimbus (reify INimbus (getForcedScheduler [this] nil))
           fake-cu (proxy [ConfigUtils] []
-                      (nimbusTopoHistoryStateImpl [conf] nil))
+                    (nimbusTopoHistoryStateImpl [conf] nil))
           fake-utils (proxy [Utils] []
                        (newInstanceImpl [_])
                        (makeUptimeComputer [] (proxy [Utils$UptimeComputer] []
-                                                (upTime [] 0))))]
+                                                (upTime [] 0))))
+          cluster-utils (Mockito/mock ClusterUtils)
+	  fake-common (proxy [StormCommon] []
+                             (mkAuthorizationHandler [_] nil))]
       (with-open [_ (ConfigUtilsInstaller. fake-cu)
                   _ (UtilsInstaller. fake-utils)
+                  - (StormCommonInstaller. fake-common)
                   zk-le (MockedZookeeper. (proxy [Zookeeper] []
-                          (zkLeaderElectorImpl [conf] nil)))]
-        (stubbing [mk-authorization-handler nil
-                   cluster/mk-storm-cluster-state nil
-                   nimbus/file-cache-map nil
-                   nimbus/mk-blob-cache-map nil
-                   nimbus/mk-bloblist-cache-map nil
-                   mk-timer nil
-                   nimbus/mk-scheduler nil]
-                  (nimbus/nimbus-data auth-conf fake-inimbus)
-                  (verify-call-times-for cluster/mk-storm-cluster-state 1)
-                  (verify-first-call-args-for-indices cluster/mk-storm-cluster-state [2]
-                                                      expected-acls))))))
+                          (zkLeaderElectorImpl [conf] nil)))
+                  mocked-cluster (MockedCluster. cluster-utils)]
+        (stubbing [nimbus/file-cache-map nil
+                 nimbus/mk-blob-cache-map nil
+                 nimbus/mk-bloblist-cache-map nil
+                 nimbus/mk-scheduler nil]
+          (nimbus/nimbus-data auth-conf fake-inimbus)
+          (.mkStormClusterStateImpl (Mockito/verify cluster-utils (Mockito/times 1)) (Mockito/any) (Mockito/eq expected-acls) (Mockito/any))
+          )))))
 
 (deftest test-file-bogus-download
   (with-local-cluster [cluster :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0 TOPOLOGY-EVENTLOGGER-EXECUTORS 0}]
@@ -1432,7 +1522,7 @@
 (deftest test-validate-topo-config-on-submit
   (with-local-cluster [cluster]
     (let [nimbus (:nimbus cluster)
-          topology (thrift/mk-topology {} {})
+          topology (Thrift/buildTopology {} {})
           bad-config {"topology.isolate.machines" "2"}]
       ; Fake good authorization as part of setup.
       (mocking [nimbus/check-authorization!]
@@ -1450,11 +1540,12 @@
                       STORM-CLUSTER-MODE "local"
                       STORM-ZOOKEEPER-PORT zk-port
                       STORM-LOCAL-DIR nimbus-dir}))
-        (bind cluster-state (cluster/mk-storm-cluster-state conf))
+        (bind cluster-state (ClusterUtils/mkStormClusterState conf nil (ClusterStateContext.)))
         (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
         (Time/sleepSecs 1)
-        (bind topology (thrift/mk-topology
-                         {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
+        (bind topology (Thrift/buildTopology
+                         {"1" (Thrift/prepareSpoutDetails
+                                (TestPlannerSpout. true) (Integer. 3))}
                          {}))
         (submit-local-topology nimbus "t1" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 30} topology)
         ; make transition for topology t1 to be killed -> nimbus applies this event to cluster state
@@ -1482,12 +1573,13 @@
                         STORM-ZOOKEEPER-PORT zk-port
                         STORM-LOCAL-DIR nimbus-dir
                         NIMBUS-TOPOLOGY-ACTION-NOTIFIER-PLUGIN (.getName InMemoryTopologyActionNotifier)}))
-          (bind cluster-state (cluster/mk-storm-cluster-state conf))
+          (bind cluster-state (ClusterUtils/mkStormClusterState conf nil (ClusterStateContext.)))
           (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
           (bind notifier (InMemoryTopologyActionNotifier.))
           (Time/sleepSecs 1)
-          (bind topology (thrift/mk-topology
-                           {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
+          (bind topology (Thrift/buildTopology
+                           {"1" (Thrift/prepareSpoutDetails
+                                  (TestPlannerSpout. true) (Integer. 3))}
                            {}))
           (submit-local-topology nimbus "test-notification" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 30} topology)
 
@@ -1512,8 +1604,9 @@
 (deftest test-debug-on-component
   (with-local-cluster [cluster]
     (let [nimbus (:nimbus cluster)
-          topology (thrift/mk-topology
-                     {"spout" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
+          topology (Thrift/buildTopology
+                     {"spout" (Thrift/prepareSpoutDetails
+                                (TestPlannerSpout. true) (Integer. 3))}
                      {})]
         (submit-local-topology nimbus "t1" {TOPOLOGY-WORKERS 1} topology)
         (.debug nimbus "t1" "spout" true 100))))
@@ -1521,8 +1614,9 @@
 (deftest test-debug-on-global
   (with-local-cluster [cluster]
     (let [nimbus (:nimbus cluster)
-          topology (thrift/mk-topology
-                     {"spout" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
+          topology (Thrift/buildTopology
+                     {"spout" (Thrift/prepareSpoutDetails
+                                (TestPlannerSpout. true) (Integer. 3))}
                      {})]
       (submit-local-topology nimbus "t1" {TOPOLOGY-WORKERS 1} topology)
       (.debug nimbus "t1" "" true 100))))

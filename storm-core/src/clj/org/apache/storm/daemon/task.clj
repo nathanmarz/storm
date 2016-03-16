@@ -27,9 +27,8 @@
   (:import [org.apache.storm.generated ShellComponent JavaObject])
   (:import [org.apache.storm.spout ShellSpout])
   (:import [java.util Collection List ArrayList])
-  (:require [org.apache.storm
-             [thrift :as thrift]
-             [stats :as stats]])
+  (:import [org.apache.storm Thrift]
+           (org.apache.storm.daemon StormCommon))
   (:require [org.apache.storm.daemon.builtin-metrics :as builtin-metrics]))
 
 (defn mk-topology-context-builder [worker executor-data topology]
@@ -83,7 +82,7 @@
                 (ShellBolt. obj))
               obj )
         obj (if (instance? JavaObject obj)
-              (thrift/instantiate-java-object obj)
+              (Thrift/instantiateJavaObject obj)
               obj )]
     obj
     ))
@@ -141,9 +140,9 @@
               (throw (IllegalArgumentException. "Cannot emitDirect to a task expecting a regular grouping")))                          
             (apply-hooks user-context .emit (EmitInfo. values stream task-id [out-task-id]))
             (when (emit-sampler)
-              (stats/emitted-tuple! executor-stats stream)
+              (.emittedTuple executor-stats stream)
               (if out-task-id
-                (stats/transferred-tuples! executor-stats stream 1)))
+                (.transferredTuples executor-stats stream, 1)))
             (if out-task-id [out-task-id])
             ))
         ([^String stream ^List values]
@@ -163,8 +162,8 @@
                    )))
              (apply-hooks user-context .emit (EmitInfo. values stream task-id out-tasks))
              (when (emit-sampler)
-               (stats/emitted-tuple! executor-stats stream)
-               (stats/transferred-tuples! executor-stats stream (count out-tasks)))
+               (.emittedTuple executor-stats stream)
+               (.transferredTuples executor-stats stream (count out-tasks)))
              out-tasks)))
     ))
 
@@ -186,6 +185,6 @@
       (.addTaskHook ^TopologyContext (:user-context task-data) (-> klass Class/forName .newInstance)))
     ;; when this is called, the threads for the executor haven't been started yet,
     ;; so we won't be risking trampling on the single-threaded claim strategy disruptor queue
-    (send-unanchored task-data SYSTEM-STREAM-ID ["startup"])
+    (send-unanchored task-data StormCommon/SYSTEM_STREAM_ID ["startup"])
     task-data
     ))

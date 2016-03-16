@@ -17,7 +17,6 @@
   (:use [clojure test])
   (:require [org.apache.storm [testing :as testing]])
   (:require [org.apache.storm.daemon [nimbus :as nimbus]])
-  (:require [org.apache.storm [zookeeper :as zk]])
   (:require [org.apache.storm.security.auth [auth-test :refer [nimbus-timeout]]])
   (:import [java.nio ByteBuffer])
   (:import [org.apache.storm Config])
@@ -25,10 +24,11 @@
   (:import [org.apache.storm.generated NotAliveException])
   (:import [org.apache.storm.security.auth AuthUtils ThriftServer ThriftClient 
                                          ReqContext ThriftConnectionType])
-  (:use [org.apache.storm cluster util config log])
-  (:use [org.apache.storm.daemon common nimbus])
-  (:import [org.apache.storm.generated Nimbus Nimbus$Client Nimbus$Processor 
+  (:import [org.apache.storm.generated Nimbus Nimbus$Client Nimbus$Processor
             AuthorizationException SubmitOptions TopologyInitialStatus KillOptions])
+  (:import [org.apache.storm.utils Utils])
+  (:use [org.apache.storm util config log])
+  (:use [org.apache.storm.daemon common nimbus])
   (:require [conjure.core])
   (:use [conjure core]))
 
@@ -56,7 +56,7 @@
       (.stop nimbus-server#)))
 
 (deftest Simple-authentication-test
-  (let [port (available-port)]
+  (let [port (Utils/getAvailablePort)]
     (with-test-cluster [port nil nil "org.apache.storm.security.auth.SimpleTransportPlugin"]
       (let [storm-conf (merge (clojurify-structure (ConfigUtils/readStormConfig))
                               {STORM-THRIFT-TRANSPORT-PLUGIN "org.apache.storm.security.auth.SimpleTransportPlugin"
@@ -69,7 +69,7 @@
         (.close client)))))
 
 (deftest test-noop-authorization-w-simple-transport
-  (let [port (available-port)]
+  (let [port (Utils/getAvailablePort)]
     (with-test-cluster [port nil
                   "org.apache.storm.security.auth.authorizer.NoopAuthorizer"
                   "org.apache.storm.security.auth.SimpleTransportPlugin"]
@@ -84,7 +84,7 @@
         (.close client)))))
 
 (deftest test-deny-authorization-w-simple-transport
-  (let [port (available-port)]
+  (let [port (Utils/getAvailablePort)]
     (with-test-cluster [port nil
                   "org.apache.storm.security.auth.authorizer.DenyAuthorizer"
                   "org.apache.storm.security.auth.SimpleTransportPlugin"]
@@ -122,7 +122,7 @@
         (.close client)))))
 
 (deftest test-noop-authorization-w-sasl-digest
-  (let [port (available-port)]
+  (let [port (Utils/getAvailablePort)]
     (with-test-cluster [port
                   "test/clj/org/apache/storm/security/auth/jaas_digest.conf"
                   "org.apache.storm.security.auth.authorizer.NoopAuthorizer"
@@ -140,7 +140,7 @@
         (.close client)))))
 
 (deftest test-deny-authorization-w-sasl-digest
-  (let [port (available-port)]
+  (let [port (Utils/getAvailablePort)]
     (with-test-cluster [port
                   "test/clj/org/apache/storm/security/auth/jaas_digest.conf"
                   "org.apache.storm.security.auth.authorizer.DenyAuthorizer"

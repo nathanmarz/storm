@@ -15,11 +15,12 @@
 ;; limitations under the License.
 (ns org.apache.storm.daemon.executor
   (:use [org.apache.storm.daemon common])
-  (:import [org.apache.storm.generated Grouping]
-           [java.io Serializable])
-  (:use [org.apache.storm util config log timer stats])
+  (:import [org.apache.storm.generated Grouping Grouping$_Fields]
+           [java.io Serializable]
+           [org.apache.storm.stats BoltExecutorStats SpoutExecutorStats])
+  (:use [org.apache.storm util config log])
   (:import [java.util List Random HashMap ArrayList LinkedList Map])
-  (:import [org.apache.storm ICredentialsListener])
+  (:import [org.apache.storm ICredentialsListener Thrift])
   (:import [org.apache.storm.hooks ITaskHook])
   (:import [org.apache.storm.tuple AddressedTuple Tuple Fields TupleImpl MessageId])
   (:import [org.apache.storm.spout ISpoutWaitStrategy ISpout SpoutOutputCollector ISpoutOutputCollector])
@@ -28,19 +29,19 @@
   (:import [org.apache.storm.grouping CustomStreamGrouping])
   (:import [org.apache.storm.task WorkerTopologyContext IBolt OutputCollector IOutputCollector])
   (:import [org.apache.storm.generated GlobalStreamId])
-  (:import [org.apache.storm.utils Utils ConfigUtils TupleUtils MutableObject RotatingMap RotatingMap$ExpiredCallback MutableLong Time DisruptorQueue WorkerBackpressureThread])
+  (:import [org.apache.storm.utils Utils ConfigUtils TupleUtils MutableObject RotatingMap RotatingMap$ExpiredCallback MutableLong Time DisruptorQueue WorkerBackpressureThread DisruptorBackpressureCallback])
   (:import [com.lmax.disruptor InsufficientCapacityException])
   (:import [org.apache.storm.serialization KryoTupleSerializer])
-  (:import [org.apache.storm.daemon Shutdownable])
+  (:import [org.apache.storm.daemon Shutdownable StormCommon Acker])
   (:import [org.apache.storm.metric.api IMetric IMetricsConsumer$TaskInfo IMetricsConsumer$DataPoint StateMetric])
   (:import [org.apache.storm Config Constants])
-  (:import [org.apache.storm.cluster ClusterStateContext DaemonType])
+  (:import [org.apache.storm.cluster ClusterStateContext DaemonType StormClusterStateImpl ClusterUtils])
   (:import [org.apache.storm.grouping LoadAwareCustomStreamGrouping LoadAwareShuffleGrouping LoadMapping ShuffleGrouping])
   (:import [java.lang Thread Thread$UncaughtExceptionHandler]
            [java.util.concurrent ConcurrentLinkedQueue]
-           [org.json.simple JSONValue])
-  (:require [org.apache.storm [thrift :as thrift]
-             [cluster :as cluster] [disruptor :as disruptor] [stats :as stats]])
+           [org.json.simple JSONValue]
+           [com.lmax.disruptor.dsl ProducerType]
+           [org.apache.storm StormTimer])
   (:require [org.apache.storm.daemon [task :as task]])
   (:require [org.apache.storm.daemon.builtin-metrics :as builtin-metrics])
   (:require [clojure.set :as set]))
@@ -76,38 +77,38 @@
   (let [num-tasks (count target-tasks)
         random (Random.)
         target-tasks (vec (sort target-tasks))]
-    (condp = (thrift/grouping-type thrift-grouping)
-      :fields
-        (if (thrift/global-grouping? thrift-grouping)
+    (condp = (Thrift/groupingType thrift-grouping)
+      Grouping$_Fields/FIELDS
+        (if (Thrift/isGlobalGrouping thrift-grouping)
           (fn [task-id tuple load]
             ;; It's possible for target to have multiple tasks if it reads multiple sources
             (first target-tasks))
-          (let [group-fields (Fields. (thrift/field-grouping thrift-grouping))]
+          (let [group-fields (Fields. (Thrift/fieldGrouping thrift-grouping))]
             (mk-fields-grouper out-fields group-fields target-tasks)
             ))
-      :all
+      Grouping$_Fields/ALL
         (fn [task-id tuple load] target-tasks)
-      :shuffle
+      Grouping$_Fields/SHUFFLE
         (mk-shuffle-grouper target-tasks topo-conf context component-id stream-id)
-      :local-or-shuffle
+      Grouping$_Fields/LOCAL_OR_SHUFFLE
         (let [same-tasks (set/intersection
                            (set target-tasks)
                            (set (.getThisWorkerTasks context)))]
           (if-not (empty? same-tasks)
             (mk-shuffle-grouper (vec same-tasks) topo-conf context component-id stream-id)
             (mk-shuffle-grouper target-tasks topo-conf context component-id stream-id)))
-      :none
+      Grouping$_Fields/NONE
         (fn [task-id tuple load]
           (let [i (mod (.nextInt random) num-tasks)]
             (get target-tasks i)
             ))
-      :custom-object
-        (let [grouping (thrift/instantiate-java-object (.get_custom_object thrift-grouping))]
+      Grouping$_Fields/CUSTOM_OBJECT
+        (let [grouping (Thrift/instantiateJavaObject (.get_custom_object thrift-grouping))]
           (mk-custom-grouper grouping context component-id stream-id target-tasks))
-      :custom-serialized
+      Grouping$_Fields/CUSTOM_SERIALIZED
         (let [grouping (Utils/javaDeserialize (.get_custom_serialized thrift-grouping) Serializable)]
           (mk-custom-grouper grouping context component-id stream-id target-tasks))
-      :direct
+      Grouping$_Fields/DIRECT
         :direct
       )))
 
@@ -211,9 +212,9 @@
       (swap! interval-errors inc)
 
       (when (<= @interval-errors max-per-interval)
-        (cluster/report-error (:storm-cluster-state executor) (:storm-id executor) (:component-id executor)
+        (.reportError (:storm-cluster-state executor) (:storm-id executor) (:component-id executor)
                               (Utils/hostname storm-conf)
-                              (.getThisWorkerPort (:worker-context executor)) error)
+          (long (.getThisWorkerPort (:worker-context executor))) error)
         ))))
 
 ;; in its own function so that it can be mocked out by tracked topologies
@@ -223,21 +224,21 @@
     (let [val (AddressedTuple. task tuple)]
       (when (= true (storm-conf TOPOLOGY-DEBUG))
         (log-message "TRANSFERING tuple " val))
-      (disruptor/publish batch-transfer->worker val))))
+      (.publish ^DisruptorQueue batch-transfer->worker val))))
 
 (defn mk-executor-data [worker executor-id]
   (let [worker-context (worker-context worker)
-        task-ids (executor-id->tasks executor-id)
+        task-ids (clojurify-structure (StormCommon/executorIdToTasks executor-id))
         component-id (.getComponentId worker-context (first task-ids))
         storm-conf (normalized-component-conf (:storm-conf worker) worker-context component-id)
         executor-type (executor-type worker-context component-id)
-        batch-transfer->worker (disruptor/disruptor-queue
+        batch-transfer->worker (DisruptorQueue.
                                   (str "executor"  executor-id "-send-queue")
+                                  ProducerType/SINGLE
                                   (storm-conf TOPOLOGY-EXECUTOR-SEND-BUFFER-SIZE)
                                   (storm-conf TOPOLOGY-DISRUPTOR-WAIT-TIMEOUT-MILLIS)
-                                  :producer-type :single-threaded
-                                  :batch-size (storm-conf TOPOLOGY-DISRUPTOR-BATCH-SIZE)
-                                  :batch-timeout (storm-conf TOPOLOGY-DISRUPTOR-BATCH-TIMEOUT-MILLIS))
+                                  (storm-conf TOPOLOGY-DISRUPTOR-BATCH-SIZE)
+                                  (storm-conf TOPOLOGY-DISRUPTOR-BATCH-TIMEOUT-MILLIS))
         ]
     (recursive-map
      :worker worker
@@ -256,9 +257,8 @@
      :batch-transfer-queue batch-transfer->worker
      :transfer-fn (mk-executor-transfer-fn batch-transfer->worker storm-conf)
      :suicide-fn (:suicide-fn worker)
-     :storm-cluster-state (cluster/mk-storm-cluster-state (:cluster-state worker) 
-                                                          :acls (Utils/getWorkerACL storm-conf)
-                                                          :context (ClusterStateContext. DaemonType/WORKER))
+     :storm-cluster-state (ClusterUtils/mkStormClusterState (:state-store worker) (Utils/getWorkerACL storm-conf)
+                            (ClusterStateContext. DaemonType/WORKER))
      :type executor-type
      ;; TODO: should refactor this to be part of the executor specific map (spout or bolt with :common field)
      :stats (mk-executor-stats <> (ConfigUtils/samplingRate storm-conf))
@@ -286,14 +286,14 @@
 (defn- mk-disruptor-backpressure-handler [executor-data]
   "make a handler for the executor's receive disruptor queue to
   check highWaterMark and lowWaterMark for backpressure"
-  (disruptor/disruptor-backpressure-handler
-    (fn []
+  (reify DisruptorBackpressureCallback
+    (highWaterMark [this]
       "When receive queue is above highWaterMark"
       (if (not @(:backpressure executor-data))
         (do (reset! (:backpressure executor-data) true)
             (log-debug "executor " (:executor-id executor-data) " is congested, set backpressure flag true")
             (WorkerBackpressureThread/notifyBackpressureChecker (:backpressure-trigger (:worker executor-data))))))
-    (fn []
+    (lowWaterMark [this]
       "When receive queue is below lowWaterMark"
       (if @(:backpressure executor-data)
         (do (reset! (:backpressure executor-data) false)
@@ -305,28 +305,31 @@
         cached-emit (MutableObject. (ArrayList.))
         storm-conf (:storm-conf executor-data)
         serializer (KryoTupleSerializer. storm-conf (:worker-context executor-data))
+        ^DisruptorQueue batch-transfer-queue (:batch-transfer-queue executor-data)
+        handler (reify com.lmax.disruptor.EventHandler
+                  (onEvent [this o seq-id batch-end?]
+                    (let [^ArrayList alist (.getObject cached-emit)]
+                      (.add alist o)
+                      (when batch-end?
+                        (worker-transfer-fn serializer alist)
+                        (.setObject cached-emit (ArrayList.))))))
         ]
-    (disruptor/consume-loop*
-      (:batch-transfer-queue executor-data)
-      (disruptor/handler [o seq-id batch-end?]
-        (let [^ArrayList alist (.getObject cached-emit)]
-          (.add alist o)
-          (when batch-end?
-            (worker-transfer-fn serializer alist)
-            (.setObject cached-emit (ArrayList.)))))
-      :uncaught-exception-handler (:report-error-and-die executor-data))))
+    (Utils/asyncLoop
+      (fn [] (.consumeBatchWhenAvailable batch-transfer-queue handler) 0)
+      (.getName batch-transfer-queue)
+      (:uncaught-exception-handler (:report-error-and-die executor-data)))))
 
 (defn setup-metrics! [executor-data]
   (let [{:keys [storm-conf receive-queue worker-context interval->task->metric-registry]} executor-data
         distinct-time-bucket-intervals (keys interval->task->metric-registry)]
     (doseq [interval distinct-time-bucket-intervals]
-      (schedule-recurring 
-       (:user-timer (:worker executor-data)) 
-       interval
-       interval
-       (fn []
-         (let [val [(AddressedTuple. AddressedTuple/BROADCAST_DEST (TupleImpl. worker-context [interval] Constants/SYSTEM_TASK_ID Constants/METRICS_TICK_STREAM_ID))]]
-           (disruptor/publish receive-queue val)))))))
+      (.scheduleRecurring
+        (:user-timer (:worker executor-data))
+        interval
+        interval
+        (fn []
+          (let [val [(AddressedTuple. AddressedTuple/BROADCAST_DEST (TupleImpl. worker-context [interval] Constants/SYSTEM_TASK_ID Constants/METRICS_TICK_STREAM_ID))]]
+            (.publish ^DisruptorQueue receive-queue val)))))))
 
 (defn metrics-tick
   [executor-data task-data ^TupleImpl tuple]
@@ -361,13 +364,13 @@
               (and (= false (storm-conf TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS))
                    (= :spout (:type executor-data))))
         (log-message "Timeouts disabled for executor " (:component-id executor-data) ":" (:executor-id executor-data))
-        (schedule-recurring
+        (.scheduleRecurring
           (:user-timer worker)
           tick-time-secs
           tick-time-secs
           (fn []
             (let [val [(AddressedTuple. AddressedTuple/BROADCAST_DEST (TupleImpl. context [tick-time-secs] Constants/SYSTEM_TASK_ID Constants/SYSTEM_TICK_STREAM_ID))]]
-              (disruptor/publish receive-queue val))))))))
+              (.publish ^DisruptorQueue receive-queue val))))))))
 
 (defn mk-executor [worker executor-id initial-credentials]
   (let [executor-data (mk-executor-data worker executor-id)
@@ -403,22 +406,22 @@
     (reify
       RunningExecutor
       (render-stats [this]
-        (stats/render-stats! (:stats executor-data)))
+        (.renderStats (:stats executor-data)))
       (get-executor-id [this]
         executor-id)
       (credentials-changed [this creds]
         (let [receive-queue (:receive-queue executor-data)
               context (:worker-context executor-data)
               val [(AddressedTuple. AddressedTuple/BROADCAST_DEST (TupleImpl. context [creds] Constants/SYSTEM_TASK_ID Constants/CREDENTIALS_CHANGED_STREAM_ID))]]
-          (disruptor/publish receive-queue val)))
+          (.publish ^DisruptorQueue receive-queue val)))
       (get-backpressure-flag [this]
         @(:backpressure executor-data))
       Shutdownable
       (shutdown
         [this]
         (log-message "Shutting down executor " component-id ":" (pr-str executor-id))
-        (disruptor/halt-with-interrupt! (:receive-queue executor-data))
-        (disruptor/halt-with-interrupt! (:batch-transfer-queue executor-data))
+        (.haltWithInterrupt ^DisruptorQueue (:receive-queue executor-data))
+        (.haltWithInterrupt ^DisruptorQueue (:batch-transfer-queue executor-data))
         (doseq [t threads]
           (.interrupt t)
           (.join t))
@@ -443,7 +446,7 @@
     (.fail spout msg-id)
     (task/apply-hooks (:user-context task-data) .spoutFail (SpoutFailInfo. msg-id task-id time-delta))
     (when time-delta
-      (stats/spout-failed-tuple! (:stats executor-data) (:stream tuple-info) time-delta))))
+      (.spoutFailedTuple (:stats executor-data) (:stream tuple-info) time-delta))))
 
 (defn- ack-spout-msg [executor-data task-data msg-id tuple-info time-delta id]
   (let [storm-conf (:storm-conf executor-data)
@@ -454,14 +457,14 @@
     (.ack spout msg-id)
     (task/apply-hooks (:user-context task-data) .spoutAck (SpoutAckInfo. msg-id task-id time-delta))
     (when time-delta
-      (stats/spout-acked-tuple! (:stats executor-data) (:stream tuple-info) time-delta))))
+      (.spoutAckedTuple (:stats executor-data) (:stream tuple-info) time-delta))))
 
 (defn mk-task-receiver [executor-data tuple-action-fn]
   (let [task-ids (:task-ids executor-data)
         debug? (= true (-> executor-data :storm-conf (get TOPOLOGY-DEBUG)))
         ]
-    (disruptor/clojure-handler
-      (fn [tuple-batch sequence-id end-of-batch?]
+    (reify com.lmax.disruptor.EventHandler
+      (onEvent [this tuple-batch sequence-id end-of-batch?]
         (fast-list-iter [^AddressedTuple addressed-tuple tuple-batch]
           (let [^TupleImpl tuple (.getTuple addressed-tuple)
                 task-id (.getDest addressed-tuple)]
@@ -495,12 +498,8 @@
       (when (and (> spct 0) (< (* 100 (.nextDouble random)) spct))
         (task/send-unanchored
           task-data
-          EVENTLOGGER-STREAM-ID
+          StormCommon/EVENTLOGGER_STREAM_ID
           [component-id message-id (System/currentTimeMillis) values]))))
-
-(defn- bit-xor-vals
-  [vals]
-  (reduce bit-xor 0 vals))
 
 (defmethod mk-threads :spout [executor-data task-datas initial-credentials]
   (let [{:keys [storm-conf component-id worker-context transfer-fn report-error sampler open-or-prepare-was-called?]} executor-data
@@ -537,17 +536,17 @@
                                     (throw (RuntimeException. (str "Fatal error, mismatched task ids: " task-id " " stored-task-id))))
                                   (let [time-delta (if start-time-ms (Time/deltaMs start-time-ms))]
                                     (condp = stream-id
-                                      ACKER-ACK-STREAM-ID (ack-spout-msg executor-data (get task-datas task-id)
-                                                                         spout-id tuple-finished-info time-delta id)
-                                      ACKER-FAIL-STREAM-ID (fail-spout-msg executor-data (get task-datas task-id)
+                                      Acker/ACKER_ACK_STREAM_ID (ack-spout-msg executor-data (get task-datas task-id)
+                                                                               spout-id tuple-finished-info time-delta id)
+                                      Acker/ACKER_FAIL_STREAM_ID (fail-spout-msg executor-data (get task-datas task-id)
                                                                            spout-id tuple-finished-info time-delta "FAIL-STREAM" id)
                                       )))
                                 ;; TODO: on failure, emit tuple to failure stream
                                 ))))
         receive-queue (:receive-queue executor-data)
         event-handler (mk-task-receiver executor-data tuple-action-fn)
-        has-ackers? (has-ackers? storm-conf)
-        has-eventloggers? (has-eventloggers? storm-conf)
+        has-ackers? (StormCommon/hasAckers storm-conf)
+        has-eventloggers? (StormCommon/hasEventLoggers storm-conf)
         emitted-count (MutableLong. 0)
         empty-emit-streak (MutableLong. 0)
         spout-transfer-fn (fn []
@@ -588,8 +587,8 @@
                                                                                          :values (if debug? values nil)}
                                                                                         (if (sampler) (System/currentTimeMillis))])
                                                                  (task/send-unanchored task-data
-                                                                                       ACKER-INIT-STREAM-ID
-                                                                                       [root-id (bit-xor-vals out-ids) task-id]))
+                                                                                       Acker/ACKER_INIT_STREAM_ID
+                                                                                       [root-id (Utils/bitXorVals out-ids) task-id]))
                                                                (when message-id
                                                                  (ack-spout-msg executor-data task-data message-id
                                                                                 {:stream out-stream-id :values values}
@@ -623,7 +622,7 @@
 
                             (fn []
                               ;; This design requires that spouts be non-blocking
-                              (disruptor/consume-batch receive-queue event-handler)
+                              (.consumeBatch ^DisruptorQueue receive-queue event-handler)
 
                               (let [active? @(:storm-active-atom executor-data)
                                     curr-count (.get emitted-count)
@@ -739,11 +738,11 @@
 
                                   (task/apply-hooks user-context .boltExecute (BoltExecuteInfo. tuple task-id delta))
                                   (when delta
-                                    (stats/bolt-execute-tuple! executor-stats
+                                    (.boltExecuteTuple executor-stats
                                                                (.getSourceComponent tuple)
                                                                (.getSourceStreamId tuple)
                                                                delta)))))))
-        has-eventloggers? (has-eventloggers? storm-conf)
+        has-eventloggers? (StormCommon/hasEventLoggers storm-conf)
         bolt-transfer-fn (fn []
                            ;; If topology was started in inactive state, don't call prepare bolt until it's activated first.
                            (while (not @(:storm-active-atom executor-data))
@@ -804,7 +803,7 @@
                                                   ack-val (.getAckVal tuple)]
                                               (fast-map-iter [[root id] (.. tuple getMessageId getAnchorsToIds)]
                                                              (task/send-unanchored task-data
-                                                                                   ACKER-ACK-STREAM-ID
+                                                                                   Acker/ACKER_ACK_STREAM_ID
                                                                                    [root (bit-xor id ack-val)])))
                                             (let [delta (tuple-time-delta! tuple)
                                                   debug? (= true (storm-conf TOPOLOGY-DEBUG))]
@@ -812,14 +811,14 @@
                                                 (log-message "BOLT ack TASK: " task-id " TIME: " delta " TUPLE: " tuple))
                                               (task/apply-hooks user-context .boltAck (BoltAckInfo. tuple task-id delta))
                                               (when delta
-                                                (stats/bolt-acked-tuple! executor-stats
+                                                (.boltAckedTuple executor-stats
                                                                          (.getSourceComponent tuple)
                                                                          (.getSourceStreamId tuple)
                                                                          delta))))
                                           (^void fail [this ^Tuple tuple]
                                             (fast-list-iter [root (.. tuple getMessageId getAnchors)]
                                                             (task/send-unanchored task-data
-                                                                                  ACKER-FAIL-STREAM-ID
+                                                                                  Acker/ACKER_FAIL_STREAM_ID
                                                                                   [root]))
                                             (let [delta (tuple-time-delta! tuple)
                                                   debug? (= true (storm-conf TOPOLOGY-DEBUG))]
@@ -827,7 +826,7 @@
                                                 (log-message "BOLT fail TASK: " task-id " TIME: " delta " TUPLE: " tuple))
                                               (task/apply-hooks user-context .boltFail (BoltFailInfo. tuple task-id delta))
                                               (when delta
-                                                (stats/bolt-failed-tuple! executor-stats
+                                                (.boltFailedTuple executor-stats
                                                                           (.getSourceComponent tuple)
                                                                           (.getSourceStreamId tuple)
                                                                           delta))))
@@ -841,7 +840,7 @@
                            (let [receive-queue (:receive-queue executor-data)
                                  event-handler (mk-task-receiver executor-data tuple-action-fn)]
                              (fn []
-                               (disruptor/consume-batch-when-available receive-queue event-handler)
+                               (.consumeBatchWhenAvailable ^DisruptorQueue receive-queue event-handler)
                                0)))]
     ;; TODO: can get any SubscribedState objects out of the context now
 
@@ -862,7 +861,7 @@
 
 ;; TODO: refactor this to be part of an executor-specific map
 (defmethod mk-executor-stats :spout [_ rate]
-  (stats/mk-spout-stats rate))
+  (SpoutExecutorStats. rate))
 
 (defmethod mk-executor-stats :bolt [_ rate]
-  (stats/mk-bolt-stats rate))
+  (BoltExecutorStats. rate))

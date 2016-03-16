@@ -18,9 +18,11 @@
   (:import [org.apache.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter TestWordBytesCounter NGrouping]
            [org.apache.storm.generated JavaObject JavaObjectArg])
   (:import [org.apache.storm.grouping LoadMapping])
-  (:use [org.apache.storm testing clojure log config])
+  (:use [org.apache.storm testing log config])
+  (:use [org.apache.storm.internal clojure])
   (:use [org.apache.storm.daemon common executor])
-  (:require [org.apache.storm [thrift :as thrift]]))
+  (:import [org.apache.storm Thrift])
+  (:import [org.apache.storm.utils Utils]))
 
 (deftest test-shuffle
  (let [shuffle-fn (mk-shuffle-grouper [(int 1) (int 2)] {TOPOLOGY-DISABLE-LOADAWARE-MESSAGING true} nil "comp" "stream")
@@ -77,12 +79,13 @@
   (with-simulated-time-local-cluster [cluster :supervisors 4]
     (let [spout-phint 4
           bolt-phint 6
-          topology (thrift/mk-topology
-                    {"1" (thrift/mk-spout-spec (TestWordSpout. true)
-                                               :parallelism-hint spout-phint)}
-                    {"2" (thrift/mk-bolt-spec {"1" ["word"]}
-                                              (TestWordBytesCounter.)
-                                              :parallelism-hint bolt-phint)
+          topology (Thrift/buildTopology
+                    {"1" (Thrift/prepareSpoutDetails
+                           (TestWordSpout. true) (Integer. spout-phint))}
+                    {"2" (Thrift/prepareBoltDetails
+                           {(Utils/getGlobalStreamId "1" nil)
+                            (Thrift/prepareFieldsGrouping ["word"])}
+                           (TestWordBytesCounter.) (Integer. spout-phint))
                      })
           results (complete-topology
                     cluster
@@ -101,12 +104,13 @@
   (with-simulated-time-local-cluster [cluster :supervisors 4]
     (let [spout-phint 4
           bolt-phint 6
-          topology (thrift/mk-topology
-                    {"1" (thrift/mk-spout-spec (TestWordSpout. true)
-                                               :parallelism-hint spout-phint)}
-                    {"2" (thrift/mk-bolt-spec {"1" ["word"]}
-                                              (TestWordBytesCounter.)
-                                              :parallelism-hint bolt-phint)
+          topology (Thrift/buildTopology
+                    {"1" (Thrift/prepareSpoutDetails
+                           (TestWordSpout. true) (Integer. spout-phint))}
+                    {"2" (Thrift/prepareBoltDetails
+                           {(Utils/getGlobalStreamId "1" nil)
+                            (Thrift/prepareFieldsGrouping ["word"])}
+                           (TestWordBytesCounter.) (Integer. bolt-phint))
                      })
           results (complete-topology
                     cluster
@@ -127,15 +131,21 @@
 
 (deftest test-custom-groupings
   (with-simulated-time-local-cluster [cluster]
-    (let [topology (topology
-                    {"1" (spout-spec (TestWordSpout. true))}
-                    {"2" (bolt-spec {"1" (NGrouping. 2)}
-                                  id-bolt
-                                  :p 4)
-                     "3" (bolt-spec {"1" (JavaObject. "org.apache.storm.testing.NGrouping"
-                                                      [(JavaObjectArg/int_arg 3)])}
-                                  id-bolt
-                                  :p 6)
+    (let [topology (Thrift/buildTopology
+                    {"1" (Thrift/prepareSpoutDetails
+                           (TestWordSpout. true))}
+                    {"2" (Thrift/prepareBoltDetails
+                           {(Utils/getGlobalStreamId "1" nil)
+                            (Thrift/prepareCustomStreamGrouping (NGrouping. (Integer. 2)))}
+                           id-bolt
+                           (Integer. 4))
+                     "3" (Thrift/prepareBoltDetails
+                           {(Utils/getGlobalStreamId "1" nil)
+                            (Thrift/prepareCustomJavaObjectGrouping
+                              (JavaObject. "org.apache.storm.testing.NGrouping"
+                              [(JavaObjectArg/int_arg 3)]))}
+                           id-bolt
+                           (Integer. 6))
                      })
           results (complete-topology cluster
                                      topology

@@ -35,8 +35,11 @@ import java.io.NotSerializableException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
 import org.apache.storm.windowing.TupleWindow;
 import org.json.simple.JSONValue;
 import static org.apache.storm.spout.CheckpointSpout.CHECKPOINT_COMPONENT_ID;
@@ -231,7 +234,10 @@ public class TopologyBuilder {
      * state (of computation) to be saved. When this bolt is initialized, the {@link IStatefulBolt#initState(State)} method
      * is invoked after {@link IStatefulBolt#prepare(Map, TopologyContext, OutputCollector)} but before {@link IStatefulBolt#execute(Tuple)}
      * with its previously saved state.
-     *
+     * <p>
+     * The framework provides at-least once guarantee for the state updates. Bolts (both stateful and non-stateful) in a stateful topology
+     * are expected to anchor the tuples while emitting and ack the input tuples once its processed.
+     * </p>
      * @param id the id of this component. This id is referenced by other components that want to consume this bolt's outputs.
      * @param bolt the stateful bolt
      * @param parallelism_hint the number of tasks that should be assigned to execute this bolt. Each task will run on a thread in a process somwehere around the cluster.
@@ -357,15 +363,17 @@ public class TopologyBuilder {
      * add checkpoint stream from the previous bolt to its input.
      */
     private void addCheckPointInputs(ComponentCommon component) {
+        Set<GlobalStreamId> checkPointInputs = new HashSet<>();
         for (GlobalStreamId inputStream : component.get_inputs().keySet()) {
             String sourceId = inputStream.get_componentId();
             if (_spouts.containsKey(sourceId)) {
-                GlobalStreamId checkPointStream = new GlobalStreamId(CHECKPOINT_COMPONENT_ID, CHECKPOINT_STREAM_ID);
-                component.put_to_inputs(checkPointStream, Grouping.all(new NullStruct()));
+                checkPointInputs.add(new GlobalStreamId(CHECKPOINT_COMPONENT_ID, CHECKPOINT_STREAM_ID));
             } else {
-                GlobalStreamId checkPointStream = new GlobalStreamId(sourceId, CHECKPOINT_STREAM_ID);
-                component.put_to_inputs(checkPointStream, Grouping.all(new NullStruct()));
+                checkPointInputs.add(new GlobalStreamId(sourceId, CHECKPOINT_STREAM_ID));
             }
+        }
+        for (GlobalStreamId streamId : checkPointInputs) {
+            component.put_to_inputs(streamId, Grouping.all(new NullStruct()));
         }
     }
 

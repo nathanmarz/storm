@@ -55,6 +55,10 @@ def print_error_reports_from_report_file(file_path):
         if fail is not None:
             print_detail_information(testcase, fail)
 
+        failure = testcase.find("failure")
+        if failure is not None:
+            print_detail_information(testcase, failure)
+
 
 def main(report_dir_path):
     for test_report in glob.iglob(report_dir_path + '/*.xml'):

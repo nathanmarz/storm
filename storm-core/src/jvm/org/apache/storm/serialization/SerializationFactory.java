@@ -24,6 +24,7 @@ import org.apache.storm.serialization.types.ArrayListSerializer;
 import org.apache.storm.serialization.types.HashMapSerializer;
 import org.apache.storm.serialization.types.HashSetSerializer;
 import org.apache.storm.transactional.TransactionAttempt;
+import org.apache.storm.trident.tuple.ConsList;
 import org.apache.storm.tuple.Values;
 import org.apache.storm.utils.ListDelegate;
 import org.apache.storm.utils.Utils;
@@ -68,6 +69,7 @@ public class SerializationFactory {
         k.register(Values.class);
         k.register(org.apache.storm.metric.api.IMetricsConsumer.DataPoint.class);
         k.register(org.apache.storm.metric.api.IMetricsConsumer.TaskInfo.class);
+        k.register(ConsList.class);
         try {
             JavaBridge.registerPrimitives(k);
             JavaBridge.registerCollections(k);

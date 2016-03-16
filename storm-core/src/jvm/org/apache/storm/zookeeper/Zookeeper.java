@@ -17,15 +17,11 @@
  */
 package org.apache.storm.zookeeper;
 
-import clojure.lang.APersistentMap;
-import clojure.lang.PersistentArrayMap;
-import clojure.lang.RT;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.api.CuratorEvent;
 import org.apache.curator.framework.api.CuratorEventType;
 import org.apache.curator.framework.api.CuratorListener;
-import org.apache.curator.framework.api.UnhandledErrorListener;
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
 import org.apache.curator.framework.recipes.leader.LeaderLatchListener;
 import org.apache.curator.framework.recipes.leader.Participant;
@@ -33,6 +29,7 @@ import org.apache.curator.framework.state.ConnectionStateListener;
 import org.apache.storm.Config;
 import org.apache.storm.callback.DefaultWatcherCallBack;
 import org.apache.storm.callback.WatcherCallBack;
+import org.apache.storm.cluster.IStateStorage;
 import org.apache.storm.nimbus.ILeaderElector;
 import org.apache.storm.nimbus.NimbusInfo;
 import org.apache.storm.utils.Utils;
@@ -47,17 +44,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.BindException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
-import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.Vector;
+
 
 public class Zookeeper {
     private static Logger LOG = LoggerFactory.getLogger(Zookeeper.class);
@@ -87,19 +80,23 @@ public class Zookeeper {
         _instance = INSTANCE;
     }
 
-    public static CuratorFramework mkClient(Map conf, List<String> servers, Object port, String root) {
-        return mkClient(conf, servers, port, root, new DefaultWatcherCallBack());
+    public  CuratorFramework mkClientImpl(Map conf, List<String> servers, Object port, String root) {
+        return mkClientImpl(conf, servers, port, root, new DefaultWatcherCallBack());
     }
 
-    public static CuratorFramework mkClient(Map conf, List<String> servers, Object port, Map authConf) {
-        return mkClient(conf, servers, port, "", new DefaultWatcherCallBack(), authConf);
+    public  CuratorFramework mkClientImpl(Map conf, List<String> servers, Object port, Map authConf) {
+        return mkClientImpl(conf, servers, port, "", new DefaultWatcherCallBack(), authConf);
     }
 
-    public static CuratorFramework mkClient(Map conf, List<String> servers, Object port, String root, Map authConf) {
-        return mkClient(conf, servers, port, root, new DefaultWatcherCallBack(), authConf);
+    public  CuratorFramework mkClientImpl(Map conf, List<String> servers, Object port, String root, Map authConf) {
+        return mkClientImpl(conf, servers, port, root, new DefaultWatcherCallBack(), authConf);
     }
 
     public static CuratorFramework mkClient(Map conf, List<String> servers, Object port, String root, final WatcherCallBack watcher, Map authConf) {
+        return _instance.mkClientImpl(conf, servers, port, root, watcher, authConf);
+    }
+
+    public  CuratorFramework mkClientImpl(Map conf, List<String> servers, Object port, String root, final WatcherCallBack watcher, Map authConf) {
         CuratorFramework fk;
         if (authConf != null) {
             fk = Utils.newCurator(conf, servers, port, root, new ZookeeperAuthInfo(authConf));
@@ -125,8 +122,8 @@ public class Zookeeper {
      *
      * @return
      */
-    public static CuratorFramework mkClient(Map conf, List<String> servers, Object port, String root, final WatcherCallBack watcher) {
-        return mkClient(conf, servers, port, root, watcher, null);
+    public  CuratorFramework mkClientImpl(Map conf, List<String> servers, Object port, String root, final WatcherCallBack watcher) {
+        return mkClientImpl(conf, servers, port, root, watcher, null);
     }
 
     public static String createNode(CuratorFramework zk, String path, byte[] data, org.apache.zookeeper.CreateMode mode, List<ACL> acls) {
@@ -165,7 +162,7 @@ public class Zookeeper {
                 zk.delete().deletingChildrenIfNeeded().forPath(normalizePath(path));
             }
         } catch (Exception e) {
-            if (exceptionCause(KeeperException.NodeExistsException.class, e)) {
+            if (Utils.exceptionCauseIsInstanceOf(KeeperException.NodeExistsException.class, e)) {
                 // do nothing
                 LOG.info("delete {} failed.", path, e);
             } else {
@@ -191,7 +188,7 @@ public class Zookeeper {
         try {
             createNode(zk, npath, byteArray, org.apache.zookeeper.CreateMode.PERSISTENT, acls);
         } catch (Exception e) {
-            if (exceptionCause(KeeperException.NodeExistsException.class, e)) {
+            if (Utils.exceptionCauseIsInstanceOf(KeeperException.NodeExistsException.class, e)) {
                 // this can happen when multiple clients doing mkdir at same time
             }
         }
@@ -220,7 +217,7 @@ public class Zookeeper {
                 }
             }
         } catch (Exception e) {
-            if (exceptionCause(KeeperException.NoNodeException.class, e)) {
+            if (Utils.exceptionCauseIsInstanceOf(KeeperException.NoNodeException.class, e)) {
                 // this is fine b/c we still have a watch from the successful exists call
             } else {
                 throw Utils.wrapInRuntime(e);
@@ -308,7 +305,7 @@ public class Zookeeper {
         }
         LOG.info("Starting inprocess zookeeper at port {} and dir {}", report, localdir);
         factory.startup(zk);
-        return Arrays.asList((Object)new Long(report), (Object)factory);
+        return Arrays.asList((Object) new Long(report), (Object) factory);
     }
 
     public static void shutdownInprocessZookeeper(NIOServerCnxnFactory handle) {
@@ -348,7 +345,7 @@ public class Zookeeper {
     protected ILeaderElector zkLeaderElectorImpl(Map conf) throws UnknownHostException {
         List<String> servers = (List<String>) conf.get(Config.STORM_ZOOKEEPER_SERVERS);
         Object port = conf.get(Config.STORM_ZOOKEEPER_PORT);
-        CuratorFramework zk = mkClient(conf, servers, port, "", conf);
+        CuratorFramework zk = mkClientImpl(conf, servers, port, "", conf);
         String leaderLockPath = conf.get(Config.STORM_ZOOKEEPER_ROOT) + "/leader-lock";
         String id = NimbusInfo.fromConf(conf).toHostPortString();
         AtomicReference<LeaderLatch> leaderLatchAtomicReference = new AtomicReference<>(new LeaderLatch(zk, leaderLockPath, id));
@@ -357,9 +354,8 @@ public class Zookeeper {
         return new LeaderElectorImp(conf, servers, zk, leaderLockPath, id, leaderLatchAtomicReference, leaderLatchListenerAtomicReference);
     }
 
-    // To update @return to be a Map
-    public static APersistentMap getDataWithVersion(CuratorFramework zk, String path, boolean watch) {
-        APersistentMap map = null;
+    public static Map getDataWithVersion(CuratorFramework zk, String path, boolean watch) {
+        Map map = new HashMap();
         try {
             byte[] bytes = null;
             Stat stats = new Stat();
@@ -372,11 +368,12 @@ public class Zookeeper {
                 }
                 if (bytes != null) {
                     int version = stats.getVersion();
-                    map = new PersistentArrayMap(new Object[] { RT.keyword(null, "data"), bytes, RT.keyword(null, "version"), version });
+                    map.put(IStateStorage.DATA, bytes);
+                    map.put(IStateStorage.VERSION, version);
                 }
             }
         } catch (Exception e) {
-            if (exceptionCause(KeeperException.NoNodeException.class, e)) {
+            if (Utils.exceptionCauseIsInstanceOf(KeeperException.NoNodeException.class, e)) {
                 // this is fine b/c we still have a watch from the successful exists call
             } else {
                 Utils.wrapInRuntime(e);
@@ -397,9 +394,12 @@ public class Zookeeper {
     }
 
     public static String parentPath(String path) {
-        List<String> tokens = tokenizePath(path);
-        tokens.remove(tokens.size() - 1);
-        return "/" + StringUtils.join(tokens, "/");
+        List<String> toks = Zookeeper.tokenizePath(path);
+        int size = toks.size();
+        if (size > 0) {
+            toks.remove(size - 1);
+        }
+        return Zookeeper.toksToPath(toks);
     }
 
     public static String toksToPath(List<String> toks) {
@@ -419,19 +419,4 @@ public class Zookeeper {
         String rtn = toksToPath(tokenizePath(path));
         return rtn;
     }
-
-    // To remove exceptionCause if port Utils.try-cause to java
-    public static boolean exceptionCause(Class klass, Throwable t) {
-        boolean ret = false;
-        Throwable throwable = t;
-        while (throwable != null) {
-            if (throwable.getClass() == klass) {
-                ret = true;
-                break;
-            }
-            throwable = throwable.getCause();
-        }
-        return ret;
-    }
-
 }

@@ -17,27 +17,15 @@
  */
 package org.apache.storm.utils;
 
+import com.google.common.annotations.VisibleForTesting;
+
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.ExecuteException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.storm.Config;
-import org.apache.storm.blobstore.BlobStore;
-import org.apache.storm.blobstore.BlobStoreAclHandler;
-import org.apache.storm.blobstore.ClientBlobStore;
-import org.apache.storm.blobstore.InputStreamWithMeta;
-import org.apache.storm.blobstore.LocalFsBlobStore;
-import org.apache.storm.daemon.JarTransformer;
-import org.apache.storm.generated.*;
-import org.apache.storm.localizer.Localizer;
-import org.apache.storm.nimbus.NimbusInfo;
-import org.apache.storm.serialization.DefaultSerializationDelegate;
-import org.apache.storm.serialization.SerializationDelegate;
-import clojure.lang.RT;
-import com.google.common.annotations.VisibleForTesting;
-import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.io.input.ClassLoaderObjectInputStream;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.ensemble.exhibitor.DefaultExhibitorRestClient;
@@ -45,6 +33,31 @@ import org.apache.curator.ensemble.exhibitor.ExhibitorEnsembleProvider;
 import org.apache.curator.ensemble.exhibitor.Exhibitors;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.storm.Config;
+import org.apache.storm.blobstore.BlobStore;
+import org.apache.storm.blobstore.BlobStoreAclHandler;
+import org.apache.storm.blobstore.ClientBlobStore;
+import org.apache.storm.blobstore.InputStreamWithMeta;
+import org.apache.storm.blobstore.LocalFsBlobStore;
+import org.apache.storm.daemon.JarTransformer;
+import org.apache.storm.generated.AccessControl;
+import org.apache.storm.generated.AccessControlType;
+import org.apache.storm.generated.AuthorizationException;
+import org.apache.storm.generated.ClusterSummary;
+import org.apache.storm.generated.ComponentCommon;
+import org.apache.storm.generated.ComponentObject;
+import org.apache.storm.generated.GlobalStreamId;
+import org.apache.storm.generated.KeyNotFoundException;
+import org.apache.storm.generated.Nimbus;
+import org.apache.storm.generated.ReadableBlobMeta;
+import org.apache.storm.generated.SettableBlobMeta;
+import org.apache.storm.generated.StormTopology;
+import org.apache.storm.generated.TopologyInfo;
+import org.apache.storm.generated.TopologySummary;
+import org.apache.storm.localizer.Localizer;
+import org.apache.storm.nimbus.NimbusInfo;
+import org.apache.storm.serialization.DefaultSerializationDelegate;
+import org.apache.storm.serialization.SerializationDelegate;
 import org.apache.thrift.TBase;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
@@ -52,7 +65,6 @@ import org.apache.thrift.TSerializer;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Id;
-import org.eclipse.jetty.util.log.Log;
 import org.json.simple.JSONValue;
 import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
@@ -88,6 +100,7 @@ import java.net.InetAddress;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.net.UnknownHostException;
+import java.net.ServerSocket;
 import java.nio.ByteBuffer;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -118,6 +131,8 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+
+import clojure.lang.RT;
 
 public class Utils {
     // A singleton instance allows us to mock delegated static methods in our
@@ -302,6 +317,14 @@ public class Utils {
         return ret.toString();
     }
 
+    public static long bitXorVals(List<Long> coll) {
+        long result = 0;
+        for (Long val : coll) {
+            result ^= val;
+        }
+        return result;
+    }
+
     public static void sleep(long millis) {
         try {
             Time.sleep(millis);
@@ -398,7 +421,17 @@ public class Utils {
         Map ret = new HashMap();
         String commandOptions = System.getProperty("storm.options");
         if (commandOptions != null) {
-            String[] configs = commandOptions.split(",");
+            /*
+             Below regex uses negative lookahead to not split in the middle of json objects '{}'
+             or json arrays '[]'. This is needed to parse valid json object/arrays passed as options
+             via 'storm.cmd' in windows. This is not an issue while using 'storm.py' since it url-encodes
+             the options and the below regex just does a split on the commas that separates each option.
+
+             Note:- This regex handles only valid json strings and could produce invalid results
+             if the options contain un-encoded invalid json or strings with unmatched '[, ], { or }'. We can
+             replace below code with split(",") once 'storm.cmd' is fixed to send url-encoded options.
+              */
+            String[] configs = commandOptions.split(",(?![^\\[\\]{}]*(]|}))");
             for (String config : configs) {
                 config = URLDecoder.decode(config);
                 String[] options = config.split("=", 2);
@@ -591,7 +624,12 @@ public class Utils {
     }
 
     public static boolean checkFileExists(String dir, String file) {
-        return Files.exists(new File(dir, file).toPath());
+        return checkFileExists(dir + "/" + file);
+    }
+
+    public static boolean CheckDirExists(String dir) {
+        File file = new File(dir);
+        return file.isDirectory();
     }
 
     public static long nimbusVersionOfBlob(String key, ClientBlobStore cb) throws AuthorizationException, KeyNotFoundException {
@@ -1040,6 +1078,10 @@ public class Utils {
         return newCurator(conf, servers, port, root, null);
     }
 
+    public static CuratorFramework newCurator(Map conf, List<String> servers, Object port, ZookeeperAuthInfo auth) {
+        return newCurator(conf, servers, port, "", auth);
+    }
+
     public static CuratorFramework newCurator(Map conf, List<String> servers, Object port, String root, ZookeeperAuthInfo auth) {
         List<String> serverPorts = new ArrayList<String>();
         for (String zkServer : servers) {
@@ -1093,10 +1135,6 @@ public class Utils {
                                                 builder, String zkStr, Map conf, ZookeeperAuthInfo auth)
     {
         setupBuilder(builder, zkStr, conf, auth);
-    }
-
-    public static CuratorFramework newCurator(Map conf, List<String> servers, Object port, ZookeeperAuthInfo auth) {
-        return newCurator(conf, servers, port, "", auth);
     }
 
     public static CuratorFramework newCuratorStarted(Map conf, List<String> servers, Object port, String root, ZookeeperAuthInfo auth) {
@@ -1379,13 +1417,16 @@ public class Utils {
             }
             if (memoryOpts != null) {
                 int unit = 1;
-                if (memoryOpts.toLowerCase().endsWith("k")) {
+                memoryOpts = memoryOpts.toLowerCase();
+
+                if (memoryOpts.endsWith("k")) {
                     unit = 1024;
-                } else if (memoryOpts.toLowerCase().endsWith("m")) {
+                } else if (memoryOpts.endsWith("m")) {
                     unit = 1024 * 1024;
-                } else if (memoryOpts.toLowerCase().endsWith("g")) {
+                } else if (memoryOpts.endsWith("g")) {
                     unit = 1024 * 1024 * 1024;
                 }
+
                 memoryOpts = memoryOpts.replaceAll("[a-zA-Z]", "");
                 Double result =  Double.parseDouble(memoryOpts) * unit / 1024.0 / 1024.0;
                 return (result < 1.0) ? 1.0 : result;
@@ -1408,21 +1449,29 @@ public class Utils {
     }
 
     public static TopologyInfo getTopologyInfo(String name, String asUser, Map stormConf) {
-        NimbusClient client = NimbusClient.getConfiguredClientAs(stormConf, asUser);
-        TopologyInfo topologyInfo = null;
+        try (NimbusClient client = NimbusClient.getConfiguredClientAs(stormConf, asUser)) {
+            String topologyId = getTopologyId(name, client.getClient());
+            if (null != topologyId) {
+                return client.getClient().getTopologyInfo(topologyId);
+            }
+            return null;
+        } catch(Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static String getTopologyId(String name, Nimbus.Client client) {
         try {
-            ClusterSummary summary = client.getClient().getClusterInfo();
+            ClusterSummary summary = client.getClusterInfo();
             for(TopologySummary s : summary.get_topologies()) {
                 if(s.get_name().equals(name)) {
-                    topologyInfo = client.getClient().getTopologyInfo(s.get_id());
+                    return s.get_id();
                 }
             }
         } catch(Exception e) {
             throw new RuntimeException(e);
-        } finally {
-            client.close();
         }
-        return topologyInfo;
+        return null;
     }
 
     /**
@@ -1438,12 +1487,35 @@ public class Utils {
         return number & Integer.MAX_VALUE;
     }
 
+    public static GlobalStreamId getGlobalStreamId(String streamId, String componentId) {
+        if (componentId == null) {
+            return new GlobalStreamId(streamId, DEFAULT_STREAM_ID);
+        }
+        return new GlobalStreamId(streamId, componentId);
+    }
+
     public static RuntimeException wrapInRuntime(Exception e){
         if (e instanceof RuntimeException){
             return (RuntimeException)e;
         } else {
             return new RuntimeException(e);
         }
+    }
+
+    public static int getAvailablePort(int prefferedPort) {
+        int localPort = -1;
+        try(ServerSocket socket = new ServerSocket(prefferedPort)) {
+            localPort = socket.getLocalPort();
+        } catch(IOException exp) {
+            if (prefferedPort > 0) {
+                return getAvailablePort(0);
+            }
+        }
+        return localPort;
+    }
+
+    public static int getAvailablePort() {
+        return getAvailablePort(0);
     }
 
     /**
@@ -1454,7 +1526,7 @@ public class Utils {
      * @return boolean whether or not the directory exists in the zip.
      */
     public static boolean zipDoesContainDir(String zipfile, String target) throws IOException {
-        List<ZipEntry> entries = (List<ZipEntry>)Collections.list(new ZipFile(zipfile).entries());
+        List<ZipEntry> entries = (List<ZipEntry>) Collections.list(new ZipFile(zipfile).entries());
 
         String targetDir = target + "/";
         for(ZipEntry entry : entries) {
@@ -1687,13 +1759,8 @@ public class Utils {
         return UUID.randomUUID().toString();
     }
 
-    public static void exitProcess (int val, Object... msg) {
-        StringBuilder errorMessage = new StringBuilder();
-        errorMessage.append("Halting process: ");
-        for (Object oneMessage: msg) {
-            errorMessage.append(oneMessage);
-        }
-        String combinedErrorMessage = errorMessage.toString();
+    public static void exitProcess (int val, String msg) {
+        String combinedErrorMessage = "Halting process: " + msg;
         LOG.error(combinedErrorMessage, new RuntimeException(combinedErrorMessage));
         Runtime.getRuntime().exit(val);
     }
@@ -2267,4 +2334,24 @@ public class Utils {
         }
         return null;
       }
+
+    public static long bitXor(Long a, Long b) {
+        return a ^ b;
+    }
+
+    public static List<String> getRepeat(List<String> list) {
+        List<String> rtn = new ArrayList<String>();
+        Set<String> idSet = new HashSet<String>();
+
+        for (String id : list) {
+            if (idSet.contains(id)) {
+                rtn.add(id);
+            } else {
+                idSet.add(id);
+            }
+        }
+
+        return rtn;
+    }
+
 }

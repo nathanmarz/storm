@@ -1,4 +1,6 @@
 ## 2.0.0
+ * STORM-1232: port backtype.storm.scheduler.DefaultScheduler to java
+ * STORM-1231: port backtype.storm.scheduler.EvenScheduler to java
  * STORM-1523: util.clj available-port conversion to java
  * STORM-1252: port backtype.storm.stats to java
  * STORM-1250: port backtype.storm.serialization-test to java

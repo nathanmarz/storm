@@ -282,6 +282,11 @@
 
 (defn try-cleanup-worker [conf supervisor id]
   (try
+    ;; clean up for resource isolation if enabled
+    (if (conf STORM-RESOURCE-ISOLATION-PLUGIN-ENABLE)
+      (.releaseResourcesForWorker (:resource-isolation-manager supervisor) id))
+    ;; Always make sure to clean up everything else before worker directory
+    ;; is removed since that is what is going to trigger the retry for cleanup
     (if (.exists (File. (ConfigUtils/workerRoot conf id)))
       (do
         (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
@@ -295,8 +300,6 @@
         (ConfigUtils/removeWorkerUserWSE conf id)
         (remove-dead-worker id)
       ))
-    (if (conf STORM-RESOURCE-ISOLATION-PLUGIN-ENABLE)
-      (.releaseResourcesForWorker (:resource-isolation-manager supervisor) id))
   (catch IOException e
     (log-warn-error e "Failed to cleanup worker " id ". Will retry later"))
   (catch RuntimeException e

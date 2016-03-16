@@ -26,7 +26,7 @@ import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
 
 
-public class Node extends DefaultResourceDeclarer implements Serializable {
+public class Node extends DefaultResourceDeclarer<Node> implements Serializable {
     private static final AtomicInteger INDEX = new AtomicInteger(0);
     
     private String nodeId;

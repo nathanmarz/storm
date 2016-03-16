@@ -20,6 +20,7 @@ package org.apache.storm.trident;
 import org.apache.storm.generated.Grouping;
 import org.apache.storm.generated.NullStruct;
 import org.apache.storm.grouping.CustomStreamGrouping;
+import org.apache.storm.topology.ResourceDeclarer;
 import org.apache.storm.trident.fluent.ChainedAggregatorDeclarer;
 import org.apache.storm.trident.fluent.GlobalAggregationScheme;
 import org.apache.storm.trident.fluent.GroupedStream;
@@ -90,7 +91,7 @@ import java.util.Comparator;
  *
  */
 // TODO: need to be able to replace existing fields with the function fields (like Cascading Fields.REPLACE)
-public class Stream implements IAggregatableStream {
+public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
     Node _node;
     TridentTopology _topology;
     String _name;
@@ -126,6 +127,7 @@ public class Stream implements IAggregatableStream {
     /**
      * Sets the CPU Load resource for the current operation
      */
+    @Override
     public Stream setCPULoad(Number load) {
         _node.setCPULoad(load);
         return this;
@@ -135,6 +137,7 @@ public class Stream implements IAggregatableStream {
      * Sets the Memory Load resources for the current operation.
      * offHeap becomes default
      */
+    @Override
     public Stream setMemoryLoad(Number onHeap) {
         _node.setMemoryLoad(onHeap);
         return this;
@@ -143,6 +146,7 @@ public class Stream implements IAggregatableStream {
     /**
      * Sets the Memory Load resources for the current operation.
      */
+    @Override
     public Stream setMemoryLoad(Number onHeap, Number offHeap) {
         _node.setMemoryLoad(onHeap, offHeap);
         return this;

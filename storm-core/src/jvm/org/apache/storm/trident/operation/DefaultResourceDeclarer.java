@@ -23,18 +23,22 @@ import org.apache.storm.Config;
 import org.apache.storm.utils.Utils;
 import org.apache.storm.topology.ResourceDeclarer;
 
-public class DefaultResourceDeclarer implements ResourceDeclarer, ITridentResource {
+/**
+ * @param T Must always be the type of the extending class. i.e.
+ * public class SubResourceDeclarer extends DefaultResourceDeclarer<SubResourceDeclarer> {...}
+ */
+public class DefaultResourceDeclarer<T extends DefaultResourceDeclarer> implements ResourceDeclarer<T>, ITridentResource {
 
     private Map<String, Number> resources = new HashMap<>();
     private Map conf = Utils.readStormConfig();
 
     @Override
-    public DefaultResourceDeclarer setMemoryLoad(Number onHeap) {
+    public T setMemoryLoad(Number onHeap) {
         return setMemoryLoad(onHeap, Utils.getDouble(conf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)));
     }
 
     @Override
-    public DefaultResourceDeclarer setMemoryLoad(Number onHeap, Number offHeap) {
+    public T setMemoryLoad(Number onHeap, Number offHeap) {
         if (onHeap != null) {
             onHeap = onHeap.doubleValue();
             resources.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, onHeap);
@@ -43,16 +47,16 @@ public class DefaultResourceDeclarer implements ResourceDeclarer, ITridentResour
             offHeap = offHeap.doubleValue();
             resources.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, offHeap);
         }
-        return this;
+        return (T)this;
     }
 
     @Override
-    public DefaultResourceDeclarer setCPULoad(Number amount) {
+    public T setCPULoad(Number amount) {
         if(amount != null) {
             amount = amount.doubleValue();
             resources.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, amount);
         }
-        return this;
+        return (T)this;
     }
 
     @Override

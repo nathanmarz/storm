@@ -51,7 +51,7 @@ public class CheckpointTupleForwarder implements IRichBolt {
     private final Map<TransactionRequest, Integer> transactionRequestCount;
     private int checkPointInputTaskCount;
     private long lastTxid = Long.MIN_VALUE;
-    protected AnchoringOutputCollector collector;
+    private AnchoringOutputCollector collector;
 
     public CheckpointTupleForwarder(IRichBolt bolt) {
         this.bolt = bolt;
@@ -60,9 +60,13 @@ public class CheckpointTupleForwarder implements IRichBolt {
 
     @Override
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
-        this.collector = new AnchoringOutputCollector(collector);
+        init(context, collector);
         bolt.prepare(stormConf, context, this.collector);
-        checkPointInputTaskCount = getCheckpointInputTaskCount(context);
+    }
+
+    protected void init(TopologyContext context, OutputCollector collector) {
+        this.collector = new AnchoringOutputCollector(collector);
+        this.checkPointInputTaskCount = getCheckpointInputTaskCount(context);
     }
 
     @Override
@@ -114,9 +118,7 @@ public class CheckpointTupleForwarder implements IRichBolt {
      * @param input the input tuple
      */
     protected void handleTuple(Tuple input) {
-        collector.setContext(input);
         bolt.execute(input);
-        collector.ack(input);
     }
 
     /**
@@ -225,24 +227,18 @@ public class CheckpointTupleForwarder implements IRichBolt {
 
 
     protected static class AnchoringOutputCollector extends OutputCollector {
-        private Tuple inputTuple;
-
         AnchoringOutputCollector(IOutputCollector delegate) {
             super(delegate);
         }
 
-        void setContext(Tuple inputTuple) {
-            this.inputTuple = inputTuple;
-        }
-
         @Override
         public List<Integer> emit(String streamId, List<Object> tuple) {
-            return emit(streamId, inputTuple, tuple);
+            throw new UnsupportedOperationException("Bolts in a stateful topology must emit anchored tuples.");
         }
 
         @Override
         public void emitDirect(int taskId, String streamId, List<Object> tuple) {
-            emitDirect(taskId, streamId, inputTuple, tuple);
+            throw new UnsupportedOperationException("Bolts in a stateful topology must emit anchored tuples.");
         }
 
     }

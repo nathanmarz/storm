@@ -90,6 +90,7 @@ public class StatefulTopology {
             LOG.debug("{} sum = {}", name, sum);
             kvState.put("sum", sum);
             collector.emit(input, new Values(sum));
+            collector.ack(input);
         }
 
         @Override

@@ -28,8 +28,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static org.apache.storm.spout.CheckPointState.Action;
 import static org.apache.storm.spout.CheckPointState.Action.COMMIT;
@@ -47,7 +51,7 @@ public class StatefulBoltExecutor<T extends State> extends CheckpointTupleForwar
     private boolean boltInitialized = false;
     private List<Tuple> pendingTuples = new ArrayList<>();
     private List<Tuple> preparedTuples = new ArrayList<>();
-    private List<Tuple> executedTuples = new ArrayList<>();
+    private AckTrackingOutputCollector collector;
 
     public StatefulBoltExecutor(IStatefulBolt<T> bolt) {
         super(bolt);
@@ -63,7 +67,9 @@ public class StatefulBoltExecutor<T extends State> extends CheckpointTupleForwar
 
     // package access for unit tests
     void prepare(Map stormConf, TopologyContext context, OutputCollector collector, State state) {
-        super.prepare(stormConf, context, collector);
+        init(context, collector);
+        this.collector = new AckTrackingOutputCollector(collector);
+        bolt.prepare(stormConf, context, this.collector);
         this.state = state;
     }
 
@@ -74,8 +80,7 @@ public class StatefulBoltExecutor<T extends State> extends CheckpointTupleForwar
             if (boltInitialized) {
                 bolt.prePrepare(txid);
                 state.prepareCommit(txid);
-                preparedTuples.addAll(executedTuples);
-                executedTuples.clear();
+                preparedTuples.addAll(collector.ackedTuples());
             } else {
                 /*
                  * May be the task restarted in the middle and the state needs be initialized.
@@ -93,7 +98,7 @@ public class StatefulBoltExecutor<T extends State> extends CheckpointTupleForwar
             bolt.preRollback();
             state.rollback();
             fail(preparedTuples);
-            fail(executedTuples);
+            fail(collector.ackedTuples());
         } else if (action == INITSTATE) {
             if (!boltInitialized) {
                 bolt.initState((T) state);
@@ -109,7 +114,7 @@ public class StatefulBoltExecutor<T extends State> extends CheckpointTupleForwar
             }
         }
         collector.emit(CheckpointSpout.CHECKPOINT_STREAM_ID, checkpointTuple, new Values(txid, action));
-        collector.ack(checkpointTuple);
+        collector.delegate.ack(checkpointTuple);
     }
 
     @Override
@@ -123,16 +128,14 @@ public class StatefulBoltExecutor<T extends State> extends CheckpointTupleForwar
     }
 
     private void doExecute(Tuple tuple) {
-        collector.setContext(tuple);
         bolt.execute(tuple);
-        executedTuples.add(tuple);
     }
 
     private void ack(List<Tuple> tuples) {
         if (!tuples.isEmpty()) {
             LOG.debug("Acking {} tuples", tuples.size());
             for (Tuple tuple : tuples) {
-                collector.ack(tuple);
+                collector.delegate.ack(tuple);
             }
             tuples.clear();
         }
@@ -148,4 +151,29 @@ public class StatefulBoltExecutor<T extends State> extends CheckpointTupleForwar
         }
     }
 
+    private static class AckTrackingOutputCollector extends AnchoringOutputCollector {
+        private final OutputCollector delegate;
+        private final Queue<Tuple> ackedTuples;
+
+        AckTrackingOutputCollector(OutputCollector delegate) {
+            super(delegate);
+            this.delegate = delegate;
+            this.ackedTuples = new ConcurrentLinkedQueue<>();
+        }
+
+        List<Tuple> ackedTuples() {
+            List<Tuple> result = new ArrayList<>();
+            Iterator<Tuple> it = ackedTuples.iterator();
+            while(it.hasNext()) {
+                result.add(it.next());
+                it.remove();
+            }
+            return result;
+        }
+
+        @Override
+        public void ack(Tuple input) {
+            ackedTuples.add(input);
+        }
+    }
 }

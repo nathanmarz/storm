@@ -170,6 +170,7 @@ public class StatefulBoltExecutorTest {
         Mockito.when(mockCheckpointTuple.getValueByField(CHECKPOINT_FIELD_ACTION)).thenReturn(COMMIT);
         Mockito.when(mockCheckpointTuple.getLongByField(CHECKPOINT_FIELD_TXID)).thenReturn(new Long(100));
         executor.execute(mockCheckpointTuple);
+        mockOutputCollector.ack(mockTuple);
         Mockito.verify(mockState, Mockito.times(1)).commit(new Long(100));
         Mockito.verify(mockBolt, Mockito.times(2)).execute(mockTuple);
         Mockito.verify(mockOutputCollector, Mockito.times(1)).ack(mockTuple);

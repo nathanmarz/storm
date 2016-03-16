@@ -65,21 +65,23 @@ public class User {
         }
     }
 
-    public User getCopy() {
-        User newUser = new User(this.userId, this.resourcePool);
-        for (TopologyDetails topo : this.pendingQueue) {
-            newUser.addTopologyToPendingQueue(topo);
+    /**
+     * Copy Constructor
+     */
+    public User(User src) {
+        this(src.userId, src.resourcePool);
+        for (TopologyDetails topo : src.pendingQueue) {
+            addTopologyToPendingQueue(topo);
         }
-        for (TopologyDetails topo : this.runningQueue) {
-            newUser.addTopologyToRunningQueue(topo);
+        for (TopologyDetails topo : src.runningQueue) {
+            addTopologyToRunningQueue(topo);
         }
-        for (TopologyDetails topo : this.attemptedQueue) {
-            newUser.addTopologyToAttemptedQueue(topo);
+        for (TopologyDetails topo : src.attemptedQueue) {
+            addTopologyToAttemptedQueue(topo);
         }
-        for (TopologyDetails topo : this.invalidQueue) {
-            newUser.addTopologyToInvalidQueue(topo);
+        for (TopologyDetails topo : src.invalidQueue) {
+            addTopologyToInvalidQueue(topo);
         }
-        return newUser;
     }
 
     public String getId() {

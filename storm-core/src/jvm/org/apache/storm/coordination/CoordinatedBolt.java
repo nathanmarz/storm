@@ -124,6 +124,10 @@ public class CoordinatedBolt implements IRichBolt {
             checkFinishId(tuple, TupleType.REGULAR);
             _delegate.fail(tuple);
         }
+
+        public void resetTimeout(Tuple tuple) {
+            _delegate.resetTimeout(tuple);
+        }
         
         public void reportError(Throwable error) {
             _delegate.reportError(error);

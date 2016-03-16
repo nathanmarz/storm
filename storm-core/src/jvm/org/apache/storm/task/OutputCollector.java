@@ -218,6 +218,17 @@ public class OutputCollector implements IOutputCollector {
         _delegate.fail(input);
     }
 
+    /**
+    * Resets the message timeout for any tuple trees to which the given tuple belongs.
+    * The timeout is reset to Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS.
+    * Note that this is an expensive operation, and should be used sparingly.
+    * @param input the tuple to reset timeout for
+    */
+    @Override
+    public void resetTimeout(Tuple input) {
+        _delegate.resetTimeout(input);
+    }
+
     @Override
     public void reportError(Throwable error) {
         _delegate.reportError(error);

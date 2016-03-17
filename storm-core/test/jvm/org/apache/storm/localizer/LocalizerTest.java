@@ -110,7 +110,7 @@ public class LocalizerTest {
 
   @Before
   public void setUp() throws Exception {
-    baseDir = new File("/tmp/blob-store-localizer-test-"+ UUID.randomUUID());
+    baseDir = new File(System.getProperty("java.io.tmpdir") + "/blob-store-localizer-test-"+ UUID.randomUUID());
     if (!baseDir.mkdir()) {
       throw new IOException("failed to create base directory");
     }
@@ -259,6 +259,11 @@ public class LocalizerTest {
 
   // archive passed in must contain symlink named tmptestsymlink if not a zip file
   public void testArchives(String archivePath, boolean supportSymlinks, int size) throws Exception {
+    if (Utils.isOnWindows()) {
+      // Windows should set this to false cause symlink in compressed file doesn't work properly.
+      supportSymlinks = false;
+    }
+
     Map conf = new HashMap();
     // set clean time really high so doesn't kick in
     conf.put(Config.SUPERVISOR_LOCALIZER_CACHE_CLEANUP_INTERVAL_MS, 60*60*1000);

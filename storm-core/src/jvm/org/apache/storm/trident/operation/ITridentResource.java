@@ -19,6 +19,14 @@ package org.apache.storm.trident.operation;
 
 import java.util.Map;
 
+/**
+ * This interface is implemented by various Trident classes in order to
+ * gather and propogate resources that have been set on them.
+ * @see ResourceDeclarer
+ */
 public interface ITridentResource {
+    /**
+     * @return a name of resource name -> amount of that resource. *Return should never be null!*
+     */
     Map<String, Number> getResources();
 }

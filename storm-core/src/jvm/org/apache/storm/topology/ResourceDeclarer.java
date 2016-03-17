@@ -17,6 +17,10 @@
  */
 package org.apache.storm.topology;
 
+/**
+ * This is a new base interface that can be used by anything that wants to mirror
+ * RAS's basic API. Trident uses this to allow setting resources in the Stream API.
+ */
 public interface ResourceDeclarer <T extends ResourceDeclarer> {
     T setMemoryLoad(Number onHeap);
     T setMemoryLoad(Number onHeap, Number offHeap);

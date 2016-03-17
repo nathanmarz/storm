@@ -71,16 +71,14 @@ public class Group implements ITridentResource {
     public Map<String, Number> getResources() {
         Map<String, Number> ret = new HashMap<>();
         for(Node n: nodes) {
-            if(n instanceof ITridentResource) {
-                Map<String, Number> res = ((ITridentResource)n).getResources();
-                for(Map.Entry<String, Number> kv : res.entrySet()) {
-                    String key = kv.getKey();
-                    Number val = kv.getValue();
-                    if(ret.containsKey(key)) {
-                        val = new Double(val.doubleValue() + ret.get(key).doubleValue());
-                    }
-                    ret.put(key, val);
+            Map<String, Number> res = n.getResources();
+            for(Map.Entry<String, Number> kv : res.entrySet()) {
+                String key = kv.getKey();
+                Number val = kv.getValue();
+                if(ret.containsKey(key)) {
+                    val = new Double(val.doubleValue() + ret.get(key).doubleValue());
                 }
+                ret.put(key, val);
             }
         }
         return ret;

@@ -484,7 +484,7 @@ public class TridentTopology {
            Right now, this code does not check that. It just takes the max of the summed
            up resource counts for simplicity's sake. We could perform some more complicated
            logic to be more accurate, but the benefits are very small, and only apply to some
-           very odd corner cases. */g
+           very odd corner cases. */
         if(onHeap == null) {
             onHeap = onHeapDefault;
         }

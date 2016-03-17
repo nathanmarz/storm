@@ -1,4 +1,5 @@
 ## 2.0.0
+ * STORM-1616: Add RAS API for Trident
  * STORM-1623: nimbus.clj's minor bug
  * STORM-1624: Add maven central status in README
  * STORM-1232: port backtype.storm.scheduler.DefaultScheduler to java

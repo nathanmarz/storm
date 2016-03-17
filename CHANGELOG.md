@@ -1,4 +1,5 @@
 ## 2.0.0
+ * STORM-1624: Add maven central status in README
  * STORM-1232: port backtype.storm.scheduler.DefaultScheduler to java
  * STORM-1231: port backtype.storm.scheduler.EvenScheduler to java
  * STORM-1523: util.clj available-port conversion to java

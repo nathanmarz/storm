@@ -63,8 +63,9 @@ public class MongoUpdateBolt extends AbstractMongoBolt {
         }
     }
 
-    public void withUpsert(boolean upsert) {
+    public MongoUpdateBolt withUpsert(boolean upsert) {
         this.upsert = upsert;
+        return this;
     }
 
     @Override

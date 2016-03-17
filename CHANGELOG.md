@@ -1,4 +1,7 @@
 ## 2.0.0
+ * STORM-1624: Add maven central status in README
+ * STORM-1232: port backtype.storm.scheduler.DefaultScheduler to java
+ * STORM-1231: port backtype.storm.scheduler.EvenScheduler to java
  * STORM-1523: util.clj available-port conversion to java
  * STORM-1252: port backtype.storm.stats to java
  * STORM-1250: port backtype.storm.serialization-test to java
@@ -57,6 +60,7 @@
  * STORM-1521: When using Kerberos login from keytab with multiple bolts/executors ticket is not renewed in hbase bolt.
 
 ## 1.0.0
+ * STORM-1549: Add support for resetting tuple timeout from bolts via the OutputCollector
  * STORM-971: Metric for messages lost due to kafka retention
  * STORM-1483: add storm-mongodb connector
  * STORM-1608: Fix stateful topology acking behavior

@@ -28,7 +28,8 @@
   (:import [javax.security.auth Subject])
   (:use [org.apache.storm util config log])
   (:use [org.apache.storm.daemon common])
-  (:use [org.apache.storm testing]))
+  (:use [org.apache.storm testing])
+  (:import [org.apache.storm.utils Utils]))
 
 (def DRPC-TIMEOUT-SEC (* (/ TEST-TIMEOUT-MS 1000) 2))
 
@@ -64,8 +65,8 @@
       ))
 
 (deftest deny-drpc-test
-  (let [client-port (available-port)
-        invocations-port (available-port (inc client-port))
+  (let [client-port (Utils/getAvailablePort)
+        invocations-port (Utils/getAvailablePort (int(inc client-port)))
         storm-conf (clojurify-structure (ConfigUtils/readStormConfig))]
     (with-server [storm-conf "org.apache.storm.security.auth.authorizer.DenyAuthorizer"
                   nil nil client-port invocations-port]
@@ -79,8 +80,8 @@
         (.close invocations)))))
 
 (deftest deny-drpc-digest-test
-  (let [client-port (available-port)
-        invocations-port (available-port (inc client-port))
+  (let [client-port (Utils/getAvailablePort)
+        invocations-port (Utils/getAvailablePort (int (inc client-port)))
         storm-conf (clojurify-structure (ConfigUtils/readStormConfig))]
     (with-server [storm-conf "org.apache.storm.security.auth.authorizer.DenyAuthorizer"
                   "org.apache.storm.security.auth.digest.DigestSaslTransportPlugin"
@@ -99,8 +100,8 @@
 
 (defmacro with-simple-drpc-test-scenario
   [[strict? alice-client bob-client charlie-client alice-invok charlie-invok] & body]
-  (let [client-port (available-port)
-        invocations-port (available-port (inc client-port))
+  (let [client-port (Utils/getAvailablePort)
+        invocations-port (Utils/getAvailablePort (int (inc client-port)))
         storm-conf (merge (clojurify-structure (ConfigUtils/readStormConfig))
                           {DRPC-AUTHORIZER-ACL-STRICT strict?
                            DRPC-AUTHORIZER-ACL-FILENAME "drpc-simple-acl-test-scenario.yaml"

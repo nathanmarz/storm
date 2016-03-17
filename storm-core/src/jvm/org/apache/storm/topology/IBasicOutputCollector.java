@@ -18,10 +18,12 @@
 package org.apache.storm.topology;
 
 import org.apache.storm.task.IErrorReporter;
+import org.apache.storm.tuple.Tuple;
 
 import java.util.List;
 
 public interface IBasicOutputCollector extends IErrorReporter{
     List<Integer> emit(String streamId, List<Object> tuple);
     void emitDirect(int taskId, String streamId, List<Object> tuple);
+    void resetTimeout(Tuple tuple);
 }

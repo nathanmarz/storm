@@ -17,7 +17,11 @@
  */
 package org.apache.storm.pacemaker;
 
-import org.apache.storm.generated.*;
+import org.apache.storm.generated.HBMessage;
+import org.apache.storm.generated.HBMessageData;
+import org.apache.storm.generated.HBPulse;
+import org.apache.storm.generated.HBNodes;
+import org.apache.storm.generated.HBServerMessageType;
 import org.apache.storm.utils.ConfigUtils;
 import org.apache.storm.utils.Utils;
 import org.apache.storm.utils.VersionInfo;
@@ -25,7 +29,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.org.lidalia.sysoutslf4j.context.SysOutOverSLF4J;
 
-import java.util.*;
+
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -38,6 +47,9 @@ public class Pacemaker implements IServerMessageHandler {
     private PacemakerStats pacemakerStats;
     private Map conf;
     private final long sleepSeconds = 60;
+
+    private boolean isDaemon = true;
+    private boolean startImmediately = true;
 
     private static class PacemakerStats {
         public AtomicInteger sendPulseCount = new AtomicInteger();
@@ -64,7 +76,7 @@ public class Pacemaker implements IServerMessageHandler {
             response = createPath(data.get_path());
             break;
         case EXISTS:
-            response = exists(data.get_path(), authenticated);
+            response = pathExists(data.get_path(), authenticated);
             break;
         case SEND_PULSE:
             response = sendPulse(data.get_pulse());
@@ -97,7 +109,7 @@ public class Pacemaker implements IServerMessageHandler {
         return new HBMessage(HBServerMessageType.CREATE_PATH_RESPONSE, null);
     }
 
-    private HBMessage exists(String path, boolean authenticated) {
+    private HBMessage pathExists(String path, boolean authenticated) {
         HBMessage response = null;
         if (authenticated) {
             boolean itDoes = heartbeats.containsKey(path);
@@ -206,9 +218,8 @@ public class Pacemaker implements IServerMessageHandler {
             int oldValue = pacemakerStats.averageHeartbeatSize.get();
             int count = pacemakerStats.sendPulseCount.get();
             int newValue = ((count * oldValue) + size) / (count + 1);
-            if (!pacemakerStats.averageHeartbeatSize.compareAndSet(oldValue, newValue))
-                continue;
-            break;
+            if (pacemakerStats.averageHeartbeatSize.compareAndSet(oldValue, newValue))
+                break;
         }
     }
 
@@ -222,13 +233,14 @@ public class Pacemaker implements IServerMessageHandler {
                 int largest = pacemakerStats.largestHeartbeatSize.getAndSet(0);
                 int average = pacemakerStats.averageHeartbeatSize.getAndSet(0);
                 int totalKeys = heartbeats.size();
-                LOG.debug(
-                        "\nReceived {} heartbeats totaling {} bytes,\nSent {} heartbeats totaling {} bytes,\nThe largest heartbeat was {} bytes,\nThe average heartbeat was {} bytes,\nPacemaker contained {} total keys\nin the last {} second(s)",
+                LOG.debug("\nReceived {} heartbeats totaling {} bytes,\nSent {} heartbeats totaling {} bytes," +
+                          "\nThe largest heartbeat was {} bytes,\nThe average heartbeat was {} bytes,\n" +
+                          "Pacemaker contained {} total keys\nin the last {} second(s)",
                         sendCount, receivedSize, getCount, sentSize, largest, average, totalKeys, sleepSeconds);
                 return sleepSeconds; // Run only once.
             }
         };
-        Utils.asyncLoop(afn, true, null, Thread.currentThread().getPriority(), false, true, null);
+        Utils.asyncLoop(afn, isDaemon, null, Thread.currentThread().getPriority(), false, startImmediately, null);
     }
 
     private PacemakerServer launchServer() {

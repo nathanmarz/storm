@@ -1321,8 +1321,8 @@
         (str "Failed to submit topology. Topology requests more than " workers-allowed " workers."))))))
 
 (defn nimbus-topology-bases [storm-cluster-state]
-  map-val #(clojurify-storm-base %) (clojurify-structure
-                                        (StormCommon/topologyBases storm-cluster-state)))
+  (map-val #(clojurify-storm-base %) (clojurify-structure
+                                        (StormCommon/topologyBases storm-cluster-state))))
 
 (defn- set-logger-timeouts [log-config]
   (let [timeout-secs (.get_reset_log_level_timeout_secs log-config)

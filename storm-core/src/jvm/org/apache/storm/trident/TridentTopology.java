@@ -44,6 +44,7 @@ import org.apache.storm.trident.fluent.UniqueIdGen;
 import org.apache.storm.trident.graph.GraphGrouper;
 import org.apache.storm.trident.graph.Group;
 import org.apache.storm.trident.operation.GroupedMultiReducer;
+import org.apache.storm.trident.operation.ITridentResource;
 import org.apache.storm.trident.operation.MultiReducer;
 import org.apache.storm.trident.operation.impl.FilterExecutor;
 import org.apache.storm.trident.operation.impl.GroupedMultiReducerExecutor;
@@ -394,11 +395,23 @@ public class TridentTopology {
         Map<Node, String> spoutIds = genSpoutIds(spoutNodes);
         Map<Group, String> boltIds = genBoltIds(mergedGroups);
         
+        Map defaults = Utils.readDefaultConfig();
+
         for(SpoutNode sn: spoutNodes) {
             Integer parallelism = parallelisms.get(grouper.nodeGroup(sn));
+
+            Map<String, Number> spoutRes = null;
+            spoutRes = mergeDefaultResources(sn.getResources(), defaults);
+            Number onHeap = spoutRes.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB);
+            Number offHeap = spoutRes.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB);
+            Number cpuLoad = spoutRes.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT);
+
             if(sn.type == SpoutNode.SpoutType.DRPC) {
+
                 builder.setBatchPerTupleSpout(spoutIds.get(sn), sn.streamId,
-                        (IRichSpout) sn.spout, parallelism, batchGroupMap.get(sn));
+                                              (IRichSpout) sn.spout, parallelism, batchGroupMap.get(sn))
+                    .setMemoryLoad(onHeap, offHeap)
+                    .setCPULoad(cpuLoad);
             } else {
                 ITridentSpout s;
                 if(sn.spout instanceof IBatchSpout) {
@@ -409,16 +422,26 @@ public class TridentTopology {
                     throw new RuntimeException("Regular rich spouts not supported yet... try wrapping in a RichSpoutBatchExecutor");
                     // TODO: handle regular rich spout without batches (need lots of updates to support this throughout)
                 }
-                builder.setSpout(spoutIds.get(sn), sn.streamId, sn.txId, s, parallelism, batchGroupMap.get(sn));
+                builder.setSpout(spoutIds.get(sn), sn.streamId, sn.txId, s, parallelism, batchGroupMap.get(sn))
+                    .setMemoryLoad(onHeap, offHeap)
+                    .setCPULoad(cpuLoad);
             }
         }
-        
+
         for(Group g: mergedGroups) {
             if(!isSpoutGroup(g)) {
                 Integer p = parallelisms.get(g);
                 Map<String, String> streamToGroup = getOutputStreamBatchGroups(g, batchGroupMap);
+                Map<String, Number> groupRes = mergeDefaultResources(g.getResources(), defaults);
+
+                Number onHeap = groupRes.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB);
+                Number offHeap = groupRes.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB);
+                Number cpuLoad = groupRes.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT);
+
                 BoltDeclarer d = builder.setBolt(boltIds.get(g), new SubtopologyBolt(graph, g.nodes, batchGroupMap), p,
-                        committerBatches(g, batchGroupMap), streamToGroup);
+                                                 committerBatches(g, batchGroupMap), streamToGroup)
+                    .setMemoryLoad(onHeap, offHeap)
+                    .setCPULoad(cpuLoad);
                 Collection<PartitionNode> inputs = uniquedSubscriptions(externalGroupInputs(g));
                 for(PartitionNode n: inputs) {
                     Node parent = TridentUtils.getParent(graph, n);
@@ -430,6 +453,64 @@ public class TridentTopology {
         }
         
         return builder.buildTopology();
+    }
+
+    private static Map<String, Number> mergeDefaultResources(Map<String, Number> res, Map defaultConfig) {
+        Map<String, Number> ret = new HashMap<String, Number>();
+
+        Number onHeapDefault = (Number)defaultConfig.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB);
+        Number offHeapDefault = (Number)defaultConfig.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB);
+        Number cpuLoadDefault = (Number)defaultConfig.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT);
+
+        if(res == null) {
+            ret.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, onHeapDefault);
+            ret.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, offHeapDefault);
+            ret.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, cpuLoadDefault);
+            return ret;
+        }
+
+        Number onHeap = res.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB);
+        Number offHeap = res.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB);
+        Number cpuLoad = res.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT);
+
+        /* We take the max of the default and whatever the user put in here.
+           Each node's resources can be the sum of several operations, so the simplest
+           thing to do is get the max.
+
+           The situation we want to avoid is that the user sets low resources on one
+           node, and when that node is combined with a bunch of others, the sum is still
+           that low resource count. If any component isn't set, we want to use the default.
+
+           Right now, this code does not check that. It just takes the max of the summed
+           up resource counts for simplicity's sake. We could perform some more complicated
+           logic to be more accurate, but the benefits are very small, and only apply to some
+           very odd corner cases. */
+        if(onHeap == null) {
+            onHeap = onHeapDefault;
+        }
+        else {
+            onHeap = Math.max(onHeap.doubleValue(), onHeapDefault.doubleValue());
+        }
+
+        if(offHeap == null) {
+            offHeap = offHeapDefault;
+        }
+        else {
+            offHeap = Math.max(offHeap.doubleValue(), offHeapDefault.doubleValue());
+        }
+
+        if(cpuLoad == null) {
+            cpuLoad = cpuLoadDefault;
+        }
+        else {
+            cpuLoad = Math.max(cpuLoad.doubleValue(), cpuLoadDefault.doubleValue());
+        }
+
+        ret.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, onHeap);
+        ret.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, offHeap);
+        ret.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, cpuLoad);
+
+        return ret;
     }
     
     private static void completeDRPC(DefaultDirectedGraph<Node, IndexedEdge> graph, Map<String, List<Node>> colocate, UniqueIdGen gen) {
@@ -464,7 +545,7 @@ public class TridentTopology {
         }
         return ret;
     }
-    
+
     //returns null if it's not a drpc group
     private static SpoutNode getDRPCSpoutNode(Collection<Node> g) {
         for(Node n: g) {

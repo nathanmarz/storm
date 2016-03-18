@@ -15,15 +15,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.storm.topology;
+package org.apache.storm.trident.operation;
 
 import java.util.Map;
 
-public interface ComponentConfigurationDeclarer<T extends ComponentConfigurationDeclarer> extends ResourceDeclarer<T> {
-    T addConfigurations(Map<String, Object> conf);
-    T addConfiguration(String config, Object value);
-    T setDebug(boolean debug);
-    T setMaxTaskParallelism(Number val);
-    T setMaxSpoutPending(Number val);
-    T setNumTasks(Number val);
+/**
+ * This interface is implemented by various Trident classes in order to
+ * gather and propogate resources that have been set on them.
+ * @see ResourceDeclarer
+ */
+public interface ITridentResource {
+    /**
+     * @return a name of resource name -> amount of that resource. *Return should never be null!*
+     */
+    Map<String, Number> getResources();
 }

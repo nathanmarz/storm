@@ -129,7 +129,7 @@ public class ConfigUtils {
 
     // public static mkStatsSampler // depends on Utils.evenSampler() TODO, this is sth we need to do after util
 
-    // we use this "wired" wrapper pattern temporarily for mocking in clojure test
+    // we use this "weird" wrapper pattern temporarily for mocking in clojure test
     public static Map readStormConfig() {
         return _instance.readStormConfigImpl();
     }
@@ -235,7 +235,7 @@ public class ConfigUtils {
         return (masterLocalDir(conf) + FILE_SEPARATOR + "inimbus");
     }
 
-    // we use this "wired" wrapper pattern temporarily for mocking in clojure test
+    // we use this "weird" wrapper pattern temporarily for mocking in clojure test
     public static String supervisorLocalDir(Map conf) throws IOException {
         return _instance.supervisorLocalDirImpl(conf);
     }
@@ -250,7 +250,7 @@ public class ConfigUtils {
         return (supervisorLocalDir(conf) + FILE_SEPARATOR + "isupervisor");
     }
 
-    // we use this "wired" wrapper pattern temporarily for mocking in clojure test
+    // we use this "weird" wrapper pattern temporarily for mocking in clojure test
     public static String supervisorStormDistRoot(Map conf) throws IOException {
         return _instance.supervisorStormDistRootImpl(conf);
     }
@@ -259,7 +259,7 @@ public class ConfigUtils {
         return stormDistPath(supervisorLocalDir(conf));
     }
 
-    // we use this "wired" wrapper pattern temporarily for mocking in clojure test
+    // we use this "weird" wrapper pattern temporarily for mocking in clojure test
     public static String supervisorStormDistRoot(Map conf, String stormId) throws IOException {
         return _instance.supervisorStormDistRootImpl(conf, stormId);
     }
@@ -299,7 +299,7 @@ public class ConfigUtils {
         return (concatIfNotNull(stormRoot) + FILE_SEPARATOR + RESOURCES_SUBDIR);
     }
 
-    // we use this "wired" wrapper pattern temporarily for mocking in clojure test
+    // we use this "weird" wrapper pattern temporarily for mocking in clojure test
     public static LocalState supervisorState(Map conf) throws IOException {
         return _instance.supervisorStateImpl(conf);
     }
@@ -308,7 +308,7 @@ public class ConfigUtils {
         return new LocalState((supervisorLocalDir(conf) + FILE_SEPARATOR + "localstate"));
     }
 
-    // we use this "wired" wrapper pattern temporarily for mocking in clojure test
+    // we use this "weird" wrapper pattern temporarily for mocking in clojure test
     public static LocalState nimbusTopoHistoryState(Map conf) throws IOException {
         return _instance.nimbusTopoHistoryStateImpl(conf);
     }
@@ -317,7 +317,7 @@ public class ConfigUtils {
         return new LocalState((masterLocalDir(conf) + FILE_SEPARATOR + "history"));
     }
 
-    // we use this "wired" wrapper pattern temporarily for mocking in clojure test
+    // we use this "weird" wrapper pattern temporarily for mocking in clojure test
     public static Map readSupervisorStormConf(Map conf, String stormId) throws IOException {
         return _instance.readSupervisorStormConfImpl(conf, stormId);
     }
@@ -380,7 +380,7 @@ public class ConfigUtils {
         return ret;
     }
 
-    // we use this "wired" wrapper pattern temporarily for mocking in clojure test
+    // we use this "weird" wrapper pattern temporarily for mocking in clojure test
     public static void setWorkerUserWSE(Map conf, String workerId, String user) throws IOException {
         _instance.setWorkerUserWSEImpl(conf, workerId, user);
     }
@@ -401,7 +401,7 @@ public class ConfigUtils {
         new File(workerUserFile(conf, workerId)).delete();
     }
 
-    // we use this "wired" wrapper pattern temporarily for mocking in clojure test
+    // we use this "weird" wrapper pattern temporarily for mocking in clojure test
     public static String workerArtifactsRoot(Map conf) {
         return _instance.workerArtifactsRootImpl(conf);
     }
@@ -447,7 +447,7 @@ public class ConfigUtils {
         return new File((logRoot + FILE_SEPARATOR + id + FILE_SEPARATOR + port));
     }
 
-    // we use this "wired" wrapper pattern temporarily for mocking in clojure test
+    // we use this "weird" wrapper pattern temporarily for mocking in clojure test
     public static String workerRoot(Map conf) {
         return _instance.workerRootImpl(conf);
     }

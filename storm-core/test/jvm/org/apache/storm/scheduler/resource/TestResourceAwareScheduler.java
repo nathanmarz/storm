@@ -63,7 +63,6 @@ public class TestResourceAwareScheduler {
 
     private static final Config defaultTopologyConf = new Config();
 
-
     @BeforeClass
     public static void initConf() {
         defaultTopologyConf.put(Config.STORM_NETWORK_TOPOGRAPHY_PLUGIN, "org.apache.storm.networktopography.DefaultRackDNSToSwitchMapping");

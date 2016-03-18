@@ -19,9 +19,13 @@
   (:import [org.apache.storm.trident.testing Split CountAsAggregator StringLength TrueFilter
             MemoryMapState$Factory])
   (:import [org.apache.storm.trident.state StateSpec])
-  (:import [org.apache.storm.trident.operation.impl CombinerAggStateUpdater])
-  (:use [org.apache.storm.trident testing]))
-  
+  (:import [org.apache.storm.trident.operation.impl CombinerAggStateUpdater]
+           [org.apache.storm.trident.operation BaseFunction]
+           [org.json.simple.parser JSONParser]
+           [org.apache.storm Config])
+  (:use [org.apache.storm.trident testing]
+        [org.apache.storm log util config]))
+
 (bootstrap-imports)
 
 (defmacro letlocals
@@ -49,13 +53,13 @@
               (.groupBy (fields "word"))
               (.persistentAggregate (memory-map-state) (Count.) (fields "count"))
               (.parallelismHint 6)
-              ))       
+              ))
         (-> topo
             (.newDRPCStream "all-tuples" drpc)
             (.broadcast)
             (.stateQuery word-counts (fields "args") (TupleCollectionGet.) (fields "word" "count"))
             (.project (fields "word" "count")))
-        (with-topology [cluster topo]
+        (with-topology [cluster topo storm-topo]
           (feed feeder [["hello the man said"] ["the"]])
           (is (= #{["hello" 1] ["said" 1] ["the" 2] ["man" 1]}
                  (into #{} (exec-drpc drpc "all-tuples" "man"))))
@@ -84,7 +88,7 @@
             (.stateQuery word-counts (fields "word") (MapGet.) (fields "count"))
             (.aggregate (fields "count") (Sum.) (fields "sum"))
             (.project (fields "sum")))
-        (with-topology [cluster topo]
+        (with-topology [cluster topo storm-topo]
           (feed feeder [["hello the man said"] ["the"]])
           (is (= [[2]] (exec-drpc drpc "words" "the")))
           (is (= [[1]] (exec-drpc drpc "words" "hello")))
@@ -94,7 +98,7 @@
           (is (= [[8]] (exec-drpc drpc "words" "man where you the")))
           )))))
 
-;; this test reproduces a bug where committer spouts freeze processing when 
+;; this test reproduces a bug where committer spouts freeze processing when
 ;; there's at least one repartitioning after the spout
 (deftest test-word-count-committer-spout
   (t/with-local-cluster [cluster]
@@ -119,7 +123,7 @@
             (.stateQuery word-counts (fields "word") (MapGet.) (fields "count"))
             (.aggregate (fields "count") (Sum.) (fields "sum"))
             (.project (fields "sum")))
-        (with-topology [cluster topo]
+        (with-topology [cluster topo storm-topo]
           (feed feeder [["hello the man said"] ["the"]])
           (is (= [[2]] (exec-drpc drpc "words" "the")))
           (is (= [[1]] (exec-drpc drpc "words" "hello")))
@@ -146,13 +150,13 @@
             (.aggregate (CountAsAggregator.) (fields "count"))
             (.parallelismHint 2) ;;this makes sure batchGlobal is working correctly
             (.project (fields "count")))
-        (with-topology [cluster topo]
+        (with-topology [cluster topo storm-topo]
           (doseq [i (range 100)]
             (is (= [[1]] (exec-drpc drpc "numwords" "the"))))
           (is (= [[0]] (exec-drpc drpc "numwords" "")))
           (is (= [[8]] (exec-drpc drpc "numwords" "1 2 3 4 5 6 7 8")))
           )))))
-          
+
 (deftest test-split-merge
   (t/with-local-cluster [cluster]
     (with-drpc [drpc]
@@ -169,7 +173,7 @@
               (.project (fields "len"))))
 
         (.merge topo [s1 s2])
-        (with-topology [cluster topo]
+        (with-topology [cluster topo storm-topo]
           (is (t/ms= [[7] ["the"] ["man"]] (exec-drpc drpc "splitter" "the man")))
           (is (t/ms= [[5] ["hello"]] (exec-drpc drpc "splitter" "hello")))
           )))))
@@ -191,11 +195,11 @@
               (.aggregate (CountAsAggregator.) (fields "count"))))
 
         (.merge topo [s1 s2])
-        (with-topology [cluster topo]
+        (with-topology [cluster topo storm-topo]
           (is (t/ms= [["the" 1] ["the" 1]] (exec-drpc drpc "tester" "the")))
           (is (t/ms= [["aaaaa" 1] ["aaaaa" 1]] (exec-drpc drpc "tester" "aaaaa")))
           )))))
-          
+
 (deftest test-multi-repartition
   (t/with-local-cluster [cluster]
     (with-drpc [drpc]
@@ -207,7 +211,7 @@
                                    (.shuffle)
                                    (.aggregate (CountAsAggregator.) (fields "count"))
                                    ))
-        (with-topology [cluster topo]
+        (with-topology [cluster topo storm-topo]
           (is (t/ms= [[2]] (exec-drpc drpc "tester" "the man")))
           (is (t/ms= [[1]] (exec-drpc drpc "tester" "aaa")))
           )))))
@@ -281,6 +285,82 @@
                         (.stateQuery word-counts (fields "word1") (MapGet.) (fields "count"))))))
      )))
 
+
+(deftest test-set-component-resources
+  (t/with-local-cluster [cluster]
+    (with-drpc [drpc]
+      (letlocals
+        (bind topo (TridentTopology.))
+        (bind feeder (feeder-spout ["sentence"]))
+        (bind add-bang (proxy [BaseFunction] []
+                         (execute [tuple collector]
+                           (. collector emit (str (. tuple getString 0) "!")))))
+        (bind word-counts
+          (.. topo
+              (newStream "words" feeder)
+              (parallelismHint 5)
+              (setCPULoad 20)
+              (setMemoryLoad 512 256)
+              (each (fields "sentence") (Split.) (fields "word"))
+              (setCPULoad 10)
+              (setMemoryLoad 512)
+              (each (fields "word") add-bang (fields "word!"))
+              (parallelismHint 10)
+              (setCPULoad 50)
+              (setMemoryLoad 1024)
+              (groupBy (fields "word!"))
+              (persistentAggregate (memory-map-state) (Count.) (fields "count"))
+              (setCPULoad 100)
+              (setMemoryLoad 2048)))
+        (with-topology [cluster topo storm-topo]
+
+          (let [parse-fn (fn [[k v]]
+                           [k (clojurify-structure (. (JSONParser.) parse (.. v get_common get_json_conf)))])
+                json-confs (into {} (map parse-fn (. storm-topo get_bolts)))]
+            (testing "spout memory"
+              (is (= (-> (json-confs "spout-words")
+                         (get TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB))
+                     512.0))
+
+              (is (= (-> (json-confs "spout-words")
+                         (get TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB))
+                   256.0))
+
+              (is (= (-> (json-confs "$spoutcoord-spout-words")
+                         (get TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB))
+                     512.0))
+
+              (is (= (-> (json-confs "$spoutcoord-spout-words")
+                         (get TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB))
+                     256.0)))
+
+            (testing "spout CPU"
+              (is (= (-> (json-confs "spout-words")
+                         (get TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT))
+                     20.0))
+
+              (is (= (-> (json-confs "$spoutcoord-spout-words")
+                       (get TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT))
+                     20.0)))
+
+            (testing "bolt combinations"
+              (is (= (-> (json-confs "b-1")
+                         (get TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB))
+                     (+ 1024.0 512.0)))
+
+              (is (= (-> (json-confs "b-1")
+                         (get TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT))
+                     60.0)))
+
+            (testing "aggregations after partition"
+              (is (= (-> (json-confs "b-0")
+                         (get TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB))
+                     2048.0))
+
+              (is (= (-> (json-confs "b-0")
+                         (get TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT))
+                     100.0)))))))))
+
 ;; (deftest test-split-merge
 ;;   (t/with-local-cluster [cluster]
 ;;     (with-drpc [drpc]
@@ -295,7 +375,7 @@
 ;;           (-> drpc-stream
 ;;               (.each (fields "args") (StringLength.) (fields "len"))
 ;;               (.project (fields "len"))))
-;; 
+;;
 ;;         (.merge topo [s1 s2])
 ;;         (with-topology [cluster topo]
 ;;           (is (t/ms= [[7] ["the"] ["man"]] (exec-drpc drpc "splitter" "the man")))

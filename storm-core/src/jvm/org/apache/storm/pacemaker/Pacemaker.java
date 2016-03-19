@@ -29,12 +29,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.org.lidalia.sysoutslf4j.context.SysOutOverSLF4J;
 
-
 import javax.management.*;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Map;
+
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -62,7 +62,7 @@ public class Pacemaker implements IServerMessageHandler {
         public AtomicInteger averageHeartbeatSize = new AtomicInteger();
         private AtomicInteger totalKeys = new AtomicInteger();
     }
-    private static class PaceMakerDynamicMBean implements DynamicMBean{
+    private static class PacemakerDynamicMBean implements DynamicMBean {
 
         private final MBeanInfo mBeanInfo;
         private final static String [] attributeNames = new String []{
@@ -76,7 +76,7 @@ public class Pacemaker implements IServerMessageHandler {
         };
         private static String attributeType = "java.util.concurrent.atomic.AtomicInteger";
 
-        private static final MBeanAttributeInfo[] attributeInfos = new MBeanAttributeInfo[] { 
+        private static final MBeanAttributeInfo[] attributeInfos = new MBeanAttributeInfo[] {
                         new MBeanAttributeInfo("send-pulse-count", attributeType, "send-pulse-count", true, false, false),
                         new MBeanAttributeInfo("total-received-size", attributeType, "total-received-size", true, false, false),
                         new MBeanAttributeInfo("get-pulse-count", attributeType, "get-pulse-count", true, false, false),
@@ -87,10 +87,10 @@ public class Pacemaker implements IServerMessageHandler {
         };
         private PacemakerStats stats;
 
-        public PaceMakerDynamicMBean(PacemakerStats stats) {
+        public PacemakerDynamicMBean(PacemakerStats stats) {
             this.stats = stats;
             this.mBeanInfo = new MBeanInfo("org.apache.storm.pacemaker.PaceMakerDynamicMBean", "Java Pacemaker Dynamic MBean",
-                    PaceMakerDynamicMBean.attributeInfos, null, null, null);
+                    PacemakerDynamicMBean.attributeInfos, null, null, null);
         }
 
         @Override
@@ -154,13 +154,15 @@ public class Pacemaker implements IServerMessageHandler {
         }
     }
 
-    public Pacemaker(Map conf) {
+    public Pacemaker(Map conf, boolean isRegisterJmx) {
         heartbeats = new ConcurrentHashMap();
         pacemakerStats = new PacemakerStats();
         lastOneMinStats = new PacemakerStats();
         this.conf = conf;
         startStatsThread();
-        registerJmx(lastOneMinStats);
+        if (isRegisterJmx){
+            registerJmx(lastOneMinStats);
+        }
     }
 
     @Override
@@ -204,7 +206,7 @@ public class Pacemaker implements IServerMessageHandler {
     private void registerJmx (PacemakerStats lastOneMinStats){
         try {
             MBeanServer mbServer = ManagementFactory.getPlatformMBeanServer();
-            DynamicMBean dynamicMBean = new PaceMakerDynamicMBean(lastOneMinStats);
+            DynamicMBean dynamicMBean = new PacemakerDynamicMBean(lastOneMinStats);
             ObjectName objectname = new ObjectName("org.apache.storm.pacemaker.Pacemaker:stats=lastOneMinStats");
             mbServer.registerMBean(dynamicMBean, objectname);
         }catch (Exception e){
@@ -365,7 +367,7 @@ public class Pacemaker implements IServerMessageHandler {
     public static void main(String[] args) {
         SysOutOverSLF4J.sendSystemOutAndErrToSLF4J();
         Map conf = ConfigUtils.overrideLoginConfigWithSystemProperty(ConfigUtils.readStormConfig());
-        final Pacemaker serverHandler = new Pacemaker(conf);
+        final Pacemaker serverHandler = new Pacemaker(conf, true);
         serverHandler.launchServer();
     }
 

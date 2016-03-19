@@ -1,11 +1,13 @@
 ---
+title: Tutorial
 layout: documentation
+documentation: true
 ---
 In this tutorial, you'll learn how to create Storm topologies and deploy them to a Storm cluster. Java will be the main language used, but a few examples will use Python to illustrate Storm's multi-language capabilities.
 
 ## Preliminaries
 
-This tutorial uses examples from the [storm-starter](http://github.com/nathanmarz/storm-starter) project. It's recommended that you clone the project and follow along with the examples. Read [Setting up a development environment](Setting-up-development-environment.html) and [Creating a new Storm project](Creating-a-new-Storm-project.html) to get your machine set up. 
+This tutorial uses examples from the [storm-starter]({{page.git-blob-base}}/examples/storm-starter) project. It's recommended that you clone the project and follow along with the examples. Read [Setting up a development environment](Setting-up-development-environment.html) and [Creating a new Storm project](Creating-a-new-Storm-project.html) to get your machine set up.
 
 ## Components of a Storm cluster
 
@@ -101,7 +103,7 @@ This topology contains a spout and two bolts. The spout emits words, and each bo
 
 This code defines the nodes using the `setSpout` and `setBolt` methods. These methods take as input a user-specified id, an object containing the processing logic, and the amount of parallelism you want for the node. In this example, the spout is given id "words" and the bolts are given ids "exclaim1" and "exclaim2". 
 
-The object containing the processing logic implements the [IRichSpout](javadocs/backtype/storm/topology/IRichSpout.html) interface for spouts and the [IRichBolt](javadocs/backtype/storm/topology/IRichBolt.html) interface for bolts. 
+The object containing the processing logic implements the [IRichSpout](javadocs/backtype/storm/topology/IRichSpout.html) interface for spouts and the [IRichBolt](javadocs/backtype/storm/topology/IRichBolt.html) interface for bolts.
 
 The last parameter, how much parallelism you want for the node, is optional. It indicates how many threads should execute that component across the cluster. If you omit it, Storm will only allocate one thread for that node.
 
@@ -137,23 +139,28 @@ As you can see, the implementation is very straightforward.
 public static class ExclamationBolt implements IRichBolt {
     OutputCollector _collector;
 
+    @Override
     public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
         _collector = collector;
     }
 
+    @Override
     public void execute(Tuple tuple) {
         _collector.emit(tuple, new Values(tuple.getString(0) + "!!!"));
         _collector.ack(tuple);
     }
 
+    @Override
     public void cleanup() {
     }
 
+    @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declare(new Fields("word"));
     }
     
-    public Map getComponentConfiguration() {
+    @Override
+    public Map<String, Object> getComponentConfiguration() {
         return null;
     }
 }
@@ -161,9 +168,9 @@ public static class ExclamationBolt implements IRichBolt {
 
 The `prepare` method provides the bolt with an `OutputCollector` that is used for emitting tuples from this bolt. Tuples can be emitted at anytime from the bolt -- in the `prepare`, `execute`, or `cleanup` methods, or even asynchronously in another thread. This `prepare` implementation simply saves the `OutputCollector` as an instance variable to be used later on in the `execute` method.
 
-The `execute` method receives a tuple from one of the bolt's inputs. The `ExclamationBolt` grabs the first field from the tuple and emits a new tuple with the string "!!!" appended to it. If you implement a bolt that subscribes to multiple input sources, you can find out which component the [Tuple](javadocs/backtype/storm/tuple/Tuple.html) came from by using the `Tuple#getSourceComponent` method.
+The `execute` method receives a tuple from one of the bolt's inputs. The `ExclamationBolt` grabs the first field from the tuple and emits a new tuple with the string "!!!" appended to it. If you implement a bolt that subscribes to multiple input sources, you can find out which component the [Tuple](/javadoc/apidocs/backtype/storm/tuple/Tuple.html) came from by using the `Tuple#getSourceComponent` method.
 
-There's a few other things going in in the `execute` method, namely that the input tuple is passed as the first argument to `emit` and the input tuple is acked on the final line. These are part of Storm's reliability API for guaranteeing no data loss and will be explained later in this tutorial. 
+There's a few other things going on in the `execute` method, namely that the input tuple is passed as the first argument to `emit` and the input tuple is acked on the final line. These are part of Storm's reliability API for guaranteeing no data loss and will be explained later in this tutorial. 
 
 The `cleanup` method is called when a Bolt is being shutdown and should cleanup any resources that were opened. There's no guarantee that this method will be called on the cluster: for example, if the machine the task is running on blows up, there's no way to invoke the method. The `cleanup` method is intended for when you run topologies in [local mode](Local-mode.html) (where a Storm cluster is simulated in process), and you want to be able to run and kill many topologies without suffering any resource leaks.
 
@@ -177,15 +184,18 @@ Methods like `cleanup` and `getComponentConfiguration` are often not needed in a
 public static class ExclamationBolt extends BaseRichBolt {
     OutputCollector _collector;
 
+    @Override
     public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
         _collector = collector;
     }
 
+    @Override
     public void execute(Tuple tuple) {
         _collector.emit(tuple, new Values(tuple.getString(0) + "!!!"));
         _collector.ack(tuple);
     }
 
+    @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declare(new Fields("word"));
     }    
@@ -235,7 +245,7 @@ A stream grouping tells a topology how to send tuples between two components. Re
 
 When a task for Bolt A emits a tuple to Bolt B, which task should it send the tuple to?
 
-A "stream grouping" answers this question by telling Storm how to send tuples between sets of tasks. Before we dig into the different kinds of stream groupings, let's take a look at another topology from [storm-starter](http://github.com/nathanmarz/storm-starter). This [WordCountTopology](https://github.com/nathanmarz/storm-starter/blob/master/src/jvm/storm/starter/WordCountTopology.java) reads sentences off of a spout and streams out of `WordCountBolt` the total number of times it has seen that word before:
+A "stream grouping" answers this question by telling Storm how to send tuples between sets of tasks. Before we dig into the different kinds of stream groupings, let's take a look at another topology from [storm-starter](http://github.com/apache/storm/blob/{{page.version}}/examples/storm-starter). This [WordCountTopology]({{page.git-blob-base}}/examples/storm-starter/src/jvm/storm/starter/WordCountTopology.java) reads sentences off of a spout and streams out of `WordCountBolt` the total number of times it has seen that word before:
 
 ```java
 TopologyBuilder builder = new TopologyBuilder();

@@ -1,69 +1,65 @@
 ---
+title: Documentation
 layout: documentation
+documentation: true
 ---
-Storm is a distributed realtime computation system. Similar to how Hadoop provides a set of general primitives for doing batch processing, Storm provides a set of general primitives for doing realtime computation. Storm is simple, can be used with any programming language, [is used by many companies](/documentation/Powered-By.html), and is a lot of fun to use!
+### Basics of Storm
 
-### Read these first
-
-* [Rationale](Rationale.html)
-* [Tutorial](Tutorial.html)
-* [Setting up development environment](Setting-up-development-environment.html)
-* [Creating a new Storm project](Creating-a-new-Storm-project.html)
-
-### Documentation
-
-* [Manual](Documentation.html)
 * [Javadoc](javadocs/index.html)
-* [FAQ](FAQ.html)
-* [SECURITY](SECURITY.html)
+* [Concepts](Concepts.html)
+* [Configuration](Configuration.html)
+* [Guaranteeing message processing](Guaranteeing-message-processing.html)
+* [Daemon Fault Tolerance](Daemon-Fault-Tolerance.html)
+* [Command line client](Command-line-client.html)
 * [REST API](STORM-UI-REST-API.html)
+* [Understanding the parallelism of a Storm topology](Understanding-the-parallelism-of-a-Storm-topology.html)
+* [FAQ](FAQ.html)
 
-### Getting help
+### Trident
 
-__NOTE:__ The google groups account storm-user@googlegroups.com is now officially deprecated in favor of the Apache-hosted user/dev mailing lists.
+Trident is an alternative interface to Storm. It provides exactly-once processing, "transactional" datastore persistence, and a set of common stream analytics operations.
 
-#### Storm Users
-Storm users should send messages and subscribe to [user@storm.apache.org](mailto:user@storm.apache.org).
+* [Trident Tutorial](Trident-tutorial.html)     -- basic concepts and walkthrough
+* [Trident API Overview](Trident-API-Overview.html) -- operations for transforming and orchestrating data
+* [Trident State](Trident-state.html)        -- exactly-once processing and fast, persistent aggregation
+* [Trident spouts](Trident-spouts.html)       -- transactional and non-transactional data intake
 
-You can subscribe to this list by sending an email to [user-subscribe@storm.apache.org](mailto:user-subscribe@storm.apache.org). Likewise, you can cancel a subscription by sending an email to [user-unsubscribe@storm.apache.org](mailto:user-unsubscribe@storm.apache.org).
+### Setup and deploying
 
-You can view the archives of the mailing list [here](http://mail-archives.apache.org/mod_mbox/storm-user/).
+* [Setting up a Storm cluster](Setting-up-a-Storm-cluster.html)
+* [Local mode](Local-mode.html)
+* [Troubleshooting](Troubleshooting.html)
+* [Running topologies on a production cluster](Running-topologies-on-a-production-cluster.html)
+* [Building Storm](Maven.html) with Maven
+* [Setting up a Secure Cluster](SECURITY.html)
 
-#### Storm Developers
-Storm developers should send messages and subscribe to [dev@storm.apache.org](mailto:dev@storm.apache.org).
+### Intermediate
 
-You can subscribe to this list by sending an email to [dev-subscribe@storm.apache.org](mailto:dev-subscribe@storm.apache.org). Likewise, you can cancel a subscription by sending an email to [dev-unsubscribe@storm.apache.org](mailto:dev-unsubscribe@storm.apache.org).
+* [Serialization](Serialization.html)
+* [Common patterns](Common-patterns.html)
+* [Clojure DSL](Clojure-DSL.html)
+* [Using non-JVM languages with Storm](Using-non-JVM-languages-with-Storm.html)
+* [Distributed RPC](Distributed-RPC.html)
+* [Transactional topologies](Transactional-topologies.html)
+* [Direct groupings](Direct-groupings.html)
+* [Hooks](Hooks.html)
+* [Metrics](Metrics.html)
+* [Lifecycle of a trident tuple]()
 
-You can view the archives of the mailing list [here](http://mail-archives.apache.org/mod_mbox/storm-dev/).
+### Integration With External Systems, and Other Libraries
+* [Flux Data Driven Topology Builder](flux.html)
+* [Event Hubs Intergration](storm-eventhubs.html)
+* [Apache HBase Integration](storm-hbase.html)
+* [Apache HDFS Integration](storm-hdfs.html)
+* [Apache Hive Integration](storm-hive.html)
+* [JDBC Integration](storm-jdbc.html)
+* [Apache Kafka Integration](storm-kafka.html)
+* [REDIS Integration](storm-redis.html) 
+* [Kestrel and Storm](Kestrel-and-Storm.html)
 
-#### Which list should I send/subscribe to?
-If you are using a pre-built binary distribution of Storm, then chances are you should send questions, comments, storm-related announcements, etc. to [user@storm.apache.org](user@storm.apache.org). 
+### Advanced
 
-If you are building storm from source, developing new features, or otherwise hacking storm source code, then [dev@storm.apache.org](dev@storm.apache.org) is more appropriate. 
+* [Defining a non-JVM language DSL for Storm](Defining-a-non-jvm-language-dsl-for-storm.html)
+* [Multilang protocol](Multilang-protocol.html) (how to provide support for another language)
+* [Implementation docs](Implementation-docs.html)
 
-#### What will happen with storm-user@googlegroups.com?
-All existing messages will remain archived there, and can be accessed/searched [here](https://groups.google.com/forum/#!forum/storm-user).
-
-New messages sent to storm-user@googlegroups.com will either be rejected/bounced or replied to with a message to direct the email to the appropriate Apache-hosted group.
-
-#### IRC
-You can also come to the #storm-user room on [freenode](http://freenode.net/). You can usually find a Storm developer there to help you out.
-
-
-
-### Related projects
-
-* [storm-contrib](https://github.com/nathanmarz/storm-contrib)
-* [storm-deploy](http://github.com/nathanmarz/storm-deploy): One click deploys for Storm clusters on AWS
-* [Spout implementations](Spout-implementations.html)
-* [DSLs and multilang adapters](DSLs-and-multilang-adapters.html)
-* [Serializers](Serializers.html)
-
-### Contributing to Storm
-
-* [Contributing to Storm](Contributing-to-Storm.html)
-* [Project ideas](Project-ideas.html)
-
-### Powered by Storm
-
-[Companies and projects powered by Storm](Powered-By.html)

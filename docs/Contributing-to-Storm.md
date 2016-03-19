@@ -1,5 +1,7 @@
 ---
+title: Contributing
 layout: documentation
+documentation: true
 ---
 
 ### Getting started with contributing
@@ -12,7 +14,7 @@ The [Implementation docs](Implementation-docs.html) section of the wiki gives de
 
 ### Contribution process
 
-Contributions to the Storm codebase should be sent as GitHub pull requests. If there's any problems to the pull request we can iterate on it using GitHub's commenting features.
+Contributions to the Storm codebase should be sent as [GitHub](https://github.com/apache/storm) pull requests. If there's any problems to the pull request we can iterate on it using GitHub's commenting features.
 
 For small patches, feel free to submit pull requests directly for them. For larger contributions, please use the following process. The idea behind this process is to prevent any wasted work and catch design issues early on:
 

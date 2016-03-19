@@ -1,9 +1,11 @@
 ---
+title: Configuration
 layout: documentation
+documentation: true
 ---
 Storm has a variety of configurations for tweaking the behavior of nimbus, supervisors, and running topologies. Some configurations are system configurations and cannot be modified on a topology by topology basis, whereas other configurations can be modified per topology. 
 
-Every configuration has a default value defined in [defaults.yaml](https://github.com/apache/incubator-storm/blob/master/conf/defaults.yaml) in the Storm codebase. You can override these configurations by defining a storm.yaml in the classpath of Nimbus and the supervisors. Finally, you can define a topology-specific configuration that you submit along with your topology when using [StormSubmitter](javadocs/backtype/storm/StormSubmitter.html). However, the topology-specific configuration can only override configs prefixed with "TOPOLOGY".
+Every configuration has a default value defined in [defaults.yaml]({{page.git-blob-base}}/conf/defaults.yaml) in the Storm codebase. You can override these configurations by defining a storm.yaml in the classpath of Nimbus and the supervisors. Finally, you can define a topology-specific configuration that you submit along with your topology when using [StormSubmitter](javadocs/backtype/storm/StormSubmitter.html). However, the topology-specific configuration can only override configs prefixed with "TOPOLOGY".
 
 Storm 0.7.0 and onwards lets you override configuration on a per-bolt/per-spout basis. The only configurations that can be overriden this way are:
 
@@ -23,7 +25,7 @@ The preference order for configuration values is defaults.yaml < storm.yaml < to
 **Resources:**
 
 * [Config](javadocs/backtype/storm/Config.html): a listing of all configurations as well as a helper class for creating topology specific configurations
-* [defaults.yaml](https://github.com/apache/incubator-storm/blob/master/conf/defaults.yaml): the default values for all configurations
+* [defaults.yaml]({{page.git-blob-base}}/conf/defaults.yaml): the default values for all configurations
 * [Setting up a Storm cluster](Setting-up-a-Storm-cluster.html): explains how to create and configure a Storm cluster
 * [Running topologies on a production cluster](Running-topologies-on-a-production-cluster.html): lists useful configurations when running topologies on a cluster
 * [Local mode](Local-mode.html): lists useful configurations when using local mode

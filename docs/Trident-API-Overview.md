@@ -1,7 +1,8 @@
 ---
+title: Trident API Overview
 layout: documentation
+documentation: true
 ---
-# Trident API overview
 
 The core data model in Trident is the "Stream", processed as a series of batches. A stream is partitioned among the nodes in the cluster, and operations applied to a stream are applied in parallel across each partition.
 
@@ -58,7 +59,7 @@ The resulting tuples would have fields ["a", "b", "c", "d"] and look like this:
 Filters take in a tuple as input and decide whether or not to keep that tuple or not. Suppose you had this filter:
 
 ```java
-public class MyFilter extends BaseFunction {
+public class MyFilter extends BaseFilter {
     public boolean isKeep(TridentTuple tuple) {
         return tuple.getInteger(0) == 1 && tuple.getInteger(1) == 2;
     }
@@ -76,14 +77,227 @@ Now suppose you had these tuples with fields ["a", "b", "c"]:
 If you ran this code:
 
 ```java
-mystream.each(new Fields("b", "a"), new MyFilter())
+mystream.filter(new MyFilter())
 ```
 
 The resulting tuples would be:
 
 ```
-[2, 1, 1]
+[1, 2, 3]
 ```
+
+### map and flatMap
+
+`map` returns a stream consisting of the result of applying the given mapping function to the tuples of the stream. This
+can be used to apply a one-one transformation to the tuples.
+
+For example, if there is a stream of words and you wanted to convert it to a stream of upper case words,
+you could define a mapping function as follows,
+
+```java
+public class UpperCase extends MapFunction {
+ @Override
+ public Values execute(TridentTuple input) {
+   return new Values(input.getString(0).toUpperCase());
+ }
+}
+```
+
+The mapping function can then be applied on the stream to produce a stream of uppercase words.
+
+```java
+mystream.map(new UpperCase())
+```
+
+`flatMap` is similar to `map` but has the effect of applying a one-to-many transformation to the values of the stream,
+and then flattening the resulting elements into a new stream.
+
+For example, if there is a stream of sentences and you wanted to convert it to a stream of words,
+you could define a flatMap function as follows,
+
+```java
+public class Split extends FlatMapFunction {
+  @Override
+  public Iterable<Values> execute(TridentTuple input) {
+    List<Values> valuesList = new ArrayList<>();
+    for (String word : input.getString(0).split(" ")) {
+      valuesList.add(new Values(word));
+    }
+    return valuesList;
+  }
+}
+```
+
+The flatMap function can then be applied on the stream of sentences to produce a stream of words,
+
+```java
+mystream.flatMap(new Split())
+```
+
+Of course these operations can be chained, so a stream of uppercase words can be obtained from a stream of sentences as follows,
+
+```java
+mystream.flatMap(new Split()).map(new UpperCase())
+```
+### peek
+`peek` can be used to perform an additional action on each trident tuple as they flow through the stream.
+ This could be useful for debugging to see the tuples as they flow past a certain point in a pipeline.
+
+For example, the below code would print the result of converting the words to uppercase before they are passed to `groupBy`
+```java
+ mystream.flatMap(new Split()).map(new UpperCase())
+         .peek(new Consumer() {
+                @Override
+                public void accept(TridentTuple input) {
+                  System.out.println(input.getString(0));
+                }
+         })
+         .groupBy(new Fields("word"))
+         .persistentAggregate(new MemoryMapState.Factory(), new Count(), new Fields("count"))
+```
+
+### min and minBy
+`min` and `minBy` operations return minimum value on each partition of a batch of tuples in a trident stream.
+
+Suppose, a trident stream contains fields ["device-id", "count"] and the following partitions of tuples
+
+```
+Partition 0:
+[123, 2]
+[113, 54]
+[23,  28]
+[237, 37]
+[12,  23]
+[62,  17]
+[98,  42]
+
+Partition 1:
+[64,  18]
+[72,  54]
+[2,   28]
+[742, 71]
+[98,  45]
+[62,  12]
+[19,  174]
+
+
+Partition 2:
+[27,  94]
+[82,  23]
+[9,   86]
+[53,  71]
+[74,  37]
+[51,  49]
+[37,  98]
+
+```
+
+`minBy` operation can be applied on the above stream of tuples like below which results in emitting tuples with minimum values of `count` field in each partition.
+
+``` java
+  mystream.minBy(new Fields("count"))
+```
+Result of the above code on mentioned partitions is:
+ 
+```
+Partition 0:
+[123, 2]
+
+
+Partition 1:
+[62,  12]
+
+
+Partition 2:
+[82,  23]
+
+```
+
+You can look at other `min` and `minBy` operations on Stream
+``` java
+      public <T> Stream minBy(String inputFieldName, Comparator<T> comparator) 
+      public Stream min(Comparator<TridentTuple> comparator) 
+```
+Below example shows how these APIs can be used to find minimum using respective Comparators on a tuple. 
+
+``` java
+
+        FixedBatchSpout spout = new FixedBatchSpout(allFields, 10, Vehicle.generateVehicles(20));
+
+        TridentTopology topology = new TridentTopology();
+        Stream vehiclesStream = topology.newStream("spout1", spout).
+                each(allFields, new Debug("##### vehicles"));
+                
+        Stream slowVehiclesStream =
+                vehiclesStream
+                        .min(new SpeedComparator()) // Comparator w.r.t speed on received tuple.
+                        .each(vehicleField, new Debug("#### slowest vehicle"));
+
+        vehiclesStream
+                .minBy(Vehicle.FIELD_NAME, new EfficiencyComparator()) // Comparator w.r.t efficiency on received tuple.
+                .each(vehicleField, new Debug("#### least efficient vehicle"));
+
+```
+Example applications of these APIs can be located at [TridentMinMaxOfDevicesTopology](https://github.com/apache/storm/blob/master/examples/storm-starter/src/jvm/org/apache/storm/starter/trident/TridentMinMaxOfDevicesTopology.java) and [TridentMinMaxOfVehiclesTopology](https://github.com/apache/storm/blob/master/examples/storm-starter/src/jvm/org/apache/storm/starter/trident/TridentMinMaxOfVehiclesTopology.java) 
+
+### max and maxBy
+`max` and `maxBy` operations return maximum value on each partition of a batch of tuples in a trident stream.
+
+Suppose, a trident stream contains fields ["device-id", "count"] as mentioned in the above section.
+
+`max` and `maxBy` operations can be applied on the above stream of tuples like below which results in emitting tuples with maximum values of `count` field for each partition.
+
+``` java
+  mystream.maxBy(new Fields("count"))
+```
+Result of the above code on mentioned partitions is:
+ 
+```
+Partition 0:
+[113, 54]
+
+
+Partition 1:
+[19,  174]
+
+
+Partition 2:
+[37,  98]
+
+```
+
+You can look at other `max` and `maxBy` functions on Stream
+
+``` java
+
+      public <T> Stream maxBy(String inputFieldName, Comparator<T> comparator) 
+      public Stream max(Comparator<TridentTuple> comparator) 
+      
+```
+
+Below example shows how these APIs can be used to find maximum using respective Comparators on a tuple.
+
+``` java
+
+        FixedBatchSpout spout = new FixedBatchSpout(allFields, 10, Vehicle.generateVehicles(20));
+
+        TridentTopology topology = new TridentTopology();
+        Stream vehiclesStream = topology.newStream("spout1", spout).
+                each(allFields, new Debug("##### vehicles"));
+
+        vehiclesStream
+                .max(new SpeedComparator()) // Comparator w.r.t speed on received tuple.
+                .each(vehicleField, new Debug("#### fastest vehicle"))
+                .project(driverField)
+                .each(driverField, new Debug("##### fastest driver"));
+        
+        vehiclesStream
+                .maxBy(Vehicle.FIELD_NAME, new EfficiencyComparator()) // Comparator w.r.t efficiency on received tuple.
+                .each(vehicleField, new Debug("#### most efficient vehicle"));
+
+```
+
+Example applications of these APIs can be located at [TridentMinMaxOfDevicesTopology](https://github.com/apache/storm/blob/master/examples/storm-starter/src/jvm/org/apache/storm/starter/trident/TridentMinMaxOfDevicesTopology.java) and [TridentMinMaxOfVehiclesTopology](https://github.com/apache/storm/blob/master/examples/storm-starter/src/jvm/org/apache/storm/starter/trident/TridentMinMaxOfVehiclesTopology.java) 
 
 ### partitionAggregate
 
@@ -153,7 +367,7 @@ public class Count implements CombinerAggregator<Long> {
 }
 ```
 
-The benefits of CombinerAggregators are seen when you use the with the aggregate method instead of partitionAggregate. In that case, Trident automatically optimizes the computation by doing partial aggregations before transferring tuples over the network.
+The benefits of CombinerAggregators are seen when you use them with the aggregate method instead of partitionAggregate. In that case, Trident automatically optimizes the computation by doing partial aggregations before transferring tuples over the network.
 
 A ReducerAggregator has the following interface:
 
@@ -269,7 +483,7 @@ mystream.aggregate(new Count(), new Fields("count"))
 
 Like partitionAggregate, aggregators for aggregate can be chained. However, if you chain a CombinerAggregator with a non-CombinerAggregator, Trident is unable to do the partial aggregation optimization.
 
-You can read more about how to use persistentAggregate in the [Trident state doc](https://github.com/apache/incubator-storm/wiki/Trident-state).
+You can read more about how to use persistentAggregate in the [Trident state doc](Trident-state.html).
 
 ## Operations on grouped streams
 
@@ -277,7 +491,7 @@ The groupBy operation repartitions the stream by doing a partitionBy on the spec
 
 ![Grouping](images/grouping.png)
 
-If you run aggregators on a grouped stream, the aggregation will be run within each group instead of against the whole batch. persistentAggregate can also be run on a GroupedStream, in which case the results will be stored in a [MapState](https://github.com/apache/incubator-storm/blob/master/storm-core/src/jvm/storm/trident/state/map/MapState.java) with the key being the grouping fields. You can read more about persistentAggregate in the [Trident state doc](Trident-state.html).
+If you run aggregators on a grouped stream, the aggregation will be run within each group instead of against the whole batch. persistentAggregate can also be run on a GroupedStream, in which case the results will be stored in a [MapState]({{page.git-blob-base}}/storm-core/src/jvm/storm/trident/state/map/MapState.java) with the key being the grouping fields. You can read more about persistentAggregate in the [Trident state doc](Trident-state.html).
 
 Like regular streams, aggregators on grouped streams can be chained.
 

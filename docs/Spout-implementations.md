@@ -1,5 +1,7 @@
 ---
+title: Spout Implementations
 layout: documentation
+documentation: true
 ---
 * [storm-kestrel](https://github.com/nathanmarz/storm-kestrel): Adapter to use Kestrel as a spout
 * [storm-amqp-spout](https://github.com/rapportive-oss/storm-amqp-spout): Adapter to use AMQP source as a spout

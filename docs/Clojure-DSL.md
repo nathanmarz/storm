@@ -1,7 +1,9 @@
 ---
+title: Clojure DSL
 layout: documentation
+documentation: true
 ---
-Storm comes with a Clojure DSL for defining spouts, bolts, and topologies. The Clojure DSL has access to everything the Java API exposes, so if you're a Clojure user you can code Storm topologies without touching Java at all. The Clojure DSL is defined in the source in the [backtype.storm.clojure](https://github.com/apache/incubator-storm/blob/0.5.3/src/clj/backtype/storm/clojure.clj) namespace.
+Storm comes with a Clojure DSL for defining spouts, bolts, and topologies. The Clojure DSL has access to everything the Java API exposes, so if you're a Clojure user you can code Storm topologies without touching Java at all. The Clojure DSL is defined in the source in the [backtype.storm.clojure]({{page.git-blob-base}}/storm-core/src/clj/backtype/storm/clojure.clj) namespace.
 
 This page outlines all the pieces of the Clojure DSL, including:
 
@@ -15,7 +17,7 @@ This page outlines all the pieces of the Clojure DSL, including:
 
 To define a topology, use the `topology` function. `topology` takes in two arguments: a map of "spout specs" and a map of "bolt specs". Each spout and bolt spec wires the code for the component into the topology by specifying things like inputs and parallelism.
 
-Let's take a look at an example topology definition [from the storm-starter project](https://github.com/nathanmarz/storm-starter/blob/master/src/clj/storm/starter/clj/word_count.clj):
+Let's take a look at an example topology definition [from the storm-starter project]({{page.git-blob-base}}/examples/storm-starter/src/clj/storm/starter/clj/word_count.clj):
 
 ```clojure
 (topology
@@ -201,7 +203,7 @@ The signature for `defspout` looks like the following:
 
 If you leave out the option map, it defaults to {:prepare true}. The output declaration for `defspout` has the same syntax as `defbolt`.
 
-Here's an example `defspout` implementation from [storm-starter](https://github.com/nathanmarz/storm-starter/blob/master/src/clj/storm/starter/clj/word_count.clj):
+Here's an example `defspout` implementation from [storm-starter]({{page.git-blob-base}}/examples/storm-starter/src/clj/storm/starter/clj/word_count.clj):
 
 ```clojure
 (defspout sentence-spout ["sentence"]

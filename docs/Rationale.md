@@ -1,5 +1,7 @@
 ---
+title: Rationale
 layout: documentation
+documentation: true
 ---
 The past decade has seen a revolution in data processing. MapReduce, Hadoop, and related technologies have made it possible to store and process data at scales previously unthinkable. Unfortunately, these data processing technologies are not realtime systems, nor are they meant to be. There's no hack that will turn Hadoop into a realtime system; realtime data processing has a fundamentally different set of requirements than batch processing.
 

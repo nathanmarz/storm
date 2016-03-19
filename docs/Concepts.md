@@ -1,5 +1,7 @@
 ---
+title: Concepts
 layout: documentation
+documentation: true
 ---
 
 This page lists the main concepts of Storm and links to resources where you can find more information. The concepts discussed are:
@@ -35,14 +37,12 @@ Every stream is given an id when declared. Since single-stream spouts and bolts 
 * [Tuple](javadocs/backtype/storm/tuple/Tuple.html): streams are composed of tuples
 * [OutputFieldsDeclarer](javadocs/backtype/storm/topology/OutputFieldsDeclarer.html): used to declare streams and their schemas
 * [Serialization](Serialization.html): Information about Storm's dynamic typing of tuples and declaring custom serializations
-* [ISerialization](javadocs/backtype/storm/serialization/ISerialization.html): custom serializers must implement this interface
-* [CONFIG.TOPOLOGY_SERIALIZATIONS](javadocs/backtype/storm/Config.html#TOPOLOGY_SERIALIZATIONS): custom serializers can be registered using this configuration
 
 ### Spouts
 
 A spout is a source of streams in a topology. Generally spouts will read tuples from an external source and emit them into the topology (e.g. a Kestrel queue or the Twitter API). Spouts can either be __reliable__ or __unreliable__. A reliable spout is capable of replaying a tuple if it failed to be processed by Storm, whereas an unreliable spout forgets about the tuple as soon as it is emitted.
 
-Spouts can emit more than one stream. To do so, declare multiple streams using the `declareStream` method of [OutputFieldsDeclarer](javadocs/backtype/storm/topology/OutputFieldsDeclarer.html) and specify the stream to emit to when using the `emit` method on [SpoutOutputCollector](javadocs/backtype/storm/spout/SpoutOutputCollector.html). 
+Spouts can emit more than one stream. To do so, declare multiple streams using the `declareStream` method of [OutputFieldsDeclarer](javadocs/backtype/storm/topology/OutputFieldsDeclarer.html) and specify the stream to emit to when using the `emit` method on [SpoutOutputCollector](javadocs/backtype/storm/spout/SpoutOutputCollector.html).
 
 The main method on spouts is `nextTuple`. `nextTuple` either emits a new tuple into the topology or simply returns if there are no new tuples to emit. It is imperative that `nextTuple` does not block for any spout implementation, because Storm calls all the spout methods on the same thread.
 
@@ -50,7 +50,7 @@ The other main methods on spouts are `ack` and `fail`. These are called when Sto
 
 **Resources:**
 
-* [IRichSpout](javadocs/backtype/storm/topology/IRichSpout.html): this is the interface that spouts must implement. 
+* [IRichSpout](javadocs/backtype/storm/topology/IRichSpout.html): this is the interface that spouts must implement.
 * [Guaranteeing message processing](Guaranteeing-message-processing.html)
 
 ### Bolts
@@ -61,7 +61,7 @@ Bolts can do simple stream transformations. Doing complex stream transformations
 
 Bolts can emit more than one stream. To do so, declare multiple streams using the `declareStream` method of [OutputFieldsDeclarer](javadocs/backtype/storm/topology/OutputFieldsDeclarer.html) and specify the stream to emit to when using the `emit` method on [OutputCollector](javadocs/backtype/storm/task/OutputCollector.html).
 
-When you declare a bolt's input streams, you always subscribe to specific streams of another component. If you want to subscribe to all the streams of another component, you have to subscribe to each one individually. [InputDeclarer](javadocs/backtype/storm/topology/InputDeclarer.html) has syntactic sugar for subscribing to streams declared on the default stream id. Saying `declarer.shuffleGrouping("1")` subscribes to the default stream on component "1" and is equivalent to `declarer.shuffleGrouping("1", DEFAULT_STREAM_ID)`. 
+When you declare a bolt's input streams, you always subscribe to specific streams of another component. If you want to subscribe to all the streams of another component, you have to subscribe to each one individually. [InputDeclarer](javadocs/backtype/storm/topology/InputDeclarer.html) has syntactic sugar for subscribing to streams declared on the default stream id. Saying `declarer.shuffleGrouping("1")` subscribes to the default stream on component "1" and is equivalent to `declarer.shuffleGrouping("1", DEFAULT_STREAM_ID)`.
 
 The main method in bolts is the `execute` method which takes in as input a new tuple. Bolts emit new tuples using the [OutputCollector](javadocs/backtype/storm/task/OutputCollector.html) object. Bolts must call the `ack` method on the `OutputCollector` for every tuple they process so that Storm knows when tuples are completed (and can eventually determine that its safe to ack the original spout tuples). For the common case of processing an input tuple, emitting 0 or more tuples based on that tuple, and then acking the input tuple, Storm provides an [IBasicBolt](javadocs/backtype/storm/topology/IBasicBolt.html) interface which does the acking automatically.
 
@@ -78,21 +78,21 @@ Its perfectly fine to launch new threads in bolts that do processing asynchronou
 
 Part of defining a topology is specifying for each bolt which streams it should receive as input. A stream grouping defines how that stream should be partitioned among the bolt's tasks.
 
-There are seven built-in stream groupings in Storm, and you can implement a custom stream grouping by implementing the [CustomStreamGrouping](javadocs/backtype/storm/grouping/CustomStreamGrouping.html) interface:
+There are eight built-in stream groupings in Storm, and you can implement a custom stream grouping by implementing the [CustomStreamGrouping](javadocs/backtype/storm/grouping/CustomStreamGrouping.html) interface:
 
 1. **Shuffle grouping**: Tuples are randomly distributed across the bolt's tasks in a way such that each bolt is guaranteed to get an equal number of tuples.
 2. **Fields grouping**: The stream is partitioned by the fields specified in the grouping. For example, if the stream is grouped by the "user-id" field, tuples with the same "user-id" will always go to the same task, but tuples with different "user-id"'s may go to different tasks.
-3. **All grouping**: The stream is replicated across all the bolt's tasks. Use this grouping with care.
-4. **Global grouping**: The entire stream goes to a single one of the bolt's tasks. Specifically, it goes to the task with the lowest id.
-5. **None grouping**: This grouping specifies that you don't care how the stream is grouped. Currently, none groupings are equivalent to shuffle groupings. Eventually though, Storm will push down bolts with none groupings to execute in the same thread as the bolt or spout they subscribe from (when possible).
-6. **Direct grouping**: This is a special kind of grouping. A stream grouped this way means that the __producer__ of the tuple decides which task of the consumer will receive this tuple. Direct groupings can only be declared on streams that have been declared as direct streams. Tuples emitted to a direct stream must be emitted using one of the [emitDirect](javadocs/backtype/storm/task/OutputCollector.html#emitDirect(int, int, java.util.List) methods. A bolt can get the task ids of its consumers by either using the provided [TopologyContext](javadocs/backtype/storm/task/TopologyContext.html) or by keeping track of the output of the `emit` method in [OutputCollector](javadocs/backtype/storm/task/OutputCollector.html) (which returns the task ids that the tuple was sent to).  
-7. **Local or shuffle grouping**: If the target bolt has one or more tasks in the same worker process, tuples will be shuffled to just those in-process tasks. Otherwise, this acts like a normal shuffle grouping.
+3. **Partial Key grouping**: The stream is partitioned by the fields specified in the grouping, like the Fields grouping, but are load balanced between two downstream bolts, which provides better utilization of resources when the incoming data is skewed. [This paper](https://melmeric.files.wordpress.com/2014/11/the-power-of-both-choices-practical-load-balancing-for-distributed-stream-processing-engines.pdf) provides a good explanation of how it works and the advantages it provides.
+4. **All grouping**: The stream is replicated across all the bolt's tasks. Use this grouping with care.
+5. **Global grouping**: The entire stream goes to a single one of the bolt's tasks. Specifically, it goes to the task with the lowest id.
+6. **None grouping**: This grouping specifies that you don't care how the stream is grouped. Currently, none groupings are equivalent to shuffle groupings. Eventually though, Storm will push down bolts with none groupings to execute in the same thread as the bolt or spout they subscribe from (when possible).
+7. **Direct grouping**: This is a special kind of grouping. A stream grouped this way means that the __producer__ of the tuple decides which task of the consumer will receive this tuple. Direct groupings can only be declared on streams that have been declared as direct streams. Tuples emitted to a direct stream must be emitted using one of the [emitDirect](javadocs/backtype/storm/task/OutputCollector.html#emitDirect(int, int, java.util.List) methods. A bolt can get the task ids of its consumers by either using the provided [TopologyContext](javadocs/backtype/storm/task/TopologyContext.html) or by keeping track of the output of the `emit` method in [OutputCollector](javadocs/backtype/storm/task/OutputCollector.html) (which returns the task ids that the tuple was sent to).
+8. **Local or shuffle grouping**: If the target bolt has one or more tasks in the same worker process, tuples will be shuffled to just those in-process tasks. Otherwise, this acts like a normal shuffle grouping.
 
 **Resources:**
 
 * [TopologyBuilder](javadocs/backtype/storm/topology/TopologyBuilder.html): use this class to define topologies
 * [InputDeclarer](javadocs/backtype/storm/topology/InputDeclarer.html): this object is returned whenever `setBolt` is called on `TopologyBuilder` and is used for declaring a bolt's input streams and how those streams should be grouped
-* [CoordinatedBolt](javadocs/backtype/storm/task/CoordinatedBolt.html): this bolt is useful for distributed RPC topologies and makes heavy use of direct streams and direct groupings
 
 ### Reliability
 
@@ -104,7 +104,7 @@ This is all explained in much more detail in [Guaranteeing message processing](G
 
 ### Tasks
 
-Each spout or bolt executes as many tasks across the cluster. Each task corresponds to one thread of execution, and stream groupings define how to send tuples from one set of tasks to another set of tasks. You set the parallelism for each spout or bolt in the `setSpout` and `setBolt` methods of [TopologyBuilder](javadocs/backtype/storm/topology/TopologyBuilder.html). 
+Each spout or bolt executes as many tasks across the cluster. Each task corresponds to one thread of execution, and stream groupings define how to send tuples from one set of tasks to another set of tasks. You set the parallelism for each spout or bolt in the `setSpout` and `setBolt` methods of [TopologyBuilder](javadocs/backtype/storm/topology/TopologyBuilder.html).
 
 ### Workers
 

@@ -1,9 +1,11 @@
 ---
+title: Setting Up a Development Environment
 layout: documentation
+documentation: true
 ---
 This page outlines what you need to do to get a Storm development environment set up. In summary, the steps are:
 
-1. Download a [Storm release](/releases.html) , unpack it, and put the unpacked `bin/` directory on your PATH
+1. Download a [Storm release](..//downloads.html) , unpack it, and put the unpacked `bin/` directory on your PATH
 2. To be able to start and stop topologies on a remote cluster, put the cluster information in `~/.storm/storm.yaml`
 
 More detail on each of these steps is below.
@@ -18,7 +20,7 @@ Let's quickly go over the relationship between your machine and a remote cluster
 
 ### Installing a Storm release locally
 
-If you want to be able to submit topologies to a remote cluster from your machine, you should install a Storm release locally. Installing a Storm release will give you the `storm` client that you can use to interact with remote clusters. To install Storm locally, download a release [from here](/releases.html) and unzip it somewhere on your computer. Then add the unpacked `bin/` directory onto your `PATH` and make sure the `bin/storm` script is executable.
+If you want to be able to submit topologies to a remote cluster from your machine, you should install a Storm release locally. Installing a Storm release will give you the `storm` client that you can use to interact with remote clusters. To install Storm locally, download a release [from here](https://github.com/apache/storm/releases) and unzip it somewhere on your computer. Then add the unpacked `bin/` directory onto your `PATH` and make sure the `bin/storm` script is executable.
 
 Installing a Storm release locally is only for interacting with remote clusters. For developing and testing topologies in local mode, it is recommended that you use Maven to include Storm as a dev dependency for your project. You can read more about using Maven for this purpose on [Maven](Maven.html). 
 
@@ -27,13 +29,5 @@ Installing a Storm release locally is only for interacting with remote clusters.
 The previous step installed the `storm` client on your machine which is used to communicate with remote Storm clusters. Now all you have to do is tell the client which Storm cluster to talk to. To do this, all you have to do is put the host address of the master in the `~/.storm/storm.yaml` file. It should look something like this:
 
 ```
-nimbus.host: "123.45.678.890"
+nimbus.seeds: ["123.45.678.890"]
 ```
-
-Alternatively, if you use the [storm-deploy](https://github.com/nathanmarz/storm-deploy) project to provision Storm clusters on AWS, it will automatically set up your ~/.storm/storm.yaml file. You can manually attach to a Storm cluster (or switch between multiple clusters) using the "attach" command, like so:
-
-```
-lein run :deploy --attach --name mystormcluster
-```
-
-More information is on the storm-deploy [wiki](https://github.com/nathanmarz/storm-deploy/wiki)

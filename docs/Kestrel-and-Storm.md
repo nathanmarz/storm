@@ -1,11 +1,13 @@
 ---
+title: Storm and Kestrel
 layout: documentation
+documentation: true
 ---
 This page explains how to use to Storm to consume items from a Kestrel cluster.
 
 ## Preliminaries
 ### Storm
-This tutorial uses examples from the [storm-kestrel](https://github.com/nathanmarz/storm-kestrel) project and the [storm-starter](https://github.com/nathanmarz/storm-starter) project. It's recommended that you clone those projects and follow along with the examples. Read [Setting up development environment](https://github.com/apache/incubator-storm/wiki/Setting-up-development-environment) and [Creating a new Storm project](https://github.com/apache/incubator-storm/wiki/Creating-a-new-Storm-project) to get your machine set up.
+This tutorial uses examples from the [storm-kestrel](https://github.com/nathanmarz/storm-kestrel) project and the [storm-starter](http://github.com/apache/storm/blob/{{page.version}}/examples/storm-starter) project. It's recommended that you clone those projects and follow along with the examples. Read [Setting up development environment](Setting-up-development-environment.html) and [Creating a new Storm project](Creating-a-new-Storm-project.html) to get your machine set up.
 ### Kestrel
 It assumes you are able to run locally a Kestrel server as described [here](https://github.com/nathanmarz/storm-kestrel).
 

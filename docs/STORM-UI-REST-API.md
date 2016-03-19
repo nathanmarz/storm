@@ -1,5 +1,5 @@
 ---
-title: Storm UI REST API
+title: Storm REST API
 layout: documentation
 documentation: true
 ---

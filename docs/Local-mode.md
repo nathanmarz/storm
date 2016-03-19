@@ -1,5 +1,7 @@
 ---
+title: Local Mode
 layout: documentation
+documentation: true
 ---
 Local mode simulates a Storm cluster in process and is useful for developing and testing topologies. Running topologies in local mode is similar to running topologies [on a cluster](Running-topologies-on-a-production-cluster.html). 
 

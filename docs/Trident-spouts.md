@@ -1,5 +1,7 @@
 ---
+title: Trident Spouts
 layout: documentation
+documentation: true
 ---
 # Trident spouts
 
@@ -32,10 +34,10 @@ Even while processing multiple batches simultaneously, Trident will order any st
 
 Here are the following spout APIs available:
 
-1. [ITridentSpout](https://github.com/apache/incubator-storm/blob/master/storm-core/src/jvm/storm/trident/spout/ITridentSpout.java): The most general API that can support transactional or opaque transactional semantics. Generally you'll use one of the partitioned flavors of this API rather than this one directly.
-2. [IBatchSpout](https://github.com/apache/incubator-storm/blob/master/storm-core/src/jvm/storm/trident/spout/IBatchSpout.java): A non-transactional spout that emits batches of tuples at a time
-3. [IPartitionedTridentSpout](https://github.com/apache/incubator-storm/blob/master/storm-core/src/jvm/storm/trident/spout/IPartitionedTridentSpout.java): A transactional spout that reads from a partitioned data source (like a cluster of Kafka servers)
-4. [IOpaquePartitionedTridentSpout](https://github.com/apache/incubator-storm/blob/master/storm-core/src/jvm/storm/trident/spout/IOpaquePartitionedTridentSpout.java): An opaque transactional spout that reads from a partitioned data source
+1. [ITridentSpout]({{page.git-blob-base}}/storm-core/src/jvm/storm/trident/spout/ITridentSpout.java): The most general API that can support transactional or opaque transactional semantics. Generally you'll use one of the partitioned flavors of this API rather than this one directly.
+2. [IBatchSpout]({{page.git-blob-base}}/storm-core/src/jvm/storm/trident/spout/IBatchSpout.java): A non-transactional spout that emits batches of tuples at a time
+3. [IPartitionedTridentSpout]({{page.git-blob-base}}/storm-core/src/jvm/storm/trident/spout/IPartitionedTridentSpout.java): A transactional spout that reads from a partitioned data source (like a cluster of Kafka servers)
+4. [IOpaquePartitionedTridentSpout]({{page.git-blob-base}}/storm-core/src/jvm/storm/trident/spout/IOpaquePartitionedTridentSpout.java): An opaque transactional spout that reads from a partitioned data source
 
 And, like mentioned in the beginning of this tutorial, you can use regular IRichSpout's as well.
  

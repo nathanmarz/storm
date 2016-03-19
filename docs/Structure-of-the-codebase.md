@@ -1,5 +1,7 @@
 ---
+title: Structure of the Codebase
 layout: documentation
+documentation: true
 ---
 There are three distinct layers to Storm's codebase.
 
@@ -13,18 +15,18 @@ The following sections explain each of these layers in more detail.
 
 ### storm.thrift
 
-The first place to look to understand the structure of Storm's codebase is the [storm.thrift](https://github.com/apache/incubator-storm/blob/master/storm-core/src/storm.thrift) file.
+The first place to look to understand the structure of Storm's codebase is the [storm.thrift]({{page.git-blob-base}}/storm-core/src/storm.thrift) file.
 
 Storm uses [this fork](https://github.com/nathanmarz/thrift/tree/storm) of Thrift (branch 'storm') to produce the generated code. This "fork" is actually Thrift 7 with all the Java packages renamed to be `org.apache.thrift7`. Otherwise, it's identical to Thrift 7. This fork was done because of the lack of backwards compatibility in Thrift and the need for many people to use other versions of Thrift in their Storm topologies.
 
-Every spout or bolt in a topology is given a user-specified identifier called the "component id". The component id is used to specify subscriptions from a bolt to the output streams of other spouts or bolts. A [StormTopology](https://github.com/apache/incubator-storm/blob/master/storm-core/src/storm.thrift#L91) structure contains a map from component id to component for each type of component (spouts and bolts).
+Every spout or bolt in a topology is given a user-specified identifier called the "component id". The component id is used to specify subscriptions from a bolt to the output streams of other spouts or bolts. A [StormTopology]({{page.git-blob-base}}/storm-core/src/storm.thrift#L91) structure contains a map from component id to component for each type of component (spouts and bolts).
 
-Spouts and bolts have the same Thrift definition, so let's just take a look at the [Thrift definition for bolts](https://github.com/apache/incubator-storm/blob/master/storm-core/src/storm.thrift#L79). It contains a `ComponentObject` struct and a `ComponentCommon` struct.
+Spouts and bolts have the same Thrift definition, so let's just take a look at the [Thrift definition for bolts]({{page.git-blob-base}}/storm-core/src/storm.thrift#L79). It contains a `ComponentObject` struct and a `ComponentCommon` struct.
 
 The `ComponentObject` defines the implementation for the bolt. It can be one of three types:
 
-1. A serialized java object (that implements [IBolt](https://github.com/apache/incubator-storm/blob/master/storm-core/src/jvm/backtype/storm/task/IBolt.java))
-2. A `ShellComponent` object that indicates the implementation is in another language. Specifying a bolt this way will cause Storm to instantiate a [ShellBolt](https://github.com/apache/incubator-storm/blob/master/storm-core/src/jvm/backtype/storm/task/ShellBolt.java) object to handle the communication between the JVM-based worker process and the non-JVM-based implementation of the component.
+1. A serialized java object (that implements [IBolt]({{page.git-blob-base}}/storm-core/src/jvm/backtype/storm/task/IBolt.java))
+2. A `ShellComponent` object that indicates the implementation is in another language. Specifying a bolt this way will cause Storm to instantiate a [ShellBolt]({{page.git-blob-base}}/storm-core/src/jvm/backtype/storm/task/ShellBolt.java) object to handle the communication between the JVM-based worker process and the non-JVM-based implementation of the component.
 3. A `JavaObject` structure which tells Storm the classname and constructor arguments to use to instantiate that bolt. This is useful if you want to define a topology in a non-JVM language. This way, you can make use of JVM-based spouts and bolts without having to create and serialize a Java object yourself.
 
 `ComponentCommon` defines everything else for this component. This includes:
@@ -32,9 +34,9 @@ The `ComponentObject` defines the implementation for the bolt. It can be one of 
 1. What streams this component emits and the metadata for each stream (whether it's a direct stream, the fields declaration)
 2. What streams this component consumes (specified as a map from component_id:stream_id to the stream grouping to use)
 3. The parallelism for this component
-4. The component-specific [configuration](https://github.com/apache/incubator-storm/wiki/Configuration) for this component
+4. The component-specific [configuration](Configuration.html) for this component
 
-Note that the structure spouts also have a `ComponentCommon` field, and so spouts can also have declarations to consume other input streams. Yet the Storm Java API does not provide a way for spouts to consume other streams, and if you put any input declarations there for a spout you would get an error when you tried to submit the topology. The reason that spouts have an input declarations field is not for users to use, but for Storm itself to use. Storm adds implicit streams and bolts to the topology to set up the [acking framework](https://github.com/apache/incubator-storm/wiki/Guaranteeing-message-processing), and two of these implicit streams are from the acker bolt to each spout in the topology. The acker sends "ack" or "fail" messages along these streams whenever a tuple tree is detected to be completed or failed. The code that transforms the user's topology into the runtime topology is located [here](https://github.com/apache/incubator-storm/blob/master/storm-core/src/clj/backtype/storm/daemon/common.clj#L279).
+Note that the structure spouts also have a `ComponentCommon` field, and so spouts can also have declarations to consume other input streams. Yet the Storm Java API does not provide a way for spouts to consume other streams, and if you put any input declarations there for a spout you would get an error when you tried to submit the topology. The reason that spouts have an input declarations field is not for users to use, but for Storm itself to use. Storm adds implicit streams and bolts to the topology to set up the [acking framework](https://github.com/apache/storm/wiki/Guaranteeing-message-processing), and two of these implicit streams are from the acker bolt to each spout in the topology. The acker sends "ack" or "fail" messages along these streams whenever a tuple tree is detected to be completed or failed. The code that transforms the user's topology into the runtime topology is located [here]({{page.git-blob-base}}/storm-core/src/clj/backtype/storm/daemon/common.clj#L279).
 
 ### Java interfaces
 
@@ -49,92 +51,92 @@ The strategy for the majority of the interfaces is to:
 1. Specify the interface using a Java interface
 2. Provide a base class that provides default implementations when appropriate
 
-You can see this strategy at work with the [BaseRichSpout](javadocs/backtype/storm/topology/base/BaseRichSpout.html) class. 
+You can see this strategy at work with the [BaseRichSpout](javadocs/backtype/storm/topology/base/BaseRichSpout.html) class.
 
 Spouts and bolts are serialized into the Thrift definition of the topology as described above. 
 
-One subtle aspect of the interfaces is the difference between `IBolt` and `ISpout` vs. `IRichBolt` and `IRichSpout`. The main difference between them is the addition of the `declareOutputFields` method in the "Rich" versions of the interfaces. The reason for the split is that the output fields declaration for each output stream needs to be part of the Thrift struct (so it can be specified from any language), but as a user you want to be able to declare the streams as part of your class. What `TopologyBuilder` does when constructing the Thrift representation is call `declareOutputFields` to get the declaration and convert it into the Thrift structure. The conversion happens [at this portion](https://github.com/apache/incubator-storm/blob/master/storm-core/src/jvm/backtype/storm/topology/TopologyBuilder.java#L205) of the `TopologyBuilder` code. 
+One subtle aspect of the interfaces is the difference between `IBolt` and `ISpout` vs. `IRichBolt` and `IRichSpout`. The main difference between them is the addition of the `declareOutputFields` method in the "Rich" versions of the interfaces. The reason for the split is that the output fields declaration for each output stream needs to be part of the Thrift struct (so it can be specified from any language), but as a user you want to be able to declare the streams as part of your class. What `TopologyBuilder` does when constructing the Thrift representation is call `declareOutputFields` to get the declaration and convert it into the Thrift structure. The conversion happens [at this portion]({{page.git-blob-base}}/storm-core/src/jvm/backtype/storm/topology/TopologyBuilder.java#L205) of the `TopologyBuilder` code.
 
 
 ### Implementation
 
 Specifying all the functionality via Java interfaces ensures that every feature of Storm is available via Java. Moreso, the focus on Java interfaces ensures that the user experience from Java-land is pleasant as well.
 
-The implementation of Storm, on the other hand, is primarily in Clojure. While the codebase is about 50% Java and 50% Clojure in terms of LOC, most of the implementation logic is in Clojure. There are two notable exceptions to this, and that is the [DRPC](https://github.com/apache/incubator-storm/wiki/Distributed-RPC) and [transactional topologies](https://github.com/apache/incubator-storm/wiki/Transactional-topologies) implementations. These are implemented purely in Java. This was done to serve as an illustration for how to implement a higher level abstraction on Storm. The DRPC and transactional topologies implementations are in the [backtype.storm.coordination](https://github.com/apache/incubator-storm/tree/master/storm-core/src/jvm/backtype/storm/coordination), [backtype.storm.drpc](https://github.com/apache/incubator-storm/tree/master/storm-core/src/jvm/backtype/storm/drpc), and [backtype.storm.transactional](https://github.com/apache/incubator-storm/tree/master/storm-core/src/jvm/backtype/storm/transactional) packages.
+The implementation of Storm, on the other hand, is primarily in Clojure. While the codebase is about 50% Java and 50% Clojure in terms of LOC, most of the implementation logic is in Clojure. There are two notable exceptions to this, and that is the [DRPC](https://github.com/apache/storm/wiki/Distributed-RPC) and [transactional topologies](https://github.com/apache/storm/wiki/Transactional-topologies) implementations. These are implemented purely in Java. This was done to serve as an illustration for how to implement a higher level abstraction on Storm. The DRPC and transactional topologies implementations are in the [backtype.storm.coordination]({{page.git-tree-base}}/storm-core/src/jvm/backtype/storm/coordination), [backtype.storm.drpc]({{page.git-tree-base}}/storm-core/src/jvm/backtype/storm/drpc), and [backtype.storm.transactional]({{page.git-tree-base}}/storm-core/src/jvm/backtype/storm/transactional) packages.
 
 Here's a summary of the purpose of the main Java packages and Clojure namespace:
 
 #### Java packages
 
-[backtype.storm.coordination](https://github.com/apache/incubator-storm/tree/master/storm-core/src/jvm/backtype/storm/coordination): Implements the pieces required to coordinate batch-processing on top of Storm, which both DRPC and transactional topologies use. `CoordinatedBolt` is the most important class here.
+[backtype.storm.coordination]({{page.git-tree-base}}/storm-core/src/jvm/backtype/storm/coordination): Implements the pieces required to coordinate batch-processing on top of Storm, which both DRPC and transactional topologies use. `CoordinatedBolt` is the most important class here.
 
-[backtype.storm.drpc](https://github.com/apache/incubator-storm/tree/master/storm-core/src/jvm/backtype/storm/drpc): Implementation of the DRPC higher level abstraction
+[backtype.storm.drpc]({{page.git-tree-base}}/storm-core/src/jvm/backtype/storm/drpc): Implementation of the DRPC higher level abstraction
 
-[backtype.storm.generated](https://github.com/apache/incubator-storm/tree/master/storm-core/src/jvm/backtype/storm/generated): The generated Thrift code for Storm (generated using [this fork](https://github.com/nathanmarz/thrift) of Thrift, which simply renames the packages to org.apache.thrift7 to avoid conflicts with other Thrift versions)
+[backtype.storm.generated]({{page.git-tree-base}}/storm-core/src/jvm/backtype/storm/generated): The generated Thrift code for Storm (generated using [this fork](https://github.com/nathanmarz/thrift) of Thrift, which simply renames the packages to org.apache.thrift7 to avoid conflicts with other Thrift versions)
 
-[backtype.storm.grouping](https://github.com/apache/incubator-storm/tree/master/storm-core/src/jvm/backtype/storm/grouping): Contains interface for making custom stream groupings
+[backtype.storm.grouping]({{page.git-tree-base}}/storm-core/src/jvm/backtype/storm/grouping): Contains interface for making custom stream groupings
 
-[backtype.storm.hooks](https://github.com/apache/incubator-storm/tree/master/storm-core/src/jvm/backtype/storm/hooks): Interfaces for hooking into various events in Storm, such as when tasks emit tuples, when tuples are acked, etc. User guide for hooks is [here](https://github.com/apache/incubator-storm/wiki/Hooks).
+[backtype.storm.hooks]({{page.git-tree-base}}/storm-core/src/jvm/backtype/storm/hooks): Interfaces for hooking into various events in Storm, such as when tasks emit tuples, when tuples are acked, etc. User guide for hooks is [here](https://github.com/apache/storm/wiki/Hooks).
 
-[backtype.storm.serialization](https://github.com/apache/incubator-storm/tree/master/storm-core/src/jvm/backtype/storm/serialization): Implementation of how Storm serializes/deserializes tuples. Built on top of [Kryo](http://code.google.com/p/kryo/).
+[backtype.storm.serialization]({{page.git-tree-base}}/storm-core/src/jvm/backtype/storm/serialization): Implementation of how Storm serializes/deserializes tuples. Built on top of [Kryo](http://code.google.com/p/kryo/).
 
-[backtype.storm.spout](https://github.com/apache/incubator-storm/tree/master/storm-core/src/jvm/backtype/storm/spout): Definition of spout and associated interfaces (like the `SpoutOutputCollector`). Also contains `ShellSpout` which implements the protocol for defining spouts in non-JVM languages.
+[backtype.storm.spout]({{page.git-tree-base}}/storm-core/src/jvm/backtype/storm/spout): Definition of spout and associated interfaces (like the `SpoutOutputCollector`). Also contains `ShellSpout` which implements the protocol for defining spouts in non-JVM languages.
 
-[backtype.storm.task](https://github.com/apache/incubator-storm/tree/master/storm-core/src/jvm/backtype/storm/task): Definition of bolt and associated interfaces (like `OutputCollector`). Also contains `ShellBolt` which implements the protocol for defining bolts in non-JVM languages. Finally, `TopologyContext` is defined here as well, which is provided to spouts and bolts so they can get data about the topology and its execution at runtime.
+[backtype.storm.task]({{page.git-tree-base}}/storm-core/src/jvm/backtype/storm/task): Definition of bolt and associated interfaces (like `OutputCollector`). Also contains `ShellBolt` which implements the protocol for defining bolts in non-JVM languages. Finally, `TopologyContext` is defined here as well, which is provided to spouts and bolts so they can get data about the topology and its execution at runtime.
 
-[backtype.storm.testing](https://github.com/apache/incubator-storm/tree/master/storm-core/src/jvm/backtype/storm/testing): Contains a variety of test bolts and utilities used in Storm's unit tests.
+[backtype.storm.testing]({{page.git-tree-base}}/storm-core/src/jvm/backtype/storm/testing): Contains a variety of test bolts and utilities used in Storm's unit tests.
 
-[backtype.storm.topology](https://github.com/apache/incubator-storm/tree/master/storm-core/src/jvm/backtype/storm/topology): Java layer over the underlying Thrift structure to provide a clean, pure-Java API to Storm (users don't have to know about Thrift). `TopologyBuilder` is here as well as the helpful base classes for the different spouts and bolts. The slightly-higher level `IBasicBolt` interface is here, which is a simpler way to write certain kinds of bolts.
+[backtype.storm.topology]({{page.git-tree-base}}/storm-core/src/jvm/backtype/storm/topology): Java layer over the underlying Thrift structure to provide a clean, pure-Java API to Storm (users don't have to know about Thrift). `TopologyBuilder` is here as well as the helpful base classes for the different spouts and bolts. The slightly-higher level `IBasicBolt` interface is here, which is a simpler way to write certain kinds of bolts.
 
-[backtype.storm.transactional](https://github.com/apache/incubator-storm/tree/master/storm-core/src/jvm/backtype/storm/transactional): Implementation of transactional topologies.
+[backtype.storm.transactional]({{page.git-tree-base}}/storm-core/src/jvm/backtype/storm/transactional): Implementation of transactional topologies.
 
-[backtype.storm.tuple](https://github.com/apache/incubator-storm/tree/master/storm-core/src/jvm/backtype/storm/tuple): Implementation of Storm's tuple data model.
+[backtype.storm.tuple]({{page.git-tree-base}}/storm-core/src/jvm/backtype/storm/tuple): Implementation of Storm's tuple data model.
 
-[backtype.storm.utils](https://github.com/apache/incubator-storm/tree/master/storm-core/src/jvm/backtype/storm/tuple): Data structures and miscellaneous utilities used throughout the codebase.
+[backtype.storm.utils]({{page.git-tree-base}}/storm-core/src/jvm/backtype/storm/tuple): Data structures and miscellaneous utilities used throughout the codebase.
 
 
 #### Clojure namespaces
 
-[backtype.storm.bootstrap](https://github.com/apache/incubator-storm/blob/master/storm-core/src/clj/backtype/storm/bootstrap.clj): Contains a helpful macro to import all the classes and namespaces that are used throughout the codebase.
+[backtype.storm.bootstrap]({{page.git-blob-base}}/storm-core/src/clj/backtype/storm/bootstrap.clj): Contains a helpful macro to import all the classes and namespaces that are used throughout the codebase.
 
-[backtype.storm.clojure](https://github.com/apache/incubator-storm/blob/master/storm-core/src/clj/backtype/storm/clojure.clj): Implementation of the Clojure DSL for Storm.
+[backtype.storm.clojure]({{page.git-blob-base}}/storm-core/src/clj/backtype/storm/clojure.clj): Implementation of the Clojure DSL for Storm.
 
-[backtype.storm.cluster](https://github.com/apache/incubator-storm/blob/master/storm-core/src/clj/backtype/storm/cluster.clj): All Zookeeper logic used in Storm daemons is encapsulated in this file. This code manages how cluster state (like what tasks are running where, what spout/bolt each task runs as) is mapped to the Zookeeper "filesystem" API.
+[backtype.storm.cluster]({{page.git-blob-base}}/storm-core/src/clj/backtype/storm/cluster.clj): All Zookeeper logic used in Storm daemons is encapsulated in this file. This code manages how cluster state (like what tasks are running where, what spout/bolt each task runs as) is mapped to the Zookeeper "filesystem" API.
 
-[backtype.storm.command.*](https://github.com/apache/incubator-storm/blob/master/storm-core/src/clj/backtype/storm/command): These namespaces implement various commands for the `storm` command line client. These implementations are very short.
+[backtype.storm.command.*]({{page.git-blob-base}}/storm-core/src/clj/backtype/storm/command): These namespaces implement various commands for the `storm` command line client. These implementations are very short.
 
-[backtype.storm.config](https://github.com/apache/incubator-storm/blob/master/storm-core/src/clj/backtype/storm/config.clj): Implementation of config reading/parsing code for Clojure. Also has utility functions for determining what local path nimbus/supervisor/daemons should be using for various things. e.g. the `master-inbox` function will return the local path that Nimbus should use when jars are uploaded to it.
+[backtype.storm.config]({{page.git-blob-base}}/storm-core/src/clj/backtype/storm/config.clj): Implementation of config reading/parsing code for Clojure. Also has utility functions for determining what local path nimbus/supervisor/daemons should be using for various things. e.g. the `master-inbox` function will return the local path that Nimbus should use when jars are uploaded to it.
 
-[backtype.storm.daemon.acker](https://github.com/apache/incubator-storm/blob/master/storm-core/src/clj/backtype/storm/daemon/acker.clj): Implementation of the "acker" bolt, which is a key part of how Storm guarantees data processing.
+[backtype.storm.daemon.acker]({{page.git-blob-base}}/storm-core/src/clj/backtype/storm/daemon/acker.clj): Implementation of the "acker" bolt, which is a key part of how Storm guarantees data processing.
 
-[backtype.storm.daemon.common](https://github.com/apache/incubator-storm/blob/master/storm-core/src/clj/backtype/storm/daemon/common.clj): Implementation of common functions used in Storm daemons, like getting the id for a topology based on the name, mapping a user's topology into the one that actually executes (with implicit acking streams and acker bolt added - see `system-topology!` function), and definitions for the various heartbeat and other structures persisted by Storm.
+[backtype.storm.daemon.common]({{page.git-blob-base}}/storm-core/src/clj/backtype/storm/daemon/common.clj): Implementation of common functions used in Storm daemons, like getting the id for a topology based on the name, mapping a user's topology into the one that actually executes (with implicit acking streams and acker bolt added - see `system-topology!` function), and definitions for the various heartbeat and other structures persisted by Storm.
 
-[backtype.storm.daemon.drpc](https://github.com/apache/incubator-storm/blob/master/storm-core/src/clj/backtype/storm/daemon/drpc.clj): Implementation of the DRPC server for use with DRPC topologies.
+[backtype.storm.daemon.drpc]({{page.git-blob-base}}/storm-core/src/clj/backtype/storm/daemon/drpc.clj): Implementation of the DRPC server for use with DRPC topologies.
 
-[backtype.storm.daemon.nimbus](https://github.com/apache/incubator-storm/blob/master/storm-core/src/clj/backtype/storm/daemon/nimbus.clj): Implementation of Nimbus.
+[backtype.storm.daemon.nimbus]({{page.git-blob-base}}/storm-core/src/clj/backtype/storm/daemon/nimbus.clj): Implementation of Nimbus.
 
-[backtype.storm.daemon.supervisor](https://github.com/apache/incubator-storm/blob/master/storm-core/src/clj/backtype/storm/daemon/supervisor.clj): Implementation of Supervisor.
+[backtype.storm.daemon.supervisor]({{page.git-blob-base}}/storm-core/src/clj/backtype/storm/daemon/supervisor.clj): Implementation of Supervisor.
 
-[backtype.storm.daemon.task](https://github.com/apache/incubator-storm/blob/master/storm-core/src/clj/backtype/storm/daemon/task.clj): Implementation of an individual task for a spout or bolt. Handles message routing, serialization, stats collection for the UI, as well as the spout-specific and bolt-specific execution implementations.
+[backtype.storm.daemon.task]({{page.git-blob-base}}/storm-core/src/clj/backtype/storm/daemon/task.clj): Implementation of an individual task for a spout or bolt. Handles message routing, serialization, stats collection for the UI, as well as the spout-specific and bolt-specific execution implementations.
 
-[backtype.storm.daemon.worker](https://github.com/apache/incubator-storm/blob/master/storm-core/src/clj/backtype/storm/daemon/worker.clj): Implementation of a worker process (which will contain many tasks within). Implements message transferring and task launching.
+[backtype.storm.daemon.worker]({{page.git-blob-base}}/storm-core/src/clj/backtype/storm/daemon/worker.clj): Implementation of a worker process (which will contain many tasks within). Implements message transferring and task launching.
 
-[backtype.storm.event](https://github.com/apache/incubator-storm/blob/master/storm-core/src/clj/backtype/storm/event.clj): Implements a simple asynchronous function executor. Used in various places in Nimbus and Supervisor to make functions execute in serial to avoid any race conditions.
+[backtype.storm.event]({{page.git-blob-base}}/storm-core/src/clj/backtype/storm/event.clj): Implements a simple asynchronous function executor. Used in various places in Nimbus and Supervisor to make functions execute in serial to avoid any race conditions.
 
-[backtype.storm.log](https://github.com/apache/incubator-storm/blob/master/storm-core/src/clj/backtype/storm/log.clj): Defines the functions used to log messages to log4j.
+[backtype.storm.log]({{page.git-blob-base}}/storm-core/src/clj/backtype/storm/log.clj): Defines the functions used to log messages to log4j.
 
-[backtype.storm.messaging.*](https://github.com/apache/incubator-storm/blob/master/storm-core/src/clj/backtype/storm/messaging): Defines a higher level interface to implementing point to point messaging. In local mode Storm uses in-memory Java queues to do this; on a cluster, it uses ZeroMQ. The generic interface is defined in protocol.clj.
+[backtype.storm.messaging.*]({{page.git-blob-base}}/storm-core/src/clj/backtype/storm/messaging): Defines a higher level interface to implementing point to point messaging. In local mode Storm uses in-memory Java queues to do this; on a cluster, it uses ZeroMQ. The generic interface is defined in protocol.clj.
 
-[backtype.storm.stats](https://github.com/apache/incubator-storm/blob/master/storm-core/src/clj/backtype/storm/stats.clj): Implementation of stats rollup routines used when sending stats to ZK for use by the UI. Does things like windowed and rolling aggregations at multiple granularities.
+[backtype.storm.stats]({{page.git-blob-base}}/storm-core/src/clj/backtype/storm/stats.clj): Implementation of stats rollup routines used when sending stats to ZK for use by the UI. Does things like windowed and rolling aggregations at multiple granularities.
 
-[backtype.storm.testing](https://github.com/apache/incubator-storm/blob/master/storm-core/src/clj/backtype/storm/testing.clj): Implementation of facilities used to test Storm topologies. Includes time simulation, `complete-topology` for running a fixed set of tuples through a topology and capturing the output, tracker topologies for having fine grained control over detecting when a cluster is "idle", and other utilities.
+[backtype.storm.testing]({{page.git-blob-base}}/storm-core/src/clj/backtype/storm/testing.clj): Implementation of facilities used to test Storm topologies. Includes time simulation, `complete-topology` for running a fixed set of tuples through a topology and capturing the output, tracker topologies for having fine grained control over detecting when a cluster is "idle", and other utilities.
 
-[backtype.storm.thrift](https://github.com/apache/incubator-storm/blob/master/storm-core/src/clj/backtype/storm/thrift.clj): Clojure wrappers around the generated Thrift API to make working with Thrift structures more pleasant.
+[backtype.storm.thrift]({{page.git-blob-base}}/storm-core/src/clj/backtype/storm/thrift.clj): Clojure wrappers around the generated Thrift API to make working with Thrift structures more pleasant.
 
-[backtype.storm.timer](https://github.com/apache/incubator-storm/blob/master/storm-core/src/clj/backtype/storm/timer.clj): Implementation of a background timer to execute functions in the future or on a recurring interval. Storm couldn't use the [Timer](http://docs.oracle.com/javase/1.4.2/docs/api/java/util/Timer.html) class because it needed integration with time simulation in order to be able to unit test Nimbus and the Supervisor.
+[backtype.storm.timer]({{page.git-blob-base}}/storm-core/src/clj/backtype/storm/timer.clj): Implementation of a background timer to execute functions in the future or on a recurring interval. Storm couldn't use the [Timer](http://docs.oracle.com/javase/1.4.2/docs/api/java/util/Timer.html) class because it needed integration with time simulation in order to be able to unit test Nimbus and the Supervisor.
 
-[backtype.storm.ui.*](https://github.com/apache/incubator-storm/blob/master/storm-core/src/clj/backtype/storm/ui): Implementation of Storm UI. Completely independent from rest of code base and uses the Nimbus Thrift API to get data.
+[backtype.storm.ui.*]({{page.git-blob-base}}/storm-core/src/clj/backtype/storm/ui): Implementation of Storm UI. Completely independent from rest of code base and uses the Nimbus Thrift API to get data.
 
-[backtype.storm.util](https://github.com/apache/incubator-storm/blob/master/storm-core/src/clj/backtype/storm/util.clj): Contains generic utility functions used throughout the code base.
+[backtype.storm.util]({{page.git-blob-base}}/storm-core/src/clj/backtype/storm/util.clj): Contains generic utility functions used throughout the code base.
  
-[backtype.storm.zookeeper](https://github.com/apache/incubator-storm/blob/master/storm-core/src/clj/backtype/storm/zookeeper.clj): Clojure wrapper around the Zookeeper API and implements some "high-level" stuff like "mkdirs" and "delete-recursive".
+[backtype.storm.zookeeper]({{page.git-blob-base}}/storm-core/src/clj/backtype/storm/zookeeper.clj): Clojure wrapper around the Zookeeper API and implements some "high-level" stuff like "mkdirs" and "delete-recursive".

@@ -1,5 +1,7 @@
 ---
+title: Multi-Lang Protocol
 layout: documentation
+documentation: true
 ---
 This page explains the multilang protocol as of Storm 0.7.1. Versions prior to 0.7.1 used a somewhat different protocol, documented [here](Storm-multi-language-protocol-(versions-0.7.0-and-below\).html).
 
@@ -47,7 +49,7 @@ STDIN and STDOUT.
 
 The initial handshake is the same for both types of shell components:
 
-* STDIN: Setup info. This is a JSON object with the Storm configuration, Topology context, and a PID directory, like this:
+* STDIN: Setup info. This is a JSON object with the Storm configuration, a PID directory, and a topology context, like this:
 
 ```
 {
@@ -55,21 +57,52 @@ The initial handshake is the same for both types of shell components:
         "topology.message.timeout.secs": 3,
         // etc
     },
+    "pidDir": "...",
     "context": {
         "task->component": {
             "1": "example-spout",
             "2": "__acker",
-            "3": "example-bolt"
+            "3": "example-bolt1",
+            "4": "example-bolt2"
         },
-        "taskid": 3
-    },
-    "pidDir": "..."
+        "taskid": 3,
+        // Everything below this line is only available in Storm 0.10.0+
+        "componentid": "example-bolt"
+        "stream->target->grouping": {
+        	"default": {
+        		"example-bolt2": {
+        			"type": "SHUFFLE"}}},
+        "streams": ["default"],
+ 		"stream->outputfields": {"default": ["word"]},
+	    "source->stream->grouping": {
+	    	"example-spout": {
+	    		"default": {
+	    			"type": "FIELDS",
+	    			"fields": ["word"]
+	    		}
+	    	}
+	    }
+	    "source->stream->fields": {
+	    	"example-spout": {
+	    		"default": ["word"]
+	    	}
+	    }
+	}
 }
 ```
 
 Your script should create an empty file named with its PID in this directory. e.g.
 the PID is 1234, so an empty file named 1234 is created in the directory. This
 file lets the supervisor know the PID so it can shutdown the process later on.
+
+As of Storm 0.10.0, the context sent by Storm to shell components has been
+enhanced substantially to include all aspects of the topology context available
+to JVM components.  One key addition is the ability to determine a shell
+component's source and targets (i.e., inputs and outputs) in the topology via
+the `stream->target->grouping` and `source->stream->grouping` dictionaries.  At
+the innermost level of these nested dictionaries, groupings are represented as
+a dictionary that minimally has a `type` key, but can also have a `fields` key
+to specify which fields are involved in a `FIELDS` grouping.
 
 * STDOUT: Your PID, in a JSON object, like `{"pid": 1234}`. The shell component will log the PID to its log.
 
@@ -219,3 +252,36 @@ A "log" will log a message in the worker log. It looks like:
 
 * Note that, as of version 0.7.1, there is no longer any need for a
   shell bolt to 'sync'.
+
+### Handling Heartbeats (0.9.3 and later)
+
+As of Storm 0.9.3, heartbeats have been between ShellSpout/ShellBolt and their
+multi-lang subprocesses to detect hanging/zombie subprocesses.  Any libraries
+for interfacing with Storm via multi-lang must take the following actions
+regarding hearbeats:
+
+#### Spout
+
+Shell spouts are synchronous, so subprocesses always send `sync` commands at the
+end of `next()`,  so you should not have to do much to support heartbeats for
+spouts.  That said, you must not let subprocesses sleep more than the worker
+timeout during `next()`.
+
+#### Bolt
+
+Shell bolts are asynchronous, so a ShellBolt will send heartbeat tuples to its
+subprocess periodically.  Heartbeat tuple looks like:
+
+```
+{
+	"id": "-6955786537413359385",
+	"comp": "1",
+	"stream": "__heartbeat",
+	// this shell bolt's system task id
+	"task": -1,
+	"tuple": []
+}
+```
+
+When subprocess receives heartbeat tuple, it must send a `sync` command back to
+ShellBolt.

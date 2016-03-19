@@ -1,0 +1,59 @@
+<header>
+  <div class="container-fluid">
+     <div class="row">
+          <div class="col-md-5">
+            <a href="/index.html"><img src="/images/logo.png" class="logo" /></a>
+          </div>
+          <div class="col-md-5">
+            {% if page.version %}
+              <h1>Version: {{page.version}}</h1>
+            {% endif %}
+          </div>
+          <div class="col-md-2">
+            <a href="/releases.html" class="btn-std btn-block btn-download">Download</a>
+          </div>
+        </div>
+    </div>
+</header>
+<!--Header End-->
+<!--Navigation Begin-->
+<div class="navbar" role="banner">
+  <div class="container-fluid">
+      <div class="navbar-header">
+          <button class="navbar-toggle" type="button" data-toggle="collapse" data-target=".bs-navbar-collapse">
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+        </div>
+        <nav class="collapse navbar-collapse bs-navbar-collapse" role="navigation">
+          <ul class="nav navbar-nav">
+              <li><a href="/index.html" id="home">Home</a></li>
+                <li><a href="/getting-help.html" id="getting-help">Getting Help</a></li>
+                <li><a href="/about/integrates.html" id="project-info">Project Information</a></li>
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown" id="documentation">Documentation <b class="caret"></b></a>
+                    <ul class="dropdown-menu">
+                      {% for r in site.data.releases %}
+                        {% if r.documented %}
+                          <li><a href="/releases/{{r.name}}/index.html">{{r.name}}</a></li>
+                        {% endif %}
+                      {% endfor %}
+                    </ul>
+                </li>
+                <li><a href="/talksAndVideos.html">Talks and Slideshows</a></li>
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown" id="contribute">Community <b class="caret"></b></a>
+                    <ul class="dropdown-menu">
+                        <li><a href="/contribute/Contributing-to-Storm.html">Contributing</a></li>
+                        <li><a href="/contribute/People.html">People</a></li>
+                        <li><a href="/contribute/BYLAWS.html">ByLaws</a></li>
+                    </ul>
+                </li>
+                <li><a href="{{ site.posts[0].url }}" id="news">News</a></li>
+            </ul>
+        </nav>
+    </div>
+</div>
+
+

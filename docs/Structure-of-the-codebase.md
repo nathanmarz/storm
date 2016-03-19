@@ -94,24 +94,30 @@ Here's a summary of the purpose of the main Java packages and Clojure namespace:
 
 [org.apache.storm.utils]({{page.git-tree-base}}/storm-core/src/jvm/org/apache/storm/tuple): Data structures and miscellaneous utilities used throughout the codebase.
 
+[org.apache.storm.command.*]({{page.git-blob-base}}/storm-core/src/jvm/org/apache/storm/command): These implement various commands for the `storm` command line client. These implementations are very short.
+[org.apache.storm.cluster]({{page.git-blob-base}}/storm-core/src/jvm/org/apache/storm/cluster): This code manages how cluster state (like what tasks are running where, what spout/bolt each task runs as) is stored, typically in Zookeeper.
+
+[org.apache.storm.daemon.Acker]({{page.git-blob-base}}/storm-core/src/jvm/org/apache/storm/daemon/Acker.java): Implementation of the "acker" bolt, which is a key part of how Storm guarantees data processing.
+
+[org.apache.storm.daemon.DrpcServer]({{page.git-blob-base}}/storm-core/src/jvm/org/apache/storm/daemon/DrpcServer.java): Implementation of the DRPC server for use with DRPC topologies.
+
+[org.apache.storm.event]({{page.git-blob-base}}/storm-core/src/jvm/org/apache/storm/event): Implements a simple asynchronous function executor. Used in various places in Nimbus and Supervisor to make functions execute in serial to avoid any race conditions.
+
+[org.apache.storm.messaging.*]({{page.git-blob-base}}/storm-core/src/jvm/org/apache/storm/messaging): Defines a higher level interface to implementing point to point messaging. In local mode Storm uses in-memory Java queues to do this; on a cluster, it uses Netty, but it is pluggable.
+
+[org.apache.storm.stats]({{page.git-blob-base}}/storm-core/src/jvm/org/apache/storm/stats): Implementation of stats rollup routines used when sending stats to ZK for use by the UI. Does things like windowed and rolling aggregations at multiple granularities.
+
+[org.apache.storm.Thrift]({{page.git-blob-base}}/storm-core/src/jvm/org/apache/storm/Thrift.java): Wrappers around the generated Thrift API to make working with Thrift structures more pleasant.
+
+[org.apache.storm.StormTimer]({{page.git-blob-base}}/storm-core/src/jvm/org/apache/storm/StormTimer.java): Implementation of a background timer to execute functions in the future or on a recurring interval. Storm couldn't use the [Timer](http://docs.oracle.com/javase/1.4.2/docs/api/java/util/Timer.html) class because it needed integration with time simulation in order to be able to unit test Nimbus and the Supervisor.
 
 #### Clojure namespaces
 
-[org.apache.storm.bootstrap]({{page.git-blob-base}}/storm-core/src/clj/org/apache/storm/bootstrap.clj): Contains a helpful macro to import all the classes and namespaces that are used throughout the codebase.
+[org.apache.storm.clojure]({{page.git-blob-base}}/storm-clojure/src/clj/org/apache/storm/clojure.clj): Implementation of the Clojure DSL for Storm.
 
-[org.apache.storm.clojure]({{page.git-blob-base}}/storm-core/src/clj/org/apache/storm/clojure.clj): Implementation of the Clojure DSL for Storm.
-
-[org.apache.storm.cluster]({{page.git-blob-base}}/storm-core/src/clj/org/apache/storm/cluster.clj): All Zookeeper logic used in Storm daemons is encapsulated in this file. This code manages how cluster state (like what tasks are running where, what spout/bolt each task runs as) is mapped to the Zookeeper "filesystem" API.
-
-[org.apache.storm.command.*]({{page.git-blob-base}}/storm-core/src/clj/org/apache/storm/command): These namespaces implement various commands for the `storm` command line client. These implementations are very short.
-
-[org.apache.storm.config]({{page.git-blob-base}}/storm-core/src/clj/org/apache/storm/config.clj): Implementation of config reading/parsing code for Clojure. Also has utility functions for determining what local path nimbus/supervisor/daemons should be using for various things. e.g. the `master-inbox` function will return the local path that Nimbus should use when jars are uploaded to it.
-
-[org.apache.storm.daemon.acker]({{page.git-blob-base}}/storm-core/src/clj/org/apache/storm/daemon/acker.clj): Implementation of the "acker" bolt, which is a key part of how Storm guarantees data processing.
-
+[org.apache.storm.config]({{page.git-blob-base}}/storm-core/src/clj/org/apache/storm/config.clj): Created clojure symbols for config names in [Config.java](javadocs/org/apache/storm/Config.html)
+ 
 [org.apache.storm.daemon.common]({{page.git-blob-base}}/storm-core/src/clj/org/apache/storm/daemon/common.clj): Implementation of common functions used in Storm daemons, like getting the id for a topology based on the name, mapping a user's topology into the one that actually executes (with implicit acking streams and acker bolt added - see `system-topology!` function), and definitions for the various heartbeat and other structures persisted by Storm.
-
-[org.apache.storm.daemon.drpc]({{page.git-blob-base}}/storm-core/src/clj/org/apache/storm/daemon/drpc.clj): Implementation of the DRPC server for use with DRPC topologies.
 
 [org.apache.storm.daemon.nimbus]({{page.git-blob-base}}/storm-core/src/clj/org/apache/storm/daemon/nimbus.clj): Implementation of Nimbus.
 
@@ -121,22 +127,8 @@ Here's a summary of the purpose of the main Java packages and Clojure namespace:
 
 [org.apache.storm.daemon.worker]({{page.git-blob-base}}/storm-core/src/clj/org/apache/storm/daemon/worker.clj): Implementation of a worker process (which will contain many tasks within). Implements message transferring and task launching.
 
-[org.apache.storm.event]({{page.git-blob-base}}/storm-core/src/clj/org/apache/storm/event.clj): Implements a simple asynchronous function executor. Used in various places in Nimbus and Supervisor to make functions execute in serial to avoid any race conditions.
-
 [org.apache.storm.log]({{page.git-blob-base}}/storm-core/src/clj/org/apache/storm/log.clj): Defines the functions used to log messages to log4j.
-
-[org.apache.storm.messaging.*]({{page.git-blob-base}}/storm-core/src/clj/org/apache/storm/messaging): Defines a higher level interface to implementing point to point messaging. In local mode Storm uses in-memory Java queues to do this; on a cluster, it uses ZeroMQ. The generic interface is defined in protocol.clj.
-
-[org.apache.storm.stats]({{page.git-blob-base}}/storm-core/src/clj/org/apache/storm/stats.clj): Implementation of stats rollup routines used when sending stats to ZK for use by the UI. Does things like windowed and rolling aggregations at multiple granularities.
 
 [org.apache.storm.testing]({{page.git-blob-base}}/storm-core/src/clj/org/apache/storm/testing.clj): Implementation of facilities used to test Storm topologies. Includes time simulation, `complete-topology` for running a fixed set of tuples through a topology and capturing the output, tracker topologies for having fine grained control over detecting when a cluster is "idle", and other utilities.
 
-[org.apache.storm.thrift]({{page.git-blob-base}}/storm-core/src/clj/org/apache/storm/thrift.clj): Clojure wrappers around the generated Thrift API to make working with Thrift structures more pleasant.
-
-[org.apache.storm.timer]({{page.git-blob-base}}/storm-core/src/clj/org/apache/storm/timer.clj): Implementation of a background timer to execute functions in the future or on a recurring interval. Storm couldn't use the [Timer](http://docs.oracle.com/javase/1.4.2/docs/api/java/util/Timer.html) class because it needed integration with time simulation in order to be able to unit test Nimbus and the Supervisor.
-
 [org.apache.storm.ui.*]({{page.git-blob-base}}/storm-core/src/clj/org/apache/storm/ui): Implementation of Storm UI. Completely independent from rest of code base and uses the Nimbus Thrift API to get data.
-
-[org.apache.storm.util]({{page.git-blob-base}}/storm-core/src/clj/org/apache/storm/util.clj): Contains generic utility functions used throughout the code base.
- 
-[org.apache.storm.zookeeper]({{page.git-blob-base}}/storm-core/src/clj/org/apache/storm/zookeeper.clj): Clojure wrapper around the Zookeeper API and implements some "high-level" stuff like "mkdirs" and "delete-recursive".

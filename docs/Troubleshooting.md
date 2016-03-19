@@ -81,11 +81,11 @@ Symptoms:
 
 ```
 java.lang.RuntimeException: java.util.ConcurrentModificationException
-	at backtype.storm.utils.DisruptorQueue.consumeBatchToCursor(DisruptorQueue.java:84)
-	at backtype.storm.utils.DisruptorQueue.consumeBatchWhenAvailable(DisruptorQueue.java:55)
-	at backtype.storm.disruptor$consume_batch_when_available.invoke(disruptor.clj:56)
-	at backtype.storm.disruptor$consume_loop_STAR_$fn__1597.invoke(disruptor.clj:67)
-	at backtype.storm.util$async_loop$fn__465.invoke(util.clj:377)
+	at org.apache.storm.utils.DisruptorQueue.consumeBatchToCursor(DisruptorQueue.java:84)
+	at org.apache.storm.utils.DisruptorQueue.consumeBatchWhenAvailable(DisruptorQueue.java:55)
+	at org.apache.storm.disruptor$consume_batch_when_available.invoke(disruptor.clj:56)
+	at org.apache.storm.disruptor$consume_loop_STAR_$fn__1597.invoke(disruptor.clj:67)
+	at org.apache.storm.util$async_loop$fn__465.invoke(util.clj:377)
 	at clojure.lang.AFn.run(AFn.java:24)
 	at java.lang.Thread.run(Thread.java:679)
 Caused by: java.util.ConcurrentModificationException
@@ -101,12 +101,12 @@ Caused by: java.util.ConcurrentModificationException
 	at java.io.ObjectOutputStream.writeOrdinaryObject(ObjectOutputStream.java:1416)
 	at java.io.ObjectOutputStream.writeObject0(ObjectOutputStream.java:1174)
 	at java.io.ObjectOutputStream.writeObject(ObjectOutputStream.java:346)
-	at backtype.storm.serialization.SerializableSerializer.write(SerializableSerializer.java:21)
+	at org.apache.storm.serialization.SerializableSerializer.write(SerializableSerializer.java:21)
 	at com.esotericsoftware.kryo.Kryo.writeClassAndObject(Kryo.java:554)
 	at com.esotericsoftware.kryo.serializers.CollectionSerializer.write(CollectionSerializer.java:77)
 	at com.esotericsoftware.kryo.serializers.CollectionSerializer.write(CollectionSerializer.java:18)
 	at com.esotericsoftware.kryo.Kryo.writeObject(Kryo.java:472)
-	at backtype.storm.serialization.KryoValuesSerializer.serializeInto(KryoValuesSerializer.java:27)
+	at org.apache.storm.serialization.KryoValuesSerializer.serializeInto(KryoValuesSerializer.java:27)
 ```
 
 Solution: 
@@ -122,21 +122,21 @@ Symptoms:
 
 ```
 java.lang.RuntimeException: java.lang.NullPointerException
-    at backtype.storm.utils.DisruptorQueue.consumeBatchToCursor(DisruptorQueue.java:84)
-    at backtype.storm.utils.DisruptorQueue.consumeBatchWhenAvailable(DisruptorQueue.java:55)
-    at backtype.storm.disruptor$consume_batch_when_available.invoke(disruptor.clj:56)
-    at backtype.storm.disruptor$consume_loop_STAR_$fn__1596.invoke(disruptor.clj:67)
-    at backtype.storm.util$async_loop$fn__465.invoke(util.clj:377)
+    at org.apache.storm.utils.DisruptorQueue.consumeBatchToCursor(DisruptorQueue.java:84)
+    at org.apache.storm.utils.DisruptorQueue.consumeBatchWhenAvailable(DisruptorQueue.java:55)
+    at org.apache.storm.disruptor$consume_batch_when_available.invoke(disruptor.clj:56)
+    at org.apache.storm.disruptor$consume_loop_STAR_$fn__1596.invoke(disruptor.clj:67)
+    at org.apache.storm.util$async_loop$fn__465.invoke(util.clj:377)
     at clojure.lang.AFn.run(AFn.java:24)
     at java.lang.Thread.run(Thread.java:662)
 Caused by: java.lang.NullPointerException
-    at backtype.storm.serialization.KryoTupleSerializer.serialize(KryoTupleSerializer.java:24)
-    at backtype.storm.daemon.worker$mk_transfer_fn$fn__4126$fn__4130.invoke(worker.clj:99)
-    at backtype.storm.util$fast_list_map.invoke(util.clj:771)
-    at backtype.storm.daemon.worker$mk_transfer_fn$fn__4126.invoke(worker.clj:99)
-    at backtype.storm.daemon.executor$start_batch_transfer__GT_worker_handler_BANG_$fn__3904.invoke(executor.clj:205)
-    at backtype.storm.disruptor$clojure_handler$reify__1584.onEvent(disruptor.clj:43)
-    at backtype.storm.utils.DisruptorQueue.consumeBatchToCursor(DisruptorQueue.java:81)
+    at org.apache.storm.serialization.KryoTupleSerializer.serialize(KryoTupleSerializer.java:24)
+    at org.apache.storm.daemon.worker$mk_transfer_fn$fn__4126$fn__4130.invoke(worker.clj:99)
+    at org.apache.storm.util$fast_list_map.invoke(util.clj:771)
+    at org.apache.storm.daemon.worker$mk_transfer_fn$fn__4126.invoke(worker.clj:99)
+    at org.apache.storm.daemon.executor$start_batch_transfer__GT_worker_handler_BANG_$fn__3904.invoke(executor.clj:205)
+    at org.apache.storm.disruptor$clojure_handler$reify__1584.onEvent(disruptor.clj:43)
+    at org.apache.storm.utils.DisruptorQueue.consumeBatchToCursor(DisruptorQueue.java:81)
     ... 6 more
 ```
 
@@ -145,34 +145,34 @@ or
 ```
 java.lang.RuntimeException: java.lang.NullPointerException
         at
-backtype.storm.utils.DisruptorQueue.consumeBatchToCursor(DisruptorQueue.java:128)
+org.apache.storm.utils.DisruptorQueue.consumeBatchToCursor(DisruptorQueue.java:128)
 ~[storm-core-0.9.3.jar:0.9.3]
         at
-backtype.storm.utils.DisruptorQueue.consumeBatchWhenAvailable(DisruptorQueue.java:99)
+org.apache.storm.utils.DisruptorQueue.consumeBatchWhenAvailable(DisruptorQueue.java:99)
 ~[storm-core-0.9.3.jar:0.9.3]
         at
-backtype.storm.disruptor$consume_batch_when_available.invoke(disruptor.clj:80)
+org.apache.storm.disruptor$consume_batch_when_available.invoke(disruptor.clj:80)
 ~[storm-core-0.9.3.jar:0.9.3]
         at
-backtype.storm.disruptor$consume_loop_STAR_$fn__759.invoke(disruptor.clj:94)
+org.apache.storm.disruptor$consume_loop_STAR_$fn__759.invoke(disruptor.clj:94)
 ~[storm-core-0.9.3.jar:0.9.3]
-        at backtype.storm.util$async_loop$fn__458.invoke(util.clj:463)
+        at org.apache.storm.util$async_loop$fn__458.invoke(util.clj:463)
 ~[storm-core-0.9.3.jar:0.9.3]
         at clojure.lang.AFn.run(AFn.java:24) [clojure-1.5.1.jar:na]
         at java.lang.Thread.run(Thread.java:745) [na:1.7.0_65]
 Caused by: java.lang.NullPointerException: null
         at clojure.lang.RT.intCast(RT.java:1087) ~[clojure-1.5.1.jar:na]
         at
-backtype.storm.daemon.worker$mk_transfer_fn$fn__3548.invoke(worker.clj:129)
+org.apache.storm.daemon.worker$mk_transfer_fn$fn__3548.invoke(worker.clj:129)
 ~[storm-core-0.9.3.jar:0.9.3]
         at
-backtype.storm.daemon.executor$start_batch_transfer__GT_worker_handler_BANG_$fn__3282.invoke(executor.clj:258)
+org.apache.storm.daemon.executor$start_batch_transfer__GT_worker_handler_BANG_$fn__3282.invoke(executor.clj:258)
 ~[storm-core-0.9.3.jar:0.9.3]
         at
-backtype.storm.disruptor$clojure_handler$reify__746.onEvent(disruptor.clj:58)
+org.apache.storm.disruptor$clojure_handler$reify__746.onEvent(disruptor.clj:58)
 ~[storm-core-0.9.3.jar:0.9.3]
         at
-backtype.storm.utils.DisruptorQueue.consumeBatchToCursor(DisruptorQueue.java:125)
+org.apache.storm.utils.DisruptorQueue.consumeBatchToCursor(DisruptorQueue.java:125)
 ~[storm-core-0.9.3.jar:0.9.3]
         ... 6 common frames omitted
 ```

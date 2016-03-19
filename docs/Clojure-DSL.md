@@ -3,7 +3,7 @@ title: Clojure DSL
 layout: documentation
 documentation: true
 ---
-Storm comes with a Clojure DSL for defining spouts, bolts, and topologies. The Clojure DSL has access to everything the Java API exposes, so if you're a Clojure user you can code Storm topologies without touching Java at all. The Clojure DSL is defined in the source in the [backtype.storm.clojure]({{page.git-blob-base}}/storm-core/src/clj/backtype/storm/clojure.clj) namespace.
+Storm comes with a Clojure DSL for defining spouts, bolts, and topologies. The Clojure DSL has access to everything the Java API exposes, so if you're a Clojure user you can code Storm topologies without touching Java at all. The Clojure DSL is defined in the source in the [org.apache.storm.clojure]({{page.git-blob-base}}/storm-core/src/clj/org/apache/storm/clojure.clj) namespace.
 
 This page outlines all the pieces of the Clojure DSL, including:
 
@@ -38,11 +38,11 @@ The maps of spout and bolt specs are maps from the component id to the correspon
 
 #### spout-spec
 
-`spout-spec` takes as arguments the spout implementation (an object that implements [IRichSpout](javadocs/backtype/storm/topology/IRichSpout.html)) and optional keyword arguments. The only option that exists currently is the `:p` option, which specifies the parallelism for the spout. If you omit `:p`, the spout will execute as a single task.
+`spout-spec` takes as arguments the spout implementation (an object that implements [IRichSpout](javadocs/org/apache/storm/topology/IRichSpout.html)) and optional keyword arguments. The only option that exists currently is the `:p` option, which specifies the parallelism for the spout. If you omit `:p`, the spout will execute as a single task.
 
 #### bolt-spec
 
-`bolt-spec` takes as arguments the input declaration for the bolt, the bolt implementation (an object that implements [IRichBolt](javadocs/backtype/storm/topology/IRichBolt.html)), and optional keyword arguments.
+`bolt-spec` takes as arguments the input declaration for the bolt, the bolt implementation (an object that implements [IRichBolt](javadocs/org/apache/storm/topology/IRichBolt.html)), and optional keyword arguments.
 
 The input declaration is a map from stream ids to stream groupings. A stream id can have one of two forms:
 
@@ -254,7 +254,7 @@ The following example illustrates how to use this spout in a `spout-spec`:
 
 That's all there is to the Clojure DSL. To submit topologies in remote mode or local mode, just use the `StormSubmitter` or `LocalCluster` classes just like you would from Java.
 
-To create topology configs, it's easiest to use the `backtype.storm.config` namespace which defines constants for all of the possible configs. The constants are the same as the static constants in the `Config` class, except with dashes instead of underscores. For example, here's a topology config that sets the number of workers to 15 and configures the topology in debug mode:
+To create topology configs, it's easiest to use the `org.apache.storm.config` namespace which defines constants for all of the possible configs. The constants are the same as the static constants in the `Config` class, except with dashes instead of underscores. For example, here's a topology config that sets the number of workers to 15 and configures the topology in debug mode:
 
 ```clojure
 {TOPOLOGY-DEBUG true

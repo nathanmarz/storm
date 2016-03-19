@@ -12,7 +12,7 @@ This tutorial uses examples from the [storm-kestrel](https://github.com/nathanma
 It assumes you are able to run locally a Kestrel server as described [here](https://github.com/nathanmarz/storm-kestrel).
 
 ## Kestrel Server and Queue
-A single kestrel server has a set of queues. A Kestrel queue is a very simple message queue that runs on the JVM and uses the memcache protocol (with some extensions) to talk to clients. For details, look at the implementation of the [KestrelThriftClient](https://github.com/nathanmarz/storm-kestrel/blob/master/src/jvm/backtype/storm/spout/KestrelThriftClient.java) class provided in [storm-kestrel](https://github.com/nathanmarz/storm-kestrel) project.
+A single kestrel server has a set of queues. A Kestrel queue is a very simple message queue that runs on the JVM and uses the memcache protocol (with some extensions) to talk to clients. For details, look at the implementation of the [KestrelThriftClient](https://github.com/nathanmarz/storm-kestrel/blob/master/src/jvm/org/apache/storm/spout/KestrelThriftClient.java) class provided in [storm-kestrel](https://github.com/nathanmarz/storm-kestrel) project.
 
 Each queue is strictly ordered following the FIFO (first in, first out) principle. To keep up with performance items are cached in system memory; though, only the first 128MB is kept in memory. When stopping the server, the queue state is stored in a journal file.
 
@@ -120,9 +120,9 @@ In order to stop it type a closing bracket char ']' in console and hit 'Enter'.
     import java.io.InputStream;
     import java.util.Random;
 
-    import backtype.storm.spout.KestrelClient;
-    import backtype.storm.spout.KestrelClient.Item;
-    import backtype.storm.spout.KestrelClient.ParseError;
+    import org.apache.storm.spout.KestrelClient;
+    import org.apache.storm.spout.KestrelClient.Item;
+    import org.apache.storm.spout.KestrelClient.ParseError;
 
     public class AddSentenceItemsToKestrel {
 

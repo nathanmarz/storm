@@ -26,11 +26,11 @@ This topology reads sentences off of a Kestrel queue, splits the sentences into 
 
 ![Tuple tree](images/tuple_tree.png)
 
-Storm considers a tuple coming off a spout "fully processed" when the tuple tree has been exhausted and every message in the tree has been processed. A tuple is considered failed when its tree of messages fails to be fully processed within a specified timeout. This timeout can be configured on a topology-specific basis using the [Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS](javadocs/backtype/storm/Config.html#TOPOLOGY_MESSAGE_TIMEOUT_SECS) configuration and defaults to 30 seconds.
+Storm considers a tuple coming off a spout "fully processed" when the tuple tree has been exhausted and every message in the tree has been processed. A tuple is considered failed when its tree of messages fails to be fully processed within a specified timeout. This timeout can be configured on a topology-specific basis using the [Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS](javadocs/org/apache/storm/Config.html#TOPOLOGY_MESSAGE_TIMEOUT_SECS) configuration and defaults to 30 seconds.
 
 ### What happens if a message is fully processed or fails to be fully processed?
 
-To understand this question, let's take a look at the lifecycle of a tuple coming off of a spout. For reference, here is the interface that spouts implement (see the [Javadoc](javadocs/backtype/storm/spout/ISpout.html) for more information):
+To understand this question, let's take a look at the lifecycle of a tuple coming off of a spout. For reference, here is the interface that spouts implement (see the [Javadoc](javadocs/org/apache/storm/spout/ISpout.html) for more information):
 
 ```java
 public interface ISpout extends Serializable {
@@ -132,11 +132,11 @@ In contrast, bolts that do aggregations or joins may delay acking a tuple until 
 
 ### How do I make my applications work correctly given that tuples can be replayed?
 
-As always in software design, the answer is "it depends." If you really want exactly once semantics use the [Trident](Trident-tutorial.html) API. In some cases, like with a lot of analytics, dropping data is OK so disabling the fault tolerance by setting the number of acker bolts to 0 [Config.TOPOLOGY_ACKERS](javadocs/backtype/storm/Config.html#TOPOLOGY_ACKERS).  But in some cases you want to be sure that everything was processed at least once and nothing was dropped.  This is especially useful if all operations are idenpotent or if deduping can happen aferwards.
+As always in software design, the answer is "it depends." If you really want exactly once semantics use the [Trident](Trident-tutorial.html) API. In some cases, like with a lot of analytics, dropping data is OK so disabling the fault tolerance by setting the number of acker bolts to 0 [Config.TOPOLOGY_ACKERS](javadocs/org/apache/storm/Config.html#TOPOLOGY_ACKERS).  But in some cases you want to be sure that everything was processed at least once and nothing was dropped.  This is especially useful if all operations are idenpotent or if deduping can happen aferwards.
 
 ### How does Storm implement reliability in an efficient way?
 
-A Storm topology has a set of special "acker" tasks that track the DAG of tuples for every spout tuple. When an acker sees that a DAG is complete, it sends a message to the spout task that created the spout tuple to ack the message. You can set the number of acker tasks for a topology in the topology configuration using [Config.TOPOLOGY_ACKERS](javadocs/backtype/storm/Config.html#TOPOLOGY_ACKERS). Storm defaults TOPOLOGY_ACKERS to one task per worker.
+A Storm topology has a set of special "acker" tasks that track the DAG of tuples for every spout tuple. When an acker sees that a DAG is complete, it sends a message to the spout task that created the spout tuple to ack the message. You can set the number of acker tasks for a topology in the topology configuration using [Config.TOPOLOGY_ACKERS](javadocs/org/apache/storm/Config.html#TOPOLOGY_ACKERS). Storm defaults TOPOLOGY_ACKERS to one task per worker.
 
 The best way to understand Storm's reliability implementation is to look at the lifecycle of tuples and tuple DAGs. When a tuple is created in a topology, whether in a spout or a bolt, it is given a random 64 bit id. These ids are used by ackers to track the tuple DAG for every spout tuple.
 

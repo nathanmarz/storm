@@ -467,7 +467,7 @@ Repartitioning operations run a function to change how the tuples are partitione
 3. partitionBy: partitionBy takes in a set of fields and does semantic partitioning based on that set of fields. The fields are hashed and modded by the number of target partitions to select the target partition. partitionBy guarantees that the same set of fields always goes to the same target partition.
 4. global: All tuples are sent to the same partition. The same partition is chosen for all batches in the stream.
 5. batchGlobal: All tuples in the batch are sent to the same partition. Different batches in the stream may go to different partitions. 
-6. partition: This method takes in a custom partitioning function that implements backtype.storm.grouping.CustomStreamGrouping
+6. partition: This method takes in a custom partitioning function that implements org.apache.storm.grouping.CustomStreamGrouping
 
 ## Aggregation operations
 
@@ -491,7 +491,7 @@ The groupBy operation repartitions the stream by doing a partitionBy on the spec
 
 ![Grouping](images/grouping.png)
 
-If you run aggregators on a grouped stream, the aggregation will be run within each group instead of against the whole batch. persistentAggregate can also be run on a GroupedStream, in which case the results will be stored in a [MapState]({{page.git-blob-base}}/storm-core/src/jvm/storm/trident/state/map/MapState.java) with the key being the grouping fields. You can read more about persistentAggregate in the [Trident state doc](Trident-state.html).
+If you run aggregators on a grouped stream, the aggregation will be run within each group instead of against the whole batch. persistentAggregate can also be run on a GroupedStream, in which case the results will be stored in a [MapState]({{page.git-blob-base}}/storm-core/src/jvm/org/apache/storm/trident/state/map/MapState.java) with the key being the grouping fields. You can read more about persistentAggregate in the [Trident state doc](Trident-state.html).
 
 Like regular streams, aggregators on grouped streams can be chained.
 

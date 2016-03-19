@@ -5,9 +5,9 @@ documentation: true
 ---
 Running topologies on a production cluster is similar to running in [Local mode](Local-mode.html). Here are the steps:
 
-1) Define the topology (Use [TopologyBuilder](javadocs/backtype/storm/topology/TopologyBuilder.html) if defining using Java)
+1) Define the topology (Use [TopologyBuilder](javadocs/org/apache/storm/topology/TopologyBuilder.html) if defining using Java)
 
-2) Use [StormSubmitter](javadocs/backtype/storm/StormSubmitter.html) to submit the topology to the cluster. `StormSubmitter` takes as input the name of the topology, a configuration for the topology, and the topology itself. For example:
+2) Use [StormSubmitter](javadocs/org/apache/storm/StormSubmitter.html) to submit the topology to the cluster. `StormSubmitter` takes as input the name of the topology, a configuration for the topology, and the topology itself. For example:
 
 ```java
 Config conf = new Config();
@@ -47,7 +47,7 @@ You can find out how to configure your `storm` client to talk to a Storm cluster
 
 ### Common configurations
 
-There are a variety of configurations you can set per topology. A list of all the configurations you can set can be found [here](javadocs/backtype/storm/Config.html). The ones prefixed with "TOPOLOGY" can be overridden on a topology-specific basis (the other ones are cluster configurations and cannot be overridden). Here are some common ones that are set for a topology:
+There are a variety of configurations you can set per topology. A list of all the configurations you can set can be found [here](javadocs/org/apache/storm/Config.html). The ones prefixed with "TOPOLOGY" can be overridden on a topology-specific basis (the other ones are cluster configurations and cannot be overridden). Here are some common ones that are set for a topology:
 
 1. **Config.TOPOLOGY_WORKERS**: This sets the number of worker processes to use to execute the topology. For example, if you set this to 25, there will be 25 Java processes across the cluster executing all the tasks. If you had a combined 150 parallelism across all components in the topology, each worker process will have 6 tasks running within it as threads.
 2. **Config.TOPOLOGY_ACKER_EXECUTORS**: This sets the number of executors that will track tuple trees and detect when a spout tuple has been fully processed. Ackers are an integral part of Storm's reliability model and you can read more about them on [Guaranteeing message processing](Guaranteeing-message-processing.html). By not setting this variable or setting it as null, Storm will set the number of acker executors to be equal to the number of workers configured for this topology. If this variable is set to 0, then Storm will immediately ack tuples as soon as they come off the spout, effectively disabling reliability.

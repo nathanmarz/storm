@@ -1296,8 +1296,10 @@
         blob-store (Utils/getNimbusBlobStore conf master-code-dir nil)]
     (try
       (FileUtils/forceMkdir (File. tmproot))
-      (.readBlobTo blob-store (ConfigUtils/masterStormCodeKey storm-id) (FileOutputStream. (ConfigUtils/supervisorStormCodePath tmproot)) nil)
-      (.readBlobTo blob-store (ConfigUtils/masterStormConfKey storm-id) (FileOutputStream. (ConfigUtils/supervisorStormConfPath tmproot)) nil)
+      (with-open [fos-storm-code (FileOutputStream. (ConfigUtils/supervisorStormCodePath tmproot))
+                  fos-storm-conf (FileOutputStream. (ConfigUtils/supervisorStormConfPath tmproot))]
+        (.readBlobTo blob-store (ConfigUtils/masterStormCodeKey storm-id) fos-storm-code nil)
+        (.readBlobTo blob-store (ConfigUtils/masterStormConfKey storm-id) fos-storm-conf nil))
       (finally
         (.shutdown blob-store)))
     (FileUtils/moveDirectory (File. tmproot) (File. stormroot))

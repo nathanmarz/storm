@@ -62,6 +62,7 @@
  * STORM-1521: When using Kerberos login from keytab with multiple bolts/executors ticket is not renewed in hbase bolt.
 
 ## 1.0.0
+ * STORM-1629: Files/move doesn't work properly with non-empty directory in Windows
  * STORM-1549: Add support for resetting tuple timeout from bolts via the OutputCollector
  * STORM-971: Metric for messages lost due to kafka retention
  * STORM-1483: add storm-mongodb connector

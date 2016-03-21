@@ -165,6 +165,9 @@ class StormSqlImpl extends StormSql {
   }
 
   private void handleCreateFunction(SqlCreateFunction sqlCreateFunction) throws ClassNotFoundException {
+    if(sqlCreateFunction.jarName() != null) {
+      throw new UnsupportedOperationException("UDF 'USING JAR' not implemented");
+    }
     schema.add(sqlCreateFunction.functionName().toUpperCase(),
                ScalarFunctionImpl.create(Class.forName(sqlCreateFunction.className()), "evaluate"));
     hasUdf = true;

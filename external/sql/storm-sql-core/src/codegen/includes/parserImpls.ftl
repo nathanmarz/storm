@@ -93,13 +93,19 @@ SqlNode SqlCreateFunction() :
     SqlParserPos pos;
     SqlIdentifier functionName;
     SqlNode className;
+    SqlNode jarName = null;
 }
 {
     <CREATE> { pos = getPos(); }
     <FUNCTION>
-    functionName = CompoundIdentifier()
+        functionName = CompoundIdentifier()
     <AS>
-    className = StringLiteral() {
-        return new SqlCreateFunction(pos, functionName, className);
+        className = StringLiteral()
+    [
+      <USING> <JAR>
+      jarName = StringLiteral()
+    ]
+    {
+      return new SqlCreateFunction(pos, functionName, className, jarName);
     }
 }

@@ -21,23 +21,18 @@ package org.apache.storm.kafka.spout;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.TopicPartition;
 
-import java.util.Collections;
-import java.util.List;
-
 public class KafkaSpoutMessageId {
     private transient TopicPartition topicPart;
     private transient long offset;
-    private transient List<Object> tuple;
     private transient int numFails = 0;
 
-    public KafkaSpoutMessageId(ConsumerRecord consumerRecord, List<Object> tuple) {
-        this(new TopicPartition(consumerRecord.topic(), consumerRecord.partition()), consumerRecord.offset(), tuple);
+    public KafkaSpoutMessageId(ConsumerRecord consumerRecord) {
+        this(new TopicPartition(consumerRecord.topic(), consumerRecord.partition()), consumerRecord.offset());
     }
 
-    public KafkaSpoutMessageId(TopicPartition topicPart, long offset, List<Object> tuple) {
+    public KafkaSpoutMessageId(TopicPartition topicPart, long offset) {
         this.topicPart = topicPart;
         this.offset = offset;
-        this.tuple = tuple;
     }
 
     public int partition() {
@@ -64,10 +59,6 @@ public class KafkaSpoutMessageId {
         return topicPart;
     }
 
-    public List<Object> getTuple() {
-        return Collections.unmodifiableList(tuple);
-    }
-
     public String getMetadata(Thread currThread) {
         return "{" +
                 "topic-partition=" + topicPart +
@@ -83,7 +74,6 @@ public class KafkaSpoutMessageId {
                 "topic-partition=" + topicPart +
                 ", offset=" + offset +
                 ", numFails=" + numFails +
-                ", tuple=" + tuple +
                 '}';
     }
 

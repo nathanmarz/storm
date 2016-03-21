@@ -15,38 +15,28 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-
 package org.apache.storm.kafka.spout.test;
 
-import org.apache.storm.task.OutputCollector;
-import org.apache.storm.task.TopologyContext;
-import org.apache.storm.topology.OutputFieldsDeclarer;
-import org.apache.storm.topology.base.BaseRichBolt;
-import org.apache.storm.tuple.Tuple;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.storm.kafka.spout.KafkaSpoutTupleBuilder;
+import org.apache.storm.tuple.Values;
 
-import java.util.Map;
+import java.util.List;
 
-public class KafkaTestBolt extends BaseRichBolt {
-    protected static final Logger LOG = LoggerFactory.getLogger(KafkaTestBolt.class);
-
-
-    private OutputCollector collector;
-
-    @Override
-    public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
-        this.collector = collector;
+public class TopicsTest0Test1TupleBuilder<K, V> extends KafkaSpoutTupleBuilder<K,V> {
+    /**
+     * @param topics list of topics that use this implementation to build tuples
+     */
+    public TopicsTest0Test1TupleBuilder(String... topics) {
+        super(topics);
     }
 
     @Override
-    public void execute(Tuple input) {
-        LOG.debug("input = [" + input + "]");
-        collector.ack(input);
-    }
-
-    @Override
-    public void declareOutputFields(OutputFieldsDeclarer declarer) {
-
+    public List<Object> buildTuple(ConsumerRecord<K, V> consumerRecord) {
+        return new Values(consumerRecord.topic(),
+                consumerRecord.partition(),
+                consumerRecord.offset(),
+                consumerRecord.key(),
+                consumerRecord.value());
     }
 }

@@ -21,8 +21,38 @@ package org.apache.storm.kafka.spout;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 import java.io.Serializable;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
-public interface KafkaSpoutTupleBuilder<K,V> extends Serializable {
-    List<Object> buildTuple(ConsumerRecord<K, V> consumerRecord, KafkaSpoutStreams kafkaSpoutStreams);
+/**
+ * Implementations of {@link KafkaSpoutTupleBuilder} contain the logic to build tuples from {@link ConsumerRecord}s.
+ * Users must subclass this abstract class to provide their implementation. See also {@link KafkaSpoutTuplesBuilder}
+ */
+public abstract class KafkaSpoutTupleBuilder<K,V> implements Serializable {
+    private List<String> topics;
+
+    /**
+     * @param topics list of topics that use this implementation to build tuples
+     */
+    public KafkaSpoutTupleBuilder(String... topics) {
+        if (topics == null || topics.length == 0) {
+            throw new IllegalArgumentException("Must specify at least one topic. It cannot be null or empty");
+        }
+        this.topics = Arrays.asList(topics);
+    }
+
+    /**
+     * @return list of topics that use this implementation to build tuples
+     */
+    public List<String> getTopics() {
+        return Collections.unmodifiableList(topics);
+    }
+
+    /**
+     * Builds a list of tuples using the ConsumerRecord specified as parameter
+     * @param consumerRecord whose contents are used to build tuples
+     * @return list of tuples
+     */
+    public abstract List<Object> buildTuple(ConsumerRecord<K, V> consumerRecord);
 }

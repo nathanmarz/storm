@@ -23,12 +23,13 @@ import org.apache.storm.tuple.Tuple;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hdfs.client.HdfsDataOutputStream;
-import org.apache.hadoop.hdfs.client.HdfsDataOutputStream.SyncFlag;
 import org.apache.storm.hdfs.bolt.format.FileNameFormat;
 import org.apache.storm.hdfs.bolt.format.RecordFormat;
 import org.apache.storm.hdfs.bolt.rotation.FileRotationPolicy;
 import org.apache.storm.hdfs.bolt.sync.SyncPolicy;
+import org.apache.storm.hdfs.common.AbstractHDFSWriter;
+import org.apache.storm.hdfs.common.HDFSWriter;
+import org.apache.storm.hdfs.common.Partitioner;
 import org.apache.storm.hdfs.common.rotation.RotationAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -89,6 +90,16 @@ public class HdfsBolt extends AbstractHdfsBolt{
         return this;
     }
 
+    public HdfsBolt withPartitioner(Partitioner partitioner) {
+        this.partitioner = partitioner;
+        return this;
+    }
+
+    public HdfsBolt withMaxOpenFiles(int maxOpenFiles) {
+        this.maxOpenFiles = maxOpenFiles;
+        return this;
+    }
+
     @Override
     public void doPrepare(Map conf, TopologyContext topologyContext, OutputCollector collector) throws IOException {
         LOG.info("Preparing HDFS Bolt...");
@@ -96,31 +107,13 @@ public class HdfsBolt extends AbstractHdfsBolt{
     }
 
     @Override
-    protected void syncTuples() throws IOException {
-        LOG.debug("Attempting to sync all data to filesystem");
-        if (this.out instanceof HdfsDataOutputStream) {
-            ((HdfsDataOutputStream) this.out).hsync(EnumSet.of(SyncFlag.UPDATE_LENGTH));
-        } else {
-            this.out.hsync();
-        }
+    protected String getWriterKey(Tuple tuple) {
+        return "CONSTANT";
     }
 
     @Override
-    protected void writeTuple(Tuple tuple) throws IOException {
-        byte[] bytes = this.format.format(tuple);
-        out.write(bytes);
-        this.offset += bytes.length;
-    }
-
-    @Override
-    protected void closeOutputFile() throws IOException {
-        this.out.close();
-    }
-
-    @Override
-    protected Path createOutputFile() throws IOException {
-        Path path = new Path(this.fileNameFormat.getPath(), this.fileNameFormat.getName(this.rotation, System.currentTimeMillis()));
+    protected AbstractHDFSWriter makeNewWriter(Path path, Tuple tuple) throws IOException {
         this.out = this.fs.create(path);
-        return path;
+        return new HDFSWriter(rotationPolicy,path, out, format);
     }
 }

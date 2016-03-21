@@ -184,6 +184,7 @@ Similar to sync policies, file rotation policies allow you to control when data 
 public interface FileRotationPolicy extends Serializable {
     boolean mark(Tuple tuple, long offset);
     void reset();
+    FileRotationPolicy copy();
 }
 ``` 
 
@@ -240,6 +241,23 @@ If you are using Trident and sequence files you can do something like this:
                 .addRotationAction(new MoveFileAction().withDestination("/dest2/"));
 ```
 
+### Data Partitioning
+Data can be partitioned to different HDFS directories based on characteristics of the tuple being processed or purely
+external factors, such as system time.  To partition your your data, write a class that implements the ```Partitioner```
+interface and pass it to the withPartitioner() method of your bolt. The getPartitionPath() method returns a partition
+path for a given tuple.
+
+Here's an example of a Partitioner that operates on a specific field of data:
+
+```java
+
+    Partitioner partitoner = new Partitioner() {
+            @Override
+            public String getPartitionPath(Tuple tuple) {
+                return Path.SEPARATOR + tuple.getStringByField("city");
+            }
+     };
+```
 
 ## HDFS Bolt Support for HDFS Sequence Files
 
@@ -303,16 +321,15 @@ The `org.apache.storm.hdfs.bolt.AvroGenericRecordBolt` class allows you to write
         AvroGenericRecordBolt bolt = new AvroGenericRecordBolt()
                 .withFsUrl("hdfs://localhost:54310")
                 .withFileNameFormat(fileNameFormat)
-                .withSchemaAsString(schema)
                 .withRotationPolicy(rotationPolicy)
                 .withSyncPolicy(syncPolicy);
 ```
-The setup is very similar to the `SequenceFileBolt` example above.  The key difference is that instead of specifying a
-`SequenceFormat` you must provide a string representation of an Avro schema through the `withSchemaAsString()` method.
-An `org.apache.avro.Schema` object cannot be directly provided since it does not implement `Serializable`.
 
-The AvroGenericRecordBolt expects to receive tuples containing an Avro GenericRecord that conforms to the provided
-schema.
+The avro bolt will write records to separate files based on the schema of the record being processed.  In other words,
+if the bolt receives records with two different schemas, it will write to two separate files.  Each file will be rotatated
+in accordance with the specified rotation policy. If a large number of Avro schemas are expected, then the bolt should
+be configured with a maximum number of open files at least equal to the number of schemas expected to prevent excessive
+file open/close/create operations.
 
 To use this bolt you **must** register the appropriate Kryo serializers with your topology configuration.  A convenience
 method is provided for this:

@@ -27,7 +27,7 @@ import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.TupleImpl;
 import org.apache.storm.tuple.Values;
 import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericRecordBuilder;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
@@ -40,6 +40,7 @@ import org.apache.storm.hdfs.bolt.sync.CountSyncPolicy;
 import org.apache.storm.hdfs.bolt.sync.SyncPolicy;
 import org.junit.Before;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.Assert;
 
@@ -65,28 +66,38 @@ public class AvroGenericRecordBoltTest {
     private DistributedFileSystem fs;
     private MiniDFSCluster hdfsCluster;
     private static final String testRoot = "/unittest";
-    private static final Schema schema;
+    private static final Schema schema1;
+    private static final Schema schema2;
     private static final Tuple tuple1;
     private static final Tuple tuple2;
-    private static final String userSchema = "{\"type\":\"record\"," +
+    private static final String schemaV1 = "{\"type\":\"record\"," +
             "\"name\":\"myrecord\"," +
             "\"fields\":[{\"name\":\"foo1\",\"type\":\"string\"}," +
+            "{ \"name\":\"int1\", \"type\":\"int\" }]}";
+
+    private static final String schemaV2 = "{\"type\":\"record\"," +
+            "\"name\":\"myrecord\"," +
+            "\"fields\":[{\"name\":\"foo1\",\"type\":\"string\"}," +
+            "{ \"name\":\"bar\", \"type\":\"string\", \"default\":\"baz\" }," +
             "{ \"name\":\"int1\", \"type\":\"int\" }]}";
 
     static {
 
         Schema.Parser parser = new Schema.Parser();
-        schema = parser.parse(userSchema);
+        schema1 = parser.parse(schemaV1);
 
-        GenericRecord record1 = new GenericData.Record(schema);
-        record1.put("foo1", "bar1");
-        record1.put("int1", 1);
-        tuple1 = generateTestTuple(record1);
+        parser = new Schema.Parser();
+        schema2 = parser.parse(schemaV2);
 
-        GenericRecord record2 = new GenericData.Record(schema);
-        record2.put("foo1", "bar2");
-        record2.put("int1", 2);
-        tuple2 = generateTestTuple(record2);
+        GenericRecordBuilder builder1 = new GenericRecordBuilder(schema1);
+        builder1.set("foo1", "bar1");
+        builder1.set("int1", 1);
+        tuple1 = generateTestTuple(builder1.build());
+
+        GenericRecordBuilder builder2 = new GenericRecordBuilder(schema2);
+        builder2.set("foo1", "bar2");
+        builder2.set("int1", 2);
+        tuple2 = generateTestTuple(builder2.build());
     }
 
     @Mock private OutputCollector collector;
@@ -116,30 +127,76 @@ public class AvroGenericRecordBoltTest {
 
     @Test public void multipleTuplesOneFile() throws IOException
     {
-        AvroGenericRecordBolt bolt = makeAvroBolt(hdfsURI, 1, 1f, userSchema);
+        AvroGenericRecordBolt bolt = makeAvroBolt(hdfsURI, 1, 1f, schemaV1);
 
         bolt.prepare(new Config(), topologyContext, collector);
         bolt.execute(tuple1);
-        bolt.execute(tuple2);
         bolt.execute(tuple1);
-        bolt.execute(tuple2);
+        bolt.execute(tuple1);
+        bolt.execute(tuple1);
 
         Assert.assertEquals(1, countNonZeroLengthFiles(testRoot));
-        verifyAllAvroFiles(testRoot, schema);
+        verifyAllAvroFiles(testRoot);
     }
 
     @Test public void multipleTuplesMutliplesFiles() throws IOException
     {
-        AvroGenericRecordBolt bolt = makeAvroBolt(hdfsURI, 1, .0001f, userSchema);
+        AvroGenericRecordBolt bolt = makeAvroBolt(hdfsURI, 1, .0001f, schemaV1);
+
+        bolt.prepare(new Config(), topologyContext, collector);
+        bolt.execute(tuple1);
+        bolt.execute(tuple1);
+        bolt.execute(tuple1);
+        bolt.execute(tuple1);
+
+        Assert.assertEquals(4, countNonZeroLengthFiles(testRoot));
+        verifyAllAvroFiles(testRoot);
+    }
+
+    @Test public void forwardSchemaChangeWorks() throws IOException
+    {
+        AvroGenericRecordBolt bolt = makeAvroBolt(hdfsURI, 1, 1000f, schemaV1);
+
+        bolt.prepare(new Config(), topologyContext, collector);
+        bolt.execute(tuple1);
+        bolt.execute(tuple2);
+
+        //Schema change should have forced a rotation
+        Assert.assertEquals(2, countNonZeroLengthFiles(testRoot));
+
+        verifyAllAvroFiles(testRoot);
+    }
+
+    @Test public void backwardSchemaChangeWorks() throws IOException
+    {
+        AvroGenericRecordBolt bolt = makeAvroBolt(hdfsURI, 1, 1000f, schemaV2);
+
+        bolt.prepare(new Config(), topologyContext, collector);
+        bolt.execute(tuple1);
+        bolt.execute(tuple2);
+
+        //Schema changes should have forced file rotations
+        Assert.assertEquals(2, countNonZeroLengthFiles(testRoot));
+        verifyAllAvroFiles(testRoot);
+    }
+
+    @Test public void schemaThrashing() throws IOException
+    {
+        AvroGenericRecordBolt bolt = makeAvroBolt(hdfsURI, 1, 1000f, schemaV2);
 
         bolt.prepare(new Config(), topologyContext, collector);
         bolt.execute(tuple1);
         bolt.execute(tuple2);
         bolt.execute(tuple1);
         bolt.execute(tuple2);
+        bolt.execute(tuple1);
+        bolt.execute(tuple2);
+        bolt.execute(tuple1);
+        bolt.execute(tuple2);
 
-        Assert.assertEquals(4, countNonZeroLengthFiles(testRoot));
-        verifyAllAvroFiles(testRoot, schema);
+        //Two distinct schema should result in only two files
+        Assert.assertEquals(2, countNonZeroLengthFiles(testRoot));
+        verifyAllAvroFiles(testRoot);
     }
 
     private AvroGenericRecordBolt makeAvroBolt(String nameNodeAddr, int countSync, float rotationSizeMB, String schemaAsString) {
@@ -154,7 +211,6 @@ public class AvroGenericRecordBoltTest {
         return new AvroGenericRecordBolt()
                 .withFsUrl(nameNodeAddr)
                 .withFileNameFormat(fieldsFileNameFormat)
-                .withSchemaAsString(schemaAsString)
                 .withRotationPolicy(rotationPolicy)
                 .withSyncPolicy(fieldsSyncPolicy);
     }
@@ -171,12 +227,12 @@ public class AvroGenericRecordBoltTest {
         return new TupleImpl(topologyContext, new Values(record), 1, "");
     }
 
-    private void verifyAllAvroFiles(String path, Schema schema) throws IOException {
+    private void verifyAllAvroFiles(String path) throws IOException {
         Path p = new Path(path);
 
         for (FileStatus file : fs.listStatus(p)) {
             if (file.getLen() > 0) {
-                fileIsGoodAvro(file.getPath(), schema);
+                fileIsGoodAvro(file.getPath());
             }
         }
     }
@@ -194,8 +250,8 @@ public class AvroGenericRecordBoltTest {
         return nonZero;
     }
 
-    private void fileIsGoodAvro (Path path, Schema schema) throws IOException {
-        DatumReader<GenericRecord> datumReader = new GenericDatumReader<>(schema);
+    private void fileIsGoodAvro (Path path) throws IOException {
+        DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
         FSDataInputStream in = fs.open(path, 0);
         FileOutputStream out = new FileOutputStream("target/FOO.avro");
 
@@ -212,7 +268,6 @@ public class AvroGenericRecordBoltTest {
         GenericRecord user = null;
         while (dataFileReader.hasNext()) {
             user = dataFileReader.next(user);
-            System.out.println(user);
         }
 
         file.delete();

@@ -40,7 +40,7 @@ import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * WordCount but teh spout does not stop, and the bolts are implemented in
+ * WordCount but the spout does not stop, and the bolts are implemented in
  * java.  This can show how fast the word count can run.
  */
 public class FastWordCountTopology {

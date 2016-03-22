@@ -348,7 +348,7 @@
  * STORM-1217: making small fixes in RAS
 
 ## 0.10.1
-
+ * STORM-584: Fix logging for LoggingMetricsConsumer metrics.log file
  * STORM-1596: Do not use single Kerberos TGT instance between multiple threads
  * STORM-1481: avoid Math.abs(Integer) get a negative value
  * STORM-1121: Deprecate test only configuraton nimbus.reassign

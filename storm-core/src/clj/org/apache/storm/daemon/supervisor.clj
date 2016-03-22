@@ -592,7 +592,7 @@
         port->worker-id (clojure.set/map-invert (map-val #((nth % 1) :port) valid-allocated))]
     (doseq [p (set/intersection (set (keys existing-assignment))
                                 (set (keys new-assignment)))]
-      (if (not= (:executors (existing-assignment p)) (:executors (new-assignment p)))
+      (if (not= (set (:executors (existing-assignment p))) (set (:executors (new-assignment p))))
         (shutdown-worker supervisor (port->worker-id p))))))
 
 (defn ->LocalAssignment

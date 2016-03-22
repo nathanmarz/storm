@@ -69,6 +69,8 @@ public interface IStormClusterState {
 
     public List<String> errorTopologies();
 
+    public List<String> backpressureTopologies();
+
     public void setTopologyLogConfig(String stormId, LogConfig logConfig);
 
     public LogConfig topologyLogConfig(String stormId, Runnable cb);

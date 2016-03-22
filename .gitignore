@@ -40,3 +40,4 @@ metastore_db
 .classpath
 logs
 build
+/docs/javadocs

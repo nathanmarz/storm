@@ -62,6 +62,7 @@
  * STORM-1521: When using Kerberos login from keytab with multiple bolts/executors ticket is not renewed in hbase bolt.
 
 ## 1.0.0
+ * STORM-1636: Supervisor shutdown with worker id pass in being nil
  * STORM-1602: Blobstore UTs are failed on Windows
  * STORM-1629: Files/move doesn't work properly with non-empty directory in Windows
  * STORM-1549: Add support for resetting tuple timeout from bolts via the OutputCollector

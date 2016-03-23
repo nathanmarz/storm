@@ -515,9 +515,9 @@
           " total-wait-time " @total-wait-time)
         (swap! total-wait-time inc)
         (if (not (ConfigUtils/isLocalMode conf))
-          (reset! current-replication-count-conf  (get-blob-replication-count (ConfigUtils/masterStormConfKey storm-id) nimbus)))
+          (reset! current-replication-count-jar  (get-blob-replication-count (ConfigUtils/masterStormJarKey storm-id) nimbus)))
         (reset! current-replication-count-code  (get-blob-replication-count (ConfigUtils/masterStormCodeKey storm-id) nimbus))
-        (reset! current-replication-count-jar  (get-blob-replication-count (ConfigUtils/masterStormJarKey storm-id) nimbus))))
+        (reset! current-replication-count-conf  (get-blob-replication-count (ConfigUtils/masterStormConfKey storm-id) nimbus))))
     (if (and (< min-replication-count @current-replication-count-conf)
              (< min-replication-count @current-replication-count-code)
              (< min-replication-count @current-replication-count-jar))
@@ -1032,13 +1032,13 @@
                 (filter [this key] (ConfigUtils/getIdFromBlobKey key)))]
     (set (.filterAndListKeys blob-store to-id))))
 
-(defn cleanup-storm-ids [conf storm-cluster-state blob-store]
+(defn cleanup-storm-ids [storm-cluster-state blob-store]
   (let [heartbeat-ids (set (.heartbeatStorms storm-cluster-state))
         error-ids (set (.errorTopologies storm-cluster-state))
         code-ids (code-ids blob-store)
+        backpressure-ids (set (.backpressureTopologies storm-cluster-state))
         assigned-ids (set (.activeStorms storm-cluster-state))]
-    (set/difference (set/union heartbeat-ids error-ids code-ids) assigned-ids)
-    ))
+    (set/difference (set/union heartbeat-ids error-ids backpressure-ids code-ids) assigned-ids)))
 
 (defn extract-status-str [base]
   (let [t (-> base :status :type)]
@@ -1110,6 +1110,9 @@
   (blob-rm-key blob-store (ConfigUtils/masterStormConfKey id) storm-cluster-state)
   (blob-rm-key blob-store (ConfigUtils/masterStormCodeKey id) storm-cluster-state))
 
+(defn force-delete-topo-dist-dir [conf id]
+  (Utils/forceDelete (ConfigUtils/masterStormDistRoot conf id)))
+
 (defn do-cleanup [nimbus]
   (if (is-leader nimbus :throw-exception false)
     (let [storm-cluster-state (:storm-cluster-state nimbus)
@@ -1117,13 +1120,14 @@
           submit-lock (:submit-lock nimbus)
           blob-store (:blob-store nimbus)]
       (let [to-cleanup-ids (locking submit-lock
-                             (cleanup-storm-ids conf storm-cluster-state blob-store))]
+                             (cleanup-storm-ids storm-cluster-state blob-store))]
         (when-not (empty? to-cleanup-ids)
           (doseq [id to-cleanup-ids]
             (log-message "Cleaning up " id)
             (.teardownHeartbeats storm-cluster-state id)
             (.teardownTopologyErrors storm-cluster-state id)
-            (Utils/forceDelete (ConfigUtils/masterStormDistRoot conf id))
+            (.removeBackpressure storm-cluster-state id)
+            (force-delete-topo-dist-dir conf id)
             (blob-rm-topology-keys id blob-store storm-cluster-state)
             (swap! (:heartbeats-cache nimbus) dissoc id)))))
     (log-message "not a leader, skipping cleanup")))
@@ -1559,8 +1563,6 @@
                            )]
             (transition-name! nimbus storm-name [:kill wait-amt] true)
             (notify-topology-action-listener nimbus storm-name operation))
-          (if (topology-conf TOPOLOGY-BACKPRESSURE-ENABLE)
-            (.removeBackpressure (:storm-cluster-state nimbus) storm-id))
           (add-topology-to-history-log (StormCommon/getStormId (:storm-cluster-state nimbus) storm-name)
             nimbus topology-conf)))
 
@@ -1729,8 +1731,8 @@
         [this ^String file]
         (.mark nimbus:num-beginFileDownload-calls)
         (check-authorization! nimbus nil nil "fileDownload")
-        (let [is (BufferInputStream. (.getBlob (:blob-store nimbus) file nil) 
-              ^Integer (Utils/getInt (conf STORM-BLOBSTORE-INPUTSTREAM-BUFFER-SIZE-BYTES) 
+        (let [is (BufferInputStream. (.getBlob (:blob-store nimbus) file nil)
+              ^Integer (Utils/getInt (conf STORM-BLOBSTORE-INPUTSTREAM-BUFFER-SIZE-BYTES)
               (int 65536)))
               id (Utils/uuid)]
           (.put (:downloaders nimbus) id is)

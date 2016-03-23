@@ -48,4 +48,12 @@ public interface ResourceIsolationInterface {
      */
     List<String> getLaunchCommand(String workerId, List<String> existingCommand);
 
+    /**
+     * After reserving resources for the worker (i.e. calling reserveResourcesForWorker). this function can be used
+     * to get the launch command prefix
+     * @param workerId the of the worker
+     * @return the command line prefix for launching a worker with resource isolation
+     */
+    List<String> getLaunchCommandPrefix(String workerId);
+
 }

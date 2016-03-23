@@ -119,8 +119,15 @@ public class StormClusterStateImpl implements IStormClusterState {
 
         });
 
-        String[] pathlist = { ClusterUtils.ASSIGNMENTS_SUBTREE, ClusterUtils.STORMS_SUBTREE, ClusterUtils.SUPERVISORS_SUBTREE, ClusterUtils.WORKERBEATS_SUBTREE,
-                ClusterUtils.ERRORS_SUBTREE, ClusterUtils.BLOBSTORE_SUBTREE, ClusterUtils.NIMBUSES_SUBTREE, ClusterUtils.LOGCONFIG_SUBTREE };
+        String[] pathlist = { ClusterUtils.ASSIGNMENTS_SUBTREE, 
+                              ClusterUtils.STORMS_SUBTREE, 
+                              ClusterUtils.SUPERVISORS_SUBTREE, 
+                              ClusterUtils.WORKERBEATS_SUBTREE,
+                              ClusterUtils.ERRORS_SUBTREE, 
+                              ClusterUtils.BLOBSTORE_SUBTREE, 
+                              ClusterUtils.NIMBUSES_SUBTREE, 
+                              ClusterUtils.LOGCONFIG_SUBTREE,
+                              ClusterUtils.BACKPRESSURE_SUBTREE };
         for (String path : pathlist) {
             this.stateStorage.mkdirs(path, acls);
         }
@@ -376,6 +383,11 @@ public class StormClusterStateImpl implements IStormClusterState {
     }
 
     @Override
+    public List<String> backpressureTopologies() {
+        return stateStorage.get_children(ClusterUtils.BACKPRESSURE_SUBTREE, false);
+    }
+
+    @Override
     public void setTopologyLogConfig(String stormId, LogConfig logConfig) {
         stateStorage.set_data(ClusterUtils.logConfigPath(stormId), Utils.serialize(logConfig), acls);
     }
@@ -463,12 +475,25 @@ public class StormClusterStateImpl implements IStormClusterState {
 
     @Override
     public void removeBackpressure(String stormId) {
-        stateStorage.delete_node(ClusterUtils.backpressureStormRoot(stormId));
+        try {
+            stateStorage.delete_node(ClusterUtils.backpressureStormRoot(stormId));
+        } catch (Exception e) {
+            if (Utils.exceptionCauseIsInstanceOf(KeeperException.class, e)) {
+                // do nothing
+                LOG.warn("Could not teardown backpressure node for {}.", stormId);
+            } else {
+                throw e;
+            }
+        }
     }
 
     @Override
     public void removeWorkerBackpressure(String stormId, String node, Long port) {
-        stateStorage.delete_node(ClusterUtils.backpressurePath(stormId, node, port));
+        String path = ClusterUtils.backpressurePath(stormId, node, port);
+        boolean existed = stateStorage.node_exists(path, false);
+        if (existed) {
+            stateStorage.delete_node(path);
+        }
     }
 
     @Override

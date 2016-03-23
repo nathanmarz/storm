@@ -1,0 +1,18 @@
+# Site settings
+title: Apache Storm
+baseurl: "" # the subpath of your site, e.g. /blog/
+url: "http://storm.apache.org" # the base hostname & protocol for your site
+twitter_username: stormprocessor
+github_username:  apache/storm
+
+# Build settings
+markdown: redcarpet
+redcarpet:
+  extensions: ["no_intra_emphasis", "fenced_code_blocks", "autolink", "tables", "with_toc_data"]
+
+keep_files:   [".git", ".svn"]
+encoding:     "utf-8"
+exclude: 
+  - READEME.md
+
+storm_release_only: true

@@ -17,9 +17,10 @@
  */
 package org.apache.storm.metric;
 
-import clojure.lang.IFn;
-import com.codahale.metrics.*;
-
+import com.codahale.metrics.Gauge;
+import com.codahale.metrics.Meter;
+import com.codahale.metrics.Metric;
+import com.codahale.metrics.MetricRegistry;
 import java.util.Map;
 import java.util.concurrent.Callable;
 

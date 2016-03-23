@@ -25,13 +25,10 @@ import org.apache.storm.generated.StormTopology;
 import org.apache.storm.hbase.trident.windowing.HBaseWindowsStoreFactory;
 import org.apache.storm.trident.Stream;
 import org.apache.storm.trident.TridentTopology;
-import org.apache.storm.trident.operation.BaseFunction;
-import org.apache.storm.trident.operation.Function;
-import org.apache.storm.trident.operation.TridentCollector;
-import org.apache.storm.trident.operation.TridentOperationContext;
-import org.apache.storm.trident.operation.builtin.Debug;
+import org.apache.storm.trident.operation.Consumer;
 import org.apache.storm.trident.testing.CountAsAggregator;
 import org.apache.storm.trident.testing.FixedBatchSpout;
+import org.apache.storm.trident.testing.Split;
 import org.apache.storm.trident.tuple.TridentTuple;
 import org.apache.storm.trident.windowing.WindowsStoreFactory;
 import org.apache.storm.trident.windowing.config.TumblingCountWindow;
@@ -42,9 +39,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
-import java.util.Map;
 
 /**
+ * Sample application of trident windowing which uses {@link HBaseWindowsStoreFactory}'s store for storing tuples in window.
  *
  */
 public class TridentHBaseWindowingStoreTopology {
@@ -61,46 +58,20 @@ public class TridentHBaseWindowingStoreTopology {
         Stream stream = topology.newStream("spout1", spout).parallelismHint(16).each(new Fields("sentence"),
                 new Split(), new Fields("word"))
                 .window(TumblingCountWindow.of(1000), windowsStore, new Fields("word"), new CountAsAggregator(), new Fields("count"))
-//                .tumblingTimeWindow(new BaseWindowedBolt.Duration(3, TimeUnit.SECONDS), windowsStore, new Fields("word"), new CountAsAggregator(), new Fields("count"))
-                .each(new Fields("count"), new Debug())
-                .each(new Fields("count"), new Echo(), new Fields("ct"));
+                .peek(new Consumer() {
+                    @Override
+                    public void accept(TridentTuple input) {
+                        LOG.info("Received tuple: [{}]", input);
+                    }
+                });
 
         return topology.build();
-    }
-
-    public static class Split extends BaseFunction {
-        @Override
-        public void execute(TridentTuple tuple, TridentCollector collector) {
-            String sentence = tuple.getString(0);
-            for (String word : sentence.split(" ")) {
-                collector.emit(new Values(word));
-            }
-        }
-    }
-
-    static class Echo implements Function {
-
-        @Override
-        public void execute(TridentTuple tuple, TridentCollector collector) {
-            LOG.info("##########Echo.execute: " + tuple);
-            collector.emit(tuple.getValues());
-        }
-
-        @Override
-        public void prepare(Map conf, TridentOperationContext context) {
-
-        }
-
-        @Override
-        public void cleanup() {
-
-        }
     }
 
     public static void main(String[] args) throws Exception {
         Config conf = new Config();
         conf.setMaxSpoutPending(20);
-        conf.put(Config.TOPOLOGY_TRIDENT_WINDOWING_INMEMORY_CACHE_LIMIT, 2);
+        conf.put(Config.TOPOLOGY_TRIDENT_WINDOWING_INMEMORY_CACHE_LIMIT, 100);
 
         // window-state table should already be created with cf:tuples column
         HBaseWindowsStoreFactory windowStoreFactory = new HBaseWindowsStoreFactory(new HashMap<String, Object>(), "window-state", "cf".getBytes("UTF-8"), "tuples".getBytes("UTF-8"));

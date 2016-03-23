@@ -25,21 +25,14 @@ import org.apache.storm.generated.StormTopology;
 import org.apache.storm.topology.base.BaseWindowedBolt;
 import org.apache.storm.trident.Stream;
 import org.apache.storm.trident.TridentTopology;
-import org.apache.storm.trident.operation.BaseFunction;
-import org.apache.storm.trident.operation.Function;
-import org.apache.storm.trident.operation.TridentCollector;
-import org.apache.storm.trident.operation.TridentOperationContext;
-import org.apache.storm.trident.operation.builtin.Debug;
+import org.apache.storm.trident.operation.Consumer;
 import org.apache.storm.trident.testing.CountAsAggregator;
 import org.apache.storm.trident.testing.FixedBatchSpout;
+import org.apache.storm.trident.testing.Split;
 import org.apache.storm.trident.tuple.TridentTuple;
 import org.apache.storm.trident.windowing.InMemoryWindowsStoreFactory;
 import org.apache.storm.trident.windowing.WindowsStoreFactory;
-import org.apache.storm.trident.windowing.config.SlidingCountWindow;
-import org.apache.storm.trident.windowing.config.SlidingDurationWindow;
-import org.apache.storm.trident.windowing.config.TumblingCountWindow;
-import org.apache.storm.trident.windowing.config.TumblingDurationWindow;
-import org.apache.storm.trident.windowing.config.WindowConfig;
+import org.apache.storm.trident.windowing.config.*;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Values;
 import org.apache.storm.utils.Utils;
@@ -48,7 +41,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -68,41 +60,14 @@ public class TridentWindowingInmemoryStoreTopology {
         Stream stream = topology.newStream("spout1", spout).parallelismHint(16).each(new Fields("sentence"),
                 new Split(), new Fields("word"))
                 .window(windowConfig, windowStore, new Fields("word"), new CountAsAggregator(), new Fields("count"))
-//                .aggregate(new CountAsAggregator(), new Fields("count"))
-                .each(new Fields("count"), new Debug())
-                .each(new Fields("count"), new Echo(), new Fields("ct"))
-                .each(new Fields("ct"), new Debug());
+                .peek(new Consumer() {
+                    @Override
+                    public void accept(TridentTuple input) {
+                        LOG.info("Received tuple: [{}]", input);
+                    }
+                });
 
         return topology.build();
-    }
-
-    public static class Split extends BaseFunction {
-        @Override
-        public void execute(TridentTuple tuple, TridentCollector collector) {
-            String sentence = tuple.getString(0);
-            for (String word : sentence.split(" ")) {
-                collector.emit(new Values(word));
-            }
-        }
-    }
-
-    static class Echo implements Function {
-
-        @Override
-        public void execute(TridentTuple tuple, TridentCollector collector) {
-            LOG.info("##########Echo.execute: " + tuple);
-            collector.emit(tuple.getValues());
-        }
-
-        @Override
-        public void prepare(Map conf, TridentOperationContext context) {
-
-        }
-
-        @Override
-        public void cleanup() {
-
-        }
     }
 
     public static void main(String[] args) throws Exception {

@@ -35,7 +35,6 @@
     <!-- see comment below... This fixes an annoyance with intellij -->
     <provided.scope>provided</provided.scope>
     <hbase.version>0.98.4-hadoop2</hbase.version>
-    <hbase.version>1.1.2</hbase.version>
   </properties>
 
   <profiles>
@@ -185,36 +184,6 @@
       <artifactId>storm-redis</artifactId>
       <version>${project.version}</version>
     </dependency>
-      <dependency>
-          <groupId>org.apache.hbase</groupId>
-          <artifactId>hbase-server</artifactId>
-          <version>${hbase.version}</version>
-          <exclusions>
-              <exclusion>
-                  <groupId>org.slf4j</groupId>
-                  <artifactId>slf4j-log4j12</artifactId>
-              </exclusion>
-              <exclusion>
-                  <groupId>org.apache.zookeeper</groupId>
-                  <artifactId>zookeeper</artifactId>
-              </exclusion>
-          </exclusions>
-      </dependency>
-      <dependency>
-          <groupId>org.apache.hbase</groupId>
-          <artifactId>hbase-client</artifactId>
-          <version>${hbase.version}</version>
-          <exclusions>
-              <exclusion>
-                  <groupId>org.slf4j</groupId>
-                  <artifactId>slf4j-log4j12</artifactId>
-              </exclusion>
-              <exclusion>
-                  <groupId>org.apache.zookeeper</groupId>
-                  <artifactId>zookeeper</artifactId>
-              </exclusion>
-          </exclusions>
-      </dependency>
   </dependencies>
 
   <build>

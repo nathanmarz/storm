@@ -129,12 +129,6 @@ public class StoreBasedTridentWindowManager extends AbstractTridentWindowManager
     }
 
     public void addTuplesBatch(Object batchId, List<TridentTuple> tuples) {
-        // check if they are already added then ignore these tuples. This batch is replayed.
-        if (activeBatches.contains(getBatchTxnId(batchId))) {
-            LOG.info("Ignoring already added tuples with batch: [{}]", batchId);
-            return;
-        }
-
         LOG.debug("Adding tuples to window-manager for batch: [{}]", batchId);
         List<WindowsStore.Entry> entries = new ArrayList<>();
         for (int i = 0; i < tuples.size(); i++) {

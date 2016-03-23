@@ -55,7 +55,6 @@ public abstract class AbstractTridentWindowManager<T> implements ITridentWindowM
     protected final String windowTaskId;
     protected final WindowsStore windowStore;
 
-    protected final Set<String> activeBatches = new HashSet<>();
     protected final Queue<TriggerResult> pendingTriggers = new ConcurrentLinkedQueue<>();
     protected final AtomicInteger triggerId = new AtomicInteger();
     private final String windowTriggerCountId;

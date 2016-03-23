@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * <p/>
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p/>
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -629,7 +629,7 @@ public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
      * and slides the window with {@code slideCount}.
      *
      * @param windowCount represents tuples count of a window
-     * @param slideCount represents sliding count window
+     * @param slideCount the number of tuples after which the window slides
      * @param windowStoreFactory intermediary tuple store for storing windowing tuples
      * @param inputFields projected fields for aggregator
      * @param aggregator aggregator to run on the window of tuples to compute the result and emit to the stream.
@@ -663,7 +663,7 @@ public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
      * and completes a window at {@code windowDuration}
      *
      * @param windowDuration represents window duration configuration
-     * @param slideDuration represents sliding duration  configuration
+     * @param slidingInterval the time duration after which the window slides
      * @param windowStoreFactory intermediary tuple store for storing windowing tuples
      * @param inputFields projected fields for aggregator
      * @param aggregator aggregator to run on the window of tuples to compute the result and emit to the stream.
@@ -671,9 +671,9 @@ public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
      *
      * @return
      */
-    public Stream slidingWindow(BaseWindowedBolt.Duration windowDuration, BaseWindowedBolt.Duration slideDuration,
+    public Stream slidingWindow(BaseWindowedBolt.Duration windowDuration, BaseWindowedBolt.Duration slidingInterval,
                                     WindowsStoreFactory windowStoreFactory, Fields inputFields, Aggregator aggregator, Fields functionFields) {
-        return window(SlidingDurationWindow.of(windowDuration, slideDuration), windowStoreFactory, inputFields, aggregator, functionFields);
+        return window(SlidingDurationWindow.of(windowDuration, slidingInterval), windowStoreFactory, inputFields, aggregator, functionFields);
     }
 
     /**

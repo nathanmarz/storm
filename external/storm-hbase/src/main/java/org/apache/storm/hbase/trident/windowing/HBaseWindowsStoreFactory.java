@@ -25,6 +25,9 @@ import org.apache.storm.trident.windowing.WindowsStoreFactory;
 
 import java.util.Map;
 
+/**
+ *
+ */
 public class HBaseWindowsStoreFactory implements WindowsStoreFactory {
     private final Map<String, Object> config;
     private final String tableName;

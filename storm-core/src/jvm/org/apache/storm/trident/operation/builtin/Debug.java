@@ -20,6 +20,8 @@ package org.apache.storm.trident.operation.builtin;
 import org.apache.storm.trident.operation.BaseFilter;
 import org.apache.storm.trident.tuple.TridentTuple;
 
+import java.util.Date;
+
 /**
  * Filter for debugging purposes. The `isKeep()` method simply prints the tuple to `System.out` and returns `true`.
  */
@@ -40,7 +42,7 @@ public class Debug extends BaseFilter {
 
     @Override
     public boolean isKeep(TridentTuple tuple) {
-        System.out.println(name + tuple.toString());
+        System.out.println("<"+new Date()+"> "+name + tuple.toString());
         return true;
     }
 }

@@ -22,6 +22,7 @@ import org.apache.storm.generated.HBMessageData;
 import org.apache.storm.generated.HBPulse;
 import org.apache.storm.generated.HBNodes;
 import org.apache.storm.generated.HBServerMessageType;
+import org.apache.storm.metric.StormMetricsRegistry;
 import org.apache.storm.utils.ConfigUtils;
 import org.apache.storm.utils.Utils;
 import org.apache.storm.utils.VersionInfo;
@@ -29,8 +30,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.org.lidalia.sysoutslf4j.context.SysOutOverSLF4J;
 
-import javax.management.*;
-import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Map;
@@ -62,107 +61,71 @@ public class Pacemaker implements IServerMessageHandler {
         public AtomicInteger averageHeartbeatSize = new AtomicInteger();
         private AtomicInteger totalKeys = new AtomicInteger();
     }
-    private static class PacemakerDynamicMBean implements DynamicMBean {
 
-        private final MBeanInfo mBeanInfo;
-        private final static String [] attributeNames = new String []{
-                "send-pulse-count",
-                "total-received-size",
-                "get-pulse-count",
-                "total-sent-size",
-                "largest-heartbeat-size",
-                "average-heartbeat-size",
-                "total-keys"
-        };
-        private static String attributeType = "java.util.concurrent.atomic.AtomicInteger";
-
-        private static final MBeanAttributeInfo[] attributeInfos = new MBeanAttributeInfo[] {
-                        new MBeanAttributeInfo("send-pulse-count", attributeType, "send-pulse-count", true, false, false),
-                        new MBeanAttributeInfo("total-received-size", attributeType, "total-received-size", true, false, false),
-                        new MBeanAttributeInfo("get-pulse-count", attributeType, "get-pulse-count", true, false, false),
-                        new MBeanAttributeInfo("total-sent-size", attributeType, "total-sent-size", true, false, false),
-                        new MBeanAttributeInfo("largest-heartbeat-size", attributeType, "largest-heartbeat-size", true, false, false),
-                        new MBeanAttributeInfo("average-heartbeat-size", attributeType, "average-heartbeat-size", true, false, false),
-                        new MBeanAttributeInfo("total-keys", attributeType, "total-keys", true, false, false)
-        };
-        private PacemakerStats stats;
-
-        public PacemakerDynamicMBean(PacemakerStats stats) {
-            this.stats = stats;
-            this.mBeanInfo = new MBeanInfo("org.apache.storm.pacemaker.PaceMakerDynamicMBean", "Java Pacemaker Dynamic MBean",
-                    PacemakerDynamicMBean.attributeInfos, null, null, null);
-        }
-
-        @Override
-        public MBeanInfo getMBeanInfo() {
-            return mBeanInfo;
-        }
-
-        @Override
-        public AttributeList getAttributes(String[] attributes) {
-            AttributeList list = new AttributeList();
-            if (attributes == null)
-                return list;
-            final int len = attributes.length;
-            try {
-                for (int i = 0; i < len; i++) {
-                    final Attribute a = new Attribute(attributes[i], getAttribute(attributes[i]));
-                    list.add(a);
-
-                }
-            } catch (Exception e) {
-                throw Utils.wrapInRuntime(e);
-            }
-            return list;
-        }
-
-        @Override
-        public Object getAttribute(String attribute) throws AttributeNotFoundException, MBeanException, ReflectionException {
-            if (attribute == null)
-                throw new AttributeNotFoundException("null");
-            if (attribute.equals("send-pulse-count"))
-                return stats.sendPulseCount.get();
-            else if (attribute.equals("total-received-size"))
-                return stats.totalReceivedSize.get();
-            else if (attribute.equals("get-pulse-count"))
-                return stats.getPulseCount.get();
-            else if (attribute.equals("total-sent-size"))
-                return stats.totalSentSize.get();
-            else if (attribute.equals("largest-heartbeat-size"))
-                return stats.largestHeartbeatSize.get();
-            else if (attribute.equals("average-heartbeat-size"))
-                return stats.averageHeartbeatSize.get();
-            else if (attribute.equals("total-keys"))
-                return stats.totalKeys.get();
-            else
-                throw new AttributeNotFoundException("null");
-        }
-
-        @Override
-        public void setAttribute(Attribute attribute) throws AttributeNotFoundException, InvalidAttributeValueException, MBeanException, ReflectionException {
-
-        }
-
-        @Override
-        public AttributeList setAttributes(AttributeList attributes) {
-            return null;
-        }
-
-        @Override
-        public Object invoke(String actionName, Object[] params, String[] signature) throws MBeanException, ReflectionException {
-            return null;
-        }
-    }
-
-    public Pacemaker(Map conf, boolean isRegisterJmx) {
+    public Pacemaker(Map conf) {
         heartbeats = new ConcurrentHashMap();
         pacemakerStats = new PacemakerStats();
         lastOneMinStats = new PacemakerStats();
         this.conf = conf;
         startStatsThread();
-        if (isRegisterJmx){
-            registerJmx(lastOneMinStats);
-        }
+        startRegisterStatsGauge();
+        StormMetricsRegistry.startMetricsReporters(conf);
+    }
+
+    public void startRegisterStatsGauge(){
+        StormMetricsRegistry.registerGauge("pacemaker:num-send-pulse-1min",
+                new Callable(){
+                    @Override
+                    public Integer call() throws Exception {
+                        return lastOneMinStats.sendPulseCount.get();
+                    }
+                });
+
+        StormMetricsRegistry.registerGauge("pacemaker:num-total-receive-1min",
+                new Callable(){
+                    @Override
+                    public Integer call() throws Exception {
+                        return lastOneMinStats.totalReceivedSize.get();
+                    }
+                });
+
+        StormMetricsRegistry.registerGauge("pacemaker:num-get-pulse-1min",
+                new Callable(){
+                    @Override
+                    public Integer call() throws Exception {
+                        return lastOneMinStats.getPulseCount.get();
+                    }
+                });
+
+        StormMetricsRegistry.registerGauge("pacemaker:num-total-sent-1min",
+                new Callable(){
+                    @Override
+                    public Integer call() throws Exception {
+                        return lastOneMinStats.totalSentSize.get();
+                    }
+                });
+
+        StormMetricsRegistry.registerGauge("pacemaker:size-largest-heartbeat-1min",
+                new Callable(){
+                    @Override
+                    public Integer call() throws Exception {
+                        return lastOneMinStats.largestHeartbeatSize.get();
+                    }
+                });
+        StormMetricsRegistry.registerGauge("pacemaker:size-average-heartbeat-1min",
+                new Callable(){
+                    @Override
+                    public Integer call() throws Exception {
+                        return lastOneMinStats.averageHeartbeatSize.get();
+                    }
+                });
+        StormMetricsRegistry.registerGauge("pacemaker:size-total-keys-1min",
+                new Callable(){
+                    @Override
+                    public Integer call() throws Exception {
+                        return lastOneMinStats.totalKeys.get();
+                    }
+                });
     }
 
     @Override
@@ -203,16 +166,6 @@ public class Pacemaker implements IServerMessageHandler {
         return response;
     }
 
-    private void registerJmx (PacemakerStats lastOneMinStats){
-        try {
-            MBeanServer mbServer = ManagementFactory.getPlatformMBeanServer();
-            DynamicMBean dynamicMBean = new PacemakerDynamicMBean(lastOneMinStats);
-            ObjectName objectname = new ObjectName("org.apache.storm.pacemaker.Pacemaker:stats=lastOneMinStats");
-            mbServer.registerMBean(dynamicMBean, objectname);
-        }catch (Exception e){
-            throw Utils.wrapInRuntime(e);
-        }
-    }
 
     private HBMessage createPath(String path) {
         return new HBMessage(HBServerMessageType.CREATE_PATH_RESPONSE, null);
@@ -343,9 +296,10 @@ public class Pacemaker implements IServerMessageHandler {
                 int average = pacemakerStats.averageHeartbeatSize.getAndSet(0);
                 int totalKeys = heartbeats.size();
                 LOG.debug("\nReceived {} heartbeats totaling {} bytes,\nSent {} heartbeats totaling {} bytes," +
-                          "\nThe largest heartbeat was {} bytes,\nThe average heartbeat was {} bytes,\n" +
-                          "Pacemaker contained {} total keys\nin the last {} second(s)",
+                                "\nThe largest heartbeat was {} bytes,\nThe average heartbeat was {} bytes,\n" +
+                                "Pacemaker contained {} total keys\nin the last {} second(s)",
                         sendCount, receivedSize, getCount, sentSize, largest, average, totalKeys, sleepSeconds);
+                
                 lastOneMinStats.sendPulseCount.set(sendCount);
                 lastOneMinStats.totalReceivedSize.set(receivedSize);
                 lastOneMinStats.getPulseCount.set(getCount);
@@ -367,7 +321,7 @@ public class Pacemaker implements IServerMessageHandler {
     public static void main(String[] args) {
         SysOutOverSLF4J.sendSystemOutAndErrToSLF4J();
         Map conf = ConfigUtils.overrideLoginConfigWithSystemProperty(ConfigUtils.readStormConfig());
-        final Pacemaker serverHandler = new Pacemaker(conf, true);
+        final Pacemaker serverHandler = new Pacemaker(conf);
         serverHandler.launchServer();
     }
 

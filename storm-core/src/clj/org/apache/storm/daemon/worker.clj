@@ -21,7 +21,8 @@
   (:require [org.apache.storm.daemon [executor :as executor]])
 
   (:require [clojure.set :as set])
-  (:import [java.io File])
+  (:import [java.io File]
+           [org.apache.storm.stats StatsUtil])
   (:import [java.util.concurrent Executors]
            [org.apache.storm.hooks IWorkerHook BaseWorkerHook]
            [uk.org.lidalia.sysoutslf4j.context SysOutOverSLF4J])
@@ -66,18 +67,15 @@
 (defnk do-executor-heartbeats [worker :executors nil]
   ;; stats is how we know what executors are assigned to this worker 
   (let [stats (if-not executors
-                  (into {} (map (fn [e] {e nil}) (:executors worker)))
-                  (->> executors
+                  (StatsUtil/mkEmptyExecutorZkHbs (:executors worker))
+                  (StatsUtil/convertExecutorZkHbs (->> executors
                     (map (fn [e] {(executor/get-executor-id e) (executor/render-stats e)}))
-                    (apply merge)))
-        zk-hb {:storm-id (:storm-id worker)
-               :executor-stats stats
-               :uptime (. (:uptime worker) upTime)
-               :time-secs (Time/currentTimeSecs)
-               }]
+                    (apply merge))))
+        zk-hb (StatsUtil/mkZkWorkerHb (:storm-id worker) stats (. (:uptime worker) upTime))]
     ;; do the zookeeper heartbeat
     (try
-      (.workerHeartbeat (:storm-cluster-state worker) (:storm-id worker) (:assignment-id worker) (long (:port worker)) (thriftify-zk-worker-hb zk-hb))
+      (.workerHeartbeat (:storm-cluster-state worker) (:storm-id worker) (:assignment-id worker) (long (:port worker))
+        (StatsUtil/thriftifyZkWorkerHb zk-hb))
       (catch Exception exc
         (log-error exc "Worker failed to write heatbeats to ZK or Pacemaker...will retry")))))
 
@@ -738,6 +736,7 @@
                     (run-worker-shutdown-hooks worker)
 
                     (.removeWorkerHeartbeat (:storm-cluster-state worker) storm-id assignment-id (long port))
+                    (.removeWorkerBackpressure (:storm-cluster-state worker) storm-id assignment-id (long port))
                     (log-message "Disconnecting from storm cluster state context")
                     (.disconnect (:storm-cluster-state worker))
                     (.close (:state-store worker))

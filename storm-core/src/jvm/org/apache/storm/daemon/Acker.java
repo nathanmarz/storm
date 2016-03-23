@@ -40,6 +40,7 @@ public class Acker implements IBolt {
     public static final String ACKER_INIT_STREAM_ID = "__ack_init";
     public static final String ACKER_ACK_STREAM_ID = "__ack_ack";
     public static final String ACKER_FAIL_STREAM_ID = "__ack_fail";
+    public static final String ACKER_RESET_TIMEOUT_STREAM_ID = "__ack_reset_timeout";
 
     public static final int TIMEOUT_BUCKET_NUM = 3;
 
@@ -100,6 +101,11 @@ public class Acker implements IBolt {
             }
             curr.failed = true;
             pending.put(id, curr);
+        } else if (ACKER_RESET_TIMEOUT_STREAM_ID.equals(streamId)) {
+            if (curr == null) {
+                curr = new AckObject();
+            }
+            pending.put(id, curr);
         } else {
             LOG.warn("Unknown source stream {} from task-{}", streamId, input.getSourceTask());
             return;
@@ -110,11 +116,11 @@ public class Acker implements IBolt {
             if (curr.val == 0) {
                 pending.remove(id);
                 collector.emitDirect(task, ACKER_ACK_STREAM_ID, new Values(id));
-            } else {
-                if (curr.failed) {
-                    pending.remove(id);
-                    collector.emitDirect(task, ACKER_FAIL_STREAM_ID, new Values(id));
-                }
+            } else if (curr.failed) {
+                pending.remove(id);
+                collector.emitDirect(task, ACKER_FAIL_STREAM_ID, new Values(id));
+            } else if(ACKER_RESET_TIMEOUT_STREAM_ID.equals(streamId)) {
+                collector.emitDirect(task, ACKER_RESET_TIMEOUT_STREAM_ID, new Values(id));
             }
         }
 

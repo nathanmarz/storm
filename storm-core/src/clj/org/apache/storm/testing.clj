@@ -465,7 +465,7 @@
         assignment (clojurify-assignment (.assignmentInfo state storm-id nil))
         taskbeats (.taskbeats state storm-id (:task->node+port assignment))
         heartbeats (dofor [id task-ids] (get taskbeats id))
-        stats (dofor [hb heartbeats] (if hb (stat-key (:stats hb)) 0))]
+        stats (dofor [hb heartbeats] (if hb (.get (.get hb "stats") stat-key) 0))]
     (reduce + stats)))
 
 (defn emitted-spout-tuples
@@ -473,16 +473,16 @@
   (aggregated-stat
     cluster-map
     storm-name
-    :emitted
+    "emitted"
     :component-ids (keys (.get_spouts topology))))
 
 (defn transferred-tuples
   [cluster-map storm-name]
-  (aggregated-stat cluster-map storm-name :transferred))
+  (aggregated-stat cluster-map storm-name "transferred"))
 
 (defn acked-tuples
   [cluster-map storm-name]
-  (aggregated-stat cluster-map storm-name :acked))
+  (aggregated-stat cluster-map storm-name "acked"))
 
 (defn simulate-wait
   [cluster-map]

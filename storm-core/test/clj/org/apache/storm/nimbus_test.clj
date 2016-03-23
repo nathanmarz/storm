@@ -15,14 +15,15 @@
 ;; limitations under the License.
 (ns org.apache.storm.nimbus-test
   (:use [clojure test])
-  (:require [org.apache.storm [util :as util] [stats :as stats]])
+  (:require [org.apache.storm [util :as util]])
   (:require [org.apache.storm.daemon [nimbus :as nimbus]])
   (:require [org.apache.storm [converter :as converter]])
   (:import [org.apache.storm.testing TestWordCounter TestWordSpout TestGlobalCount
             TestAggregatesCounter TestPlannerSpout TestPlannerBolt]
            [org.apache.storm.nimbus InMemoryTopologyActionNotifier]
            [org.apache.storm.generated GlobalStreamId]
-           [org.apache.storm Thrift MockAutoCred])
+           [org.apache.storm Thrift MockAutoCred]
+           [org.apache.storm.stats BoltExecutorStats StatsUtil])
   (:import [org.apache.storm.testing.staticmocking MockedZookeeper])
   (:import [org.apache.storm.scheduler INimbus])
   (:import [org.mockito Mockito Matchers])
@@ -41,7 +42,7 @@
   (:import [org.apache.commons.io FileUtils])
   (:import [org.json.simple JSONValue])
   (:import [org.apache.storm.daemon StormCommon])
-  (:import [org.apache.storm.cluster StormClusterStateImpl ClusterStateContext ClusterUtils])
+  (:import [org.apache.storm.cluster IStormClusterState StormClusterStateImpl ClusterStateContext ClusterUtils])
   (:use [org.apache.storm testing util config log converter])
     (:require [conjure.core] [org.apache.storm.daemon.worker :as worker])
 
@@ -140,11 +141,17 @@
   (let [state (:storm-cluster-state cluster)
         executor->node+port (:executor->node+port (clojurify-assignment (.assignmentInfo state storm-id nil)))
         [node port] (get executor->node+port executor)
-        curr-beat (clojurify-zk-worker-hb (.getWorkerHeartbeat state storm-id node port))
-        stats (:executor-stats curr-beat)]
+        curr-beat (StatsUtil/convertZkWorkerHb (.getWorkerHeartbeat state storm-id node port))
+        stats (if (get curr-beat "executor-stats")
+                (get curr-beat "executor-stats")
+                (HashMap.))]
+    (log-warn "curr-beat:" (prn-str curr-beat) ",stats:" (prn-str stats))
+    (log-warn "stats type:" (type stats))
+    (.put stats (StatsUtil/convertExecutor executor) (.renderStats (BoltExecutorStats. 20)))
+    (log-warn "merged:" stats)
+
     (.workerHeartbeat state storm-id node port
-      (thriftify-zk-worker-hb {:storm-id storm-id :time-secs (Time/currentTimeSecs) :uptime 10 :executor-stats (merge stats {executor (stats/render-stats! (stats/mk-bolt-stats 20))})})
-      )))
+      (StatsUtil/thriftifyZkWorkerHb (StatsUtil/mkZkWorkerHb storm-id stats (int 10))))))
 
 (defn slot-assignments [cluster storm-id]
   (let [state (:storm-cluster-state cluster)
@@ -199,8 +206,6 @@
     (doseq [[e s] executor->node+port]
       (is (not-nil? ((:executor->start-time-secs assignment) e))))
     ))
-
- 	
 
 (deftest test-bogusId
   (with-local-cluster [cluster :supervisors 4 :ports-per-supervisor 3
@@ -1666,3 +1671,132 @@
 
            (is (= (.get_action (.get levels "other-test")) LogLevelAction/UNCHANGED))
            (is (= (.get_target_log_level (.get levels "other-test")) "DEBUG")))))))
+
+(defn teardown-heartbeats [id])
+(defn teardown-topo-errors [id])
+(defn teardown-backpressure-dirs [id])
+
+(defn mock-cluster-state 
+  ([] 
+    (mock-cluster-state nil nil))
+  ([active-topos inactive-topos]
+    (mock-cluster-state active-topos inactive-topos inactive-topos inactive-topos)) 
+  ([active-topos hb-topos error-topos bp-topos]
+    (reify IStormClusterState
+      (teardownHeartbeats [this id] (teardown-heartbeats id))
+      (teardownTopologyErrors [this id] (teardown-topo-errors id))
+      (removeBackpressure [this id] (teardown-backpressure-dirs id))
+      (activeStorms [this] active-topos)
+      (heartbeatStorms [this] hb-topos)
+      (errorTopologies [this] error-topos)
+      (backpressureTopologies [this] bp-topos))))
+
+(deftest cleanup-storm-ids-returns-inactive-topos
+  (let [mock-state (mock-cluster-state (list "topo1") (list "topo1" "topo2" "topo3"))]
+    (stubbing [nimbus/is-leader true
+               nimbus/code-ids {}] 
+    (is (= (nimbus/cleanup-storm-ids mock-state nil) #{"topo2" "topo3"})))))
+
+(deftest cleanup-storm-ids-performs-union-of-storm-ids-with-active-znodes
+  (let [active-topos (list "hb1" "e2" "bp3")
+        hb-topos (list "hb1" "hb2" "hb3")
+        error-topos (list "e1" "e2" "e3")
+        bp-topos (list "bp1" "bp2" "bp3")
+        mock-state (mock-cluster-state active-topos hb-topos error-topos bp-topos)]
+    (stubbing [nimbus/is-leader true
+               nimbus/code-ids {}] 
+    (is (= (nimbus/cleanup-storm-ids mock-state nil) 
+           #{"hb2" "hb3" "e1" "e3" "bp1" "bp2"})))))
+
+(deftest cleanup-storm-ids-returns-empty-set-when-all-topos-are-active
+  (let [active-topos (list "hb1" "hb2" "hb3" "e1" "e2" "e3" "bp1" "bp2" "bp3")
+        hb-topos (list "hb1" "hb2" "hb3")
+        error-topos (list "e1" "e2" "e3")
+        bp-topos (list "bp1" "bp2" "bp3")
+        mock-state (mock-cluster-state active-topos hb-topos error-topos bp-topos)]
+    (stubbing [nimbus/is-leader true
+               nimbus/code-ids {}] 
+    (is (= (nimbus/cleanup-storm-ids mock-state nil) 
+           #{})))))
+
+(deftest do-cleanup-removes-inactive-znodes
+  (let [inactive-topos (list "topo2" "topo3")
+        hb-cache (atom (into {}(map vector inactive-topos '(nil nil))))
+        mock-state (mock-cluster-state)
+        mock-blob-store {}
+        conf {}
+        nimbus {:conf conf
+                :submit-lock mock-blob-store 
+                :blob-store {}
+                :storm-cluster-state mock-state
+                :heartbeats-cache hb-cache}]
+
+    (stubbing [nimbus/is-leader true
+               nimbus/blob-rm-topology-keys nil
+               nimbus/cleanup-storm-ids inactive-topos]
+      (mocking
+        [teardown-heartbeats 
+         teardown-topo-errors 
+         teardown-backpressure-dirs
+         nimbus/force-delete-topo-dist-dir
+         nimbus/blob-rm-topology-keys] 
+
+        (nimbus/do-cleanup nimbus)
+
+        ;; removed heartbeats znode
+        (verify-nth-call-args-for 1 teardown-heartbeats "topo2")
+        (verify-nth-call-args-for 2 teardown-heartbeats "topo3")
+
+        ;; removed topo errors znode
+        (verify-nth-call-args-for 1 teardown-topo-errors "topo2")
+        (verify-nth-call-args-for 2 teardown-topo-errors "topo3")
+
+        ;; removed backpressure znodes
+        (verify-nth-call-args-for 1 teardown-backpressure-dirs "topo2")
+        (verify-nth-call-args-for 2 teardown-backpressure-dirs "topo3")
+
+        ;; removed topo directories
+        (verify-nth-call-args-for 1 nimbus/force-delete-topo-dist-dir conf "topo2")
+        (verify-nth-call-args-for 2 nimbus/force-delete-topo-dist-dir conf "topo3")
+
+        ;; removed blob store topo keys
+        (verify-nth-call-args-for 1 nimbus/blob-rm-topology-keys "topo2" mock-blob-store mock-state)
+        (verify-nth-call-args-for 2 nimbus/blob-rm-topology-keys "topo3" mock-blob-store mock-state)
+
+        ;; remove topos from heartbeat cache
+        (is (= (count @hb-cache) 0))))))
+
+(deftest do-cleanup-does-not-teardown-active-topos
+  (let [inactive-topos ()
+        hb-cache (atom {"topo1" nil "topo2" nil})
+        mock-state (mock-cluster-state)
+        mock-blob-store {}
+        conf {}
+        nimbus {:conf conf
+                :submit-lock mock-blob-store 
+                :blob-store {}
+                :storm-cluster-state mock-state
+                :heartbeats-cache hb-cache}]
+
+    (stubbing [nimbus/is-leader true
+               nimbus/blob-rm-topology-keys nil
+               nimbus/cleanup-storm-ids inactive-topos]
+      (mocking
+        [teardown-heartbeats 
+         teardown-topo-errors 
+         teardown-backpressure-dirs
+         nimbus/force-delete-topo-dist-dir
+         nimbus/blob-rm-topology-keys] 
+
+        (nimbus/do-cleanup nimbus)
+
+        (verify-call-times-for teardown-heartbeats 0)
+        (verify-call-times-for teardown-topo-errors 0)
+        (verify-call-times-for teardown-backpressure-dirs 0)
+        (verify-call-times-for nimbus/force-delete-topo-dist-dir 0)
+        (verify-call-times-for nimbus/blob-rm-topology-keys 0)
+
+        ;; hb-cache goes down to 1 because only one topo was inactive
+        (is (= (count @hb-cache) 2))
+        (is (contains? @hb-cache "topo1"))
+        (is (contains? @hb-cache "topo2"))))))

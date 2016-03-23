@@ -20,6 +20,7 @@
 <properties>
     <property name="pattern">%d{yyyy-MM-dd HH:mm:ss.SSS} %c{1.} [%p] %msg%n</property>
     <property name="patternNoTime">%msg%n</property>
+    <property name="patternMetrics">%d %-8r %m%n</property>
 </properties>
 <appenders>
     <RollingFile name="A1"
@@ -55,6 +56,17 @@
         </Policies>
         <DefaultRolloverStrategy max="4"/>
     </RollingFile>
+    <RollingFile name="METRICS"
+		fileName="${sys:workers.artifacts}/${sys:storm.id}/${sys:worker.port}/${sys:logfile.name}.metrics"
+		filePattern="${sys:workers.artifacts}/${sys:storm.id}/${sys:worker.port}/${sys:logfile.name}.metrics.%i.gz">
+        <PatternLayout>
+            <pattern>${patternMetrics}</pattern>
+        </PatternLayout>
+        <Policies>
+            <SizeBasedTriggeringPolicy size="2 MB"/>
+        </Policies>
+        <DefaultRolloverStrategy max="9"/>
+    </RollingFile>
     <Syslog name="syslog" format="RFC5424" charset="UTF-8" host="localhost" port="514"
         protocol="UDP" appName="[${sys:storm.id}:${sys:worker.port}]" mdcId="mdc" includeMDC="true"
         facility="LOCAL5" enterpriseNumber="18060" newLine="true" exceptionPattern="%rEx{full}"
@@ -65,6 +77,9 @@
         <appender-ref ref="A1"/>
         <appender-ref ref="syslog"/>
     </root>
+    <Logger name="backtype.storm.metric.LoggingMetricsConsumer" level="info" additivity="false">
+        <appender-ref ref="METRICS"/>
+    </Logger>
     <Logger name="STDERR" level="INFO">
         <appender-ref ref="STDERR"/>
         <appender-ref ref="syslog"/>

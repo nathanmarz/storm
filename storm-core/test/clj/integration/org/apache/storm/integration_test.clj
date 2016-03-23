@@ -20,6 +20,7 @@
   (:import [org.apache.storm.generated InvalidTopologyException SubmitOptions TopologyInitialStatus RebalanceOptions])
   (:import [org.apache.storm.testing TestWordCounter TestWordSpout TestGlobalCount
             TestAggregatesCounter TestConfBolt AckFailMapTracker AckTracker TestPlannerSpout])
+  (:import [org.apache.storm.utils Time])
   (:import [org.apache.storm.tuple Fields])
   (:import [org.apache.storm.cluster StormClusterStateImpl])
   (:use [org.apache.storm.internal clojure])
@@ -97,9 +98,18 @@
             (ack! collector tuple)
             ))))))
 
-(defn assert-loop [afn ids]
-  (while (not (every? afn ids))
-    (Thread/sleep 1)))
+(defn assert-loop 
+([afn ids] (assert-loop afn ids 10))
+([afn ids timeout-secs]
+  (loop [remaining-time (* timeout-secs 1000)]
+    (let [start-time (System/currentTimeMillis)
+          assertion-is-true (every? afn ids)]
+      (if (or assertion-is-true (neg? remaining-time))
+        (is assertion-is-true)
+        (do
+          (Thread/sleep 1)
+          (recur (- remaining-time (- (System/currentTimeMillis) start-time)))
+        ))))))
 
 (defn assert-acked [tracker & ids]
   (assert-loop #(.isAcked tracker %) ids))
@@ -131,6 +141,43 @@
       (advance-cluster-time cluster 12)
       (assert-failed tracker 2)
       )))
+
+(defbolt extend-timeout-twice {} {:prepare true}
+  [conf context collector]
+  (let [state (atom -1)]
+    (bolt
+      (execute [tuple]
+        (do
+          (Time/sleep (* 8 1000))
+          (reset-timeout! collector tuple)
+          (Time/sleep (* 8 1000))
+          (reset-timeout! collector tuple)
+          (Time/sleep (* 8 1000))
+          (ack! collector tuple)
+        )))))
+
+(deftest test-reset-timeout
+  (with-simulated-time-local-cluster [cluster :daemon-conf {TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS true}]
+    (let [feeder (feeder-spout ["field1"])
+          tracker (AckFailMapTracker.)
+          _ (.setAckFailDelegate feeder tracker)
+          topology (Thrift/buildTopology
+                     {"1" (Thrift/prepareSpoutDetails feeder)}
+                     {"2" (Thrift/prepareBoltDetails 
+                            {(Utils/getGlobalStreamId "1" nil)
+                             (Thrift/prepareGlobalGrouping)} extend-timeout-twice)})]
+    (submit-local-topology (:nimbus cluster)
+                           "timeout-tester"
+                           {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10}
+                           topology)
+    (advance-cluster-time cluster 11)
+    (.feed feeder ["a"] 1)
+    (advance-cluster-time cluster 21)
+    (is (not (.isFailed tracker 1)))
+    (is (not (.isAcked tracker 1)))
+    (advance-cluster-time cluster 5)
+    (assert-acked tracker 1)
+    )))
 
 (defn mk-validate-topology-1 []
   (Thrift/buildTopology

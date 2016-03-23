@@ -167,11 +167,11 @@ public class RunProfilerActions implements Runnable {
                 SupervisorUtils.rmrAsUser(conf, scriptFile, scriptFile);
             }
             String script = Utils.writeScript(targetDir, commands, environment);
-            List<String> newCommands = new ArrayList<>();
-            newCommands.add("profiler");
-            newCommands.add(targetDir);
-            newCommands.add(script);
-            SupervisorUtils.processLauncher(conf, user, newCommands, environment, logPrefix, exitCodeCallable, targetFile);
+            List<String> args = new ArrayList<>();
+            args.add("profiler");
+            args.add(targetDir);
+            args.add(script);
+            SupervisorUtils.processLauncher(conf, user, null, args, environment, logPrefix, exitCodeCallable, targetFile);
         } else {
             Utils.launchProcess(commands, environment, logPrefix, exitCodeCallable, targetFile);
         }

@@ -182,30 +182,30 @@ public class BlobStoreTest {
     Subject admin = getSubject("admin");
     assertStoreHasExactly(store);
     SettableBlobMeta metadata = new SettableBlobMeta(BlobStoreAclHandler.DEFAULT);
-    AtomicOutputStream out = store.createBlob("test", metadata, admin);
-    assertStoreHasExactly(store, "test");
-    out.write(1);
-    out.close();
+    try (AtomicOutputStream out = store.createBlob("test", metadata, admin)) {
+      assertStoreHasExactly(store, "test");
+      out.write(1);
+    }
     store.deleteBlob("test", admin);
 
     //Test for Supervisor Admin
     Subject supervisor = getSubject("supervisor");
     assertStoreHasExactly(store);
     metadata = new SettableBlobMeta(BlobStoreAclHandler.DEFAULT);
-    out = store.createBlob("test", metadata, supervisor);
-    assertStoreHasExactly(store, "test");
-    out.write(1);
-    out.close();
+    try (AtomicOutputStream out = store.createBlob("test", metadata, supervisor)) {
+      assertStoreHasExactly(store, "test");
+      out.write(1);
+    }
     store.deleteBlob("test", supervisor);
 
     //Test for Nimbus itself as a user
     Subject nimbus = getNimbusSubject();
     assertStoreHasExactly(store);
     metadata = new SettableBlobMeta(BlobStoreAclHandler.DEFAULT);
-    out = store.createBlob("test", metadata, nimbus);
-    assertStoreHasExactly(store, "test");
-    out.write(1);
-    out.close();
+    try (AtomicOutputStream out = store.createBlob("test", metadata, nimbus)) {
+      assertStoreHasExactly(store, "test");
+      out.write(1);
+    }
     store.deleteBlob("test", nimbus);
 
     // Test with a dummy test_subject for cases where subject !=null (security turned on)
@@ -215,9 +215,9 @@ public class BlobStoreTest {
     // Tests for case when subject != null (security turned on) and
     // acls for the blob are set to WORLD_EVERYTHING
     metadata = new SettableBlobMeta(BlobStoreAclHandler.WORLD_EVERYTHING);
-    out = store.createBlob("test", metadata, who);
-    out.write(1);
-    out.close();
+    try (AtomicOutputStream out = store.createBlob("test", metadata, who)) {
+      out.write(1);
+    }
     assertStoreHasExactly(store, "test");
     // Testing whether acls are set to WORLD_EVERYTHING
     assertTrue("ACL does not contain WORLD_EVERYTHING", metadata.toString().contains("AccessControl(type:OTHER, access:7)"));
@@ -231,9 +231,9 @@ public class BlobStoreTest {
     // acls are not set for the blob (DEFAULT)
     LOG.info("Creating test again");
     metadata = new SettableBlobMeta(BlobStoreAclHandler.DEFAULT);
-    out = store.createBlob("test", metadata, who);
-    out.write(2);
-    out.close();
+    try (AtomicOutputStream out = store.createBlob("test", metadata, who)) {
+      out.write(2);
+    }
     assertStoreHasExactly(store, "test");
     // Testing whether acls are set to WORLD_EVERYTHING. Here the acl should not contain WORLD_EVERYTHING because
     // the subject is neither null nor empty. The ACL should however contain USER_EVERYTHING as user needs to have
@@ -242,28 +242,29 @@ public class BlobStoreTest {
     readAssertEqualsWithAuth(store, who, "test", 2);
 
     LOG.info("Updating test");
-    out = store.updateBlob("test", who);
-    out.write(3);
-    out.close();
+    try (AtomicOutputStream out = store.updateBlob("test", who)) {
+      out.write(3);
+    }
     assertStoreHasExactly(store, "test");
     readAssertEqualsWithAuth(store, who, "test", 3);
 
     LOG.info("Updating test again");
-    out = store.updateBlob("test", who);
-    out.write(4);
-    out.flush();
-    LOG.info("SLEEPING");
-    Thread.sleep(2);
-    assertStoreHasExactly(store, "test");
-    readAssertEqualsWithAuth(store, who, "test", 3);
+    try (AtomicOutputStream out = store.updateBlob("test", who)) {
+      out.write(4);
+      out.flush();
+      LOG.info("SLEEPING");
+      Thread.sleep(2);
+      assertStoreHasExactly(store, "test");
+      readAssertEqualsWithAuth(store, who, "test", 3);
+    }
 
     // Test for subject with no principals and acls set to WORLD_EVERYTHING
     who = new Subject();
     metadata = new SettableBlobMeta(BlobStoreAclHandler.WORLD_EVERYTHING);
     LOG.info("Creating test");
-    out = store.createBlob("test-empty-subject-WE", metadata, who);
-    out.write(2);
-    out.close();
+    try (AtomicOutputStream out = store.createBlob("test-empty-subject-WE", metadata, who)) {
+      out.write(2);
+    }
     assertStoreHasExactly(store, "test-empty-subject-WE", "test");
     // Testing whether acls are set to WORLD_EVERYTHING
     assertTrue("ACL does not contain WORLD_EVERYTHING", metadata.toString().contains("AccessControl(type:OTHER, access:7)"));
@@ -273,9 +274,10 @@ public class BlobStoreTest {
     who = new Subject();
     metadata = new SettableBlobMeta(BlobStoreAclHandler.DEFAULT);
     LOG.info("Creating other");
-    out = store.createBlob("test-empty-subject-DEF", metadata, who);
-    out.write(2);
-    out.close();
+
+    try (AtomicOutputStream out = store.createBlob("test-empty-subject-DEF", metadata, who)) {
+      out.write(2);
+    }
     assertStoreHasExactly(store, "test-empty-subject-DEF", "test", "test-empty-subject-WE");
     // Testing whether acls are set to WORLD_EVERYTHING
     assertTrue("ACL does not contain WORLD_EVERYTHING", metadata.toString().contains("AccessControl(type:OTHER, access:7)"));
@@ -286,12 +288,6 @@ public class BlobStoreTest {
     } else {
       fail("Error the blobstore is of unknowntype");
     }
-    try {
-      out.close();
-    } catch (IOException e) {
-      // This is likely to happen when we try to commit something that
-      // was cleaned up.  This is expected and acceptable.
-    }
   }
 
   public void testBasic(BlobStore store) throws Exception {
@@ -301,9 +297,9 @@ public class BlobStoreTest {
     // acls for the blob are set to WORLD_EVERYTHING
     SettableBlobMeta metadata = new SettableBlobMeta(BlobStoreAclHandler
             .WORLD_EVERYTHING);
-    AtomicOutputStream out = store.createBlob("test", metadata, null);
-    out.write(1);
-    out.close();
+    try (AtomicOutputStream out = store.createBlob("test", metadata, null)) {
+      out.write(1);
+    }
     assertStoreHasExactly(store, "test");
     // Testing whether acls are set to WORLD_EVERYTHING
     assertTrue("ACL does not contain WORLD_EVERYTHING", metadata.toString().contains("AccessControl(type:OTHER, access:7)"));
@@ -317,37 +313,38 @@ public class BlobStoreTest {
     // update blob interface
     metadata = new SettableBlobMeta(BlobStoreAclHandler.WORLD_EVERYTHING);
     LOG.info("Creating test again");
-    out = store.createBlob("test", metadata, null);
-    out.write(2);
-    out.close();
+    try (AtomicOutputStream out = store.createBlob("test", metadata, null)) {
+      out.write(2);
+    }
     assertStoreHasExactly(store, "test");
     if (store instanceof LocalFsBlobStore) {
       assertTrue("ACL does not contain WORLD_EVERYTHING", metadata.toString().contains("AccessControl(type:OTHER, access:7)"));
     }
     readAssertEquals(store, "test", 2);
     LOG.info("Updating test");
-    out = store.updateBlob("test", null);
-    out.write(3);
-    out.close();
+    try (AtomicOutputStream out = store.updateBlob("test", null)) {
+      out.write(3);
+    }
     assertStoreHasExactly(store, "test");
     readAssertEquals(store, "test", 3);
 
     LOG.info("Updating test again");
-    out = store.updateBlob("test", null);
-    out.write(4);
-    out.flush();
-    LOG.info("SLEEPING");
-    Thread.sleep(2);
+    try (AtomicOutputStream out = store.updateBlob("test", null)) {
+      out.write(4);
+      out.flush();
+      LOG.info("SLEEPING");
+      Thread.sleep(2);
+    }
 
     // Tests for case when subject == null (security turned off) and
     // acls for the blob are set to DEFAULT (Empty ACL List) only for LocalFsBlobstore
     if (store instanceof LocalFsBlobStore) {
       metadata = new SettableBlobMeta(BlobStoreAclHandler.DEFAULT);
       LOG.info("Creating test for empty acls when security is off");
-      out = store.createBlob("test-empty-acls", metadata, null);
-      LOG.info("metadata {}", metadata);
-      out.write(2);
-      out.close();
+      try (AtomicOutputStream out = store.createBlob("test-empty-acls", metadata, null)) {
+        LOG.info("metadata {}", metadata);
+        out.write(2);
+      }
       assertStoreHasExactly(store, "test-empty-acls", "test");
       // Testing whether acls are set to WORLD_EVERYTHING, Here we are testing only for LocalFsBlobstore
       // as the HdfsBlobstore gets the subject information of the local system user and behaves as it is
@@ -363,12 +360,6 @@ public class BlobStoreTest {
     } else {
       fail("Error the blobstore is of unknowntype");
     }
-    try {
-      out.close();
-    } catch (IOException e) {
-      // This is likely to happen when we try to commit something that
-      // was cleaned up.  This is expected and acceptable.
-    }
   }
 
 
@@ -376,26 +367,26 @@ public class BlobStoreTest {
 
     assertStoreHasExactly(store);
     LOG.info("Creating test");
-    AtomicOutputStream out = store.createBlob("test", new SettableBlobMeta(BlobStoreAclHandler
-        .WORLD_EVERYTHING), null);
-    out.write(1);
-    out.close();
+    try (AtomicOutputStream out = store.createBlob("test", new SettableBlobMeta(BlobStoreAclHandler
+        .WORLD_EVERYTHING), null)) {
+      out.write(1);
+    }
     assertStoreHasExactly(store, "test");
     readAssertEquals(store, "test", 1);
 
     LOG.info("Creating other");
-    out = store.createBlob("other", new SettableBlobMeta(BlobStoreAclHandler.WORLD_EVERYTHING),
-        null);
-    out.write(2);
-    out.close();
+    try (AtomicOutputStream out = store.createBlob("other", new SettableBlobMeta(BlobStoreAclHandler.WORLD_EVERYTHING),
+        null)) {
+      out.write(2);
+    }
     assertStoreHasExactly(store, "test", "other");
     readAssertEquals(store, "test", 1);
     readAssertEquals(store, "other", 2);
 
     LOG.info("Updating other");
-    out = store.updateBlob("other", null);
-    out.write(5);
-    out.close();
+    try (AtomicOutputStream out = store.updateBlob("other", null)) {
+      out.write(5);
+    }
     assertStoreHasExactly(store, "test", "other");
     readAssertEquals(store, "test", 1);
     readAssertEquals(store, "other", 5);
@@ -406,18 +397,18 @@ public class BlobStoreTest {
     readAssertEquals(store, "other", 5);
 
     LOG.info("Creating test again");
-    out = store.createBlob("test", new SettableBlobMeta(BlobStoreAclHandler.WORLD_EVERYTHING),
-        null);
-    out.write(2);
-    out.close();
+    try (AtomicOutputStream out = store.createBlob("test", new SettableBlobMeta(BlobStoreAclHandler.WORLD_EVERYTHING),
+        null)) {
+      out.write(2);
+    }
     assertStoreHasExactly(store, "test", "other");
     readAssertEquals(store, "test", 2);
     readAssertEquals(store, "other", 5);
 
     LOG.info("Updating test");
-    out = store.updateBlob("test", null);
-    out.write(3);
-    out.close();
+    try (AtomicOutputStream out = store.updateBlob("test", null)) {
+      out.write(3);
+    }
     assertStoreHasExactly(store, "test", "other");
     readAssertEquals(store, "test", 3);
     readAssertEquals(store, "other", 5);
@@ -428,7 +419,9 @@ public class BlobStoreTest {
     readAssertEquals(store, "test", 3);
 
     LOG.info("Updating test again");
-    out = store.updateBlob("test", null);
+
+    // intended to not guarding with try-with-resource since otherwise test will fail
+    AtomicOutputStream out = store.updateBlob("test", null);
     out.write(4);
     out.flush();
     LOG.info("SLEEPING");
@@ -452,10 +445,12 @@ public class BlobStoreTest {
   public void testGetFileLength()
           throws AuthorizationException, KeyNotFoundException, KeyAlreadyExistsException, IOException {
     LocalFsBlobStore store = initLocalFs();
-    AtomicOutputStream out = store.createBlob("test", new SettableBlobMeta(BlobStoreAclHandler
-        .WORLD_EVERYTHING), null);
-    out.write(1);
-    out.close();
-    assertEquals(1, store.getBlob("test", null).getFileLength());
+    try (AtomicOutputStream out = store.createBlob("test", new SettableBlobMeta(BlobStoreAclHandler
+        .WORLD_EVERYTHING), null)) {
+      out.write(1);
+    }
+    try (InputStreamWithMeta blobInputStream = store.getBlob("test", null)) {
+      assertEquals(1, blobInputStream.getFileLength());
+    }
   }
 }

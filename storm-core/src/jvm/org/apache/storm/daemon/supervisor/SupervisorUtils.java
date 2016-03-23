@@ -50,7 +50,7 @@ public class SupervisorUtils {
         _instance = INSTANCE;
     }
 
-    public static Process processLauncher(Map conf, String user, List<String> args, Map<String, String> environment, final String logPreFix,
+    public static Process processLauncher(Map conf, String user, List<String> commandPrefix, List<String> args, Map<String, String> environment, final String logPreFix,
                                           final Utils.ExitCodeCallable exitCodeCallback, File dir) throws IOException {
         if (StringUtils.isBlank(user)) {
             throw new IllegalArgumentException("User cannot be blank when calling processLauncher.");
@@ -64,6 +64,9 @@ public class SupervisorUtils {
             wl = stormHome + "/bin/worker-launcher";
         }
         List<String> commands = new ArrayList<>();
+        if (commandPrefix != null){
+            commands.addAll(commandPrefix);
+        }
         commands.add(wl);
         commands.add(user);
         commands.addAll(args);
@@ -74,7 +77,7 @@ public class SupervisorUtils {
     public static int processLauncherAndWait(Map conf, String user, List<String> args, final Map<String, String> environment, final String logPreFix)
             throws IOException {
         int ret = 0;
-        Process process = processLauncher(conf, user, args, environment, logPreFix, null, null);
+        Process process = processLauncher(conf, user, null, args, environment, logPreFix, null, null);
         if (StringUtils.isNotBlank(logPreFix))
             Utils.readAndLogStream(logPreFix, process.getInputStream());
         try {

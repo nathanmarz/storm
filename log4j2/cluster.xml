@@ -19,7 +19,6 @@
 <configuration monitorInterval="60">
 <properties>
     <property name="pattern">%d{yyyy-MM-dd HH:mm:ss.SSS} %c{1.} [%p] %msg%n</property>
-    <property name="patternMetrics">%d %-8r %m%n</property>
 </properties>
 <appenders>
     <RollingFile name="A1" immediateFlush="false"
@@ -55,17 +54,6 @@
         </Policies>
         <DefaultRolloverStrategy max="9"/>
     </RollingFile>
-    <RollingFile name="METRICS" immediateFlush="false"
-                 fileName="${sys:storm.log.dir}/metrics.log"
-                 filePattern="${sys:storm.log.dir}/metrics.log.%i.gz">
-        <PatternLayout>
-            <pattern>${patternMetrics}</pattern>
-        </PatternLayout>
-        <Policies>
-            <SizeBasedTriggeringPolicy size="2 MB"/> <!-- Or every 100 MB -->
-        </Policies>
-        <DefaultRolloverStrategy max="9"/>
-    </RollingFile>
     <Syslog name="syslog" format="RFC5424" charset="UTF-8" host="localhost" port="514"
             protocol="UDP" appName="[${sys:daemon.name}]" mdcId="mdc" includeMDC="true"
             facility="LOCAL5" enterpriseNumber="18060" newLine="true" exceptionPattern="%rEx{full}"
@@ -80,9 +68,6 @@
     <Logger name="org.apache.storm.logging.ThriftAccessLogger" level="info" additivity="false">
         <AppenderRef ref="THRIFT-ACCESS"/>
         <AppenderRef ref="syslog"/>
-    </Logger>
-    <Logger name="org.apache.storm.metric.LoggingMetricsConsumer" level="info">
-        <AppenderRef ref="METRICS"/>
     </Logger>
     <root level="info"> <!-- We log everything -->
         <appender-ref ref="A1"/>

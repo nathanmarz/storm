@@ -1,4 +1,12 @@
 ## 2.0.0
+ * STORM-1631: Storm CGroup bugs
+ * STORM-1616: Add RAS API for Trident
+ * STORM-1623: nimbus.clj's minor bug
+ * STORM-1624: Add maven central status in README
+ * STORM-1232: port backtype.storm.scheduler.DefaultScheduler to java
+ * STORM-1231: port backtype.storm.scheduler.EvenScheduler to java
+ * STORM-1523: util.clj available-port conversion to java
+ * STORM-1252: port backtype.storm.stats to java
  * STORM-1250: port backtype.storm.serialization-test to java
  * STORM-1605: use '/usr/bin/env python' to check python version
  * STORM-1618: Add the option of passing config directory
@@ -55,6 +63,14 @@
  * STORM-1521: When using Kerberos login from keytab with multiple bolts/executors ticket is not renewed in hbase bolt.
 
 ## 1.0.0
+ * STORM-1556: nimbus.clj/wait-for-desired-code-replication wrong reset for current-replication-count-jar in local mode
+ * STORM-1636: Supervisor shutdown with worker id pass in being nil
+ * STORM-1602: Blobstore UTs are failed on Windows
+ * STORM-1629: Files/move doesn't work properly with non-empty directory in Windows
+ * STORM-1549: Add support for resetting tuple timeout from bolts via the OutputCollector
+ * STORM-971: Metric for messages lost due to kafka retention
+ * STORM-1483: add storm-mongodb connector
+ * STORM-1608: Fix stateful topology acking behavior
  * STORM-1609: Netty Client is not best effort delivery on failed Connection
  * STORM-1620: Update curator to fix CURATOR-209
  * STORM-1469: Adding Plain Sasl Transport Plugin
@@ -334,7 +350,7 @@
  * STORM-1217: making small fixes in RAS
 
 ## 0.10.1
-
+ * STORM-584: Fix logging for LoggingMetricsConsumer metrics.log file
  * STORM-1596: Do not use single Kerberos TGT instance between multiple threads
  * STORM-1481: avoid Math.abs(Integer) get a negative value
  * STORM-1121: Deprecate test only configuraton nimbus.reassign

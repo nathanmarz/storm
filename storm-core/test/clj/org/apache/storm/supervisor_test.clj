@@ -728,7 +728,7 @@
                           (launchProcessImpl [& _] nil))]
         (with-open [_ (UtilsInstaller. utils-proxy)]
           (is (try
-                (SupervisorUtils/processLauncher {} nil (ArrayList.) {} nil nil nil)
+                (SupervisorUtils/processLauncher {} nil nil (ArrayList.) {} nil nil nil)
                 false
                 (catch Throwable t
                   (and (re-matches #"(?i).*user cannot be blank.*" (.getMessage t))

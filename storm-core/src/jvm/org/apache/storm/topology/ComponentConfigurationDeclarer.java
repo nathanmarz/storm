@@ -19,14 +19,11 @@ package org.apache.storm.topology;
 
 import java.util.Map;
 
-public interface ComponentConfigurationDeclarer<T extends ComponentConfigurationDeclarer> {
+public interface ComponentConfigurationDeclarer<T extends ComponentConfigurationDeclarer> extends ResourceDeclarer<T> {
     T addConfigurations(Map<String, Object> conf);
     T addConfiguration(String config, Object value);
     T setDebug(boolean debug);
     T setMaxTaskParallelism(Number val);
     T setMaxSpoutPending(Number val);
     T setNumTasks(Number val);
-    T setMemoryLoad(Number onHeap);
-    T setMemoryLoad(Number onHeap, Number offHeap);
-    T setCPULoad(Number amount);
 }

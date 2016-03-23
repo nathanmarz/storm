@@ -26,6 +26,7 @@ import org.apache.storm.trident.windowing.WindowsStoreFactory;
 import java.util.Map;
 
 /**
+ * Factory to create {@link HBaseWindowsStore} instances.
  *
  */
 public class HBaseWindowsStoreFactory implements WindowsStoreFactory {

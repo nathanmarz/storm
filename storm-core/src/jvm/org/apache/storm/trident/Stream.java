@@ -611,13 +611,13 @@ public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
     /**
      * Returns a stream of tuples which are aggregated results of a tumbling window with every {@code windowCount} of tuples.
      *
-     * @param windowCount represents no of tuples in the window
+     * @param windowCount represents number of tuples in the window
      * @param windowStoreFactory intermediary tuple store for storing windowing tuples
      * @param inputFields projected fields for aggregator
      * @param aggregator aggregator to run on the window of tuples to compute the result and emit to the stream.
      * @param functionFields fields of values to emit with aggregation.
      *
-     * @return
+     * @return the new stream with this operation.
      */
     public Stream tumblingWindow(int windowCount, WindowsStoreFactory windowStoreFactory,
                                       Fields inputFields, Aggregator aggregator, Fields functionFields) {
@@ -626,7 +626,7 @@ public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
 
     /**
      * Returns a stream of tuples which are aggregated results of a sliding window with every {@code windowCount} of tuples
-     * and slides the window with {@code slideCount}.
+     * and slides the window after {@code slideCount}.
      *
      * @param windowCount represents tuples count of a window
      * @param slideCount the number of tuples after which the window slides
@@ -635,7 +635,7 @@ public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
      * @param aggregator aggregator to run on the window of tuples to compute the result and emit to the stream.
      * @param functionFields fields of values to emit with aggregation.
      *
-     * @return
+     * @return the new stream with this operation.
      */
     public Stream slidingWindow(int windowCount, int slideCount, WindowsStoreFactory windowStoreFactory,
                                      Fields inputFields, Aggregator aggregator, Fields functionFields) {
@@ -643,7 +643,7 @@ public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
     }
 
     /**
-     * Returns a stream of tuples which are aggregated results of a window tumbles at duration of {@code windowDuration}
+     * Returns a stream of tuples which are aggregated results of a window that tumbles at duration of {@code windowDuration}
      *
      * @param windowDuration represents tumbling window duration configuration
      * @param windowStoreFactory intermediary tuple store for storing windowing tuples
@@ -651,7 +651,7 @@ public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
      * @param aggregator aggregator to run on the window of tuples to compute the result and emit to the stream.
      * @param functionFields fields of values to emit with aggregation.
      *
-     * @return
+     * @return the new stream with this operation.
      */
     public Stream tumblingWindow(BaseWindowedBolt.Duration windowDuration, WindowsStoreFactory windowStoreFactory,
                                      Fields inputFields, Aggregator aggregator, Fields functionFields) {
@@ -659,7 +659,7 @@ public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
     }
 
     /**
-     * Returns a stream of tuples which are aggregated results of a window which slides at duration of {@code slideDuration}
+     * Returns a stream of tuples which are aggregated results of a window which slides at duration of {@code slidingInterval}
      * and completes a window at {@code windowDuration}
      *
      * @param windowDuration represents window duration configuration
@@ -669,7 +669,7 @@ public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
      * @param aggregator aggregator to run on the window of tuples to compute the result and emit to the stream.
      * @param functionFields fields of values to emit with aggregation.
      *
-     * @return
+     * @return the new stream with this operation.
      */
     public Stream slidingWindow(BaseWindowedBolt.Duration windowDuration, BaseWindowedBolt.Duration slidingInterval,
                                     WindowsStoreFactory windowStoreFactory, Fields inputFields, Aggregator aggregator, Fields functionFields) {
@@ -683,7 +683,8 @@ public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
      * @param inputFields input fields
      * @param aggregator aggregator to run on the window of tuples to compute the result and emit to the stream.
      * @param functionFields fields of values to emit with aggregation.
-     * @return
+     *
+     * @return the new stream with this operation.
      */
     public Stream window(WindowConfig windowConfig, Fields inputFields, Aggregator aggregator, Fields functionFields) {
         // this store is used only for storing triggered aggregated results but not tuples as storeTuplesInStore is set
@@ -700,7 +701,8 @@ public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
      * @param inputFields input fields
      * @param aggregator aggregator to run on the window of tuples to compute the result and emit to the stream.
      * @param functionFields fields of values to emit with aggregation.
-     * @return
+     *
+     * @return the new stream with this operation.
      */
     public Stream window(WindowConfig windowConfig, WindowsStoreFactory windowStoreFactory, Fields inputFields,
                          Aggregator aggregator, Fields functionFields) {

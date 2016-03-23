@@ -55,7 +55,7 @@ public class HBaseWindowsStore implements WindowsStore {
     public static final String UTF_8 = "utf-8";
 
     private final ThreadLocal<HTable> threadLocalHtable;
-    private Queue<HTable> htables = new ConcurrentLinkedQueue<>();
+    private final Queue<HTable> htables = new ConcurrentLinkedQueue<>();
     private final byte[] family;
     private final byte[] qualifier;
 

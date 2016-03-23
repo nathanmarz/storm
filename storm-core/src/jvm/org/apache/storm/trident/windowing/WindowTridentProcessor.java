@@ -53,7 +53,7 @@ public class WindowTridentProcessor implements TridentProcessor {
     public static final String TRIGGER_COUNT_PREFIX = "tc" + WindowsStore.KEY_SEPARATOR;
 
     public static final String TRIGGER_FIELD_NAME = "_task_info";
-    public static final long DEFAULT_INMEMORY_TUPLE_CACHE_LIMIT = 100l;
+    public static final long DEFAULT_INMEMORY_TUPLE_CACHE_LIMIT = 100L;
 
     private final String windowId;
     private final Fields inputFields;

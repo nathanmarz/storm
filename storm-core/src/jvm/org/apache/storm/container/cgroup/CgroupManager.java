@@ -176,12 +176,17 @@ public class CgroupManager implements ResourceIsolationInterface {
 
     @Override
     public List<String> getLaunchCommand(String workerId, List<String> existingCommand) {
+        List<String> newCommand = getLaunchCommandPrefix(workerId);
+        newCommand.addAll(existingCommand);
+        return newCommand;
+    }
 
+    @Override
+    public List<String> getLaunchCommandPrefix(String workerId) {
         CgroupCommon workerGroup = new CgroupCommon(workerId, this.hierarchy, this.rootCgroup);
 
-        if(!this.rootCgroup.getChildren().contains(workerGroup)) {
-            LOG.error("cgroup {} doesn't exist! Need to reserve resources for worker first!", workerGroup);
-            return existingCommand;
+        if (!this.rootCgroup.getChildren().contains(workerGroup)) {
+            throw new RuntimeException("cgroup " + workerGroup + " doesn't exist! Need to reserve resources for worker first!");
         }
 
         StringBuilder sb = new StringBuilder();
@@ -189,9 +194,9 @@ public class CgroupManager implements ResourceIsolationInterface {
         sb.append(this.conf.get(Config.STORM_CGROUP_CGEXEC_CMD)).append(" -g ");
 
         Iterator<SubSystemType> it = this.hierarchy.getSubSystems().iterator();
-        while(it.hasNext()) {
+        while (it.hasNext()) {
             sb.append(it.next().toString());
-            if(it.hasNext()) {
+            if (it.hasNext()) {
                 sb.append(",");
             } else {
                 sb.append(":");
@@ -200,7 +205,6 @@ public class CgroupManager implements ResourceIsolationInterface {
         sb.append(workerGroup.getName());
         List<String> newCommand = new ArrayList<String>();
         newCommand.addAll(Arrays.asList(sb.toString().split(" ")));
-        newCommand.addAll(existingCommand);
         return newCommand;
     }
 

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+
+  {% include head.html %}
+
+    <body>
+
+    {% include header.html %}
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="row">
+                    <div class="col-md-3">
+                        <ul class="news" id="news-list">
+                            {% for post in site.posts %}
+                      		<li><a href="{{ post.url }}">{{ post.title }}</a></li>
+                    		{% endfor %}
+                        </ul>
+                    </div>
+                    <div class="col-md-9" id="news-content">
+                            <h1 class="page-title">
+                               {{ page.title }}
+                            </h1>
+                                
+                            <div class="row" style="margin: -15px;">
+                                <div class="col-md-12">
+                                    <p class="text-muted credit pull-left">Posted on {{ page.date | date: "%b %-d, %Y" }}{% if page.author %} by {{ page.author }}{% endif %}{% if page.meta %} • {{ page.meta }}{% endif %}</p>
+                                    <div class="pull-right">
+                                        <a 
+                                                href="https://twitter.com/share" 
+                                                class="twitter-share-button"
+                                                data-count=none
+                                        >Tweet</a>
+                                        <script> !function(d,s,id){
+                                                var js,
+                                                fjs=d.getElementsByTagName(s)[0],
+                                                p=/^http:/.test(d.location)?'http':'https';
+                                                if(!d.getElementById(id)){
+                                                    js=d.createElement(s);
+                                                    js.id=id;
+                                                    js.src=p+'://platform.twitter.com/widgets.js';
+                                                    fjs.parentNode.insertBefore(js,fjs);
+                                                }
+                                            }(document, 'script', 'twitter-wjs');
+                                        </script>
+                                    </div>
+                                </div>
+                            </div>
+                        <div>
+                	        {{ content }}
+                	    </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% include footer.html %}
+    </body>
+
+</html>
+

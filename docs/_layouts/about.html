@@ -1,0 +1,43 @@
+---
+layout: default
+title: Project Information
+items:
+    - 
+      - "/about/simple-api.html"
+      - "Simple API"
+    - 
+      - "/about/scalable.html"
+      - "Scalable"
+    - 
+      - "/about/fault-tolerant.html"
+      - "Fault tolerant"
+    - 
+      - "/about/guarantees-data-processing.html"
+      - "Guarantees data processing"
+    - 
+      - "/about/multi-language.html"
+      - "Use with any language"
+    - 
+      - "/about/deployment.html"
+      - "Easy to deploy and operate"
+    - 
+      - "/about/free-and-open-source.html"
+      - "Free and open source"
+---
+<div class="download-block">
+    <div class="row">
+          <div class="col-md-3">
+          <ul class="news">
+          {% for post in page.items %}
+                      <li>
+                      <a href="{{ post[0] }}">{{ post[1] }}</a>
+                      </li>
+          {% endfor %}
+          </ul>
+          </div>
+          <div class="col-md-9">
+                    {{ content }}
+
+        </div>
+    </div>
+</div>

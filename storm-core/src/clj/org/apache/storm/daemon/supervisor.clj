@@ -241,14 +241,16 @@
 (defn generate-supervisor-id []
   (Utils/uuid))
 
-(defnk worker-launcher [conf user args :environment {} :log-prefix nil :exit-code-callback nil :directory nil]
+(defnk worker-launcher [conf user args :environment {} :log-prefix nil :exit-code-callback nil :directory nil :launch-in-container? false :supervisor nil :worker-id nil]
   (let [_ (when (clojure.string/blank? user)
             (throw (java.lang.IllegalArgumentException.
                      "User cannot be blank when calling worker-launcher.")))
         wl-initial (conf SUPERVISOR-WORKER-LAUNCHER)
         storm-home (System/getProperty "storm.home")
         wl (if wl-initial wl-initial (str storm-home "/bin/worker-launcher"))
-        command (concat [wl user] args)]
+        command (if launch-in-container?
+                  (concat (.getLaunchCommandPrefix (:resource-isolation-manager supervisor) worker-id) [wl user] args)
+                  (concat [wl user] args))]
     (log-message "Running as user:" user " command:" (pr-str command))
     (Utils/launchProcess command
                          environment
@@ -280,6 +282,11 @@
 
 (defn try-cleanup-worker [conf supervisor id]
   (try
+    ;; clean up for resource isolation if enabled
+    (if (conf STORM-RESOURCE-ISOLATION-PLUGIN-ENABLE)
+      (.releaseResourcesForWorker (:resource-isolation-manager supervisor) id))
+    ;; Always make sure to clean up everything else before worker directory
+    ;; is removed since that is what is going to trigger the retry for cleanup
     (if (.exists (File. (ConfigUtils/workerRoot conf id)))
       (do
         (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
@@ -293,8 +300,6 @@
         (ConfigUtils/removeWorkerUserWSE conf id)
         (remove-dead-worker id)
       ))
-    (if (conf STORM-RESOURCE-ISOLATION-PLUGIN-ENABLE)
-      (.releaseResourcesForWorker (:resource-isolation-manager supervisor) id))
   (catch IOException e
     (log-warn-error e "Failed to cleanup worker " id ". Will retry later"))
   (catch RuntimeException e
@@ -592,7 +597,7 @@
         port->worker-id (clojure.set/map-invert (map-val #((nth % 1) :port) valid-allocated))]
     (doseq [p (set/intersection (set (keys existing-assignment))
                                 (set (keys new-assignment)))]
-      (if (not= (:executors (existing-assignment p)) (:executors (new-assignment p)))
+      (if (not= (set (:executors (existing-assignment p))) (set (:executors (new-assignment p))))
         (shutdown-worker supervisor (port->worker-id p))))))
 
 (defn ->LocalAssignment
@@ -1060,9 +1065,13 @@
     (if (download-blobs-for-topology-succeed? (ConfigUtils/supervisorStormConfPath tmproot) tmproot)
       (do
         (log-message "Successfully downloaded blob resources for storm-id " storm-id)
-        (FileUtils/forceMkdir (File. stormroot))
-        (Files/move (.toPath (File. tmproot)) (.toPath (File. stormroot))
-          (doto (make-array StandardCopyOption 1) (aset 0 StandardCopyOption/ATOMIC_MOVE)))
+        (if (Utils/isOnWindows)
+          ; Files/move with non-empty directory doesn't work well on Windows
+          (FileUtils/moveDirectory (File. tmproot) (File. stormroot))
+          (do
+            (FileUtils/forceMkdir (File. stormroot))
+            (Files/move (.toPath (File. tmproot)) (.toPath (File. stormroot))
+                        (doto (make-array StandardCopyOption 1) (aset 0 StandardCopyOption/ATOMIC_MOVE)))))
         (setup-storm-code-dir conf (clojurify-structure (ConfigUtils/readSupervisorStormConf conf storm-id)) stormroot))
       (do
         (log-message "Failed to download blob resources for storm-id " storm-id)
@@ -1250,14 +1259,14 @@
           command (->> command
                        (map str)
                        (filter (complement empty?)))
-          command (if (conf STORM-RESOURCE-ISOLATION-PLUGIN-ENABLE)
+          command_final (if (conf STORM-RESOURCE-ISOLATION-PLUGIN-ENABLE)
                     (do
                       (.reserveResourcesForWorker (:resource-isolation-manager supervisor) worker-id
                         {"cpu" cpu "memory" (+ mem-onheap mem-offheap  (int (Math/ceil (conf STORM-CGROUP-MEMORY-LIMIT-TOLERANCE-MARGIN-MB))))})
                       (.getLaunchCommand (:resource-isolation-manager supervisor) worker-id
                         (java.util.ArrayList. (java.util.Arrays/asList (to-array command)))))
                     command)]
-      (log-message "Launching worker with command: " (Utils/shellCmd command))
+      (log-message "Launching worker with command: " (Utils/shellCmd command_final))
       (write-log-metadata! storm-conf user worker-id storm-id port conf)
       (ConfigUtils/setWorkerUserWSE conf worker-id user)
       (create-artifacts-link conf storm-id port worker-id)
@@ -1270,8 +1279,18 @@
         (remove-dead-worker worker-id)
         (create-blobstore-links conf storm-id worker-id)
         (if run-worker-as-user
-          (worker-launcher conf user ["worker" worker-dir (Utils/writeScript worker-dir command topology-worker-environment)] :log-prefix log-prefix :exit-code-callback callback :directory (File. worker-dir))
-          (Utils/launchProcess command
+          (worker-launcher conf
+            user
+            ["worker"
+             worker-dir
+             (Utils/writeScript worker-dir command topology-worker-environment)]
+            :log-prefix log-prefix
+            :exit-code-callback callback
+            :directory (File. worker-dir)
+            :launch-in-container? (if (conf STORM-RESOURCE-ISOLATION-PLUGIN-ENABLE) true false)
+            :supervisor supervisor
+            :worker-id worker-id)
+          (Utils/launchProcess command_final
                                topology-worker-environment
                                log-prefix
                                callback
@@ -1292,8 +1311,10 @@
         blob-store (Utils/getNimbusBlobStore conf master-code-dir nil)]
     (try
       (FileUtils/forceMkdir (File. tmproot))
-      (.readBlobTo blob-store (ConfigUtils/masterStormCodeKey storm-id) (FileOutputStream. (ConfigUtils/supervisorStormCodePath tmproot)) nil)
-      (.readBlobTo blob-store (ConfigUtils/masterStormConfKey storm-id) (FileOutputStream. (ConfigUtils/supervisorStormConfPath tmproot)) nil)
+      (with-open [fos-storm-code (FileOutputStream. (ConfigUtils/supervisorStormCodePath tmproot))
+                  fos-storm-conf (FileOutputStream. (ConfigUtils/supervisorStormConfPath tmproot))]
+        (.readBlobTo blob-store (ConfigUtils/masterStormCodeKey storm-id) fos-storm-code nil)
+        (.readBlobTo blob-store (ConfigUtils/masterStormConfKey storm-id) fos-storm-conf nil))
       (finally
         (.shutdown blob-store)))
     (FileUtils/moveDirectory (File. tmproot) (File. stormroot))

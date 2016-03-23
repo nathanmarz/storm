@@ -396,6 +396,11 @@ public abstract class BlobStore implements Shutdownable {
         public long getFileLength() throws IOException {
             return part.getFileLength();
         }
+
+        @Override
+        public void close() throws IOException {
+            in.close();
+        }
     }
 
     /**

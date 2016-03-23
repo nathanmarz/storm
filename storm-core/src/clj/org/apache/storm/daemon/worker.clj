@@ -736,6 +736,7 @@
                     (run-worker-shutdown-hooks worker)
 
                     (.removeWorkerHeartbeat (:storm-cluster-state worker) storm-id assignment-id (long port))
+                    (.removeWorkerBackpressure (:storm-cluster-state worker) storm-id assignment-id (long port))
                     (log-message "Disconnecting from storm cluster state context")
                     (.disconnect (:storm-cluster-state worker))
                     (.close (:state-store worker))

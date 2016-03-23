@@ -18,6 +18,9 @@
  */
 package org.apache.storm.trident.windowing.config;
 
+import org.apache.storm.trident.windowing.strategy.SlidingCountWindowStrategy;
+import org.apache.storm.trident.windowing.strategy.WindowStrategy;
+
 /**
  * Represents configuration of sliding window based on count of events. Window of length {@code windowLength} slides
  * at every count of given {@code slideLength}
@@ -30,8 +33,8 @@ public final class SlidingCountWindow extends BaseWindowConfig {
     }
 
     @Override
-    public Type getWindowType() {
-        return Type.SLIDING_COUNT;
+    public <T> WindowStrategy<T> getWindowStrategy() {
+        return new SlidingCountWindowStrategy<>(this);
     }
 
     public static SlidingCountWindow of(int windowCount, int slidingCount) {

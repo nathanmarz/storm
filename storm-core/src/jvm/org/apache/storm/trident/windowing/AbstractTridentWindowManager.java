@@ -25,7 +25,6 @@ import org.apache.storm.trident.operation.TridentCollector;
 import org.apache.storm.trident.tuple.TridentTuple;
 import org.apache.storm.trident.windowing.config.WindowConfig;
 import org.apache.storm.trident.windowing.strategy.WindowStrategy;
-import org.apache.storm.trident.windowing.strategy.WindowStrategyFactory;
 import org.apache.storm.windowing.EvictionPolicy;
 import org.apache.storm.windowing.TriggerPolicy;
 import org.apache.storm.windowing.WindowLifecycleListener;
@@ -34,7 +33,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
@@ -71,7 +69,7 @@ public abstract class AbstractTridentWindowManager<T> implements ITridentWindowM
 
         windowManager = new WindowManager<>(new TridentWindowLifeCycleListener());
 
-        WindowStrategy<T> windowStrategy = WindowStrategyFactory.create(windowConfig);
+        WindowStrategy<T> windowStrategy = windowConfig.getWindowStrategy();
         EvictionPolicy<T> evictionPolicy = windowStrategy.getEvictionPolicy();
         windowManager.setEvictionPolicy(evictionPolicy);
         triggerPolicy = windowStrategy.getTriggerPolicy(windowManager, evictionPolicy);

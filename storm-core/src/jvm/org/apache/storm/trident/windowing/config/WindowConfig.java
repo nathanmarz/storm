@@ -18,6 +18,8 @@
  */
 package org.apache.storm.trident.windowing.config;
 
+import org.apache.storm.trident.windowing.strategy.WindowStrategy;
+
 import java.io.Serializable;
 
 /**
@@ -42,7 +44,7 @@ public interface WindowConfig extends Serializable {
      *
      * @return
      */
-    public Type getWindowType();
+    public <T> WindowStrategy<T> getWindowStrategy();
 
     public void validate();
 

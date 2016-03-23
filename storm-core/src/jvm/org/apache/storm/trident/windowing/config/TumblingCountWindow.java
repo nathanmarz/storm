@@ -18,6 +18,10 @@
  */
 package org.apache.storm.trident.windowing.config;
 
+import org.apache.storm.trident.windowing.strategy.SlidingDurationWindowStrategy;
+import org.apache.storm.trident.windowing.strategy.TumblingCountWindowStrategy;
+import org.apache.storm.trident.windowing.strategy.WindowStrategy;
+
 /**
  * Represents tumbling count window configuration. Window tumbles at each given {@code windowLength} count of events.
  */
@@ -28,8 +32,8 @@ public final class TumblingCountWindow extends BaseWindowConfig {
     }
 
     @Override
-    public Type getWindowType() {
-        return Type.TUMBLING_COUNT;
+    public <T> WindowStrategy<T> getWindowStrategy() {
+        return new TumblingCountWindowStrategy<>(this);
     }
 
     public static TumblingCountWindow of(int windowLength) {

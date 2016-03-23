@@ -19,6 +19,8 @@
 package org.apache.storm.trident.windowing.config;
 
 import org.apache.storm.topology.base.BaseWindowedBolt;
+import org.apache.storm.trident.windowing.strategy.TumblingDurationWindowStrategy;
+import org.apache.storm.trident.windowing.strategy.WindowStrategy;
 
 /**
  * Represents tumbling duration window configuration. Window tumbles every given {@code windowLength} duration.
@@ -30,8 +32,8 @@ public final class TumblingDurationWindow extends BaseWindowConfig {
     }
 
     @Override
-    public Type getWindowType() {
-        return Type.TUMBLING_DURATION;
+    public <T> WindowStrategy<T> getWindowStrategy() {
+        return new TumblingDurationWindowStrategy<>(this);
     }
 
     public static TumblingDurationWindow of(BaseWindowedBolt.Duration windowLength) {

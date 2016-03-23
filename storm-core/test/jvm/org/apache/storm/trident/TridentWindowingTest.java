@@ -24,15 +24,8 @@ import org.apache.storm.trident.windowing.config.SlidingCountWindow;
 import org.apache.storm.trident.windowing.config.SlidingDurationWindow;
 import org.apache.storm.trident.windowing.config.TumblingCountWindow;
 import org.apache.storm.trident.windowing.config.TumblingDurationWindow;
-import org.apache.storm.trident.windowing.strategy.SlidingCountWindowStrategy;
-import org.apache.storm.trident.windowing.strategy.SlidingDurationWindowStrategy;
-import org.apache.storm.trident.windowing.strategy.TumblingCountWindowStrategy;
-import org.apache.storm.trident.windowing.strategy.TumblingDurationWindowStrategy;
-import org.apache.storm.trident.windowing.strategy.WindowStrategy;
-import org.apache.storm.trident.windowing.strategy.WindowStrategyFactory;
-import org.junit.After;
+import org.apache.storm.trident.windowing.strategy.*;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.concurrent.TimeUnit;
@@ -45,19 +38,21 @@ public class TridentWindowingTest {
     @Test
     public void testWindowStrategyInstances() throws Exception {
 
-        WindowStrategy<Object> tumblingCountStrategy = WindowStrategyFactory.create(TumblingCountWindow.of(10));
+        WindowStrategy<Object> tumblingCountStrategy = TumblingCountWindow.of(10).getWindowStrategy();
         Assert.assertTrue(tumblingCountStrategy instanceof TumblingCountWindowStrategy);
 
-        WindowStrategy<Object> slidingCountStrategy = WindowStrategyFactory.create(SlidingCountWindow.of(100, 10));
+        WindowStrategy<Object> slidingCountStrategy = SlidingCountWindow.of(100, 10).getWindowStrategy();
         Assert.assertTrue(slidingCountStrategy instanceof SlidingCountWindowStrategy);
 
-        WindowStrategy<Object> tumblingDurationStrategy = WindowStrategyFactory.create(
-                TumblingDurationWindow.of(new BaseWindowedBolt.Duration(10, TimeUnit.SECONDS)));
+        WindowStrategy<Object> tumblingDurationStrategy = TumblingDurationWindow.of(
+                                                            new BaseWindowedBolt.Duration(10, TimeUnit.SECONDS))
+                                                            .getWindowStrategy();
         Assert.assertTrue(tumblingDurationStrategy instanceof TumblingDurationWindowStrategy);
 
-        WindowStrategy<Object> slidingDurationStrategy = WindowStrategyFactory.create(
-                SlidingDurationWindow.of(new BaseWindowedBolt.Duration(10, TimeUnit.SECONDS),
-                        new BaseWindowedBolt.Duration(2, TimeUnit.SECONDS)));
+        WindowStrategy<Object> slidingDurationStrategy = SlidingDurationWindow.of(
+                                                            new BaseWindowedBolt.Duration(10, TimeUnit.SECONDS),
+                                                            new BaseWindowedBolt.Duration(2, TimeUnit.SECONDS))
+                                                            .getWindowStrategy();
         Assert.assertTrue(slidingDurationStrategy instanceof SlidingDurationWindowStrategy);
     }
 

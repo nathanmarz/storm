@@ -28,6 +28,7 @@ Trident is an alternative interface to Storm. It provides exactly-once processin
 * [Trident API Overview](Trident-API-Overview.html) -- operations for transforming and orchestrating data
 * [Trident State](Trident-state.html)        -- exactly-once processing and fast, persistent aggregation
 * [Trident spouts](Trident-spouts.html)       -- transactional and non-transactional data intake
+* [Trident RAS API](Tridnet-RAS-API.html)     -- using the Resource Aware Scheduler with Trident.
 
 ### Setup and Deploying
 

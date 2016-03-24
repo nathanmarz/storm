@@ -20,7 +20,6 @@ package org.apache.storm.hbase.bolt;
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.utils.TupleUtils;
-import org.apache.storm.Config;
 import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.storm.hbase.bolt.mapper.HBaseMapper;
@@ -40,10 +39,12 @@ import java.util.LinkedList;
  */
 public class HBaseBolt  extends AbstractHBaseBolt {
     private static final Logger LOG = LoggerFactory.getLogger(HBaseBolt.class);
+    private static final int DEFAULT_FLUSH_INTERVAL_SECS = 1;
 
     boolean writeToWAL = true;
     List<Mutation> batchMutations;
     List<Tuple> tupleBatch;
+    int flushIntervalSecs = DEFAULT_FLUSH_INTERVAL_SECS;
 
     public HBaseBolt(String tableName, HBaseMapper mapper) {
         super(tableName, mapper);
@@ -73,20 +74,7 @@ public class HBaseBolt  extends AbstractHBaseBolt {
 
     @Override
     public Map<String, Object> getComponentConfiguration() {
-        Map<String, Object> conf = super.getComponentConfiguration();
-        if (conf == null) {
-            conf = new Config();
-        }
-
-        if (conf.containsKey("topology.message.timeout.secs") && flushIntervalSecs == 0) {
-            Integer topologyTimeout = Integer.parseInt(conf.get("topology.message.timeout.secs").toString());
-            flushIntervalSecs = (int)(Math.floor(topologyTimeout / 2));
-            LOG.debug("Setting flush interval to [{}] based on topology.message.timeout.secs", flushIntervalSecs);
-        }
-
-        LOG.info("Enabling tick tuple with interval [{}]", flushIntervalSecs);
-        conf.put(Config.TOPOLOGY_TICK_TUPLE_FREQ_SECS, flushIntervalSecs);
-        return conf;
+        return TupleUtils.putTickFrequencyIntoComponentConfig(super.getComponentConfiguration(), flushIntervalSecs);
     }
 
 

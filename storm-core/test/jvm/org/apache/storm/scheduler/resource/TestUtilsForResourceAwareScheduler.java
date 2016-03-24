@@ -289,11 +289,13 @@ public class TestUtilsForResourceAwareScheduler {
         return ret;
     }
 
-    public static Map<SupervisorDetails, Double> getSupervisorToMemoryUsage(Cluster cluster, Topologies topologies) {
-        Map<SupervisorDetails, Double> superToMem = new HashMap<>();
+    public static void getSupervisorToResourceUsage(Cluster cluster, Topologies topologies,
+                                                    Map<SupervisorDetails, Double> superToCpu,
+                                                    Map<SupervisorDetails, Double> superToMem) {
         Collection<SchedulerAssignment> assignments = cluster.getAssignments().values();
         Collection<SupervisorDetails> supervisors = cluster.getSupervisors().values();
         for (SupervisorDetails supervisor : supervisors) {
+            superToCpu.put(supervisor, 0.0);
             superToMem.put(supervisor, 0.0);
         }
 
@@ -313,47 +315,15 @@ public class TestUtilsForResourceAwareScheduler {
                 executorsOnSupervisor.add(entry.getKey());
             }
             for (Map.Entry<SupervisorDetails, List<ExecutorDetails>> entry : supervisorToExecutors.entrySet()) {
+                Double supervisorUsedCpu = 0.0;
                 Double supervisorUsedMemory = 0.0;
                 for (ExecutorDetails executor: entry.getValue()) {
+                    supervisorUsedCpu += topology.getTotalCpuReqTask(executor);
                     supervisorUsedMemory += topology.getTotalMemReqTask(executor);
                 }
+                superToCpu.put(entry.getKey(), superToCpu.get(entry.getKey()) + supervisorUsedCpu);
                 superToMem.put(entry.getKey(), superToMem.get(entry.getKey()) + supervisorUsedMemory);
             }
         }
-        return superToMem;
-    }
-
-    public static Map<SupervisorDetails, Double> getSupervisorToCpuUsage(Cluster cluster, Topologies topologies) {
-        Map<SupervisorDetails, Double> superToCpu = new HashMap<>();
-        Collection<SchedulerAssignment> assignments = cluster.getAssignments().values();
-        Collection<SupervisorDetails> supervisors = cluster.getSupervisors().values();
-        for (SupervisorDetails supervisor : supervisors) {
-            superToCpu.put(supervisor, 0.0);
-        }
-
-        for (SchedulerAssignment assignment : assignments) {
-            Map<ExecutorDetails, SupervisorDetails> executorToSupervisor = new HashMap<>();
-            Map<SupervisorDetails, List<ExecutorDetails>> supervisorToExecutors = new HashMap<>();
-            TopologyDetails topology = topologies.getById(assignment.getTopologyId());
-            for (Map.Entry<ExecutorDetails, WorkerSlot> entry : assignment.getExecutorToSlot().entrySet()) {
-                executorToSupervisor.put(entry.getKey(), cluster.getSupervisorById(entry.getValue().getNodeId()));
-            }
-            for (Map.Entry<ExecutorDetails, SupervisorDetails> entry : executorToSupervisor.entrySet()) {
-                List<ExecutorDetails> executorsOnSupervisor = supervisorToExecutors.get(entry.getValue());
-                if (executorsOnSupervisor == null) {
-                    executorsOnSupervisor = new ArrayList<>();
-                    supervisorToExecutors.put(entry.getValue(), executorsOnSupervisor);
-                }
-                executorsOnSupervisor.add(entry.getKey());
-            }
-            for (Map.Entry<SupervisorDetails, List<ExecutorDetails>> entry : supervisorToExecutors.entrySet()) {
-                Double supervisorUsedCpu = 0.0;
-                for (ExecutorDetails executor: entry.getValue()) {
-                    supervisorUsedCpu += topology.getTotalCpuReqTask(executor);
-                }
-                superToCpu.put(entry.getKey(), superToCpu.get(entry.getKey()) + supervisorUsedCpu);
-            }
-        }
-        return superToCpu;
     }
 }

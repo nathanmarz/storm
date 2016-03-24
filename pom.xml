@@ -217,7 +217,7 @@
         <jetty.version>7.6.13.v20130916</jetty.version>
         <clojure.tools.logging.version>0.2.3</clojure.tools.logging.version>
         <clojure.math.numeric-tower.version>0.0.1</clojure.math.numeric-tower.version>
-        <carbonite.version>1.4.0</carbonite.version>
+        <carbonite.version>1.5.0</carbonite.version>
         <snakeyaml.version>1.11</snakeyaml.version>
         <httpclient.version>4.3.3</httpclient.version>
         <clojure.tools.cli.version>0.2.4</clojure.tools.cli.version>
@@ -239,7 +239,7 @@
         <clojure-contrib.version>1.2.0</clojure-contrib.version>
         <hive.version>0.14.0</hive.version>
         <hadoop.version>2.6.1</hadoop.version>
-        <kryo.version>2.21</kryo.version>
+        <kryo.version>3.0.3</kryo.version>
         <servlet.version>2.5</servlet.version>
         <joda-time.version>2.3</joda-time.version>
         <thrift.version>0.9.3</thrift.version>
@@ -501,7 +501,7 @@
                 <version>${clojure.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.esotericsoftware.kryo</groupId>
+                <groupId>com.esotericsoftware</groupId>
                 <artifactId>kryo</artifactId>
                 <version>${kryo.version}</version>
             </dependency>

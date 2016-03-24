@@ -230,6 +230,7 @@ public class StormTimer implements AutoCloseable {
         checkActive();
         this.task.setActive(false);
         this.task.interrupt();
+        this.task.join();
     }
 
     /**

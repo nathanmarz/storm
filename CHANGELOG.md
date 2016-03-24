@@ -1,4 +1,5 @@
 ## 2.0.0
+ * STORM-1268: port builtin-metrics to java
  * STORM-1648: drpc spout reconnect on failure
  * STORM-1631: Storm CGroup bugs
  * STORM-1616: Add RAS API for Trident

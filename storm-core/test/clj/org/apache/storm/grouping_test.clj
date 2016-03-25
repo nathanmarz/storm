@@ -16,21 +16,24 @@
 (ns org.apache.storm.grouping-test
   (:use [clojure test])
   (:import [org.apache.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter TestWordBytesCounter NGrouping]
-           [org.apache.storm.generated JavaObject JavaObjectArg])
+           [org.apache.storm.generated JavaObject JavaObjectArg Grouping NullStruct])
   (:import [org.apache.storm.grouping LoadMapping])
   (:use [org.apache.storm testing log config])
   (:use [org.apache.storm.internal clojure])
   (:use [org.apache.storm.daemon common executor])
   (:import [org.apache.storm Thrift])
-  (:import [org.apache.storm.utils Utils]))
+  (:import [org.apache.storm.utils Utils]
+           (org.apache.storm.daemon GrouperFactory)))
+
+(def shuffle-grouping (Grouping/shuffle (NullStruct. )))
 
 (deftest test-shuffle
- (let [shuffle-fn (mk-shuffle-grouper [(int 1) (int 2)] {TOPOLOGY-DISABLE-LOADAWARE-MESSAGING true} nil "comp" "stream")
+ (let [shuffler (GrouperFactory/mkGrouper nil "comp" "stream" nil shuffle-grouping [(int 1) (int 2)] {TOPOLOGY-DISABLE-LOADAWARE-MESSAGING true})
        num-messages 100000
        min-prcnt (int (* num-messages 0.49))
        max-prcnt (int (* num-messages 0.51))
        data [1 2]
-       freq (frequencies (for [x (range 0 num-messages)] (shuffle-fn (int 1) data nil)))
+       freq (frequencies (for [x (range 0 num-messages)] (.chooseTasks shuffler (int 1) data nil)))
        load1 (.get freq [(int 1)])
        load2 (.get freq [(int 2)])]
     (log-message "FREQ:" freq)
@@ -40,14 +43,14 @@
     (is (<= load2 max-prcnt))))
 
 (deftest test-shuffle-load-even
- (let [shuffle-fn (mk-shuffle-grouper [(int 1) (int 2)] {} nil "comp" "stream")
+ (let [shuffler (GrouperFactory/mkGrouper nil "comp" "stream" nil shuffle-grouping [(int 1) (int 2)] {})
        num-messages 100000
        min-prcnt (int (* num-messages 0.49))
        max-prcnt (int (* num-messages 0.51))
        load (LoadMapping.)
        _ (.setLocal load {(int 1) 0.0 (int 2) 0.0})
        data [1 2]
-       freq (frequencies (for [x (range 0 num-messages)] (shuffle-fn (int 1) data load)))
+       freq (frequencies (for [x (range 0 num-messages)] (.chooseTasks shuffler (int 1) data load)))
        load1 (.get freq [(int 1)])
        load2 (.get freq [(int 2)])]
     (log-message "FREQ:" freq)
@@ -57,7 +60,7 @@
     (is (<= load2 max-prcnt))))
 
 (deftest test-shuffle-load-uneven
- (let [shuffle-fn (mk-shuffle-grouper [(int 1) (int 2)] {} nil "comp" "stream")
+ (let [shuffler (GrouperFactory/mkGrouper nil "comp" "stream" nil shuffle-grouping [(int 1) (int 2)] {})
        num-messages 100000
        min1-prcnt (int (* num-messages 0.32))
        max1-prcnt (int (* num-messages 0.34))
@@ -66,7 +69,7 @@
        load (LoadMapping.)
        _ (.setLocal load {(int 1) 0.5 (int 2) 0.0})
        data [1 2]
-       freq (frequencies (for [x (range 0 num-messages)] (shuffle-fn (int 1) data load)))
+       freq (frequencies (for [x (range 0 num-messages)] (.chooseTasks shuffler (int 1) data load)))
        load1 (.get freq [(int 1)])
        load2 (.get freq [(int 2)])]
     (log-message "FREQ:" freq)

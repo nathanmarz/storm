@@ -66,6 +66,7 @@
  * STORM-1521: When using Kerberos login from keytab with multiple bolts/executors ticket is not renewed in hbase bolt.
 
 ## 1.0.0
+ * STORM-1654: Upgrade to kryo3 in master
  * STORM-1625: Move storm-sql dependencies out of lib folder
  * STORM-1556: nimbus.clj/wait-for-desired-code-replication wrong reset for current-replication-count-jar in local mode
  * STORM-1636: Supervisor shutdown with worker id pass in being nil

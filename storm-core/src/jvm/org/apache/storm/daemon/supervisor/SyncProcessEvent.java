@@ -82,8 +82,7 @@ public class SyncProcessEvent implements Runnable {
     public SyncProcessEvent(SupervisorData supervisorData) {
         init(supervisorData);
     }
-
-    //TODO: initData is intended to local supervisor, so we will remove them after porting worker.clj to java
+    
     public void init(SupervisorData supervisorData){
         this.supervisorData = supervisorData;
         this.localState = supervisorData.getLocalState();
@@ -126,7 +125,7 @@ public class SyncProcessEvent implements Runnable {
                 if (stateHeartbeat.getState() != State.VALID) {
                     LOG.info("Shutting down and clearing state for id {}, Current supervisor time: {}, State: {}, Heartbeat: {}", entry.getKey(), now,
                             stateHeartbeat.getState(), stateHeartbeat.getHeartbeat());
-                    shutWorker(supervisorData, supervisorData.getWorkerManager(), entry.getKey());
+                    killWorker(supervisorData, supervisorData.getWorkerManager(), entry.getKey());
                 }
             }
             // start new workers
@@ -418,7 +417,7 @@ public class SyncProcessEvent implements Runnable {
         }
     }
 
-    public void shutWorker(SupervisorData supervisorData, IWorkerManager workerManager, String workerId) throws IOException, InterruptedException{
+    public void killWorker(SupervisorData supervisorData, IWorkerManager workerManager, String workerId) throws IOException, InterruptedException{
         workerManager.shutdownWorker(supervisorData.getSupervisorId(), workerId, supervisorData.getWorkerThreadPids());
         boolean success = workerManager.cleanupWorker(workerId);
         if (success){

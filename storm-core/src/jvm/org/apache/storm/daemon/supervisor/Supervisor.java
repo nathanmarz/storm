@@ -156,7 +156,7 @@ public class Supervisor {
     }
 
     private void registerWorkerNumGauge(String name, final Map conf) {
-        StormMetricsRegistry.registerGauge("supervisor:num-slots-used-gauge", new Callable<Integer>() {
+        StormMetricsRegistry.registerGauge(name, new Callable<Integer>() {
             @Override
             public Integer call() throws Exception {
                 Collection<String> pids = SupervisorUtils.supervisorWorkerIds(conf);

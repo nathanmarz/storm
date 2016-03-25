@@ -432,12 +432,7 @@ public class TestResourceAwareScheduler {
         // pick a worker to mock as failed
         WorkerSlot failedWorker = new ArrayList<WorkerSlot>(assignment.getSlots()).get(0);
         Map<ExecutorDetails, WorkerSlot> executorToSlot = assignment.getExecutorToSlot();
-        List<ExecutorDetails> failedExecutors = new ArrayList<>();
-        for (Map.Entry<ExecutorDetails, WorkerSlot> entry : executorToSlot.entrySet()) {
-            if (entry.getValue().equals(failedWorker)) {
-                failedExecutors.add(entry.getKey());
-            }
-        }
+        Collection<ExecutorDetails> failedExecutors = assignment.getSlotToExecutors().get(failedWorker);
         for (ExecutorDetails executor : failedExecutors) {
             executorToSlot.remove(executor); // remove executor details assigned to the failed worker
         }
@@ -527,7 +522,7 @@ public class TestResourceAwareScheduler {
         topologies = new Topologies(topoMap);
         rs.schedule(topologies, cluster1);
 
-        newAssignment = (SchedulerAssignmentImpl)cluster1.getAssignmentById(topology1.getId());
+        newAssignment = cluster1.getAssignmentById(topology1.getId());
         newExecutorToSlot = newAssignment.getExecutorToSlot();
 
         for (ExecutorDetails executor : copyOfOldMapping.keySet()) {

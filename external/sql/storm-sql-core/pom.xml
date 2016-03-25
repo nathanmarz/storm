@@ -197,6 +197,24 @@
                     </execution>
                 </executions>
             </plugin>
+            <!-- using appassembler-maven-plugin instead of maven-dependency-plugin to copy dependencies
+            as copy and unpack goal are not working together -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>appassembler-maven-plugin</artifactId>
+                <version>1.9</version>
+                <executions>
+                    <execution>
+                        <id>create-repo</id>
+                        <goals>
+                            <goal>create-repository</goal>
+                        </goals>
+                        <configuration>
+                            <repositoryLayout>flat</repositoryLayout>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>com.googlecode.fmpp-maven-plugin</groupId>
                 <artifactId>fmpp-maven-plugin</artifactId>

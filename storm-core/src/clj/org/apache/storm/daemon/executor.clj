@@ -17,7 +17,8 @@
   (:use [org.apache.storm.daemon common])
   (:import [org.apache.storm.generated Grouping Grouping$_Fields]
            [java.io Serializable]
-           [org.apache.storm.stats BoltExecutorStats SpoutExecutorStats])
+           [org.apache.storm.stats BoltExecutorStats SpoutExecutorStats]
+           [org.apache.storm.daemon.metrics BuiltinMetricsUtil SpoutThrottlingMetrics])
   (:use [org.apache.storm util config log])
   (:import [java.util List Random HashMap ArrayList LinkedList Map])
   (:import [org.apache.storm ICredentialsListener Thrift])
@@ -43,7 +44,6 @@
            [com.lmax.disruptor.dsl ProducerType]
            [org.apache.storm StormTimer])
   (:require [org.apache.storm.daemon [task :as task]])
-  (:require [org.apache.storm.daemon.builtin-metrics :as builtin-metrics])
   (:require [clojure.set :as set]))
 
 (defn- mk-fields-grouper
@@ -278,7 +278,7 @@
      :sampler (mk-stats-sampler storm-conf)
      :backpressure (atom false)
      :spout-throttling-metrics (if (= executor-type :spout) 
-                                (builtin-metrics/make-spout-throttling-data)
+                                 (SpoutThrottlingMetrics.)
                                 nil)
      ;; TODO: add in the executor-specific stuff in a :specific... or make a spout-data, bolt-data function?
      )))
@@ -559,7 +559,7 @@
                             (while (not @(:storm-active-atom executor-data))
                               (Thread/sleep 100))
                             (log-message "Opening spout " component-id ":" (keys task-datas))
-                            (builtin-metrics/register-spout-throttling-metrics (:spout-throttling-metrics executor-data) storm-conf (:user-context (first (vals task-datas))))
+                            (.registerAll (:spout-throttling-metrics executor-data) storm-conf (:user-context (first (vals task-datas))))
                             (doseq [[task-id task-data] task-datas
                                     :let [^ISpout spout-obj (:object task-data)
                                           tasks-fn (:tasks-fn task-data)
@@ -600,9 +600,9 @@
                                                                                 (if (sampler) 0) "0:")))
                                                              (or out-tasks [])))]]
 
-                              (builtin-metrics/register-all (:builtin-metrics task-data) storm-conf (:user-context task-data))
-                              (builtin-metrics/register-queue-metrics {:sendqueue (:batch-transfer-queue executor-data)
-                                                                       :receive receive-queue}
+                              (.registerAll (:builtin-metrics task-data) storm-conf (:user-context task-data))
+                              (BuiltinMetricsUtil/registerQueueMetrics {"sendqueue" (:batch-transfer-queue executor-data)
+                                                                       "receive" receive-queue}
                                                                       storm-conf (:user-context task-data))
                               (when (instance? ICredentialsListener spout-obj) (.setCredentials spout-obj initial-credentials))
 
@@ -656,16 +656,16 @@
                                       (fast-list-iter [^ISpout spout spouts] (.deactivate spout)))
                                     ;; TODO: log that it's getting throttled
                                     (Time/sleep 100)
-                                    (builtin-metrics/skipped-inactive! (:spout-throttling-metrics executor-data) (:stats executor-data))))
+                                    (.skippedInactive (:spout-throttling-metrics executor-data) (:stats executor-data))))
 
                                 (if (and (= curr-count (.get emitted-count)) active?)
                                   (do (.increment empty-emit-streak)
                                       (.emptyEmit spout-wait-strategy (.get empty-emit-streak))
                                       ;; update the spout throttling metrics
                                       (if throttle-on
-                                        (builtin-metrics/skipped-throttle! (:spout-throttling-metrics executor-data) (:stats executor-data))
+                                        (.skippedThrottle (:spout-throttling-metrics executor-data) (:stats executor-data))
                                         (if reached-max-spout-pending
-                                          (builtin-metrics/skipped-max-spout! (:spout-throttling-metrics executor-data) (:stats executor-data)))))
+                                          (.skippedMaxSpout (:spout-throttling-metrics executor-data) (:stats executor-data)))))
                                   (.set empty-emit-streak 0)))
                               0))]
 
@@ -780,18 +780,19 @@
                                                        (if has-eventloggers?
                                                          (send-to-eventlogger executor-data task-data values component-id nil rand))
                                                        (or out-tasks [])))]]
-                             (builtin-metrics/register-all (:builtin-metrics task-data) storm-conf user-context)
+                             (.registerAll (:builtin-metrics task-data) storm-conf user-context)
                              (when (instance? ICredentialsListener bolt-obj) (.setCredentials bolt-obj initial-credentials)) 
                              (if (= component-id Constants/SYSTEM_COMPONENT_ID)
                                (do
-                                 (builtin-metrics/register-queue-metrics {:sendqueue (:batch-transfer-queue executor-data)
-                                                                          :receive (:receive-queue executor-data)
-                                                                          :transfer (:transfer-queue (:worker executor-data))}
+                                 (BuiltinMetricsUtil/registerQueueMetrics {"sendqueue" (:batch-transfer-queue executor-data)
+                                                                          "receive" (:receive-queue executor-data)
+                                                                          "transfer" (:transfer-queue (:worker executor-data))}
                                                                          storm-conf user-context)
-                                 (builtin-metrics/register-iconnection-client-metrics (:cached-node+port->socket (:worker executor-data)) storm-conf user-context)
-                                 (builtin-metrics/register-iconnection-server-metric (:receiver (:worker executor-data)) storm-conf user-context))
-                               (builtin-metrics/register-queue-metrics {:sendqueue (:batch-transfer-queue executor-data)
-                                                                        :receive (:receive-queue executor-data)}
+                                 (BuiltinMetricsUtil/registerIconnectionClientMetrics
+                                   (.deref (:cached-node+port->socket (:worker executor-data))) storm-conf user-context)
+                                 (BuiltinMetricsUtil/registerIconnectionServerMetric (:receiver (:worker executor-data)) storm-conf user-context))
+                               (BuiltinMetricsUtil/registerQueueMetrics {"sendqueue" (:batch-transfer-queue executor-data)
+                                                                        "receive" (:receive-queue executor-data)}
                                                                        storm-conf user-context))
 
                              (.prepare bolt-obj

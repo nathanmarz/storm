@@ -254,10 +254,10 @@
             </includes>
         </fileSet>
         <fileSet>
-            <directory>${project.basedir}/../../external/sql/storm-sql-core/target</directory>
+            <directory>${project.basedir}/../../external/sql/storm-sql-core/target/appassembler/repo</directory>
             <outputDirectory>external/sql/storm-sql-core</outputDirectory>
             <includes>
-                <include>storm*jar</include>
+                <include>*jar</include>
             </includes>
         </fileSet>
         <fileSet>

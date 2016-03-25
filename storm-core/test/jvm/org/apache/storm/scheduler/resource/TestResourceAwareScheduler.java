@@ -308,7 +308,7 @@ public class TestResourceAwareScheduler {
         resourceMap.put(Config.SUPERVISOR_MEMORY_CAPACITY_MB, 2000.0);
         Map<String, SupervisorDetails> supMap = TestUtilsForResourceAwareScheduler.genSupervisors(2, 2, resourceMap);
 
-        TopologyBuilder builder1 = new TopologyBuilder(); // a topology with multiple spouts
+        TopologyBuilder builder1 = new TopologyBuilder();
         builder1.setSpout("wordSpout", new TestWordSpout(), 2).setCPULoad(250.0).setMemoryLoad(1000.0, 200.0);
         builder1.setBolt("wordCountBolt", new TestWordCounter(), 1).shuffleGrouping("wordSpout").setCPULoad(100.0).setMemoryLoad(500.0, 100.0);
         StormTopology stormTopology1 = builder1.createTopology();

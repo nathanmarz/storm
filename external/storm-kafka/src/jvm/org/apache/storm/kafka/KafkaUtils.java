@@ -50,6 +50,10 @@ public class KafkaUtils {
     public static final Logger LOG = LoggerFactory.getLogger(KafkaUtils.class);
     private static final int NO_OFFSET = -5;
 
+    //suppress default constructor for noninstantiablility
+    private KafkaUtils(){
+        throw new AssertionError();
+    }
 
     public static IBrokerReader makeBrokerReader(Map stormConf, KafkaConfig conf) {
         if (conf.hosts instanceof StaticHosts) {

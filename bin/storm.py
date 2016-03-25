@@ -257,10 +257,13 @@ def sql(sql_file, topology_name):
 
     Compiles the SQL statements into a Trident topology and submits it to Storm.
     """
+    extrajars=[USER_CONF_DIR, STORM_BIN_DIR]
+    extrajars.extend(get_jars_full(STORM_DIR + "/external/sql/storm-sql-core"))
+    extrajars.extend(get_jars_full(STORM_DIR + "/external/sql/storm-sql-runtime"))
     exec_storm_class(
         "org.apache.storm.sql.StormSqlRunner",
         jvmtype="-client",
-        extrajars=[USER_CONF_DIR, STORM_BIN_DIR],
+        extrajars=extrajars,
         args=[sql_file, topology_name],
         daemon=False)
 

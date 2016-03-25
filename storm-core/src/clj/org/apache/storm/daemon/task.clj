@@ -16,7 +16,8 @@
 (ns org.apache.storm.daemon.task
   (:use [org.apache.storm.daemon common])
   (:use [org.apache.storm config util log])
-  (:import [org.apache.storm.hooks ITaskHook])
+  (:import [org.apache.storm.hooks ITaskHook]
+           [org.apache.storm.daemon.metrics BuiltinMetrics BuiltinMetricsUtil])
   (:import [org.apache.storm.tuple Tuple TupleImpl])
   (:import [org.apache.storm.grouping LoadMapping])
   (:import [org.apache.storm.generated SpoutSpec Bolt StateSpoutSpec StormTopology])
@@ -28,8 +29,7 @@
   (:import [org.apache.storm.spout ShellSpout])
   (:import [java.util Collection List ArrayList])
   (:import [org.apache.storm Thrift]
-           (org.apache.storm.daemon StormCommon))
-  (:require [org.apache.storm.daemon.builtin-metrics :as builtin-metrics]))
+           (org.apache.storm.daemon StormCommon)))
 
 (defn mk-topology-context-builder [worker executor-data topology]
   (let [conf (:conf worker)]
@@ -173,7 +173,7 @@
     :task-id task-id
     :system-context (system-topology-context (:worker executor-data) executor-data task-id)
     :user-context (user-topology-context (:worker executor-data) executor-data task-id)
-    :builtin-metrics (builtin-metrics/make-data (:type executor-data) (:stats executor-data))
+    :builtin-metrics (BuiltinMetricsUtil/mkData (.getName (:type executor-data)) (:stats executor-data))
     :tasks-fn (mk-tasks-fn <>)
     :object (get-task-object (.getRawTopology ^TopologyContext (:system-context <>)) (:component-id executor-data))))
 

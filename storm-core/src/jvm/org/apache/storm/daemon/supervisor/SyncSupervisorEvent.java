@@ -204,17 +204,11 @@ public class SyncSupervisorEvent implements Runnable {
         for (Integer port : intersectAssignment.keySet()) {
             List<ExecutorInfo> existExecutors = existingAssignment.get(port).get_executors();
             List<ExecutorInfo> newExecutors = newAssignment.get(port).get_executors();
-            if (newExecutors.size() != existExecutors.size()) {
-                syncProcesses.shutWorker(supervisorData, supervisorData.getWorkerManager(), vaildPortToWorkerIds.get(port));
-                continue;
+            Set<ExecutorInfo> setExitExecutors = new HashSet<>(existExecutors);
+            Set<ExecutorInfo>  setNewExecutors = new HashSet<>(newExecutors);
+            if (setExitExecutors != setNewExecutors){
+                syncProcesses.killWorker(supervisorData, supervisorData.getWorkerManager(), vaildPortToWorkerIds.get(port));
             }
-            for (ExecutorInfo executorInfo : newExecutors) {
-                if (!existExecutors.contains(executorInfo)) {
-                    syncProcesses.shutWorker(supervisorData, supervisorData.getWorkerManager(), vaildPortToWorkerIds.get(port));
-                    break;
-                }
-            }
-
         }
     }
 
@@ -624,7 +618,7 @@ public class SyncSupervisorEvent implements Runnable {
             String workerId = entry.getKey();
             StateHeartbeat stateHeartbeat = entry.getValue();
             if (stateHeartbeat.getState() == State.DISALLOWED) {
-                syncProcesses.shutWorker(supervisorData, supervisorData.getWorkerManager(), workerId);
+                syncProcesses.killWorker(supervisorData, supervisorData.getWorkerManager(), workerId);
                 LOG.debug("{}'s state disallowed, so shutdown this worker");
             }
         }

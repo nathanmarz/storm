@@ -43,7 +43,7 @@ public class SupervisorHeartbeat implements Runnable {
         this.conf = conf;
     }
 
-    private SupervisorInfo update(Map conf, SupervisorData supervisorData) {
+    private SupervisorInfo buildSupervisorInfo(Map conf, SupervisorData supervisorData) {
         SupervisorInfo supervisorInfo = new SupervisorInfo();
         supervisorInfo.set_time_secs(Time.currentTimeSecs());
         supervisorInfo.set_hostname(supervisorData.getHostName());
@@ -81,7 +81,7 @@ public class SupervisorHeartbeat implements Runnable {
 
     @Override
     public void run() {
-        SupervisorInfo supervisorInfo = update(conf, supervisorData);
+        SupervisorInfo supervisorInfo = buildSupervisorInfo(conf, supervisorData);
         stormClusterState.supervisorHeartbeat(supervisorId, supervisorInfo);
     }
 }

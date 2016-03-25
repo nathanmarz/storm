@@ -50,7 +50,7 @@
   (proxy [SyncProcessEvent] []
     (launchLocalWorker [supervisorData stormId port workerId resources]
       (launch-local-worker supervisorData stormId port workerId resources))
-    (shutWorker [supervisorData worker-manager workerId] (shutdown-local-worker supervisorData worker-manager workerId))))
+    (killWorker [supervisorData worker-manager workerId] (shutdown-local-worker supervisorData worker-manager workerId))))
 
 
 (defserverfn mk-local-supervisor [conf shared-context isupervisor]

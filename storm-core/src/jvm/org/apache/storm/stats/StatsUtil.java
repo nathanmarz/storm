@@ -58,8 +58,8 @@ public class StatsUtil {
     private static final Logger logger = LoggerFactory.getLogger(StatsUtil.class);
 
     public static final String TYPE = "type";
-    private static final String SPOUT = "spout";
-    private static final String BOLT = "bolt";
+    public static final String SPOUT = "spout";
+    public static final String BOLT = "bolt";
 
     private static final String UPTIME = "uptime";
     private static final String HOST = "host";

@@ -17,6 +17,10 @@
  */
 package org.apache.storm.pacemaker;
 
+import com.codahale.metrics.ExponentiallyDecayingReservoir;
+import com.codahale.metrics.Gauge;
+import com.codahale.metrics.Histogram;
+import com.codahale.metrics.Meter;
 import org.apache.storm.generated.HBMessage;
 import org.apache.storm.generated.HBMessageData;
 import org.apache.storm.generated.HBPulse;
@@ -24,7 +28,6 @@ import org.apache.storm.generated.HBNodes;
 import org.apache.storm.generated.HBServerMessageType;
 import org.apache.storm.metric.StormMetricsRegistry;
 import org.apache.storm.utils.ConfigUtils;
-import org.apache.storm.utils.Utils;
 import org.apache.storm.utils.VersionInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,95 +40,32 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
+
 
 public class Pacemaker implements IServerMessageHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(Pacemaker.class);
-
     private Map<String, byte[]> heartbeats;
-    private PacemakerStats lastOneMinStats;
-    private PacemakerStats pacemakerStats;
     private Map conf;
-    private final long sleepSeconds = 60;
 
-    private boolean isDaemon = true;
-    private boolean startImmediately = true;
+    private final static Meter meterSendPulseCount = StormMetricsRegistry.registerMeter("pacemaker:send-pulse-count");
+    private final static Meter meterTotalReceivedSize = StormMetricsRegistry.registerMeter("pacemaker:total-receive-size");
+    private final static Meter meterGetPulseCount = StormMetricsRegistry.registerMeter("pacemaker:get-pulse=count");
+    private final static Meter meterTotalSentSize = StormMetricsRegistry.registerMeter("pacemaker:total-sent-size");
+    private final static Histogram histogramHeartbeatSize = StormMetricsRegistry.registerHistogram("pacemaker:heartbeat-size", new ExponentiallyDecayingReservoir());
 
-    private static class PacemakerStats {
-        public AtomicInteger sendPulseCount = new AtomicInteger();
-        public AtomicInteger totalReceivedSize = new AtomicInteger();
-        public AtomicInteger getPulseCount = new AtomicInteger();
-        public AtomicInteger totalSentSize = new AtomicInteger();
-        public AtomicInteger largestHeartbeatSize = new AtomicInteger();
-        public AtomicInteger averageHeartbeatSize = new AtomicInteger();
-        private AtomicInteger totalKeys = new AtomicInteger();
-    }
 
     public Pacemaker(Map conf) {
         heartbeats = new ConcurrentHashMap();
-        pacemakerStats = new PacemakerStats();
-        lastOneMinStats = new PacemakerStats();
         this.conf = conf;
-        startStatsThread();
-        startRegisterStatsGauge();
+        StormMetricsRegistry.registerGauge("pacemaker:size-total-keys",
+                new Callable() {
+                    @Override
+                    public Integer call() throws Exception {
+                        return heartbeats.size();
+                    }
+                });
         StormMetricsRegistry.startMetricsReporters(conf);
-    }
-
-    public void startRegisterStatsGauge(){
-        StormMetricsRegistry.registerGauge("pacemaker:num-send-pulse-1min",
-                new Callable(){
-                    @Override
-                    public Integer call() throws Exception {
-                        return lastOneMinStats.sendPulseCount.get();
-                    }
-                });
-
-        StormMetricsRegistry.registerGauge("pacemaker:num-total-receive-1min",
-                new Callable(){
-                    @Override
-                    public Integer call() throws Exception {
-                        return lastOneMinStats.totalReceivedSize.get();
-                    }
-                });
-
-        StormMetricsRegistry.registerGauge("pacemaker:num-get-pulse-1min",
-                new Callable(){
-                    @Override
-                    public Integer call() throws Exception {
-                        return lastOneMinStats.getPulseCount.get();
-                    }
-                });
-
-        StormMetricsRegistry.registerGauge("pacemaker:num-total-sent-1min",
-                new Callable(){
-                    @Override
-                    public Integer call() throws Exception {
-                        return lastOneMinStats.totalSentSize.get();
-                    }
-                });
-
-        StormMetricsRegistry.registerGauge("pacemaker:size-largest-heartbeat-1min",
-                new Callable(){
-                    @Override
-                    public Integer call() throws Exception {
-                        return lastOneMinStats.largestHeartbeatSize.get();
-                    }
-                });
-        StormMetricsRegistry.registerGauge("pacemaker:size-average-heartbeat-1min",
-                new Callable(){
-                    @Override
-                    public Integer call() throws Exception {
-                        return lastOneMinStats.averageHeartbeatSize.get();
-                    }
-                });
-        StormMetricsRegistry.registerGauge("pacemaker:size-total-keys-1min",
-                new Callable(){
-                    @Override
-                    public Integer call() throws Exception {
-                        return lastOneMinStats.totalKeys.get();
-                    }
-                });
     }
 
     @Override
@@ -191,10 +131,9 @@ public class Pacemaker implements IServerMessageHandler {
         String id = pulse.get_id();
         byte[] details = pulse.get_details();
         LOG.debug("Saving Pulse for id [ {} ] data [ {} ].", id, details);
-        pacemakerStats.sendPulseCount.incrementAndGet();
-        pacemakerStats.totalReceivedSize.addAndGet(details.length);
-        updateLargestHbSize(details.length);
-        updateAverageHbSize(details.length);
+        meterSendPulseCount.mark();
+        meterTotalReceivedSize.mark(details.length);
+        histogramHeartbeatSize.update(details.length);
         heartbeats.put(id, details);
         return new HBMessage(HBServerMessageType.SEND_PULSE_RESPONSE, null);
     }
@@ -235,9 +174,9 @@ public class Pacemaker implements IServerMessageHandler {
         if (authenticated) {
             byte[] details = heartbeats.get(path);
             LOG.debug("Getting Pulse for path [ {} ]...data [ {} ].", path, details);
-            pacemakerStats.getPulseCount.incrementAndGet();
+            meterGetPulseCount.mark();
             if (details != null) {
-                pacemakerStats.totalSentSize.addAndGet(details.length);
+                meterTotalSentSize.mark(details.length);
             }
             HBPulse hbPulse = new HBPulse();
             hbPulse.set_id(path);
@@ -261,56 +200,6 @@ public class Pacemaker implements IServerMessageHandler {
         LOG.debug("Deleting Pulse for id [ {} ].", path);
         heartbeats.remove(path);
         return new HBMessage(HBServerMessageType.DELETE_PULSE_ID_RESPONSE, null);
-    }
-
-    private void updateLargestHbSize(int size) {
-        int newValue = size;
-        while (true) {
-            int oldValue = pacemakerStats.largestHeartbeatSize.get();
-            if (newValue > oldValue) {
-                if (!pacemakerStats.largestHeartbeatSize.compareAndSet(oldValue, newValue))
-                    continue;
-            }
-            break;
-        }
-    }
-
-    private void updateAverageHbSize(int size) {
-        while (true) {
-            int oldValue = pacemakerStats.averageHeartbeatSize.get();
-            int count = pacemakerStats.sendPulseCount.get();
-            int newValue = ((count * oldValue) + size) / (count + 1);
-            if (pacemakerStats.averageHeartbeatSize.compareAndSet(oldValue, newValue))
-                break;
-        }
-    }
-
-    private void startStatsThread() {
-        Callable afn = new Callable() {
-            public Object call() {
-                int sendCount = pacemakerStats.sendPulseCount.getAndSet(0);
-                int receivedSize = pacemakerStats.totalReceivedSize.getAndSet(0);
-                int getCount = pacemakerStats.getPulseCount.getAndSet(0);
-                int sentSize = pacemakerStats.totalSentSize.getAndSet(0);
-                int largest = pacemakerStats.largestHeartbeatSize.getAndSet(0);
-                int average = pacemakerStats.averageHeartbeatSize.getAndSet(0);
-                int totalKeys = heartbeats.size();
-                LOG.debug("\nReceived {} heartbeats totaling {} bytes,\nSent {} heartbeats totaling {} bytes," +
-                                "\nThe largest heartbeat was {} bytes,\nThe average heartbeat was {} bytes,\n" +
-                                "Pacemaker contained {} total keys\nin the last {} second(s)",
-                        sendCount, receivedSize, getCount, sentSize, largest, average, totalKeys, sleepSeconds);
-                
-                lastOneMinStats.sendPulseCount.set(sendCount);
-                lastOneMinStats.totalReceivedSize.set(receivedSize);
-                lastOneMinStats.getPulseCount.set(getCount);
-                lastOneMinStats.totalSentSize.set(sentSize);
-                lastOneMinStats.largestHeartbeatSize.set(largest);
-                lastOneMinStats.averageHeartbeatSize.set(average);
-                lastOneMinStats.averageHeartbeatSize.set(totalKeys);
-                return sleepSeconds; // Run only once.
-            }
-        };
-        Utils.asyncLoop(afn, isDaemon, null, Thread.currentThread().getPriority(), false, startImmediately, null);
     }
 
     private PacemakerServer launchServer() {

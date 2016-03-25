@@ -16,20 +16,21 @@
 (ns org.apache.storm.drpc-test
   (:use [clojure test])
   (:import [org.apache.storm.drpc ReturnResults DRPCSpout
-            LinearDRPCTopologyBuilder]
-           [org.apache.storm.utils ConfigUtils Utils])
+            LinearDRPCTopologyBuilder DRPCInvocationsClient]
+           [org.apache.storm.utils ConfigUtils Utils ServiceRegistry])
   (:import [org.apache.storm.topology FailedException])
   (:import [org.apache.storm.coordination CoordinatedBolt$FinishedCallback])
-  (:import [org.apache.storm LocalDRPC LocalCluster])
+  (:import [org.apache.storm ILocalDRPC LocalDRPC LocalCluster])
   (:import [org.apache.storm.tuple Fields])
   (:import [org.mockito Mockito])
   (:import [org.mockito.exceptions.base MockitoAssertionError])
-  (:import [org.apache.storm.utils ConfigUtils]
-           [org.apache.storm.utils.staticmocking ConfigUtilsInstaller])
-  (:import [org.apache.storm.generated DRPCExecutionException])
+  (:import [org.apache.storm.utils.staticmocking ConfigUtilsInstaller])
+  (:import [org.apache.storm.spout SpoutOutputCollector])
+  (:import [org.apache.storm.generated DRPCExecutionException DRPCRequest])
   (:import [java.util.concurrent ConcurrentLinkedQueue])
   (:import [org.apache.storm Thrift])
   (:import [org.apache.storm.daemon DrpcServer])
+  (:import [org.mockito ArgumentCaptor Mockito Matchers])
   (:use [org.apache.storm config testing])
   (:use [org.apache.storm.internal clojure])
   (:use [org.apache.storm.daemon common drpc])
@@ -255,3 +256,59 @@
       (is (thrown? DRPCExecutionException
             (.execute drpc-handler "ArbitraryDRPCFunctionName" "no-args"))))))
 
+(deftest test-drpc-attempts-two-reconnects-in-fail-request
+  (let [handler (Mockito/mock DRPCInvocationsClient 
+                              (.extraInterfaces (Mockito/withSettings) (into-array Class [ILocalDRPC])))
+        ;; used to capture the msgId on .emit
+        output-collector (Mockito/mock SpoutOutputCollector)
+        captor (ArgumentCaptor/forClass Object)
+        ;; pick up service-id from registry
+        service-id (ServiceRegistry/registerService handler)]
+
+    ;; mock getServiceId s.t. DRPCSpout uses our handler
+    (. (Mockito/when (.getServiceId handler)) thenReturn service-id)
+    ;; mock fetchRequest s.t. DRPCSpout has a request to process on nextTuple
+    (. (Mockito/when (.fetchRequest handler (Matchers/anyString))) thenReturn (DRPCRequest. "square 2" "bar"))
+    ;; mock failRequest s.t. DRPCSpout attempts retry on .fail
+    (.failRequest (.when (Mockito/doThrow (DRPCExecutionException.)) handler) (Matchers/anyString))
+
+    (let [spout (DRPCSpout. "test" handler)]
+      ;; tell the spout to use the mock collector
+      (.open spout nil nil output-collector) 
+      ;; pick up a msgId to fail
+      (.nextTuple spout) 
+      (.emit (Mockito/verify output-collector) (Mockito/anyList) (.capture captor))
+      ;; fail the msg
+      (.fail spout (.getValue captor))
+      ;; attempt 2 reconnects 
+      (.reconnectClient (Mockito/verify handler (Mockito/times 2)))
+      (.failRequest (Mockito/verify handler (Mockito/times 3)) (Matchers/anyString)))))
+
+(deftest test-drpc-stops-retrying-after-successful-reconnect
+  (let [handler (Mockito/mock DRPCInvocationsClient 
+                              (.extraInterfaces (Mockito/withSettings) (into-array Class [ILocalDRPC])))
+        ;; used to capture the msgId on .emit
+        output-collector (Mockito/mock SpoutOutputCollector)
+        captor (ArgumentCaptor/forClass Object)
+        ;; pick up service-id from registry
+        service-id (ServiceRegistry/registerService handler)]
+
+    ;; mock getServiceId s.t. DRPCSpout uses our handler
+    (. (Mockito/when (.getServiceId handler)) thenReturn service-id)
+    ;; mock fetchRequest s.t. DRPCSpout has a request to process on nextTuple
+    (. (Mockito/when (.fetchRequest handler (Matchers/anyString))) thenReturn (DRPCRequest. "square 2" "bar"))
+    ;; mock failRequest s.t. DRPCSpout attempts retry on .fail the first time only, but succeed the second time
+    (.failRequest (.when (.doNothing
+                         (Mockito/doThrow (DRPCExecutionException.))) handler) (Matchers/anyString))
+
+    (let [spout (DRPCSpout. "test" handler)]
+      ;; tell the spout to use the mock collector
+      (.open spout nil nil output-collector) 
+      ;; pick up a msgId to fail
+      (.nextTuple spout) 
+      (.emit (Mockito/verify output-collector) (Mockito/anyList) (.capture captor))
+      ;; fail the msg
+      (.fail spout (.getValue captor))
+      ;; reconnect once after a failure
+      (.reconnectClient (Mockito/verify handler (Mockito/times 1)))
+      (.failRequest (Mockito/verify handler (Mockito/times 2)) (Matchers/anyString)))))

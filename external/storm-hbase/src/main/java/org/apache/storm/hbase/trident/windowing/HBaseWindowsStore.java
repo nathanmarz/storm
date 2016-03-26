@@ -27,7 +27,6 @@ import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.FirstKeyOnlyFilter;
 import org.apache.storm.trident.windowing.WindowsStore;
@@ -36,7 +35,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InterruptedIOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -205,10 +203,10 @@ public class HBaseWindowsStore implements WindowsStore {
         Kryo kryo = new Kryo();
         Output output = new Output(new ByteArrayOutputStream());
         kryo.writeClassAndObject(output, value);
-        put.add(family, ByteBuffer.wrap(qualifier), System.currentTimeMillis(), ByteBuffer.wrap(output.getBuffer(), 0, output.position()));
+        put.addColumn(family, ByteBuffer.wrap(qualifier), System.currentTimeMillis(), ByteBuffer.wrap(output.getBuffer(), 0, output.position()));
         try {
             htable().put(put);
-        } catch (InterruptedIOException | RetriesExhaustedWithDetailsException e) {
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
@@ -221,13 +219,13 @@ public class HBaseWindowsStore implements WindowsStore {
             Output output = new Output(new ByteArrayOutputStream());
             Kryo kryo = new Kryo();
             kryo.writeClassAndObject(output, entry.value);
-            put.add(family, ByteBuffer.wrap(qualifier), System.currentTimeMillis(), ByteBuffer.wrap(output.getBuffer(), 0, output.position()));
+            put.addColumn(family, ByteBuffer.wrap(qualifier), System.currentTimeMillis(), ByteBuffer.wrap(output.getBuffer(), 0, output.position()));
             list.add(put);
         }
 
         try {
             htable().put(list);
-        } catch (InterruptedIOException | RetriesExhaustedWithDetailsException e) {
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }

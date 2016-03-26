@@ -106,14 +106,23 @@ public class DRPCSpout extends BaseRichSpout {
         }
     }
 
-    private void reconnect(final DRPCInvocationsClient c) {
+    private void reconnectAsync(final DRPCInvocationsClient client) {
         _futures.add(_backround.submit(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
-                c.reconnectClient();
+                client.reconnectClient();
                 return null;
             }
         }));
+    }
+
+    private void reconnectSync(DRPCInvocationsClient client) {
+        try {
+            LOG.info("reconnecting... ");
+            client.reconnectClient(); //Blocking call
+        } catch (TException e2) {
+            LOG.error("Failed to connect to DRPC server", e2);
+        }
     }
 
     private void checkFutures() {
@@ -172,7 +181,7 @@ public class DRPCSpout extends BaseRichSpout {
     public void nextTuple() {
         boolean gotRequest = false;
         if(_local_drpc_id==null) {
-            int size;
+            int size = 0;
             synchronized (_clients) {
                 size = _clients.size(); //This will only ever grow, so no need to worry about falling off the end
             }
@@ -183,7 +192,7 @@ public class DRPCSpout extends BaseRichSpout {
                 }
                 if (!client.isConnected()) {
                     LOG.warn("DRPCInvocationsClient [{}:{}] is not connected.", client.getHost(), client.getPort());
-                    reconnect(client);
+                    reconnectAsync(client);
                     continue;
                 }
                 try {
@@ -198,10 +207,10 @@ public class DRPCSpout extends BaseRichSpout {
                         break;
                     }
                 } catch (AuthorizationException aze) {
-                    reconnect(client);
+                    reconnectAsync(client);
                     LOG.error("Not authorized to fetch DRPC result from DRPC server", aze);
                 } catch (TException e) {
-                    reconnect(client);
+                    reconnectAsync(client);
                     LOG.error("Failed to fetch DRPC result from DRPC server", e);
                 } catch (Exception e) {
                     LOG.error("Failed to fetch DRPC result from DRPC server", e);
@@ -219,7 +228,8 @@ public class DRPCSpout extends BaseRichSpout {
                         returnInfo.put("host", _local_drpc_id);
                         returnInfo.put("port", 0);
                         gotRequest = true;
-                        _collector.emit(new Values(req.get_func_args(), JSONValue.toJSONString(returnInfo)), new DRPCMessageId(req.get_request_id(), 0));
+                        _collector.emit(new Values(req.get_func_args(), JSONValue.toJSONString(returnInfo)), 
+                                        new DRPCMessageId(req.get_request_id(), 0));
                     }
                 } catch (AuthorizationException aze) {
                     throw new RuntimeException(aze);
@@ -242,17 +252,30 @@ public class DRPCSpout extends BaseRichSpout {
         DRPCMessageId did = (DRPCMessageId) msgId;
         DistributedRPCInvocations.Iface client;
         
-        if(_local_drpc_id == null) {
+        if (_local_drpc_id == null) {
             client = _clients.get(did.index);
         } else {
             client = (DistributedRPCInvocations.Iface) ServiceRegistry.getService(_local_drpc_id);
         }
-        try {
-            client.failRequest(did.id);
-        } catch (AuthorizationException aze) {
-            LOG.error("Not authorized to failREquest from DRPC server", aze);
-        } catch (TException e) {
-            LOG.error("Failed to fail request", e);
+
+        int retryCnt = 0;
+        int maxRetries = 3;
+
+        while (retryCnt < maxRetries) {
+            retryCnt++;
+            try {
+                client.failRequest(did.id);
+                break;
+            } catch (AuthorizationException aze) {
+                LOG.error("Not authorized to failRequest from DRPC server", aze);
+                throw new RuntimeException(aze);
+            } catch (TException tex) {
+                if (retryCnt >= maxRetries) {
+                    LOG.error("Failed to fail request", tex);
+                    break;
+                }
+                reconnectSync((DRPCInvocationsClient)client);
+            }
         }
     }
 

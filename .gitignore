@@ -2,9 +2,7 @@
 /classes
 /lib
 deploy/lib
-deploy/logs
 .emacs-project
-*.jar
 bin/jzmq
 .DS_Store
 deploy/classes
@@ -21,23 +19,38 @@ _release
 *.zip
 *.tar.gz
 .lein-deps-sum
-*.iml
 target
 /.project/
 /.lein-plugins/
-*.ipr
-*.iws
-.idea
 #.*
 !/.travis.yml
 !/.gitignore
 _site
 dependency-reduced-pom.xml
-derby.log
 metastore_db
+build
+/docs/javadocs
+*.class
+
+# logs
+logs
+*.log
+
+# Eclipse
 .settings/
 .project
 .classpath
-logs
-build
-/docs/javadocs
+
+# Intellij
+*.iml
+*.ipr
+*.iws
+.idea
+
+# Package Files
+*.jar
+*.war
+*.ear
+
+# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+hs_err_pid*

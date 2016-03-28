@@ -829,6 +829,10 @@ public class TridentTopology {
     protected String getUniqueStateId() {
         return _gen.getUniqueStateId();
     }
+
+    protected String getUniqueWindowId() {
+        return _gen.getUniqueWindowId();
+    }
     
     protected void registerNode(Node n) {
         _graph.addVertex(n);

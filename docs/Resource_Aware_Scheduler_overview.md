@@ -16,6 +16,8 @@ The user can switch to using the Resource Aware Scheduler by setting the followi
 
 ## API Overview
 
+For use with Trident, please see the [Trident RAS API](Trident-RAS-API.html)
+
 For a Storm Topology, the user can now specify the amount of resources a topology component (i.e. Spout or Bolt) is required to run a single instance of the component.  The user can specify the resource requirement for a topology component by using the following API calls.
 
 ### Setting Memory Requirement

@@ -45,7 +45,10 @@ mvn javadoc:javadoc
 mvn javadoc:aggregate -DreportOutputDirectory=./docs/ -DdestDir=javadocs
 cd docs
 mkdir ${path_to_svn}/releases/${release_name}
-cp -r *.md images/ javadocs/ ${path_to_svn}/releases/${release_name}
+#Copy everything over, and compare checksums, except for things that are part of the site,
+# and are not release specific like the _* directories that are jekyll specific
+# assests/ css/ and README.md
+rsync -ac --delete --exclude _\* --exclude assets --exclude css --exclude README.md ./docs/ ${path_to_svn}/releases/${release_name}
 cd ${path_to_svn}
 svn add releases/${release_name}
 svn commit

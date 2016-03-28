@@ -41,8 +41,8 @@ Release documentation is placed under the releases directory named after the rel
 To create a new release run the following from the main git directory
 
 ```
-mvn javadoc:javadoc
-mvn javadoc:aggregate -DreportOutputDirectory=./docs/ -DdestDir=javadocs
+mvn javadoc:javadoc -Dnotimestamp=true
+mvn javadoc:aggregate -DreportOutputDirectory=./docs/ -DdestDir=javadocs -Dnotimestamp=true
 mkdir ${path_to_svn}/releases/${release_name}
 #Copy everything over, and compare checksums, except for things that are part of the site,
 # and are not release specific like the _* directories that are jekyll specific

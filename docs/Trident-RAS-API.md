@@ -41,9 +41,11 @@ Operations that are combined by Trident into single Bolts will have their resour
 Every Bolt is given **at least** the default resources, regardless of user settings.
 
 In the above case, we end up with
- * a spout and spout coordinator with a CPU load of 20% each, and a memory load of 512MiB on-heap and 256MiB off-heap.
- * a bolt with 60% cpu load (10% + 50%) and a memory load of 1536MiB (1024 + 512) on-heap from the combined `Split` and `BangAdder`
- * a bolt with 100% cpu load and a memory load of 2048MiB on-heap, with default value for off-heap.
+
+
+- a spout and spout coordinator with a CPU load of 20% each, and a memory load of 512MiB on-heap and 256MiB off-heap.
+- a bolt with 60% cpu load (10% + 50%) and a memory load of 1536MiB (1024 + 512) on-heap from the combined `Split` and `BangAdder`
+- a bolt with 100% cpu load and a memory load of 2048MiB on-heap, with default value for off-heap.
 
 The API can be called as many times as is desired.
 It may be called after every operation, after some of the operations, or used in the same manner as `parallelismHint()` to set resources for a whole section.

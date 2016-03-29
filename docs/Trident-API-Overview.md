@@ -395,8 +395,8 @@ Example of using `HBaseWindowStoreFactory` for windowing can be seen below.
 Detailed description of all the above APIs in this section can be found [here](javadocs/org/apache/storm/trident/Stream.html)  
 
 #### Example applications
-Example applications of these APIs are located at [TridentHBaseWindowingStoreTopology](https://github.com/apache/storm/blob/master/examples/storm-starter/src/jvm/org/apache/storm/starter/trident/TridentHBaseWindowingStoreTopology.java) 
-and [TridentWindowingInmemoryStoreTopology](https://github.com/apache/storm/blob/master/examples/storm-starter/src/jvm/org/apache/storm/starter/trident/TridentWindowingInmemoryStoreTopology.java) 
+Example applications of these APIs are located at [TridentHBaseWindowingStoreTopology]({{page.git-blob-base}}/examples/storm-starter/src/jvm/org/apache/storm/starter/trident/TridentHBaseWindowingStoreTopology.java) 
+and [TridentWindowingInmemoryStoreTopology]({{page.git-blob-base}}/examples/storm-starter/src/jvm/org/apache/storm/starter/trident/TridentWindowingInmemoryStoreTopology.java) 
 
 
 ### partitionAggregate

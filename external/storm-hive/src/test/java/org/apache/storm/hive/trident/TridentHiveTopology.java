@@ -179,7 +179,7 @@ public class TridentHiveTopology {
         }
 
         @Override
-        public Map<String, Object> getComponentConfiguration() {
+        public Map getComponentConfiguration() {
             Config conf = new Config();
             conf.setMaxTaskParallelism(1);
             return conf;

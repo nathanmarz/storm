@@ -18,7 +18,11 @@
  */
 package org.apache.storm.trident.windowing;
 
+import org.apache.storm.task.TopologyContext;
+import org.apache.storm.trident.planner.processor.TridentContext;
+
 import java.io.Serializable;
+import java.util.Map;
 
 /**
  * Factory to create instances of {@code WindowsStore}.
@@ -29,7 +33,8 @@ public interface WindowsStoreFactory extends Serializable {
     /**
      * Creates a window store
      *
-     * @return
+     * @param stormConf storm topology configuration passed in {@link org.apache.storm.trident.planner.TridentProcessor#prepare(Map, TopologyContext, TridentContext)}
+     *
      */
-    public WindowsStore create();
+    public WindowsStore create(Map stormConf);
 }

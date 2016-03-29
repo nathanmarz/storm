@@ -39,6 +39,13 @@ public class Topologies {
             this.nameToId.put(topology.getName(), entry.getKey());
         }
     }
+
+    /**
+     * copy constructor
+     */
+    public Topologies(Topologies src) {
+        this(src.topologies);
+    }
     
     public TopologyDetails getById(String topologyId) {
         return this.topologies.get(topologyId);
@@ -66,10 +73,6 @@ public class Topologies {
             }
         }
         return _allComponents;
-    }
-
-    public static Topologies getCopy(Topologies topologies) {
-        return new Topologies(topologies.topologies);
     }
 
     @Override

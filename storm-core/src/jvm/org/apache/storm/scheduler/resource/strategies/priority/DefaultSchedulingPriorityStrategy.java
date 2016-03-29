@@ -19,9 +19,8 @@
 package org.apache.storm.scheduler.resource.strategies.priority;
 
 import org.apache.storm.scheduler.Cluster;
-import org.apache.storm.scheduler.Topologies;
 import org.apache.storm.scheduler.TopologyDetails;
-import org.apache.storm.scheduler.resource.RAS_Nodes;
+import org.apache.storm.scheduler.resource.SchedulingState;
 import org.apache.storm.scheduler.resource.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,9 +35,9 @@ public class DefaultSchedulingPriorityStrategy implements ISchedulingPriorityStr
     private Map<String, User> userMap;
 
     @Override
-    public void prepare(Topologies topologies, Cluster cluster, Map<String, User> userMap, RAS_Nodes nodes) {
-        this.cluster = cluster;
-        this.userMap = userMap;
+    public void prepare(SchedulingState schedulingState) {
+        this.cluster = schedulingState.cluster;
+        this.userMap = schedulingState.userMap;
     }
 
     @Override

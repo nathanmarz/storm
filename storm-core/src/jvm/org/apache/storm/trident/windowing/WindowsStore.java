@@ -26,6 +26,7 @@ import java.util.List;
 
 /**
  * Store for storing window related entities like windowed tuples, triggers etc.
+ * {@link WindowKryoSerializer} can be used for kryo serialization/deserialization of keys and values.
  *
  */
 public interface WindowsStore extends Serializable {

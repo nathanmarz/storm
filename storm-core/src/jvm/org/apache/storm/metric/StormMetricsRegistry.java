@@ -17,12 +17,11 @@
  */
 package org.apache.storm.metric;
 
-import clojure.lang.IFn;
-import com.codahale.metrics.Gauge;
-import com.codahale.metrics.Meter;
-import com.codahale.metrics.Metric;
-import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.*;
+
 import java.util.Map;
+import java.util.concurrent.Callable;
+
 import org.apache.storm.daemon.metrics.MetricsUtils;
 import org.apache.storm.daemon.metrics.reporters.PreparableReporter;
 import org.slf4j.Logger;
@@ -39,7 +38,7 @@ public class StormMetricsRegistry {
     }
 
     // TODO: should replace fn to Gauge<Integer> when nimbus.clj is translated to java
-    public static Gauge<Integer> registerGauge(final String name, final IFn fn) {
+    public static Gauge<Integer> registerGauge(final String name, final Callable fn) {
         Gauge<Integer> gauge = new Gauge<Integer>() {
             @Override
             public Integer getValue() {
@@ -52,6 +51,11 @@ public class StormMetricsRegistry {
             }
         };
         return register(name, gauge);
+    }
+
+    public static Histogram registerHistogram(String name, Reservoir reservoir) {
+        Histogram histogram = new Histogram(reservoir);
+        return register(name, histogram);
     }
 
     public static void startMetricsReporters(Map stormConf) {

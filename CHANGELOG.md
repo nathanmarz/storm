@@ -67,6 +67,7 @@
  * STORM-1521: When using Kerberos login from keytab with multiple bolts/executors ticket is not renewed in hbase bolt.
 
 ## 1.0.0
+ * STORM-1660: remove flux gitignore file and move rules to top level gitignore
  * STORM-1634: Refactoring of Resource Aware Scheduler
  * STORM-1030: Hive Connector Fixes
  * STORM-676: Storm Trident support for sliding/tumbling windows

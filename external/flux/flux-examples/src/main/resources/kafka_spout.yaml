@@ -64,7 +64,7 @@ components:
       # id
       - "myId"
     properties:
-      - name: "forceFromStart"
+      - name: "ignoreZkOffsets"
         value: true
       - name: "scheme"
         ref: "stringMultiScheme"

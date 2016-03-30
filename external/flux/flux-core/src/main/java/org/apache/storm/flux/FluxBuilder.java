@@ -59,7 +59,7 @@ public class FluxBuilder {
      * @throws InvocationTargetException
      */
     public static StormTopology buildTopology(ExecutionContext context) throws IllegalAccessException,
-            InstantiationException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException {
+            InstantiationException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, NoSuchFieldException {
 
         StormTopology topology = null;
         TopologyDef topologyDef = context.getTopologyDef();
@@ -145,7 +145,7 @@ public class FluxBuilder {
      */
     private static void buildStreamDefinitions(ExecutionContext context, TopologyBuilder builder)
             throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException,
-            IllegalAccessException {
+            IllegalAccessException, NoSuchFieldException {
         TopologyDef topologyDef = context.getTopologyDef();
         // process stream definitions
         HashMap<String, BoltDeclarer> declarers = new HashMap<String, BoltDeclarer>();
@@ -219,7 +219,7 @@ public class FluxBuilder {
     }
 
     private static void applyProperties(ObjectDef bean, Object instance, ExecutionContext context) throws
-            IllegalAccessException, InvocationTargetException {
+            IllegalAccessException, InvocationTargetException, NoSuchFieldException {
         List<PropertyDef> props = bean.getProperties();
         Class clazz = instance.getClass();
         if (props != null) {
@@ -242,13 +242,8 @@ public class FluxBuilder {
         }
     }
 
-    private static Field findPublicField(Class clazz, String property, Object arg) {
-        Field field = null;
-        try {
-            field = clazz.getField(property);
-        } catch (NoSuchFieldException e) {
-            LOG.warn("Could not find setter or public variable for property: " + property, e);
-        }
+    private static Field findPublicField(Class clazz, String property, Object arg) throws NoSuchFieldException {
+        Field field = clazz.getField(property);
         return field;
     }
 
@@ -284,7 +279,7 @@ public class FluxBuilder {
     }
 
     private static Object buildObject(ObjectDef def, ExecutionContext context) throws ClassNotFoundException,
-            IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
+            IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException, NoSuchFieldException {
         Class clazz = Class.forName(def.getClassName());
         Object obj = null;
         if (def.hasConstructorArgs()) {
@@ -313,7 +308,7 @@ public class FluxBuilder {
 
     private static StormTopology buildExternalTopology(ObjectDef def, ExecutionContext context)
             throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchMethodException,
-            InvocationTargetException {
+            InvocationTargetException, NoSuchFieldException {
 
         Object topologySource = buildObject(def, context);
 
@@ -330,7 +325,7 @@ public class FluxBuilder {
 
     private static CustomStreamGrouping buildCustomStreamGrouping(ObjectDef def, ExecutionContext context)
             throws ClassNotFoundException,
-            IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
+            IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException, NoSuchFieldException {
         Object grouping = buildObject(def, context);
         return (CustomStreamGrouping)grouping;
     }
@@ -340,7 +335,7 @@ public class FluxBuilder {
      * keyed by the component id.
      */
     private static void buildComponents(ExecutionContext context) throws ClassNotFoundException, NoSuchMethodException,
-            IllegalAccessException, InvocationTargetException, InstantiationException {
+            IllegalAccessException, InvocationTargetException, InstantiationException, NoSuchFieldException {
         Collection<BeanDef> cDefs = context.getTopologyDef().getComponents();
         if (cDefs != null) {
             for (BeanDef bean : cDefs) {
@@ -352,7 +347,7 @@ public class FluxBuilder {
 
 
     private static void buildSpouts(ExecutionContext context, TopologyBuilder builder) throws ClassNotFoundException,
-            NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
+            NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException, NoSuchFieldException {
         for (SpoutDef sd : context.getTopologyDef().getSpouts()) {
             IRichSpout spout = buildSpout(sd, context);
             builder.setSpout(sd.getId(), spout, sd.getParallelism());
@@ -365,7 +360,7 @@ public class FluxBuilder {
      * in the given spout class. Perform list to array conversion as necessary.
      */
     private static IRichSpout buildSpout(SpoutDef def, ExecutionContext context) throws ClassNotFoundException,
-            IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
+            IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException, NoSuchFieldException {
         return (IRichSpout)buildObject(def, context);
     }
 
@@ -374,7 +369,7 @@ public class FluxBuilder {
      * Attempt to coerce the given constructor arguments to a matching bolt constructor as much as possible.
      */
     private static void buildBolts(ExecutionContext context) throws ClassNotFoundException, IllegalAccessException,
-            InstantiationException, NoSuchMethodException, InvocationTargetException {
+            InstantiationException, NoSuchMethodException, InvocationTargetException, NoSuchFieldException {
         for (BoltDef def : context.getTopologyDef().getBolts()) {
             Class clazz = Class.forName(def.getClassName());
             Object bolt = buildObject(def, context);

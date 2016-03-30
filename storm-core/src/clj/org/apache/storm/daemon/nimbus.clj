@@ -1885,7 +1885,8 @@
               executor-summaries (dofor [[executor [node port]] (:executor->node+port assignment)]
                                    (let [host (-> assignment :node->host (get node))
                                             heartbeat (.get beats (StatsUtil/convertExecutor executor))
-                                            excutorstats (.get (.get heartbeat "heartbeat") "stats")
+                                            hb (if heartbeat (.get heartbeat "heartbeat"))
+                                            excutorstats (if hb (.get hb "stats"))
                                             excutorstats (if excutorstats
                                                     (StatsUtil/thriftifyExecutorStats excutorstats))]
                                           (doto

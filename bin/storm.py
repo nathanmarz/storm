@@ -534,7 +534,7 @@ def nimbus(klass="org.apache.storm.daemon.nimbus"):
         extrajars=cppaths,
         jvmopts=jvmopts)
 
-def pacemaker(klass="org.apache.storm.pacemaker.pacemaker"):
+def pacemaker(klass="org.apache.storm.pacemaker.Pacemaker"):
     """Syntax: [storm pacemaker]
 
     Launches the Pacemaker daemon. This command should be run under

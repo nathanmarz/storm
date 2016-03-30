@@ -23,7 +23,7 @@ import org.apache.storm.generated.LSWorkerHeartbeat;
 
 public class StateHeartbeat {
     private State state;
-    private LSWorkerHeartbeat hb;
+    private final LSWorkerHeartbeat hb;
 
     public StateHeartbeat(State state, LSWorkerHeartbeat hb) {
         this.state = state;

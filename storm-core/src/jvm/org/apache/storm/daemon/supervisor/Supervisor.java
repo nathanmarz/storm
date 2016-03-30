@@ -43,9 +43,8 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 
 public class Supervisor {
-    private static Logger LOG = LoggerFactory.getLogger(Supervisor.class);
-
-    // TODO: to be removed after porting worker.clj. localSyncProcess is intended to start local supervisor
+    private static final Logger LOG = LoggerFactory.getLogger(Supervisor.class);
+    
     private SyncProcessEvent localSyncProcess;
 
     public void setLocalSyncProcess(SyncProcessEvent localSyncProcess) {

@@ -3,7 +3,7 @@ title: Storm and Kestrel
 layout: documentation
 documentation: true
 ---
-This page explains how to use to Storm to consume items from a Kestrel cluster.
+This page explains how to use Storm to consume items from a Kestrel cluster.
 
 ## Preliminaries
 ### Storm

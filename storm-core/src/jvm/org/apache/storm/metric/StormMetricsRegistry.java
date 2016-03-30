@@ -17,11 +17,8 @@
  */
 package org.apache.storm.metric;
 
-import clojure.lang.IFn;
-import com.codahale.metrics.Gauge;
-import com.codahale.metrics.Meter;
-import com.codahale.metrics.Metric;
-import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.*;
+
 import java.util.Map;
 import java.util.concurrent.Callable;
 
@@ -54,6 +51,11 @@ public class StormMetricsRegistry {
             }
         };
         return register(name, gauge);
+    }
+
+    public static Histogram registerHistogram(String name, Reservoir reservoir) {
+        Histogram histogram = new Histogram(reservoir);
+        return register(name, histogram);
     }
 
     public static void startMetricsReporters(Map stormConf) {

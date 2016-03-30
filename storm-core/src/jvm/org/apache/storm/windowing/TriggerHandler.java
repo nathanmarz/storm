@@ -21,7 +21,7 @@ package org.apache.storm.windowing;
  * The callback fired by {@link TriggerPolicy} when the trigger
  * condition is satisfied.
  */
-interface TriggerHandler {
+public interface TriggerHandler {
     /**
      * The code to execute when the {@link TriggerPolicy} condition is satisfied.
      *

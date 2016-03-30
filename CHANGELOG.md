@@ -1,4 +1,6 @@
 ## 2.0.0
+ * STORM-1610: port pacemaker_state_factory_test.clj to java
+ * STORM-1611: port org.apache.storm.pacemaker.pacemaker to java
  * STORM-1268: port builtin-metrics to java
  * STORM-1648: drpc spout reconnect on failure
  * STORM-1631: Storm CGroup bugs
@@ -65,6 +67,13 @@
  * STORM-1521: When using Kerberos login from keytab with multiple bolts/executors ticket is not renewed in hbase bolt.
 
 ## 1.0.0
+ * STORM-1634: Refactoring of Resource Aware Scheduler
+ * STORM-1030: Hive Connector Fixes
+ * STORM-676: Storm Trident support for sliding/tumbling windows
+ * STORM-1630: Add guide page for Windows users
+ * STORM-1655: Flux doesn't set return code to non-zero when there's any exception while deploying topology to remote cluster
+ * STORM-1537: Upgrade to kryo3 in master
+ * STORM-1654: HBaseBolt creates tick tuples with no interval when we don't set flushIntervalSecs
  * STORM-1625: Move storm-sql dependencies out of lib folder
  * STORM-1556: nimbus.clj/wait-for-desired-code-replication wrong reset for current-replication-count-jar in local mode
  * STORM-1636: Supervisor shutdown with worker id pass in being nil

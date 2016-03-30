@@ -18,17 +18,21 @@
 package org.apache.storm.trident.fluent;
 
 public class UniqueIdGen {
-    int _streamCounter = 0;
-    
+    private int _streamCounter = 0;
+    private int _stateCounter = 0;
+    private int windowCounter = 0;
+
     public String getUniqueStreamId() {
         _streamCounter++;
         return "s" + _streamCounter;
     }
 
-    int _stateCounter = 0;
-    
     public String getUniqueStateId() {
         _stateCounter++;
         return "state" + _stateCounter;
-    }    
+    }
+
+    public String getUniqueWindowId() {
+        return "w"+ (++windowCounter);
+    }
 }

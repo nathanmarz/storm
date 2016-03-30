@@ -92,18 +92,17 @@ public class Cluster {
     }
 
     /**
-     * Get a copy of this cluster object
+     * Copy constructor
      */
-    public static Cluster getCopy(Cluster cluster) {
-        HashMap<String, SchedulerAssignmentImpl> newAssignments = new HashMap<String, SchedulerAssignmentImpl>();
-        for (Map.Entry<String, SchedulerAssignmentImpl> entry : cluster.assignments.entrySet()) {
-            newAssignments.put(entry.getKey(), new SchedulerAssignmentImpl(entry.getValue().getTopologyId(), entry.getValue().getExecutorToSlot()));
+    public Cluster(Cluster src) {
+        this(src.inimbus, src.supervisors, new HashMap<String, SchedulerAssignmentImpl>(), new HashMap<String, Object>(src.conf));
+        this.supervisorsResources.putAll(src.supervisorsResources);
+        for (Map.Entry<String, SchedulerAssignmentImpl> entry : src.assignments.entrySet()) {
+            this.assignments.put(entry.getKey(), new SchedulerAssignmentImpl(entry.getValue().getTopologyId(), entry.getValue().getExecutorToSlot()));
         }
-        Map newConf = new HashMap<String, Object>();
-        newConf.putAll(cluster.conf);
-        Cluster copy = new Cluster(cluster.inimbus, cluster.supervisors, newAssignments, newConf);
-        copy.status = new HashMap<>(cluster.status);
-        return copy;
+        this.status.putAll(src.status);
+        this.topologyResources.putAll(src.topologyResources);
+        this.blackListedHosts.addAll(src.blackListedHosts);
     }
     
     public void setBlacklistedHosts(Set<String> hosts) {

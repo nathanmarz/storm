@@ -21,6 +21,7 @@ import org.apache.storm.generated.Grouping;
 import org.apache.storm.generated.NullStruct;
 import org.apache.storm.grouping.CustomStreamGrouping;
 import org.apache.storm.topology.ResourceDeclarer;
+import org.apache.storm.topology.base.BaseWindowedBolt;
 import org.apache.storm.trident.fluent.ChainedAggregatorDeclarer;
 import org.apache.storm.trident.fluent.GlobalAggregationScheme;
 import org.apache.storm.trident.fluent.GroupedStream;
@@ -68,10 +69,22 @@ import org.apache.storm.trident.state.StateSpec;
 import org.apache.storm.trident.state.StateUpdater;
 import org.apache.storm.trident.tuple.TridentTuple;
 import org.apache.storm.trident.util.TridentUtils;
+import org.apache.storm.trident.windowing.InMemoryWindowsStoreFactory;
+import org.apache.storm.trident.windowing.WindowTridentProcessor;
+import org.apache.storm.trident.windowing.WindowsStateFactory;
+import org.apache.storm.trident.windowing.WindowsStateUpdater;
+import org.apache.storm.trident.windowing.WindowsStoreFactory;
+import org.apache.storm.trident.windowing.config.SlidingCountWindow;
+import org.apache.storm.trident.windowing.config.SlidingDurationWindow;
+import org.apache.storm.trident.windowing.config.TumblingCountWindow;
+import org.apache.storm.trident.windowing.config.TumblingDurationWindow;
+import org.apache.storm.trident.windowing.config.WindowConfig;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.utils.Utils;
 
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 
 /**
  * A Stream represents the core data model in Trident, and can be thought of as a "stream" of tuples that are processed
@@ -92,10 +105,10 @@ import java.util.Comparator;
  */
 // TODO: need to be able to replace existing fields with the function fields (like Cascading Fields.REPLACE)
 public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
-    Node _node;
-    TridentTopology _topology;
-    String _name;
-    
+    final Node _node;
+    final String _name;
+    private final TridentTopology _topology;
+
     protected Stream(TridentTopology topology, String name, Node node) {
         _topology = topology;
         _node = node;
@@ -180,7 +193,7 @@ public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
      */
     public GroupedStream groupBy(Fields fields) {
         projectionValidation(fields);
-        return new GroupedStream(this, fields);        
+        return new GroupedStream(this, fields);
     }
 
     /**
@@ -287,7 +300,7 @@ public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
         if(_node instanceof PartitionNode) {
             return each(new Fields(), new TrueFilter()).partition(grouping);
         } else {
-            return _topology.addSourcedNode(this, new PartitionNode(_node.streamId, _name, getOutputFields(), grouping));       
+            return _topology.addSourcedNode(this, new PartitionNode(_node.streamId, _name, getOutputFields(), grouping));
         }
     }
 
@@ -323,7 +336,7 @@ public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
                     functionFields,
                     new AggregateProcessor(inputFields, agg)));
     }
-    
+
     public Stream stateQuery(TridentState state, Fields inputFields, QueryFunction function, Fields functionFields) {
         projectionValidation(inputFields);
         String stateId = state._node.stateInfo.id;
@@ -335,11 +348,11 @@ public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
         _topology._colocate.get(stateId).add(n);
         return _topology.addSourcedNode(this, n);
     }
-    
+
     public TridentState partitionPersist(StateFactory stateFactory, Fields inputFields, StateUpdater updater, Fields functionFields) {
       return partitionPersist(new StateSpec(stateFactory), inputFields, updater, functionFields);
     }
-    
+
     public TridentState partitionPersist(StateSpec stateSpec, Fields inputFields, StateUpdater updater, Fields functionFields) {
         projectionValidation(inputFields);
         String id = _topology.getUniqueStateId();
@@ -352,19 +365,19 @@ public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
         n.stateInfo = new NodeStateInfo(id, stateSpec);
         return _topology.addSourcedStateNode(this, n);
     }
-    
+
     public TridentState partitionPersist(StateFactory stateFactory, Fields inputFields, StateUpdater updater) {
       return partitionPersist(stateFactory, inputFields, updater, new Fields());
     }
-    
+
     public TridentState partitionPersist(StateSpec stateSpec, Fields inputFields, StateUpdater updater) {
-      return partitionPersist(stateSpec, inputFields, updater, new Fields());        
+      return partitionPersist(stateSpec, inputFields, updater, new Fields());
     }
-    
+
     public Stream each(Function function, Fields functionFields) {
         return each(null, function, functionFields);
     }
-    
+
     public Stream each(Fields inputFields, Filter filter) {
         return each(inputFields, new FilterExecutor(filter), new Fields());
     }
@@ -448,7 +461,7 @@ public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
     public ChainedAggregatorDeclarer chainedAgg() {
         return new ChainedAggregatorDeclarer(this, new BatchGlobalAggScheme());
     }
-    
+
     public Stream partitionAggregate(Aggregator agg, Fields functionFields) {
         return partitionAggregate(null, agg, functionFields);
     }
@@ -462,8 +475,8 @@ public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
         return chainedAgg()
                .partitionAggregate(inputFields, agg, functionFields)
                .chainEnd();
-    }  
-    
+    }
+
     public Stream partitionAggregate(ReducerAggregator agg, Fields functionFields) {
         return partitionAggregate(null, agg, functionFields);
     }
@@ -565,7 +578,7 @@ public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
     public Stream aggregate(Aggregator agg, Fields functionFields) {
         return aggregate(null, agg, functionFields);
     }
-    
+
     public Stream aggregate(Fields inputFields, Aggregator agg, Fields functionFields) {
         projectionValidation(inputFields);
         return chainedAgg()
@@ -594,19 +607,157 @@ public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
                 .aggregate(inputFields, agg, functionFields)
                 .chainEnd();
     }
-    
+
+    /**
+     * Returns a stream of tuples which are aggregated results of a tumbling window with every {@code windowCount} of tuples.
+     *
+     * @param windowCount represents number of tuples in the window
+     * @param windowStoreFactory intermediary tuple store for storing windowing tuples
+     * @param inputFields projected fields for aggregator
+     * @param aggregator aggregator to run on the window of tuples to compute the result and emit to the stream.
+     * @param functionFields fields of values to emit with aggregation.
+     *
+     * @return the new stream with this operation.
+     */
+    public Stream tumblingWindow(int windowCount, WindowsStoreFactory windowStoreFactory,
+                                      Fields inputFields, Aggregator aggregator, Fields functionFields) {
+        return window(TumblingCountWindow.of(windowCount), windowStoreFactory, inputFields, aggregator, functionFields);
+    }
+
+    /**
+     * Returns a stream of tuples which are aggregated results of a sliding window with every {@code windowCount} of tuples
+     * and slides the window after {@code slideCount}.
+     *
+     * @param windowCount represents tuples count of a window
+     * @param slideCount the number of tuples after which the window slides
+     * @param windowStoreFactory intermediary tuple store for storing windowing tuples
+     * @param inputFields projected fields for aggregator
+     * @param aggregator aggregator to run on the window of tuples to compute the result and emit to the stream.
+     * @param functionFields fields of values to emit with aggregation.
+     *
+     * @return the new stream with this operation.
+     */
+    public Stream slidingWindow(int windowCount, int slideCount, WindowsStoreFactory windowStoreFactory,
+                                     Fields inputFields, Aggregator aggregator, Fields functionFields) {
+        return window(SlidingCountWindow.of(windowCount, slideCount), windowStoreFactory, inputFields, aggregator, functionFields);
+    }
+
+    /**
+     * Returns a stream of tuples which are aggregated results of a window that tumbles at duration of {@code windowDuration}
+     *
+     * @param windowDuration represents tumbling window duration configuration
+     * @param windowStoreFactory intermediary tuple store for storing windowing tuples
+     * @param inputFields projected fields for aggregator
+     * @param aggregator aggregator to run on the window of tuples to compute the result and emit to the stream.
+     * @param functionFields fields of values to emit with aggregation.
+     *
+     * @return the new stream with this operation.
+     */
+    public Stream tumblingWindow(BaseWindowedBolt.Duration windowDuration, WindowsStoreFactory windowStoreFactory,
+                                     Fields inputFields, Aggregator aggregator, Fields functionFields) {
+        return window(TumblingDurationWindow.of(windowDuration), windowStoreFactory, inputFields, aggregator, functionFields);
+    }
+
+    /**
+     * Returns a stream of tuples which are aggregated results of a window which slides at duration of {@code slidingInterval}
+     * and completes a window at {@code windowDuration}
+     *
+     * @param windowDuration represents window duration configuration
+     * @param slidingInterval the time duration after which the window slides
+     * @param windowStoreFactory intermediary tuple store for storing windowing tuples
+     * @param inputFields projected fields for aggregator
+     * @param aggregator aggregator to run on the window of tuples to compute the result and emit to the stream.
+     * @param functionFields fields of values to emit with aggregation.
+     *
+     * @return the new stream with this operation.
+     */
+    public Stream slidingWindow(BaseWindowedBolt.Duration windowDuration, BaseWindowedBolt.Duration slidingInterval,
+                                    WindowsStoreFactory windowStoreFactory, Fields inputFields, Aggregator aggregator, Fields functionFields) {
+        return window(SlidingDurationWindow.of(windowDuration, slidingInterval), windowStoreFactory, inputFields, aggregator, functionFields);
+    }
+
+    /**
+     * Returns a stream of aggregated results based on the given window configuration which uses inmemory windowing tuple store.
+     *
+     * @param windowConfig window configuration like window length and slide length.
+     * @param inputFields input fields
+     * @param aggregator aggregator to run on the window of tuples to compute the result and emit to the stream.
+     * @param functionFields fields of values to emit with aggregation.
+     *
+     * @return the new stream with this operation.
+     */
+    public Stream window(WindowConfig windowConfig, Fields inputFields, Aggregator aggregator, Fields functionFields) {
+        // this store is used only for storing triggered aggregated results but not tuples as storeTuplesInStore is set
+        // as false int he below call.
+        InMemoryWindowsStoreFactory inMemoryWindowsStoreFactory = new InMemoryWindowsStoreFactory();
+        return window(windowConfig, inMemoryWindowsStoreFactory, inputFields, aggregator, functionFields, false);
+    }
+
+    /**
+     * Returns stream of aggregated results based on the given window configuration.
+     *
+     * @param windowConfig window configuration like window length and slide length.
+     * @param windowStoreFactory intermediary tuple store for storing tuples for windowing
+     * @param inputFields input fields
+     * @param aggregator aggregator to run on the window of tuples to compute the result and emit to the stream.
+     * @param functionFields fields of values to emit with aggregation.
+     *
+     * @return the new stream with this operation.
+     */
+    public Stream window(WindowConfig windowConfig, WindowsStoreFactory windowStoreFactory, Fields inputFields,
+                         Aggregator aggregator, Fields functionFields) {
+        return window(windowConfig, windowStoreFactory, inputFields, aggregator, functionFields, true);
+    }
+
+    private Stream window(WindowConfig windowConfig, WindowsStoreFactory windowStoreFactory, Fields inputFields, Aggregator aggregator,
+                          Fields functionFields, boolean storeTuplesInStore) {
+        projectionValidation(inputFields);
+        windowConfig.validate();
+
+        Fields fields = addTriggerField(functionFields);
+
+        // when storeTuplesInStore is false then the given windowStoreFactory is only used to store triggers and
+        // that store is passed to WindowStateUpdater to remove them after committing the batch.
+        Stream stream = _topology.addSourcedNode(this,
+                new ProcessorNode(_topology.getUniqueStreamId(),
+                        _name,
+                        fields,
+                        fields,
+                        new WindowTridentProcessor(windowConfig, _topology.getUniqueWindowId(), windowStoreFactory,
+                                inputFields, aggregator, storeTuplesInStore)));
+
+        Stream effectiveStream = stream.project(functionFields);
+
+        // create StateUpdater with the given windowStoreFactory to remove triggered aggregation results form store
+        // when they are successfully processed.
+        StateFactory stateFactory = new WindowsStateFactory();
+        StateUpdater stateUpdater = new WindowsStateUpdater(windowStoreFactory);
+        stream.partitionPersist(stateFactory, new Fields(WindowTridentProcessor.TRIGGER_FIELD_NAME), stateUpdater, new Fields());
+
+        return effectiveStream;
+    }
+
+    private Fields addTriggerField(Fields functionFields) {
+        List<String> fieldsList = new ArrayList<>();
+        fieldsList.add(WindowTridentProcessor.TRIGGER_FIELD_NAME);
+        for (String field : functionFields) {
+            fieldsList.add(field);
+        }
+        return new Fields(fieldsList);
+    }
+
     public TridentState partitionPersist(StateFactory stateFactory, StateUpdater updater, Fields functionFields) {
         return partitionPersist(new StateSpec(stateFactory), updater, functionFields);
     }
-    
+
     public TridentState partitionPersist(StateSpec stateSpec, StateUpdater updater, Fields functionFields) {
         return partitionPersist(stateSpec, null, updater, functionFields);
     }
-    
+
     public TridentState partitionPersist(StateFactory stateFactory, StateUpdater updater) {
         return partitionPersist(stateFactory, updater, new Fields());
     }
-    
+
     public TridentState partitionPersist(StateSpec stateSpec, StateUpdater updater) {
         return partitionPersist(stateSpec, updater, new Fields());
     }
@@ -622,7 +773,7 @@ public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
     public TridentState persistentAggregate(StateFactory stateFactory, Fields inputFields, CombinerAggregator agg, Fields functionFields) {
         return persistentAggregate(new StateSpec(stateFactory), inputFields, agg, functionFields);
     }
-    
+
     public TridentState persistentAggregate(StateSpec spec, Fields inputFields, CombinerAggregator agg, Fields functionFields) {
         projectionValidation(inputFields);
         // replaces normal aggregation here with a global grouping because it needs to be consistent across batches 
@@ -648,7 +799,7 @@ public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
         projectionValidation(inputFields);
         return global().partitionPersist(spec, inputFields, new ReducerAggStateUpdater(agg), functionFields);
     }
-    
+
     public Stream stateQuery(TridentState state, QueryFunction function, Fields functionFields) {
         return stateQuery(state, null, function, functionFields);
     }
@@ -662,7 +813,7 @@ public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
     public Fields getOutputFields() {
         return _node.allOutputFields;
     }
-    
+
     static class BatchGlobalAggScheme implements GlobalAggregationScheme<Stream> {
 
         @Override
@@ -674,9 +825,9 @@ public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
         public BatchToPartition singleEmitPartitioner() {
             return new IndexHashBatchToPartition();
         }
-        
+
     }
-    
+
     static class GlobalAggScheme implements GlobalAggregationScheme<Stream> {
 
         @Override
@@ -688,7 +839,7 @@ public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
         public BatchToPartition singleEmitPartitioner() {
             return new GlobalBatchToPartition();
         }
-        
+
     }
 
     private void projectionValidation(Fields projFields) {

@@ -17,23 +17,23 @@
  */
 package org.apache.storm.security.serialization;
 
-import java.util.Map;
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.Serializer;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
+import com.esotericsoftware.kryo.serializers.BlowfishSerializer;
+
 import org.apache.commons.codec.binary.Hex;
+import org.apache.storm.Config;
+import org.apache.storm.serialization.types.ListDelegateSerializer;
+import org.apache.storm.utils.ListDelegate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
+
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
-
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
-import com.esotericsoftware.kryo.Serializer;
-import com.esotericsoftware.kryo.serializers.BlowfishSerializer;
-
-import org.apache.storm.serialization.types.ListDelegateSerializer;
-import org.apache.storm.utils.ListDelegate;
-import org.apache.storm.Config;
 
 /**
  * Apply Blowfish encryption for tuple communication to bolts
@@ -66,12 +66,12 @@ public class BlowfishTupleSerializer extends Serializer<ListDelegate> {
 
     @Override
     public void write(Kryo kryo, Output output, ListDelegate object) {
-        _serializer.write(kryo, output, object);
+        kryo.writeObject(output, object, _serializer);
     }
 
     @Override
     public ListDelegate read(Kryo kryo, Input input, Class<ListDelegate> type) {
-        return (ListDelegate)_serializer.read(kryo, input, type);
+        return kryo.readObject(input, ListDelegate.class, _serializer);
     }
 
     /**

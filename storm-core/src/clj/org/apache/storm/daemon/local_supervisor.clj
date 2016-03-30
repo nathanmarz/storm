@@ -34,8 +34,8 @@
                  workerId)]
     (ConfigUtils/setWorkerUserWSE conf workerId "")
     (ProcessSimulator/registerProcess pid worker)
-    (.put (.getWorkerThreadPids supervisorData) workerId pid)
-    ))
+    (.put (.getWorkerThreadPids supervisorData) workerId pid)))
+
 (defn shutdown-local-worker [supervisorData worker-manager workerId]
   (log-message "shutdown-local-worker")
   (let [supervisor-id (.getSupervisorId supervisorData)

@@ -28,6 +28,7 @@ Trident is an alternative interface to Storm. It provides exactly-once processin
 * [Trident API Overview](Trident-API-Overview.html) -- operations for transforming and orchestrating data
 * [Trident State](Trident-state.html)        -- exactly-once processing and fast, persistent aggregation
 * [Trident spouts](Trident-spouts.html)       -- transactional and non-transactional data intake
+* [Trident RAS API](Trident-RAS-API.html)     -- using the Resource Aware Scheduler with Trident.
 
 ### Setup and Deploying
 
@@ -40,7 +41,8 @@ Trident is an alternative interface to Storm. It provides exactly-once processin
 * [CGroup Enforcement](cgroups_in_storm.html)
 * [Pacemaker reduces load on zookeeper for large clusters](Pacemaker.html)
 * [Resource Aware Scheduler](Resource_Aware_Scheduler_overview.html)
-* [Deamon Metrics/Monitoring](storm-metrics-profiling-internal-actions.html)
+* [Daemon Metrics/Monitoring](storm-metrics-profiling-internal-actions.html)
+* [Windows users guide](windows-users-guide.html)
 
 ### Intermediate
 
@@ -63,15 +65,19 @@ Trident is an alternative interface to Storm. It provides exactly-once processin
 * [Worker Profiling](dynamic-worker-profiling.html)
 
 ### Integration With External Systems, and Other Libraries
-* [Event Hubs Intergration](storm-eventhubs.html)
+* [Apache Kafka Integration](storm-kafka.html)
 * [Apache HBase Integration](storm-hbase.html)
 * [Apache HDFS Integration](storm-hdfs.html)
 * [Apache Hive Integration](storm-hive.html)
+* [Apache Solr Integration](storm-solr.html)
 * [JDBC Integration](storm-jdbc.html)
-* [Apache Kafka Integration](storm-kafka.html)
-* [REDIS Integration](storm-redis.html) 
-* [Kestrel and Storm](Kestrel-and-Storm.html)
-* [Solr Integration](storm-solr.html)
+* [Redis Integration](storm-redis.html) 
+* [Cassandra Integration](storm-cassandra.html)
+* [Event Hubs Intergration](storm-eventhubs.html)
+* [Elasticsearch Integration](storm-elasticsearch.html)
+* [MQTT Integration](storm-mqtt.html)
+* [Mongodb Integration](storm-mongodb.html)
+* [Kestrel Integration](Kestrel-and-Storm.html)
 
 ### Advanced
 

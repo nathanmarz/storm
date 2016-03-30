@@ -19,10 +19,10 @@
 package org.apache.storm.scheduler.resource.strategies.eviction;
 
 import org.apache.storm.scheduler.Cluster;
-import org.apache.storm.scheduler.Topologies;
 import org.apache.storm.scheduler.TopologyDetails;
 import org.apache.storm.scheduler.WorkerSlot;
 import org.apache.storm.scheduler.resource.RAS_Nodes;
+import org.apache.storm.scheduler.resource.SchedulingState;
 import org.apache.storm.scheduler.resource.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,10 +39,10 @@ public class DefaultEvictionStrategy implements IEvictionStrategy {
     private RAS_Nodes nodes;
 
     @Override
-    public void prepare(Topologies topologies, Cluster cluster, Map<String, User> userMap, RAS_Nodes nodes) {
-        this.cluster = cluster;
-        this.userMap = userMap;
-        this.nodes = nodes;
+    public void prepare(SchedulingState schedulingState) {
+        this.cluster = schedulingState.cluster;
+        this.userMap = schedulingState.userMap;
+        this.nodes = schedulingState.nodes;
     }
 
     @Override

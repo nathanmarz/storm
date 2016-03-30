@@ -36,11 +36,11 @@ public class HiveOptions implements Serializable {
     protected String tableName;
     protected String metaStoreURI;
     protected Integer txnsPerBatch = 100;
-    protected Integer maxOpenConnections = 500;
+    protected Integer maxOpenConnections = 10;
     protected Integer batchSize = 15000;
-    protected Integer idleTimeout = 0;
-    protected Integer callTimeout = 10000;
-    protected Integer heartBeatInterval = 240;
+    protected Integer idleTimeout = 60000;
+    protected Integer callTimeout = 0;
+    protected Integer heartBeatInterval = 60;
     protected Boolean autoCreatePartitions = true;
     protected String kerberosPrincipal;
     protected String kerberosKeytab;

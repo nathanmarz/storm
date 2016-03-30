@@ -30,9 +30,12 @@ import java.util.TreeMap;
 import java.util.HashSet;
 import java.util.Iterator;
 
-import org.apache.storm.scheduler.resource.ClusterStateData.NodeDetails;
-import org.apache.storm.scheduler.resource.ClusterStateData;
+import org.apache.storm.scheduler.Cluster;
+import org.apache.storm.scheduler.Topologies;
+import org.apache.storm.scheduler.resource.RAS_Node;
+import org.apache.storm.scheduler.resource.RAS_Nodes;
 import org.apache.storm.scheduler.resource.SchedulingResult;
+import org.apache.storm.scheduler.resource.SchedulingState;
 import org.apache.storm.scheduler.resource.SchedulingStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,25 +47,21 @@ import org.apache.storm.scheduler.resource.Component;
 
 public class DefaultResourceAwareStrategy implements IStrategy {
     private static final Logger LOG = LoggerFactory.getLogger(DefaultResourceAwareStrategy.class);
-    private ClusterStateData _clusterStateData;
-    //Map key is the supervisor id and the value is the corresponding RAS_Node Object
-    private Map<String, NodeDetails> _availNodes;
-    private NodeDetails refNode = null;
-    /**
-     * supervisor id -> Node
-     */
-    private Map<String, NodeDetails> _nodes;
+    private Cluster _cluster;
+    private Topologies _topologies;
+    private RAS_Node refNode = null;
     private Map<String, List<String>> _clusterInfo;
+    private RAS_Nodes _nodes;
 
     private final double CPU_WEIGHT = 1.0;
     private final double MEM_WEIGHT = 1.0;
     private final double NETWORK_WEIGHT = 1.0;
 
-    public void prepare (ClusterStateData clusterStateData) {
-        _clusterStateData = clusterStateData;
-        _nodes = clusterStateData.nodes;
-        _availNodes = this.getAvailNodes();
-        _clusterInfo = _clusterStateData.getNetworkTopography();
+    public void prepare (SchedulingState schedulingState) {
+        _cluster = schedulingState.cluster;
+        _topologies = schedulingState.topologies;
+        _nodes = schedulingState.nodes;
+        _clusterInfo = schedulingState.cluster.getNetworkTopography();
         LOG.debug(this.getClusterInfo());
     }
 
@@ -84,11 +83,11 @@ public class DefaultResourceAwareStrategy implements IStrategy {
     }
 
     public SchedulingResult schedule(TopologyDetails td) {
-        if (_availNodes.size() <= 0) {
+        if (_nodes.getNodes().size() <= 0) {
             LOG.warn("No available nodes to schedule tasks on!");
             return SchedulingResult.failure(SchedulingStatus.FAIL_NOT_ENOUGH_RESOURCES, "No available nodes to schedule tasks on!");
         }
-        Collection<ExecutorDetails> unassignedExecutors = _clusterStateData.getUnassignedExecutors(td.getId());
+        Collection<ExecutorDetails> unassignedExecutors = _cluster.getUnassignedExecutors(td);
         Map<WorkerSlot, Collection<ExecutorDetails>> schedulerAssignmentMap = new HashMap<>();
         LOG.debug("ExecutorsNeedScheduling: {}", unassignedExecutors);
         Collection<ExecutorDetails> scheduledTasks = new ArrayList<>();
@@ -149,7 +148,7 @@ public class DefaultResourceAwareStrategy implements IStrategy {
             Collection<ExecutorDetails>> schedulerAssignmentMap, Collection<ExecutorDetails> scheduledTasks) {
         WorkerSlot targetSlot = this.findWorkerForExec(exec, td, schedulerAssignmentMap);
         if (targetSlot != null) {
-            NodeDetails targetNode = this.idToNode(targetSlot.getNodeId());
+            RAS_Node targetNode = this.idToNode(targetSlot.getNodeId());
             if (!schedulerAssignmentMap.containsKey(targetSlot)) {
                 schedulerAssignmentMap.put(targetSlot, new LinkedList<ExecutorDetails>());
             }
@@ -189,7 +188,7 @@ public class DefaultResourceAwareStrategy implements IStrategy {
     private WorkerSlot getBestWorker(ExecutorDetails exec, TopologyDetails td, String clusterId, Map<WorkerSlot, Collection<ExecutorDetails>> scheduleAssignmentMap) {
         double taskMem = td.getTotalMemReqTask(exec);
         double taskCPU = td.getTotalCpuReqTask(exec);
-        List<NodeDetails> nodes;
+        List<RAS_Node> nodes;
         if(clusterId != null) {
             nodes = this.getAvailableNodesFromCluster(clusterId);
             
@@ -197,8 +196,8 @@ public class DefaultResourceAwareStrategy implements IStrategy {
             nodes = this.getAvailableNodes();
         }
         //First sort nodes by distance
-        TreeMap<Double, NodeDetails> nodeRankMap = new TreeMap<>();
-        for (NodeDetails n : nodes) {
+        TreeMap<Double, RAS_Node> nodeRankMap = new TreeMap<>();
+        for (RAS_Node n : nodes) {
             if(n.getFreeSlots().size()>0) {
                 if (n.getAvailableMemoryResources() >= taskMem
                         && n.getAvailableCpuResources() >= taskCPU) {
@@ -217,8 +216,8 @@ public class DefaultResourceAwareStrategy implements IStrategy {
             }
         }
         //Then, pick worker from closest node that satisfy constraints
-        for(Map.Entry<Double, NodeDetails> entry : nodeRankMap.entrySet()) {
-            NodeDetails n = entry.getValue();
+        for(Map.Entry<Double, RAS_Node> entry : nodeRankMap.entrySet()) {
+            RAS_Node n = entry.getValue();
             for(WorkerSlot ws : n.getFreeSlots()) {
                 if(checkWorkerConstraints(exec, ws, td, scheduleAssignmentMap)) {
                     return ws;
@@ -245,15 +244,15 @@ public class DefaultResourceAwareStrategy implements IStrategy {
     private Double getTotalClusterRes(List<String> cluster) {
         Double res = 0.0;
         for (String node : cluster) {
-            res += _availNodes.get(this.NodeHostnameToId(node))
+            res += _nodes.getNodeById(this.NodeHostnameToId(node))
                     .getAvailableMemoryResources()
-                    + _availNodes.get(this.NodeHostnameToId(node))
+                    + _nodes.getNodeById(this.NodeHostnameToId(node))
                     .getAvailableCpuResources();
         }
         return res;
     }
 
-    private Double distToNode(NodeDetails src, NodeDetails dest) {
+    private Double distToNode(RAS_Node src, RAS_Node dest) {
         if (src.getId().equals(dest.getId())) {
             return 0.0;
         } else if (this.NodeToCluster(src).equals(this.NodeToCluster(dest))) {
@@ -263,7 +262,7 @@ public class DefaultResourceAwareStrategy implements IStrategy {
         }
     }
 
-    private String NodeToCluster(NodeDetails node) {
+    private String NodeToCluster(RAS_Node node) {
         for (Entry<String, List<String>> entry : _clusterInfo
                 .entrySet()) {
             if (entry.getValue().contains(node.getHostname())) {
@@ -274,27 +273,27 @@ public class DefaultResourceAwareStrategy implements IStrategy {
         return null;
     }
     
-    private List<NodeDetails> getAvailableNodes() {
-        LinkedList<NodeDetails> nodes = new LinkedList<>();
+    private List<RAS_Node> getAvailableNodes() {
+        LinkedList<RAS_Node> nodes = new LinkedList<>();
         for (String clusterId : _clusterInfo.keySet()) {
             nodes.addAll(this.getAvailableNodesFromCluster(clusterId));
         }
         return nodes;
     }
 
-    private List<NodeDetails> getAvailableNodesFromCluster(String clus) {
-        List<NodeDetails> retList = new ArrayList<>();
+    private List<RAS_Node> getAvailableNodesFromCluster(String clus) {
+        List<RAS_Node> retList = new ArrayList<>();
         for (String node_id : _clusterInfo.get(clus)) {
-            retList.add(_availNodes.get(this
+            retList.add(_nodes.getNodeById(this
                     .NodeHostnameToId(node_id)));
         }
         return retList;
     }
 
     private List<WorkerSlot> getAvailableWorkersFromCluster(String clusterId) {
-        List<NodeDetails> nodes = this.getAvailableNodesFromCluster(clusterId);
+        List<RAS_Node> nodes = this.getAvailableNodesFromCluster(clusterId);
         List<WorkerSlot> workers = new LinkedList<>();
-        for(NodeDetails node : nodes) {
+        for(RAS_Node node : nodes) {
             workers.addAll(node.getFreeSlots());
         }
         return workers;
@@ -306,13 +305,6 @@ public class DefaultResourceAwareStrategy implements IStrategy {
             workers.addAll(this.getAvailableWorkersFromCluster(clusterId));
         }
         return workers;
-    }
-
-    /**
-     * In case in the future RAS can only use a subset of nodes
-     */
-    private Map<String, NodeDetails> getAvailNodes() {
-        return _nodes;
     }
 
     /**
@@ -429,7 +421,7 @@ public class DefaultResourceAwareStrategy implements IStrategy {
             String clusterId = clusterEntry.getKey();
             retVal += "Rack: " + clusterId + "\n";
             for(String nodeHostname : clusterEntry.getValue()) {
-                NodeDetails node = this.idToNode(this.NodeHostnameToId(nodeHostname));
+                RAS_Node node = this.idToNode(this.NodeHostnameToId(nodeHostname));
                 retVal += "-> Node: " + node.getHostname() + " " + node.getId() + "\n";
                 retVal += "--> Avail Resources: {Mem " + node.getAvailableMemoryResources() + ", CPU " + node.getAvailableCpuResources() + "}\n";
                 retVal += "--> Total Resources: {Mem " + node.getTotalMemoryResources() + ", CPU " + node.getTotalCpuResources() + "}\n";
@@ -444,7 +436,7 @@ public class DefaultResourceAwareStrategy implements IStrategy {
      * @return the id of a node
      */
     public String NodeHostnameToId(String hostname) {
-        for (NodeDetails n : _nodes.values()) {
+        for (RAS_Node n : _nodes.getNodes()) {
             if (n.getHostname() == null) {
                 continue;
             }
@@ -461,11 +453,11 @@ public class DefaultResourceAwareStrategy implements IStrategy {
      * @param id
      * @return a RAS_Node object
      */
-    public NodeDetails idToNode(String id) {
-        if(_nodes.containsKey(id) == false) {
+    public RAS_Node idToNode(String id) {
+        RAS_Node ret = _nodes.getNodeById(id);
+        if(ret == null) {
             LOG.error("Cannot find Node with Id: {}", id);
-            return null;
         }
-        return _nodes.get(id);
+        return ret;
     }
 }

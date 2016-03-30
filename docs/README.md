@@ -6,8 +6,8 @@ This is the source for the Release specific part of the Apache Storm website and
 You have to generate javadoc on project root before generating document site.
 
 ```
-mvn javadoc:javadoc
-mvn javadoc:aggregate -DreportOutputDirectory=./docs/ -DdestDir=javadocs
+mvn javadoc:javadoc -Dnotimestamp=true
+mvn javadoc:aggregate -DreportOutputDirectory=./docs/ -DdestDir=javadocs -Dnotimestamp=true
 ```
 
 You need to create distribution package with gpg certificate. Please refer [here](https://github.com/apache/storm/blob/master/DEVELOPER.md#packaging).
@@ -41,11 +41,13 @@ Release documentation is placed under the releases directory named after the rel
 To create a new release run the following from the main git directory
 
 ```
-mvn javadoc:javadoc
-mvn javadoc:aggregate -DreportOutputDirectory=./docs/ -DdestDir=javadocs
-cd docs
+mvn javadoc:javadoc -Dnotimestamp=true
+mvn javadoc:aggregate -DreportOutputDirectory=./docs/ -DdestDir=javadocs -Dnotimestamp=true
 mkdir ${path_to_svn}/releases/${release_name}
-cp -r *.md images/ javadocs/ ${path_to_svn}/releases/${release_name}
+#Copy everything over, and compare checksums, except for things that are part of the site,
+# and are not release specific like the _* directories that are jekyll specific
+# assests/ css/ and README.md
+rsync -ac --delete --exclude _\* --exclude assets --exclude css --exclude README.md ./docs/ ${path_to_svn}/releases/${release_name}
 cd ${path_to_svn}
 svn add releases/${release_name}
 svn commit

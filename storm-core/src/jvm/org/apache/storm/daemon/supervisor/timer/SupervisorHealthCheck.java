@@ -44,19 +44,9 @@ public class SupervisorHealthCheck implements Runnable {
         Map conf = supervisorData.getConf();
         IWorkerManager workerManager = supervisorData.getWorkerManager();
         int healthCode = HealthCheck.healthCheck(conf);
-        Collection<String> workerIds = SupervisorUtils.supervisorWorkerIds(conf);
         if (healthCode != 0) {
-            for (String workerId : workerIds) {
-                try {
-                    workerManager.shutdownWorker(supervisorData.getSupervisorId(), workerId, supervisorData.getWorkerThreadPids());
-                    boolean success = workerManager.cleanupWorker(workerId);
-                    if (success){
-                        supervisorData.getDeadWorkers().remove(workerId);
-                    }
-                } catch (Exception e) {
-                    throw Utils.wrapInRuntime(e);
-                }
-            }
+            SupervisorUtils.shutdownAllWorkers(conf, supervisorData.getSupervisorId(), supervisorData.getWorkerThreadPids(), supervisorData.getDeadWorkers(),
+                    workerManager);
         }
     }
 }

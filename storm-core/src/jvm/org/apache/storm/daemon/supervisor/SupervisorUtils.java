@@ -20,6 +20,7 @@ package org.apache.storm.daemon.supervisor;
 import org.apache.commons.lang.StringUtils;
 import org.apache.storm.Config;
 import org.apache.storm.ProcessSimulator;
+import org.apache.storm.daemon.supervisor.workermanager.IWorkerManager;
 import org.apache.storm.generated.LSWorkerHeartbeat;
 import org.apache.storm.localizer.LocalResource;
 import org.apache.storm.localizer.Localizer;
@@ -36,6 +37,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class SupervisorUtils {
 
@@ -240,11 +242,7 @@ public class SupervisorUtils {
     }
 
     public  boolean  isWorkerHbTimedOutImpl(int now, LSWorkerHeartbeat whb, Map conf) {
-        boolean result = false;
-        if ((now - whb.get_time_secs()) > Utils.getInt(conf.get(Config.SUPERVISOR_WORKER_TIMEOUT_SECS))) {
-            result = true;
-        }
-        return result;
+        return (now - whb.get_time_secs()) > Utils.getInt(conf.get(Config.SUPERVISOR_WORKER_TIMEOUT_SECS));
     }
 
     public static String javaCmd(String cmd) {
@@ -262,10 +260,27 @@ public class SupervisorUtils {
         return ret;
     }
     
-    public final static List<ACL> supervisorZkAcls() {
+    public static List<ACL> supervisorZkAcls() {
         final List<ACL> acls = new ArrayList<>();
         acls.add(ZooDefs.Ids.CREATOR_ALL_ACL.get(0));
         acls.add(new ACL((ZooDefs.Perms.READ ^ ZooDefs.Perms.CREATE), ZooDefs.Ids.ANYONE_ID_UNSAFE));
         return acls;
+    }
+
+    public static void shutdownAllWorkers(Map conf, String supervisorId, Map<String, String> workerThreadPids, Set<String> deadWorkers,
+            IWorkerManager workerManager) {
+        Collection<String> workerIds = SupervisorUtils.supervisorWorkerIds(conf);
+        try {
+            for (String workerId : workerIds) {
+                workerManager.shutdownWorker(supervisorId, workerId, workerThreadPids);
+                boolean success = workerManager.cleanupWorker(workerId);
+                if (success) {
+                    deadWorkers.remove(workerId);
+                }
+            }
+        } catch (Exception e) {
+            LOG.error("shutWorker failed");
+            throw Utils.wrapInRuntime(e);
+        }
     }
 }

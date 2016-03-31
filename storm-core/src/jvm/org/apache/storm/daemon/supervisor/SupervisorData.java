@@ -54,26 +54,26 @@ public class SupervisorData {
     private final Map conf;
     private final IContext sharedContext;
     private volatile boolean active;
-    private ISupervisor iSupervisor;
-    private Utils.UptimeComputer upTime;
-    private String stormVersion;
-    private ConcurrentHashMap<String, String> workerThreadPids; // for local mode
-    private IStormClusterState stormClusterState;
-    private LocalState localState;
-    private String supervisorId;
-    private String assignmentId;
-    private String hostName;
+    private final ISupervisor iSupervisor;
+    private final Utils.UptimeComputer upTime;
+    private final String stormVersion;
+    private final ConcurrentHashMap<String, String> workerThreadPids; // for local mode
+    private final IStormClusterState stormClusterState;
+    private final LocalState localState;
+    private final String supervisorId;
+    private final String assignmentId;
+    private final String hostName;
     // used for reporting used ports when heartbeating
-    private AtomicReference<Map<Long, LocalAssignment>> currAssignment;
-    private StormTimer heartbeatTimer;
-    private StormTimer eventTimer;
-    private StormTimer blobUpdateTimer;
-    private Localizer localizer;
-    private AtomicReference<Map<String, Map<String, Object>>> assignmentVersions;
-    private AtomicInteger syncRetry;
+    private final AtomicReference<Map<Long, LocalAssignment>> currAssignment;
+    private final StormTimer heartbeatTimer;
+    private final StormTimer eventTimer;
+    private final StormTimer blobUpdateTimer;
+    private final Localizer localizer;
+    private final AtomicReference<Map<String, Map<String, Object>>> assignmentVersions;
+    private final AtomicInteger syncRetry;
     private final Object downloadLock = new Object();
-    private AtomicReference<Map<String, List<ProfileRequest>>> stormIdToProfileActions;
-    private ConcurrentHashSet<String> deadWorkers;
+    private final AtomicReference<Map<String, List<ProfileRequest>>> stormIdToProfilerActions;
+    private final ConcurrentHashSet<String> deadWorkers;
     private final IWorkerManager workerManager;
 
     public SupervisorData(Map conf, IContext sharedContext, ISupervisor iSupervisor) {
@@ -123,17 +123,17 @@ public class SupervisorData {
 
         this.assignmentVersions = new AtomicReference<Map<String, Map<String, Object>>>(new HashMap<String, Map<String, Object>>());
         this.syncRetry = new AtomicInteger(0);
-        this.stormIdToProfileActions = new AtomicReference<Map<String, List<ProfileRequest>>>(new HashMap<String, List<ProfileRequest>>());
+        this.stormIdToProfilerActions = new AtomicReference<Map<String, List<ProfileRequest>>>(new HashMap<String, List<ProfileRequest>>());
         this.workerManager =  Utils.newInstance((String) conf.get(Config.STORM_SUPERVISOR_WORKER_MANAGER_PLUGIN));
         this.workerManager.prepareWorker(conf, localizer);
     }
 
-    public AtomicReference<Map<String, List<ProfileRequest>>> getStormIdToProfileActions() {
-        return stormIdToProfileActions;
+    public AtomicReference<Map<String, List<ProfileRequest>>> getStormIdToProfilerActions() {
+        return stormIdToProfilerActions;
     }
 
-    public void setStormIdToProfileActions(Map<String, List<ProfileRequest>> stormIdToProfileActions) {
-        this.stormIdToProfileActions.set(stormIdToProfileActions);
+    public void setStormIdToProfilerActions(Map<String, List<ProfileRequest>> stormIdToProfilerActions) {
+        this.stormIdToProfilerActions.set(stormIdToProfilerActions);
     }
 
     public Map getConf() {

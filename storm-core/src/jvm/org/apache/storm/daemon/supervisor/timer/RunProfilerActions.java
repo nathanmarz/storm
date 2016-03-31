@@ -18,6 +18,7 @@
 
 package org.apache.storm.daemon.supervisor.timer;
 
+import com.google.common.collect.Lists;
 import org.apache.storm.Config;
 import org.apache.storm.cluster.IStormClusterState;
 import org.apache.storm.daemon.supervisor.SupervisorData;
@@ -50,11 +51,13 @@ public class RunProfilerActions implements Runnable {
         private String stormId;
         private ProfileRequest profileRequest;
         private String logPrefix;
+        private boolean stop;
 
-        public ActionExitCallback(String stormId, ProfileRequest profileRequest, String logPrefix) {
+        public ActionExitCallback(String stormId, ProfileRequest profileRequest, String logPrefix, boolean stop) {
             this.stormId = stormId;
             this.profileRequest = profileRequest;
             this.logPrefix = logPrefix;
+            this.stop = stop;
         }
 
         @Override
@@ -66,7 +69,8 @@ public class RunProfilerActions implements Runnable {
         public Object call(int exitCode) {
             LOG.info("{} profile-action exited for {}", logPrefix, exitCode);
             try {
-                stormClusterState.deleteTopologyProfileRequests(stormId, profileRequest);
+                if (stop)
+                    stormClusterState.deleteTopologyProfileRequests(stormId, profileRequest);
             } catch (Exception e) {
                 LOG.warn("failed delete profileRequest: " + profileRequest);
             }
@@ -84,7 +88,7 @@ public class RunProfilerActions implements Runnable {
 
     @Override
     public void run() {
-        Map<String, List<ProfileRequest>> stormIdToActions = supervisorData.getStormIdToProfileActions().get();
+        Map<String, List<ProfileRequest>> stormIdToActions = supervisorData.getStormIdToProfilerActions().get();
         try {
             for (Map.Entry<String, List<ProfileRequest>> entry : stormIdToActions.entrySet()) {
                 String stormId = entry.getKey();
@@ -92,7 +96,7 @@ public class RunProfilerActions implements Runnable {
                 if (requests != null) {
                     for (ProfileRequest profileRequest : requests) {
                         if (profileRequest.get_nodeInfo().get_node().equals(hostName)) {
-                            boolean stop = System.currentTimeMillis() > profileRequest.get_time_stamp() ? true : false;
+                            boolean stop = System.currentTimeMillis() > profileRequest.get_time_stamp();
                             Long port = profileRequest.get_nodeInfo().get_port().iterator().next();
                             String targetDir = ConfigUtils.workerArtifactsRoot(conf, String.valueOf(port));
                             Map stormConf = ConfigUtils.readSupervisorStormConf(conf, stormId);
@@ -110,20 +114,13 @@ public class RunProfilerActions implements Runnable {
 
                             String str = ConfigUtils.workerArtifactsPidPath(conf, stormId, port.intValue());
                             StringBuilder stringBuilder = new StringBuilder();
-                            FileReader reader = null;
-                            BufferedReader br = null;
-                            try {
-                                reader = new FileReader(str);
-                                br = new BufferedReader(reader);
+
+                            try (FileReader reader = new FileReader(str);
+                                 BufferedReader br = new BufferedReader(reader)) {
                                 int c;
                                 while ((c = br.read()) >= 0) {
                                     stringBuilder.append(c);
                                 }
-                            } catch (IOException e) {
-                                if (reader != null)
-                                    reader.close();
-                                if (br != null)
-                                    br.close();
                             }
                             String workerPid = stringBuilder.toString().trim();
                             ProfileAction profileAction = profileRequest.get_action();
@@ -131,14 +128,10 @@ public class RunProfilerActions implements Runnable {
 
                             // Until PROFILER_STOP action is invalid, keep launching profiler start in case worker restarted
                             // The profiler plugin script validates if JVM is recording before starting another recording.
-                            String command = mkCommand(profileAction, stop, workerPid, targetDir);
-                            List<String> listCommand = new ArrayList<>();
-                            if (command != null) {
-                                listCommand.addAll(Arrays.asList(command.split(" ")));
-                            }
+                            List<String> command = mkCommand(profileAction, stop, workerPid, targetDir);
                             try {
-                                ActionExitCallback actionExitCallback = new ActionExitCallback(stormId, profileRequest, logPrefix);
-                                launchProfilerActionForWorker(user, targetDir, listCommand, env, actionExitCallback, logPrefix);
+                                ActionExitCallback actionExitCallback = new ActionExitCallback(stormId, profileRequest, logPrefix, stop);
+                                launchProfilerActionForWorker(user, targetDir, command, env, actionExitCallback, logPrefix);
                             } catch (IOException e) {
                                 LOG.error("Error in processing ProfilerAction '{}' for {}:{}, will retry later", profileAction, stormId, port);
                             } catch (RuntimeException e) {
@@ -177,7 +170,7 @@ public class RunProfilerActions implements Runnable {
         }
     }
 
-    private String mkCommand(ProfileAction action, boolean stop, String workerPid, String targetDir) {
+    private List<String> mkCommand(ProfileAction action, boolean stop, String workerPid, String targetDir) {
         if (action == ProfileAction.JMAP_DUMP) {
             return jmapDumpCmd(workerPid, targetDir);
         } else if (action == ProfileAction.JSTACK_DUMP) {
@@ -191,31 +184,31 @@ public class RunProfilerActions implements Runnable {
         } else if (stop && action == ProfileAction.JPROFILE_STOP) {
             return jprofileStop(workerPid, targetDir);
         }
-        return null;
+        return Lists.newArrayList();
     }
 
-    private String jmapDumpCmd(String pid, String targetDir) {
-        return profileCmd + " " + pid + " jmap " + targetDir;
+    private List<String> jmapDumpCmd(String pid, String targetDir) {
+        return Lists.newArrayList(profileCmd, pid, "jmap", targetDir);
     }
 
-    private String jstackDumpCmd(String pid, String targetDir) {
-        return profileCmd + " " + pid + " jstack " + targetDir;
+    private List<String> jstackDumpCmd(String pid, String targetDir) {
+        return Lists.newArrayList(profileCmd, pid, "jstack", targetDir);
     }
 
-    private String jprofileStart(String pid) {
-        return profileCmd + " " + pid + " start";
+    private List<String> jprofileStart(String pid) {
+        return Lists.newArrayList(profileCmd, pid, "start");
     }
 
-    private String jprofileStop(String pid, String targetDir) {
-        return profileCmd + " " + pid + " stop " + targetDir;
+    private List<String> jprofileStop(String pid, String targetDir) {
+        return Lists.newArrayList(profileCmd, pid, "stop", targetDir);
     }
 
-    private String jprofileDump(String pid, String targetDir) {
-        return profileCmd + " " + pid + " dump " + targetDir;
+    private List<String> jprofileDump(String pid, String targetDir) {
+        return Lists.newArrayList(profileCmd, pid, "dump", targetDir);
     }
 
-    private String jprofileJvmRestart(String pid) {
-        return profileCmd + " " + pid + " kill";
+    private List<String> jprofileJvmRestart(String pid) {
+        return Lists.newArrayList(profileCmd, pid, "kill");
     }
 
 }

@@ -25,14 +25,11 @@ import java.util.List;
 import java.util.Map;
 
 public interface IWorkerManager {
-    public void prepareWorker(Map conf, Localizer localizer);
+    void prepareWorker(Map conf, Localizer localizer);
 
-    IWorkerResult launchWorker(String supervisorId, String assignmentId, String stormId, Long port, String workerId, WorkerResources resources,
+    void launchWorker(String supervisorId, String assignmentId, String stormId, Long port, String workerId, WorkerResources resources,
                                Utils.ExitCodeCallable workerExitCallback);
+    void shutdownWorker(String supervisorId, String workerId, Map<String, String> workerThreadPids);
 
-    IWorkerResult shutdownWorker(String supervisorId, String workerId, Map<String, String> workerThreadPids);
-
-    IWorkerResult resizeWorker(String supervisorId, String assignmentId, String stormId, Long port, String workerId, WorkerResources resources);
-
-    public boolean cleanupWorker(String workerId);
+    boolean cleanupWorker(String workerId);
 }

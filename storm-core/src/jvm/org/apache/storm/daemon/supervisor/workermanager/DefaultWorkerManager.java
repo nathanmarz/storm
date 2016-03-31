@@ -60,7 +60,7 @@ public class DefaultWorkerManager implements IWorkerManager {
     }
 
     @Override
-    public IWorkerResult launchWorker(String supervisorId, String assignmentId, String stormId, Long port, String workerId, WorkerResources resources,
+    public void launchWorker(String supervisorId, String assignmentId, String stormId, Long port, String workerId, WorkerResources resources,
             Utils.ExitCodeCallable workerExitCallback) {
         try {
 
@@ -242,11 +242,10 @@ public class DefaultWorkerManager implements IWorkerManager {
         } catch (IOException e) {
             throw Utils.wrapInRuntime(e);
         }
-        return null;
     }
 
     @Override
-    public IWorkerResult shutdownWorker(String supervisorId, String workerId, Map<String, String> workerThreadPids) {
+    public void shutdownWorker(String supervisorId, String workerId, Map<String, String> workerThreadPids) {
         try {
             LOG.info("Shutting down {}:{}", supervisorId, workerId);
             Collection<String> pids = Utils.readDirContents(ConfigUtils.workerPidsRoot(conf, workerId));
@@ -303,7 +302,6 @@ public class DefaultWorkerManager implements IWorkerManager {
         } catch (Exception e) {
             throw Utils.wrapInRuntime(e);
         }
-        return null;
     }
 
     @Override
@@ -336,11 +334,6 @@ public class DefaultWorkerManager implements IWorkerManager {
         return false;
     }
 
-    @Override
-    public IWorkerResult resizeWorker(String supervisorId, String assignmentId, String stormId, Long port, String workerId, WorkerResources resources) {
-        return null;
-    }
-
     protected String jlp(String stormRoot, Map conf) {
         String resourceRoot = stormRoot + Utils.FILE_PATH_SEPARATOR + ConfigUtils.RESOURCES_SUBDIR;
         String os = System.getProperty("os.name").replaceAll("\\s+", "_");
@@ -358,12 +351,23 @@ public class DefaultWorkerManager implements IWorkerManager {
             topoClasspath.addAll((List<String>) object);
         } else if (object instanceof String) {
             topoClasspath.add((String) object);
-        } else {
-            LOG.error("topology specific classpath is invaild");
         }
+        LOG.debug("topology specific classpath is {}", object);
+
         String classPath = Utils.workerClasspath();
         String classAddPath = Utils.addToClasspath(classPath, Arrays.asList(stormJar));
         return Utils.addToClasspath(classAddPath, topoClasspath);
+    }
+
+    private static String substituteChildOptsInternal(String string,  String workerId, String stormId, Long port, int memOnheap) {
+        if (StringUtils.isNotBlank(string)){
+            string = string.replace("%ID%", String.valueOf(port));
+            string = string.replace("%WORKER-ID%", workerId);
+            string = string.replace("%TOPOLOGY-ID%", stormId);
+            string = string.replace("%WORKER-PORT%", String.valueOf(port));
+            string = string.replace("%HEAP-MEM%", String.valueOf(memOnheap));
+        }
+        return string;
     }
 
     /**
@@ -378,27 +382,16 @@ public class DefaultWorkerManager implements IWorkerManager {
     public List<String> substituteChildopts(Object value, String workerId, String stormId, Long port, int memOnheap) {
         List<String> rets = new ArrayList<>();
         if (value instanceof String) {
-            String string = (String) value;
+            String string = substituteChildOptsInternal((String) value,  workerId, stormId, port, memOnheap);
             if (StringUtils.isNotBlank(string)){
-                string = string.replace("%ID%", String.valueOf(port));
-                string = string.replace("%WORKER-ID%", workerId);
-                string = string.replace("%TOPOLOGY-ID%", stormId);
-                string = string.replace("%WORKER-PORT%", String.valueOf(port));
-                string = string.replace("%HEAP-MEM%", String.valueOf(memOnheap));
                 String[] strings = string.split("\\s+");
                 rets.addAll(Arrays.asList(strings));
             }
-
         } else if (value instanceof List) {
             List<Object> objects = (List<Object>) value;
             for (Object object : objects) {
-                String str = (String) object;
+                String str = substituteChildOptsInternal((String) object,  workerId, stormId, port, memOnheap);
                 if (StringUtils.isNotBlank(str)){
-                    str = str.replace("%ID%", String.valueOf(port));
-                    str = str.replace("%WORKER-ID%", workerId);
-                    str = str.replace("%TOPOLOGY-ID%", stormId);
-                    str = str.replace("%WORKER-PORT%", String.valueOf(port));
-                    str = str.replace("%HEAP-MEM%", String.valueOf(memOnheap));
                     rets.add(str);
                 }
             }

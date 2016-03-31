@@ -116,7 +116,6 @@ public class SyncProcessEvent implements Runnable {
             for (Integer port : reassignExecutors.keySet()) {
                 newWorkerIds.put(port, Utils.uuid());
             }
-            LOG.debug("Syncing processes");
             LOG.debug("Assigned executors: {}", assignedExecutors);
             LOG.debug("Allocated: {}", localWorkerStats);
 
@@ -376,6 +375,7 @@ public class SyncProcessEvent implements Runnable {
         String workerDir = ConfigUtils.workerRoot(conf, workerId);
         String topoDir = ConfigUtils.workerArtifactsRoot(conf, stormId);
         if (Utils.checkFileExists(workerDir)) {
+            LOG.debug("Creating symlinks for worker-id: {} storm-id: {} to its port artifacts directory", workerId, stormId);
             Utils.createSymlink(workerDir, topoDir, "artifacts", String.valueOf(port));
         }
     }

@@ -95,10 +95,10 @@ public class SyncSupervisorEvent implements Runnable {
                 }
             }
 
-            Set<String> srashStormIds = verifyDownloadedFiles(conf, supervisorData.getLocalizer(), assignedStormIds, allDownloadedTopologyIds);
+            Set<String> crashedStormIds = verifyDownloadedFiles(conf, supervisorData.getLocalizer(), assignedStormIds, allDownloadedTopologyIds);
             Set<String> downloadedStormIds = new HashSet<>();
             downloadedStormIds.addAll(allDownloadedTopologyIds);
-            downloadedStormIds.removeAll(srashStormIds);
+            downloadedStormIds.removeAll(crashedStormIds);
 
             LOG.debug("Synchronizing supervisor");
             LOG.debug("Storm code map: {}", stormcodeMap);
@@ -106,7 +106,7 @@ public class SyncSupervisorEvent implements Runnable {
             LOG.debug("New assignment: {}", newAssignment);
             LOG.debug("Assigned Storm Ids {}", assignedStormIds);
             LOG.debug("All Downloaded Ids {}", allDownloadedTopologyIds);
-            LOG.debug("Checked Downloaded Ids {}", srashStormIds);
+            LOG.debug("Checked Downloaded Ids {}", crashedStormIds);
             LOG.debug("Downloaded Ids {}", downloadedStormIds);
             LOG.debug("Storm Ids Profiler Actions {}", stormIdToProfilerActions);
 
@@ -147,7 +147,7 @@ public class SyncSupervisorEvent implements Runnable {
             supervisorData.getiSupervisor().assigned(newAssignment.keySet());
             localState.setLocalAssignmentsMap(newAssignment);
             supervisorData.setAssignmentVersions(assignmentsSnapshot);
-            supervisorData.setStormIdToProfileActions(stormIdToProfilerActions);
+            supervisorData.setStormIdToProfilerActions(stormIdToProfilerActions);
 
             Map<Long, LocalAssignment> convertNewAssignment = new HashMap<>();
             for (Map.Entry<Integer, LocalAssignment> entry : newAssignment.entrySet()) {
@@ -177,13 +177,8 @@ public class SyncSupervisorEvent implements Runnable {
 
     private void killExistingWorkersWithChangeInComponents(SupervisorData supervisorData, Map<Integer, LocalAssignment> existingAssignment,
             Map<Integer, LocalAssignment> newAssignment) throws Exception {
-        LocalState localState = supervisorData.getLocalState();
-        Map<Integer, LocalAssignment> assignedExecutors = localState.getLocalAssignmentsMap();
-        if (assignedExecutors == null) {
-            assignedExecutors = new HashMap<>();
-        }
         int now = Time.currentTimeSecs();
-        Map<String, StateHeartbeat> workerIdHbstate = syncProcesses.getLocalWorkerStats(supervisorData, assignedExecutors, now);
+        Map<String, StateHeartbeat> workerIdHbstate = syncProcesses.getLocalWorkerStats(supervisorData, existingAssignment, now);
         Map<Integer, String> vaildPortToWorkerIds = new HashMap<>();
         for (Map.Entry<String, StateHeartbeat> entry : workerIdHbstate.entrySet()) {
             String workerId = entry.getKey();
@@ -337,15 +332,23 @@ public class SyncSupervisorEvent implements Runnable {
         String tmproot = ConfigUtils.supervisorTmpDir(conf) + Utils.FILE_PATH_SEPARATOR + Utils.uuid();
         String stormroot = ConfigUtils.supervisorStormDistRoot(conf, stormId);
         BlobStore blobStore = Utils.getNimbusBlobStore(conf, masterCodeDir, null);
+        FileOutputStream codeOutStream = null;
+        FileOutputStream confOutStream = null;
         try {
             FileUtils.forceMkdir(new File(tmproot));
             String stormCodeKey = ConfigUtils.masterStormCodeKey(stormId);
             String stormConfKey = ConfigUtils.masterStormConfKey(stormId);
             String codePath = ConfigUtils.supervisorStormCodePath(tmproot);
             String confPath = ConfigUtils.supervisorStormConfPath(tmproot);
-            blobStore.readBlobTo(stormCodeKey, new FileOutputStream(codePath), null);
-            blobStore.readBlobTo(stormConfKey, new FileOutputStream(confPath), null);
+            codeOutStream = new FileOutputStream(codePath);
+            blobStore.readBlobTo(stormCodeKey, codeOutStream, null);
+            confOutStream = new FileOutputStream(confPath);
+            blobStore.readBlobTo(stormConfKey, confOutStream, null);
         } finally {
+            if (codeOutStream != null)
+                codeOutStream.close();
+            if (confOutStream != null)
+                codeOutStream.close();
             blobStore.shutdown();
         }
         FileUtils.moveDirectory(new File(tmproot), new File(stormroot));
@@ -407,11 +410,15 @@ public class SyncSupervisorEvent implements Runnable {
         blobStore.shutdown();
         Utils.extractDirFromJar(jarPath, ConfigUtils.RESOURCES_SUBDIR, tmproot);
         downloadBlobsForTopology(conf, confPath, localizer, tmproot);
-        if (IsDownloadBlobsForTopologySucceed(confPath, tmproot)) {
+        if (didDownloadBlobsForTopologySucceed(confPath, tmproot)) {
             LOG.info("Successfully downloaded blob resources for storm-id {}", stormId);
-            FileUtils.forceMkdir(new File(stormroot));
-            Files.move(new File(tmproot).toPath(), new File(stormroot).toPath(), StandardCopyOption.ATOMIC_MOVE);
-            SupervisorUtils.setupStormCodeDir(conf, ConfigUtils.readSupervisorStormConf(conf, stormId), stormroot);
+            if (Utils.isOnWindows()) {
+                // Files/move with non-empty directory doesn't work well on Windows
+                FileUtils.moveDirectory(new File(tmproot), new File(stormroot));
+            } else {
+                FileUtils.forceMkdir(new File(stormroot));
+                Files.move(new File(tmproot).toPath(), new File(stormroot).toPath(), StandardCopyOption.ATOMIC_MOVE);
+            }
         } else {
             LOG.info("Failed to download blob resources for storm-id ", stormId);
             Utils.forceDelete(tmproot);
@@ -425,7 +432,7 @@ public class SyncSupervisorEvent implements Runnable {
      * @param targetDir
      * @return
      */
-    protected boolean IsDownloadBlobsForTopologySucceed(String stormconfPath, String targetDir) throws IOException {
+    protected boolean didDownloadBlobsForTopologySucceed(String stormconfPath, String targetDir) throws IOException {
         Map stormConf = Utils.fromCompressedJsonConf(FileUtils.readFileToByteArray(new File(stormconfPath)));
         Map<String, Map<String, Object>> blobstoreMap = (Map<String, Map<String, Object>>) stormConf.get(Config.TOPOLOGY_BLOBSTORE_MAP);
         List<String> blobFileNames = new ArrayList<>();

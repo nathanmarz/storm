@@ -32,7 +32,7 @@ public class SupervisorManager implements SupervisorDaemon, DaemonCommon, Runnab
     private static final Logger LOG = LoggerFactory.getLogger(SupervisorManager.class);
     private final EventManager eventManager;
     private final EventManager processesEventManager;
-    private SupervisorData supervisorData;
+    private final SupervisorData supervisorData;
 
     public SupervisorManager(SupervisorData supervisorData, EventManager eventManager, EventManager processesEventManager) {
         this.eventManager = eventManager;
@@ -41,7 +41,7 @@ public class SupervisorManager implements SupervisorDaemon, DaemonCommon, Runnab
     }
 
     public void shutdown() {
-        LOG.info("Shutting down supervisor{}", supervisorData.getSupervisorId());
+        LOG.info("Shutting down supervisor {}", supervisorData.getSupervisorId());
         supervisorData.setActive(false);
         try {
             supervisorData.getHeartbeatTimer().close();
@@ -57,20 +57,9 @@ public class SupervisorManager implements SupervisorDaemon, DaemonCommon, Runnab
 
     @Override
     public void shutdownAllWorkers() {
-        Collection<String> workerIds = SupervisorUtils.supervisorWorkerIds(supervisorData.getConf());
         IWorkerManager workerManager = supervisorData.getWorkerManager();
-        try {
-            for (String workerId : workerIds) {
-                workerManager.shutdownWorker(supervisorData.getSupervisorId(), workerId, supervisorData.getWorkerThreadPids());
-                boolean success = workerManager.cleanupWorker(workerId);
-                if (success){
-                    supervisorData.getDeadWorkers().remove(workerId);
-                }
-            }
-        } catch (Exception e) {
-            LOG.error("shutWorker failed");
-            throw Utils.wrapInRuntime(e);
-        }
+        SupervisorUtils.shutdownAllWorkers(supervisorData.getConf(), supervisorData.getSupervisorId(), supervisorData.getWorkerThreadPids(),
+                supervisorData.getDeadWorkers(), workerManager);
     }
 
     @Override

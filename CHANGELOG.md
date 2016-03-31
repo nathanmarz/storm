@@ -1,4 +1,5 @@
 ## 2.0.0
+ * STORM-822: Kafka Spout New Consumer API
  * STORM-1663: Stats couldn't handle null worker HB.
  * STORM-1665: Worker cannot instantiate kryo
  * STORM-1666: Kill from the UI fails silently

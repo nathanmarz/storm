@@ -1505,17 +1505,20 @@ public class StatsUtil {
                 putKV(m, HOST, host);
                 putKV(m, PORT, port);
 
-                Map stats = getMapByKey(getMapByKey(beat, (HEARTBEAT)), STATS);
-                putKV(m, UPTIME, getMapByKey(beat, HEARTBEAT).get(UPTIME));
-                putKV(m, STATS, stats);
+                Map hb = getMapByKey(beat, HEARTBEAT);
+                if (hb != null) {
+                    Map stats = getMapByKey(hb, STATS);
+                    putKV(m, UPTIME, hb.get(UPTIME));
+                    putKV(m, STATS, stats);
 
-                String type = componentType(topology, compId);
-                if (type != null) {
-                    putKV(m, TYPE, type);
-                } else {
-                    putKV(m, TYPE, stats.get(TYPE));
+                    String type = componentType(topology, compId);
+                    if (type != null) {
+                        putKV(m, TYPE, type);
+                    } else {
+                        putKV(m, TYPE, stats.get(TYPE));
+                    }
+                    ret.add(m);
                 }
-                ret.add(m);
             }
         }
         return ret;

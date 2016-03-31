@@ -151,9 +151,10 @@
 (defn identify-worker-log-dirs [log-dirs]
   "return the workerid to worker-log-dir map"
   (into {} (for [logdir log-dirs
-                 :let [metaFile (get-metadata-file-for-wroker-logdir logdir)]
-                 :when metaFile]
-             {(get-worker-id-from-metadata-file metaFile) logdir})))
+                 :let [metaFile (get-metadata-file-for-wroker-logdir logdir)]]
+             (if metaFile
+               {(get-worker-id-from-metadata-file metaFile) logdir}
+               {"" logdir})))) ;; an old directory that has no yaml file will be treated as a dead dir for deleting
 
 (defn get-alive-ids
   [conf now-secs]

@@ -1,4 +1,7 @@
 ## 2.0.0
+ * STORM-1663: Stats couldn't handle null worker HB.
+ * STORM-1665: Worker cannot instantiate kryo
+ * STORM-1666: Kill from the UI fails silently
  * STORM-1610: port pacemaker_state_factory_test.clj to java
  * STORM-1611: port org.apache.storm.pacemaker.pacemaker to java
  * STORM-1268: port builtin-metrics to java

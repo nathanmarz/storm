@@ -65,6 +65,7 @@ public class WindowTridentProcessor implements TridentProcessor {
     private WindowsStoreFactory windowStoreFactory;
     private WindowsStore windowStore;
 
+    private Map conf;
     private TopologyContext topologyContext;
     private FreshCollector collector;
     private TridentTupleView.ProjectionFactory projection;
@@ -84,20 +85,21 @@ public class WindowTridentProcessor implements TridentProcessor {
     }
 
     @Override
-    public void prepare(Map stormConf, TopologyContext context, TridentContext tridentContext) {
+    public void prepare(Map conf, TopologyContext context, TridentContext tridentContext) {
+        this.conf = conf;
         this.topologyContext = context;
         List<TridentTuple.Factory> parents = tridentContext.getParentTupleFactories();
         if (parents.size() != 1) {
             throw new RuntimeException("Aggregation related operation can only have one parent");
         }
 
-        Long maxTuplesCacheSize = getWindowTuplesCacheSize(stormConf);
+        Long maxTuplesCacheSize = getWindowTuplesCacheSize(conf);
 
         this.tridentContext = tridentContext;
         collector = new FreshCollector(tridentContext);
         projection = new TridentTupleView.ProjectionFactory(parents.get(0), inputFields);
 
-        windowStore = windowStoreFactory.create(stormConf);
+        windowStore = windowStoreFactory.create();
         windowTaskId = windowId + WindowsStore.KEY_SEPARATOR + topologyContext.getThisTaskId() + WindowsStore.KEY_SEPARATOR;
         windowTriggerInprocessId = getWindowTriggerInprocessIdPrefix(windowTaskId);
 

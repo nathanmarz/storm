@@ -18,10 +18,12 @@
  */
 package org.apache.storm.trident.windowing;
 
+import org.apache.storm.trident.operation.Aggregator;
 import org.apache.storm.trident.operation.TridentCollector;
+import org.apache.storm.trident.windowing.config.WindowConfig;
+import org.apache.storm.tuple.Fields;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * InMemoryWindowsStoreFactory contains a single instance of {@link InMemoryWindowsStore} which will be used for
@@ -35,7 +37,7 @@ public class InMemoryWindowsStoreFactory implements WindowsStoreFactory {
     private InMemoryWindowsStore inMemoryWindowsStore;
 
     @Override
-    public WindowsStore create(Map stormConf) {
+    public WindowsStore create() {
         if(inMemoryWindowsStore == null) {
             inMemoryWindowsStore = new InMemoryWindowsStore();
         }

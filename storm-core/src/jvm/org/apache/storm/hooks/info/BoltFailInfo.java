@@ -17,6 +17,8 @@
  */
 package org.apache.storm.hooks.info;
 
+import org.apache.storm.hooks.ITaskHook;
+import org.apache.storm.task.TopologyContext;
 import org.apache.storm.tuple.Tuple;
 
 public class BoltFailInfo {
@@ -28,5 +30,11 @@ public class BoltFailInfo {
         this.tuple = tuple;
         this.failingTaskId = failingTaskId;
         this.failLatencyMs = failLatencyMs;
+    }
+
+    public void applyOn(TopologyContext topologyContext) {
+        for (ITaskHook hook : topologyContext.getHooks()) {
+            hook.boltFail(this);
+        }
     }
 }

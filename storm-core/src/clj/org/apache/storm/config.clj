@@ -42,30 +42,3 @@
 (defn cluster-mode
   [conf & args]
   (keyword (conf STORM-CLUSTER-MODE)))
-
-(defn sampling-rate
-  [conf]
-  (->> (conf TOPOLOGY-STATS-SAMPLE-RATE)
-    (/ 1)
-    int))
-
-(defn- even-sampler
-  [freq]
-  (let [freq (int freq)
-        start (int 0)
-        r (java.util.Random.)
-        curr (MutableInt. -1)
-        target (MutableInt. (.nextInt r freq))]
-    (with-meta
-      (fn []
-        (let [i (.increment curr)]
-          (when (>= i freq)
-            (.set curr start)
-            (.set target (.nextInt r freq))))
-        (= (.get curr) (.get target)))
-      {:rate freq})))
-
-;; TODO this function together with sampling-rate are to be replaced with Java version when util.clj is in
-(defn mk-stats-sampler
-  [conf]
-  (even-sampler (sampling-rate conf)))

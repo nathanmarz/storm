@@ -17,6 +17,9 @@
  */
 package org.apache.storm.hooks.info;
 
+import org.apache.storm.hooks.ITaskHook;
+import org.apache.storm.task.TopologyContext;
+
 public class SpoutFailInfo {
     public Object messageId;
     public int spoutTaskId;
@@ -26,5 +29,11 @@ public class SpoutFailInfo {
         this.messageId = messageId;
         this.spoutTaskId = spoutTaskId;
         this.failLatencyMs = failLatencyMs;
+    }
+
+    public void applyOn(TopologyContext topologyContext) {
+        for (ITaskHook hook : topologyContext.getHooks()) {
+            hook.spoutFail(this);
+        }
     }
 }

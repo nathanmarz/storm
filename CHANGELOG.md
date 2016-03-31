@@ -1,4 +1,5 @@
 ## 2.0.0
+ * STORM-1271: Port backtype.storm.daemon.task to java
  * STORM-822: Kafka Spout New Consumer API
  * STORM-1663: Stats couldn't handle null worker HB.
  * STORM-1665: Worker cannot instantiate kryo

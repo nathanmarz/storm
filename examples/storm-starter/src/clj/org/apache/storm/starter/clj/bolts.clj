@@ -44,12 +44,12 @@
            (.incrementCount counter word)
            (ack! collector tuple)))))))
 
-(defmacro update-rankings [& body]
-  `(if (TupleUtils/isTick ~'tuple)
+(defmacro update-rankings [tuple collector rankings & body]
+  `(if (TupleUtils/isTick ~tuple)
      (do
        (log-debug "Received tick tuple, triggering emit of current rankings")
-       (emit-bolt! ~'collector [(.copy ~'rankings)])
-       (log-debug "Rankings: " ~'rankings))
+       (emit-bolt! ~collector [(.copy ~rankings)])
+       (log-debug "Rankings: " ~rankings))
      ~@body))
 
 (defbolt intermediate-rankings-bolt ["rankings"]
@@ -60,7 +60,9 @@
   (let [rankings (Rankings. top-n)]
     (bolt
      (execute [tuple]
-       (update-rankings (.updateWith rankings (RankableObjectWithFields/from tuple)))))))
+       (update-rankings
+        tuple collector rankings
+        (.updateWith rankings (RankableObjectWithFields/from tuple)))))))
 
 (defbolt total-rankings-bolt ["rankings"]
   {:prepare true
@@ -70,6 +72,8 @@
   (let [rankings (Rankings. top-n)]
     (bolt
      (execute [{rankings-to-merge "rankings" :as tuple}]
-       (update-rankings (doto rankings
-                          (.updateWith rankings-to-merge)
-                          (.pruneZeroCounts)))))))
+       (update-rankings
+        tuple collector rankings
+        (doto rankings
+          (.updateWith rankings-to-merge)
+          (.pruneZeroCounts)))))))

@@ -25,20 +25,18 @@
            [org.apache.storm.starter.tools Rankable]
            [org.apache.storm.tuple Tuple]))
 
-(defmacro test-with-tuple [[bolt tuples] & body]
-  `(let [bolt# ~bolt
-         tuples# (atom [])]
-     (.prepare bolt# {} nil (OutputCollector.
-                       (reify IOutputCollector
-                         (emit [_ _ _ tuple#]
-                           (swap! tuples# conj tuple#))
-                         (ack [_ input]))))
-     (if (vector? ~tuples)
-       (doseq [t# ~tuples]
-         (.execute bolt# t#))
-       (.execute bolt# ~tuples))
-     (let [~'tuples @tuples#]
-       ~@body)))
+(defn execute-tuples [bolt tuples]
+  (let [out (atom [])]
+    (.prepare bolt {} nil (OutputCollector.
+                           (reify IOutputCollector
+                             (emit [_ _ _ tuple]
+                               (swap! out conj tuple))
+                             (ack [_ input]))))
+    (if (vector? tuples)
+       (doseq [t tuples]
+         (.execute bolt t))
+       (.execute bolt tuples))
+    @out))
 
 (defn- mock-tuple [m & {component :component stream-id :stream-id
                         :or {component "1" stream-id "1"}}]
@@ -65,38 +63,39 @@
 
 (deftest test-split-sentence
   (testing "Bolt emits word per sentence"
-    (test-with-tuple [split-sentence (mock-tuple
-                                        {"sentence" "the cat jumped over the door"})]
+    (let [tuples (execute-tuples
+                  split-sentence
+                  (mock-tuple {"sentence" "the cat jumped over the door"}))]
       (is (= [["the"] ["cat"] ["jumped"] ["over"] ["the"] ["door"]] tuples)))))
 
 (deftest test-word-count
   (testing "Bolt emits new count"
-    (test-with-tuple [word-count [(mock-tuple {"word" "the"})
-                                  (mock-tuple {"word" "the"})
-                                  (mock-tuple {"word" "cat"})]]
+    (let [tuples (execute-tuples word-count [(mock-tuple {"word" "the"})
+                                             (mock-tuple {"word" "the"})
+                                             (mock-tuple {"word" "cat"})])]
       (is (ms= [["the" 1] ["the" 2] ["cat" 1]] tuples)))))
 
 (deftest test-exclamation-bolt
   (testing "Bolt emits word with exclamation marks"
-    (test-with-tuple [exclamation-bolt (mock-tuple {"word" "nathan"})]
+    (let [tuples (execute-tuples exclamation-bolt (mock-tuple {"word" "nathan"}))]
       (is (= [["nathan!!!"]] tuples)))))
 
 (deftest test-rolling-bolt
   (testing "Emits nothing if no object has been counted"
-    (test-with-tuple [(rolling-count-bolt 9 3) tick-tuple]
+    (let [tuples (execute-tuples (rolling-count-bolt 9 3) tick-tuple)]
       (is (empty? tuples))))
   (testing "Emits something if object was counted"
-    (test-with-tuple [(rolling-count-bolt 9 3)
-                      [(mock-tuple {"word" "nathan"}) tick-tuple]]
+    (let [tuples (execute-tuples (rolling-count-bolt 9 3)
+                                 [(mock-tuple {"word" "nathan"}) tick-tuple])]
       (is (= [["nathan" 1 0]] tuples)))))
 
 (deftest test-intermediate-rankings-bolt
   (testing "Emits rankings for tick tuple"
-    (test-with-tuple [(intermediate-rankings-bolt 5 2) tick-tuple]
+    (let [tuples (execute-tuples (intermediate-rankings-bolt 5 2) tick-tuple)]
       (is (seq tuples))))
   (testing "Emits nothing for normal tuple"
-    (test-with-tuple [(intermediate-rankings-bolt 5 2)
-                      (mock-tuple {"obj" "nathan" "count" 1})]
+    (let [tuples (execute-tuples (intermediate-rankings-bolt 5 2)
+                                 (mock-tuple {"obj" "nathan" "count" 1}))]
       (is (empty? tuples)))))
 
 (defn- mock-rankable [object count]
@@ -107,9 +106,9 @@
 
 (deftest test-total-rankings-bolt
   (testing "Emits rankings for tick tuple"
-    (test-with-tuple [(total-rankings-bolt 5 2) tick-tuple]
+    (let [tuples (execute-tuples (total-rankings-bolt 5 2) tick-tuple)]
       (is (seq tuples))))
   (testing "Emits nothing for normal tuple"
-    (test-with-tuple [(total-rankings-bolt 5 2)
-                      (mock-tuple {"rankings" (mock-rankable "nathan" 2)})]
-     (is (empty? tuples)))))
+    (let [tuples (execute-tuples (total-rankings-bolt 5 2)
+                                 (mock-tuple {"rankings" (mock-rankable "nathan" 2)}))]
+      (is (empty? tuples)))))

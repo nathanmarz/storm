@@ -1,4 +1,5 @@
 ## 2.0.0
+ * STORM-1279: port backtype.storm.daemon.supervisor to java
  * STORM-1668: Flux silently fails while setting a non-existent property.
  * STORM-1271: Port backtype.storm.daemon.task to java
  * STORM-822: Kafka Spout New Consumer API

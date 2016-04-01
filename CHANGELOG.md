@@ -74,6 +74,7 @@
  * STORM-1521: When using Kerberos login from keytab with multiple bolts/executors ticket is not renewed in hbase bolt.
 
 ## 1.0.0
+ * STORM-1671: Enable logviewer to delete a dir without yaml
  * STORM-1673: log4j2/worker.xml refers old package of LoggerMetricsConsumer
  * STORM-1669: Fix SolrUpdateBolt flush bug
  * STORM-1573: Add batch support for MongoInsertBolt

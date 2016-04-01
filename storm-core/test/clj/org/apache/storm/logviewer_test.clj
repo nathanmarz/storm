@@ -246,24 +246,24 @@
           (. (Mockito/when (.readWorkerHeartbeatsImpl supervisor-util (Mockito/any))) (thenReturn nil))
           (is (= expected (logviewer/identify-worker-log-dirs [port1-dir]))))))))
 
-
-
 (deftest test-get-dead-worker-dirs
-  (testing "removes any files of workers that are still alive"
+  (testing "return directories for workers that are not alive"
     (let [conf {SUPERVISOR-WORKER-TIMEOUT-SECS 5}
-          hb (let[lwb (LSWorkerHeartbeat.)]
+          hb (let [lwb (LSWorkerHeartbeat.)]
                    (.set_time_secs lwb (int 1)) lwb)
           id->hb {"42" hb}
           now-secs 2
-          unexpected-dir (mk-mock-File {:name "dir1" :type :directory})
-          expected-dir (mk-mock-File {:name "dir2" :type :directory})
-          log-dirs #{unexpected-dir expected-dir}
+          unexpected-dir1 (mk-mock-File {:name "dir1" :type :directory})
+          expected-dir2 (mk-mock-File {:name "dir2" :type :directory})
+          expected-dir3 (mk-mock-File {:name "dir3" :type :directory})
+          log-dirs #{unexpected-dir1 expected-dir2 expected-dir3}
           supervisor-util (Mockito/mock SupervisorUtils)]
       (with-open [_ (MockedSupervisorUtils. supervisor-util)]
-      (stubbing [logviewer/identify-worker-log-dirs {"42" unexpected-dir,
-                                                     "007" expected-dir}]
+      (stubbing [logviewer/identify-worker-log-dirs {"42" unexpected-dir1,
+                                                     "007" expected-dir2,
+                                                     "" expected-dir3}] ;; this tests a directory with no yaml file thus no worker id
         (. (Mockito/when (.readWorkerHeartbeatsImpl supervisor-util (Mockito/any))) (thenReturn id->hb))
-        (is (= #{expected-dir}
+        (is (= #{expected-dir2 expected-dir3}
               (logviewer/get-dead-worker-dirs conf now-secs log-dirs))))))))
 
 (deftest test-cleanup-fn

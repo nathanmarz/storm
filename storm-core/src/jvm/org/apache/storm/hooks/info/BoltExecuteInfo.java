@@ -17,6 +17,8 @@
  */
 package org.apache.storm.hooks.info;
 
+import org.apache.storm.hooks.ITaskHook;
+import org.apache.storm.task.TopologyContext;
 import org.apache.storm.tuple.Tuple;
 
 public class BoltExecuteInfo {
@@ -28,5 +30,11 @@ public class BoltExecuteInfo {
         this.tuple = tuple;
         this.executingTaskId = executingTaskId;
         this.executeLatencyMs = executeLatencyMs;
+    }
+
+    public void applyOn(TopologyContext topologyContext) {
+        for (ITaskHook hook : topologyContext.getHooks()) {
+            hook.boltExecute(this);
+        }
     }
 }

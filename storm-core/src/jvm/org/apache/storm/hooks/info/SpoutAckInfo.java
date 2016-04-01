@@ -17,6 +17,9 @@
  */
 package org.apache.storm.hooks.info;
 
+import org.apache.storm.hooks.ITaskHook;
+import org.apache.storm.task.TopologyContext;
+
 public class SpoutAckInfo {
     public Object messageId;
     public int spoutTaskId;
@@ -26,5 +29,11 @@ public class SpoutAckInfo {
         this.messageId = messageId;
         this.spoutTaskId = spoutTaskId;
         this.completeLatencyMs = completeLatencyMs;
+    }
+
+    public void applyOn(TopologyContext topologyContext) {
+        for (ITaskHook hook : topologyContext.getHooks()) {
+            hook.spoutAck(this);
+        }
     }
 }

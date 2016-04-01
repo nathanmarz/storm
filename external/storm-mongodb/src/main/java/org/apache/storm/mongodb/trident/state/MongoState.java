@@ -91,7 +91,7 @@ public class MongoState implements State {
             Document document = options.mapper.toDocument(tuple);
             documents.add(document);
         }
-        this.mongoClient.insert(documents);
+        this.mongoClient.insert(documents, true);
     }
 
 }

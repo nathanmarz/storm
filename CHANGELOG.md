@@ -1,4 +1,9 @@
 ## 2.0.0
+ * STORM-1271: Port backtype.storm.daemon.task to java
+ * STORM-822: Kafka Spout New Consumer API
+ * STORM-1663: Stats couldn't handle null worker HB.
+ * STORM-1665: Worker cannot instantiate kryo
+ * STORM-1666: Kill from the UI fails silently
  * STORM-1610: port pacemaker_state_factory_test.clj to java
  * STORM-1611: port org.apache.storm.pacemaker.pacemaker to java
  * STORM-1268: port builtin-metrics to java
@@ -67,6 +72,7 @@
  * STORM-1521: When using Kerberos login from keytab with multiple bolts/executors ticket is not renewed in hbase bolt.
 
 ## 1.0.0
+ * STORM-1573: Add batch support for MongoInsertBolt
  * STORM-1660: remove flux gitignore file and move rules to top level gitignore
  * STORM-1634: Refactoring of Resource Aware Scheduler
  * STORM-1030: Hive Connector Fixes

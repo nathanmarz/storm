@@ -18,10 +18,10 @@
 
 package org.apache.storm.utils;
 
-import org.apache.storm.Config;
-import org.apache.storm.validation.ConfigValidation;
-import org.apache.storm.generated.StormTopology;
 import org.apache.commons.io.FileUtils;
+import org.apache.storm.Config;
+import org.apache.storm.generated.StormTopology;
+import org.apache.storm.validation.ConfigValidation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,14 +35,16 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.lang.reflect.Field;
+import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
-import java.util.HashSet;
-import java.util.Collections;
-import java.net.URLEncoder;
+import java.util.concurrent.Callable;
 
 public class ConfigUtils {
     private final static Logger LOG = LoggerFactory.getLogger(ConfigUtils.class);
@@ -135,7 +137,28 @@ public class ConfigUtils {
         throw new IllegalArgumentException("Illegal topology.stats.sample.rate in conf: " + rate);
     }
 
-    // public static mkStatsSampler // depends on Utils.evenSampler() TODO, this is sth we need to do after util
+    public static Callable<Boolean> evenSampler(final int samplingFreq) {
+        final Random random = new Random();
+
+        return new Callable<Boolean>() {
+            private int curr = -1;
+            private int target = random.nextInt(samplingFreq);
+
+            @Override
+            public Boolean call() throws Exception {
+                curr++;
+                if (curr >= samplingFreq) {
+                    curr = 0;
+                    target = random.nextInt(samplingFreq);
+                }
+                return (curr == target);
+            }
+        };
+    }
+
+    public static Callable<Boolean> mkStatsSampler(Map conf) {
+        return evenSampler(samplingRate(conf));
+    }
 
     // we use this "weird" wrapper pattern temporarily for mocking in clojure test
     public static Map readStormConfig() {

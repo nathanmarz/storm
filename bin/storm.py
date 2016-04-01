@@ -555,7 +555,7 @@ def pacemaker(klass="org.apache.storm.pacemaker.Pacemaker"):
         extrajars=cppaths,
         jvmopts=jvmopts)
 
-def supervisor(klass="org.apache.storm.daemon.supervisor"):
+def supervisor(klass="org.apache.storm.daemon.supervisor.Supervisor"):
     """Syntax: [storm supervisor]
 
     Launches the supervisor daemon. This command should be run

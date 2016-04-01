@@ -291,6 +291,10 @@ storm.resource.isolation.plugin: "org.apache.storm.container.cgroup.CgroupManage
 # If storm.resource.isolation.plugin.enable is set to false the unit tests for cgroups will not run
 storm.resource.isolation.plugin.enable: false
 
+
+# Default plugin to use for manager worker
+storm.supervisor.worker.manager.plugin: org.apache.storm.daemon.supervisor.workermanager.DefaultWorkerManager
+
 # Configs for CGroup support
 storm.cgroup.hierarchy.dir: "/cgroup/storm_resources"
 storm.cgroup.resources:

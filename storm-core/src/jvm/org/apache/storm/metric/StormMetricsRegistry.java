@@ -37,7 +37,7 @@ public class StormMetricsRegistry {
         return register(name, meter);
     }
 
-    // TODO: should replace fn to Gauge<Integer> when nimbus.clj is translated to java
+    // TODO: should replace Callable to Gauge<Integer> when nimbus.clj is translated to java
     public static Gauge<Integer> registerGauge(final String name, final Callable fn) {
         Gauge<Integer> gauge = new Gauge<Integer>() {
             @Override

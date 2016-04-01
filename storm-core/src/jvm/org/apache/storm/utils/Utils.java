@@ -216,7 +216,7 @@ public class Utils {
         try {
             T ret = (T) c.newInstance();
             TDeserializer des = getDes();
-            des.deserialize((TBase)ret, b, offset, length);
+            des.deserialize((TBase) ret, b, offset, length);
             return ret;
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -1717,7 +1717,7 @@ public class Utils {
         if(map == null) {
             return null;
         }
-        return findOne(pred, (Set<T>)map.entrySet());
+        return findOne(pred, (Set<T>) map.entrySet());
     }
 
     public static String localHostname () throws UnknownHostException {

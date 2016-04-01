@@ -17,14 +17,15 @@
 (ns org.apache.storm.testing
   (:require [org.apache.storm.daemon
              [nimbus :as nimbus]
-             [supervisor :as supervisor]
+             [local-supervisor :as local-supervisor]
              [common :as common]
              [worker :as worker]
              [executor :as executor]])
   (:import [org.apache.commons.io FileUtils]
            [org.apache.storm.utils]
            [org.apache.storm.zookeeper Zookeeper]
-           [org.apache.storm ProcessSimulator])
+           [org.apache.storm ProcessSimulator]
+           [org.apache.storm.daemon.supervisor StandaloneSupervisor SupervisorData SupervisorManager SupervisorUtils SupervisorManager])
   (:import [java.io File])
   (:import [java.util HashMap ArrayList])
   (:import [java.util.concurrent.atomic AtomicInteger])
@@ -136,9 +137,12 @@
         supervisor-conf (merge (:daemon-conf cluster-map)
                                conf
                                {STORM-LOCAL-DIR tmp-dir
-                                SUPERVISOR-SLOTS-PORTS port-ids})
-        id-fn (if id (fn [] id) supervisor/generate-supervisor-id)
-        daemon (with-var-roots [supervisor/generate-supervisor-id id-fn] (supervisor/mk-supervisor supervisor-conf (:shared-context cluster-map) (supervisor/standalone-supervisor)))]
+                                SUPERVISOR-SLOTS-PORTS port-ids
+                                STORM-SUPERVISOR-WORKER-MANAGER-PLUGIN "org.apache.storm.daemon.supervisor.workermanager.DefaultWorkerManager"})
+        id-fn (if id id (Utils/uuid))
+        isupervisor (proxy [StandaloneSupervisor] []
+                        (generateSupervisorId [] id-fn))
+        daemon (local-supervisor/mk-local-supervisor supervisor-conf (:shared-context cluster-map) isupervisor)]
     (swap! (:supervisors cluster-map) conj daemon)
     (swap! (:tmp-dirs cluster-map) conj tmp-dir)
     daemon))
@@ -209,7 +213,7 @@
     cluster-map))
 
 (defn get-supervisor [cluster-map supervisor-id]
-  (let [pred  (reify IPredicate (test [this x] (= (.get-id x) supervisor-id)))]
+  (let [pred  (reify IPredicate (test [this x] (= (.getId x) supervisor-id)))]
     (Utils/findOne pred @(:supervisors cluster-map))))
 
 (defn remove-first
@@ -220,8 +224,8 @@
     (concat b (rest e))))
 
 (defn kill-supervisor [cluster-map supervisor-id]
-  (let [finder-fn #(= (.get-id %) supervisor-id)
-        pred  (reify IPredicate (test [this x] (= (.get-id x) supervisor-id)))
+  (let [finder-fn #(= (.getId %) supervisor-id)
+        pred  (reify IPredicate (test [this x] (= (.getId x) supervisor-id)))
         supervisors @(:supervisors cluster-map)
         sup (Utils/findOne pred
                            supervisors)]
@@ -241,9 +245,9 @@
   (.close (:state cluster-map))
   (.disconnect (:storm-cluster-state cluster-map))
   (doseq [s @(:supervisors cluster-map)]
-    (.shutdown-all-workers s)
+    (.shutdownAllWorkers s)
     ;; race condition here? will it launch the workers again?
-    (supervisor/kill-supervisor s))
+    (.shutdown s))
   (ProcessSimulator/killAllProcesses)
   (if (not-nil? (:zookeeper cluster-map))
     (do
@@ -279,6 +283,8 @@
   ([timeout-ms apredicate]
     (while-timeout timeout-ms (not (apredicate))
       (Time/sleep 100))))
+(defn is-supervisor-waiting [^SupervisorManager supervisor]
+  (.isWaiting supervisor))
 
 (defn wait-until-cluster-waiting
   "Wait until the cluster is idle. Should be used with time simulation."
@@ -289,10 +295,10 @@
         workers (filter (partial instance? DaemonCommon) (clojurify-structure (ProcessSimulator/getAllProcessHandles)))
         daemons (concat
                   [(:nimbus cluster-map)]
-                  supervisors
                   ; because a worker may already be dead
                   workers)]
-    (while-timeout timeout-ms (not (every? (memfn isWaiting) daemons))
+    (while-timeout timeout-ms (or (not (every? (memfn isWaiting) daemons))
+                                (not (every? is-supervisor-waiting supervisors)))
                    (Thread/sleep (rand-int 20))
                    ;;      (doseq [d daemons]
                    ;;        (if-not ((memfn waiting?) d)
@@ -388,12 +394,13 @@
         (submit-local-topology nimbus storm-name conf topology)))))
 
 (defn mk-capture-launch-fn [capture-atom]
-  (fn [supervisor storm-id port worker-id mem-onheap]
-    (let [supervisor-id (:supervisor-id supervisor)
-          conf (:conf supervisor)
-          existing (get @capture-atom [supervisor-id port] [])]
-      (ConfigUtils/setWorkerUserWSE conf worker-id "")
-      (swap! capture-atom assoc [supervisor-id port] (conj existing storm-id)))))
+  (fn [supervisorData stormId port workerId resources]
+    (let [conf (.getConf supervisorData)
+          supervisorId (.getSupervisorId supervisorData)
+          existing (get @capture-atom [supervisorId port] [])]
+      (log-message "mk-capture-launch-fn")
+      (ConfigUtils/setWorkerUserWSE conf workerId "")
+      (swap! capture-atom assoc [supervisorId port] (conj existing stormId)))))
 
 (defn find-worker-id
   [supervisor-conf port]
@@ -409,21 +416,24 @@
 
 (defn mk-capture-shutdown-fn
   [capture-atom]
-  (let [existing-fn supervisor/shutdown-worker]
-    (fn [supervisor worker-id]
-      (let [conf (:conf supervisor)
-            supervisor-id (:supervisor-id supervisor)
-            port (find-worker-port conf worker-id)
+    (fn [supervisorData worker-manager workerId]
+      (let [conf (.getConf supervisorData)
+            supervisor-id (.getSupervisorId supervisorData)
+            port (find-worker-port conf workerId)
+            worker-pids (.getWorkerThreadPids supervisorData)
+            dead-workers (.getDeadWorkers supervisorData)
             existing (get @capture-atom [supervisor-id port] 0)]
+        (log-message "mk-capture-shutdown-fn")
         (swap! capture-atom assoc [supervisor-id port] (inc existing))
-        (existing-fn supervisor worker-id)))))
-
+        (.shutdownWorker worker-manager supervisor-id workerId worker-pids)
+        (if (.cleanupWorker worker-manager workerId)
+          (.remove dead-workers workerId)))))
 (defmacro capture-changed-workers
   [& body]
   `(let [launch-captured# (atom {})
          shutdown-captured# (atom {})]
-     (with-var-roots [supervisor/launch-worker (mk-capture-launch-fn launch-captured#)
-                      supervisor/shutdown-worker (mk-capture-shutdown-fn shutdown-captured#)]
+     (with-var-roots [local-supervisor/launch-local-worker (mk-capture-launch-fn launch-captured#)
+                      local-supervisor/shutdown-local-worker (mk-capture-shutdown-fn shutdown-captured#)]
                      ~@body
                      {:launched @launch-captured#
                       :shutdown @shutdown-captured#})))

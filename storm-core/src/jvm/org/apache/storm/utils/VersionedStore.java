@@ -18,13 +18,9 @@
 package org.apache.storm.utils;
 
 import java.io.IOException;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.io.File;
 
@@ -125,12 +121,10 @@ public class VersionedStore {
         }
         HashSet<Long> keepers = new HashSet<Long>(versions);
 
-        try(DirectoryStream<Path> directoryStream = Files.newDirectoryStream(new File(_root).toPath())) {
-            for (Path path : directoryStream) {
-                Long v = parseVersion(path.toAbsolutePath().toString());
-                if (v != null && !keepers.contains(v)) {
-                    deleteVersion(v);
-                }
+        for(String p: listDir(_root)) {
+            Long v = parseVersion(p);
+            if(v!=null && !keepers.contains(v)) {
+                deleteVersion(v);
             }
         }
     }
@@ -139,18 +133,16 @@ public class VersionedStore {
      * Sorted from most recent to oldest
      */
     public List<Long> getAllVersions() throws IOException {
-        List<Long> versions = new ArrayList<Long>();
-        try(DirectoryStream<Path> pathDirectoryStream = listDirWithFinishedFiles(_root)) {
-            for (Path path : pathDirectoryStream) {
-                String absolutePath = path.toAbsolutePath().toString();
-                if (absolutePath.endsWith(FINISHED_VERSION_SUFFIX)) {
-                    versions.add(validateAndGetVersion(absolutePath));
-                }
+        List<Long> ret = new ArrayList<Long>();
+        for(String s: listDir(_root)) {
+
+            if(s.endsWith(FINISHED_VERSION_SUFFIX) && new File(s.substring(0, s.length() - FINISHED_VERSION_SUFFIX.length())).exists()) {
+                ret.add(validateAndGetVersion(s));
             }
         }
-        Collections.sort(versions);
-        Collections.reverse(versions);
-        return versions;
+        Collections.sort(ret);
+        Collections.reverse(ret);
+        return ret;
     }
 
     private String tokenPath(long version) {
@@ -182,18 +174,15 @@ public class VersionedStore {
     private void mkdirs(String path) throws IOException {
         new File(path).mkdirs();
     }
-
-    /**
-     * Return files which have both original and finished versions.
-     */
-    private DirectoryStream<Path> listDirWithFinishedFiles(String dir) throws IOException {
-        return Files.newDirectoryStream(new File(dir).toPath(), new DirectoryStream.Filter<Path>() {
-            @Override
-            public boolean accept(Path path) throws IOException {
-                final String filePath = path.toAbsolutePath().toString();
-                return filePath.endsWith(FINISHED_VERSION_SUFFIX) &&
-                        new File(filePath.substring(0, filePath.length() - FINISHED_VERSION_SUFFIX.length())).exists();
+    
+    private List<String> listDir(String dir) throws IOException {
+        List<String> ret = new ArrayList<String>();
+        File[] contents = new File(dir).listFiles();
+        if(contents!=null) {
+            for(File f: contents) {
+                ret.add(f.getAbsolutePath());
             }
-        });
+        }
+        return ret;
     }
 }

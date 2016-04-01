@@ -11,7 +11,10 @@ This could be useful for inspecting the tuples emitted at a spout or a bolt in t
 
 ## Enabling event logging
 
-Event logging can be enabled by clicking the "Debug" button under the topology actions in the topology view. This logs the
+Note: Event logging needs to be enabled first by setting the storm config "topology.eventlogger.executors" to a non zero value. Please see
+the [Configuration](#config) section for more details.
+
+Events can be logged by clicking the "Debug" button under the topology actions in the topology view. This logs the
 tuples from all the spouts and bolts in a topology at the specified sampling percentage.
 
 <div align="center">
@@ -54,14 +57,14 @@ Event logging can be disabled at a specific component or at the topology level b
 <p>Figure 4: Disable event logging at topology level.</p>
 </div>
 
-## Configuration
-Eventlogging works by sending the events (tuples) from each component to an internal eventlogger bolt. By default storm automatically starts one event logger task per worker. This can be easily changed by setting the below parameter while running your topology (by setting it in storm.yaml or passing options via command line).
+## <a name="config"></a>Configuration
+Eventlogging works by sending the events (tuples) from each component to an internal eventlogger bolt. By default Storm does not start any event logger tasks, but this can be easily changed by setting the below parameter while running your topology (by setting it in storm.yaml or passing options via command line).
 
 | Parameter  | Meaning |
 | -------------------------------------------|-----------------------|
-| "topology.eventlogger.executors": nil      | One event logger task per worker (default). |
+| "topology.eventlogger.executors": 0      | No event logger tasks are created (default). |
 | "topology.eventlogger.executors": 1      | One event logger task for the topology. |
-| "topology.eventlogger.executors": 0      | No event logger tasks are created. |
+| "topology.eventlogger.executors": nil      | One event logger task per worker. |
 
 
 ## Extending eventlogging

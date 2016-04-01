@@ -26,6 +26,7 @@ import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.InsertManyOptions;
 import com.mongodb.client.model.UpdateOptions;
 
 public class MongoDBClient {
@@ -45,15 +46,6 @@ public class MongoDBClient {
     }
 
     /**
-     * Inserts the provided document.
-     * 
-     * @param document
-     */
-    public void insert(Document document) {
-        collection.insertOne(document);
-    }
-
-    /**
      * Inserts one or more documents.
      * This method is equivalent to a call to the bulkWrite method.
      * The documents will be inserted in the order provided, 
@@ -61,8 +53,12 @@ public class MongoDBClient {
      * 
      * @param documents
      */
-    public void insert(List<Document> documents) {
-        collection.insertMany(documents);
+    public void insert(List<Document> documents, boolean ordered) {
+        InsertManyOptions options = new InsertManyOptions();
+        if (!ordered) {
+            options.ordered(false);
+        }
+        collection.insertMany(documents, options);
     }
 
     /**
@@ -75,7 +71,7 @@ public class MongoDBClient {
      */
     public void update(Bson filter, Bson update, boolean upsert) {
         UpdateOptions options = new UpdateOptions();
-        if(upsert) {
+        if (upsert) {
             options.upsert(true);
         }
         collection.updateMany(filter, update, options);

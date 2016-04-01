@@ -17,11 +17,18 @@
  */
 package org.apache.storm.mongodb.bolt;
 
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.commons.lang.Validate;
 import org.apache.storm.mongodb.common.mapper.MongoMapper;
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.tuple.Tuple;
+import org.apache.storm.utils.TupleUtils;
 import org.bson.Document;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Basic bolt for writing to MongoDB.
@@ -30,8 +37,19 @@ import org.bson.Document;
  *
  */
 public class MongoInsertBolt extends AbstractMongoBolt {
+    private static final Logger LOG = LoggerFactory.getLogger(MongoInsertBolt.class);
+
+    private static final int DEFAULT_FLUSH_INTERVAL_SECS = 1;
 
     private MongoMapper mapper;
+
+    private boolean ordered = true;  //default is ordered.
+
+    private int batchSize = 15000;
+
+    private List<Tuple> tupleBatch;
+
+    private int flushIntervalSecs = DEFAULT_FLUSH_INTERVAL_SECS;
 
     public MongoInsertBolt(String url, String collectionName, MongoMapper mapper) {
         super(url, collectionName);
@@ -39,19 +57,65 @@ public class MongoInsertBolt extends AbstractMongoBolt {
         Validate.notNull(mapper, "MongoMapper can not be null");
 
         this.mapper = mapper;
+
+        this.tupleBatch = new LinkedList<>();
     }
 
     @Override
     public void execute(Tuple tuple) {
+        boolean forceFlush = false;
         try{
-            //get document
-            Document doc = mapper.toDocument(tuple);
-            mongoClient.insert(doc);
-            this.collector.ack(tuple);
+            if (TupleUtils.isTick(tuple)) {
+                LOG.debug("TICK received! current batch status [{}/{}]", tupleBatch.size(), batchSize);
+                collector.ack(tuple);
+                forceFlush = true;
+            } else {
+                tupleBatch.add(tuple);
+                if (tupleBatch.size() >= batchSize) {
+                    forceFlush = true;
+                }
+            }
+
+            if(forceFlush && !tupleBatch.isEmpty()) {
+                List<Document> docs = new LinkedList<>();
+                for (Tuple t : tupleBatch) {
+                    Document doc = mapper.toDocument(t);
+                    docs.add(doc);
+                }
+                mongoClient.insert(docs, ordered);
+
+                for(Tuple t : tupleBatch) {
+                    collector.ack(t);
+                }
+                tupleBatch.clear();
+            }
         } catch (Exception e) {
             this.collector.reportError(e);
-            this.collector.fail(tuple);
+            for (Tuple t : tupleBatch) {
+                collector.fail(t);
+            }
+            tupleBatch.clear();
         }
+    }
+
+    public MongoInsertBolt withBatchSize(int batchSize) {
+        this.batchSize = batchSize;
+        return this;
+    }
+
+    public MongoInsertBolt withOrdered(boolean ordered) {
+        this.ordered = ordered;
+        return this;
+    }
+
+    public MongoInsertBolt withFlushIntervalSecs(int flushIntervalSecs) {
+        this.flushIntervalSecs = flushIntervalSecs;
+        return this;
+    }
+
+    @Override
+    public Map<String, Object> getComponentConfiguration() {
+        return TupleUtils.putTickFrequencyIntoComponentConfig(super.getComponentConfiguration(), flushIntervalSecs);
     }
 
     @Override

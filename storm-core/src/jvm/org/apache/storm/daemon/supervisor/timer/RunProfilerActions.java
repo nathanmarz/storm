@@ -82,7 +82,8 @@ public class RunProfilerActions implements Runnable {
         this.conf = supervisorData.getConf();
         this.stormClusterState = supervisorData.getStormClusterState();
         this.hostName = supervisorData.getHostName();
-        this.profileCmd = (String) (conf.get(Config.WORKER_PROFILER_COMMAND));
+        String stormHome = System.getProperty("storm.home");
+        this.profileCmd = stormHome + Utils.FILE_PATH_SEPARATOR + "bin" + Utils.FILE_PATH_SEPARATOR + conf.get(Config.WORKER_PROFILER_COMMAND);
         this.supervisorData = supervisorData;
     }
 
@@ -98,7 +99,7 @@ public class RunProfilerActions implements Runnable {
                         if (profileRequest.get_nodeInfo().get_node().equals(hostName)) {
                             boolean stop = System.currentTimeMillis() > profileRequest.get_time_stamp();
                             Long port = profileRequest.get_nodeInfo().get_port().iterator().next();
-                            String targetDir = ConfigUtils.workerArtifactsRoot(conf, String.valueOf(port));
+                            String targetDir = ConfigUtils.workerArtifactsRoot(conf, stormId, port.intValue());
                             Map stormConf = ConfigUtils.readSupervisorStormConf(conf, stormId);
 
                             String user = null;
@@ -115,14 +116,10 @@ public class RunProfilerActions implements Runnable {
                             String str = ConfigUtils.workerArtifactsPidPath(conf, stormId, port.intValue());
                             StringBuilder stringBuilder = new StringBuilder();
 
-                            try (FileReader reader = new FileReader(str);
-                                 BufferedReader br = new BufferedReader(reader)) {
-                                int c;
-                                while ((c = br.read()) >= 0) {
-                                    stringBuilder.append(c);
-                                }
+                            String workerPid = null;
+                            try (FileReader reader = new FileReader(str); BufferedReader br = new BufferedReader(reader)) {
+                                workerPid = br.readLine().trim();
                             }
-                            String workerPid = stringBuilder.toString().trim();
                             ProfileAction profileAction = profileRequest.get_action();
                             String logPrefix = "ProfilerAction process " + stormId + ":" + port + " PROFILER_ACTION: " + profileAction + " ";
 

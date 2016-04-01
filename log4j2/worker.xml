@@ -77,7 +77,7 @@
         <appender-ref ref="A1"/>
         <appender-ref ref="syslog"/>
     </root>
-    <Logger name="backtype.storm.metric.LoggingMetricsConsumer" level="info" additivity="false">
+    <Logger name="org.apache.storm.metric.LoggingMetricsConsumer" level="info" additivity="false">
         <appender-ref ref="METRICS"/>
     </Logger>
     <Logger name="STDERR" level="INFO">

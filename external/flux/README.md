@@ -404,7 +404,7 @@ JavaBean-like setter methods and fields declared as `public`:
       # id
       - "myId"
     properties:
-      - name: "forceFromStart"
+      - name: "ignoreZkOffsets"
         value: true
       - name: "scheme"
         ref: "stringMultiScheme"
@@ -412,7 +412,7 @@ JavaBean-like setter methods and fields declared as `public`:
 
 In the example above, the `properties` declaration will cause Flux to look for a public method in the `SpoutConfig` with
 the signature `setForceFromStart(boolean b)` and attempt to invoke it. If a setter method is not found, Flux will then
-look for a public instance variable with the name `forceFromStart` and attempt to set its value.
+look for a public instance variable with the name `ignoreZkOffsets` and attempt to set its value.
 
 References may also be used as property values.
 
@@ -603,7 +603,7 @@ components:
       # id
       - "myId"
     properties:
-      - name: "forceFromStart"
+      - name: "ignoreZkOffsets"
         value: true
       - name: "scheme"
         ref: "stringMultiScheme"

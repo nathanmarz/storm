@@ -138,7 +138,7 @@ public class DirectoryCleaner {
             while (!stack.isEmpty() && toDeleteSize > 0) {
                 File file = stack.pop();
                 toDeleteSize -= file.length();
-                LOG.info("Delete file: {}, size: {}, lastModified: {}", file.getName(), file.length(), file.lastModified());
+                LOG.info("Delete file: {}, size: {}, lastModified: {}", file.getCanonicalPath(), file.length(), file.lastModified());
                 file.delete();
                 deletedFiles++;
             }

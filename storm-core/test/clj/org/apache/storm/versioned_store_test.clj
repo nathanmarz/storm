@@ -16,6 +16,8 @@
 (ns org.apache.storm.versioned-store-test
   (:use [clojure test])
   (:use [org.apache.storm testing])
+  (:import [java.io File])
+  (:import [org.apache.commons.io FileUtils])
   (:import [org.apache.storm.utils VersionedStore]))
 
 (defmacro defvstest [name [vs-sym] & body]
@@ -25,18 +27,25 @@
         ~@body
         ))))
 
+(defn writeToFile [^String file]
+  (FileUtils/writeStringToFile (File. file) (str "time:" (System/currentTimeMillis))))
+
 (defvstest test-empty-version [vs]
   (let [v (.createVersion vs)]
     (.succeedVersion vs v)
+    (writeToFile v)
     (is (= 1 (count (.getAllVersions vs))))
     (is (= v (.mostRecentVersionPath vs)))
     ))
 
 (defvstest test-multiple-versions [vs]
-  (.succeedVersion vs (.createVersion vs))
+  (let [v (.createVersion vs)]
+    (.succeedVersion vs v)
+    (writeToFile v))
   (Thread/sleep 100)
   (let [v (.createVersion vs)]
     (.succeedVersion vs v)
+    (writeToFile v)
     (is (= 2 (count (.getAllVersions vs))))
     (is (= v (.mostRecentVersionPath vs)))
     

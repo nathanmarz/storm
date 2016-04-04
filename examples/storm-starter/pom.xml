@@ -215,6 +215,9 @@
           <sourceDirectories>
             <sourceDirectory>src/clj</sourceDirectory>
           </sourceDirectories>
+          <testSourceDirectories>
+            <testSourceDirectory>test/clj</testSourceDirectory>
+          </testSourceDirectories>
         </configuration>
         <executions>
           <execution>
@@ -222,6 +225,13 @@
             <phase>compile</phase>
             <goals>
               <goal>compile</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>test-clojure</id>
+            <phase>test</phase>
+            <goals>
+              <goal>test</goal>
             </goals>
           </execution>
         </executions>

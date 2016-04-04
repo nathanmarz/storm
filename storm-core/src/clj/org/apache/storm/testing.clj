@@ -91,13 +91,13 @@
   []
   (Time/stopSimulating))
 
- (defmacro with-simulated-time
-   [& body]
-   `(try
-     (start-simulating-time!)
-     ~@body
-     (finally
-       (stop-simulating-time!))))
+(defmacro with-simulated-time
+  [& body]
+  `(try
+    (start-simulating-time!)
+    ~@body
+    (finally
+      (stop-simulating-time!))))
 
 (defn advance-time-ms! [ms]
   (Time/advanceTime ms))

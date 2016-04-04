@@ -397,7 +397,7 @@
                     27526
                     8888)))))
 
-      (let [file (->> "logviewer-search-context-tests.log"
+      (let [file (->> "logviewer-search-context-tests.log.test"
                    (clojure.java.io/file "src" "dev"))]
         (testing "returns correct before/after context"
           (is (= {"searchString" pattern
@@ -449,7 +449,7 @@
                              ]}
                 (logviewer/substring-search file pattern)))))
 
-      (let [file (clojure.java.io/file "src" "dev" "small-worker.log")]
+      (let [file (clojure.java.io/file "src" "dev" "small-worker.log.test")]
         (testing "a really small log file"
           (is (= {"searchString" pattern
                   "startByteOffset" 0
@@ -466,7 +466,7 @@
                                                "&start=0&length=51200")}]}
                 (logviewer/substring-search file pattern)))))
 
-      (let [file (clojure.java.io/file "src" "dev" "test-3072.log")]
+      (let [file (clojure.java.io/file "src" "dev" "test-3072.log.test")]
         (testing "no offset returned when file ends on buffer offset"
           (let [expected
                 {"searchString" pattern
@@ -489,7 +489,7 @@
             (is (= expected
                   (logviewer/substring-search file pattern :num-matches 1))))))
 
-      (let [file (clojure.java.io/file "src" "dev" "test-worker.log")]
+      (let [file (clojure.java.io/file "src" "dev" "test-worker.log.test")]
 
         (testing "next byte offsets are correct for each match"
           (doseq [[num-matches-sought
@@ -684,7 +684,7 @@
 
 (deftest test-find-n-matches
   (testing "find-n-matches looks through logs properly"
-    (let [files [(clojure.java.io/file "src" "dev" "logviewer-search-context-tests.log")
+    (let [files [(clojure.java.io/file "src" "dev" "logviewer-search-context-tests.log.test")
                  (clojure.java.io/file "src" "dev" "logviewer-search-context-tests.log.gz")]
           matches1 ((logviewer/find-n-matches files 20 0 0 "needle") "matches")
           matches2 ((logviewer/find-n-matches files 20 0 126 "needle") "matches")
@@ -693,7 +693,7 @@
       (is (= 2 (count matches1)))
       (is (= 4 (count ((first matches1) "matches"))))
       (is (= 4 (count ((second matches1) "matches"))))
-      (is (= ((first matches1) "fileName") "src/dev/logviewer-search-context-tests.log"))
+      (is (= ((first matches1) "fileName") "src/dev/logviewer-search-context-tests.log.test"))
       (is (= ((second matches1) "fileName") "src/dev/logviewer-search-context-tests.log.gz"))
 
       (is (= 2 (count ((first matches2) "matches"))))
@@ -703,7 +703,7 @@
       (is (= 4 (count ((first matches3) "matches")))))))
 
 (deftest test-deep-search-logs-for-topology
-  (let [files [(clojure.java.io/file "src" "dev" "logviewer-search-context-tests.log")
+  (let [files [(clojure.java.io/file "src" "dev" "logviewer-search-context-tests.log.test")
                (clojure.java.io/file "src" "dev" "logviewer-search-context-tests.log.gz")]
         attrs (make-array FileAttribute 0)
         topo-path (.getCanonicalPath (.toFile (Files/createTempDirectory "topoA" attrs)))

@@ -135,7 +135,8 @@ public class VersionedStore {
     public List<Long> getAllVersions() throws IOException {
         List<Long> ret = new ArrayList<Long>();
         for(String s: listDir(_root)) {
-            if(s.endsWith(FINISHED_VERSION_SUFFIX)) {
+
+            if(s.endsWith(FINISHED_VERSION_SUFFIX) && new File(s.substring(0, s.length() - FINISHED_VERSION_SUFFIX.length())).exists()) {
                 ret.add(validateAndGetVersion(s));
             }
         }

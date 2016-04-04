@@ -316,23 +316,24 @@ public class DefaultResourceAwareStrategy implements IStrategy {
     private Queue<Component> bfs(TopologyDetails td, List<Component> spouts) {
         // Since queue is a interface
         Queue<Component> ordered__Component_list = new LinkedList<Component>();
-        HashMap<String, Component> visited = new HashMap<>();
+        HashSet<String> visited = new HashSet<>();
 
         /* start from each spout that is not visited, each does a breadth-first traverse */
         for (Component spout : spouts) {
-            if (!visited.containsKey(spout.id)) {
+            if (!visited.contains(spout.id)) {
                 Queue<Component> queue = new LinkedList<>();
+                visited.add(spout.id);
                 queue.offer(spout);
                 while (!queue.isEmpty()) {
                     Component comp = queue.poll();
-                    visited.put(comp.id, comp);
                     ordered__Component_list.add(comp);
                     List<String> neighbors = new ArrayList<>();
                     neighbors.addAll(comp.children);
                     neighbors.addAll(comp.parents);
                     for (String nbID : neighbors) {
-                        if (!visited.containsKey(nbID)) {
+                        if (!visited.contains(nbID)) {
                             Component child = td.getComponents().get(nbID);
+                            visited.add(nbID);
                             queue.offer(child);
                         }
                     }

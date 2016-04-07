@@ -23,7 +23,7 @@ Most notably, no worker processes are affected by the death of Nimbus or the Sup
 
 If you lose the Nimbus node, the workers will still continue to function. Additionally, supervisors will continue to restart workers if they die. However, without Nimbus, workers won't be reassigned to other machines when necessary (like if you lose a worker machine). 
 
-So the answer is that Nimbus is "sort of" a SPOF. In practice, it's not a big deal since nothing catastrophic happens when the Nimbus daemon dies. There are plans to make Nimbus highly available in the future.
+Storm Nimbus is highly available since 1.0.0. More information please refer to [Nimbus HA Design](nimbus-ha-design.html) document.
 
 ## How does Storm guarantee data processing?
 

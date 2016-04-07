@@ -52,7 +52,6 @@ Trident is an alternative interface to Storm. It provides exactly-once processin
 * [Using non-JVM languages with Storm](Using-non-JVM-languages-with-Storm.html)
 * [Distributed RPC](Distributed-RPC.html)
 * [Transactional topologies](Transactional-topologies.html)
-* [Direct groupings](Direct-groupings.html)
 * [Hooks](Hooks.html)
 * [Metrics](Metrics.html)
 * [State Checkpointing](State-checkpointing.html)

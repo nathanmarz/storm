@@ -48,4 +48,9 @@ public interface FileRotationPolicy extends Serializable {
      *
      */
     void reset();
+
+    /**
+     * Must be able to copy the rotation policy
+     */
+    FileRotationPolicy copy();
 }

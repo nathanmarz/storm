@@ -397,10 +397,26 @@
                     27526
                     8888)))))
 
+      (testing "Logviewer link centers the match in the page (daemon)"
+        (let [expected-fname "foobar.log"]
+          (is (= (str "http://"
+                   expected-host
+                   ":"
+                   expected-port
+                   "/daemonlog?file="
+                   expected-fname
+                   "&start=1947&length="
+                   logviewer/default-bytes-per-page)
+                (logviewer/url-to-match-centered-in-log-page-daemon-file (byte-array 42)
+                  expected-fname
+                  27526
+                  8888)))))
+
       (let [file (->> "logviewer-search-context-tests.log.test"
                    (clojure.java.io/file "src" "dev"))]
         (testing "returns correct before/after context"
-          (is (= {"searchString" pattern
+          (is (= {"isDaemon" "no"
+                  "searchString" pattern
                   "startByteOffset" 0
                   "matches" [{"byteOffset" 0
                               "beforeString" ""
@@ -451,7 +467,8 @@
 
       (let [file (clojure.java.io/file "src" "dev" "small-worker.log.test")]
         (testing "a really small log file"
-          (is (= {"searchString" pattern
+          (is (= {"isDaemon" "no"
+                  "searchString" pattern
                   "startByteOffset" 0
                   "matches" [{"byteOffset" 7
                               "beforeString" "000000 "
@@ -466,10 +483,29 @@
                                                "&start=0&length=51200")}]}
                 (logviewer/substring-search file pattern)))))
 
+      (let [file (clojure.java.io/file "src" "dev" "small-worker.log.test")]
+        (testing "a really small log file (daemon)"
+          (is (= {"isDaemon" "yes"
+                  "searchString" pattern
+                  "startByteOffset" 0
+                  "matches" [{"byteOffset" 7
+                              "beforeString" "000000 "
+                              "afterString" " 000000\n"
+                              "matchString" pattern
+                              "logviewerURL" (str "http://"
+                                               expected-host
+                                               ":"
+                                               expected-port
+                                               "/daemonlog?file="
+                                               (.getName file)
+                                               "&start=0&length=51200")}]}
+                (logviewer/substring-search file pattern :is-daemon true)))))
+
       (let [file (clojure.java.io/file "src" "dev" "test-3072.log.test")]
         (testing "no offset returned when file ends on buffer offset"
           (let [expected
-                {"searchString" pattern
+                {"isDaemon" "no"
+                 "searchString" pattern
                  "startByteOffset" 0
                  "matches" [{"byteOffset" 3066
                              "beforeString" (->>
@@ -516,7 +552,8 @@
               (is (= num-matches-found (count (get result "matches")))))))
 
         (is
-          (= {"nextByteOffset" 6252
+          (= {"isDaemon" "no"
+              "nextByteOffset" 6252
               "searchString" pattern
               "startByteOffset" 0
               "matches" [
@@ -602,7 +639,8 @@
 
         (testing "Correct match offset is returned when skipping bytes"
           (let [start-byte-offset 3197]
-            (is (= {"nextByteOffset" 6252
+            (is (= {"isDaemon" "no"
+                    "nextByteOffset" 6252
                     "searchString" pattern
                     "startByteOffset" start-byte-offset
                     "matches" [{"byteOffset" 6246
@@ -623,7 +661,8 @@
 
         (let [pattern (clojure.string/join (repeat 1024 'X))]
           (is
-            (= {"nextByteOffset" 6183
+            (= {"isDaemon" "no"
+                "nextByteOffset" 6183
                 "searchString" pattern
                 "startByteOffset" 0
                 "matches" [
@@ -654,7 +693,8 @@
 
         (let [pattern "𐄀𐄁𐄂"]
           (is
-            (= {"nextByteOffset" 7176
+            (= {"isDaemon" "no"
+                "nextByteOffset" 7176
                 "searchString" pattern
                 "startByteOffset" 0
                 "matches" [
@@ -674,7 +714,8 @@
 
         (testing "Returns 0 matches for unseen pattern"
           (let [pattern "Not There"]
-            (is (= {"searchString" pattern
+            (is (= {"isDaemon" "no"
+                    "searchString" pattern
                     "startByteOffset" 0
                     "matches" []}
                   (logviewer/substring-search file

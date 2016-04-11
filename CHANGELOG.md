@@ -1,4 +1,5 @@
 ## 2.0.0
+ * STORM-1687: divide by zero in StatsUtil
  * STORM-1464: storm-hdfs support for multiple file outputs
  * STORM-515: Clojure documentation and examples
  * STORM-1279: port backtype.storm.daemon.supervisor to java

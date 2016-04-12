@@ -17,8 +17,6 @@
  */
 package org.apache.storm.stats;
 
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.storm.generated.ExecutorSpecificStats;
 import org.apache.storm.generated.ExecutorStats;
 import org.apache.storm.generated.SpoutStats;
@@ -61,8 +59,6 @@ public class SpoutExecutorStats extends CommonStats {
     }
 
     public ExecutorStats renderStats() {
-        cleanupStats();
-
         ExecutorStats ret = new ExecutorStats();
         // common fields
         ret.set_emitted(valueStat(EMITTED));

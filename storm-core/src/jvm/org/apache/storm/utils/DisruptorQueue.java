@@ -544,4 +544,8 @@ public class DisruptorQueue implements IStatefulObject {
     public QueueMetrics getMetrics() {
         return _metrics;
     }
+
+	public boolean getThrottleOn() {
+	    return _throttleOn;
+	}
 }

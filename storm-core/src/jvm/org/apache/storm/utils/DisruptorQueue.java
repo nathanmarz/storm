@@ -145,8 +145,8 @@ public class DisruptorQueue implements IStatefulObject {
             if (_enableBackpressure && _cb != null && (_metrics.population() + _overflowCount.get()) >= _highWaterMark) {
                 try {
                     if (!_throttleOn) {
-                        _cb.highWaterMark();
                         _throttleOn = true;
+                        _cb.highWaterMark();
                     }
                 } catch (Exception e) {
                     throw new RuntimeException("Exception during calling highWaterMark callback!", e);
@@ -199,8 +199,8 @@ public class DisruptorQueue implements IStatefulObject {
             if (_enableBackpressure && _cb != null && (_metrics.population() + _overflowCount.get()) >= _highWaterMark) {
                 try {
                     if (!_throttleOn) {
-                        _cb.highWaterMark();
                         _throttleOn = true;
+                        _cb.highWaterMark();
                     }
                 } catch (Exception e) {
                     throw new RuntimeException("Exception during calling highWaterMark callback!", e);

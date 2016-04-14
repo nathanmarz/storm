@@ -41,6 +41,12 @@ public class TestSqlParser {
     parse(sql);
   }
 
+  @Test
+  public void testCreateFunction() throws Exception {
+    String sql = "CREATE FUNCTION foo AS 'org.apache.storm.sql.MyUDF'";
+    parse(sql);
+  }
+
   private static SqlNode parse(String sql) throws Exception {
     StormParser parser = new StormParser(sql);
     return parser.impl().parseSqlStmtEof();

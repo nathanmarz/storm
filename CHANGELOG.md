@@ -80,6 +80,7 @@
 ## 1.0.1
  * STORM-1670: LocalState#get(String) can throw FileNotFoundException which results in not removing worker heartbeats and supervisor is kind of stuck and goes down after some time.
  * STORM-1677: Test resource files are excluded from source distribution, which makes logviewer-test failing
+ * STORM-1585: Add DDL support for UDFs in storm-sql
 
 ## 1.0.0
  * STORM-1671: Enable logviewer to delete a dir without yaml

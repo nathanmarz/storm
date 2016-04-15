@@ -340,6 +340,10 @@ public class DisruptorQueue implements IStatefulObject {
         public void notifyArrivals(long counts) {
             _rateTracker.notify(counts);
         }
+
+        public void close() {
+            _rateTracker.close();
+        }
     }
 
     private final RingBuffer<AtomicReference<Object>> _buffer;
@@ -396,6 +400,7 @@ public class DisruptorQueue implements IStatefulObject {
         try {
             publishDirect(new ArrayList<Object>(Arrays.asList(INTERRUPT)), true);
             _flusher.close();
+            _metrics.close();
         } catch (InsufficientCapacityException e) {
             //This should be impossible
             throw new RuntimeException(e);

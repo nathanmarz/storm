@@ -53,6 +53,10 @@ public class CheckpointTupleForwarder implements IRichBolt {
     private long lastTxid = Long.MIN_VALUE;
     private AnchoringOutputCollector collector;
 
+    public CheckpointTupleForwarder() {
+        this(null);
+    }
+
     public CheckpointTupleForwarder(IRichBolt bolt) {
         this.bolt = bolt;
         transactionRequestCount = new HashMap<>();
@@ -86,6 +90,10 @@ public class CheckpointTupleForwarder implements IRichBolt {
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         bolt.declareOutputFields(declarer);
+        declareCheckpointStream(declarer);
+    }
+
+    protected void declareCheckpointStream(OutputFieldsDeclarer declarer) {
         declarer.declareStream(CHECKPOINT_STREAM_ID, new Fields(CHECKPOINT_FIELD_TXID, CHECKPOINT_FIELD_ACTION));
     }
 

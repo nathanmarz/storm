@@ -179,7 +179,7 @@ your fork up to date with the latest changes of the upstream (official) `storm` 
 
 ### Approve a pull request
 
-[BYLAWS](http://storm.apache.org/documentation/BYLAWS.html) describes the condition of approval for code / non-code change. 
+[BYLAWS](http://storm.apache.org/contribute/BYLAWS.html) describes the condition of approval for code / non-code change. 
 
 Please refer Approvals -> Actions section for more details.
 

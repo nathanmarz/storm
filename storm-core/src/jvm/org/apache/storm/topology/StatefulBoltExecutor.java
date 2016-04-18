@@ -42,7 +42,7 @@ import static org.apache.storm.spout.CheckPointState.Action.INITSTATE;
 /**
  * Wraps a {@link IStatefulBolt} and manages the state of the bolt.
  */
-public class StatefulBoltExecutor<T extends State> extends CheckpointTupleForwarder {
+public class StatefulBoltExecutor<T extends State> extends BaseStatefulBoltExecutor {
     private static final Logger LOG = LoggerFactory.getLogger(StatefulBoltExecutor.class);
     private final IStatefulBolt<T> bolt;
     private State state;
@@ -78,7 +78,7 @@ public class StatefulBoltExecutor<T extends State> extends CheckpointTupleForwar
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         bolt.declareOutputFields(declarer);
-        super.declareCheckpointStream(declarer);
+        declareCheckpointStream(declarer);
     }
 
     @Override

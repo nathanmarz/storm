@@ -78,6 +78,7 @@
  * STORM-1521: When using Kerberos login from keytab with multiple bolts/executors ticket is not renewed in hbase bolt.
 
 ## 1.0.1
+ * STORM-1680: Provide configuration to set min fetch size in KafkaSpout
  * STORM-1649: Optimize Kryo instaces creation in trident windowing
  * STORM-1696: status not sync if zk fails in backpressure
  * STORM-1693: Move stats cleanup to executor shutdown

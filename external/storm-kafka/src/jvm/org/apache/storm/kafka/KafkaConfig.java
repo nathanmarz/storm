@@ -17,10 +17,12 @@
  */
 package org.apache.storm.kafka;
 
+import java.io.Serializable;
+
 import org.apache.storm.spout.MultiScheme;
 import org.apache.storm.spout.RawMultiScheme;
 
-import java.io.Serializable;
+import kafka.api.FetchRequest;
 
 public class KafkaConfig implements Serializable {
     private static final long serialVersionUID = 5276718734571623855L;
@@ -39,6 +41,7 @@ public class KafkaConfig implements Serializable {
     public long maxOffsetBehind = Long.MAX_VALUE;
     public boolean useStartOffsetTimeIfOffsetOutOfRange = true;
     public int metricsTimeBucketSizeInSecs = 60;
+    public int minFetchByte = FetchRequest.DefaultMinBytes();
 
     public KafkaConfig(BrokerHosts hosts, String topic) {
         this(hosts, topic, kafka.api.OffsetRequest.DefaultClientId());

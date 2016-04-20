@@ -189,7 +189,7 @@ public class KafkaUtils {
         int partitionId = partition.partition;
         FetchRequestBuilder builder = new FetchRequestBuilder();
         FetchRequest fetchRequest = builder.addFetch(topic, partitionId, offset, config.fetchSizeBytes).
-                clientId(config.clientId).maxWait(config.fetchMaxWait).build();
+        		clientId(config.clientId).maxWait(config.fetchMaxWait).minBytes(config.minFetchByte).build();
         FetchResponse fetchResponse;
         try {
             fetchResponse = consumer.fetch(fetchRequest);

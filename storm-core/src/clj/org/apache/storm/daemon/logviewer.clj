@@ -538,13 +538,31 @@
                   (int (/ (alength needle) -2)))) ;; Addition
        :length default-bytes-per-page})))
 
+(defn url-to-match-centered-in-log-page-daemon-file
+  [needle fname offset port]
+  (let [host (Utils/localHostname)
+        port (logviewer-port)
+        fname (clojure.string/join Utils/FILE_PATH_SEPARATOR (take-last 1 (split fname (re-pattern Utils/FILE_PATH_SEPARATOR))))]
+    (url (str "http://" host ":" port "/daemonlog")
+      {:file fname
+       :start (max 0
+                (- offset
+                  (int (/ default-bytes-per-page 2))
+                  (int (/ (alength needle) -2)))) ;; Addition
+       :length default-bytes-per-page})))
+
 (defnk mk-match-data
   [^bytes needle ^ByteBuffer haystack haystack-offset file-offset fname
-   :before-bytes nil :after-bytes nil]
-  (let [url (url-to-match-centered-in-log-page needle
-              fname
-              file-offset
-              (*STORM-CONF* LOGVIEWER-PORT))
+   :is-daemon false :before-bytes nil :after-bytes nil]
+  (let [url (if is-daemon
+              (url-to-match-centered-in-log-page-daemon-file needle
+                                                             fname
+                                                             file-offset
+                                                             (*STORM-CONF* LOGVIEWER-PORT))
+              (url-to-match-centered-in-log-page needle
+                                                 fname
+                                                 file-offset
+                                                 (*STORM-CONF* LOGVIEWER-PORT)))
         haystack-bytes (.array haystack)
         before-string (if (>= haystack-offset grep-context-size)
                         (String. haystack-bytes
@@ -640,7 +658,7 @@
   "As the file is read into a buffer, 1/2 the buffer's size at a time, we
   search the buffer for matches of the substring and return a list of zero or
   more matches."
-  [file file-len offset-to-buf init-buf-offset stream bytes-skipped
+  [is-daemon file file-len offset-to-buf init-buf-offset stream bytes-skipped
    bytes-read ^ByteBuffer haystack ^bytes needle initial-matches num-matches
    ^bytes before-bytes]
   (loop [buf-offset init-buf-offset
@@ -665,6 +683,7 @@
                 offset
                 file-offset
                 (.getCanonicalPath file)
+                :is-daemon is-daemon
                 :before-bytes before-arg
                 :after-bytes after-arg))))
         (let [before-str-to-offset (min (.limit haystack)
@@ -721,7 +740,7 @@
   context lines.  Other information is included to be useful for progressively
   searching through a file for display in a UI. The search string must
   grep-max-search-size bytes or fewer when decoded with UTF-8."
-  [file ^String search-string :num-matches 10 :start-byte-offset 0]
+  [file ^String search-string :is-daemon false :num-matches 10 :start-byte-offset 0]
   {:pre [(not (empty? search-string))
          (<= (count (.getBytes search-string "UTF-8")) grep-max-search-size)]}
   (let [zip-file? (.endsWith (.getName file) ".gz")
@@ -756,7 +775,9 @@
            byte-offset start-byte-offset
            before-bytes nil]
       (let [[matches new-byte-offset new-before-bytes]
-            (buffer-substring-search! file
+            (buffer-substring-search!
+              is-daemon
+              file
               file-len
               byte-offset
               init-buf-offset
@@ -783,16 +804,17 @@
               new-buf-offset
               new-byte-offset
               new-before-bytes))
-          (mk-grep-response search-bytes
-            start-byte-offset
-            matches
-            (if-not (and (< (count matches) num-matches)
-                      (>= @total-bytes-read file-len))
-              (let [next-byte-offset (+ (get (last matches)
-                                          "byteOffset")
-                                       (alength search-bytes))]
-                (if (> file-len next-byte-offset)
-                  next-byte-offset)))))))))
+          (merge {"isDaemon" (if is-daemon "yes" "no")}
+                 (mk-grep-response search-bytes
+                                   start-byte-offset
+                                   matches
+                                   (if-not (and (< (count matches) num-matches)
+                                                (>= @total-bytes-read file-len))
+                                     (let [next-byte-offset (+ (get (last matches)
+                                                                    "byteOffset")
+                                                               (alength search-bytes))]
+                                       (if (> file-len next-byte-offset)
+                                         next-byte-offset))))))))))
 
 (defn- try-parse-int-param
   [nam value]
@@ -805,7 +827,7 @@
         throw))))
 
 (defn search-log-file
-  [fname user ^String root-dir search num-matches offset callback origin]
+  [fname user ^String root-dir is-daemon search num-matches offset callback origin]
   (let [file (.getCanonicalFile (File. root-dir fname))]
     (if (.exists file)
       (if (or (blank? (*STORM-CONF* UI-FILTER))
@@ -819,10 +841,13 @@
             (if (and (not (empty? search))
                   <= (count (.getBytes search "UTF-8")) grep-max-search-size)
               (json-response
-                (substring-search file
-                  search
-                  :num-matches num-matches-int
-                  :start-byte-offset offset-int)
+                (merge {"isDaemon" (if is-daemon "yes" "no")}
+                       (substring-search file
+                                         search
+                                         :is-daemon is-daemon
+                                         :num-matches num-matches-int
+                                         :start-byte-offset offset-int))
+
                 callback
                 :headers {"Access-Control-Allow-Origin" origin
                           "Access-Control-Allow-Credentials" "true"})
@@ -1090,10 +1115,12 @@
     ;; :keys list, or this rule could stop working when an authentication
     ;; filter is configured.
     (try
-      (let [user (.getUserName http-creds-handler servlet-request)]
+      (let [user (.getUserName http-creds-handler servlet-request)
+            is-daemon (= (:is-daemon m) "yes")]
         (search-log-file (URLDecoder/decode file)
           user
-          (if (= (:is-daemon m) "yes") daemonlog-root log-root)
+          (if is-daemon daemonlog-root log-root)
+          is-daemon
           (:search-string m)
           (:num-matches m)
           (:start-byte-offset m)

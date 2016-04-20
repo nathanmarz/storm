@@ -47,12 +47,12 @@ $(document).ready(function() {
     var file = $.url("?file");
     var search = $.url("?search");
     var offset = $.url("?offset") || 0;
-    var isDaemon = $.url("?is-daemon");
+    var isDaemon = $.url("?is-daemon") || "no";
     file = decodeURIComponent(file);
     search = decodeURIComponent(search);
 
     $.get("/templates/logviewer-search-page-template.html", function(template) {
-        $("#search-form").append(Mustache.render($(template).filter("#search-single-file").html(),{file: file, search: search}));
+        $("#search-form").append(Mustache.render($(template).filter("#search-single-file").html(),{file: file, search: search, isDaemon: isDaemon}));
 
         var result = $("#result");
         var url = "/search/"+encodeURIComponent(file)+"?search-string="+search+"&start-byte-offset="+offset+"&is-daemon="+isDaemon;

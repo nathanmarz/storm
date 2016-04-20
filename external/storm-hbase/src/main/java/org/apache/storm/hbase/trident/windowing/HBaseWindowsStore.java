@@ -18,9 +18,6 @@
  */
 package org.apache.storm.hbase.trident.windowing;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
@@ -29,11 +26,11 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.FirstKeyOnlyFilter;
+import org.apache.storm.trident.windowing.WindowKryoSerializer;
 import org.apache.storm.trident.windowing.WindowsStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
@@ -41,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -53,11 +51,12 @@ public class HBaseWindowsStore implements WindowsStore {
     public static final String UTF_8 = "utf-8";
 
     private final ThreadLocal<HTable> threadLocalHtable;
+    private final ThreadLocal<WindowKryoSerializer> threadLocalWindowKryoSerializer;
     private final Queue<HTable> htables = new ConcurrentLinkedQueue<>();
     private final byte[] family;
     private final byte[] qualifier;
 
-    public HBaseWindowsStore(final Configuration config, final String tableName, byte[] family, byte[] qualifier) {
+    public HBaseWindowsStore(final Map stormConf, final Configuration config, final String tableName, byte[] family, byte[] qualifier) {
         this.family = family;
         this.qualifier = qualifier;
 
@@ -74,10 +73,21 @@ public class HBaseWindowsStore implements WindowsStore {
             }
         };
 
+        threadLocalWindowKryoSerializer = new ThreadLocal<WindowKryoSerializer>(){
+            @Override
+            protected WindowKryoSerializer initialValue() {
+                return new WindowKryoSerializer(stormConf);
+            }
+        };
+
     }
 
     private HTable htable() {
         return threadLocalHtable.get();
+    }
+
+    private WindowKryoSerializer windowKryoSerializer() {
+        return threadLocalWindowKryoSerializer.get();
     }
 
     private byte[] effectiveKey(String key) {
@@ -105,11 +115,7 @@ public class HBaseWindowsStore implements WindowsStore {
             return null;
         }
 
-        Kryo kryo = new Kryo();
-        Input input = new Input(result.getValue(family, qualifier));
-        Object resultObject = kryo.readClassAndObject(input);
-        return resultObject;
-
+        return windowKryoSerializer().deserialize(result.getValue(family, qualifier));
     }
 
     @Override
@@ -129,7 +135,6 @@ public class HBaseWindowsStore implements WindowsStore {
             throw new RuntimeException(e);
         }
 
-        Kryo kryo = new Kryo();
         List<Object> values = new ArrayList<>();
         for (int i=0; i<results.length; i++) {
             Result result = results[i];
@@ -137,8 +142,7 @@ public class HBaseWindowsStore implements WindowsStore {
                 LOG.error("Got empty result for key [{}]", keys.get(i));
                 throw new RuntimeException("Received empty result for key: "+keys.get(i));
             }
-            Input input = new Input(result.getValue(family, qualifier));
-            Object resultObject = kryo.readClassAndObject(input);
+            Object resultObject = windowKryoSerializer().deserialize(result.getValue(family, qualifier));
             values.add(resultObject);
         }
 
@@ -200,10 +204,7 @@ public class HBaseWindowsStore implements WindowsStore {
             throw new IllegalArgumentException("Invalid value of null with key: "+key);
         }
         Put put = new Put(effectiveKey(key));
-        Kryo kryo = new Kryo();
-        Output output = new Output(new ByteArrayOutputStream());
-        kryo.writeClassAndObject(output, value);
-        put.addColumn(family, ByteBuffer.wrap(qualifier), System.currentTimeMillis(), ByteBuffer.wrap(output.getBuffer(), 0, output.position()));
+        put.addColumn(family, ByteBuffer.wrap(qualifier), System.currentTimeMillis(), windowKryoSerializer().serializeToByteBuffer(value));
         try {
             htable().put(put);
         } catch (IOException e) {
@@ -216,10 +217,7 @@ public class HBaseWindowsStore implements WindowsStore {
         List<Put> list = new ArrayList<>();
         for (Entry entry : entries) {
             Put put = new Put(effectiveKey(entry.key));
-            Output output = new Output(new ByteArrayOutputStream());
-            Kryo kryo = new Kryo();
-            kryo.writeClassAndObject(output, entry.value);
-            put.addColumn(family, ByteBuffer.wrap(qualifier), System.currentTimeMillis(), ByteBuffer.wrap(output.getBuffer(), 0, output.position()));
+            put.addColumn(family, ByteBuffer.wrap(qualifier), System.currentTimeMillis(), windowKryoSerializer().serializeToByteBuffer(entry.value));
             list.add(put);
         }
 

@@ -112,14 +112,6 @@
   [topology ^ExecutorSummary s]
   (StatsUtil/componentType topology (.get_component_id s)))
 
-(defn is-ack-stream
-  [stream]
-  (let [acker-streams
-        [Acker/ACKER_INIT_STREAM_ID
-         Acker/ACKER_ACK_STREAM_ID
-         Acker/ACKER_FAIL_STREAM_ID]]
-    (every? #(not= %1 stream) acker-streams)))
-
 (defn spout-summary?
   [topology s]
   (= "spout" (executor-summary-type topology s)))
@@ -283,7 +275,9 @@
                               (for [m (get v :inputs)]
                                 {:stream (get m :stream)
                                  :sani-stream (get m :sani-stream)
-                                 :checked (is-ack-stream (get m :stream))}))))))]
+                                 :checked (not
+                                            (Utils/isSystemId
+                                              (get m :stream)))}))))))]
     (map (fn [row]
            {:row row}) (partition 4 4 nil streams))))
 

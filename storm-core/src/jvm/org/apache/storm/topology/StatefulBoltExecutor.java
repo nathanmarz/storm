@@ -28,7 +28,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -40,11 +39,10 @@ import static org.apache.storm.spout.CheckPointState.Action.COMMIT;
 import static org.apache.storm.spout.CheckPointState.Action.PREPARE;
 import static org.apache.storm.spout.CheckPointState.Action.ROLLBACK;
 import static org.apache.storm.spout.CheckPointState.Action.INITSTATE;
-
 /**
  * Wraps a {@link IStatefulBolt} and manages the state of the bolt.
  */
-public class StatefulBoltExecutor<T extends State> extends CheckpointTupleForwarder {
+public class StatefulBoltExecutor<T extends State> extends BaseStatefulBoltExecutor {
     private static final Logger LOG = LoggerFactory.getLogger(StatefulBoltExecutor.class);
     private final IStatefulBolt<T> bolt;
     private State state;
@@ -54,7 +52,6 @@ public class StatefulBoltExecutor<T extends State> extends CheckpointTupleForwar
     private AckTrackingOutputCollector collector;
 
     public StatefulBoltExecutor(IStatefulBolt<T> bolt) {
-        super(bolt);
         this.bolt = bolt;
     }
 
@@ -72,6 +69,23 @@ public class StatefulBoltExecutor<T extends State> extends CheckpointTupleForwar
         bolt.prepare(stormConf, context, this.collector);
         this.state = state;
     }
+
+    @Override
+    public void cleanup() {
+        bolt.cleanup();
+    }
+
+    @Override
+    public void declareOutputFields(OutputFieldsDeclarer declarer) {
+        bolt.declareOutputFields(declarer);
+        declareCheckpointStream(declarer);
+    }
+
+    @Override
+    public Map<String, Object> getComponentConfiguration() {
+        return bolt.getComponentConfiguration();
+    }
+
 
     @Override
     protected void handleCheckpoint(Tuple checkpointTuple, Action action, long txid) {

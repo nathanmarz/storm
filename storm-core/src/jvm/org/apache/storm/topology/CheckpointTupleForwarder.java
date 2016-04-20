@@ -45,37 +45,18 @@ import static org.apache.storm.spout.CheckpointSpout.*;
  * can flow through the entire topology DAG.
  * </p>
  */
-public class CheckpointTupleForwarder implements IRichBolt {
+public class CheckpointTupleForwarder extends BaseStatefulBoltExecutor {
     private static final Logger LOG = LoggerFactory.getLogger(CheckpointTupleForwarder.class);
     private final IRichBolt bolt;
-    private final Map<TransactionRequest, Integer> transactionRequestCount;
-    private int checkPointInputTaskCount;
-    private long lastTxid = Long.MIN_VALUE;
-    private AnchoringOutputCollector collector;
 
     public CheckpointTupleForwarder(IRichBolt bolt) {
         this.bolt = bolt;
-        transactionRequestCount = new HashMap<>();
     }
 
     @Override
-    public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
-        init(context, collector);
-        bolt.prepare(stormConf, context, this.collector);
-    }
-
-    protected void init(TopologyContext context, OutputCollector collector) {
-        this.collector = new AnchoringOutputCollector(collector);
-        this.checkPointInputTaskCount = getCheckpointInputTaskCount(context);
-    }
-
-    @Override
-    public void execute(Tuple input) {
-        if (CheckpointSpout.isCheckpoint(input)) {
-            processCheckpoint(input);
-        } else {
-            handleTuple(input);
-        }
+    public void prepare(Map stormConf, TopologyContext context, OutputCollector outputCollector) {
+        init(context, new AnchoringOutputCollector(outputCollector));
+        bolt.prepare(stormConf, context, collector);
     }
 
     @Override
@@ -86,7 +67,7 @@ public class CheckpointTupleForwarder implements IRichBolt {
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         bolt.declareOutputFields(declarer);
-        declarer.declareStream(CHECKPOINT_STREAM_ID, new Fields(CHECKPOINT_FIELD_TXID, CHECKPOINT_FIELD_ACTION));
+        declareCheckpointStream(declarer);
     }
 
     @Override
@@ -95,8 +76,7 @@ public class CheckpointTupleForwarder implements IRichBolt {
     }
 
     /**
-     * Forwards the checkpoint tuple downstream. Sub-classes can override
-     * with the logic for handling checkpoint tuple.
+     * Forwards the checkpoint tuple downstream.
      *
      * @param checkpointTuple  the checkpoint tuple
      * @param action the action (prepare, commit, rollback or initstate)
@@ -108,8 +88,8 @@ public class CheckpointTupleForwarder implements IRichBolt {
     }
 
     /**
-     * Hands off tuple to the wrapped bolt to execute. Sub-classes can
-     * override the behavior.
+     * Hands off tuple to the wrapped bolt to execute.
+     *
      * <p>
      * Right now tuples continue to get forwarded while waiting for checkpoints to arrive on other streams
      * after checkpoint arrives on one of the streams. This can cause duplicates but still at least once.
@@ -120,127 +100,4 @@ public class CheckpointTupleForwarder implements IRichBolt {
     protected void handleTuple(Tuple input) {
         bolt.execute(input);
     }
-
-    /**
-     * Invokes handleCheckpoint once checkpoint tuple is received on
-     * all input checkpoint streams to this component.
-     */
-    private void processCheckpoint(Tuple input) {
-        Action action = (Action) input.getValueByField(CHECKPOINT_FIELD_ACTION);
-        long txid = input.getLongByField(CHECKPOINT_FIELD_TXID);
-        if (shouldProcessTransaction(action, txid)) {
-            LOG.debug("Processing action {}, txid {}", action, txid);
-            try {
-                if (txid >= lastTxid) {
-                    handleCheckpoint(input, action, txid);
-                    if (action == ROLLBACK) {
-                        lastTxid = txid - 1;
-                    } else {
-                        lastTxid = txid;
-                    }
-                } else {
-                    LOG.debug("Ignoring old transaction. Action {}, txid {}", action, txid);
-                    collector.ack(input);
-                }
-            } catch (Throwable th) {
-                LOG.error("Got error while processing checkpoint tuple", th);
-                collector.fail(input);
-                collector.reportError(th);
-            }
-        } else {
-            LOG.debug("Waiting for action {}, txid {} from all input tasks. checkPointInputTaskCount {}, " +
-                              "transactionRequestCount {}", action, txid, checkPointInputTaskCount, transactionRequestCount);
-            collector.ack(input);
-        }
-    }
-
-    /**
-     * returns the total number of input checkpoint streams across
-     * all input tasks to this component.
-     */
-    private int getCheckpointInputTaskCount(TopologyContext context) {
-        int count = 0;
-        for (GlobalStreamId inputStream : context.getThisSources().keySet()) {
-            if (CHECKPOINT_STREAM_ID.equals(inputStream.get_streamId())) {
-                count += context.getComponentTasks(inputStream.get_componentId()).size();
-            }
-        }
-        return count;
-    }
-
-    /**
-     * Checks if check points have been received from all tasks across
-     * all input streams to this component
-     */
-    private boolean shouldProcessTransaction(Action action, long txid) {
-        TransactionRequest request = new TransactionRequest(action, txid);
-        Integer count;
-        if ((count = transactionRequestCount.get(request)) == null) {
-            transactionRequestCount.put(request, 1);
-            count = 1;
-        } else {
-            transactionRequestCount.put(request, ++count);
-        }
-        if (count == checkPointInputTaskCount) {
-            transactionRequestCount.remove(request);
-            return true;
-        }
-        return false;
-    }
-
-    private static class TransactionRequest {
-        private final Action action;
-        private final long txid;
-
-        TransactionRequest(Action action, long txid) {
-            this.action = action;
-            this.txid = txid;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            TransactionRequest that = (TransactionRequest) o;
-
-            if (txid != that.txid) return false;
-            return !(action != null ? !action.equals(that.action) : that.action != null);
-
-        }
-
-        @Override
-        public int hashCode() {
-            int result = action != null ? action.hashCode() : 0;
-            result = 31 * result + (int) (txid ^ (txid >>> 32));
-            return result;
-        }
-
-        @Override
-        public String toString() {
-            return "TransactionRequest{" +
-                    "action='" + action + '\'' +
-                    ", txid=" + txid +
-                    '}';
-        }
-    }
-
-
-    protected static class AnchoringOutputCollector extends OutputCollector {
-        AnchoringOutputCollector(IOutputCollector delegate) {
-            super(delegate);
-        }
-
-        @Override
-        public List<Integer> emit(String streamId, List<Object> tuple) {
-            throw new UnsupportedOperationException("Bolts in a stateful topology must emit anchored tuples.");
-        }
-
-        @Override
-        public void emitDirect(int taskId, String streamId, List<Object> tuple) {
-            throw new UnsupportedOperationException("Bolts in a stateful topology must emit anchored tuples.");
-        }
-
-    }
-
 }

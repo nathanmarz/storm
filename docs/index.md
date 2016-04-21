@@ -63,6 +63,7 @@ Trident is an alternative interface to Storm. It provides exactly-once processin
 * [Dynamic Log Level Settings](dynamic-log-level-settings.html)
 * [Searching Worker Logs](Logs.html)
 * [Worker Profiling](dynamic-worker-profiling.html)
+* [Event Logging](Eventlogging.html)
 
 ### Integration With External Systems, and Other Libraries
 * [Apache Kafka Integration](storm-kafka.html)

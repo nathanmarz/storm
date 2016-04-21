@@ -18,12 +18,14 @@
 package org.apache.storm.stats;
 
 import com.google.common.collect.Lists;
-import java.util.List;
+
 import org.apache.storm.generated.BoltStats;
 import org.apache.storm.generated.ExecutorSpecificStats;
 import org.apache.storm.generated.ExecutorStats;
 import org.apache.storm.metric.internal.MultiCountStatAndMetric;
 import org.apache.storm.metric.internal.MultiLatencyStatAndMetric;
+
+import java.util.List;
 
 @SuppressWarnings("unchecked")
 public class BoltExecutorStats extends CommonStats {
@@ -83,8 +85,6 @@ public class BoltExecutorStats extends CommonStats {
     }
 
     public ExecutorStats renderStats() {
-        cleanupStats();
-
         ExecutorStats ret = new ExecutorStats();
         // common stats
         ret.set_emitted(valueStat(EMITTED));

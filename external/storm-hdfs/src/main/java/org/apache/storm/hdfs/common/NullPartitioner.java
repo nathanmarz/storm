@@ -15,26 +15,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.storm.hdfs.bolt.rotation;
+package org.apache.storm.hdfs.common;
 
 import org.apache.storm.tuple.Tuple;
 
 /**
- * File rotation policy that will never rotate...
- * Just one big file. Intended for testing purposes.
+ * The NullPartitioner partitions every tuple to the empty string. In otherwords, no partition sub directories will
+ * be added to the path.
  */
-public class NoRotationPolicy implements FileRotationPolicy {
+public class NullPartitioner implements Partitioner {
     @Override
-    public boolean mark(Tuple tuple, long offset) {
-        return false;
-    }
-
-    @Override
-    public void reset() {
-    }
-
-    @Override
-    public FileRotationPolicy copy() {
-        return this;
+    public String getPartitionPath(final Tuple tuple) {
+        return "";
     }
 }

@@ -15,26 +15,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.storm.hdfs.bolt.rotation;
+package org.apache.storm.hdfs.bolt;
 
-import org.apache.storm.tuple.Tuple;
+import org.apache.storm.hdfs.common.AbstractHDFSWriter;
+import org.junit.Assert;
+import org.junit.Test;
+import org.mockito.Mock;
 
-/**
- * File rotation policy that will never rotate...
- * Just one big file. Intended for testing purposes.
- */
-public class NoRotationPolicy implements FileRotationPolicy {
-    @Override
-    public boolean mark(Tuple tuple, long offset) {
-        return false;
-    }
+public class TestWritersMap {
 
-    @Override
-    public void reset() {
-    }
+    AbstractHdfsBolt.WritersMap map = new AbstractHdfsBolt.WritersMap(2);
+    @Mock AbstractHDFSWriter foo;
+    @Mock AbstractHDFSWriter bar;
+    @Mock AbstractHDFSWriter baz;
 
-    @Override
-    public FileRotationPolicy copy() {
-        return this;
+    @Test public void testLRUBehavior()
+    {
+        map.put("FOO", foo);
+        map.put("BAR", bar);
+
+        //Access foo to make it most recently used
+        map.get("FOO");
+
+        //Add an element and bar should drop out
+        map.put("BAZ", baz);
+
+        Assert.assertTrue(map.keySet().contains("FOO"));
+        Assert.assertTrue(map.keySet().contains("BAZ"));
+
+        Assert.assertFalse(map.keySet().contains("BAR"));
     }
 }

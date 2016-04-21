@@ -64,6 +64,10 @@ public class FileSizeRotationPolicy implements FileRotationPolicy {
         this.maxBytes = (long)(count * units.getByteCount());
     }
 
+    protected FileSizeRotationPolicy(long maxBytes) {
+        this.maxBytes = maxBytes;
+    }
+
     @Override
     public boolean mark(Tuple tuple, long offset) {
         long diff = offset - this.lastOffset;
@@ -78,4 +82,8 @@ public class FileSizeRotationPolicy implements FileRotationPolicy {
         this.lastOffset = 0;
     }
 
+    @Override
+    public FileRotationPolicy copy() {
+        return new FileSizeRotationPolicy(this.maxBytes);
+    }
 }

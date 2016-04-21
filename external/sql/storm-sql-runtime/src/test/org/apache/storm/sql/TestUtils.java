@@ -41,6 +41,12 @@ import java.util.List;
 import java.util.Map;
 
 public class TestUtils {
+  public static class MyPlus {
+    public static Integer evaluate(Integer x, Integer y) {
+      return x + y;
+    }
+  }
+
   public static class MockDataSource implements DataSource {
     private final ArrayList<Values> RECORDS = new ArrayList<>();
 

@@ -84,3 +84,28 @@ SqlNode SqlCreateTable() :
         tbl_properties, select);
     }
 }
+
+/**
+ * CREATE FUNCTION functionname AS 'classname'
+ */
+SqlNode SqlCreateFunction() :
+{
+    SqlParserPos pos;
+    SqlIdentifier functionName;
+    SqlNode className;
+    SqlNode jarName = null;
+}
+{
+    <CREATE> { pos = getPos(); }
+    <FUNCTION>
+        functionName = CompoundIdentifier()
+    <AS>
+        className = StringLiteral()
+    [
+      <USING> <JAR>
+      jarName = StringLiteral()
+    ]
+    {
+      return new SqlCreateFunction(pos, functionName, className, jarName);
+    }
+}

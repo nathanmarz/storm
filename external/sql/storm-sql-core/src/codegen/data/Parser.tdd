@@ -34,11 +34,13 @@
     "OUTPUTFORMAT",
     "STORED",
     "TBLPROPERTIES",
+    "JAR"
   ]
 
   # List of methods for parsing custom SQL statements.
   statementParserMethods: [
-    "SqlCreateTable()"
+    "SqlCreateTable()",
+    "SqlCreateFunction()"
   ]
 
   # List of methods for parsing custom literals.

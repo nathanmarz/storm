@@ -17,6 +17,12 @@
  */
 package org.apache.storm.sql;
 
+import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.prepare.CalciteCatalogReader;
+import org.apache.calcite.schema.impl.ScalarFunctionImpl;
+import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
 import org.apache.storm.StormSubmitter;
 import org.apache.storm.generated.SubmitOptions;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
@@ -34,6 +40,7 @@ import org.apache.storm.sql.compiler.backends.standalone.PlanCompiler;
 import org.apache.storm.sql.javac.CompilingClassLoader;
 import org.apache.storm.sql.parser.ColumnConstraint;
 import org.apache.storm.sql.parser.ColumnDefinition;
+import org.apache.storm.sql.parser.SqlCreateFunction;
 import org.apache.storm.sql.parser.SqlCreateTable;
 import org.apache.storm.sql.parser.StormParser;
 import org.apache.storm.sql.runtime.*;
@@ -47,6 +54,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,6 +69,7 @@ class StormSqlImpl extends StormSql {
   private final JavaTypeFactory typeFactory = new JavaTypeFactoryImpl(
       RelDataTypeSystem.DEFAULT);
   private final SchemaPlus schema = Frameworks.createRootSchema(true);
+  private boolean hasUdf = false;
 
   @Override
   public void execute(
@@ -72,9 +81,10 @@ class StormSqlImpl extends StormSql {
       SqlNode node = parser.impl().parseSqlStmtEof();
       if (node instanceof SqlCreateTable) {
         handleCreateTable((SqlCreateTable) node, dataSources);
+      } else if (node instanceof SqlCreateFunction) {
+        handleCreateFunction((SqlCreateFunction) node);
       } else {
-        FrameworkConfig config = Frameworks.newConfigBuilder().defaultSchema(
-            schema).build();
+        FrameworkConfig config = buildFrameWorkConfig();
         Planner planner = Frameworks.getPlanner(config);
         SqlNode parse = planner.parse(sql);
         SqlNode validate = planner.validate(parse);
@@ -97,9 +107,10 @@ class StormSqlImpl extends StormSql {
       SqlNode node = parser.impl().parseSqlStmtEof();
       if (node instanceof SqlCreateTable) {
         handleCreateTableForTrident((SqlCreateTable) node, dataSources);
-      } else {
-        FrameworkConfig config = Frameworks.newConfigBuilder().defaultSchema(
-            schema).build();
+      } else if (node instanceof SqlCreateFunction) {
+        handleCreateFunction((SqlCreateFunction) node);
+      }  else {
+        FrameworkConfig config = buildFrameWorkConfig();
         Planner planner = Frameworks.getPlanner(config);
         SqlNode parse = planner.parse(sql);
         SqlNode validate = planner.validate(parse);
@@ -153,6 +164,15 @@ class StormSqlImpl extends StormSql {
     dataSources.put(n.tableName(), ds);
   }
 
+  private void handleCreateFunction(SqlCreateFunction sqlCreateFunction) throws ClassNotFoundException {
+    if(sqlCreateFunction.jarName() != null) {
+      throw new UnsupportedOperationException("UDF 'USING JAR' not implemented");
+    }
+    schema.add(sqlCreateFunction.functionName().toUpperCase(),
+               ScalarFunctionImpl.create(Class.forName(sqlCreateFunction.className()), "evaluate"));
+    hasUdf = true;
+  }
+
   private void handleCreateTableForTrident(
       SqlCreateTable n, Map<String, ISqlTridentDataSource> dataSources) {
     List<FieldInfo> fields = updateSchema(n);
@@ -183,5 +203,19 @@ class StormSqlImpl extends StormSql {
     Table table = builder.build();
     schema.add(n.tableName(), table);
     return fields;
+  }
+
+  private FrameworkConfig buildFrameWorkConfig() {
+    if (hasUdf) {
+      List<SqlOperatorTable> sqlOperatorTables = new ArrayList<>();
+      sqlOperatorTables.add(SqlStdOperatorTable.instance());
+      sqlOperatorTables.add(new CalciteCatalogReader(CalciteSchema.from(schema),
+                                                     false,
+                                                     Collections.<String>emptyList(), typeFactory));
+      return Frameworks.newConfigBuilder().defaultSchema(schema)
+              .operatorTable(new ChainedSqlOperatorTable(sqlOperatorTables)).build();
+    } else {
+      return Frameworks.newConfigBuilder().defaultSchema(schema).build();
+    }
   }
 }

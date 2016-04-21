@@ -221,12 +221,44 @@ public class TopologyBuilder {
      *
      * @param id the id of this component. This id is referenced by other components that want to consume this bolt's outputs.
      * @param bolt the windowed bolt
+     * @return use the returned object to declare the inputs to this component
+     * @throws IllegalArgumentException if {@code parallelism_hint} is not positive
+     */
+    public BoltDeclarer setBolt(String id, IWindowedBolt bolt) throws IllegalArgumentException {
+        return setBolt(id, bolt, null);
+    }
+
+    /**
+     * Define a new bolt in this topology. This defines a windowed bolt, intended
+     * for windowing operations. The {@link IWindowedBolt#execute(TupleWindow)} method
+     * is triggered for each window interval with the list of current events in the window.
+     *
+     * @param id the id of this component. This id is referenced by other components that want to consume this bolt's outputs.
+     * @param bolt the windowed bolt
      * @param parallelism_hint the number of tasks that should be assigned to execute this bolt. Each task will run on a thread in a process somwehere around the cluster.
      * @return use the returned object to declare the inputs to this component
      * @throws IllegalArgumentException if {@code parallelism_hint} is not positive
      */
     public BoltDeclarer setBolt(String id, IWindowedBolt bolt, Number parallelism_hint) throws IllegalArgumentException {
         return setBolt(id, new WindowedBoltExecutor(bolt), parallelism_hint);
+    }
+
+    /**
+     * Define a new bolt in this topology. This defines a stateful bolt, that requires its
+     * state (of computation) to be saved. When this bolt is initialized, the {@link IStatefulBolt#initState(State)} method
+     * is invoked after {@link IStatefulBolt#prepare(Map, TopologyContext, OutputCollector)} but before {@link IStatefulBolt#execute(Tuple)}
+     * with its previously saved state.
+     * <p>
+     * The framework provides at-least once guarantee for the state updates. Bolts (both stateful and non-stateful) in a stateful topology
+     * are expected to anchor the tuples while emitting and ack the input tuples once its processed.
+     * </p>
+     * @param id the id of this component. This id is referenced by other components that want to consume this bolt's outputs.
+     * @param bolt the stateful bolt
+     * @return use the returned object to declare the inputs to this component
+     * @throws IllegalArgumentException if {@code parallelism_hint} is not positive
+     */
+    public <T extends State> BoltDeclarer setBolt(String id, IStatefulBolt<T> bolt) throws IllegalArgumentException {
+        return setBolt(id, bolt, null);
     }
 
     /**
@@ -247,6 +279,22 @@ public class TopologyBuilder {
     public <T extends State> BoltDeclarer setBolt(String id, IStatefulBolt<T> bolt, Number parallelism_hint) throws IllegalArgumentException {
         hasStatefulBolt = true;
         return setBolt(id, new StatefulBoltExecutor<T>(bolt), parallelism_hint);
+    }
+
+    /**
+     * Define a new bolt in this topology. This defines a stateful windowed bolt, intended for stateful
+     * windowing operations. The {@link IStatefulWindowedBolt#execute(TupleWindow)} method is triggered
+     * for each window interval with the list of current events in the window. During initialization of
+     * this bolt {@link IStatefulWindowedBolt#initState(State)} is invoked with its previously saved state.
+     *
+     * @param id the id of this component. This id is referenced by other components that want to consume this bolt's outputs.
+     * @param bolt the stateful windowed bolt
+     * @param <T> the type of the state (e.g. {@link org.apache.storm.state.KeyValueState})
+     * @return use the returned object to declare the inputs to this component
+     * @throws IllegalArgumentException if {@code parallelism_hint} is not positive
+     */
+    public <T extends State> BoltDeclarer setBolt(String id, IStatefulWindowedBolt<T> bolt) throws IllegalArgumentException {
+        return setBolt(id, bolt, null);
     }
 
     /**

@@ -15,26 +15,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.storm.hdfs.bolt.rotation;
+package org.apache.storm.hdfs.common;
 
 import org.apache.storm.tuple.Tuple;
 
-/**
- * File rotation policy that will never rotate...
- * Just one big file. Intended for testing purposes.
- */
-public class NoRotationPolicy implements FileRotationPolicy {
-    @Override
-    public boolean mark(Tuple tuple, long offset) {
-        return false;
-    }
+import java.io.Serializable;
 
-    @Override
-    public void reset() {
-    }
+public interface Partitioner extends Serializable{
 
-    @Override
-    public FileRotationPolicy copy() {
-        return this;
-    }
+    /**
+     * Return a relative path that the tuple should be written to. For example, if an HdfsBolt were configured to write
+     * to /common/output and a partitioner returned "/foo" then the bolt should open a file in "/common/output/foo"
+     *
+     * A best practice is to use Path.SEPARATOR instead of a literal "/"
+     *
+     * @param tuple The tuple for which the relative path is being calculated.
+     * @return
+     */
+    public String getPartitionPath(final Tuple tuple);
 }

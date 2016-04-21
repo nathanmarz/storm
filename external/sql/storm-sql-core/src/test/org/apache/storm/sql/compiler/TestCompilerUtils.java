@@ -46,6 +46,12 @@ import java.util.List;
 
 public class TestCompilerUtils {
 
+    public static class MyPlus {
+        public static Integer eval(Integer x, Integer y) {
+            return x + y;
+        }
+    }
+
     public static CalciteState sqlOverDummyTable(String sql)
             throws RelConversionException, ValidationException, SqlParseException {
         SchemaPlus schema = Frameworks.createRootSchema(true);
@@ -83,8 +89,15 @@ public class TestCompilerUtils {
         Table table = streamableTable.stream();
         schema.add("FOO", table);
         schema.add("BAR", table);
+        schema.add("MYPLUS", ScalarFunctionImpl.create(MyPlus.class, "eval"));
+        List<SqlOperatorTable> sqlOperatorTables = new ArrayList<>();
+        sqlOperatorTables.add(SqlStdOperatorTable.instance());
+        sqlOperatorTables.add(new CalciteCatalogReader(CalciteSchema.from(schema),
+                                                       false,
+                                                       Collections.<String>emptyList(), typeFactory));
+        SqlOperatorTable chainedSqlOperatorTable = new ChainedSqlOperatorTable(sqlOperatorTables);
         FrameworkConfig config = Frameworks.newConfigBuilder().defaultSchema(
-                schema).build();
+                schema).operatorTable(chainedSqlOperatorTable).build();
         Planner planner = Frameworks.getPlanner(config);
         SqlNode parse = planner.parse(sql);
         SqlNode validate = planner.validate(parse);

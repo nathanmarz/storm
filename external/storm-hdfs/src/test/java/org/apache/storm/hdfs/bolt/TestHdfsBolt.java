@@ -35,6 +35,7 @@ import org.apache.storm.hdfs.bolt.rotation.FileRotationPolicy;
 import org.apache.storm.hdfs.bolt.rotation.FileSizeRotationPolicy;
 import org.apache.storm.hdfs.bolt.sync.CountSyncPolicy;
 import org.apache.storm.hdfs.bolt.sync.SyncPolicy;
+import org.apache.storm.hdfs.common.Partitioner;
 import org.junit.Before;
 import org.junit.After;
 import org.junit.Rule;
@@ -109,6 +110,30 @@ public class TestHdfsBolt {
     }
 
     @Test
+    public void testPartitionedOutput() throws IOException {
+        HdfsBolt bolt = makeHdfsBolt(hdfsURI, 1, 1000f);
+
+        Partitioner partitoner = new Partitioner() {
+            @Override
+            public String getPartitionPath(Tuple tuple) {
+                return Path.SEPARATOR + tuple.getStringByField("city");
+            }
+        };
+
+        bolt.prepare(new Config(), topologyContext, collector);
+        bolt.withPartitioner(partitoner);
+
+        bolt.execute(tuple1);
+        bolt.execute(tuple2);
+
+        verify(collector).ack(tuple1);
+        verify(collector).ack(tuple2);
+
+        Assert.assertEquals(1, countNonZeroLengthFiles(testRoot + "/SFO"));
+        Assert.assertEquals(1, countNonZeroLengthFiles(testRoot + "/SJO"));
+    }
+
+    @Test
     public void testTwoTuplesOneFile() throws IOException
     {
         HdfsBolt bolt = makeHdfsBolt(hdfsURI, 2, 10000f);
@@ -127,8 +152,9 @@ public class TestHdfsBolt {
     @Test
     public void testFailedSync() throws IOException
     {
-        HdfsBolt bolt = makeHdfsBolt(hdfsURI, 1, .00001f);
+        HdfsBolt bolt = makeHdfsBolt(hdfsURI, 2, 10000f);
         bolt.prepare(new Config(), topologyContext, collector);
+        bolt.execute(tuple1);
 
         fs.setSafeMode(SafeModeAction.SAFEMODE_ENTER);
 
@@ -138,8 +164,8 @@ public class TestHdfsBolt {
 
     }
 
-    // One tuple and one rotation should yield one file with data and one zero length file
-    // The failed executions should not cause rotations and new zero length files
+    // One tuple and one rotation should yield one file with data
+    // The failed executions should not cause rotations and any new files
     @Test
     public void testFailureFilecount() throws IOException, InterruptedException
     {
@@ -168,7 +194,7 @@ public class TestHdfsBolt {
         }
 
         Assert.assertEquals(1, countNonZeroLengthFiles(testRoot));
-        Assert.assertEquals(1, countZeroLengthFiles(testRoot));
+        Assert.assertEquals(0, countZeroLengthFiles(testRoot));
     }
 
     @Test

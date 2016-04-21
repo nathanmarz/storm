@@ -145,8 +145,8 @@ public class DisruptorQueue implements IStatefulObject {
             if (_enableBackpressure && _cb != null && (_metrics.population() + _overflowCount.get()) >= _highWaterMark) {
                 try {
                     if (!_throttleOn) {
-                        _cb.highWaterMark();
                         _throttleOn = true;
+                        _cb.highWaterMark();
                     }
                 } catch (Exception e) {
                     throw new RuntimeException("Exception during calling highWaterMark callback!", e);
@@ -199,8 +199,8 @@ public class DisruptorQueue implements IStatefulObject {
             if (_enableBackpressure && _cb != null && (_metrics.population() + _overflowCount.get()) >= _highWaterMark) {
                 try {
                     if (!_throttleOn) {
-                        _cb.highWaterMark();
                         _throttleOn = true;
+                        _cb.highWaterMark();
                     }
                 } catch (Exception e) {
                     throw new RuntimeException("Exception during calling highWaterMark callback!", e);
@@ -340,6 +340,10 @@ public class DisruptorQueue implements IStatefulObject {
         public void notifyArrivals(long counts) {
             _rateTracker.notify(counts);
         }
+
+        public void close() {
+            _rateTracker.close();
+        }
     }
 
     private final RingBuffer<AtomicReference<Object>> _buffer;
@@ -396,6 +400,7 @@ public class DisruptorQueue implements IStatefulObject {
         try {
             publishDirect(new ArrayList<Object>(Arrays.asList(INTERRUPT)), true);
             _flusher.close();
+            _metrics.close();
         } catch (InsufficientCapacityException e) {
             //This should be impossible
             throw new RuntimeException(e);
@@ -544,4 +549,8 @@ public class DisruptorQueue implements IStatefulObject {
     public QueueMetrics getMetrics() {
         return _metrics;
     }
+
+	public boolean getThrottleOn() {
+	    return _throttleOn;
+	}
 }

@@ -2136,7 +2136,7 @@ public class StatsUtil {
      * </pre>
      */
     private static double computeAggCapacity(Map m, Integer uptime) {
-        if (uptime != null) {
+        if (uptime != null && uptime != 0) {
             Map execAvg = (Map) ((Map) getByKey(m, EXEC_LATENCIES)).get(TEN_MIN_IN_SECONDS_STR);
             Map exec = (Map) ((Map) getByKey(m, EXECUTED)).get(TEN_MIN_IN_SECONDS_STR);
 

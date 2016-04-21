@@ -16,7 +16,7 @@
 -->
 <script id="logviewer-search-result-template" type="text/html">
 {{#nextByteOffset}}
-<a href="/logviewer_search.html?file={{file}}&search={{searchString}}&offset={{nextByteOffset}}" class="btn btn-default enabled">Next</a>
+<a href="/logviewer_search.html?file={{file}}&search={{searchString}}&offset={{nextByteOffset}}&is-daemon={{isDaemon}}" class="btn btn-default enabled">Next</a>
 {{/nextByteOffset}}
 <table id="search-result-table" class="table table-striped compact">
   <thead><tr><th>File offset</th><th>Match</th></tr></thead>
@@ -30,7 +30,7 @@
   </tbody>
 </table>
 {{#nextByteOffset}}
-<a href="/logviewer_search.html?file={{file}}&search={{searchString}}&offset={{nextByteOffset}}" class="btn btn-default enabled">Next</a>
+<a href="/logviewer_search.html?file={{file}}&search={{searchString}}&offset={{nextByteOffset}}&is-daemon={{isDaemon}}" class="btn btn-default enabled">Next</a>
 {{/nextByteOffset}}
 </script>
 <script id="search-single-file" type="text/html">
@@ -38,6 +38,7 @@
   Search {{file}}:
   <input type="text" name="search" value="{{search}}">
   <input type="hidden" name="file" value="{{file}}">
+  <input type="hidden" name="is-daemon" value="{{isDaemon}}">
   <input type="submit" value="Search">
 </form>
 </script>

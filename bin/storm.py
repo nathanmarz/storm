@@ -476,7 +476,7 @@ def kill_workers(*args):
     to have admin rights on the node to be able to successfully kill all workers.
     """
     exec_storm_class(
-        "org.apache.storm.command.kill_workers",
+        "org.apache.storm.command.KillWorkers",
         args=args,
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, os.path.join(STORM_DIR, "bin")])

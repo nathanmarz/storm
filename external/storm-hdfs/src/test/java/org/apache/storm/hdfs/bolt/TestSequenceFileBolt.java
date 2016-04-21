@@ -127,14 +127,14 @@ public class TestSequenceFileBolt {
     @Test
     public void testFailedSync() throws IOException
     {
-        SequenceFileBolt bolt = makeSeqBolt(hdfsURI, 1, .00001f);
+        SequenceFileBolt bolt = makeSeqBolt(hdfsURI, 2, 10000f);
         bolt.prepare(new Config(), topologyContext, collector);
+        bolt.execute(tuple1);
 
         fs.setSafeMode(SafeModeAction.SAFEMODE_ENTER);
         // All writes/syncs will fail so this should cause a RuntimeException
         thrown.expect(RuntimeException.class);
         bolt.execute(tuple1);
-
     }
 
     private SequenceFileBolt makeSeqBolt(String nameNodeAddr, int countSync, float rotationSizeMB) {

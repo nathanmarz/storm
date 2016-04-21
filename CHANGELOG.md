@@ -1,5 +1,8 @@
 ## 2.0.0
+ * STORM-1681: Bug in scheduling cyclic topologies when scheduling with RAS
  * STORM-1679: add storm Scheduler documents
+ * STORM-1687: divide by zero in StatsUtil
+ * STORM-1464: storm-hdfs support for multiple file outputs
  * STORM-515: Clojure documentation and examples
  * STORM-1279: port backtype.storm.daemon.supervisor to java
  * STORM-1668: Flux silently fails while setting a non-existent property.
@@ -76,8 +79,16 @@
  * STORM-1521: When using Kerberos login from keytab with multiple bolts/executors ticket is not renewed in hbase bolt.
 
 ## 1.0.1
+ * STORM-1704: When logviewer_search.html opens daemon file, next search always show no result
+ * STORM-1714: StatefulBolts ends up as normal bolts while using TopologyBuilder.setBolt without parallelism
+ * STORM-1683: only check non-system streams by default
+ * STORM-1680: Provide configuration to set min fetch size in KafkaSpout
+ * STORM-1649: Optimize Kryo instaces creation in trident windowing
+ * STORM-1696: status not sync if zk fails in backpressure
+ * STORM-1693: Move stats cleanup to executor shutdown
  * STORM-1670: LocalState#get(String) can throw FileNotFoundException which results in not removing worker heartbeats and supervisor is kind of stuck and goes down after some time.
  * STORM-1677: Test resource files are excluded from source distribution, which makes logviewer-test failing
+ * STORM-1585: Add DDL support for UDFs in storm-sql
 
 ## 1.0.0
  * STORM-1671: Enable logviewer to delete a dir without yaml

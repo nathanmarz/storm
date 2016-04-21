@@ -1,4 +1,5 @@
 ## 2.0.0
+ * STORM-1679: add storm Scheduler documents
  * STORM-515: Clojure documentation and examples
  * STORM-1279: port backtype.storm.daemon.supervisor to java
  * STORM-1668: Flux silently fails while setting a non-existent property.

@@ -7,6 +7,7 @@ documentation: true
 
 * [Javadoc](javadocs/index.html)
 * [Concepts](Concepts.html)
+* [Scheduler](Storm-Scheduler.html)
 * [Configuration](Configuration.html)
 * [Guaranteeing message processing](Guaranteeing-message-processing.html)
 * [Daemon Fault Tolerance](Daemon-Fault-Tolerance.html)

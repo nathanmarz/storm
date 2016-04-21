@@ -49,7 +49,6 @@ public class HdfsSecurityUtil {
                  !(((List)conf.get(TOPOLOGY_AUTO_CREDENTIALS)).contains(AutoTGT.class.getName())))) {
             if (UserGroupInformation.isSecurityEnabled()) {
                 // compareAndSet added because of https://issues.apache.org/jira/browse/STORM-1535
-                // need to test it first during ERIE release testing since the JIRA says "might" be and port it to apache.
                 if (isLoggedIn.compareAndSet(false, true)) {
                     LOG.info("Logging in using keytab as AutoHDFS is not specified for " + TOPOLOGY_AUTO_CREDENTIALS);
                     String keytab = (String) conf.get(STORM_KEYTAB_FILE_KEY);

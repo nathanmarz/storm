@@ -1,4 +1,5 @@
 ## 2.0.0
+ * STORM-1535: Make sure hdfs key tab login happens only once for multiple components
  * STORM-1544: Document Debug/Sampling of Topologies
  * STORM-1681: Bug in scheduling cyclic topologies when scheduling with RAS
  * STORM-1679: add storm Scheduler documents

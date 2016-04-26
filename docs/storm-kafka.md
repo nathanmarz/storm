@@ -17,13 +17,14 @@ Currently, we support the following two implementations:
 ####ZkHosts
 ZkHosts is what you should use if you want to dynamically track Kafka broker to partition mapping. This class uses 
 Kafka's ZooKeeper entries to track brokerHost -> partition mapping. You can instantiate an object by calling
+
 ```java
-    public ZkHosts(String brokerZkStr, String brokerZkPath) 
-    public ZkHosts(String brokerZkStr)
+public ZkHosts(String brokerZkStr, String brokerZkPath)
+public ZkHosts(String brokerZkStr)
 ```
+
 Where brokerZkStr is just ip:port (e.g. localhost:2181). brokerZkPath is the root directory under which all the topics and
 partition information is stored. By default this is /brokers which is what the default Kafka implementation uses.
-
 By default, the broker-partition mapping is refreshed every 60 seconds from ZooKeeper. If you want to change it, you
 should set host.refreshFreqSecs to your chosen value.
 
@@ -32,68 +33,73 @@ This is an alternative implementation where broker -> partition information is s
 of this class, you need to first construct an instance of GlobalPartitionInformation.
 
 ```java
-    Broker brokerForPartition0 = new Broker("localhost");//localhost:9092
-    Broker brokerForPartition1 = new Broker("localhost", 9092);//localhost:9092 but we specified the port explicitly
-    Broker brokerForPartition2 = new Broker("localhost:9092");//localhost:9092 specified as one string.
-    GlobalPartitionInformation partitionInfo = new GlobalPartitionInformation();
-    partitionInfo.addPartition(0, brokerForPartition0);//mapping from partition 0 to brokerForPartition0
-    partitionInfo.addPartition(1, brokerForPartition1);//mapping from partition 1 to brokerForPartition1
-    partitionInfo.addPartition(2, brokerForPartition2);//mapping from partition 2 to brokerForPartition2
-    StaticHosts hosts = new StaticHosts(partitionInfo);
+Broker brokerForPartition0 = new Broker("localhost");//localhost:9092
+Broker brokerForPartition1 = new Broker("localhost", 9092);//localhost:9092 but we specified the port explicitly
+Broker brokerForPartition2 = new Broker("localhost:9092");//localhost:9092 specified as one string.
+GlobalPartitionInformation partitionInfo = new GlobalPartitionInformation();
+partitionInfo.addPartition(0, brokerForPartition0);//mapping from partition 0 to brokerForPartition0
+partitionInfo.addPartition(1, brokerForPartition1);//mapping from partition 1 to brokerForPartition1
+partitionInfo.addPartition(2, brokerForPartition2);//mapping from partition 2 to brokerForPartition2
+StaticHosts hosts = new StaticHosts(partitionInfo);
 ```
 
 ###KafkaConfig
-The second thing needed for constructing a kafkaSpout is an instance of KafkaConfig. 
+The second thing needed for constructing a KafkaSpout is an instance of KafkaConfig.
+
 ```java
-    public KafkaConfig(BrokerHosts hosts, String topic)
-    public KafkaConfig(BrokerHosts hosts, String topic, String clientId)
+public KafkaConfig(BrokerHosts hosts, String topic)
+public KafkaConfig(BrokerHosts hosts, String topic, String clientId)
 ```
 
 The BrokerHosts can be any implementation of BrokerHosts interface as described above. The topic is name of Kafka topic.
 The optional ClientId is used as a part of the ZooKeeper path where the spout's current consumption offset is stored.
-
 There are 2 extensions of KafkaConfig currently in use.
-
-Spoutconfig is an extension of KafkaConfig that supports additional fields with ZooKeeper connection info and for controlling
+SpoutConfig is an extension of KafkaConfig that supports additional fields with ZooKeeper connection info and for controlling
 behavior specific to KafkaSpout. The Zkroot will be used as root to store your consumer's offset. The id should uniquely
 identify your spout.
+
 ```java
 public SpoutConfig(BrokerHosts hosts, String topic, String zkRoot, String id);
 public SpoutConfig(BrokerHosts hosts, String topic, String id);
 ```
+
+You need to use the correct SpoutConifg for different use cases:
+
+- Core KafkaSpout only accepts an instance of SpoutConfig.
+- TridentKafkaConfig is another extension of KafkaConfig.
+- TridentKafkaEmitter only accepts TridentKafkaConfig.
+
 In addition to these parameters, SpoutConfig contains the following fields that control how KafkaSpout behaves:
+
 ```java
-    // setting for how often to save the current Kafka offset to ZooKeeper
-    public long stateUpdateIntervalMs = 2000;
+// setting for how often to save the current Kafka offset to ZooKeeper
+public long stateUpdateIntervalMs = 2000;
 
-    // Exponential back-off retry settings.  These are used when retrying messages after a bolt
-    // calls OutputCollector.fail().
-    // Note: be sure to set org.apache.storm.Config.MESSAGE_TIMEOUT_SECS appropriately to prevent
-    // resubmitting the message while still retrying.
-    public long retryInitialDelayMs = 0;
-    public double retryDelayMultiplier = 1.0;
-    public long retryDelayMaxMs = 60 * 1000;
+// Exponential back-off retry settings.  These are used when retrying messages after a bolt
+// calls OutputCollector.fail().
+// Note: be sure to set org.apache.storm.Config.MESSAGE_TIMEOUT_SECS appropriately to prevent
+// resubmitting the message while still retrying.
+public long retryInitialDelayMs = 0;
+public double retryDelayMultiplier = 1.0;
+public long retryDelayMaxMs = 60 * 1000;
 
-    // if set to true, spout will set Kafka topic as the emitted Stream ID
-    public boolean topicAsStreamId = false;
+// if set to true, spout will set Kafka topic as the emitted Stream ID
+public boolean topicAsStreamId = false;
 ```
-Core KafkaSpout only accepts an instance of SpoutConfig.
-
-TridentKafkaConfig is another extension of KafkaConfig.
-TridentKafkaEmitter only accepts TridentKafkaConfig.
 
 The KafkaConfig class also has bunch of public variables that controls your application's behavior. Here are defaults:
+
 ```java
-    public int fetchSizeBytes = 1024 * 1024;
-    public int socketTimeoutMs = 10000;
-    public int fetchMaxWait = 10000;
-    public int bufferSizeBytes = 1024 * 1024;
-    public MultiScheme scheme = new RawMultiScheme();
-    public boolean ignoreZkOffsets = false;
-    public long startOffsetTime = kafka.api.OffsetRequest.EarliestTime();
-    public long maxOffsetBehind = Long.MAX_VALUE;
-    public boolean useStartOffsetTimeIfOffsetOutOfRange = true;
-    public int metricsTimeBucketSizeInSecs = 60;
+public int fetchSizeBytes = 1024 * 1024;
+public int socketTimeoutMs = 10000;
+public int fetchMaxWait = 10000;
+public int bufferSizeBytes = 1024 * 1024;
+public MultiScheme scheme = new RawMultiScheme();
+public boolean ignoreZkOffsets = false;
+public long startOffsetTime = kafka.api.OffsetRequest.EarliestTime();
+public long maxOffsetBehind = Long.MAX_VALUE;
+public boolean useStartOffsetTimeIfOffsetOutOfRange = true;
+public int metricsTimeBucketSizeInSecs = 60;
 ```
 
 Most of them are self explanatory except MultiScheme.
@@ -102,8 +108,8 @@ MultiScheme is an interface that dictates how the byte[] consumed from Kafka get
 also controls the naming of your output field.
 
 ```java
-  public Iterable<List<Object>> deserialize(byte[] ser);
-  public Fields getOutputFields();
+public Iterable<List<Object>> deserialize(byte[] ser);
+public Fields getOutputFields();
 ```
 
 The default `RawMultiScheme` just takes the `byte[]` and returns a tuple with `byte[]` as is. The name of the
@@ -167,21 +173,21 @@ When building a project with storm-kafka, you must explicitly add the Kafka depe
 use Kafka 0.8.1.1 built against Scala 2.10, you would use the following dependency in your `pom.xml`:
 
 ```xml
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_2.10</artifactId>
-            <version>0.8.1.1</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.zookeeper</groupId>
-                    <artifactId>zookeeper</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>log4j</groupId>
-                    <artifactId>log4j</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
+<dependency>
+    <groupId>org.apache.kafka</groupId>
+    <artifactId>kafka_2.10</artifactId>
+    <version>0.8.1.1</version>
+    <exclusions>
+        <exclusion>
+            <groupId>org.apache.zookeeper</groupId>
+            <artifactId>zookeeper</artifactId>
+        </exclusion>
+        <exclusion>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+        </exclusion>
+    </exclusions>
+</dependency>
 ```
 
 Note that the ZooKeeper and log4j dependencies are excluded to prevent version conflicts with Storm's dependencies.
@@ -197,8 +203,8 @@ You need to provide implementation of following 2 interfaces
 These interfaces have 2 methods defined:
 
 ```java
-    K getKeyFromTuple(Tuple/TridentTuple tuple);
-    V getMessageFromTuple(Tuple/TridentTuple tuple);
+K getKeyFromTuple(Tuple/TridentTuple tuple);
+V getMessageFromTuple(Tuple/TridentTuple tuple);
 ```
 
 As the name suggests, these methods are called to map a tuple to Kafka key and Kafka message. If you just want one field
@@ -228,60 +234,63 @@ map with key kafka.broker.properties.
 ###Putting it all together
 
 For the bolt :
+
 ```java
-        TopologyBuilder builder = new TopologyBuilder();
+TopologyBuilder builder = new TopologyBuilder();
     
-        Fields fields = new Fields("key", "message");
-        FixedBatchSpout spout = new FixedBatchSpout(fields, 4,
-                    new Values("storm", "1"),
-                    new Values("trident", "1"),
-                    new Values("needs", "1"),
-                    new Values("javadoc", "1")
-        );
-        spout.setCycle(true);
-        builder.setSpout("spout", spout, 5);
-        KafkaBolt bolt = new KafkaBolt()
-                .withTopicSelector(new DefaultTopicSelector("test"))
-                .withTupleToKafkaMapper(new FieldNameBasedTupleToKafkaMapper());
-        builder.setBolt("forwardToKafka", bolt, 8).shuffleGrouping("spout");
+Fields fields = new Fields("key", "message");
+FixedBatchSpout spout = new FixedBatchSpout(fields,
+                                            4,
+                                            new Values("storm", "1"),
+                                            new Values("trident", "1"),
+                                            new Values("needs", "1"),
+                                            new Values("javadoc", "1")
+);
+spout.setCycle(true);
+builder.setSpout("spout", spout, 5);
+KafkaBolt bolt = new KafkaBolt()
+                     .withTopicSelector(new DefaultTopicSelector("test"))
+                     .withTupleToKafkaMapper(new FieldNameBasedTupleToKafkaMapper());
+builder.setBolt("forwardToKafka", bolt, 8).shuffleGrouping("spout");
         
-        Config conf = new Config();
-        //set producer properties.
-        Properties props = new Properties();
-        props.put("metadata.broker.list", "localhost:9092");
-        props.put("request.required.acks", "1");
-        props.put("serializer.class", "kafka.serializer.StringEncoder");
-        conf.put(KafkaBolt.KAFKA_BROKER_PROPERTIES, props);
+Config conf = new Config();
+//set producer properties.
+Properties props = new Properties();
+props.put("metadata.broker.list", "localhost:9092");
+props.put("request.required.acks", "1");
+props.put("serializer.class", "kafka.serializer.StringEncoder");
+conf.put(KafkaBolt.KAFKA_BROKER_PROPERTIES, props);
         
-        StormSubmitter.submitTopology("kafkaboltTest", conf, builder.createTopology());
+StormSubmitter.submitTopology("kafkaboltTest", conf, builder.createTopology());
 ```
 
 For Trident:
 
 ```java
-        Fields fields = new Fields("word", "count");
-        FixedBatchSpout spout = new FixedBatchSpout(fields, 4,
-                new Values("storm", "1"),
-                new Values("trident", "1"),
-                new Values("needs", "1"),
-                new Values("javadoc", "1")
-        );
-        spout.setCycle(true);
+Fields fields = new Fields("word", "count");
+FixedBatchSpout spout = new FixedBatchSpout(fields,
+                                            4,
+                                            new Values("storm", "1"),
+                                            new Values("trident", "1"),
+                                            new Values("needs", "1"),
+                                            new Values("javadoc", "1")
+);
+spout.setCycle(true);
 
-        TridentTopology topology = new TridentTopology();
-        Stream stream = topology.newStream("spout1", spout);
+TridentTopology topology = new TridentTopology();
+Stream stream = topology.newStream("spout1", spout);
 
-        TridentKafkaStateFactory stateFactory = new TridentKafkaStateFactory()
-                .withKafkaTopicSelector(new DefaultTopicSelector("test"))
-                .withTridentTupleToKafkaMapper(new FieldNameBasedTupleToKafkaMapper("word", "count"));
-        stream.partitionPersist(stateFactory, fields, new TridentKafkaUpdater(), new Fields());
+TridentKafkaStateFactory stateFactory = new TridentKafkaStateFactory()
+                                            .withKafkaTopicSelector(new DefaultTopicSelector("test"))
+                                            .withTridentTupleToKafkaMapper(new FieldNameBasedTupleToKafkaMapper("word", "count"));
+stream.partitionPersist(stateFactory, fields, new TridentKafkaUpdater(), new Fields());
 
-        Config conf = new Config();
-        //set producer properties.
-        Properties props = new Properties();
-        props.put("metadata.broker.list", "localhost:9092");
-        props.put("request.required.acks", "1");
-        props.put("serializer.class", "kafka.serializer.StringEncoder");
-        conf.put(TridentKafkaState.KAFKA_BROKER_PROPERTIES, props);
-        StormSubmitter.submitTopology("kafkaTridentTest", conf, topology.build());
+Config conf = new Config();
+//set producer properties.
+Properties props = new Properties();
+props.put("metadata.broker.list", "localhost:9092");
+props.put("request.required.acks", "1");
+props.put("serializer.class", "kafka.serializer.StringEncoder");
+conf.put(TridentKafkaState.KAFKA_BROKER_PROPERTIES, props);
+StormSubmitter.submitTopology("kafkaTridentTest", conf, topology.build());
 ```

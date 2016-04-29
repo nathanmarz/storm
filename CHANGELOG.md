@@ -1,4 +1,5 @@
 ## 2.0.0
+ * STORM-1739: update the minor JAVA version dependency in 0.10.0 and above
  * STORM-1733: Flush stdout before calling "os.execvp" to prevent log loss
  * STORM-1535: Make sure hdfs key tab login happens only once for multiple components
  * STORM-1544: Document Debug/Sampling of Topologies

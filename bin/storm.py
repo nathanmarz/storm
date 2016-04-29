@@ -208,6 +208,7 @@ def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[]
         "-cp", get_classpath(extrajars, daemon),
     ] + jvmopts + [klass] + list(args)
     print("Running: " + " ".join(all_args))
+    sys.stdout.flush()
     if fork:
         os.spawnvp(os.P_WAIT, JAVA_CMD, all_args)
     elif is_windows():

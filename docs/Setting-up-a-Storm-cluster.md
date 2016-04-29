@@ -28,7 +28,7 @@ A few notes about Zookeeper deployment:
 
 Next you need to install Storm's dependencies on Nimbus and the worker machines. These are:
 
-1. Java 6
+1. Java 7
 2. Python 2.6.6
 
 These are the versions of the dependencies that have been tested with Storm. Storm may or may not work with different versions of Java and/or Python.

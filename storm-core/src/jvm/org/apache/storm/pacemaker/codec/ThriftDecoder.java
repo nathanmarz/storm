@@ -29,18 +29,20 @@ import org.apache.storm.messaging.netty.SaslMessageToken;
 
 public class ThriftDecoder extends FrameDecoder {
 
+    private static final int INTEGER_SIZE = 4;
+
     @Override
     protected Object decode(ChannelHandlerContext ctx, Channel channel, ChannelBuffer buf) throws Exception {
 
         long available = buf.readableBytes();
-        if(available < 2) {
+        if(available < INTEGER_SIZE) {
             return null;
         }
 
         buf.markReaderIndex();
 
         int thriftLen = buf.readInt();
-        available -= 4;
+        available -= INTEGER_SIZE;
 
         if(available < thriftLen) {
             // We haven't received the entire object yet, return and wait for more bytes.
@@ -48,18 +50,11 @@ public class ThriftDecoder extends FrameDecoder {
             return null;
         }
 
-        buf.discardReadBytes();
+        
+        byte serialized[] = new byte[thriftLen];
+        buf.readBytes(serialized, 0, thriftLen);
+        HBMessage m = (HBMessage)Utils.thriftDeserialize(HBMessage.class, serialized);
 
-        HBMessage m;
-        if(buf.hasArray()) {
-            m = Utils.thriftDeserialize(HBMessage.class, buf.array(), 0, thriftLen);
-            buf.readerIndex(buf.readerIndex() + thriftLen);
-        }
-        else {
-            byte serialized[] = new byte[thriftLen];
-            buf.readBytes(serialized, 0, thriftLen);
-            m = Utils.thriftDeserialize(HBMessage.class, serialized);
-        }
 
         if(m.get_type() == HBServerMessageType.CONTROL_MESSAGE) {
             ControlMessage cm = ControlMessage.read(m.get_data().get_message_blob());

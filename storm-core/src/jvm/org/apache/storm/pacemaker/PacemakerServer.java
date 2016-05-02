@@ -138,8 +138,13 @@ class PacemakerServer implements ISaslServer {
         LOG.debug("received message. Passing to handler. {} : {} : {}",
                   handler.toString(), m.toString(), channel.toString());
         HBMessage response = handler.handleMessage(m, authenticated);
-        LOG.debug("Got Response from handler: {}", response.toString());
-        channel.write(response);
+        if(response != null) {
+            LOG.debug("Got Response from handler: {}", response);
+            channel.write(response);
+        }
+        else {
+            LOG.info("Got null response from handler handling message: {}", m);
+        }
     }
 
     public void closeChannel(Channel c) {

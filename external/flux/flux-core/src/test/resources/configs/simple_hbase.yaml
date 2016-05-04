@@ -1,0 +1,120 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Test ability to wire together shell spouts/bolts
+---
+
+# topology definition
+# name to be used when submitting
+name: "hbase-wordcount"
+
+# Components
+# Components are analagous to Spring beans. They are meant to be used as constructor,
+# property(setter), and builder arguments.
+#
+# for the time being, components must be declared in the order they are referenced
+
+#        WordSpout spout = new WordSpout();
+#        WordCounter bolt = new WordCounter();
+#
+#        SimpleHBaseMapper mapper = new SimpleHBaseMapper()
+#                .withRowKeyField("word")
+#                .withColumnFields(new Fields("word"))
+#                .withCounterFields(new Fields("count"))
+#                .withColumnFamily("cf");
+#
+#        HBaseBolt hbase = new HBaseBolt("WordCount", mapper)
+#                .withConfigKey("hbase.conf");
+#
+#
+#        // wordSpout ==> countBolt ==> HBaseBolt
+#        TopologyBuilder builder = new TopologyBuilder();
+#
+#        builder.setSpout(WORD_SPOUT, spout, 1);
+#        builder.setBolt(COUNT_BOLT, bolt, 1).shuffleGrouping(WORD_SPOUT);
+#        builder.setBolt(HBASE_BOLT, hbase, 1).fieldsGrouping(COUNT_BOLT, new Fields("word"));
+
+
+
+
+components:
+  - id: "columnFields"
+    className: "org.apache.storm.tuple.Fields"
+    constructorArgs:
+      - ["word"]
+
+  - id: "counterFields"
+    className: "org.apache.storm.tuple.Fields"
+    constructorArgs:
+      - ["count"]
+
+  - id: "mapper"
+    className: "org.apache.storm.hbase.bolt.mapper.SimpleHBaseMapper"
+    configMethods:
+      - name: "withRowKeyField"
+        args: ["word"]
+      - name: "withColumnFields"
+        args: [ref: "columnFields"]
+      - name: "withCounterFields"
+        args: [ref: "counterFields"]
+      - name: "withColumnFamily"
+        args: ["cf"]
+
+# topology configuration
+# this will be passed to the submitter as a map of config options
+#
+config:
+  topology.workers: 1
+  hbase.conf:
+    hbase.rootdir: "hdfs://hadoop:54310/hbase"
+    hbase.zookeeper.quorum: "hadoop"
+
+# spout definitions
+spouts:
+  - id: "word-spout"
+    className: "org.apache.storm.testing.TestWordSpout"
+    parallelism: 1
+
+# bolt definitions
+
+bolts:
+  - id: "count-bolt"
+    className: "org.apache.storm.testing.TestWordCounter"
+
+  - id: "hbase-bolt"
+    className: "org.apache.storm.hbase.bolt.HBaseBolt"
+    constructorArgs:
+      - "WordCount" # HBase table name
+      - ref: "mapper"
+    configMethods:
+      - name: "withConfigKey"
+        args: ["hbase.conf"]
+    parallelism: 1
+
+
+streams:
+  - name: "" # name isn't used (placeholder for logging, UI, etc.)
+    from: "word-spout"
+    to: "count-bolt"
+    grouping:
+      type: SHUFFLE
+
+  - name: "" # name isn't used (placeholder for logging, UI, etc.)
+    from: "count-bolt"
+    to: "hbase-bolt"
+    grouping:
+      type: FIELDS
+      args: ["word"]

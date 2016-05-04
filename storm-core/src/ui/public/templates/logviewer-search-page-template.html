@@ -1,0 +1,45 @@
+<!--
+ Licensed to the Apache Software Foundation (ASF) under one or more
+ contributor license agreements.  See the NOTICE file distributed with
+ this work for additional information regarding copyright ownership.
+ The ASF licenses this file to You under the Apache License, Version 2.0
+ (the "License"); you may not use this file except in compliance with
+ the License.  You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+<script id="logviewer-search-result-template" type="text/html">
+{{#nextByteOffset}}
+<a href="/logviewer_search.html?file={{file}}&search={{searchString}}&offset={{nextByteOffset}}&is-daemon={{isDaemon}}" class="btn btn-default enabled">Next</a>
+{{/nextByteOffset}}
+<table id="search-result-table" class="table table-striped compact">
+  <thead><tr><th>File offset</th><th>Match</th></tr></thead>
+  <tbody>
+    {{#matches}}
+    <tr>
+      <td>{{byteOffset}}</td>
+      <td><pre>{{beforeString}}<b><a href="{{logviewerURL}}">{{matchString}}</a></b>{{afterString}}</pre></td>
+    </tr>
+    {{/matches}}
+  </tbody>
+</table>
+{{#nextByteOffset}}
+<a href="/logviewer_search.html?file={{file}}&search={{searchString}}&offset={{nextByteOffset}}&is-daemon={{isDaemon}}" class="btn btn-default enabled">Next</a>
+{{/nextByteOffset}}
+</script>
+<script id="search-single-file" type="text/html">
+<form action="logviewer_search.html" id="search-box">
+  Search {{file}}:
+  <input type="text" name="search" value="{{search}}">
+  <input type="hidden" name="file" value="{{file}}">
+  <input type="hidden" name="is-daemon" value="{{isDaemon}}">
+  <input type="submit" value="Search">
+</form>
+</script>
+

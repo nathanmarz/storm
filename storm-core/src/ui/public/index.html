@@ -1,0 +1,173 @@
+
+<html><head>
+    <!--
+     Licensed to the Apache Software Foundation (ASF) under one or more
+     contributor license agreements.  See the NOTICE file distributed with
+     this work for additional information regarding copyright ownership.
+     The ASF licenses this file to You under the Apache License, Version 2.0
+     (the "License"); you may not use this file except in compliance with
+     the License.  You may obtain a copy of the License at
+
+         http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+    -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Storm UI</title>
+<link href="/css/bootstrap-3.3.1.min.css" rel="stylesheet" type="text/css">
+<link href="/css/jquery.dataTables.1.10.4.min.css" rel="stylesheet" type="text/css">
+<link href="/css/dataTables.bootstrap.css" rel="stylesheet" type="text/css">
+<link href="/css/jsonFormatter.min.css" rel="stylesheet" type="text/css">
+<link href="/css/style.css" rel="stylesheet" type="text/css">
+<script src="/js/jquery-1.11.1.min.js" type="text/javascript"></script>
+<script src="/js/jquery.dataTables.1.10.4.min.js" type="text/javascript"></script>
+<script src="/js/jquery.cookies.2.2.0.min.js" type="text/javascript"></script>
+<script src="/js/jquery.mustache.js" type="text/javascript"></script>
+<script src="/js/bootstrap-3.3.1.min.js" type="text/javascript"></script>
+<script src="/js/jquery.blockUI.min.js" type="text/javascript"></script>
+<script src="/js/dataTables.bootstrap.min.js" type="text/javascript"></script>
+<script src="/js/jsonFormatter.min.js" type="text/javascript"></script>
+<script src="/js/script.js" type="text/javascript"></script>
+</head>
+<body>
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-9">
+      <h1><a href="/">Storm UI</a></h1>
+    </div>
+    <div id="ui-user" class="col-md-3"></div>
+  </div>
+  <div class="row">
+    <div class="col-md-12">
+      <h2>Cluster Summary</h2>
+      <div id="cluster-summary"></div>
+    </div>
+  </div>
+  <div class="row">
+     <div class="col-md-12">
+        <h2>Nimbus Summary</h2>
+        <div id="nimbus-summary"></div>
+     </div>
+  </div>
+  <div class="row">
+    <div class="col-md-12">
+      <h2>Topology Summary</h2>
+      <div id="topology-summary"></div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-12">
+      <h2>Supervisor Summary</h2>
+      <div id="supervisor-summary"></div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-12">
+      <h2>Nimbus Configuration</h2>
+      <div id="nimbus-configuration"></div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-12">
+      <div id="json-response-error"></div>
+    </div>
+  </div>
+</div>
+</body>
+<script>
+
+$(document).ajaxStop($.unblockUI);
+$(document).ajaxStart(function(){
+    $.blockUI({ message: '<img src="images/spinner.gif" /> <h3>Loading summary...</h3>'});
+});
+$(document).ready(function() {
+    $.extend( $.fn.dataTable.defaults, {
+      stateSave: true,
+      lengthMenu: [[20,40,60,100,-1], [20, 40, 60, 100, "All"]],
+      pageLength: 20
+    });
+
+
+    $.ajaxSetup({
+        "error":function(jqXHR,textStatus,response) {
+            var errorJson = jQuery.parseJSON(jqXHR.responseText);
+            $.get("/templates/json-error-template.html", function(template) {
+                $("#json-response-error").append(Mustache.render($(template).filter("#json-error-template").html(),errorJson));
+            });
+        }
+    });
+    var uiUser = $("#ui-user");
+    var clusterSummary = $("#cluster-summary");
+    var nimbusSummary = $("#nimbus-summary");
+    var topologySummary = $("#topology-summary");
+    var supervisorSummary = $("#supervisor-summary");
+    var config = $("#nimbus-configuration");
+
+    $.getJSON("/api/v1/cluster/summary",function(response,status,jqXHR) {
+        $.get("/templates/user-template.html", function(template) {
+            uiUser.append(Mustache.render($(template).filter("#user-template").html(),response));
+            $('#ui-user [data-toggle="tooltip"]').tooltip()
+        });
+
+        $.get("/templates/index-page-template.html", function(template) {
+            clusterSummary.append(Mustache.render($(template).filter("#cluster-summary-template").html(),response));
+            $('#cluster-summary [data-toggle="tooltip"]').tooltip();
+        });
+    });
+    $.getJSON("/api/v1/nimbus/summary",function(response,status,jqXHR) {
+      $.get("/templates/index-page-template.html", function(template) {
+          nimbusSummary.append(Mustache.render($(template).filter("#nimbus-summary-template").html(),response));
+          //host, port, isLeader, version, uptime
+          dtAutoPage("#nimbus-summary-table", {
+            columnDefs: [
+              {type: "num", targets: [1]},
+              {type: "time-str", targets: [4]}
+            ]
+          });
+          $('#nimbus-summary [data-toggle="tooltip"]').tooltip();
+      });
+    });
+    $.getJSON("/api/v1/topology/summary",function(response,status,jqXHR) {
+      $.get("/templates/index-page-template.html", function(template) {
+          topologySummary.append(Mustache.render($(template).filter("#topology-summary-template").html(),response));
+          //name, owner, status, uptime, num workers, num executors, num tasks, replication count, assigned total mem, assigned total cpu, scheduler info
+          dtAutoPage("#topology-summary-table", {
+            columnDefs: [
+              {type: "num", targets: [4, 5, 6, 7, 8, 9]},
+              {type: "time-str", targets: [3]}
+            ]
+          });
+          $('#topology-summary [data-toggle="tooltip"]').tooltip();
+      });
+    });
+    $.getJSON("/api/v1/supervisor/summary",function(response,status,jqXHR) {
+      $.get("/templates/index-page-template.html", function(template) {
+          supervisorSummary.append(Mustache.render($(template).filter("#supervisor-summary-template").html(),response));
+          //id, host, uptime, slots, used slots
+          dtAutoPage("#supervisor-summary-table", {
+            columnDefs: [
+              {type: "num", targets: [3, 4]},
+              {type: "time-str", targets: [2]}
+            ]
+          });
+          $('#supervisor-summary [data-toggle="tooltip"]').tooltip();
+      });
+    });
+    $.getJSON("/api/v1/cluster/configuration",function(response,status,jqXHR) {
+      var formattedResponse = formatConfigData(response);
+      $.get("/templates/index-page-template.html", function(template) {
+        config.append(Mustache.render($(template).filter("#configuration-template").html(),formattedResponse));
+        $('#nimbus-configuration-table td').jsonFormatter()
+        //key, value
+        dtAutoPage("#nimbus-configuration-table", {});
+        $('#nimbus-configuration [data-toggle="tooltip"]').tooltip();
+      });
+    });
+  });
+</script>
+</html>

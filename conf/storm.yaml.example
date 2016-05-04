@@ -19,7 +19,7 @@
 #     - "server1"
 #     - "server2"
 # 
-# nimbus.host: "nimbus"
+# nimbus.seeds: ["host1", "host2", "host3"]
 # 
 # 
 # ##### These may optionally be filled in:
@@ -40,7 +40,7 @@
 
 ## Metrics Consumers
 # topology.metrics.consumer.register:
-#   - class: "backtype.storm.metrics.LoggingMetricsConsumer"
+#   - class: "org.apache.storm.metric.LoggingMetricsConsumer"
 #     parallelism.hint: 1
 #   - class: "org.mycompany.MyMetricsConsumer"
 #     parallelism.hint: 1

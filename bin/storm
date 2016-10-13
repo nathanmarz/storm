@@ -20,7 +20,6 @@ import os
 import sys
 import random
 import subprocess as sub
-import getopt
 import re
 
 def identity(x):
@@ -130,6 +129,7 @@ def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[]
     global CONFFILE
     all_args = [
         "java", jvmtype, get_config_opts(),
+        "-Djava.net.preferIPv4Stack=true",  # default ipv4
         "-Dstorm.home=" + STORM_DIR, 
         "-Djava.library.path=" + confvalue("java.library.path", extrajars),
         "-Dstorm.conf.file=" + CONFFILE,

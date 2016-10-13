@@ -24,6 +24,7 @@ import backtype.storm.utils.Utils;
 import java.util.Map;
 import java.util.List;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.json.simple.JSONObject;
@@ -104,7 +105,17 @@ public class ShellSpout implements ISpout {
                     return;
                 } else if (command.equals("log")) {
                     String msg = (String) action.get("msg");
-                    LOG.info("Shell msg: " + msg);
+                    String level = "info";
+                    if (action.has("level")) {
+                        level = (String) action.get("level");
+                    }
+                    try {
+                        Method logWithLevel = LOG.getClass().getMethod(level, String.class);
+                        logWithLevel.invoke(LOG, "Shell msg: " + msg);
+                    } catch (java.lang.NoSuchMethodException e) {
+                        LOG.warn("Unknown log level {} called for. Logging as 'info'.", level);
+                        LOG.info("Shell msg: " + msg);
+                    }
                 } else if (command.equals("emit")) {
                     String stream = (String) action.get("stream");
                     if (stream == null) stream = Utils.DEFAULT_STREAM_ID;

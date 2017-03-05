@@ -42,51 +42,51 @@ public class DistributedRPCInvocations {
 
   public interface Iface {
 
-    public void result(String id, String result) throws org.apache.thrift7.TException;
+    public void result(String id, String result) throws org.apache.thrift.TException;
 
-    public DRPCRequest fetchRequest(String functionName) throws org.apache.thrift7.TException;
+    public DRPCRequest fetchRequest(String functionName) throws org.apache.thrift.TException;
 
-    public void failRequest(String id) throws org.apache.thrift7.TException;
+    public void failRequest(String id) throws org.apache.thrift.TException;
 
   }
 
   public interface AsyncIface {
 
-    public void result(String id, String result, org.apache.thrift7.async.AsyncMethodCallback<AsyncClient.result_call> resultHandler) throws org.apache.thrift7.TException;
+    public void result(String id, String result, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.result_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void fetchRequest(String functionName, org.apache.thrift7.async.AsyncMethodCallback<AsyncClient.fetchRequest_call> resultHandler) throws org.apache.thrift7.TException;
+    public void fetchRequest(String functionName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.fetchRequest_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void failRequest(String id, org.apache.thrift7.async.AsyncMethodCallback<AsyncClient.failRequest_call> resultHandler) throws org.apache.thrift7.TException;
+    public void failRequest(String id, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.failRequest_call> resultHandler) throws org.apache.thrift.TException;
 
   }
 
-  public static class Client extends org.apache.thrift7.TServiceClient implements Iface {
-    public static class Factory implements org.apache.thrift7.TServiceClientFactory<Client> {
+  public static class Client extends org.apache.thrift.TServiceClient implements Iface {
+    public static class Factory implements org.apache.thrift.TServiceClientFactory<Client> {
       public Factory() {}
-      public Client getClient(org.apache.thrift7.protocol.TProtocol prot) {
+      public Client getClient(org.apache.thrift.protocol.TProtocol prot) {
         return new Client(prot);
       }
-      public Client getClient(org.apache.thrift7.protocol.TProtocol iprot, org.apache.thrift7.protocol.TProtocol oprot) {
+      public Client getClient(org.apache.thrift.protocol.TProtocol iprot, org.apache.thrift.protocol.TProtocol oprot) {
         return new Client(iprot, oprot);
       }
     }
 
-    public Client(org.apache.thrift7.protocol.TProtocol prot)
+    public Client(org.apache.thrift.protocol.TProtocol prot)
     {
       super(prot, prot);
     }
 
-    public Client(org.apache.thrift7.protocol.TProtocol iprot, org.apache.thrift7.protocol.TProtocol oprot) {
+    public Client(org.apache.thrift.protocol.TProtocol iprot, org.apache.thrift.protocol.TProtocol oprot) {
       super(iprot, oprot);
     }
 
-    public void result(String id, String result) throws org.apache.thrift7.TException
+    public void result(String id, String result) throws org.apache.thrift.TException
     {
       send_result(id, result);
       recv_result();
     }
 
-    public void send_result(String id, String result) throws org.apache.thrift7.TException
+    public void send_result(String id, String result) throws org.apache.thrift.TException
     {
       result_args args = new result_args();
       args.set_id(id);
@@ -94,50 +94,50 @@ public class DistributedRPCInvocations {
       sendBase("result", args);
     }
 
-    public void recv_result() throws org.apache.thrift7.TException
+    public void recv_result() throws org.apache.thrift.TException
     {
       result_result result = new result_result();
       receiveBase(result, "result");
       return;
     }
 
-    public DRPCRequest fetchRequest(String functionName) throws org.apache.thrift7.TException
+    public DRPCRequest fetchRequest(String functionName) throws org.apache.thrift.TException
     {
       send_fetchRequest(functionName);
       return recv_fetchRequest();
     }
 
-    public void send_fetchRequest(String functionName) throws org.apache.thrift7.TException
+    public void send_fetchRequest(String functionName) throws org.apache.thrift.TException
     {
       fetchRequest_args args = new fetchRequest_args();
       args.set_functionName(functionName);
       sendBase("fetchRequest", args);
     }
 
-    public DRPCRequest recv_fetchRequest() throws org.apache.thrift7.TException
+    public DRPCRequest recv_fetchRequest() throws org.apache.thrift.TException
     {
       fetchRequest_result result = new fetchRequest_result();
       receiveBase(result, "fetchRequest");
       if (result.is_set_success()) {
         return result.success;
       }
-      throw new org.apache.thrift7.TApplicationException(org.apache.thrift7.TApplicationException.MISSING_RESULT, "fetchRequest failed: unknown result");
+      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "fetchRequest failed: unknown result");
     }
 
-    public void failRequest(String id) throws org.apache.thrift7.TException
+    public void failRequest(String id) throws org.apache.thrift.TException
     {
       send_failRequest(id);
       recv_failRequest();
     }
 
-    public void send_failRequest(String id) throws org.apache.thrift7.TException
+    public void send_failRequest(String id) throws org.apache.thrift.TException
     {
       failRequest_args args = new failRequest_args();
       args.set_id(id);
       sendBase("failRequest", args);
     }
 
-    public void recv_failRequest() throws org.apache.thrift7.TException
+    public void recv_failRequest() throws org.apache.thrift.TException
     {
       failRequest_result result = new failRequest_result();
       receiveBase(result, "failRequest");
@@ -145,41 +145,41 @@ public class DistributedRPCInvocations {
     }
 
   }
-  public static class AsyncClient extends org.apache.thrift7.async.TAsyncClient implements AsyncIface {
-    public static class Factory implements org.apache.thrift7.async.TAsyncClientFactory<AsyncClient> {
-      private org.apache.thrift7.async.TAsyncClientManager clientManager;
-      private org.apache.thrift7.protocol.TProtocolFactory protocolFactory;
-      public Factory(org.apache.thrift7.async.TAsyncClientManager clientManager, org.apache.thrift7.protocol.TProtocolFactory protocolFactory) {
+  public static class AsyncClient extends org.apache.thrift.async.TAsyncClient implements AsyncIface {
+    public static class Factory implements org.apache.thrift.async.TAsyncClientFactory<AsyncClient> {
+      private org.apache.thrift.async.TAsyncClientManager clientManager;
+      private org.apache.thrift.protocol.TProtocolFactory protocolFactory;
+      public Factory(org.apache.thrift.async.TAsyncClientManager clientManager, org.apache.thrift.protocol.TProtocolFactory protocolFactory) {
         this.clientManager = clientManager;
         this.protocolFactory = protocolFactory;
       }
-      public AsyncClient getAsyncClient(org.apache.thrift7.transport.TNonblockingTransport transport) {
+      public AsyncClient getAsyncClient(org.apache.thrift.transport.TNonblockingTransport transport) {
         return new AsyncClient(protocolFactory, clientManager, transport);
       }
     }
 
-    public AsyncClient(org.apache.thrift7.protocol.TProtocolFactory protocolFactory, org.apache.thrift7.async.TAsyncClientManager clientManager, org.apache.thrift7.transport.TNonblockingTransport transport) {
+    public AsyncClient(org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.async.TAsyncClientManager clientManager, org.apache.thrift.transport.TNonblockingTransport transport) {
       super(protocolFactory, clientManager, transport);
     }
 
-    public void result(String id, String result, org.apache.thrift7.async.AsyncMethodCallback<result_call> resultHandler) throws org.apache.thrift7.TException {
+    public void result(String id, String result, org.apache.thrift.async.AsyncMethodCallback<result_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       result_call method_call = new result_call(id, result, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
-    public static class result_call extends org.apache.thrift7.async.TAsyncMethodCall {
+    public static class result_call extends org.apache.thrift.async.TAsyncMethodCall {
       private String id;
       private String result;
-      public result_call(String id, String result, org.apache.thrift7.async.AsyncMethodCallback<result_call> resultHandler, org.apache.thrift7.async.TAsyncClient client, org.apache.thrift7.protocol.TProtocolFactory protocolFactory, org.apache.thrift7.transport.TNonblockingTransport transport) throws org.apache.thrift7.TException {
+      public result_call(String id, String result, org.apache.thrift.async.AsyncMethodCallback<result_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.id = id;
         this.result = result;
       }
 
-      public void write_args(org.apache.thrift7.protocol.TProtocol prot) throws org.apache.thrift7.TException {
-        prot.writeMessageBegin(new org.apache.thrift7.protocol.TMessage("result", org.apache.thrift7.protocol.TMessageType.CALL, 0));
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("result", org.apache.thrift.protocol.TMessageType.CALL, 0));
         result_args args = new result_args();
         args.set_id(id);
         args.set_result(result);
@@ -187,100 +187,100 @@ public class DistributedRPCInvocations {
         prot.writeMessageEnd();
       }
 
-      public void getResult() throws org.apache.thrift7.TException {
-        if (getState() != org.apache.thrift7.async.TAsyncMethodCall.State.RESPONSE_READ) {
+      public void getResult() throws org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new IllegalStateException("Method call not finished!");
         }
-        org.apache.thrift7.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift7.transport.TMemoryInputTransport(getFrameBuffer().array());
-        org.apache.thrift7.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
         (new Client(prot)).recv_result();
       }
     }
 
-    public void fetchRequest(String functionName, org.apache.thrift7.async.AsyncMethodCallback<fetchRequest_call> resultHandler) throws org.apache.thrift7.TException {
+    public void fetchRequest(String functionName, org.apache.thrift.async.AsyncMethodCallback<fetchRequest_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       fetchRequest_call method_call = new fetchRequest_call(functionName, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
-    public static class fetchRequest_call extends org.apache.thrift7.async.TAsyncMethodCall {
+    public static class fetchRequest_call extends org.apache.thrift.async.TAsyncMethodCall {
       private String functionName;
-      public fetchRequest_call(String functionName, org.apache.thrift7.async.AsyncMethodCallback<fetchRequest_call> resultHandler, org.apache.thrift7.async.TAsyncClient client, org.apache.thrift7.protocol.TProtocolFactory protocolFactory, org.apache.thrift7.transport.TNonblockingTransport transport) throws org.apache.thrift7.TException {
+      public fetchRequest_call(String functionName, org.apache.thrift.async.AsyncMethodCallback<fetchRequest_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.functionName = functionName;
       }
 
-      public void write_args(org.apache.thrift7.protocol.TProtocol prot) throws org.apache.thrift7.TException {
-        prot.writeMessageBegin(new org.apache.thrift7.protocol.TMessage("fetchRequest", org.apache.thrift7.protocol.TMessageType.CALL, 0));
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("fetchRequest", org.apache.thrift.protocol.TMessageType.CALL, 0));
         fetchRequest_args args = new fetchRequest_args();
         args.set_functionName(functionName);
         args.write(prot);
         prot.writeMessageEnd();
       }
 
-      public DRPCRequest getResult() throws org.apache.thrift7.TException {
-        if (getState() != org.apache.thrift7.async.TAsyncMethodCall.State.RESPONSE_READ) {
+      public DRPCRequest getResult() throws org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new IllegalStateException("Method call not finished!");
         }
-        org.apache.thrift7.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift7.transport.TMemoryInputTransport(getFrameBuffer().array());
-        org.apache.thrift7.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
         return (new Client(prot)).recv_fetchRequest();
       }
     }
 
-    public void failRequest(String id, org.apache.thrift7.async.AsyncMethodCallback<failRequest_call> resultHandler) throws org.apache.thrift7.TException {
+    public void failRequest(String id, org.apache.thrift.async.AsyncMethodCallback<failRequest_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       failRequest_call method_call = new failRequest_call(id, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
-    public static class failRequest_call extends org.apache.thrift7.async.TAsyncMethodCall {
+    public static class failRequest_call extends org.apache.thrift.async.TAsyncMethodCall {
       private String id;
-      public failRequest_call(String id, org.apache.thrift7.async.AsyncMethodCallback<failRequest_call> resultHandler, org.apache.thrift7.async.TAsyncClient client, org.apache.thrift7.protocol.TProtocolFactory protocolFactory, org.apache.thrift7.transport.TNonblockingTransport transport) throws org.apache.thrift7.TException {
+      public failRequest_call(String id, org.apache.thrift.async.AsyncMethodCallback<failRequest_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.id = id;
       }
 
-      public void write_args(org.apache.thrift7.protocol.TProtocol prot) throws org.apache.thrift7.TException {
-        prot.writeMessageBegin(new org.apache.thrift7.protocol.TMessage("failRequest", org.apache.thrift7.protocol.TMessageType.CALL, 0));
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("failRequest", org.apache.thrift.protocol.TMessageType.CALL, 0));
         failRequest_args args = new failRequest_args();
         args.set_id(id);
         args.write(prot);
         prot.writeMessageEnd();
       }
 
-      public void getResult() throws org.apache.thrift7.TException {
-        if (getState() != org.apache.thrift7.async.TAsyncMethodCall.State.RESPONSE_READ) {
+      public void getResult() throws org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new IllegalStateException("Method call not finished!");
         }
-        org.apache.thrift7.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift7.transport.TMemoryInputTransport(getFrameBuffer().array());
-        org.apache.thrift7.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
         (new Client(prot)).recv_failRequest();
       }
     }
 
   }
 
-  public static class Processor<I extends Iface> extends org.apache.thrift7.TBaseProcessor implements org.apache.thrift7.TProcessor {
+  public static class Processor<I extends Iface> extends org.apache.thrift.TBaseProcessor implements org.apache.thrift.TProcessor {
     private static final Logger LOGGER = LoggerFactory.getLogger(Processor.class.getName());
     public Processor(I iface) {
-      super(iface, getProcessMap(new HashMap<String, org.apache.thrift7.ProcessFunction<I, ? extends org.apache.thrift7.TBase>>()));
+      super(iface, getProcessMap(new HashMap<String, org.apache.thrift.ProcessFunction<I, ? extends org.apache.thrift.TBase>>()));
     }
 
-    protected Processor(I iface, Map<String,  org.apache.thrift7.ProcessFunction<I, ? extends  org.apache.thrift7.TBase>> processMap) {
+    protected Processor(I iface, Map<String,  org.apache.thrift.ProcessFunction<I, ? extends  org.apache.thrift.TBase>> processMap) {
       super(iface, getProcessMap(processMap));
     }
 
-    private static <I extends Iface> Map<String,  org.apache.thrift7.ProcessFunction<I, ? extends  org.apache.thrift7.TBase>> getProcessMap(Map<String,  org.apache.thrift7.ProcessFunction<I, ? extends  org.apache.thrift7.TBase>> processMap) {
+    private static <I extends Iface> Map<String,  org.apache.thrift.ProcessFunction<I, ? extends  org.apache.thrift.TBase>> getProcessMap(Map<String,  org.apache.thrift.ProcessFunction<I, ? extends  org.apache.thrift.TBase>> processMap) {
       processMap.put("result", new result());
       processMap.put("fetchRequest", new fetchRequest());
       processMap.put("failRequest", new failRequest());
       return processMap;
     }
 
-    private static class result<I extends Iface> extends org.apache.thrift7.ProcessFunction<I, result_args> {
+    private static class result<I extends Iface> extends org.apache.thrift.ProcessFunction<I, result_args> {
       public result() {
         super("result");
       }
@@ -289,14 +289,14 @@ public class DistributedRPCInvocations {
         return new result_args();
       }
 
-      protected result_result getResult(I iface, result_args args) throws org.apache.thrift7.TException {
+      protected result_result getResult(I iface, result_args args) throws org.apache.thrift.TException {
         result_result result = new result_result();
         iface.result(args.id, args.result);
         return result;
       }
     }
 
-    private static class fetchRequest<I extends Iface> extends org.apache.thrift7.ProcessFunction<I, fetchRequest_args> {
+    private static class fetchRequest<I extends Iface> extends org.apache.thrift.ProcessFunction<I, fetchRequest_args> {
       public fetchRequest() {
         super("fetchRequest");
       }
@@ -305,14 +305,14 @@ public class DistributedRPCInvocations {
         return new fetchRequest_args();
       }
 
-      protected fetchRequest_result getResult(I iface, fetchRequest_args args) throws org.apache.thrift7.TException {
+      protected fetchRequest_result getResult(I iface, fetchRequest_args args) throws org.apache.thrift.TException {
         fetchRequest_result result = new fetchRequest_result();
         result.success = iface.fetchRequest(args.functionName);
         return result;
       }
     }
 
-    private static class failRequest<I extends Iface> extends org.apache.thrift7.ProcessFunction<I, failRequest_args> {
+    private static class failRequest<I extends Iface> extends org.apache.thrift.ProcessFunction<I, failRequest_args> {
       public failRequest() {
         super("failRequest");
       }
@@ -321,7 +321,7 @@ public class DistributedRPCInvocations {
         return new failRequest_args();
       }
 
-      protected failRequest_result getResult(I iface, failRequest_args args) throws org.apache.thrift7.TException {
+      protected failRequest_result getResult(I iface, failRequest_args args) throws org.apache.thrift.TException {
         failRequest_result result = new failRequest_result();
         iface.failRequest(args.id);
         return result;
@@ -330,17 +330,17 @@ public class DistributedRPCInvocations {
 
   }
 
-  public static class result_args implements org.apache.thrift7.TBase<result_args, result_args._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("result_args");
+  public static class result_args implements org.apache.thrift.TBase<result_args, result_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("result_args");
 
-    private static final org.apache.thrift7.protocol.TField ID_FIELD_DESC = new org.apache.thrift7.protocol.TField("id", org.apache.thrift7.protocol.TType.STRING, (short)1);
-    private static final org.apache.thrift7.protocol.TField RESULT_FIELD_DESC = new org.apache.thrift7.protocol.TField("result", org.apache.thrift7.protocol.TType.STRING, (short)2);
+    private static final org.apache.thrift.protocol.TField ID_FIELD_DESC = new org.apache.thrift.protocol.TField("id", org.apache.thrift.protocol.TType.STRING, (short)1);
+    private static final org.apache.thrift.protocol.TField RESULT_FIELD_DESC = new org.apache.thrift.protocol.TField("result", org.apache.thrift.protocol.TType.STRING, (short)2);
 
     private String id; // required
     private String result; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       ID((short)1, "id"),
       RESULT((short)2, "result");
 
@@ -402,15 +402,15 @@ public class DistributedRPCInvocations {
 
     // isset id assignments
 
-    public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
-      Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.ID, new org.apache.thrift7.meta_data.FieldMetaData("id", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING)));
-      tmpMap.put(_Fields.RESULT, new org.apache.thrift7.meta_data.FieldMetaData("result", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING)));
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.ID, new org.apache.thrift.meta_data.FieldMetaData("id", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      tmpMap.put(_Fields.RESULT, new org.apache.thrift.meta_data.FieldMetaData("result", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(result_args.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(result_args.class, metaDataMap);
     }
 
     public result_args() {
@@ -605,7 +605,7 @@ public class DistributedRPCInvocations {
         return lastComparison;
       }
       if (is_set_id()) {
-        lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.id, typedOther.id);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.id, typedOther.id);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -615,7 +615,7 @@ public class DistributedRPCInvocations {
         return lastComparison;
       }
       if (is_set_result()) {
-        lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.result, typedOther.result);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.result, typedOther.result);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -627,32 +627,32 @@ public class DistributedRPCInvocations {
       return _Fields.findByThriftId(fieldId);
     }
 
-    public void read(org.apache.thrift7.protocol.TProtocol iprot) throws org.apache.thrift7.TException {
-      org.apache.thrift7.protocol.TField field;
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      org.apache.thrift.protocol.TField field;
       iprot.readStructBegin();
       while (true)
       {
         field = iprot.readFieldBegin();
-        if (field.type == org.apache.thrift7.protocol.TType.STOP) { 
+        if (field.type == org.apache.thrift.protocol.TType.STOP) { 
           break;
         }
         switch (field.id) {
           case 1: // ID
-            if (field.type == org.apache.thrift7.protocol.TType.STRING) {
+            if (field.type == org.apache.thrift.protocol.TType.STRING) {
               this.id = iprot.readString();
             } else { 
-              org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
             }
             break;
           case 2: // RESULT
-            if (field.type == org.apache.thrift7.protocol.TType.STRING) {
+            if (field.type == org.apache.thrift.protocol.TType.STRING) {
               this.result = iprot.readString();
             } else { 
-              org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
             }
             break;
           default:
-            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
         }
         iprot.readFieldEnd();
       }
@@ -660,7 +660,7 @@ public class DistributedRPCInvocations {
       validate();
     }
 
-    public void write(org.apache.thrift7.protocol.TProtocol oprot) throws org.apache.thrift7.TException {
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
       validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
@@ -702,35 +702,35 @@ public class DistributedRPCInvocations {
       return sb.toString();
     }
 
-    public void validate() throws org.apache.thrift7.TException {
+    public void validate() throws org.apache.thrift.TException {
       // check for required fields
     }
 
     private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
       try {
-        write(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(out)));
-      } catch (org.apache.thrift7.TException te) {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
         throw new java.io.IOException(te);
       }
     }
 
     private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
       try {
-        read(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(in)));
-      } catch (org.apache.thrift7.TException te) {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
         throw new java.io.IOException(te);
       }
     }
 
   }
 
-  public static class result_result implements org.apache.thrift7.TBase<result_result, result_result._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("result_result");
+  public static class result_result implements org.apache.thrift.TBase<result_result, result_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("result_result");
 
 
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
 ;
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -784,11 +784,11 @@ public class DistributedRPCInvocations {
         return _fieldName;
       }
     }
-    public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
-      Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(result_result.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(result_result.class, metaDataMap);
     }
 
     public result_result() {
@@ -868,18 +868,18 @@ public class DistributedRPCInvocations {
       return _Fields.findByThriftId(fieldId);
     }
 
-    public void read(org.apache.thrift7.protocol.TProtocol iprot) throws org.apache.thrift7.TException {
-      org.apache.thrift7.protocol.TField field;
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      org.apache.thrift.protocol.TField field;
       iprot.readStructBegin();
       while (true)
       {
         field = iprot.readFieldBegin();
-        if (field.type == org.apache.thrift7.protocol.TType.STOP) { 
+        if (field.type == org.apache.thrift.protocol.TType.STOP) { 
           break;
         }
         switch (field.id) {
           default:
-            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
         }
         iprot.readFieldEnd();
       }
@@ -887,7 +887,7 @@ public class DistributedRPCInvocations {
       validate();
     }
 
-    public void write(org.apache.thrift7.protocol.TProtocol oprot) throws org.apache.thrift7.TException {
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
       oprot.writeStructBegin(STRUCT_DESC);
 
       oprot.writeFieldStop();
@@ -903,37 +903,37 @@ public class DistributedRPCInvocations {
       return sb.toString();
     }
 
-    public void validate() throws org.apache.thrift7.TException {
+    public void validate() throws org.apache.thrift.TException {
       // check for required fields
     }
 
     private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
       try {
-        write(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(out)));
-      } catch (org.apache.thrift7.TException te) {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
         throw new java.io.IOException(te);
       }
     }
 
     private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
       try {
-        read(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(in)));
-      } catch (org.apache.thrift7.TException te) {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
         throw new java.io.IOException(te);
       }
     }
 
   }
 
-  public static class fetchRequest_args implements org.apache.thrift7.TBase<fetchRequest_args, fetchRequest_args._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("fetchRequest_args");
+  public static class fetchRequest_args implements org.apache.thrift.TBase<fetchRequest_args, fetchRequest_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("fetchRequest_args");
 
-    private static final org.apache.thrift7.protocol.TField FUNCTION_NAME_FIELD_DESC = new org.apache.thrift7.protocol.TField("functionName", org.apache.thrift7.protocol.TType.STRING, (short)1);
+    private static final org.apache.thrift.protocol.TField FUNCTION_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("functionName", org.apache.thrift.protocol.TType.STRING, (short)1);
 
     private String functionName; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       FUNCTION_NAME((short)1, "functionName");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -992,13 +992,13 @@ public class DistributedRPCInvocations {
 
     // isset id assignments
 
-    public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
-      Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.FUNCTION_NAME, new org.apache.thrift7.meta_data.FieldMetaData("functionName", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING)));
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.FUNCTION_NAME, new org.apache.thrift.meta_data.FieldMetaData("functionName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(fetchRequest_args.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(fetchRequest_args.class, metaDataMap);
     }
 
     public fetchRequest_args() {
@@ -1137,7 +1137,7 @@ public class DistributedRPCInvocations {
         return lastComparison;
       }
       if (is_set_functionName()) {
-        lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.functionName, typedOther.functionName);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.functionName, typedOther.functionName);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -1149,25 +1149,25 @@ public class DistributedRPCInvocations {
       return _Fields.findByThriftId(fieldId);
     }
 
-    public void read(org.apache.thrift7.protocol.TProtocol iprot) throws org.apache.thrift7.TException {
-      org.apache.thrift7.protocol.TField field;
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      org.apache.thrift.protocol.TField field;
       iprot.readStructBegin();
       while (true)
       {
         field = iprot.readFieldBegin();
-        if (field.type == org.apache.thrift7.protocol.TType.STOP) { 
+        if (field.type == org.apache.thrift.protocol.TType.STOP) { 
           break;
         }
         switch (field.id) {
           case 1: // FUNCTION_NAME
-            if (field.type == org.apache.thrift7.protocol.TType.STRING) {
+            if (field.type == org.apache.thrift.protocol.TType.STRING) {
               this.functionName = iprot.readString();
             } else { 
-              org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
             }
             break;
           default:
-            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
         }
         iprot.readFieldEnd();
       }
@@ -1175,7 +1175,7 @@ public class DistributedRPCInvocations {
       validate();
     }
 
-    public void write(org.apache.thrift7.protocol.TProtocol oprot) throws org.apache.thrift7.TException {
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
       validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
@@ -1204,37 +1204,37 @@ public class DistributedRPCInvocations {
       return sb.toString();
     }
 
-    public void validate() throws org.apache.thrift7.TException {
+    public void validate() throws org.apache.thrift.TException {
       // check for required fields
     }
 
     private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
       try {
-        write(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(out)));
-      } catch (org.apache.thrift7.TException te) {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
         throw new java.io.IOException(te);
       }
     }
 
     private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
       try {
-        read(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(in)));
-      } catch (org.apache.thrift7.TException te) {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
         throw new java.io.IOException(te);
       }
     }
 
   }
 
-  public static class fetchRequest_result implements org.apache.thrift7.TBase<fetchRequest_result, fetchRequest_result._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("fetchRequest_result");
+  public static class fetchRequest_result implements org.apache.thrift.TBase<fetchRequest_result, fetchRequest_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("fetchRequest_result");
 
-    private static final org.apache.thrift7.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift7.protocol.TField("success", org.apache.thrift7.protocol.TType.STRUCT, (short)0);
+    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRUCT, (short)0);
 
     private DRPCRequest success; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -1293,13 +1293,13 @@ public class DistributedRPCInvocations {
 
     // isset id assignments
 
-    public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
-      Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift7.meta_data.FieldMetaData("success", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, DRPCRequest.class)));
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, DRPCRequest.class)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(fetchRequest_result.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(fetchRequest_result.class, metaDataMap);
     }
 
     public fetchRequest_result() {
@@ -1438,7 +1438,7 @@ public class DistributedRPCInvocations {
         return lastComparison;
       }
       if (is_set_success()) {
-        lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.success, typedOther.success);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, typedOther.success);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -1450,26 +1450,26 @@ public class DistributedRPCInvocations {
       return _Fields.findByThriftId(fieldId);
     }
 
-    public void read(org.apache.thrift7.protocol.TProtocol iprot) throws org.apache.thrift7.TException {
-      org.apache.thrift7.protocol.TField field;
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      org.apache.thrift.protocol.TField field;
       iprot.readStructBegin();
       while (true)
       {
         field = iprot.readFieldBegin();
-        if (field.type == org.apache.thrift7.protocol.TType.STOP) { 
+        if (field.type == org.apache.thrift.protocol.TType.STOP) { 
           break;
         }
         switch (field.id) {
           case 0: // SUCCESS
-            if (field.type == org.apache.thrift7.protocol.TType.STRUCT) {
+            if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
               this.success = new DRPCRequest();
               this.success.read(iprot);
             } else { 
-              org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
             }
             break;
           default:
-            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
         }
         iprot.readFieldEnd();
       }
@@ -1477,7 +1477,7 @@ public class DistributedRPCInvocations {
       validate();
     }
 
-    public void write(org.apache.thrift7.protocol.TProtocol oprot) throws org.apache.thrift7.TException {
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
       oprot.writeStructBegin(STRUCT_DESC);
 
       if (this.is_set_success()) {
@@ -1505,37 +1505,37 @@ public class DistributedRPCInvocations {
       return sb.toString();
     }
 
-    public void validate() throws org.apache.thrift7.TException {
+    public void validate() throws org.apache.thrift.TException {
       // check for required fields
     }
 
     private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
       try {
-        write(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(out)));
-      } catch (org.apache.thrift7.TException te) {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
         throw new java.io.IOException(te);
       }
     }
 
     private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
       try {
-        read(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(in)));
-      } catch (org.apache.thrift7.TException te) {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
         throw new java.io.IOException(te);
       }
     }
 
   }
 
-  public static class failRequest_args implements org.apache.thrift7.TBase<failRequest_args, failRequest_args._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("failRequest_args");
+  public static class failRequest_args implements org.apache.thrift.TBase<failRequest_args, failRequest_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("failRequest_args");
 
-    private static final org.apache.thrift7.protocol.TField ID_FIELD_DESC = new org.apache.thrift7.protocol.TField("id", org.apache.thrift7.protocol.TType.STRING, (short)1);
+    private static final org.apache.thrift.protocol.TField ID_FIELD_DESC = new org.apache.thrift.protocol.TField("id", org.apache.thrift.protocol.TType.STRING, (short)1);
 
     private String id; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       ID((short)1, "id");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -1594,13 +1594,13 @@ public class DistributedRPCInvocations {
 
     // isset id assignments
 
-    public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
-      Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.ID, new org.apache.thrift7.meta_data.FieldMetaData("id", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING)));
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.ID, new org.apache.thrift.meta_data.FieldMetaData("id", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(failRequest_args.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(failRequest_args.class, metaDataMap);
     }
 
     public failRequest_args() {
@@ -1739,7 +1739,7 @@ public class DistributedRPCInvocations {
         return lastComparison;
       }
       if (is_set_id()) {
-        lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.id, typedOther.id);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.id, typedOther.id);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -1751,25 +1751,25 @@ public class DistributedRPCInvocations {
       return _Fields.findByThriftId(fieldId);
     }
 
-    public void read(org.apache.thrift7.protocol.TProtocol iprot) throws org.apache.thrift7.TException {
-      org.apache.thrift7.protocol.TField field;
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      org.apache.thrift.protocol.TField field;
       iprot.readStructBegin();
       while (true)
       {
         field = iprot.readFieldBegin();
-        if (field.type == org.apache.thrift7.protocol.TType.STOP) { 
+        if (field.type == org.apache.thrift.protocol.TType.STOP) { 
           break;
         }
         switch (field.id) {
           case 1: // ID
-            if (field.type == org.apache.thrift7.protocol.TType.STRING) {
+            if (field.type == org.apache.thrift.protocol.TType.STRING) {
               this.id = iprot.readString();
             } else { 
-              org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
             }
             break;
           default:
-            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
         }
         iprot.readFieldEnd();
       }
@@ -1777,7 +1777,7 @@ public class DistributedRPCInvocations {
       validate();
     }
 
-    public void write(org.apache.thrift7.protocol.TProtocol oprot) throws org.apache.thrift7.TException {
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
       validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
@@ -1806,35 +1806,35 @@ public class DistributedRPCInvocations {
       return sb.toString();
     }
 
-    public void validate() throws org.apache.thrift7.TException {
+    public void validate() throws org.apache.thrift.TException {
       // check for required fields
     }
 
     private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
       try {
-        write(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(out)));
-      } catch (org.apache.thrift7.TException te) {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
         throw new java.io.IOException(te);
       }
     }
 
     private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
       try {
-        read(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(in)));
-      } catch (org.apache.thrift7.TException te) {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
         throw new java.io.IOException(te);
       }
     }
 
   }
 
-  public static class failRequest_result implements org.apache.thrift7.TBase<failRequest_result, failRequest_result._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("failRequest_result");
+  public static class failRequest_result implements org.apache.thrift.TBase<failRequest_result, failRequest_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("failRequest_result");
 
 
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
 ;
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -1888,11 +1888,11 @@ public class DistributedRPCInvocations {
         return _fieldName;
       }
     }
-    public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
-      Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(failRequest_result.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(failRequest_result.class, metaDataMap);
     }
 
     public failRequest_result() {
@@ -1972,18 +1972,18 @@ public class DistributedRPCInvocations {
       return _Fields.findByThriftId(fieldId);
     }
 
-    public void read(org.apache.thrift7.protocol.TProtocol iprot) throws org.apache.thrift7.TException {
-      org.apache.thrift7.protocol.TField field;
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      org.apache.thrift.protocol.TField field;
       iprot.readStructBegin();
       while (true)
       {
         field = iprot.readFieldBegin();
-        if (field.type == org.apache.thrift7.protocol.TType.STOP) { 
+        if (field.type == org.apache.thrift.protocol.TType.STOP) { 
           break;
         }
         switch (field.id) {
           default:
-            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
         }
         iprot.readFieldEnd();
       }
@@ -1991,7 +1991,7 @@ public class DistributedRPCInvocations {
       validate();
     }
 
-    public void write(org.apache.thrift7.protocol.TProtocol oprot) throws org.apache.thrift7.TException {
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
       oprot.writeStructBegin(STRUCT_DESC);
 
       oprot.writeFieldStop();
@@ -2007,22 +2007,22 @@ public class DistributedRPCInvocations {
       return sb.toString();
     }
 
-    public void validate() throws org.apache.thrift7.TException {
+    public void validate() throws org.apache.thrift.TException {
       // check for required fields
     }
 
     private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
       try {
-        write(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(out)));
-      } catch (org.apache.thrift7.TException te) {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
         throw new java.io.IOException(te);
       }
     }
 
     private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
       try {
-        read(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(in)));
-      } catch (org.apache.thrift7.TException te) {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
         throw new java.io.IOException(te);
       }
     }

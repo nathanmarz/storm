@@ -29,10 +29,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.apache.thrift7.TBase;
-import org.apache.thrift7.TDeserializer;
-import org.apache.thrift7.TException;
-import org.apache.thrift7.TSerializer;
+import org.apache.thrift.TBase;
+import org.apache.thrift.TDeserializer;
+import org.apache.thrift.TException;
+import org.apache.thrift.TSerializer;
 import org.jgrapht.DirectedGraph;
 
 public class TridentUtils {

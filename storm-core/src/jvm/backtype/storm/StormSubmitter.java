@@ -26,7 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.thrift7.TException;
+import org.apache.thrift.TException;
 import org.json.simple.JSONValue;
 
 /**
@@ -98,7 +98,7 @@ public class StormSubmitter {
                         client.getClient().submitTopology(name, submittedJar, serConf, topology);                                            
                     }
                 } catch(InvalidTopologyException e) {
-                    LOG.warn("Topology submission exception", e);
+                    LOG.warn("Topology submission exception: "+e.get_msg());
                     throw e;
                 } catch(AlreadyAliveException e) {
                     LOG.warn("Topology already alive exception", e);

@@ -19,8 +19,8 @@ package backtype.storm.security.auth;
 
 import java.util.Map;
 import javax.security.auth.login.Configuration;
-import org.apache.thrift7.TProcessor;
-import org.apache.thrift7.server.TServer;
+import org.apache.thrift.TProcessor;
+import org.apache.thrift.server.TServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import backtype.storm.utils.Utils;

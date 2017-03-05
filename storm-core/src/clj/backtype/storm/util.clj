@@ -6,7 +6,7 @@
 ;; "License"); you may not use this file except in compliance
 ;; with the License.  You may obtain a copy of the License at
 ;;
-;; http:;; www.apache.org/licenses/LICENSE-2.0
+;; http://www.apache.org/licenses/LICENSE-2.0
 ;;
 ;; Unless required by applicable law or agreed to in writing, software
 ;; distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,7 +24,7 @@
   (:import [java.util.zip ZipFile])
   (:import [java.util.concurrent.locks ReentrantReadWriteLock])
   (:import [java.util.concurrent Semaphore])
-  (:import [java.io File RandomAccessFile StringWriter PrintWriter])
+  (:import [java.io File FileOutputStream StringWriter PrintWriter IOException])
   (:import [java.lang.management ManagementFactory])
   (:import [org.apache.commons.exec DefaultExecutor CommandLine])
   (:import [org.apache.commons.io FileUtils])
@@ -33,6 +33,7 @@
   (:require [clojure [string :as str]])
   (:import [clojure.lang RT])
   (:require [clojure [set :as set]])
+  (:require [clojure.java.io :as io])
   (:use [clojure walk])
   (:use [backtype.storm log])
   )
@@ -43,6 +44,15 @@
   (if (instance? RuntimeException e)
     e
     (RuntimeException. e)))
+
+(def on-windows?
+  (= "Windows_NT" (System/getenv "OS")))
+
+(def file-path-separator
+  (System/getProperty "file.separator"))
+
+(def class-path-separator
+  (System/getProperty "path.separator"))
 
 (defmacro defalias
   "Defines an alias for a var: a new var with the same root binding (if
@@ -366,15 +376,20 @@
 
 (defn extract-dir-from-jar [jarpath dir destdir]
   (try-cause
-    (exec-command! (str "unzip -qq " jarpath " " dir "/** -d " destdir))
-  (catch ExecuteException e
+    (with-open [jarpath (ZipFile. jarpath)]
+      (let [entries (enumeration-seq (.entries jarpath))]
+        (doseq [file (filter (fn [entry](and (not (.isDirectory entry)) (.startsWith (.getName entry) dir))) entries)]
+          (.mkdirs (.getParentFile (File. destdir (.getName file))))
+          (with-open [out (FileOutputStream. (File. destdir (.getName file)))]
+            (io/copy (.getInputStream jarpath file) out)))))
+  (catch IOException e
     (log-message "Could not extract " dir " from " jarpath))
   ))
 
 (defn ensure-process-killed! [pid]
   ;; TODO: should probably do a ps ax of some sort to make sure it was killed
   (try-cause
-    (exec-command! (str "kill -9 " pid))
+    (exec-command! (str (if on-windows? "taskkill /f /pid " "kill -9 ") pid))
   (catch ExecuteException e
     (log-message "Error when trying to kill " pid ". Process is probably already dead."))
     ))
@@ -474,7 +489,8 @@
 
 (defn touch [path]
   (log-debug "Touching file at " path)
-  (let [success? (.createNewFile (File. path))]
+  (let [success? (do (if on-windows? (.mkdirs (.getParentFile (File. path))))
+                     (.createNewFile (File. path)))]
     (when-not success?
       (throw (RuntimeException. (str "Failed to touch " path))))
     ))
@@ -492,7 +508,7 @@
   (System/getProperty "java.class.path"))
 
 (defn add-to-classpath [classpath paths]
-  (str/join ":" (cons classpath paths)))
+  (str/join class-path-separator (cons classpath paths)))
 
 (defn ^ReentrantReadWriteLock mk-rw-lock []
   (ReentrantReadWriteLock.))
@@ -740,7 +756,7 @@
 
 (defn zip-contains-dir? [zipfile target]
   (let [entries (->> zipfile (ZipFile.) .entries enumeration-seq (map (memfn getName)))]
-    (some? #(.startsWith % (str target "/")) entries)
+    (some? #(.startsWith % (str target file-path-separator)) entries)
     ))
 
 (defn url-encode [s]

@@ -6,7 +6,7 @@
 ;; "License"); you may not use this file except in compliance
 ;; with the License.  You may obtain a copy of the License at
 ;;
-;; http:;; www.apache.org/licenses/LICENSE-2.0
+;; http://www.apache.org/licenses/LICENSE-2.0
 ;;
 ;; Unless required by applicable law or agreed to in writing, software
 ;; distributed under the License is distributed on an "AS IS" BASIS,
@@ -78,7 +78,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
   (html4
    [:head
     [:title "Storm log viewer"]
-    (include-css "/css/bootstrap-1.1.0.css")
+    (include-css "/css/bootstrap-1.4.0.css")
     (include-css "/css/style.css")
     (include-js "/js/jquery-1.6.2.min.js")
     (include-js "/js/jquery.tablesorter.min.js")

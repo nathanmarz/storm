@@ -221,6 +221,12 @@ public class Config extends HashMap<String, Object> {
     public static final String NIMBUS_THRIFT_PORT = "nimbus.thrift.port";
     public static final Object NIMBUS_THRIFT_PORT_SCHEMA = Number.class;
 
+    /**
+     * The maximum buffer size thrift should use when reading messages.
+     */
+    public static final String NIMBUS_THRIFT_MAX_BUFFER_SIZE = "nimbus.thrift.max_buffer_size";
+    public static final Object NIMBUS_THRIFT_MAX_BUFFER_SIZE_SCHEMA = Number.class;
+
 
     /**
      * This parameter is used by the storm-deploy project to configure the
@@ -550,7 +556,7 @@ public class Config extends HashMap<String, Object> {
      * See Kryo's documentation for more information about writing custom serializers.
      */
     public static final String TOPOLOGY_KRYO_REGISTER = "topology.kryo.register";
-    public static final Object TOPOLOGY_KRYO_REGISTER_SCHEMA = ConfigValidation.StringsValidator;
+    public static final Object TOPOLOGY_KRYO_REGISTER_SCHEMA = ConfigValidation.KryoRegValidator;
 
     /**
      * A list of classes that customize storm's kryo instance during start-up.

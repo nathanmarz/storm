@@ -6,7 +6,7 @@
 ;; "License"); you may not use this file except in compliance
 ;; with the License.  You may obtain a copy of the License at
 ;;
-;; http:;; www.apache.org/licenses/LICENSE-2.0
+;; http://www.apache.org/licenses/LICENSE-2.0
 ;;
 ;; Unless required by applicable law or agreed to in writing, software
 ;; distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,6 +18,7 @@
   (:import [backtype.storm.serialization KryoTupleSerializer KryoTupleDeserializer
             KryoValuesSerializer KryoValuesDeserializer])
   (:import [backtype.storm.testing TestSerObject TestKryoDecorator])
+  (:import [backtype.storm ConfigValidation])
   (:use [backtype.storm util config])
   )
 
@@ -39,6 +40,24 @@
   ([vals] (roundtrip vals {}))
   ([vals conf]
     (deserialize (serialize vals conf) conf)))
+
+(deftest validate-kryo-conf-basic
+  (.validateField ConfigValidation/KryoRegValidator "test" ["a" "b" "c" {"d" "e"} {"f" "g"}]))
+
+(deftest validate-kryo-conf-fail
+  (try
+    (.validateField ConfigValidation/KryoRegValidator "test" {"f" "g"})
+    (assert false)
+    (catch IllegalArgumentException e))
+  (try
+    (.validateField ConfigValidation/KryoRegValidator "test" [1])
+    (assert false)
+    (catch IllegalArgumentException e))
+  (try
+    (.validateField ConfigValidation/KryoRegValidator "test" [{"a" 1}])
+    (assert false)
+    (catch IllegalArgumentException e))
+)
 
 (deftest test-java-serialization
   (letlocals

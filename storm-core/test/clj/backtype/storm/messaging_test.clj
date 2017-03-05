@@ -6,7 +6,7 @@
 ;; "License"); you may not use this file except in compliance
 ;; with the License.  You may obtain a copy of the License at
 ;;
-;; http:;; www.apache.org/licenses/LICENSE-2.0
+;; http://www.apache.org/licenses/LICENSE-2.0
 ;;
 ;; Unless required by applicable law or agreed to in writing, software
 ;; distributed under the License is distributed on an "AS IS" BASIS,
@@ -29,7 +29,7 @@
                                                       STORM-LOCAL-MODE-ZMQ 
                                                       (if transport-on? true false) 
                                                       STORM-MESSAGING-TRANSPORT 
-                                                      "backtype.storm.messaging.zmq"}]
+                                                      "backtype.storm.messaging.netty.Context"}]
       (let [topology (thrift/mk-topology
                        {"1" (thrift/mk-spout-spec (TestWordSpout. true) :parallelism-hint 2)}
                        {"2" (thrift/mk-bolt-spec {"1" :shuffle} (TestGlobalCount.)

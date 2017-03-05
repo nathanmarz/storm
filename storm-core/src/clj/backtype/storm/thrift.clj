@@ -6,7 +6,7 @@
 ;; "License"); you may not use this file except in compliance
 ;; with the License.  You may obtain a copy of the License at
 ;;
-;; http:;; www.apache.org/licenses/LICENSE-2.0
+;; http://www.apache.org/licenses/LICENSE-2.0
 ;;
 ;; Unless required by applicable law or agreed to in writing, software
 ;; distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,8 +23,8 @@
   (:import [backtype.storm.grouping CustomStreamGrouping])
   (:import [backtype.storm.topology TopologyBuilder])
   (:import [backtype.storm.clojure RichShellBolt RichShellSpout])
-  (:import [org.apache.thrift7.protocol TBinaryProtocol TProtocol])
-  (:import [org.apache.thrift7.transport TTransport TFramedTransport TSocket])
+  (:import [org.apache.thrift.protocol TBinaryProtocol TProtocol])
+  (:import [org.apache.thrift.transport TTransport TFramedTransport TSocket])
   (:use [backtype.storm util config log])
   )
 

@@ -6,7 +6,7 @@
 ;; "License"); you may not use this file except in compliance
 ;; with the License.  You may obtain a copy of the License at
 ;;
-;; http:;; www.apache.org/licenses/LICENSE-2.0
+;; http://www.apache.org/licenses/LICENSE-2.0
 ;;
 ;; Unless required by applicable law or agreed to in writing, software
 ;; distributed under the License is distributed on an "AS IS" BASIS,
@@ -68,12 +68,12 @@
   (pretty-uptime-str* ms PRETTY-MS-DIVIDERS))
 
 
-(defelem table [headers data]
+(defelem table [headers-map data]
   [:table
    [:thead
     [:tr
-     (for [h headers]
-       [:th h])
+     (for [h headers-map]
+       [:th (if (:text h) [:span (:attr h) (:text h)] h)])
      ]]
    [:tbody
     (for [row data]

@@ -6,7 +6,7 @@
 ;; "License"); you may not use this file except in compliance
 ;; with the License.  You may obtain a copy of the License at
 ;;
-;; http:;; www.apache.org/licenses/LICENSE-2.0
+;; http://www.apache.org/licenses/LICENSE-2.0
 ;;
 ;; Unless required by applicable law or agreed to in writing, software
 ;; distributed under the License is distributed on an "AS IS" BASIS,
@@ -815,3 +815,12 @@
        (nimbus/clean-inbox dir-location 10)
        (assert-files-in-dir [])
        ))))
+
+(deftest test-validate-topo-config-on-submit
+  (with-local-cluster [cluster]
+    (let [nimbus (:nimbus cluster)
+          topology (thrift/mk-topology {} {})
+          bad-config {"topology.workers" "3"}]
+      (is (thrown-cause? InvalidTopologyException
+        (submit-local-topology-with-opts nimbus "test" bad-config topology
+                                         (SubmitOptions.)))))))

@@ -6,7 +6,7 @@
 ;; "License"); you may not use this file except in compliance
 ;; with the License.  You may obtain a copy of the License at
 ;;
-;; http:;; www.apache.org/licenses/LICENSE-2.0
+;; http://www.apache.org/licenses/LICENSE-2.0
 ;;
 ;; Unless required by applicable law or agreed to in writing, software
 ;; distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,8 +16,8 @@
 (ns backtype.storm.security.auth.auth-test
   (:use [clojure test])
   (:require [backtype.storm.daemon [nimbus :as nimbus]])
-  (:import [org.apache.thrift7 TException])
-  (:import [org.apache.thrift7.transport TTransportException])
+  (:import [org.apache.thrift TException])
+  (:import [org.apache.thrift.transport TTransportException])
   (:import [java.nio ByteBuffer])
   (:import [backtype.storm Config])
   (:import [backtype.storm.utils NimbusClient])
@@ -31,7 +31,7 @@
 
 (bootstrap)
 
-(def nimbus-timeout (Integer. 30))
+(def nimbus-timeout (Integer. 120))
 
 (defn mk-authorization-handler [storm-conf]
   (let [klassname (storm-conf NIMBUS-AUTHORIZER) 

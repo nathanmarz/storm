@@ -38,13 +38,13 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ExecutorSpecificStats extends org.apache.thrift7.TUnion<ExecutorSpecificStats, ExecutorSpecificStats._Fields> {
-  private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("ExecutorSpecificStats");
-  private static final org.apache.thrift7.protocol.TField BOLT_FIELD_DESC = new org.apache.thrift7.protocol.TField("bolt", org.apache.thrift7.protocol.TType.STRUCT, (short)1);
-  private static final org.apache.thrift7.protocol.TField SPOUT_FIELD_DESC = new org.apache.thrift7.protocol.TField("spout", org.apache.thrift7.protocol.TType.STRUCT, (short)2);
+public class ExecutorSpecificStats extends org.apache.thrift.TUnion<ExecutorSpecificStats, ExecutorSpecificStats._Fields> {
+  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ExecutorSpecificStats");
+  private static final org.apache.thrift.protocol.TField BOLT_FIELD_DESC = new org.apache.thrift.protocol.TField("bolt", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+  private static final org.apache.thrift.protocol.TField SPOUT_FIELD_DESC = new org.apache.thrift.protocol.TField("spout", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     BOLT((short)1, "bolt"),
     SPOUT((short)2, "spout");
 
@@ -104,15 +104,15 @@ public class ExecutorSpecificStats extends org.apache.thrift7.TUnion<ExecutorSpe
     }
   }
 
-  public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
+  public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
-    Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.BOLT, new org.apache.thrift7.meta_data.FieldMetaData("bolt", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, BoltStats.class)));
-    tmpMap.put(_Fields.SPOUT, new org.apache.thrift7.meta_data.FieldMetaData("spout", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, SpoutStats.class)));
+    Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.BOLT, new org.apache.thrift.meta_data.FieldMetaData("bolt", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, BoltStats.class)));
+    tmpMap.put(_Fields.SPOUT, new org.apache.thrift.meta_data.FieldMetaData("spout", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, SpoutStats.class)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(ExecutorSpecificStats.class, metaDataMap);
+    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ExecutorSpecificStats.class, metaDataMap);
   }
 
   public ExecutorSpecificStats() {
@@ -162,7 +162,7 @@ public class ExecutorSpecificStats extends org.apache.thrift7.TUnion<ExecutorSpe
   }
 
   @Override
-  protected Object readValue(org.apache.thrift7.protocol.TProtocol iprot, org.apache.thrift7.protocol.TField field) throws org.apache.thrift7.TException {
+  protected Object readValue(org.apache.thrift.protocol.TProtocol iprot, org.apache.thrift.protocol.TField field) throws org.apache.thrift.TException {
     _Fields setField = _Fields.findByThriftId(field.id);
     if (setField != null) {
       switch (setField) {
@@ -173,7 +173,7 @@ public class ExecutorSpecificStats extends org.apache.thrift7.TUnion<ExecutorSpe
             bolt.read(iprot);
             return bolt;
           } else {
-            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
             return null;
           }
         case SPOUT:
@@ -183,20 +183,20 @@ public class ExecutorSpecificStats extends org.apache.thrift7.TUnion<ExecutorSpe
             spout.read(iprot);
             return spout;
           } else {
-            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
             return null;
           }
         default:
           throw new IllegalStateException("setField wasn't null, but didn't match any of the case statements!");
       }
     } else {
-      org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+      org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
       return null;
     }
   }
 
   @Override
-  protected void writeValue(org.apache.thrift7.protocol.TProtocol oprot) throws org.apache.thrift7.TException {
+  protected void writeValue(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
     switch (setField_) {
       case BOLT:
         BoltStats bolt = (BoltStats)value_;
@@ -212,7 +212,7 @@ public class ExecutorSpecificStats extends org.apache.thrift7.TUnion<ExecutorSpe
   }
 
   @Override
-  protected org.apache.thrift7.protocol.TField getFieldDesc(_Fields setField) {
+  protected org.apache.thrift.protocol.TField getFieldDesc(_Fields setField) {
     switch (setField) {
       case BOLT:
         return BOLT_FIELD_DESC;
@@ -224,7 +224,7 @@ public class ExecutorSpecificStats extends org.apache.thrift7.TUnion<ExecutorSpe
   }
 
   @Override
-  protected org.apache.thrift7.protocol.TStruct getStructDesc() {
+  protected org.apache.thrift.protocol.TStruct getStructDesc() {
     return STRUCT_DESC;
   }
 
@@ -290,9 +290,9 @@ public class ExecutorSpecificStats extends org.apache.thrift7.TUnion<ExecutorSpe
 
   @Override
   public int compareTo(ExecutorSpecificStats other) {
-    int lastComparison = org.apache.thrift7.TBaseHelper.compareTo(getSetField(), other.getSetField());
+    int lastComparison = org.apache.thrift.TBaseHelper.compareTo(getSetField(), other.getSetField());
     if (lastComparison == 0) {
-      return org.apache.thrift7.TBaseHelper.compareTo(getFieldValue(), other.getFieldValue());
+      return org.apache.thrift.TBaseHelper.compareTo(getFieldValue(), other.getFieldValue());
     }
     return lastComparison;
   }
@@ -302,12 +302,12 @@ public class ExecutorSpecificStats extends org.apache.thrift7.TUnion<ExecutorSpe
   public int hashCode() {
     HashCodeBuilder hcb = new HashCodeBuilder();
     hcb.append(this.getClass().getName());
-    org.apache.thrift7.TFieldIdEnum setField = getSetField();
+    org.apache.thrift.TFieldIdEnum setField = getSetField();
     if (setField != null) {
       hcb.append(setField.getThriftFieldId());
       Object value = getFieldValue();
-      if (value instanceof org.apache.thrift7.TEnum) {
-        hcb.append(((org.apache.thrift7.TEnum)getFieldValue()).getValue());
+      if (value instanceof org.apache.thrift.TEnum) {
+        hcb.append(((org.apache.thrift.TEnum)getFieldValue()).getValue());
       } else {
         hcb.append(value);
       }
@@ -316,8 +316,8 @@ public class ExecutorSpecificStats extends org.apache.thrift7.TUnion<ExecutorSpe
   }
   private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
     try {
-      write(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(out)));
-    } catch (org.apache.thrift7.TException te) {
+      write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+    } catch (org.apache.thrift.TException te) {
       throw new java.io.IOException(te);
     }
   }
@@ -325,8 +325,8 @@ public class ExecutorSpecificStats extends org.apache.thrift7.TUnion<ExecutorSpe
 
   private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
     try {
-      read(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(in)));
-    } catch (org.apache.thrift7.TException te) {
+      read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+    } catch (org.apache.thrift.TException te) {
       throw new java.io.IOException(te);
     }
   }

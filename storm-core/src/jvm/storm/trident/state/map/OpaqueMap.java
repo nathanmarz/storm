@@ -87,9 +87,9 @@ public class OpaqueMap<T> implements MapState<T> {
     @Override
     public void multiPut(List<List<Object>> keys, List<T> vals) {
         List<ValueUpdater> updaters = new ArrayList<ValueUpdater>(vals.size());
-        for(T val: vals) {
+        vals.forEach(val -> {
             updaters.add(new ReplaceUpdater<T>(val));
-        }
+        });
         multiUpdate(keys, updaters);
     }
 

@@ -57,10 +57,12 @@ public class MapCombinerAggStateUpdater implements StateUpdater<MapState> {
         List<List<Object>> groups = new ArrayList<List<Object>>(tuples.size());
         List<ValueUpdater> updaters = new ArrayList<ValueUpdater>(tuples.size());
                 
-        for(TridentTuple t: tuples) {
+        tuples.stream().map(t -> {
             groups.add(_groupFactory.create(t));
+            return t;
+        }).forEach(t -> {
             updaters.add(new CombinerValueUpdater(_agg,_inputFactory.create(t).getValue(0)));
-        }
+        });
         List<Object> newVals = map.multiUpdate(groups, updaters);
        
         for(int i=0; i<tuples.size(); i++) {

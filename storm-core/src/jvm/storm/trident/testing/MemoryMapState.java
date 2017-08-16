@@ -107,15 +107,13 @@ public class MemoryMapState<T> implements Snapshottable<T>, ITupleCollection, Ma
         }
 
         @Override
-        public List<T> multiGet(List<List<Object>> keys) {
+        public List<T> multiGet(List<List<Object>> keys)  {
             List<T> ret = new ArrayList();
-            for (List<Object> key : keys) {
-                ret.add(db.get(key));
-            }
+            keys.forEach(key -> {
+ret.add(db.get(key));
+});
             return ret;
-        }
-
-        @Override
+        }@Override
         public void multiPut(List<List<Object>> keys, List<T> vals) {
             for (int i = 0; i < keys.size(); i++) {
                 List<Object> key = keys.get(i);

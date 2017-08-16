@@ -140,9 +140,9 @@ public class FeederBatchSpout implements ITridentSpout, IFeeder {
         public void emitBatch(TransactionAttempt tx, Map<Integer, List<List<Object>>> coordinatorMeta, TridentCollector collector) {
             List<List<Object>> tuples = coordinatorMeta.get(_index);
             if(tuples!=null) {
-                for(List<Object> t: tuples) {
+                tuples.forEach(t -> {
                     collector.emit(t);
-                }
+                });
             }
         }
 

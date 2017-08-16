@@ -410,10 +410,9 @@ public class StreamInfo implements org.apache.thrift7.TBase<StreamInfo, StreamIn
       oprot.writeFieldBegin(OUTPUT_FIELDS_FIELD_DESC);
       {
         oprot.writeListBegin(new org.apache.thrift7.protocol.TList(org.apache.thrift7.protocol.TType.STRING, this.output_fields.size()));
-        for (String _iter11 : this.output_fields)
-        {
+        this.output_fields.forEach(_iter11 -> {
           oprot.writeString(_iter11);
-        }
+        });
         oprot.writeListEnd();
       }
       oprot.writeFieldEnd();

@@ -30,9 +30,9 @@ public class MemoryBackingMap implements IBackingMap<Object> {
     @Override
     public List<Object> multiGet(List<List<Object>> keys) {
         List ret = new ArrayList();
-        for(List key: keys) {
+        keys.forEach(key -> {
             ret.add(_vals.get(key));
-        }
+        });
         return ret;
     }
 

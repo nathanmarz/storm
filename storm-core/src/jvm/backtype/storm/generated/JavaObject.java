@@ -412,10 +412,9 @@ public class JavaObject implements org.apache.thrift7.TBase<JavaObject, JavaObje
       oprot.writeFieldBegin(ARGS_LIST_FIELD_DESC);
       {
         oprot.writeListBegin(new org.apache.thrift7.protocol.TList(org.apache.thrift7.protocol.TType.STRUCT, this.args_list.size()));
-        for (JavaObjectArg _iter3 : this.args_list)
-        {
+        this.args_list.forEach(_iter3 -> {
           _iter3.write(oprot);
-        }
+        });
         oprot.writeListEnd();
       }
       oprot.writeFieldEnd();

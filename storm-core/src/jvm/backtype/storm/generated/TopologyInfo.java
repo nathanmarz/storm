@@ -796,10 +796,9 @@ public class TopologyInfo implements org.apache.thrift7.TBase<TopologyInfo, Topo
       oprot.writeFieldBegin(EXECUTORS_FIELD_DESC);
       {
         oprot.writeListBegin(new org.apache.thrift7.protocol.TList(org.apache.thrift7.protocol.TType.STRUCT, this.executors.size()));
-        for (ExecutorSummary _iter155 : this.executors)
-        {
+        this.executors.forEach(_iter155 -> {
           _iter155.write(oprot);
-        }
+        });
         oprot.writeListEnd();
       }
       oprot.writeFieldEnd();

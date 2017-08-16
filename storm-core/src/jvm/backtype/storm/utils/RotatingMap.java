@@ -116,9 +116,7 @@ public class RotatingMap<K, V> {
 
     public int size() {
         int size = 0;
-        for(HashMap<K, V> bucket: _buckets) {
-            size+=bucket.size();
-        }
+        _buckets.stream().map(bucket -> bucket.size()).reduce(size, Integer::sum);
         return size;
-    }    
+    }
 }

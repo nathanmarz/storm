@@ -55,11 +55,11 @@ public class SchedulerAssignmentImpl implements SchedulerAssignment {
      * @param executors
      */
     public void assign(WorkerSlot slot, Collection<ExecutorDetails> executors) {
-        for (ExecutorDetails executor : executors) {
+        executors.forEach(executor -> {
             this.executorToSlot.put(executor, slot);
-        }
+        });
     }
-    
+
     /**
      * Release the slot occupied by this assignment.
      * @param slot
@@ -74,9 +74,9 @@ public class SchedulerAssignmentImpl implements SchedulerAssignment {
         }
         
         // remove
-        for (ExecutorDetails executor : executors) {
+        executors.forEach(executor -> {
             this.executorToSlot.remove(executor);
-        }
+        });
     }
 
     /**

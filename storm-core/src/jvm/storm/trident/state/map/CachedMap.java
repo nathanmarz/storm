@@ -58,9 +58,9 @@ public class CachedMap<T> implements IBackingMap<T> {
         }
 
         List<T> ret = new ArrayList<T>(keys.size());
-        for(List<Object> key: keys) {
+        keys.forEach(key -> {
             ret.add(results.get(key));
-        }
+        });
         return ret;
     }
 

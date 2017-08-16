@@ -537,10 +537,9 @@ public class ClusterSummary implements org.apache.thrift7.TBase<ClusterSummary, 
       oprot.writeFieldBegin(TOPOLOGIES_FIELD_DESC);
       {
         oprot.writeListBegin(new org.apache.thrift7.protocol.TList(org.apache.thrift7.protocol.TType.STRUCT, this.topologies.size()));
-        for (TopologySummary _iter44 : this.topologies)
-        {
+        this.topologies.forEach(_iter44 -> {
           _iter44.write(oprot);
-        }
+        });
         oprot.writeListEnd();
       }
       oprot.writeFieldEnd();

@@ -79,9 +79,9 @@ public class DRPCSpout extends BaseRichSpout {
                 throw new RuntimeException("No DRPC servers configured for topology");   
             }
             if(numTasks < servers.size()) {
-                for(String s: servers) {
+                servers.forEach(s -> {
                     _clients.add(new DRPCInvocationsClient(s, port));
-                }
+                });
             } else {
                 int i = index % servers.size();
                 _clients.add(new DRPCInvocationsClient(servers.get(i), port));
@@ -92,9 +92,9 @@ public class DRPCSpout extends BaseRichSpout {
 
     @Override
     public void close() {
-        for(DRPCInvocationsClient client: _clients) {
+        _clients.forEach(client -> {
             client.close();
-        }
+        });
     }
 
     @Override

@@ -218,24 +218,24 @@ public class Cluster {
         Set<Integer> ports = this.getAvailablePorts(supervisor);
         List<WorkerSlot> slots = new ArrayList<WorkerSlot>(ports.size());
 
-        for (Integer port : ports) {
+        ports.forEach(port -> {
             slots.add(new WorkerSlot(supervisor.getId(), port));
-        }
+        });
 
         return slots;
     }
-    
+
     public List<WorkerSlot> getAssignableSlots(SupervisorDetails supervisor) {
         Set<Integer> ports = this.getAssignablePorts(supervisor);
         List<WorkerSlot> slots = new ArrayList<WorkerSlot>(ports.size());
 
-        for (Integer port : ports) {
+        ports.forEach(port -> {
             slots.add(new WorkerSlot(supervisor.getId(), port));
-        }
+        });
 
         return slots;        
     }
-    
+
     /**
      * get the unassigned executors of the topology.
      */
@@ -342,9 +342,9 @@ public class Cluster {
      */
     public void freeSlots(Collection<WorkerSlot> slots) {
         if(slots!=null) {
-            for (WorkerSlot slot : slots) {
+            slots.forEach(slot -> {
                 this.freeSlot(slot);
-            }
+            });
         }
     }
 
@@ -405,9 +405,9 @@ public class Cluster {
         List<SupervisorDetails> ret = new ArrayList<SupervisorDetails>();
 
         if (nodeIds != null) {
-            for (String nodeId : nodeIds) {
+            nodeIds.forEach(nodeId -> {
                 ret.add(this.getSupervisorById(nodeId));
-            }
+            });
         }
 
         return ret;

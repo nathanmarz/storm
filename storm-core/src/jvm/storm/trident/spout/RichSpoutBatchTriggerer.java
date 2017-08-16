@@ -150,15 +150,17 @@ public class RichSpoutBatchTriggerer implements IRichSpout {
             finish.msgId = msgId;
             List<Integer> tasks = _collector.emit(_stream, new ConsList(batchId, values));
             Set<Integer> outTasksSet = new HashSet<Integer>(tasks);
-            for(Integer t: _outputTasks) {
+            _outputTasks.stream().map(t -> {
                 int count = 0;
-                if(outTasksSet.contains(t)) {
+                if (outTasksSet.contains(t)) {
                     count = 1;
                 }
                 long r = _rand.nextLong();
                 _collector.emitDirect(t, _coordStream, new Values(batchId, count), r);
+                return r;
+            }).forEach(r -> {
                 finish.vals.add(r);
-            }
+            });
             _finishConditions.put(batchIdVal, finish);
             return tasks;
         }

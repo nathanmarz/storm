@@ -59,9 +59,9 @@ public class Context implements IContext {
      * terminate this context
      */
     public void term() {
-        for (IConnection conn : connections) {
+        connections.forEach(conn -> {
             conn.close();
-        }
+        });
         connections = null;
     }
 }

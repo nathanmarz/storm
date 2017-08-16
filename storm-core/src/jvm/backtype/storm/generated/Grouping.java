@@ -379,10 +379,9 @@ public class Grouping extends org.apache.thrift7.TUnion<Grouping, Grouping._Fiel
         List<String> fields = (List<String>)value_;
         {
           oprot.writeListBegin(new org.apache.thrift7.protocol.TList(org.apache.thrift7.protocol.TType.STRING, fields.size()));
-          for (String _iter7 : fields)
-          {
+          fields.forEach(_iter7 -> {
             oprot.writeString(_iter7);
-          }
+          });
           oprot.writeListEnd();
         }
         return;

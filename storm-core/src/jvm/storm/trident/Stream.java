@@ -365,10 +365,8 @@ public class Stream implements IAggregatableStream {
         }
 
         Fields allFields = this.getOutputFields();
-        for (String field : projFields) {
-            if (!allFields.contains(field)) {
-                throw new IllegalArgumentException("Trying to select non-existent field: '" + field + "' from stream containing fields fields: <" + allFields + ">");
-            }
-        }
+        projFields.stream().filter(field -> !allFields.contains(field)).forEach(field -> {
+            throw new IllegalArgumentException("Trying to select non-existent field: '" + field + "' from stream containing fields fields: <" + allFields + ">");
+        });
     }
 }

@@ -47,9 +47,9 @@ public class Fields implements Iterable<String>, Serializable {
     
     public List<Object> select(Fields selector, List<Object> tuple) {
         List<Object> ret = new ArrayList<Object>(selector.size());
-        for(String s: selector) {
+        selector.forEach(s -> {
             ret.add(tuple.get(_index.get(s)));
-        }
+        });
         return ret;
     }
 

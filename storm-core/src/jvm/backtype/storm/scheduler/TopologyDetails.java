@@ -73,16 +73,16 @@ public class TopologyDetails {
 
     public Map<ExecutorDetails, String> selectExecutorToComponent(Collection<ExecutorDetails> executors) {
         Map<ExecutorDetails, String> ret = new HashMap<ExecutorDetails, String>(executors.size());
-        for (ExecutorDetails executor : executors) {
+        executors.forEach(executor -> {
             String compId = this.executorToComponent.get(executor);
             if (compId != null) {
                 ret.put(executor, compId);
             }
-        }
+        });
         
         return ret;
     }
-    
+
     public Collection<ExecutorDetails> getExecutors() {
         return this.executorToComponent.keySet();
     }

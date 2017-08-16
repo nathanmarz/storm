@@ -61,9 +61,9 @@ public class SupervisorDetails {
     private void setAllPorts(Collection<Number> allPorts) {
         this.allPorts = new HashSet<Integer>();
         if(allPorts!=null) {
-            for(Number n: allPorts) {
+            allPorts.forEach(n -> {
                 this.allPorts.add(n.intValue());
-            }
+            });
         }
     }
 

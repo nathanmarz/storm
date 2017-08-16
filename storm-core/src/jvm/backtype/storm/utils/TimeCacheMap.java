@@ -148,9 +148,7 @@ public class TimeCacheMap<K, V> {
     public int size() {
         synchronized(_lock) {
             int size = 0;
-            for(HashMap<K, V> bucket: _buckets) {
-                size+=bucket.size();
-            }
+            _buckets.stream().map(bucket -> bucket.size()).reduce(size, Integer::sum);
             return size;
         }
     }

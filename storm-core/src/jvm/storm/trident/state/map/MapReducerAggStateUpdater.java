@@ -67,9 +67,9 @@ public class MapReducerAggStateUpdater implements StateUpdater<MapState> {
         }
         List<List<Object>> uniqueGroups = new ArrayList(grouped.keySet());
         List<ValueUpdater> updaters = new ArrayList(uniqueGroups.size());
-        for(List<Object> group: uniqueGroups) {
+        uniqueGroups.forEach(group -> {
             updaters.add(new ReducerValueUpdater(_agg, grouped.get(group)));
-        }
+        });
         List<Object> results = map.multiUpdate(uniqueGroups, updaters);
 
         for(int i=0; i<uniqueGroups.size(); i++) {
